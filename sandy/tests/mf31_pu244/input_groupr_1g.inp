@@ -1,0 +1,14 @@
+groupr
+-21 -23 0 26 /
+9452 1 0 2 1 1 1 1 /
+'NUBAR'
+900. /
+1.e10 /
+1
+1e-5 2e7
+3 452 'TOTAL NUBAR' /
+3 455 'DELAYED NUBAR' /
+3 456 'PROMPT NUBAR' /
+0 /
+0 /
+stop

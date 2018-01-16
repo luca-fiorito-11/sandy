@@ -1,0 +1,4 @@
+mode : sampling
+endf : Pu244.dat
+samples : 1000
+mf : [31]

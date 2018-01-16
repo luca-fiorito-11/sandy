@@ -1,0 +1,8 @@
+errorr
+ -21 0 91 27 0 0 /
+ 9999 1 2 1 1 /
+ 1 300./
+ 0 35 1 1 -1 1e6 /  incident-neutron energy is 1 MeV
+ 3 /  number of energy groups
+ 1.000000-5 1.000000+4 1.000000+6 2.000000+7 /  energy boundaries
+stop

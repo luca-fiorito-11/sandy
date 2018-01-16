@@ -1,0 +1,2 @@
+recursive-include sandy *.py *.so *.exe *.inp *.dat
+include setup.py

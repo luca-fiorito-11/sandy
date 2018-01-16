@@ -1,0 +1,4 @@
+endf : DCf252.dat
+mf : [35]
+samples : 1000
+mode : sampling
