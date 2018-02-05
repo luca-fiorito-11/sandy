@@ -7,6 +7,64 @@ Created on Mon Jan 16 18:03:13 2017
 import sys
 import logging
 
+def split(file):
+    import re
+    pattern = ".{74}0.{5}\n?"
+    text = open(file).read()
+    U = re.split(pattern, text)
+    return list(filter(None, U)) # remove empty lines
+
+
+
+class Chunk:
+    """
+    ``ENDF-6`` control file.
+    """
+    
+    @property
+    def n(self):
+        r"""
+        Number of lines of the `ENDF-6` file
+        """
+        return len(self.text)
+
+    @property
+    def line(self):
+        """
+        Return current line.
+        """
+        return self.text[self.i]
+
+    def __init__(self, text):
+        self.mat = int(text[66:70])
+        self.mf = int(text[70:72])
+        self.mt = int(text[72:75])
+        self.text = list(map(lambda x: x[:66], text.splitlines()))
+        self.i = 0    
+
+    def __iter__(self):
+        """
+        Make the file an iterator.
+        """
+        return self
+    
+    def next(self):
+        """
+        Yield a new line of the `ENDF-6` file.
+        """
+        line = self.line
+        self.i += 1
+        return line
+
+
+def list2dict(chunks):
+    return 1
+
+
+A=split("H1.txt")
+B=Chunk(A[-1])
+list2dict(A)
+
 class File:
     """ General text file """
 
