@@ -6,8 +6,12 @@ Created on Mon Jan 16 18:03:13 2017
 """
 import sys
 import logging
+import numpy as np
 
 def split(file):
+    """
+    Split ``ENDF-6`` file  into MFMT sections.
+    """
     import re
     pattern = ".{74}0.{5}\n?"
     text = open(file).read()
@@ -18,9 +22,9 @@ def split(file):
 
 class Chunk:
     """
-    ``ENDF-6`` control file.
+    MFMT section
     """
-    
+
     @property
     def n(self):
         r"""
@@ -35,19 +39,24 @@ class Chunk:
         """
         return self.text[self.i]
 
-    def __init__(self, text):
+    def __init__(self, text, mat=None, mf=None, mt=None):
+        from io import StringIO
+        import pandas as pd
         self.mat = int(text[66:70])
         self.mf = int(text[70:72])
         self.mt = int(text[72:75])
-        self.text = list(map(lambda x: x[:66], text.splitlines()))
-        self.i = 0    
+        # first argument must be any object with a read() method (such as a StringIO)
+        self.text = pd.read_fwf(StringIO(text), widths=6*[11]+[4,2,3,5],
+                                names=("c1","c2","l1","l2","n1","n2","mat","mf","mt","ns"),
+                                header=None)
+        self.i = 0
 
     def __iter__(self):
         """
         Make the file an iterator.
         """
         return self
-    
+
     def next(self):
         """
         Yield a new line of the `ENDF-6` file.
@@ -56,14 +65,66 @@ class Chunk:
         self.i += 1
         return line
 
+    def move(self, steps):
+        """
+        Move backward/forward a number of lines in the ``ENDF-6`` text.
+
+        Inputs:
+        - :``steps``: :
+            (scalar integer) number of lines to jump
+        """
+        self.i += int(steps)
+
+    def read_cont(self):
+        """
+        Read ``ENDF-6`` ``CONT`` record in formatted fortran.
+
+        Outputs:
+            - :``out``: :
+                (tuple) content of ``CONT`` record
+
+        Found error in:
+            - n-17-Cl-035.jeff32
+            - n-3-Li-007.jeff32
+            - n-63-Eu-152.jeff32
+            - n-63-Eu-153.jeff32
+            - n-64-Gd-155.jeff32
+            - n-77-Ir-193.jeff32
+            - n-90-Th-229.jeff32
+            - n-94-Pu-238.jeff32
+            - n-94-Pu-241.jeff32
+            - n-94-Pu-242.jeff32
+            - n-97-Bk-250.jeff32
+            - n-98-Cf-254.jeff32
+        """
+        try:
+            out = (float(self.line.c1), float(self.line.c2), float(self.line.l1),
+                   float(self.line.l2), float(self.line.n1), float(self.line.n2))
+            self.i += 1
+            return out
+        except:
+            sys.exit("ERROR: line is not CONT.\n{}".format(self.line))
+
 
 def list2dict(chunks):
     return 1
 
 
 A=split("H1.txt")
+print ("AAA")
 B=Chunk(A[-1])
-list2dict(A)
+import re
+line = re.sub('\n', '', A[1])
+AAA=re.findall('.{11}', 'line')
+import pandas as pd
+line = open('012503001').read()
+line = re.sub('\n', '', line)
+blocks = re.findall('.{11}', line)
+df = pd.read_fwf('012503001', widths=6*[11]+[4,2,3,5],
+                 names=("C1","C2","L1","L2","N1","N2","MAT","MF","MT","NS"),
+                 header=None)
+sys.exit()
+df.fillna(0, inplace=True)
 
 class File:
     """ General text file """
@@ -72,7 +133,7 @@ class File:
     def isfile(filename):
         """
         Check if file exists.
-    
+
         Inputs:
             - filename :
                 (string) path+name of the file
@@ -85,26 +146,26 @@ class File:
     def __init__(self, filename):
         """
         Initialize file.
-        
+
         Inputs:
             - filename :
                 (string) path+name of the file
-        
+
         ..Important::
-            Use encoding="ascii" and errors="surrogateescape" when opening the 
-            file in order to process files in ASCII compatible encoding such as 
+            Use encoding="ascii" and errors="surrogateescape" when opening the
+            file in order to process files in ASCII compatible encoding such as
             `utf-8` and `latin-1`.
         """
         self.filename = filename
         self.f = open(self.filename, encoding="ascii", errors="surrogateescape")
-    
+
     @property
     def filename(self):
         """
         Absolute file path + name.
         """
         return self._filename
-    
+
     @filename.setter
     def filename(self, filename):
         from os.path import expanduser, abspath
@@ -148,7 +209,7 @@ class File:
         Description
         ===========
         Load the content of input object *stream*.
-        
+
         Outputs
         ======
          - *load*: text in yaml format
@@ -163,11 +224,11 @@ class File:
 #import pytest
 #
 #class TestFile:
-#    
+#
 #    fileyaml = '../test_objects/input.yaml'
 #    filenotyaml = '../test_objects/input.not_yaml'
 #    filenotexists = 'nonexistingfile'
-#    
+#
 #    def test_is_not_file(self):
 #        from files import File
 #        with pytest.raises(SystemExit):
@@ -176,17 +237,17 @@ class File:
 #    def test_is_file(self):
 #        from files import File
 #        File.isfile(self.fileyaml)
-#    
+#
 #    def test_init_file(self):
 #        from files import File
 #        F = File(self.fileyaml)
 #        assert F.name == 'input.yaml'
-#    
+#
 #    def test_read_file(self):
 #        from files import File
 #        F = File(self.fileyaml)
 #        assert F.read() == open(self.fileyaml).readlines()
-#    
+#
 #    def test_load_yaml_file(self):
 #        from files import File
 #        F = File(self.fileyaml)

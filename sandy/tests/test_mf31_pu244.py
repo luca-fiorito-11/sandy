@@ -23,7 +23,7 @@ class SandySamples(Samples):
     r"""
     Matrix of output samples.
     """
-    
+
     def write_stats(self):
         outobj.write(80*"+"+'\n')
         outobj.write("{:^80}\n".format('SANDY RESULTS'))
@@ -43,7 +43,7 @@ class Folder:
     r"""
     Parent class for every working folder.
     """
-    
+
     def __init__(self, path):
         self.CWD = path
 
@@ -52,7 +52,7 @@ class Folder:
         Make directory.
         """
         mkdir(self.CWD)
-    
+
     def move(self, src, name=None):
         r"""
         Move file to sample directory.
@@ -73,22 +73,22 @@ class Folder:
         """
         NAME = name if name else basename(src)
         symlink(src, join(self.CWD, NAME))
-    
+
     def get_file(self, basename):
         r"""
         Get path + name of file.
-        
+
         Inputs:
             - :``basename``: :
                 (string) file's basename
         """
         return join(self.CWD, basename)
-    
+
     def run_sandy(self, sandy_input, outdir=None):
         r"""
-        Run ``SANDY`` sampling calculation for this test using the 
+        Run ``SANDY`` sampling calculation for this test using the
         prewritten ``SANDY`` input file given in argument.
-        
+
         Inputs:
             - :``sandy_input``: :
                 (string) ``SANDY`` input file
@@ -101,7 +101,7 @@ class Folder:
 
 
 class Sandy(Folder):
-    
+
     def __init__(self, path, nsmp):
         super().__init__(path)
         self.FOLDERS = [ Isample(ismp, self.CWD) for ismp in range(1, nsmp+1) ]
@@ -109,40 +109,40 @@ class Sandy(Folder):
     @property
     def nsmp(self):
         return len(self.FOLDERS)
-    
+
     def init_samples(self, parms):
         nparms = len(parms)
         smp = SandySamples(parms, np.zeros((nparms, self.nsmp)))
         return smp
-        
+
 
 
 class Isample(Folder):
     r"""
     Calculation for individual sample.
-    Each calculation instance is characterized by a sample number and a 
+    Each calculation instance is characterized by a sample number and a
     working folder.
     """
-    
+
     def __init__(self, ismp, path):
         self.ismp = ismp
         super().__init__(join(path, self.idir))
-    
+
     @property
     def idir(self):
         r"""
         Directory name for the sample.
         """
         return "smp-{}".format(self.ismp)
-    
+
 
 
 class NJOYOUT(list):
-    
+
     def __init__(self, file):
         with open(file) as f:
             super().__init__(f)
-    
+
     def get_value(self, mf, mt, row, col):
         from sandy.rw_fortran import r_exp_format
         control = "{:>2}{:>3}".format(mf, mt)
@@ -165,10 +165,10 @@ class NJOYOUT(list):
 class TEST:
     r"""
     Parent class for every test.
-    Most of its properties require attributes that should be defined in the 
+    Most of its properties require attributes that should be defined in the
     inheriting class.
     """
-    
+
     @property
     def nsmp(self):
         r"""
@@ -177,7 +177,7 @@ class TEST:
         from sandy.files import File
         options = File(self.input_sandy).load_yaml()
         return options['samples']
-    
+
     @property
     def CWD(self):
         r"""
@@ -191,28 +191,28 @@ class TEST:
         Directory for reference ``NJOY`` calculation.
         """
         return join(self.tmpdir.strpath, "reference")
-    
+
     @property
     def endf(self):
         r"""
         ``ENDF-6`` path + file.
         """
         return join(self.CWD, self._endf_file)
-    
+
     @property
     def outdir(self):
         r"""
         ``SANDY`` output directory.
         """
         return join(self.tmpdir.strpath, "SANDY_OUT")
-    
+
     @property
     def input_sandy(self):
         r"""
         ``SANDY`` path + input file.
         """
         return join(self.CWD, "input_sandy.inp")
-    
+
     @property
     def njoy_inputs(self):
         r"""
@@ -229,22 +229,22 @@ class TEST:
 def run_exe(args, stdin=None, cwd=None):
     r"""
     Run general executable.
-    
+
     Inputs:
     - :``args``: : executable and command line arguments in a list
     """
     from subprocess import Popen, PIPE
     stdout = stderr = PIPE
-    process = Popen(args, shell=False, cwd=cwd, 
+    process = Popen(args, shell=False, cwd=cwd,
                     stdin=PIPE,
-                    stdout=stdout, 
+                    stdout=stdout,
                     stderr=stderr)
     stdoutdata, stderrdata = process.communicate(input=stdin)
     if process.returncode != 0:
         msg = "Process status={}, cannot run '{}'"
         raise NotImplementedError(msg.format(process.returncode, " ".join(args)))
 
-    
+
 
 class Test_mf31_pu244(TEST):
 
@@ -259,7 +259,7 @@ class Test_mf31_pu244(TEST):
                     "input_groupr_1g.inp"]
     mf = 3
     mts = [452, 455, 456]
-    
+
     def test_run(self, tmpdir):
         self.tmpdir = tmpdir
         self.TMPDIR = Folder(self.tmpdir.strpath)
@@ -285,7 +285,7 @@ class Test_mf31_pu244(TEST):
         self.write_title()
         self.process_output_reference()
         self.process_output_sandy()
-    
+
     def process_output_reference(self):
         from sandy.cov import Cov
         means = np.array([ self.REF.output.get_value(3, mt, 2, 1) for mt in self.mts ])
@@ -338,7 +338,31 @@ class Test_mf31_pu244(TEST):
         outobj.write("\n".join(lines) + '\n')
 
 
-
+def run_test_mf31_pu244():
+	self.tmpdir = tmpdir
+	self.TMPDIR = Folder(self.tmpdir.strpath)
+	self.REF = Reference(self.ref)
+	self.REF.run_reference(self.endf, *self.njoy_inputs[:-1])
+	self.REF.output = NJOYOUT(self.REF.get_file("tape27"))
+	self.TMPDIR.copy(self.endf)
+	self.TMPDIR.OUTDIR = Sandy(self.outdir, self.nsmp)
+	run_exe("sandy", self.input_sandy, "-o", self.TMPDIR.OUTDIR.CWD)
+	if outdir:
+		args += ["-o", outdir]
+	TEST.run_exe(args, cwd=self.CWD)
+	for ISMP in self.TMPDIR.OUTDIR.FOLDERS:
+		ifile = ISMP.get_file(self._endf_file + "." + ISMP.idir)
+		ISMP.move(ifile, "tape20")
+		ISMP.symlink(self.REF.get_file("tape23"))
+		ISMP.run_njoy(self.njoy_inputs[0],
+				self.njoy_inputs[3],
+				self.njoy_inputs[4],
+				self.njoy_inputs[5])
+		ISMP.output_errorr = NJOYOUT(ISMP.get_file("tape27"))
+		ISMP.output_groupr = NJOYOUT(ISMP.get_file("tape26"))
+		self.write_title()
+		self.process_output_reference()
+		self.process_output_sandy()
 
 # Parse command line arguments and pass them to pytest
 # This is done to use pytest as an entry point in setup.py
@@ -348,4 +372,4 @@ class Test_mf31_pu244(TEST):
 #pytest.main(args)
 
 if __name__ == "__main__":
-#    run_test_mf31_pu244()
+    run_test_mf31_pu244()
