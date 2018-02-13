@@ -7,6 +7,50 @@ Created on Mon Jan 16 18:03:13 2017
 import sys
 import logging
 import numpy as np
+import fortranformat as ff
+from collections import namedtuple
+
+head_format = '(A66)'
+cont_format = '(2E11.0,4I11)'
+ilist_format = '(6I11)'
+list_format = '(6E11.0)'
+head_format_r = ff.FortranRecordReader(head_format)
+cont_format_r = ff.FortranRecordReader(cont_format)
+list_format_r = ff.FortranRecordReader(list_format)
+ilist_format_r = ff.FortranRecordReader(ilist_format)
+
+CONT = namedtuple('CONT', 'C1 C2 L1 L2 N1 N2')
+LIST = namedtuple('LIST', 'C1 C2 L1 L2 NPL N2 B')
+TAB1 = namedtuple('LIST', 'C1 C2 L1 L2 NR NP x y')
+
+def read_cont(text, ipos):
+    try:
+        cont = CONT(*cont_format_r.read(text[ipos]))
+        ipos += 1
+        return cont, ipos
+    except:
+        sys.exit("ERROR: cannot read CONT at '{}'".format(text[ipos]))
+            
+def read_tab1(text, ipos):
+    try:
+        cont, ipos = read_cont(text, ipos)
+        i = 0
+        x = []
+        while i < cont.N1:
+            x.extend(ilist_format_r.read(text[ipos]))
+            ipos += 1
+            i += 6
+        i = 0
+        y = []
+        while i < cont.N2:
+            y.extend(list_format_r.read(text[ipos]))
+            ipos += 1
+            i += 6
+        return
+    except:
+        sys.exit("ERROR: cannot read LIST at '{}'".format(text[ipos]))
+    
+    
 
 def split(file):
     """
@@ -111,7 +155,10 @@ def list2dict(chunks):
 
 
 A=split("H1.txt")
-print ("AAA")
+XS=A[2].splitlines()
+ii=0
+CC, ii = read_cont(XS,ii)
+read_tab1(XS,ii)
 B=Chunk(A[-1])
 import re
 line = re.sub('\n', '', A[1])
