@@ -19,38 +19,59 @@ cont_format_r = ff.FortranRecordReader(cont_format)
 list_format_r = ff.FortranRecordReader(list_format)
 ilist_format_r = ff.FortranRecordReader(ilist_format)
 
-CONT = namedtuple('CONT', 'C1 C2 L1 L2 N1 N2')
-LIST = namedtuple('LIST', 'C1 C2 L1 L2 NPL N2 B')
-TAB1 = namedtuple('LIST', 'C1 C2 L1 L2 NR NP x y')
 
 def read_cont(text, ipos):
+    CONT = namedtuple('CONT', 'C1 C2 L1 L2 N1 N2')
     try:
-        cont = CONT(*cont_format_r.read(text[ipos]))
+        C = CONT(*cont_format_r.read(text[ipos]))
         ipos += 1
-        return cont, ipos
+        return C, ipos
     except:
         sys.exit("ERROR: cannot read CONT at '{}'".format(text[ipos]))
-            
+
+
 def read_tab1(text, ipos):
+    TAB1 = namedtuple('TAB1', 'C1 C2 L1 L2 NR NP NBT INT x y')
     try:
-        cont, ipos = read_cont(text, ipos)
+        C, ipos = read_cont(text, ipos)
         i = 0
-        x = []
-        while i < cont.N1:
-            x.extend(ilist_format_r.read(text[ipos]))
+        tab = []
+        while i < C.N1*2:
+            tab.extend(ilist_format_r.read(text[ipos]))
             ipos += 1
             i += 6
         i = 0
-        y = []
-        while i < cont.N2:
-            y.extend(list_format_r.read(text[ipos]))
+        tab = tab[:C.N1*2]
+        NBT = tab[::2]
+        INT = tab[1::2]
+        tab = []
+        while i < C.N2*2:
+            tab.extend(list_format_r.read(text[ipos]))
             ipos += 1
             i += 6
-        return
+        tab = tab[:C.N2*2]
+        x = np.array(tab[::2], dtype=float)
+        y = np.array(tab[1::2], dtype=float)
+        return TAB1(C.C1, C.C2, C.L1, C.L2, C.N1, C.N2, NBT, INT, x, y), ipos
+    except:
+        sys.exit("ERROR: cannot read TAB1 at '{}'".format(text[ipos]))
+
+
+def read_list(text, ipos):
+    LIST = namedtuple('LIST', 'C1 C2 L1 L2 NPL N2 B')
+    try:
+        C, ipos = read_cont(text, ipos)
+        i = 0
+        tab = []
+        while i < C.N1*2:
+            tab.extend(list_format_r.read(text[ipos]))
+            ipos += 1
+            i += 6
+        tab = tab[:C.N1*2]
+        return LIST(C.C1, C.C2, C.L1, C.L2, C.N1, C.N2, tab), ipos
     except:
         sys.exit("ERROR: cannot read LIST at '{}'".format(text[ipos]))
-    
-    
+
 
 def split(file):
     """
