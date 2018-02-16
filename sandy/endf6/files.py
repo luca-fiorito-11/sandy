@@ -154,14 +154,13 @@ def read_mf33_mt(text):
                                "EI" : L.B[2:2+L.N2], "WEI" : L.B[2+L.N2:]})
                 NCLIST.append(subsub)
             NCLIST.append(subsub)
-        if len(NCLIST) != 0:
-            sub.update({"NC" : NCLIST})
+        sub.update({"NC" : NCLIST})
         NILIST = []
         for k in range(NI):
-            L, i = read_cont(str_list, i)
+            L, i = read_list(str_list, i)
             subsub = {"LB" : L.L2}
             if subsub["LB"] in range(5):
-                subsub.update({"LT" : L.L1, "NT" : L.N1, "NP" : L.N2})
+                subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
                 if subsub["LT"] == 0:
                     subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
                 else:
@@ -171,25 +170,84 @@ def read_mf33_mt(text):
                     subsub.update({"Ek" : ARRk[:Nk/2], "Fk" : ARRk[Nk/2:],
                                    "El" : ARRl[:subsub["LT"]], "Fl" : ARRl[subsub["LT"]:]})
             elif subsub["LB"] == 5:
-                subsub.update({"LS" : L.L1, "NT" : L.N1, "NE" : L.N2,
+                subsub.update({"LS" : L.L1, "NT" : L.NPL, "NE" : L.N2,
                                "Ek" : L.B[:L.N2], "Fkk" : L.B[L.N2:]})
             elif subsub["LB"] == 6:
-                subsub.update({"NT" : L.N1, "NER" : L.N2})
+                subsub.update({"NT" : L.NPL, "NER" : L.N2})
                 subsub.update({"NEC": (subsub["NT"]-1)/subsub["NER"]})
                 subsub.update({"Ek" : L.B[:(subsub["NER"]+subsub["NEC"])],
                                "Fkk" : L.B[(subsub["NER"]+subsub["NEC"]):]})
             elif subsub["LB"] in (8,9):
-                subsub.update({"LT" : L.L1, "NT" : L.N1, "NP" : L.N2})
+                subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
                 subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
             NILIST.append(subsub)
-        if len(NILIST) != 0:
-            sub.update({"NI" : NILIST})
+        sub.update({"NI" : NILIST})
         out["SUB"].append(sub)
     return out
 
+def write_mf33_mt(MF33):
+    out = {"MAT" : int(str_list[i][66:70]),
+           "MF" : int(str_list[i][70:72]),
+           "MT" : int(str_list[i][72:75])}
+    C, i = read_cont(str_list, i)
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "MTL" : C.L2, "SUB" : []})
+    for j in range(C.N2):
+        sub = {}
+        C, i = read_cont(str_list, i)
+        sub.update({"XMF1" : C.C1, "XLFS1" : C.C2, "MAT1" : C.L1, "MT1" : C.L2})
+        NC = C.N1
+        NI = C.N2
+        NCLIST = []
+        for k in range(NC):
+            C, i = read_cont(str_list, i)
+            subsub = {"LTY" : C.L2}
+            if subsub["LTY"] == 0:
+                L, i = read_list(str_list, i)
+                subsub.update({"E1" : L.C1, "E2" : L.C2,
+                               "CI" : L.B[:L.N2], "XMTI" : L.B[L.N2:]})
+                NCLIST.append(subsub)
+            elif subsub["LTY"] in (1,2,3):
+                L, i = read_list(str_list, i)
+                subsub.update({"E1" : L.C1, "E2" : L.C2, "MATS" : L.L1, "MTS" : L.L2,
+                               "XMFS" : L.B[0], "XLFSS" : L.B[1],
+                               "EI" : L.B[2:2+L.N2], "WEI" : L.B[2+L.N2:]})
+                NCLIST.append(subsub)
+            NCLIST.append(subsub)
+        sub.update({"NC" : NCLIST})
+        NILIST = []
+        for k in range(NI):
+            L, i = read_list(str_list, i)
+            subsub = {"LB" : L.L2}
+            if subsub["LB"] in range(5):
+                subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
+                if subsub["LT"] == 0:
+                    subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
+                else:
+                    Nk = subsub["NP"] - subsub["LT"]
+                    ARRk = L.B[:Nk]
+                    ARRl = L.B[Nk:]
+                    subsub.update({"Ek" : ARRk[:Nk/2], "Fk" : ARRk[Nk/2:],
+                                   "El" : ARRl[:subsub["LT"]], "Fl" : ARRl[subsub["LT"]:]})
+            elif subsub["LB"] == 5:
+                subsub.update({"LS" : L.L1, "NT" : L.NPL, "NE" : L.N2,
+                               "Ek" : L.B[:L.N2], "Fkk" : L.B[L.N2:]})
+            elif subsub["LB"] == 6:
+                subsub.update({"NT" : L.NPL, "NER" : L.N2})
+                subsub.update({"NEC": (subsub["NT"]-1)/subsub["NER"]})
+                subsub.update({"Ek" : L.B[:(subsub["NER"]+subsub["NEC"])],
+                               "Fkk" : L.B[(subsub["NER"]+subsub["NEC"]):]})
+            elif subsub["LB"] in (8,9):
+                subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
+                subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
+            NILIST.append(subsub)
+        sub.update({"NI" : NILIST})
+        out["SUB"].append(sub)
+    return out
 
 A=split("H1.txt")
 O=read_mf3_mt(A[2])
+P=read_mf33_mt(A[-1])
+write_mf33_mt(P)
 XS=A[2].splitlines()
 ii=0
 
