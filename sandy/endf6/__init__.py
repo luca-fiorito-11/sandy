@@ -1,1 +1,1 @@
-from records import read_cont, read_tab1, read_list
+from records import read_cont, read_tab1, read_list, read_text

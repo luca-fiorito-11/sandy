@@ -7,71 +7,7 @@ Created on Mon Jan 16 18:03:13 2017
 import sys
 import logging
 import numpy as np
-import fortranformat as ff
-from collections import namedtuple
-
-head_format = '(A66)'
-cont_format = '(2E11.0,4I11)'
-ilist_format = '(6I11)'
-list_format = '(6E11.0)'
-head_format_r = ff.FortranRecordReader(head_format)
-cont_format_r = ff.FortranRecordReader(cont_format)
-list_format_r = ff.FortranRecordReader(list_format)
-ilist_format_r = ff.FortranRecordReader(ilist_format)
-
-
-def read_cont(text, ipos):
-    CONT = namedtuple('CONT', 'C1 C2 L1 L2 N1 N2')
-    try:
-        C = CONT(*cont_format_r.read(text[ipos]))
-        ipos += 1
-        return C, ipos
-    except:
-        sys.exit("ERROR: cannot read CONT at '{}'".format(text[ipos]))
-
-
-def read_tab1(text, ipos):
-    TAB1 = namedtuple('TAB1', 'C1 C2 L1 L2 NR NP NBT INT x y')
-    try:
-        C, ipos = read_cont(text, ipos)
-        i = 0
-        tab = []
-        while i < C.N1*2:
-            tab.extend(ilist_format_r.read(text[ipos]))
-            ipos += 1
-            i += 6
-        i = 0
-        tab = tab[:C.N1*2]
-        NBT = tab[::2]
-        INT = tab[1::2]
-        tab = []
-        while i < C.N2*2:
-            tab.extend(list_format_r.read(text[ipos]))
-            ipos += 1
-            i += 6
-        tab = tab[:C.N2*2]
-        x = np.array(tab[::2], dtype=float)
-        y = np.array(tab[1::2], dtype=float)
-        return TAB1(C.C1, C.C2, C.L1, C.L2, C.N1, C.N2, NBT, INT, x, y), ipos
-    except:
-        sys.exit("ERROR: cannot read TAB1 at '{}'".format(text[ipos]))
-
-
-def read_list(text, ipos):
-    LIST = namedtuple('LIST', 'C1 C2 L1 L2 NPL N2 B')
-    try:
-        C, ipos = read_cont(text, ipos)
-        i = 0
-        tab = []
-        while i < C.N1*2:
-            tab.extend(list_format_r.read(text[ipos]))
-            ipos += 1
-            i += 6
-        tab = tab[:C.N1*2]
-        return LIST(C.C1, C.C2, C.L1, C.L2, C.N1, C.N2, tab), ipos
-    except:
-        sys.exit("ERROR: cannot read LIST at '{}'".format(text[ipos]))
-
+from records import read_cont, read_tab1, read_list, read_text
 
 def split(file):
     """
@@ -175,9 +111,88 @@ def list2dict(chunks):
     return 1
 
 
+def read_mf3_mt(text):
+    str_list = text.splitlines()
+    i = 0
+    out = {"MAT" : int(str_list[i][66:70]),
+           "MF" : int(str_list[i][70:72]),
+           "MT" : int(str_list[i][72:75])}
+    C, i = read_cont(str_list, i)
+    out.update({"ZA" : C.C1, "AWR" : C.C2})
+    T, i = read_tab1(str_list, i)
+    out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "E" : T.x, "XS" : T.y})
+    return out
+
+
+def read_mf33_mt(text):
+    str_list = text.splitlines()
+    i = 0
+    out = {"MAT" : int(str_list[i][66:70]),
+           "MF" : int(str_list[i][70:72]),
+           "MT" : int(str_list[i][72:75])}
+    C, i = read_cont(str_list, i)
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "MTL" : C.L2, "SUB" : []})
+    for j in range(C.N2):
+        sub = {}
+        C, i = read_cont(str_list, i)
+        sub.update({"XMF1" : C.C1, "XLFS1" : C.C2, "MAT1" : C.L1, "MT1" : C.L2})
+        NC = C.N1
+        NI = C.N2
+        NCLIST = []
+        for k in range(NC):
+            C, i = read_cont(str_list, i)
+            subsub = {"LTY" : C.L2}
+            if subsub["LTY"] == 0:
+                L, i = read_list(str_list, i)
+                subsub.update({"E1" : L.C1, "E2" : L.C2,
+                               "CI" : L.B[:L.N2], "XMTI" : L.B[L.N2:]})
+                NCLIST.append(subsub)
+            elif subsub["LTY"] in (1,2,3):
+                L, i = read_list(str_list, i)
+                subsub.update({"E1" : L.C1, "E2" : L.C2, "MATS" : L.L1, "MTS" : L.L2,
+                               "XMFS" : L.B[0], "XLFSS" : L.B[1],
+                               "EI" : L.B[2:2+L.N2], "WEI" : L.B[2+L.N2:]})
+                NCLIST.append(subsub)
+            NCLIST.append(subsub)
+        if len(NCLIST) != 0:
+            sub.update({"NC" : NCLIST})
+        NILIST = []
+        for k in range(NI):
+            L, i = read_cont(str_list, i)
+            subsub = {"LB" : L.L2}
+            if subsub["LB"] in range(5):
+                subsub.update({"LT" : L.L1, "NT" : L.N1, "NP" : L.N2})
+                if subsub["LT"] == 0:
+                    subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
+                else:
+                    Nk = subsub["NP"] - subsub["LT"]
+                    ARRk = L.B[:Nk]
+                    ARRl = L.B[Nk:]
+                    subsub.update({"Ek" : ARRk[:Nk/2], "Fk" : ARRk[Nk/2:],
+                                   "El" : ARRl[:subsub["LT"]], "Fl" : ARRl[subsub["LT"]:]})
+            elif subsub["LB"] == 5:
+                subsub.update({"LS" : L.L1, "NT" : L.N1, "NE" : L.N2,
+                               "Ek" : L.B[:L.N2], "Fkk" : L.B[L.N2:]})
+            elif subsub["LB"] == 6:
+                subsub.update({"NT" : L.N1, "NER" : L.N2})
+                subsub.update({"NEC": (subsub["NT"]-1)/subsub["NER"]})
+                subsub.update({"Ek" : L.B[:(subsub["NER"]+subsub["NEC"])],
+                               "Fkk" : L.B[(subsub["NER"]+subsub["NEC"]):]})
+            elif subsub["LB"] in (8,9):
+                subsub.update({"LT" : L.L1, "NT" : L.N1, "NP" : L.N2})
+                subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
+            NILIST.append(subsub)
+        if len(NILIST) != 0:
+            sub.update({"NI" : NILIST})
+        out["SUB"].append(sub)
+    return out
+
+
 A=split("H1.txt")
+O=read_mf3_mt(A[2])
 XS=A[2].splitlines()
 ii=0
+
 CC, ii = read_cont(XS,ii)
 read_tab1(XS,ii)
 B=Chunk(A[-1])

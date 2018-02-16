@@ -11,15 +11,23 @@ import numpy as np
 import fortranformat as ff
 from collections import namedtuple
 
-head_format = '(A66)'
+text_format = '(A66)'
 cont_format = '(2E11.0,4I11)'
 ilist_format = '(6I11)'
 list_format = '(6E11.0)'
-head_format_r = ff.FortranRecordReader(head_format)
+text_format_r = ff.FortranRecordReader(text_format)
 cont_format_r = ff.FortranRecordReader(cont_format)
 list_format_r = ff.FortranRecordReader(list_format)
 ilist_format_r = ff.FortranRecordReader(ilist_format)
 
+def read_text(text, ipos):
+    TEXT = namedtuple('TEXT', 'HL')
+    try:
+        text = TEXT(*text_format_r.read(text[ipos]))
+        ipos += 1
+        return text, ipos
+    except:
+        sys.exit("ERROR: cannot read TEXT at '{}'".format(text[ipos]))
 
 def read_cont(text, ipos):
     CONT = namedtuple('CONT', 'C1 C2 L1 L2 N1 N2')
