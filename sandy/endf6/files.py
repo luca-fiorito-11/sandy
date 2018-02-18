@@ -131,7 +131,9 @@ def read_mf33_mt(text):
            "MF" : int(str_list[i][70:72]),
            "MT" : int(str_list[i][72:75])}
     C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "MTL" : C.L2, "SUB" : []})
+    # Subsections are given as dictionary values.
+    # Keys are MAT1*100+MT1
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "MTL" : C.L2, "SUB" : {}})
     for j in range(C.N2):
         sub = {}
         C, i = read_cont(str_list, i)
@@ -182,7 +184,7 @@ def read_mf33_mt(text):
                 subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
             NILIST.append(subsub)
         sub.update({"NI" : NILIST})
-        out["SUB"].append(sub)
+        out["SUB"].update({sub["MAT1"]*1000+sub["MT1"] : sub})
     return out
 
 def write_mf33_mt(MF33):
@@ -244,9 +246,16 @@ def write_mf33_mt(MF33):
         out["SUB"].append(sub)
     return out
 
+
+def extract_cov_mf33(MF33, mt=[102]):
+    for sub in MF33["SUB"].values():
+        
+        
+    
 A=split("H1.txt")
 O=read_mf3_mt(A[2])
 P=read_mf33_mt(A[-1])
+extract_cov_mf33(P)
 write_mf33_mt(P)
 XS=A[2].splitlines()
 ii=0
