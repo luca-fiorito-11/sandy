@@ -274,15 +274,21 @@ def merge_covs(covdf):
     query_diag = 'MT==MT1 & (MAT1==0 | MAT==MAT1)'
     query_offdiag = 'MT!=MT1 | MAT1!=0'
     diags = covdf.query(query_diag)
+    diags.reset_index(inplace=True)
     # Process diagonal blocks
     # This part is extracted from scipy.linalg.diagblock
-    arrs = diags.COV
-    shapes = np.array([a.shape for a in arrs])
-    C = np.zeros(np.sum(shapes, axis=0))
+    shapes = np.array([a.COV.shape for i,a in diags.iterrows()])
+    ndim = np.sum(shapes, axis=0)[0]
+    C = np.zeros((ndim,ndim)); E = np.zeros(ndim)
+    MATS = np.zeros(ndim, dtype=int); MTS = np.zeros(ndim, dtype=int)
     r, c = 0, 0
     beg, end = [], []
     for i, (rr, cc) in enumerate(shapes):
-        C[r:r + rr, c:c + cc] = arrs[i]
+        d = diags.iloc[i]
+        C[r:r + rr, c:c + cc] = d.COV
+        E[r:r + rr] = d.COV.index
+        MATS[r:r + rr] = d.MAT
+        MTS[r:r + rr] = d.MT
         beg.append(r)
         end.append(r + rr)
         r += rr
@@ -293,17 +299,19 @@ def merge_covs(covdf):
     for (mat,mt,mat1,mt1),row in covdf.query(query_offdiag).iterrows():
         cov = row.COV
         # interpolate x axis (rows)
-        covk = diags.loc[mat,mt,0,mt]
+        covk = covdf.loc[mat,mt,0,mt]
         Ek = list(covk.COV.index)
         cov = pandas_interpolate(cov, Ek, method='zero', axis='rows')
         # interpolate y axis (cols)
         if mat1 == 0:
             mat1 = mat
-        covl = diags.loc[mat1,mt1,0,mt1]
+        covl = covdf.loc[mat1,mt1,0,mt1]
         El = list(covl.COV.index)
         cov = pandas_interpolate(cov, El, method='zero', axis='cols')
         C[covk.BEG:covk.END,covl.BEG:covl.END] = cov
         C[covl.BEG:covl.END,covk.BEG:covk.END,] = cov.T
+    C = pd.DataFrame(C, index=[MATS,MTS,E], columns=[MATS,MTS,E])
+    C.sort_index(inplace=True)
     return C
 
 
@@ -317,34 +325,24 @@ def merge_covs(covdf):
 #        "MT" : int(chunk[72:75]),
 #        }, ignore_index=True)
 file = "H1.txt"
-file = "26-Fe-56g.jeff33"
+#file = "26-Fe-56g.jeff33"
 tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x, int(x[66:70])*100000+int(x[70:72])*1000+int(x[72:75])] for x in split(file)],
         columns=('MAT', 'MF', 'MT','TEXT', 'ID'))
-tape.set_index('ID', inplace=True)
 tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
 tape['DATA'] = tape['TEXT'].apply(process_section)
 
-#tape as a dictionary
-#tape = {}
-#for chunk in split("H1.txt"):
-#    mat = int(chunk[66:70])
-#    mf = int(chunk[70:72])
-#    mt = int(chunk[72:75])
-#    if mat not in tape:
-#        tape.update({mat : {}})
-#    if mf not in tape[mat]:
-#        tape[mat].update({mf : {}})
-#    tape[mat][mf].update({mt : chunk})
-
-#process sections in dictionary
-#for mat in tape:
-#    for mf in tape[mat]:
-#        for mt in tape[mat][mf]:
-#            if mf == 3:
-#                tape[mat][mf][mt] = read_mf3_mt(tape[mat][mf][mt])
-#            elif mf ==33:
-#                tape[mat][mf][mt] = read_mf33_mt(tape[mat][mf][mt])
 C = merge_covs( extract_cov33(tape) )
+
+from sandy.cov import Cov
+NSMP = 100
+df_samples = pd.DataFrame( Cov(C.as_matrix()).sampling(NSMP), index = C.index )
+unique_ids = list(set(zip(C.index.get_level_values(0), C.index.get_level_values(1))))
+#idx = pd.IndexSlice
+#df_samples.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
+for ismp in range(NSMP):
+    for (mat,mt) in unique_ids:
+        df_samples.loc[mat,mt][ismp]
+        pass
 
 write_mf33_mt(P)
 

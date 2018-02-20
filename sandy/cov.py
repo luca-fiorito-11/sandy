@@ -298,7 +298,8 @@ class Cov(np.ndarray):
         # Plot the colorbar in desired position
         cbaxes = fig.add_axes([0.85, 0.1, 0.03, 0.8])
         plt.colorbar(pcm, cax=cbaxes)
-        fig.show()
+        plt.show()
+#        fig.show()
 
     def dump(self, fname):
         np.savetxt(fname, self, fmt='%.5e')
