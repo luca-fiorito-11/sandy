@@ -8,6 +8,9 @@ import sys
 import logging
 import numpy as np
 from records import read_cont, read_tab1, read_list, read_text
+import matplotlib.pyplot as plt
+import pandas as pd
+
 
 def split(file):
     """
@@ -110,6 +113,15 @@ class Chunk:
 def list2dict(chunks):
     return 1
 
+def process_section(text):
+    mf = int(text[70:72])
+    mt = int(text[72:75])
+    if mf == 3:
+        return read_mf3_mt(text)
+    elif mf == 33:
+        return read_mf33_mt(text)
+    else:
+        return None
 
 def read_mf3_mt(text):
     str_list = text.splitlines()
@@ -246,15 +258,96 @@ def write_mf33_mt(MF33):
         out["SUB"].append(sub)
     return out
 
+def pandas_interpolate(df, interp_column, method='zero'):
+    # interp_column is a list
+    ug = np.unique(list(df.index) + interp_column)
+    df = df.reindex(ug)
+    df = df.interpolate(method=method)
+    df = df.reindex(interp_column)
+    # Now transpose columns to rows and reinterpolate
+    df = df.transpose()
+    ug = np.unique(list(df.index) + interp_column)
+    df = df.reindex(ug)
+    df = df.interpolate(method=method)
+    df = df.reindex(interp_column)
+    df = df.transpose()
+    return df
 
 def extract_cov_mf33(MF33, mt=[102]):
+    from sandy.cov import triu_matrix
+    from sandy.functions import union_grid
+    columns = ('MAT', 'MT', 'MAT1', 'MT1', 'COV')
+    df = pd.DataFrame(columns=columns)
     for sub in MF33["SUB"].values():
-        
-        
-    
-A=split("H1.txt")
+        covs = []
+        if len(sub["NI"]) == 0:
+            continue
+        for nisec in sub["NI"]:
+            if nisec["LB"] == 5:
+                Fkk = np.array(nisec["Fkk"])
+                if nisec["LS"] == 0: # to be tested
+                    cov = Fkk.reshape(nisec["NE"]-1, nisec["NE"]-1)
+                else:
+                    cov = triu_matrix(Fkk, nisec["NE"]-1)
+                # add zero row and column at the end of the matrix
+                cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                covs.append(pd.DataFrame(cov, index=nisec["Ek"], columns=nisec["Ek"]))
+        if len(covs) == 0:
+            continue
+        uxx = union_grid(*[[list(cov.index) + list(cov.columns)] for cov in covs])
+        cov = np.sum([ pandas_interpolate(cov,list(uxx)).as_matrix() for cov in covs ], 0)
+        df = df.append({
+                "MAT" : MF33['MAT'],
+                "MT" : MF33['MT'],
+                "MAT1" : sub['MAT1'],
+                "MT1" : sub['MT1'],
+                "COV" : cov
+                }, ignore_index=True)
+    return df
+
+def merge_covs():
+
+    pass
+
+
+
+#columns = ('MAT', 'MT', 'MAT1', 'MT1', 'COV')
+#tape = pd.DataFrame(columns=('MAT', 'MF', 'MT','SEC'))
+#for chunk in split("H1.txt"):
+#    tape = tape.append({
+#        "MAT" : int(chunk[66:70]),
+#        "MF" : int(chunk[70:72]),
+#        "MT" : int(chunk[72:75]),
+#        }, ignore_index=True)
+tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x, int(x[66:70])*100000+int(x[70:72])*1000+int(x[72:75])] for x in split("H1.txt")],
+        columns=('MAT', 'MF', 'MT','TEXT', 'ID'))
+tape.set_index('ID', inplace=True)
+tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
+tape['DATA'] = tape['TEXT'].apply(process_section)
+
+#tape as a dictionary
+#tape = {}
+#for chunk in split("H1.txt"):
+#    mat = int(chunk[66:70])
+#    mf = int(chunk[70:72])
+#    mt = int(chunk[72:75])
+#    if mat not in tape:
+#        tape.update({mat : {}})
+#    if mf not in tape[mat]:
+#        tape[mat].update({mf : {}})
+#    tape[mat][mf].update({mt : chunk})
+
+#process sections in dictionary
+#for mat in tape:
+#    for mf in tape[mat]:
+#        for mt in tape[mat][mf]:
+#            if mf == 3:
+#                tape[mat][mf][mt] = read_mf3_mt(tape[mat][mf][mt])
+#            elif mf ==33:
+#                tape[mat][mf][mt] = read_mf33_mt(tape[mat][mf][mt])
 O=read_mf3_mt(A[2])
-P=read_mf33_mt(A[-1])
+P=read_mf33_mt(tape[125][33])
 extract_cov_mf33(P)
 write_mf33_mt(P)
 XS=A[2].splitlines()

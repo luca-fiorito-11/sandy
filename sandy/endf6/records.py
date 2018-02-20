@@ -76,7 +76,7 @@ def read_list(text, ipos):
             tab.extend(list_format_r.read(text[ipos]))
             ipos += 1
             i += 6
-        tab = tab[:C.N1*2]
+        tab = tab[:C.N1]
         return LIST(C.C1, C.C2, C.L1, C.L2, C.N1, C.N2, tab), ipos
     except:
         sys.exit("ERROR: cannot read LIST at '{}'".format(text[ipos]))
