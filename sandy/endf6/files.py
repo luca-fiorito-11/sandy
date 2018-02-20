@@ -133,7 +133,8 @@ def read_mf3_mt(text):
     C, i = read_cont(str_list, i)
     out.update({"ZA" : C.C1, "AWR" : C.C2})
     T, i = read_tab1(str_list, i)
-    out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "E" : T.x, "XS" : T.y})
+    out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBR" : T.NBT, "INT" : T.INT})
+    out.update({"XS" : pd.Series(T.y, index = T.x)})
     return out
 
 
@@ -223,6 +224,12 @@ def pandas_interpolate(df, interp_column, method='zero', axis='both'):
     dfout.fillna(0, inplace=True)
     return dfout
 
+
+def extract_xs(tape):
+    xsdf = pd.DataFrame()
+    for chunk in tape.query('MF==3').DATA:
+        xsdf.add(chunk["XS"],)
+        pass
 
 def extract_cov33(tape, mt=[102]):
     from sandy.cov import triu_matrix
@@ -332,6 +339,7 @@ tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
 tape['DATA'] = tape['TEXT'].apply(process_section)
 
 C = merge_covs( extract_cov33(tape) )
+extract_xs(tape)
 
 from sandy.cov import Cov
 NSMP = 100
