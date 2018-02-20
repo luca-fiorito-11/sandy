@@ -10,6 +10,7 @@ import numpy as np
 from records import read_cont, read_tab1, read_list, read_text
 import matplotlib.pyplot as plt
 import pandas as pd
+import pdb
 
 
 def split(file):
@@ -176,8 +177,9 @@ def read_mf33_mt(text):
             if subsub["LB"] in range(5):
                 subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
                 if subsub["LT"] == 0:
-                    subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
+                    subsub.update({"Ek" : L.B[::2], "Fk" : L.B[1::2]})
                 else:
+                    pdb.set_trace()
                     Nk = subsub["NP"] - subsub["LT"]
                     ARRk = L.B[:Nk]
                     ARRl = L.B[Nk:]
@@ -187,128 +189,122 @@ def read_mf33_mt(text):
                 subsub.update({"LS" : L.L1, "NT" : L.NPL, "NE" : L.N2,
                                "Ek" : L.B[:L.N2], "Fkk" : L.B[L.N2:]})
             elif subsub["LB"] == 6:
-                subsub.update({"NT" : L.NPL, "NER" : L.N2})
-                subsub.update({"NEC": (subsub["NT"]-1)/subsub["NER"]})
-                subsub.update({"Ek" : L.B[:(subsub["NER"]+subsub["NEC"])],
-                               "Fkk" : L.B[(subsub["NER"]+subsub["NEC"]):]})
+                subsub.update({"NT" : L.NPL, "NER" : L.N2, "NEC" : (L.NPL-1)//L.N2})
+                subsub.update({"Ek" : L.B[:subsub["NER"]]})
+                subsub.update({"El" : L.B[subsub["NER"]:subsub["NER"]+subsub["NEC"]]})
+                subsub.update({"Fkl" : L.B[subsub["NER"]+subsub["NEC"]:]})
             elif subsub["LB"] in (8,9):
                 subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
                 subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
+            else:
+                pdb.set_trace()
             NILIST.append(subsub)
         sub.update({"NI" : NILIST})
         out["SUB"].update({sub["MAT1"]*1000+sub["MT1"] : sub})
     return out
 
-def write_mf33_mt(MF33):
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
-    C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "MTL" : C.L2, "SUB" : []})
-    for j in range(C.N2):
-        sub = {}
-        C, i = read_cont(str_list, i)
-        sub.update({"XMF1" : C.C1, "XLFS1" : C.C2, "MAT1" : C.L1, "MT1" : C.L2})
-        NC = C.N1
-        NI = C.N2
-        NCLIST = []
-        for k in range(NC):
-            C, i = read_cont(str_list, i)
-            subsub = {"LTY" : C.L2}
-            if subsub["LTY"] == 0:
-                L, i = read_list(str_list, i)
-                subsub.update({"E1" : L.C1, "E2" : L.C2,
-                               "CI" : L.B[:L.N2], "XMTI" : L.B[L.N2:]})
-                NCLIST.append(subsub)
-            elif subsub["LTY"] in (1,2,3):
-                L, i = read_list(str_list, i)
-                subsub.update({"E1" : L.C1, "E2" : L.C2, "MATS" : L.L1, "MTS" : L.L2,
-                               "XMFS" : L.B[0], "XLFSS" : L.B[1],
-                               "EI" : L.B[2:2+L.N2], "WEI" : L.B[2+L.N2:]})
-                NCLIST.append(subsub)
-            NCLIST.append(subsub)
-        sub.update({"NC" : NCLIST})
-        NILIST = []
-        for k in range(NI):
-            L, i = read_list(str_list, i)
-            subsub = {"LB" : L.L2}
-            if subsub["LB"] in range(5):
-                subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
-                if subsub["LT"] == 0:
-                    subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
-                else:
-                    Nk = subsub["NP"] - subsub["LT"]
-                    ARRk = L.B[:Nk]
-                    ARRl = L.B[Nk:]
-                    subsub.update({"Ek" : ARRk[:Nk/2], "Fk" : ARRk[Nk/2:],
-                                   "El" : ARRl[:subsub["LT"]], "Fl" : ARRl[subsub["LT"]:]})
-            elif subsub["LB"] == 5:
-                subsub.update({"LS" : L.L1, "NT" : L.NPL, "NE" : L.N2,
-                               "Ek" : L.B[:L.N2], "Fkk" : L.B[L.N2:]})
-            elif subsub["LB"] == 6:
-                subsub.update({"NT" : L.NPL, "NER" : L.N2})
-                subsub.update({"NEC": (subsub["NT"]-1)/subsub["NER"]})
-                subsub.update({"Ek" : L.B[:(subsub["NER"]+subsub["NEC"])],
-                               "Fkk" : L.B[(subsub["NER"]+subsub["NEC"]):]})
-            elif subsub["LB"] in (8,9):
-                subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
-                subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
-            NILIST.append(subsub)
-        sub.update({"NI" : NILIST})
-        out["SUB"].append(sub)
-    return out
 
-def pandas_interpolate(df, interp_column, method='zero'):
+def pandas_interpolate(df, interp_column, method='zero', axis='both'):
     # interp_column is a list
-    ug = np.unique(list(df.index) + interp_column)
-    df = df.reindex(ug)
-    df = df.interpolate(method=method)
-    df = df.reindex(interp_column)
+    dfout = df.copy()
+    if axis in ['rows', 'both']:
+        ug = np.unique(list(dfout.index) + interp_column)
+        dfout = dfout.reindex(ug)
+        dfout = dfout.interpolate(method=method)
+        dfout = dfout.reindex(interp_column)
     # Now transpose columns to rows and reinterpolate
-    df = df.transpose()
-    ug = np.unique(list(df.index) + interp_column)
-    df = df.reindex(ug)
-    df = df.interpolate(method=method)
-    df = df.reindex(interp_column)
-    df = df.transpose()
-    return df
+    if axis in ['cols', 'both']:
+        dfout = dfout.transpose()
+        ug = np.unique(list(df.index) + interp_column)
+        dfout = dfout.reindex(ug)
+        dfout = dfout.interpolate(method=method)
+        dfout = dfout.reindex(interp_column)
+        dfout = dfout.transpose()
+    dfout.fillna(0, inplace=True)
+    return dfout
 
-def extract_cov_mf33(MF33, mt=[102]):
+
+def extract_cov33(tape, mt=[102]):
     from sandy.cov import triu_matrix
     from sandy.functions import union_grid
     columns = ('MAT', 'MT', 'MAT1', 'MT1', 'COV')
-    df = pd.DataFrame(columns=columns)
-    for sub in MF33["SUB"].values():
-        covs = []
-        if len(sub["NI"]) == 0:
-            continue
-        for nisec in sub["NI"]:
-            if nisec["LB"] == 5:
-                Fkk = np.array(nisec["Fkk"])
-                if nisec["LS"] == 0: # to be tested
-                    cov = Fkk.reshape(nisec["NE"]-1, nisec["NE"]-1)
-                else:
-                    cov = triu_matrix(Fkk, nisec["NE"]-1)
-                # add zero row and column at the end of the matrix
-                cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-                cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-                covs.append(pd.DataFrame(cov, index=nisec["Ek"], columns=nisec["Ek"]))
-        if len(covs) == 0:
-            continue
-        uxx = union_grid(*[[list(cov.index) + list(cov.columns)] for cov in covs])
-        cov = np.sum([ pandas_interpolate(cov,list(uxx)).as_matrix() for cov in covs ], 0)
-        df = df.append({
-                "MAT" : MF33['MAT'],
-                "MT" : MF33['MT'],
-                "MAT1" : sub['MAT1'],
-                "MT1" : sub['MT1'],
-                "COV" : cov
-                }, ignore_index=True)
-    return df
+    covdf = pd.DataFrame(columns=columns)
+    for chunk in tape.query('MF==33 | MF==31').DATA:
+        for sub in chunk["SUB"].values():
+            covs = []
+            if len(sub["NI"]) == 0:
+                continue
+            for nisec in sub["NI"]:
+                if nisec["LB"] == 5:
+                    Fkk = np.array(nisec["Fkk"])
+                    if nisec["LS"] == 0: # to be tested
+                        cov = Fkk.reshape(nisec["NE"]-1, nisec["NE"]-1)
+                    else:
+                        cov = triu_matrix(Fkk, nisec["NE"]-1)
+                    # add zero row and column at the end of the matrix
+                    cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                    cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                    covs.append(pd.DataFrame(cov, index=nisec["Ek"], columns=nisec["Ek"]))
+                elif nisec["LB"] == 1:
+                    cov = np.diag(nisec["Fk"])
+                    covs.append(pd.DataFrame(cov, index=nisec["Ek"], columns=nisec["Ek"]))
+                elif nisec["LB"] == 2:
+                    f = np.array(nisec["Fk"])
+                    cov = f*f.reshape(-1,1)
+                    covs.append(pd.DataFrame(cov, index=nisec["Ek"], columns=nisec["Ek"]))
+                elif nisec["LB"] == 6:
+                    cov = np.array(nisec["Fkl"]).reshape(nisec["NER"]-1, nisec["NEC"]-1)
+                    # add zero row and column at the end of the matrix
+                    cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                    cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                    covs.append(pd.DataFrame(cov, index=nisec["Ek"], columns=nisec["El"]))
+            if len(covs) == 0:
+                continue
+            # Al union covariance matrices have the same grid (uxx) on both axis
+            uxx = union_grid(*[list(cov.index) + list(cov.columns) for cov in covs])
+            cov = np.sum([ pandas_interpolate(cov, list(uxx)).as_matrix() for cov in covs ], 0)
+            cov = pd.DataFrame(cov, index=uxx, columns=uxx)
+            objects = chunk['MAT'], chunk['MT'], sub['MAT1'], sub['MT1'], cov
+            covdf = covdf.append(dict(zip(columns, objects)), ignore_index=True)
+    covdf = covdf.set_index(['MAT','MT','MAT1','MT1']).sort_index() # Multi-indexing
+    return None if covdf.empty else covdf
 
-def merge_covs():
 
-    pass
+def merge_covs(covdf):
+    query_diag = 'MT==MT1 & (MAT1==0 | MAT==MAT1)'
+    query_offdiag = 'MT!=MT1 | MAT1!=0'
+    diags = covdf.query(query_diag)
+    # Process diagonal blocks
+    # This part is extracted from scipy.linalg.diagblock
+    arrs = diags.COV
+    shapes = np.array([a.shape for a in arrs])
+    C = np.zeros(np.sum(shapes, axis=0))
+    r, c = 0, 0
+    beg, end = [], []
+    for i, (rr, cc) in enumerate(shapes):
+        C[r:r + rr, c:c + cc] = arrs[i]
+        beg.append(r)
+        end.append(r + rr)
+        r += rr
+        c += cc
+    diags["BEG"] = beg
+    diags["END"] = end
+    # Process off-diagonal blocks
+    for (mat,mt,mat1,mt1),row in covdf.query(query_offdiag).iterrows():
+        cov = row.COV
+        # interpolate x axis (rows)
+        covk = diags.loc[mat,mt,0,mt]
+        Ek = list(covk.COV.index)
+        cov = pandas_interpolate(cov, Ek, method='zero', axis='rows')
+        # interpolate y axis (cols)
+        if mat1 == 0:
+            mat1 = mat
+        covl = diags.loc[mat1,mt1,0,mt1]
+        El = list(covl.COV.index)
+        cov = pandas_interpolate(cov, El, method='zero', axis='cols')
+        C[covk.BEG:covk.END,covl.BEG:covl.END] = cov
+        C[covl.BEG:covl.END,covk.BEG:covk.END,] = cov.T
+    return C
 
 
 
@@ -320,7 +316,9 @@ def merge_covs():
 #        "MF" : int(chunk[70:72]),
 #        "MT" : int(chunk[72:75]),
 #        }, ignore_index=True)
-tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x, int(x[66:70])*100000+int(x[70:72])*1000+int(x[72:75])] for x in split("H1.txt")],
+file = "H1.txt"
+file = "26-Fe-56g.jeff33"
+tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x, int(x[66:70])*100000+int(x[70:72])*1000+int(x[72:75])] for x in split(file)],
         columns=('MAT', 'MF', 'MT','TEXT', 'ID'))
 tape.set_index('ID', inplace=True)
 tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
@@ -346,28 +344,10 @@ tape['DATA'] = tape['TEXT'].apply(process_section)
 #                tape[mat][mf][mt] = read_mf3_mt(tape[mat][mf][mt])
 #            elif mf ==33:
 #                tape[mat][mf][mt] = read_mf33_mt(tape[mat][mf][mt])
-O=read_mf3_mt(A[2])
-P=read_mf33_mt(tape[125][33])
-extract_cov_mf33(P)
-write_mf33_mt(P)
-XS=A[2].splitlines()
-ii=0
+C = merge_covs( extract_cov33(tape) )
 
-CC, ii = read_cont(XS,ii)
-read_tab1(XS,ii)
-B=Chunk(A[-1])
-import re
-line = re.sub('\n', '', A[1])
-AAA=re.findall('.{11}', 'line')
-import pandas as pd
-line = open('012503001').read()
-line = re.sub('\n', '', line)
-blocks = re.findall('.{11}', line)
-df = pd.read_fwf('012503001', widths=6*[11]+[4,2,3,5],
-                 names=("C1","C2","L1","L2","N1","N2","MAT","MF","MT","NS"),
-                 header=None)
-sys.exit()
-df.fillna(0, inplace=True)
+write_mf33_mt(P)
+
 
 class File:
     """ General text file """
