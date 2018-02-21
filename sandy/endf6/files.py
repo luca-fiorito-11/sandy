@@ -60,7 +60,7 @@ def read_mf3_mt(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2})
     T, i = read_tab1(str_list, i)
     out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBR" : T.NBT, "INT" : T.INT})
-    out.update({"XS" : pd.Series(T.y, index = T.x, 
+    out.update({"XS" : pd.Series(T.y, index = T.x,
                                  name = (out["MAT"],out["MT"]))})
     return out
 
@@ -153,13 +153,18 @@ def pandas_interpolate(df, interp_column, method='zero', axis='both'):
 
 
 def extract_xs(tape):
-    # No interpolation is done because xs are on unionized grid
-    mat=125
-    xsdf = pd.DataFrame(tape.loc[mat,3,1].DATA["XS"])
-    for chunk in tape.query('MF==3 & MT!=1').DATA:
-        xsdf = xsdf.add(pd.DataFrame(chunk["XS"]), fill_value=0)
-    xsdf.fillna(0, inplace=True)
-    return xsdf
+    xs_dict = {}
+    for mat in np.unique(tape.index.get_level_values(0)):
+        xsdf = pd.DataFrame(tape.loc[mat,3,1].DATA["XS"])
+        xsdf.columns = xsdf.columns.droplevel() # keep only MT
+        # No interpolation is done because xs are on unionized grid
+        for chunk in tape.query('MF==3 & MT!=1').DATA:
+            df = pd.DataFrame(chunk["XS"])
+            df.columns = df.columns.droplevel() # keep only MT
+            xsdf = xsdf.add(df, fill_value=0)
+        xsdf.fillna(0, inplace=True)
+        xs_dict.update( { mat : xsdf })
+    return xs_dict
 
 def extract_cov33(tape, mt=[102]):
     from sandy.cov import triu_matrix
@@ -265,14 +270,14 @@ def merge_covs(covdf):
 #        "MT" : int(chunk[72:75]),
 #        }, ignore_index=True)
 file = "H1.txt"
-#file = "26-Fe-56g.jeff33"
+file = "26-Fe-56g.jeff33"
 tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x, int(x[66:70])*100000+int(x[70:72])*1000+int(x[72:75])] for x in split(file)],
         columns=('MAT', 'MF', 'MT','TEXT', 'ID'))
 tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
 tape['DATA'] = tape['TEXT'].apply(process_section)
 
 df_cov = merge_covs( extract_cov33(tape) )
-df_xs = extract_xs(tape)
+dict_xs = extract_xs(tape)
 
 from sandy.cov import Cov
 NSMP = 100
