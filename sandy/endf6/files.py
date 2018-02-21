@@ -270,24 +270,34 @@ def merge_covs(covdf):
 #        "MT" : int(chunk[72:75]),
 #        }, ignore_index=True)
 file = "H1.txt"
-file = "26-Fe-56g.jeff33"
+#file = "26-Fe-56g.jeff33"
 tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x, int(x[66:70])*100000+int(x[70:72])*1000+int(x[72:75])] for x in split(file)],
         columns=('MAT', 'MF', 'MT','TEXT', 'ID'))
 tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
 tape['DATA'] = tape['TEXT'].apply(process_section)
 
-df_cov = merge_covs( extract_cov33(tape) )
+df_cov_xs = merge_covs( extract_cov33(tape) )
 dict_xs = extract_xs(tape)
 
 from sandy.cov import Cov
 NSMP = 100
 df_samples_xs = pd.DataFrame( Cov(df_cov_xs.as_matrix()).sampling(NSMP), index = df_cov_xs.index )
-unique_ids = list(set(zip(df_cov.index.get_level_values(0), df_cov_xs.index.get_level_values(1))))
+unique_ids = list(set(zip(df_cov_xs.index.get_level_values(0), df_cov_xs.index.get_level_values(1))))
 #idx = pd.IndexSlice
 #df_samples.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
 for ismp in range(NSMP):
-    for (mat,mt) in unique_ids:
-        df_samples.loc[mat,mt][ismp]
-        pass
+    ixs = dict_xs.copy()
+    for (mat,mt), P in df_samples_xs.groupby(level=(0,1)):
+        if mat not in ixs:
+            continue
+        if mt not in ixs[mat]:
+            continue
+        XS = ixs[mat][mt]
+        P = pandas_interpolate(P.loc[mat,mt][ismp], list(XS.index), axis="rows")
+        XS = XS.multiply(P)
+        # Negative values are set to mean
+        XS[XS < 0] = ixs[mat][mt]
+        ixs[mat][mt] = XS
+    pass
 
 write_mf33_mt(P)
