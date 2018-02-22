@@ -7,10 +7,11 @@ Created on Mon Jan 16 18:03:13 2017
 import sys
 import logging
 import numpy as np
-from records import read_cont, read_tab1, read_list, read_text
+from records import read_cont, read_tab1, read_list, read_text, write_cont, write_tab1, add_records
 import matplotlib.pyplot as plt
 import pandas as pd
 import pdb
+import copy
 
 
 def split(file):
@@ -60,8 +61,8 @@ def read_mf3_mt(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2})
     T, i = read_tab1(str_list, i)
     out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBR" : T.NBT, "INT" : T.INT})
-    out.update({"XS" : pd.Series(T.y, index = T.x,
-                                 name = (out["MAT"],out["MT"]))})
+    XS = pd.Series(T.y, index = T.x, name = (out["MAT"],out["MT"])).rename_axis("E")
+    out.update({"XS" : XS})
     return out
 
 
@@ -153,18 +154,24 @@ def pandas_interpolate(df, interp_column, method='zero', axis='both'):
 
 
 def extract_xs(tape):
-    xs_dict = {}
+    XS = pd.DataFrame() # Alternative is a dict by MAT
     for mat in np.unique(tape.index.get_level_values(0)):
         xsdf = pd.DataFrame(tape.loc[mat,3,1].DATA["XS"])
-        xsdf.columns = xsdf.columns.droplevel() # keep only MT
+        xsdf.columns = xsdf.columns.droplevel() # keep only MT, drop MAT
+        xsdf.reset_index(inplace=True)
+        xsdf["MAT"] = mat
+        xsdf = xsdf.set_index(['MAT','E']).sort_index()
         # No interpolation is done because xs are on unionized grid
         for chunk in tape.query('MF==3 & MT!=1').DATA:
             df = pd.DataFrame(chunk["XS"])
-            df.columns = df.columns.droplevel() # keep only MT
+            df.columns = df.columns.droplevel() # keep only MT, drop MAT
+            df.reset_index(inplace=True)
+            df["MAT"] = mat
+            df = df.set_index(['MAT','E']).sort_index()
             xsdf = xsdf.add(df, fill_value=0)
         xsdf.fillna(0, inplace=True)
-        xs_dict.update( { mat : xsdf })
-    return xs_dict
+        XS = pd.concat((XS, xsdf)) # To be tested
+    return XS
 
 def extract_cov33(tape, mt=[102]):
     from sandy.cov import triu_matrix
@@ -259,16 +266,34 @@ def merge_covs(covdf):
     C.sort_index(inplace=True)
     return C
 
+def update_xs(tape, xs):
+    for mat,df in xs.groupby("MAT"):
+        for mt in xs.loc[mat]:
+            if (mat, 3, mt) not in tape.index:
+                continue
+            XS = xs.loc[mat][mt]
+            D = tape.loc[mat,3,mt].DATA
+            # Assume all xs have only 1 interpolation region and it is linear
+#            if len(D["INT"]) != 1:
+#                raise NotImplementedError("Cannot update xs with more than 1 interp. region")
+#            if D["INT"][0] != 1:
+#                raise NotImplementedError("Cannot update xs with non-linear interpolation")
+            D["XS"] = XS
+            D["NBR"] = [len(XS)]
+            D["INT"] = [2]
+    return tape
+
+def write_mf3_mt(tape):
+    for (mat,mf,mt),df in tape.loc[(slice(None),3),:].iterrows():
+        TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, 0, 0)
+        TEXT += write_tab1(df.DATA["QM"], df.DATA["QI"], 0, df.DATA["LR"],
+                           df.DATA["NBR"], df.DATA["INT"],
+                           df.DATA["XS"].index, df.DATA["XS"])
+        TEXT = [ "{:<66}{:4}{:2}{:3}{:5}".format(l, mat, mf, mt, i+1) for i,l in enumerate(TEXT) ]
+        tape.TEXT[mat,mf,mt] = pd.Series("\n".join(TEXT))
+    return tape
 
 
-#columns = ('MAT', 'MT', 'MAT1', 'MT1', 'COV')
-#tape = pd.DataFrame(columns=('MAT', 'MF', 'MT','SEC'))
-#for chunk in split("H1.txt"):
-#    tape = tape.append({
-#        "MAT" : int(chunk[66:70]),
-#        "MF" : int(chunk[70:72]),
-#        "MT" : int(chunk[72:75]),
-#        }, ignore_index=True)
 file = "H1.txt"
 #file = "26-Fe-56g.jeff33"
 tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x, int(x[66:70])*100000+int(x[70:72])*1000+int(x[72:75])] for x in split(file)],
@@ -277,27 +302,32 @@ tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
 tape['DATA'] = tape['TEXT'].apply(process_section)
 
 df_cov_xs = merge_covs( extract_cov33(tape) )
-dict_xs = extract_xs(tape)
+df_xs = extract_xs(tape)
+tape = update_xs(tape, df_xs)
+tape = write_mf3_mt(tape)
 
 from sandy.cov import Cov
 NSMP = 100
-df_samples_xs = pd.DataFrame( Cov(df_cov_xs.as_matrix()).sampling(NSMP), index = df_cov_xs.index )
+df_samples_xs = pd.DataFrame( Cov(df_cov_xs.as_matrix()).sampling(NSMP) + 1 , index = df_cov_xs.index )
 unique_ids = list(set(zip(df_cov_xs.index.get_level_values(0), df_cov_xs.index.get_level_values(1))))
 #idx = pd.IndexSlice
 #df_samples.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
 for ismp in range(NSMP):
-    ixs = dict_xs.copy()
-    for (mat,mt), P in df_samples_xs.groupby(level=(0,1)):
-        if mat not in ixs:
-            continue
-        if mt not in ixs[mat]:
-            continue
-        XS = ixs[mat][mt]
-        P = pandas_interpolate(P.loc[mat,mt][ismp], list(XS.index), axis="rows")
-        XS = XS.multiply(P)
-        # Negative values are set to mean
-        XS[XS < 0] = ixs[mat][mt]
-        ixs[mat][mt] = XS
+    ixs = df_xs.copy()
+    for mat, PM in df_samples_xs.groupby(level=0):
+        for mt, P in PM.groupby(level=1):
+            if mat not in ixs.index.get_level_values("MAT"):
+                continue
+            if mt not in ixs.loc[mat]:
+                continue
+            XS = ixs.loc[mat][mt]
+            P = pandas_interpolate(P.loc[mat,mt][ismp],
+                                   list(XS.index.get_level_values("E")),
+                                   axis="rows")
+            XS = XS.multiply(P)
+            # Negative values are set to mean
+            XS[XS < 0] = ixs.loc[mat][mt]
+            ixs.loc[mat][mt] = XS
+    update_xs(tape, ixs)
     pass
 
-write_mf33_mt(P)
