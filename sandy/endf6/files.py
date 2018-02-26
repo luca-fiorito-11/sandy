@@ -65,6 +65,15 @@ def read_mf3_mt(text):
     out.update({"XS" : XS})
     return out
 
+def write_mf3_mt(tape):
+    for (mat,mf,mt),df in tape.loc[(slice(None),3),:].iterrows():
+        TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, 0, 0)
+        TEXT += write_tab1(df.DATA["QM"], df.DATA["QI"], 0, df.DATA["LR"],
+                           df.DATA["NBR"], df.DATA["INT"],
+                           df.DATA["XS"].index, df.DATA["XS"])
+        TEXT = [ "{:<66}{:4}{:2}{:3}{:5}".format(l, mat, mf, mt, i+1) for i,l in enumerate(TEXT) ]
+        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TEXT) + '\n'
+    return tape
 
 def read_mf33_mt(text):
     str_list = text.splitlines()
@@ -283,15 +292,15 @@ def update_xs(tape, xs):
             D["INT"] = [2]
     return tape
 
-def write_mf3_mt(tape):
-    for (mat,mf,mt),df in tape.loc[(slice(None),3),:].iterrows():
-        TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, 0, 0)
-        TEXT += write_tab1(df.DATA["QM"], df.DATA["QI"], 0, df.DATA["LR"],
-                           df.DATA["NBR"], df.DATA["INT"],
-                           df.DATA["XS"].index, df.DATA["XS"])
-        TEXT = [ "{:<66}{:4}{:2}{:3}{:5}".format(l, mat, mf, mt, i+1) for i,l in enumerate(TEXT) ]
-        tape.TEXT[mat,mf,mt] = pd.Series("\n".join(TEXT))
-    return tape
+def write_tape(tape, file):
+    string = ""
+    for mat,dfmat in tape.groupby('MAT', sort=False):
+        for mf,dfmf in tape.groupby('MF', sort=False):
+            for mt,dfmt in tape.groupby('MT', sort=False):
+                for text in dfmt.TEXT:
+                    string += text.encode('ascii', 'replace').decode('ascii')
+    with open(file, 'w', encoding="ascii") as f:
+        f.write(string)
 
 
 file = "H1.txt"
@@ -303,8 +312,8 @@ tape['DATA'] = tape['TEXT'].apply(process_section)
 
 df_cov_xs = merge_covs( extract_cov33(tape) )
 df_xs = extract_xs(tape)
-tape = update_xs(tape, df_xs)
-tape = write_mf3_mt(tape)
+#tape = update_xs(tape, df_xs)
+#tape = write_mf3_mt(tape)
 
 from sandy.cov import Cov
 NSMP = 100
@@ -328,6 +337,9 @@ for ismp in range(NSMP):
             # Negative values are set to mean
             XS[XS < 0] = ixs.loc[mat][mt]
             ixs.loc[mat][mt] = XS
-    update_xs(tape, ixs)
+    tape = update_xs(tape, ixs)
+    tape = write_mf3_mt(tape)
+    write_tape(tape, "AAA-{}".format(ismp))
+    break
     pass
 
