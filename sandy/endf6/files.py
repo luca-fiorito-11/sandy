@@ -7,7 +7,7 @@ Created on Mon Jan 16 18:03:13 2017
 import sys
 import logging
 import numpy as np
-from records import read_cont, read_tab1, read_list, read_text, write_cont, write_tab1, add_records
+from records import read_cont, read_tab1, read_list, read_text, write_cont, write_tab1#, add_records
 import matplotlib.pyplot as plt
 import pandas as pd
 import pdb
@@ -61,7 +61,8 @@ def read_mf3_mt(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2})
     T, i = read_tab1(str_list, i)
     out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBR" : T.NBT, "INT" : T.INT})
-    XS = pd.Series(T.y, index = T.x, name = (out["MAT"],out["MT"])).rename_axis("E")
+#    XS = pd.Series(T.y, index = T.x, name = (out["MAT"],out["MT"])).rename_axis("E")
+    XS = pd.Series(T.y, index = T.x, name = out["MT"]).rename_axis("E")
     out.update({"XS" : XS})
     return out
 
@@ -163,23 +164,25 @@ def pandas_interpolate(df, interp_column, method='zero', axis='both'):
 
 
 def extract_xs(tape):
-    XS = pd.DataFrame() # Alternative is a dict by MAT
+    XS = {} # DIctionary by MAT
+#    XS = pd.DataFrame() # dataframe with MAT as index
     for mat in np.unique(tape.index.get_level_values(0)):
         xsdf = pd.DataFrame(tape.loc[mat,3,1].DATA["XS"])
-        xsdf.columns = xsdf.columns.droplevel() # keep only MT, drop MAT
-        xsdf.reset_index(inplace=True)
-        xsdf["MAT"] = mat
-        xsdf = xsdf.set_index(['MAT','E']).sort_index()
+#        xsdf.columns = xsdf.columns.droplevel() # keep only MT, drop MAT
+#        xsdf.reset_index(inplace=True)
+#        xsdf["MAT"] = mat
+#        xsdf = xsdf.set_index(['MAT','E']).sort_index()
         # No interpolation is done because xs are on unionized grid
         for chunk in tape.query('MF==3 & MT!=1').DATA:
             df = pd.DataFrame(chunk["XS"])
-            df.columns = df.columns.droplevel() # keep only MT, drop MAT
-            df.reset_index(inplace=True)
-            df["MAT"] = mat
-            df = df.set_index(['MAT','E']).sort_index()
+#            df.columns = df.columns.droplevel() # keep only MT, drop MAT
+#            df.reset_index(inplace=True)
+#            df["MAT"] = mat
+#            df = df.set_index(['MAT','E']).sort_index()
             xsdf = xsdf.add(df, fill_value=0)
         xsdf.fillna(0, inplace=True)
-        XS = pd.concat((XS, xsdf)) # To be tested
+#        XS = pd.concat((XS, xsdf)) # To be tested
+        XS.update({ mat : xsdf })
     return XS
 
 def extract_cov33(tape, mt=[102]):
@@ -275,13 +278,13 @@ def merge_covs(covdf):
     C.sort_index(inplace=True)
     return C
 
-def update_xs(tape, xs):
-    for mat,df in xs.groupby("MAT"):
-        for mt in xs.loc[mat]:
+def update_xs(tape, xsdf):
+    for mat,df in xsdf.items():
+        for mt in df:
             if (mat, 3, mt) not in tape.index:
                 continue
-            XS = xs.loc[mat][mt]
-            D = tape.loc[mat,3,mt].DATA
+            XS = df[mt]
+            D = tape.DATA.loc[mat,3,mt]
             # Assume all xs have only 1 interpolation region and it is linear
 #            if len(D["INT"]) != 1:
 #                raise NotImplementedError("Cannot update xs with more than 1 interp. region")
@@ -292,15 +295,20 @@ def update_xs(tape, xs):
             D["INT"] = [2]
     return tape
 
-def write_tape(tape, file):
-    string = ""
-    for mat,dfmat in tape.groupby('MAT', sort=False):
-        for mf,dfmf in tape.groupby('MF', sort=False):
-            for mt,dfmt in tape.groupby('MT', sort=False):
+def write_tape(tape, file, title=" "*66):
+    string = "{:<66}{:4}{:2}{:3}{:5}\n".format(title, 1, 0, 0, 0)
+    for mat,dfmat in tape.groupby('MAT', sort=True):
+        for mf,dfmf in dfmat.groupby('MF', sort=True):
+            for mt,dfmt in dfmf.groupby('MT', sort=True):
                 for text in dfmt.TEXT:
                     string += text.encode('ascii', 'replace').decode('ascii')
+                string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, mf, 0, 99999)
+            string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, 0, 0, 0)
+        string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), 0, 0, 0, 0)
+    string += "{:<66}{:4}{:2}{:3}{:5}".format(*write_cont(*[0]*6), mat, 0, 0, -1)
     with open(file, 'w', encoding="ascii") as f:
         f.write(string)
+
 
 
 file = "H1.txt"
@@ -312,34 +320,66 @@ tape['DATA'] = tape['TEXT'].apply(process_section)
 
 df_cov_xs = merge_covs( extract_cov33(tape) )
 df_xs = extract_xs(tape)
-#tape = update_xs(tape, df_xs)
-#tape = write_mf3_mt(tape)
 
 from sandy.cov import Cov
 NSMP = 100
+# Must add names to indexes
 df_samples_xs = pd.DataFrame( Cov(df_cov_xs.as_matrix()).sampling(NSMP) + 1 , index = df_cov_xs.index )
 unique_ids = list(set(zip(df_cov_xs.index.get_level_values(0), df_cov_xs.index.get_level_values(1))))
 #idx = pd.IndexSlice
 #df_samples.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
 for ismp in range(NSMP):
-    ixs = df_xs.copy()
-    for mat, PM in df_samples_xs.groupby(level=0):
-        for mt, P in PM.groupby(level=1):
-            if mat not in ixs.index.get_level_values("MAT"):
+#    ixs = df_xs.copy()
+    ixs = copy.deepcopy(df_xs)
+    for mat, df_samples_bymat in df_samples_xs.groupby(level=0, sort=True):
+        for mt, P in df_samples_bymat.groupby(level=1, sort=True):
+            if mat not in ixs:
                 continue
-            if mt not in ixs.loc[mat]:
+            if mt not in ixs[mat]:
                 continue
-            XS = ixs.loc[mat][mt]
+            XS = ixs[mat][mt]
             P = pandas_interpolate(P.loc[mat,mt][ismp],
                                    list(XS.index.get_level_values("E")),
                                    axis="rows")
             XS = XS.multiply(P)
             # Negative values are set to mean
-            XS[XS < 0] = ixs.loc[mat][mt]
-            ixs.loc[mat][mt] = XS
+            ixs[mat][mt][XS > 0] = XS[XS > 0]
+        # Redundant XS
+        columns = ixs[mat].columns
+        daughters = [ x for x in range(800,850) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][107] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in range(750,800) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][106] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in range(700,750) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][105] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in range(650,700) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][104] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in range(600,650) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][103] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in range(102,118) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][101] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in (19,20,21,38) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][18] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in (18,101) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][27] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in range(50,92) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][4] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in (4,5,11,*range(16,19),*range(22,38),41,42,44,45) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][3] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in (2,3) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][1] = ixs[mat][daughters].sum(axis=1)
+        ixs[mat] = ixs[mat][columns]
     tape = update_xs(tape, ixs)
     tape = write_mf3_mt(tape)
     write_tape(tape, "AAA-{}".format(ismp))
-    break
-    pass
-
