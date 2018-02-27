@@ -20,8 +20,8 @@ text_format_w = ff.FortranRecordWriter('(A66,I4,I2,I3,I5)')
 cont_format_w = ff.FortranRecordWriter('(2ES11.5E1,4I11,I4,I2,I3,I5)')
 list_format_w = ff.FortranRecordWriter('(6ES11.5E1,I4,I2,I3,I5)')
 ilist_format_w = ff.FortranRecordWriter('(6I11,I4,I2,I3,I5)')
-cont_format_w = ff.FortranRecordWriter('(2ES11.5E1,4I11)')
-list_format_w = ff.FortranRecordWriter('(6ES11.5E1)')
+cont_format_w = ff.FortranRecordWriter('(2ES12.6E1,4I11)')
+list_format_w = ff.FortranRecordWriter('(6ES12.6E1)')
 ilist_format_w = ff.FortranRecordWriter('(6I11)')
 
 def read_text(text, ipos):
@@ -85,19 +85,18 @@ def read_list(text, ipos):
         sys.exit("ERROR: cannot read LIST at '{}'".format(text[ipos]))
 
 
-def add_records(mat, mf, mt, ns, func):
-    def func_wrapper(*args):
-        TEXT = func(*args)
-        TEXT_OUT = []
-        for line in TEXT:
-            TEXT_OUT.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, ns))
-            ns += 1
-        return TEXT_OUT, ns
-    return func_wrapper
-
+#def add_records(mat, mf, mt, ns, func):
+#    def func_wrapper(*args):
+#        TEXT = func(*args)
+#        TEXT_OUT = []
+#        for line in TEXT:
+#            TEXT_OUT.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, ns))
+#            ns += 1
+#        return TEXT_OUT, ns
+#    return func_wrapper
 
 def write_cont(C1, C2, L1, L2, N1, N2):
-    return [cont_format_w.write((C1, C2, L1, L2, N1, N2))]
+    return [cont_format_w.write((C1, C2, L1, L2, N1, N2)).replace("E","")]
 
 def write_tab1(C1, C2, L1, L2, NBT, INT, x, y):
     tab = [item for pair in zip(NBT, INT) for item in pair]
@@ -111,6 +110,6 @@ def write_tab1(C1, C2, L1, L2, NBT, INT, x, y):
         i += 6
     i = 0
     while i < NP*2:
-        TEXT.append(list_format_w.write(tab1[i:i+6]))
+        TEXT.append(list_format_w.write(tab1[i:i+6]).replace("E",""))
         i += 6
     return TEXT
