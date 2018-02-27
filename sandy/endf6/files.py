@@ -7,7 +7,7 @@ Created on Mon Jan 16 18:03:13 2017
 import sys
 import logging
 import numpy as np
-from records import read_cont, read_tab1, read_list, read_text, write_cont, write_tab1#, add_records
+from records import read_cont, read_tab1, read_tab2, read_list, read_text, write_cont, write_tab1#, add_records
 import matplotlib.pyplot as plt
 import pandas as pd
 import pdb
@@ -46,6 +46,8 @@ def process_section(text):
     mt = int(text[72:75])
     if mf == 3:
         return read_mf3_mt(text)
+    elif mf == 4:
+        return read_mf4_mt(text)
     elif mf == 33:
         return read_mf33_mt(text)
     else:
@@ -75,6 +77,41 @@ def write_mf3_mt(tape):
         TEXT = [ "{:<66}{:4}{:2}{:3}{:5}".format(l, mat, mf, mt, i+1) for i,l in enumerate(TEXT) ]
         tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TEXT) + '\n'
     return tape
+
+def read_mf4_mt(text):
+    str_list = text.splitlines()
+    i = 0
+    out = {"MAT" : int(str_list[i][66:70]),
+           "MF" : int(str_list[i][70:72]),
+           "MT" : int(str_list[i][72:75])}
+    C, i = read_cont(str_list, i)
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "LTT" : C.L2})
+    if out["LTT"] in (1,3):
+        C, i = read_cont(str_list, i)
+        out.update({"LI" : C.L1, "LCT" : C.L2})
+        T2, i = read_tab2(str_list, i)
+        out.update({"NE" : T2.NZ, "NBR" : T2.NBT, "INT" : T2.INT})
+        NLMAX = 0
+        E = []
+        P = np.zeros((out["NE"], 64)) # 64 is the largest NL allowed
+        for j in range(out["NE"]):
+            L, i = read_list(str_list, i)
+            E.append(L.C2)
+            P[j,:L.NPL] = L.B
+            NLMAX = max(NLMAX, L.NPL)
+        columns = ["P{}".format(j+1) for j in range(NLMAX)]
+        out.update({"P" : pd.DataFrame(P[:,:NLMAX], index=E, columns=columns)})
+    if out["LTT"] in (2,3):
+        C, i = read_cont(str_list, i)
+        out.update({"LI" : C.L1, "LCT" : C.L2})
+        T2, i = read_tab2(str_list, i)
+        out.update({"NE" : T2.NZ, "NBR" : T2.NBT, "INT" : T2.INT})
+        for i in range(out["NE"]):
+            T1, i = read_tab1(str_list, i)
+    if out["LTT"] == 0:
+        C, i = read_cont(str_list, i)
+        out.update({"LI" : C.L1, "LCT" : C.L2})
+    return out
 
 def read_mf33_mt(text):
     str_list = text.splitlines()
