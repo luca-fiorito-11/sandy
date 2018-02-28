@@ -88,29 +88,34 @@ def read_mf4_mt(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2, "LTT" : C.L2})
     if out["LTT"] in (1,3):
         C, i = read_cont(str_list, i)
-        out.update({"LI" : C.L1, "LCT" : C.L2})
+        sub = {"LI" : C.L1, "LCT" : C.L2}
         T2, i = read_tab2(str_list, i)
-        out.update({"NE" : T2.NZ, "NBR" : T2.NBT, "INT" : T2.INT})
+        sub.update({"NE" : T2.NZ, "NBR" : T2.NBT, "INT" : T2.INT})
         NLMAX = 0
         E = []
-        P = np.zeros((out["NE"], 64)) # 64 is the largest NL allowed
-        for j in range(out["NE"]):
+        P = np.zeros((sub["NE"], 64)) # 64 is the largest NL allowed
+        for j in range(sub["NE"]):
             L, i = read_list(str_list, i)
             E.append(L.C2)
             P[j,:L.NPL] = L.B
             NLMAX = max(NLMAX, L.NPL)
         columns = ["P{}".format(j+1) for j in range(NLMAX)]
-        out.update({"P" : pd.DataFrame(P[:,:NLMAX], index=E, columns=columns)})
+        sub.update({"P" : pd.DataFrame(P[:,:NLMAX], index=E, columns=columns)})
+        out.update({"LPC" : sub})
     if out["LTT"] in (2,3):
         C, i = read_cont(str_list, i)
-        out.update({"LI" : C.L1, "LCT" : C.L2})
+        sub = {"LI" : C.L1, "LCT" : C.L2}
         T2, i = read_tab2(str_list, i)
-        out.update({"NE" : T2.NZ, "NBR" : T2.NBT, "INT" : T2.INT})
+        sub.update({"NE" : T2.NZ, "NBR" : T2.NBT, "INT" : T2.INT})
+        TL = []
         for i in range(out["NE"]):
             T1, i = read_tab1(str_list, i)
+            TL.append(T1)
+            sub.update({"TL" : TL})
+        out.update({"TPD" : sub})
     if out["LTT"] == 0:
         C, i = read_cont(str_list, i)
-        out.update({"LI" : C.L1, "LCT" : C.L2})
+        out.update({"ISO" : {"LI" : C.L1, "LCT" : C.L2}})
     return out
 
 def read_mf33_mt(text):
@@ -179,6 +184,71 @@ def read_mf33_mt(text):
         out["SUB"].update({sub["MAT1"]*1000+sub["MT1"] : sub})
     return out
 
+def read_mf34_mt(text):
+    str_list = text.splitlines()
+    i = 0
+    out = {"MAT" : int(str_list[i][66:70]),
+           "MF" : int(str_list[i][70:72]),
+           "MT" : int(str_list[i][72:75])}
+    C, i = read_cont(str_list, i)
+    # Subsections are given as dictionary values.
+    # Keys are MAT1*100+MT1
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "MTL" : C.L2, "SUB" : {}})
+    for j in range(C.N2):
+        sub = {}
+        C, i = read_cont(str_list, i)
+        sub.update({"XMF1" : C.C1, "XLFS1" : C.C2, "MAT1" : C.L1, "MT1" : C.L2})
+        NC = C.N1
+        NI = C.N2
+        NCLIST = []
+        for k in range(NC):
+            C, i = read_cont(str_list, i)
+            subsub = {"LTY" : C.L2}
+            if subsub["LTY"] == 0:
+                L, i = read_list(str_list, i)
+                subsub.update({"E1" : L.C1, "E2" : L.C2,
+                               "CI" : L.B[:L.N2], "XMTI" : L.B[L.N2:]})
+                NCLIST.append(subsub)
+            elif subsub["LTY"] in (1,2,3):
+                L, i = read_list(str_list, i)
+                subsub.update({"E1" : L.C1, "E2" : L.C2, "MATS" : L.L1, "MTS" : L.L2,
+                               "XMFS" : L.B[0], "XLFSS" : L.B[1],
+                               "EI" : L.B[2:2+L.N2], "WEI" : L.B[2+L.N2:]})
+                NCLIST.append(subsub)
+            NCLIST.append(subsub)
+        sub.update({"NC" : NCLIST})
+        NILIST = []
+        for k in range(NI):
+            L, i = read_list(str_list, i)
+            subsub = {"LB" : L.L2}
+            if subsub["LB"] in range(5):
+                subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
+                if subsub["LT"] == 0:
+                    subsub.update({"Ek" : L.B[::2], "Fk" : L.B[1::2]})
+                else:
+                    pdb.set_trace()
+                    Nk = subsub["NP"] - subsub["LT"]
+                    ARRk = L.B[:Nk]
+                    ARRl = L.B[Nk:]
+                    subsub.update({"Ek" : ARRk[:Nk/2], "Fk" : ARRk[Nk/2:],
+                                   "El" : ARRl[:subsub["LT"]], "Fl" : ARRl[subsub["LT"]:]})
+            elif subsub["LB"] == 5:
+                subsub.update({"LS" : L.L1, "NT" : L.NPL, "NE" : L.N2,
+                               "Ek" : L.B[:L.N2], "Fkk" : L.B[L.N2:]})
+            elif subsub["LB"] == 6:
+                subsub.update({"NT" : L.NPL, "NER" : L.N2, "NEC" : (L.NPL-1)//L.N2})
+                subsub.update({"Ek" : L.B[:subsub["NER"]]})
+                subsub.update({"El" : L.B[subsub["NER"]:subsub["NER"]+subsub["NEC"]]})
+                subsub.update({"Fkl" : L.B[subsub["NER"]+subsub["NEC"]:]})
+            elif subsub["LB"] in (8,9):
+                subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
+                subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
+            else:
+                pdb.set_trace()
+            NILIST.append(subsub)
+        sub.update({"NI" : NILIST})
+        out["SUB"].update({sub["MAT1"]*1000+sub["MT1"] : sub})
+    return out
 
 def pandas_interpolate(df, interp_column, method='zero', axis='both'):
     # interp_column is a list
@@ -346,9 +416,23 @@ def write_tape(tape, file, title=" "*66):
     with open(file, 'w', encoding="ascii") as f:
         f.write(string)
 
-
-
+#if __name__ == "__main__":
+#    import argparse
+#    parser = argparse.ArgumentParser(description='Run SANDY')
+#    parser.add_argument('endf6', help="file in ENDF-6 format")
+#    parser.add_argument('N-samples', help="number of samples")
+#    parser.add_argument('--pendf', help="file in PENDF format")
+#    parser.add_argument('-nw', '--no-write', help="disable writing")
+#    parser.add_argument("-v", '--version', action='version',
+#                          version='%(prog)s 1.0', help="SANDY's version")
+#    args = parser.parse_args()
+#    file = args.endf6
+#    NSMP = args.N_samples
+#else:
+#    file = "H1.txt"
+#    NSMP = 100
 file = "H1.txt"
+NSMP = 100
 #file = "26-Fe-56g.jeff33"
 tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x, int(x[66:70])*100000+int(x[70:72])*1000+int(x[72:75])] for x in split(file)],
         columns=('MAT', 'MF', 'MT','TEXT', 'ID'))
@@ -359,7 +443,6 @@ df_cov_xs = merge_covs( extract_cov33(tape) )
 df_xs = extract_xs(tape)
 
 from sandy.cov import Cov
-NSMP = 100
 # Must add names to indexes
 df_samples_xs = pd.DataFrame( Cov(df_cov_xs.as_matrix()).sampling(NSMP) + 1 , index = df_cov_xs.index )
 unique_ids = list(set(zip(df_cov_xs.index.get_level_values(0), df_cov_xs.index.get_level_values(1))))
