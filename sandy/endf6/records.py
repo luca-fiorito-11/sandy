@@ -25,11 +25,11 @@ list_format_w = ff.FortranRecordWriter('(6ES12.6E1)')
 ilist_format_w = ff.FortranRecordWriter('(6I11)')
 
 def read_text(text, ipos):
-    TEXT = namedtuple('TEXT', 'HL')
+#    TEXT = namedtuple('TEXT', 'HL')
     try:
-        text = TEXT(*text_format_r.read(text[ipos]))
+        TEXT = text_format_r.read(text[ipos])[0]
         ipos += 1
-        return text, ipos
+        return TEXT, ipos
     except:
         sys.exit("ERROR: cannot read TEXT at '{}'".format(text[ipos]))
 
