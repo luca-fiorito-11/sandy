@@ -44,14 +44,53 @@ def split(file):
 def process_section(text):
     mf = int(text[70:72])
     mt = int(text[72:75])
-    if mf == 3:
+    if mf ==1 and mt == 451:
+        return read_mf1_mt451(text)
+    elif mf == 3:
         return read_mf3_mt(text)
     elif mf == 4:
         return read_mf4_mt(text)
+    elif mf == 8 and mt == 457:
+        return read_mf8_mt457(text)
     elif mf == 33:
         return read_mf33_mt(text)
     else:
         return None
+
+def read_mf1_mt451(text):
+    str_list = text.splitlines()
+    i = 0
+    out = {"MAT" : int(str_list[i][66:70]),
+           "MF" : int(str_list[i][70:72]),
+           "MT" : int(str_list[i][72:75])}
+    C, i = read_cont(str_list, i)
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "LRP" : C.L1, "LFI" : C.L2, "NLIB" :C.N1, "NMOD" : C.N2})
+    C, i = read_cont(str_list, i)
+    out.update({"ELIS" : C.C1, "STA" : C.C2, "LIS" : C.L1, "LISO" : C.L2, "NFOR" : C.N2})
+    C, i = read_cont(str_list, i)
+    out.update({"AWI" : C.C1, "EMAX" : C.C2, "LREL" : C.L1, "NSUB" : C.N1, "NVER" : C.N2})
+    C, i = read_cont(str_list, i)
+    out.update({"TEMP" : C.C1, "LDRV" : C.L1, "NWD" : C.N1, "NXC" : C.N2})
+    TEXT = []
+    for j in range(out["NWD"]):
+        T, i = read_text(str_list, i)
+        TEXT.append(T)
+    out.update({ "TEXT" : TEXT })
+    out["Z"] = int(TEXT[0][:3])
+    out["SYM"] = TEXT[0][4:6].rstrip()
+    out["A"] = int(TEXT[0][7:10])
+    out["M"] =  'g' if TEXT[0][10:11] is ' ' else TEXT[0][10:11].lower()
+    out['ALAB'] = TEXT[0][11:22]
+    out['EDATE'] = TEXT[0][22:32]
+    out['AUTH'] = TEXT[0][33:66]
+    out['REF'] = TEXT[1][1:22]
+    out['DDATE'] = TEXT[1][22:32]
+    out['RDATE'] = TEXT[1][33:43]
+    out['ENDATE'] = TEXT[1][55:63]
+    out['LIBVER'] = TEXT[2][:22].strip('- ')
+    out['SUB'] = TEXT[3].strip('- ')
+    out['FOR'] = TEXT[4].strip('- ')
+    return out
 
 def read_mf3_mt(text):
     str_list = text.splitlines()
@@ -116,6 +155,18 @@ def read_mf4_mt(text):
     if out["LTT"] == 0:
         C, i = read_cont(str_list, i)
         out.update({"ISO" : {"LI" : C.L1, "LCT" : C.L2}})
+    return out
+
+def read_mf8_mt457(text):
+    str_list = text.splitlines()
+    i = 0
+    out = {"MAT" : int(str_list[i][66:70]),
+           "MF" : int(str_list[i][70:72]),
+           "MT" : int(str_list[i][72:75])}
+    C, i = read_cont(str_list, i)
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "LIS" : C.L1, "LISO" : C.L2, "NST" :C.N1, "NSP" : C.N2})
+    L, i = read_list(str_list, i)
+    out.update({"HL" : L.C1, "DHL" : L.C2, "E" : L.B[::2], "DE" : L.B[1::2]})
     return out
 
 def read_mf33_mt(text):
@@ -416,6 +467,21 @@ def write_tape(tape, file, title=" "*66):
     with open(file, 'w', encoding="ascii") as f:
         f.write(string)
 
+def write_decay_data_csv(tape, filename):
+    df = tape.query("MF==8 & MT==457")
+    df['Z'] = df.DATA.apply(lambda x : int(x['ZA']//1000))
+    df['A'] = df.DATA.apply(lambda x : int(x['ZA'] - x['ZA']//1000*1000))
+    df['M'] = df.DATA.apply(lambda x : 'g' if x['LISO'] == 0 else 'm' if x['LISO'] == 1 else 'n')
+    df['HL'] = df.DATA.apply(lambda x : x['HL'])
+    df['DHL'] = df.DATA.apply(lambda x : x['DHL'])
+    df['ELP'] = df.DATA.apply(lambda x : x['E'][0])
+    df['DELP'] = df.DATA.apply(lambda x : x['DE'][0])
+    df['EEM'] = df.DATA.apply(lambda x : x['E'][1])
+    df['DEEM'] = df.DATA.apply(lambda x : x['DE'][2])
+    df['EHP'] = df.DATA.apply(lambda x : x['E'][2])
+    df['DEHP'] = df.DATA.apply(lambda x : x['DE'][2])
+    df[['Z','A','M','HL','DHL','ELP','DELP','EEM','DEEM','EHP','DEHP']].to_csv(filename, index=False)
+
 #if __name__ == "__main__":
 #    import argparse
 #    parser = argparse.ArgumentParser(description='Run SANDY')
@@ -433,11 +499,14 @@ def write_tape(tape, file, title=" "*66):
 #    NSMP = 100
 file = "H1.txt"
 NSMP = 100
+#file = "JEFF33-rdd_all.asc"
 #file = "26-Fe-56g.jeff33"
 tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x, int(x[66:70])*100000+int(x[70:72])*1000+int(x[72:75])] for x in split(file)],
         columns=('MAT', 'MF', 'MT','TEXT', 'ID'))
 tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
 tape['DATA'] = tape['TEXT'].apply(process_section)
+
+
 
 df_cov_xs = merge_covs( extract_cov33(tape) )
 df_xs = extract_xs(tape)
