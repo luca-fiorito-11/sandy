@@ -46,13 +46,15 @@ def process_section(text):
     mt = int(text[72:75])
     if mf ==1 and mt == 451:
         return read_mf1_mt451(text)
+    elif mf ==1 and mt in (452, 455, 456):
+        return read_mf1_nubar(text)
     elif mf == 3:
         return read_mf3_mt(text)
     elif mf == 4:
         return read_mf4_mt(text)
     elif mf == 8 and mt == 457:
         return read_mf8_mt457(text)
-    elif mf == 33:
+    elif mf == 31 or mf == 33:
         return read_mf33_mt(text)
     else:
         return None
@@ -92,6 +94,32 @@ def read_mf1_mt451(text):
     out['FOR'] = TEXT[4].strip('- ')
     return out
 
+def read_mf1_nubar(text):
+    str_list = text.splitlines()
+    i = 0
+    out = {"MAT" : int(str_list[i][66:70]),
+           "MF" : int(str_list[i][70:72]),
+           "MT" : int(str_list[i][72:75])}
+    C, i = read_cont(str_list, i)
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "LDG" : C.L1, "LNU" : C.L2})
+    if out["MT"] == 455:
+        if out["LDG"] == 0:
+            L, i = read_list(str_list, i)
+            out.update({ "NNF" : L.NPL, "LAMBDAS" : L.B })
+        elif out["LDG"] == 1:
+            # None found in JEFF33 and ENDFB8
+            lambdas, i = read_tab2(str_list, i)
+            pdb.set_trace()
+    if out["LNU"] == 1:
+        # None found in JEFF33 and ENDFB8 neither for MT455 nor for MT456
+        L, i = read_list(str_list, i)
+        out.update({ "NC" : L.NPL, "C" : L.B})
+    else:
+        # JEFF33 and ENDFB8 only have lin-lin interpolation schemes
+        T, i = read_tab1(str_list, i)
+        out["NUBAR"] = pd.Series(T.y, index = T.x, name = out["MT"]).rename_axis("E")
+    return out
+
 def read_mf3_mt(text):
     str_list = text.splitlines()
     i = 0
@@ -102,7 +130,6 @@ def read_mf3_mt(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2})
     T, i = read_tab1(str_list, i)
     out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBR" : T.NBT, "INT" : T.INT})
-#    XS = pd.Series(T.y, index = T.x, name = (out["MAT"],out["MT"])).rename_axis("E")
     XS = pd.Series(T.y, index = T.x, name = out["MT"]).rename_axis("E")
     out.update({"XS" : XS})
     return out
@@ -413,8 +440,8 @@ def merge_covs(covdf):
         end.append(r + rr)
         r += rr
         c += cc
-    diags["BEG"] = beg
-    diags["END"] = end
+    diags = diags.assign(BEG = beg)
+    diags = diags.assign(END = end)
     # reset multindex to use loc method
     diags = diags.set_index(['MAT','MT','MAT1','MT1']).sort_index()
     # Process off-diagonal blocks
@@ -498,6 +525,8 @@ def write_decay_data_csv(tape, filename):
 #    file = "H1.txt"
 #    NSMP = 100
 file = "H1.txt"
+file = "nubar_endfb80.tape"
+#file = "nubar_jeff33.tape"
 NSMP = 100
 #file = "JEFF33-rdd_all.asc"
 #file = "26-Fe-56g.jeff33"
