@@ -100,17 +100,6 @@ def read_list(text, ipos):
     except:
         sys.exit("ERROR: cannot read LIST at '{}'".format(text[ipos]))
 
-
-#def add_records(mat, mf, mt, ns, func):
-#    def func_wrapper(*args):
-#        TEXT = func(*args)
-#        TEXT_OUT = []
-#        for line in TEXT:
-#            TEXT_OUT.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, ns))
-#            ns += 1
-#        return TEXT_OUT, ns
-#    return func_wrapper
-
 def write_cont(C1, C2, L1, L2, N1, N2):
     return [cont_format_w.write((C1, C2, L1, L2, N1, N2)).replace("E","")]
 
@@ -127,5 +116,14 @@ def write_tab1(C1, C2, L1, L2, NBT, INT, x, y):
     i = 0
     while i < NP*2:
         TEXT.append(list_format_w.write(tab1[i:i+6]).replace("E",""))
+        i += 6
+    return TEXT
+
+def write_list(C1, C2, L1, L2, N2, B):
+    NPL = len(B)
+    TEXT = write_cont(C1, C2, L1, L2, NPL, N2)
+    i = 0
+    while i < NPL:
+        TEXT.append(list_format_w.write(B[i:i+6]))
         i += 6
     return TEXT

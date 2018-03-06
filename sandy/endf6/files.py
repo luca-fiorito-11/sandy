@@ -7,7 +7,7 @@ Created on Mon Jan 16 18:03:13 2017
 import sys
 import logging
 import numpy as np
-from records import read_cont, read_tab1, read_tab2, read_list, read_text, write_cont, write_tab1#, add_records
+from records import read_cont, read_tab1, read_tab2, read_list, read_text, write_cont, write_tab1, write_list#, add_records
 import matplotlib.pyplot as plt
 import pandas as pd
 import pdb
@@ -107,9 +107,8 @@ def read_mf1_nubar(text):
             L, i = read_list(str_list, i)
             out.update({ "NNF" : L.NPL, "LAMBDAS" : L.B })
         elif out["LDG"] == 1:
-            # None found in JEFF33 and ENDFB8
-            lambdas, i = read_tab2(str_list, i)
-            pdb.set_trace()
+            # None found in JEFF33 and ENDFB8, hence not implemented
+            pass
     if out["LNU"] == 1:
         # None found in JEFF33 and ENDFB8 neither for MT455 nor for MT456
         L, i = read_list(str_list, i)
@@ -117,8 +116,27 @@ def read_mf1_nubar(text):
     else:
         # JEFF33 and ENDFB8 only have lin-lin interpolation schemes
         T, i = read_tab1(str_list, i)
+        out.update({"NBR" : T.NBT, "INT" : T.INT})
         out["NUBAR"] = pd.Series(T.y, index = T.x, name = out["MT"]).rename_axis("E")
     return out
+
+def write_mf1_nubar(tape):
+    for (mat,mf,mt),df in tape.loc[(slice(None),1),:].iterrows():
+        TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], df.DATA["LDG"], df.DATA["LNU"], 0, 0)
+        if df.DATA["MT"] == 455:
+            if df.DATA["LDG"] == 0:
+                TEXT += write_list(0, 0, 0, 0, 0, df.DATA["LAMBDAS"])
+            elif df.DATA["LDG"] == 1:
+                # Not found in JEFF33 and ENDFB8, hence not implemented
+                pass
+        if df.DATA["LNU"] == 1:
+            TEXT += write_list(0, 0, 0, 0, 0, df.DATA["C"])
+        else:
+            TEXT += write_tab1(0, 0, 0, 0, df.DATA["NBR"], df.DATA["INT"],
+                           df.DATA["NUBAR"].index, df.DATA["NUBAR"])
+        TEXT = [ "{:<66}{:4}{:2}{:3}{:5}".format(l, mat, mf, mt, i+1) for i,l in enumerate(TEXT) ]
+        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TEXT) + '\n'
+    return tape
 
 def read_mf3_mt(text):
     str_list = text.splitlines()
@@ -174,7 +192,7 @@ def read_mf4_mt(text):
         T2, i = read_tab2(str_list, i)
         sub.update({"NE" : T2.NZ, "NBR" : T2.NBT, "INT" : T2.INT})
         TL = []
-        for i in range(out["NE"]):
+        for i in range(sub["NE"]):
             T1, i = read_tab1(str_list, i)
             TL.append(T1)
             sub.update({"TL" : TL})
@@ -460,7 +478,7 @@ def merge_covs(covdf):
         C[covk.BEG:covk.END,covl.BEG:covl.END] = cov
         C[covl.BEG:covl.END,covk.BEG:covk.END,] = cov.T
     C = pd.DataFrame(C, index=[MATS,MTS,E], columns=[MATS,MTS,E])
-    C.sort_index(inplace=True)
+    C.index.names = ["MAT", "MT", "E"]
     return C
 
 def update_xs(tape, xsdf):
@@ -525,29 +543,94 @@ def write_decay_data_csv(tape, filename):
 #    file = "H1.txt"
 #    NSMP = 100
 file = "H1.txt"
-file = "nubar_endfb80.tape"
+file = "96-Cm-242g.jeff33"
+#file = "nubar_endfb80.tape"
 #file = "nubar_jeff33.tape"
 NSMP = 100
 #file = "JEFF33-rdd_all.asc"
 #file = "26-Fe-56g.jeff33"
-tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x, int(x[66:70])*100000+int(x[70:72])*1000+int(x[72:75])] for x in split(file)],
-        columns=('MAT', 'MF', 'MT','TEXT', 'ID'))
+tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x] for x in split(file)],
+        columns=('MAT', 'MF', 'MT','TEXT'))
 tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
 tape['DATA'] = tape['TEXT'].apply(process_section)
 
 
+from sandy.cov import Cov
 
 df_cov_xs = merge_covs( extract_cov33(tape) )
-df_xs = extract_xs(tape)
 
-from sandy.cov import Cov
+Index = df_cov_xs.index
+df_cov_xs.update(pd.DataFrame(Cov(df_cov_xs.as_matrix()).corr, index=Index, columns=Index))
+#A=df_cov_xs.loc[9936,455][9936][455]
+df_xs = extract_xs(tape) # dictionary (keys are MAT) of dataframes
+#df_nu = extract_nu(tape) # dictionary (keys are MAT) of dataframes
+
 # Must add names to indexes
 df_samples_xs = pd.DataFrame( Cov(df_cov_xs.as_matrix()).sampling(NSMP) + 1 , index = df_cov_xs.index )
 unique_ids = list(set(zip(df_cov_xs.index.get_level_values(0), df_cov_xs.index.get_level_values(1))))
 #idx = pd.IndexSlice
 #df_samples.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
+orig = copy.deepcopy(df_xs)
+# Add index level with sample number, 0 is the reference
+for mat,df in df_xs.items():
+    df.columns = pd.MultiIndex.from_product([[0], df.columns])
+
 for ismp in range(NSMP):
-#    ixs = df_xs.copy()
+    ixs = copy.deepcopy(orig)
+    for mat, df_samples_bymat in df_samples_xs.groupby(level=0, sort=True):
+        for mt, P in df_samples_bymat.groupby(level=1, sort=True):
+            if mat not in ixs:
+                continue
+            if mt not in ixs[mat]:
+                continue
+            XS = ixs[mat][mt]
+            P = pandas_interpolate(P.loc[mat,mt][ismp],
+                                   list(XS.index.get_level_values("E")),
+                                   axis="rows")
+            XS = XS.multiply(P)
+            # Negative values are set to mean
+            ixs[mat][mt][XS > 0] = XS[XS > 0]
+        # Redundant XS
+        columns = ixs[mat].columns
+        daughters = [ x for x in range(800,850) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][107] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in range(750,800) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][106] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in range(700,750) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][105] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in range(650,700) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][104] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in range(600,650) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][103] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in range(102,118) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][101] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in (19,20,21,38) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][18] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in (18,101) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][27] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in range(50,92) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][4] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in (4,5,11,*range(16,19),*range(22,38),41,42,44,45) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][3] = ixs[mat][daughters].sum(axis=1)
+        daughters = [ x for x in (2,3) if x in ixs[mat]]
+        if daughters:
+            ixs[mat][1] = ixs[mat][daughters].sum(axis=1)
+        ixs[mat] = ixs[mat][columns]
+    tape = update_xs(tape, ixs)
+    tape = write_mf3_mt(tape)
+    write_tape(tape, "AAA-{}".format(ismp))
+
+for ismp in range(NSMP):
     ixs = copy.deepcopy(df_xs)
     for mat, df_samples_bymat in df_samples_xs.groupby(level=0, sort=True):
         for mt, P in df_samples_bymat.groupby(level=1, sort=True):
