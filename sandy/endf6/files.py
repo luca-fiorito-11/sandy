@@ -369,8 +369,10 @@ def pandas_interpolate(df, interp_column, method='zero', axis='both'):
 def extract_xs(tape):
     XS = {} # DIctionary by MAT
 #    XS = pd.DataFrame() # dataframe with MAT as index
-    for mat in np.unique(tape.index.get_level_values(0)):
+    for mat in np.unique(tape.index.get_level_values("MAT")):
         xsdf = pd.DataFrame(tape.loc[mat,3,1].DATA["XS"])
+        if len(np.unique(xsdf.index)) != len(xsdf.index):
+            raise NotImplementedError()
 #        xsdf.columns = xsdf.columns.droplevel() # keep only MT, drop MAT
 #        xsdf.reset_index(inplace=True)
 #        xsdf["MAT"] = mat
@@ -382,6 +384,9 @@ def extract_xs(tape):
 #            df.reset_index(inplace=True)
 #            df["MAT"] = mat
 #            df = df.set_index(['MAT','E']).sort_index()
+            # PROBLEM! "add" does not work for duplicated energy points
+            if len(np.unique(df.index)) != len(df.index):
+                raise NotImplementedError()
             xsdf = xsdf.add(df, fill_value=0)
         xsdf.fillna(0, inplace=True)
 #        XS = pd.concat((XS, xsdf)) # To be tested
@@ -543,7 +548,7 @@ def write_decay_data_csv(tape, filename):
 #    file = "H1.txt"
 #    NSMP = 100
 file = "H1.txt"
-file = "96-Cm-242g.jeff33"
+#file = "96-Cm-242g.jeff33"
 #file = "nubar_endfb80.tape"
 #file = "nubar_jeff33.tape"
 NSMP = 100
@@ -566,7 +571,9 @@ df_xs = extract_xs(tape) # dictionary (keys are MAT) of dataframes
 #df_nu = extract_nu(tape) # dictionary (keys are MAT) of dataframes
 
 # Must add names to indexes
-df_samples_xs = pd.DataFrame( Cov(df_cov_xs.as_matrix()).sampling(NSMP) + 1 , index = df_cov_xs.index )
+df_samples_xs = pd.DataFrame( Cov(df_cov_xs.as_matrix()).sampling(NSMP) + 1 ,
+                             index = df_cov_xs.index,
+                             columns = range(1,NSMP+1))
 unique_ids = list(set(zip(df_cov_xs.index.get_level_values(0), df_cov_xs.index.get_level_values(1))))
 #idx = pd.IndexSlice
 #df_samples.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
@@ -575,7 +582,26 @@ orig = copy.deepcopy(df_xs)
 for mat,df in df_xs.items():
     df.columns = pd.MultiIndex.from_product([[0], df.columns])
 
+def perturb(XsSeries, PertDf):
+    P = pandas_interpolate(PertDf,
+                           np.unique(XsSeries.index).tolist(),
+                           axis="rows")
+    XS = P.multiply(XsSeries, axis="index")
+    # Negative values are set to zero
+    XS[XS <= 0] = 0
+    return XS
+    
 for ismp in range(NSMP):
+    for mat in orig:
+        if mat in df_samples_xs.index.get_level_values("MAT"):
+            for mt in sorted(orig[mat].columns, reverse=True):
+                if mt in df_samples_xs.loc[mat].index.get_level_values("MT"):
+                    smp = perturb(orig[mat][mt], 
+                                 df_samples_xs.loc[mat,mt])
+                    smp.columns = pd.MultiIndex.from_product([smp.columns, [mt]])
+                    df_xs[mat] = df_xs[mat].add(smp, fill_value=0)
+                elif mt ==
+                    pass
     ixs = copy.deepcopy(orig)
     for mat, df_samples_bymat in df_samples_xs.groupby(level=0, sort=True):
         for mt, P in df_samples_bymat.groupby(level=1, sort=True):
@@ -589,6 +615,7 @@ for ismp in range(NSMP):
                                    axis="rows")
             XS = XS.multiply(P)
             # Negative values are set to mean
+            XS[XS <= 0] = ixs[mat][mt][XS <= 0]
             ixs[mat][mt][XS > 0] = XS[XS > 0]
         # Redundant XS
         columns = ixs[mat].columns
