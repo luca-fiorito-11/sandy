@@ -5,9 +5,12 @@ Created on Mon Mar 19 22:51:03 2018
 @author: lucaf
 """
 
-#import pandas as pd
-#import sandy.endf6.files as e6
-#from sandy.cov import Cov
+import pandas as pd
+import sandy.endf6.files as e6
+from sandy.cov import Cov
+import copy
+import numpy as np
+
 
 #if __name__ == "__main__":
 #    import argparse
@@ -31,29 +34,19 @@ file = "data_test/H1.txt"
 NSMP = 100
 #file = "JEFF33-rdd_all.asc"
 #file = "26-Fe-56g.jeff33"
-from multiprocessing import Pool
-from time import sleep
-
-def f(x):
-    return x*x
-if __name__ == '__main__':
-    with Pool(processes=4) as pool:
-            print(pool.map(f, range(10)))
-import sys
-sys.exit()
 tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x] for x in e6.split(file)],
         columns=('MAT', 'MF', 'MT','TEXT'))
 tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
-tape['DATA'] = tape['TEXT'].apply(process_section)
+tape['DATA'] = tape['TEXT'].apply(e6.process_endf_section)
 
 
 
-df_cov_xs = merge_covs( extract_cov33(tape) )
+df_cov_xs = e6.merge_covs( e6.extract_cov33(tape) )
 
 Index = df_cov_xs.index
 df_cov_xs.update(pd.DataFrame(Cov(df_cov_xs.as_matrix()).corr, index=Index, columns=Index))
 #A=df_cov_xs.loc[9936,455][9936][455]
-df_xs = extract_xs(tape) # dictionary (keys are MAT) of dataframes
+df_xs = e6.extract_xs(tape) # dictionary (keys are MAT) of dataframes
 #df_nu = extract_nu(tape) # dictionary (keys are MAT) of dataframes
 
 # Must add names to indexes
@@ -69,22 +62,29 @@ for mat,df in df_xs.items():
     df.columns = pd.MultiIndex.from_product([[0], df.columns])
 
 def perturb(XsSeries, PertDf):
-    P = pandas_interpolate(PertDf,
+    mt = XsSeries.name
+    P = e6.pandas_interpolate(PertDf,
                            np.unique(XsSeries.index).tolist(),
                            axis="rows")
     XS = P.multiply(XsSeries, axis="index")
     # Negative values are set to zero
     XS[XS <= 0] = 0
+    XS.columns = pd.MultiIndex.from_product([XS.columns, [mt]])
     return XS
-    
+
 for ismp in range(NSMP):
+#    MAT_MT = [ (mat,mt) for mat in orig for mt in orig[mat].columns ]
+#    for mat,mt in MAT_MT:
+#        if mat not in df_samples_xs.index.get_level_values("MAT"):
+#            continue
+
     for mat in orig:
         if mat in df_samples_xs.index.get_level_values("MAT"):
             for mt in sorted(orig[mat].columns, reverse=True):
                 if mt in df_samples_xs.loc[mat].index.get_level_values("MT"):
-                    smp = perturb(orig[mat][mt], 
-                                 df_samples_xs.loc[mat,mt])
-                    smp.columns = pd.MultiIndex.from_product([smp.columns, [mt]])
+                    XsSeries = orig[mat][mt]
+                    PertDf = df_samples_xs.loc[mat,mt]
+                    smp = perturb(XsSeries, PertDf)
                     df_xs[mat] = df_xs[mat].add(smp, fill_value=0)
 #                elif mt ==
 #                    pass

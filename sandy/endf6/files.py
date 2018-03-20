@@ -41,7 +41,7 @@ def split(file):
             - n-98-Cf-254.jeff32
 """
 
-def process_section(text):
+def process_endf_section(text):
     mf = int(text[70:72])
     mt = int(text[72:75])
     if mf ==1 and mt == 451:
