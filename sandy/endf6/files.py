@@ -389,6 +389,7 @@ def extract_xs(tape):
                 raise NotImplementedError()
             xsdf = xsdf.add(df, fill_value=0)
         xsdf.fillna(0, inplace=True)
+        xsdf.columns = pd.Index(xsdf.columns, name="MT")
 #        XS = pd.concat((XS, xsdf)) # To be tested
         XS.update({ mat : xsdf })
     return XS
