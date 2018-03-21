@@ -145,7 +145,7 @@ if __name__ == '__main__':
     #file = "JEFF33-rdd_all.asc"
     #file = "26-Fe-56g.jeff33"
     if len(sys.argv) == 1:
-        sys.argv.extend(["data_test/H1.txt", "--outdir", "../ttt"])
+        sys.argv.extend(["data_test\H1.txt", "--outdir", os.path.join("..","ttt")])
     settings.init()
     tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x] for x in e6.split(settings.args.endf6)],
             columns=('MAT', 'MF', 'MT','TEXT'))
@@ -158,6 +158,6 @@ if __name__ == '__main__':
 
     pool = mp.Pool(processes=settings.args.processes)
     # Problem when running python from windows to linux
-    outname = settings.args.outdir + '/' + os.path.basename(settings.args.endf6) + '-{}'
+    outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
 #    outname = os.path.join(os.path.basename(settings.args.outdir), settings.args.endf6, '{}')
     [pool.apply( sampling, args=(tape, PertXs[ismp],outname.format(ismp))) for ismp in range(1,settings.args.samples+1) ]
