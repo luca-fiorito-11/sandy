@@ -10,6 +10,11 @@ import sandy.endf6.files as e6
 from sandy.cov import Cov
 import copy
 import numpy as np
+import sandy.settings as settings
+import sys
+import os
+import multiprocessing as mp
+
 
 
 #if __name__ == "__main__":
@@ -57,7 +62,7 @@ def perturb(XsSeries, PertSeries):
     return Xs
 
 
-def sampling_xs(tape, PertSeries, ismp):
+def sampling(tape, PertSeries, output):
     Xs = e6.extract_xs(tape) # dictionary (keys are MAT) of dataframes
     matListPert = PertSeries.index.get_level_values("MAT")
     for mat in Xs:
@@ -125,34 +130,34 @@ def sampling_xs(tape, PertSeries, ismp):
         daughters = [ x for x in (2,3) if x in Xs[mat].columns]
         if daughters:
             Xs[mat][1] = Xs[mat][daughters].sum(axis=1)
-        Xs[mat] = Xs[mat][mtListXs] # keep only Mt present in the original file
+        Xs[mat] = Xs[mat][mtListXs] # keep only mt present in the original file
     tape = e6.update_xs(tape, Xs)
     tape = e6.write_mf3_mt(tape)
-    e6.write_tape(tape, "AAA-{}".format(ismp))
-
-def sampling(tape, PertXs):
-    import multiprocessing as mp
-    pool = mp.Pool(processes=4)
-    results = [pool.apply(sampling_xs, args=(tape, PertXs[ismp], ismp)) for ismp in range(1,NSMP+1)]
+    print (output)
+    e6.write_tape(tape, output)
 
 if __name__ == '__main__':
-    file = "data_test/H1.txt"
+    #file = "data_test/H1.txt"
     #file = "96-Cm-242g.jeff33"
     #file = "nubar_endfb80.tape"
     #file = "nubar_jeff33.tape"
-    NSMP = 100
+    #NSMP = 100
     #file = "JEFF33-rdd_all.asc"
     #file = "26-Fe-56g.jeff33"
-    tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x] for x in e6.split(file)],
+    if len(sys.argv) == 1:
+        sys.argv.extend(["data_test/H1.txt", "--outdir", "../ttt"])
+    settings.init()
+    tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x] for x in e6.split(settings.args.endf6)],
             columns=('MAT', 'MF', 'MT','TEXT'))
     tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
     tape['DATA'] = tape['TEXT'].apply(e6.process_endf_section)
 
-    PertXs = sample_xs(tape, NSMP)
-    #unique_ids = list(set(zip(df_cov_xs.index.get_level_values(0), df_cov_xs.index.get_level_values(1))))
-    #idx = pd.IndexSlice
-    #df_samples.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
+    PertXs = sample_xs(tape, settings.args.samples)
     Xs = e6.extract_xs(tape) # dictionary (keys are MAT) of dataframes
     #df_nu = extract_nu(tape) # dictionary (keys are MAT) of dataframes
 
-    sampling(tape, PertXs)
+    pool = mp.Pool(processes=settings.args.processes)
+    # Problem when running python from windows to linux
+    outname = settings.args.outdir + '/' + os.path.basename(settings.args.endf6) + '-{}'
+#    outname = os.path.join(os.path.basename(settings.args.outdir), settings.args.endf6, '{}')
+    [pool.apply( sampling, args=(tape, PertXs[ismp],outname.format(ismp))) for ismp in range(1,settings.args.samples+1) ]
