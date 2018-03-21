@@ -514,7 +514,7 @@ def write_tape(tape, file, title=" "*66):
                 string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, mf, 0, 99999)
             string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, 0, 0, 0)
         string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), 0, 0, 0, 0)
-    string += "{:<66}{:4}{:2}{:3}{:5}".format(*write_cont(*[0]*6), mat, 0, 0, -1)
+    string += "{:<66}{:4}{:2}{:3}{:5}".format(*write_cont(*[0]*6), -1, 0, 0, 0)
     with open(file, 'w', encoding="ascii") as f:
         f.write(string)
 
