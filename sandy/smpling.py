@@ -16,26 +16,6 @@ import os
 import multiprocessing as mp
 
 
-
-#if __name__ == "__main__":
-#    import argparse
-#    parser = argparse.ArgumentParser(description='Run SANDY')
-#    parser.add_argument('endf6', help="file in ENDF-6 format")
-#    parser.add_argument('N-samples', help="number of samples")
-#    parser.add_argument('--pendf', help="file in PENDF format")
-#    parser.add_argument('-nw', '--no-write', help="disable writing")
-#    parser.add_argument("-v", '--version', action='version',
-#                          version='%(prog)s 1.0', help="SANDY's version")
-#    args = parser.parse_args()
-#    file = args.endf6
-#    NSMP = args.N_samples
-#else:
-#    file = "H1.txt"
-#    NSMP = 100
-
-
-
-
 #To produce correlation matrix
 #Index = df_cov_xs.index
 #df_cov_xs.update(pd.DataFrame(Cov(df_cov_xs.as_matrix()).corr, index=Index, columns=Index))
@@ -155,9 +135,9 @@ if __name__ == '__main__':
     PertXs = sample_xs(tape, settings.args.samples)
     Xs = e6.extract_xs(tape) # dictionary (keys are MAT) of dataframes
     #df_nu = extract_nu(tape) # dictionary (keys are MAT) of dataframes
-
+    aaa()
     pool = mp.Pool(processes=settings.args.processes)
     # Problem when running python from windows to linux
     outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
 #    outname = os.path.join(os.path.basename(settings.args.outdir), settings.args.endf6, '{}')
-    [pool.apply( sampling, args=(tape, PertXs[ismp],outname.format(ismp))) for ismp in range(1,settings.args.samples+1) ]
+    [pool.apply( sampling, args=(tape, PertXs[ismp], outname.format(ismp))) for ismp in range(1,settings.args.samples+1) ]
