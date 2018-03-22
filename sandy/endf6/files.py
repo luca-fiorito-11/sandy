@@ -52,6 +52,8 @@ def process_endf_section(text):
         return read_mf3_mt(text)
     elif mf == 4:
         return read_mf4_mt(text)
+    elif mf == 5:
+        return read_mf5_mt(text)
     elif mf == 8 and mt == 457:
         return read_mf8_mt457(text)
     elif mf == 31 or mf == 33:
@@ -200,6 +202,50 @@ def read_mf4_mt(text):
     if out["LTT"] == 0:
         C, i = read_cont(str_list, i)
         out.update({"ISO" : {"LI" : C.L1, "LCT" : C.L2}})
+    return out
+
+def read_mf5_mt(text):
+    from sandy.functions import union_grid
+    str_list = text.splitlines()
+    i = 0
+    out = {"MAT" : int(str_list[i][66:70]),
+           "MF" : int(str_list[i][70:72]),
+           "MT" : int(str_list[i][72:75])}
+    C, i = read_cont(str_list, i)
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "NK" : C.N1})
+    subs = []
+    for j in range(out["NK"]):
+        TP, i = read_tab1(str_list, i)
+        sub = {"TP" : TP} # Tab1 with p_k(E)
+        sub.update({ "LF" : TP.L2 })
+        if sub["LF"] == 1:
+            T2, i = read_tab2(str_list, i)
+            T1s = []
+            for k in range(T2.NZ):
+                T1, i = read_tab1(str_list, i)
+                T1s.append(T1)
+            sub.update({"T1s" : T1s})
+            if list(filter(lambda x: x!=[2], list(map(lambda x: x.INT, T1s)))):
+                print("WARNING: ")
+            else:
+                chi_dict = { T1.C2 : dict(zip(T1.x, T1.y)) for T1 in T1s}
+                chi = pd.DataFrame.from_dict(chi_dict).interpolate(method="slinear").fillna(0).transpose()
+                eg_new = union_grid(chi.columns, np.logspace(-5, 7, 13))
+                chi = pandas_interpolate(chi, eg_new, method='slinear', axis='rows')
+                ppp =1
+            
+            for interp in interps:
+                if interp != [2]:
+                    print (interp,"aaa")
+                else:
+                    print (interp,"bbb")
+                    
+            aaa =1
+        subs.append(sub)
+    T, i = read_tab1(str_list, i)
+    out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBR" : T.NBT, "INT" : T.INT})
+    XS = pd.Series(T.y, index = T.x, name = out["MT"]).rename_axis("E")
+    out.update({"XS" : XS})
     return out
 
 def read_mf8_mt457(text):
