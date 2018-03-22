@@ -8,7 +8,6 @@ Created on Mon Mar 19 22:51:03 2018
 import pandas as pd
 import sandy.endf6.files as e6
 from sandy.cov import Cov
-import copy
 import numpy as np
 import sandy.settings as settings
 import sys
@@ -20,7 +19,14 @@ import multiprocessing as mp
 #Index = df_cov_xs.index
 #df_cov_xs.update(pd.DataFrame(Cov(df_cov_xs.as_matrix()).corr, index=Index, columns=Index))
 
-
+def sample_chi(tape, NSMP):
+    from scipy.linalg import block_diag
+    C = tape.query("MF==35").DATA
+    diags = tape.DATA.query("MF==35")["COVS"]
+    B = tape.DATA.loc[9228,35,18]["COVS"]
+    C = block_diag(*B.COV.tolist())
+    pass
+    
 
 def sample_xs(tape, NSMP):
     DfCov = e6.merge_covs( e6.extract_cov33(tape) )
@@ -117,6 +123,7 @@ def sampling(tape, PertSeries, output):
     e6.write_tape(tape, output)
 
 if __name__ == '__main__':
+    __spec__ = None
     #file = "data_test/H1.txt"
     #file = "96-Cm-242g.jeff33"
     #file = "nubar_endfb80.tape"
@@ -125,13 +132,19 @@ if __name__ == '__main__':
     #file = "JEFF33-rdd_all.asc"
     #file = "26-Fe-56g.jeff33"
     if len(sys.argv) == 1:
-        sys.argv.extend(["data_test\96-Cm-242g.jeff33", "--outdir", os.path.join("..","ttt")])
+        sys.argv.extend(["data_test\92-U-235g.jeff33", "--outdir", os.path.join("..","ttt")])
     settings.init()
     tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x] for x in e6.split(settings.args.endf6)],
             columns=('MAT', 'MF', 'MT','TEXT'))
     tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
+    
+#    pool = mp.Pool(processes=settings.args.processes)
+#    AAA = pool.map( e6.process_endf_section, tape['TEXT'].tolist())
+#    data = [ pool.apply( e6.process_endf_section, args=(x)) for x in tape['TEXT'].tolist() ]
+
     tape['DATA'] = tape['TEXT'].apply(e6.process_endf_section)
 
+    PertChi = sample_chi(tape, settings.args.samples)
     PertXs = sample_xs(tape, settings.args.samples)
     Xs = e6.extract_xs(tape) # dictionary (keys are MAT) of dataframes
     #df_nu = extract_nu(tape) # dictionary (keys are MAT) of dataframes

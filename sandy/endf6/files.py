@@ -11,7 +11,6 @@ from sandy.endf6.records import read_cont, read_tab1, read_tab2, read_list, read
 import matplotlib.pyplot as plt
 import pandas as pd
 import pdb
-import copy
 
 
 def split(file):
@@ -44,6 +43,8 @@ def split(file):
 def process_endf_section(text):
     mf = int(text[70:72])
     mt = int(text[72:75])
+    if mf not in (5,35):
+        return None
     if mf ==1 and mt == 451:
         return read_mf1_mt451(text)
     elif mf ==1 and mt in (452, 455, 456):
@@ -58,6 +59,8 @@ def process_endf_section(text):
         return read_mf8_mt457(text)
     elif mf == 31 or mf == 33:
         return read_mf33_mt(text)
+    elif mf == 35:
+        return read_mf35_mt(text)
     else:
         return None
 
@@ -212,40 +215,43 @@ def read_mf5_mt(text):
            "MF" : int(str_list[i][70:72]),
            "MT" : int(str_list[i][72:75])}
     C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "NK" : C.N1})
-    subs = []
+    # subsections for partial energy distributions are given in a list
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "NK" : C.N1, "SUB" : [] })
     for j in range(out["NK"]):
-        TP, i = read_tab1(str_list, i)
-        sub = {"TP" : TP} # Tab1 with p_k(E)
-        sub.update({ "LF" : TP.L2 })
-        if sub["LF"] == 1:
+        Tp, i = read_tab1(str_list, i)
+        sub = { "Tp" : Tp, "LF" : Tp.L2 }
+        if sub["LF"] == 5:
+            Ttheta, i = read_tab1(str_list, i)
+            Tg, i = read_tab1(str_list, i)
+            sub.update({ "Ttheta" : Ttheta, "Tg" : Tg })
+        elif sub["LF"] in (7,9):
+            Ttheta, i = read_tab1(str_list, i)
+            sub.update({ "Ttheta" : Ttheta})
+        elif sub["LF"] == 11:
+            Ta, i = read_tab1(str_list, i)
+            Tb, i = read_tab1(str_list, i)
+            sub.update({ "Ta" : Ta, "Tb" : Tb })
+        elif sub["LF"] == 12:
+            TTm, i = read_tab1(str_list, i)
+            sub.update({ "TTm" : TTm })
+        elif sub["LF"] == 1:
             T2, i = read_tab2(str_list, i)
             T1s = []
             for k in range(T2.NZ):
                 T1, i = read_tab1(str_list, i)
                 T1s.append(T1)
             sub.update({"T1s" : T1s})
-            if list(filter(lambda x: x!=[2], list(map(lambda x: x.INT, T1s)))):
-                print("WARNING: ")
-            else:
+            if not list(filter(lambda x: x!=[2], list(map(lambda x: x.INT, T1s)))):
                 chi_dict = { T1.C2 : dict(zip(T1.x, T1.y)) for T1 in T1s}
+                # merge chi_E(E') distributions on df[E,E'] with unique E' grid
                 chi = pd.DataFrame.from_dict(chi_dict).interpolate(method="slinear").fillna(0).transpose()
-                eg_new = union_grid(chi.columns, np.logspace(-5, 7, 13))
+                # include default points in E grid and interpolate
+                eg_new = list(union_grid(chi.index, np.logspace(-5, 7, 13)))
                 chi = pandas_interpolate(chi, eg_new, method='slinear', axis='rows')
-                ppp =1
-            
-            for interp in interps:
-                if interp != [2]:
-                    print (interp,"aaa")
-                else:
-                    print (interp,"bbb")
-                    
-            aaa =1
-        subs.append(sub)
-    T, i = read_tab1(str_list, i)
-    out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBR" : T.NBT, "INT" : T.INT})
-    XS = pd.Series(T.y, index = T.x, name = out["MT"]).rename_axis("E")
-    out.update({"XS" : XS})
+                chi.index.name = "Ein"
+                chi.columns.name = "Eout"
+                sub.update({"chi" : chi})
+        out["SUB"].append(sub)
     return out
 
 def read_mf8_mt457(text):
@@ -392,6 +398,38 @@ def read_mf34_mt(text):
         out["SUB"].update({sub["MAT1"]*1000+sub["MT1"] : sub})
     return out
 
+def read_mf35_mt(text):
+    from sandy.cov import triu_matrix, corr2cov
+    str_list = text.splitlines()
+    i = 0
+    out = {"MAT" : int(str_list[i][66:70]),
+           "MF" : int(str_list[i][70:72]),
+           "MT" : int(str_list[i][72:75])}
+    C, i = read_cont(str_list, i)
+    out.update({ "ZA" : C.C1, "AWR" : C.C2, "NK" : C.N1})
+    subs = {}
+    for k in range(out["NK"]):
+        L, i = read_list(str_list, i)
+        Elo = L.C1; Ehi = L.C2
+        NE = L.N2
+        # Ek grid is one unit longer than covariance.
+        Ek = np.array(L.B[:NE])
+        Fkk = np.array(L.B[NE:])
+        cov = triu_matrix(Fkk, NE-1)
+        # Normalize covariance matrix dividing by the energy bin.
+        dE = 1./(Ek[1:]-Ek[:-1])
+        cov = corr2cov(cov, dE)
+        # Add zero row and column at the end of the matrix
+        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+        cov = pd.DataFrame(cov, index=Ek, columns=Ek)
+        cov.index.name = "Ek"; cov.columns.name = "El"
+        subs.update({ (Elo, Ehi) : {"LS" : L.L1, "LB" : L.L2, "NT" : L.NPL, "NE" : NE, "COV" : cov} })
+    DfCov = pd.DataFrame.from_dict(subs, orient="index")
+    DfCov.index.names = ["Elo", "Ehi"]
+    out.update({ "COVS" : DfCov }) 
+    return out
+
 def pandas_interpolate(df, interp_column, method='zero', axis='both'):
     # interp_column is a list
     dfout = df.copy()
@@ -493,7 +531,7 @@ def merge_covs(covdf):
     # reset indices to be consistent with enumerate in the next loop
     diags.reset_index(inplace=True)
     # Process diagonal blocks
-    # This part is extracted from scipy.linalg.diagblock
+    # This part is extracted from scipy.linalg.block_diag
     shapes = np.array([a.COV.shape for i,a in diags.iterrows()])
     ndim = np.sum(shapes, axis=0)[0]
     C = np.zeros((ndim,ndim)); E = np.zeros(ndim)

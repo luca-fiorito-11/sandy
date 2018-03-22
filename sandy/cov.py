@@ -43,19 +43,17 @@ def up2down(C):
         - C1 :
             (2d-array) output covariance matrix
     """
-    mytype = type(C)
     U = np.triu(C)
     L = np.triu(C, 1).T
-    C1 = mytype(U + L)
+    C1 = U + L
     return C1
 
 
 
 def corr2cov(corr, s):
-    mytype = type(corr)
     dim = corr.shape[0]
     S = np.repeat(s, dim).reshape(dim, dim)
-    cov = mytype(S.T * (corr * S))
+    cov = S.T * (corr * S)
     cov = up2down(cov)
     return cov
 
