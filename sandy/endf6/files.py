@@ -43,8 +43,8 @@ def split(file):
 def process_endf_section(text):
     mf = int(text[70:72])
     mt = int(text[72:75])
-    if mf not in (5,35):
-        return None
+#    if mf not in (5,35):
+#        return None
     if mf ==1 and mt == 451:
         return read_mf1_mt451(text)
     elif mf ==1 and mt in (452, 455, 456):
@@ -63,6 +63,17 @@ def process_endf_section(text):
         return read_mf35_mt(text)
     else:
         return None
+
+def endf2df(file):
+    tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x] for x in split(file)],
+            columns=('MAT', 'MF', 'MT','TEXT'))
+    tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
+    tape['DATA'] = tape['TEXT'].apply(process_endf_section)
+#    pool = mp.Pool(processes=settings.args.processes)
+#    AAA = pool.map( e6.process_endf_section, tape['TEXT'].tolist())
+#    data = [ pool.apply( e6.process_endf_section, args=(x)) for x in tape['TEXT'].tolist() ]
+    return tape
+
 
 def read_mf1_mt451(text):
     str_list = text.splitlines()
@@ -219,7 +230,8 @@ def read_mf5_mt(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2, "NK" : C.N1, "SUB" : [] })
     for j in range(out["NK"]):
         Tp, i = read_tab1(str_list, i)
-        sub = { "Tp" : Tp, "LF" : Tp.L2 }
+        P = pd.Series(Tp.y, index = Tp.x, name = "p").rename_axis("E")
+        sub = { "LF" : Tp.L2, "NBR_p" : Tp.NBT, "INT_p" : Tp.INT, "P" : P }
         if sub["LF"] == 5:
             Ttheta, i = read_tab1(str_list, i)
             Tg, i = read_tab1(str_list, i)
@@ -236,21 +248,11 @@ def read_mf5_mt(text):
             sub.update({ "TTm" : TTm })
         elif sub["LF"] == 1:
             T2, i = read_tab2(str_list, i)
-            T1s = []
+            sub.update({ "NBT_Ein" : T2.NBT, "INT_Ein" : T2.INT, "Ein" : {} })
             for k in range(T2.NZ):
                 T1, i = read_tab1(str_list, i)
-                T1s.append(T1)
-            sub.update({"T1s" : T1s})
-            if not list(filter(lambda x: x!=[2], list(map(lambda x: x.INT, T1s)))):
-                chi_dict = { T1.C2 : dict(zip(T1.x, T1.y)) for T1 in T1s}
-                # merge chi_E(E') distributions on df[E,E'] with unique E' grid
-                chi = pd.DataFrame.from_dict(chi_dict).interpolate(method="slinear").fillna(0).transpose()
-                # include default points in E grid and interpolate
-                eg_new = list(union_grid(chi.index, np.logspace(-5, 7, 13)))
-                chi = pandas_interpolate(chi, eg_new, method='slinear', axis='rows')
-                chi.index.name = "Ein"
-                chi.columns.name = "Eout"
-                sub.update({"chi" : chi})
+                distr = pd.Series(T1.y, index = T1.x, name=T1.C2).rename_axis("Eout")
+                sub["Ein"].update({ T1.C2 : {"PDF" : distr, "NBT" : T1.NBT, "INT" : T1.INT}})
         out["SUB"].append(sub)
     return out
 
@@ -399,35 +401,17 @@ def read_mf34_mt(text):
     return out
 
 def read_mf35_mt(text):
-    from sandy.cov import triu_matrix, corr2cov
     str_list = text.splitlines()
     i = 0
     out = {"MAT" : int(str_list[i][66:70]),
            "MF" : int(str_list[i][70:72]),
            "MT" : int(str_list[i][72:75])}
     C, i = read_cont(str_list, i)
-    out.update({ "ZA" : C.C1, "AWR" : C.C2, "NK" : C.N1})
-    subs = {}
+    out.update({ "ZA" : C.C1, "AWR" : C.C2, "NK" : C.N1, "SUB" : []})
     for k in range(out["NK"]):
         L, i = read_list(str_list, i)
-        Elo = L.C1; Ehi = L.C2
-        NE = L.N2
-        # Ek grid is one unit longer than covariance.
-        Ek = np.array(L.B[:NE])
-        Fkk = np.array(L.B[NE:])
-        cov = triu_matrix(Fkk, NE-1)
-        # Normalize covariance matrix dividing by the energy bin.
-        dE = 1./(Ek[1:]-Ek[:-1])
-        cov = corr2cov(cov, dE)
-        # Add zero row and column at the end of the matrix
-        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-        cov = pd.DataFrame(cov, index=Ek, columns=Ek)
-        cov.index.name = "Ek"; cov.columns.name = "El"
-        subs.update({ (Elo, Ehi) : {"LS" : L.L1, "LB" : L.L2, "NT" : L.NPL, "NE" : NE, "COV" : cov} })
-    DfCov = pd.DataFrame.from_dict(subs, orient="index")
-    DfCov.index.names = ["Elo", "Ehi"]
-    out.update({ "COVS" : DfCov }) 
+        out["SUB"].append({ "Elo" : L.C1, "Ehi" : L.C2, "NE" : L.N2, "Ek" : L.B[:L.N2],
+           "Fkk" : L.B[L.N2:] })
     return out
 
 def pandas_interpolate(df, interp_column, method='zero', axis='both'):
@@ -478,6 +462,36 @@ def extract_xs(tape):
         XS.update({ mat : xsdf })
     return XS
 
+def extract_chi(tape):
+    """
+    Extract chi cov for all MAT,MT,SUB found in tape.
+    Return a df with MAT,MT,SUB as index and COV as value
+    Each COV is a df with Ein on rows and Eout on columns.
+    """
+    from sandy.functions import union_grid
+    DictDf = {}
+    for chunk in tape.query('MF==5').DATA:
+        for k,sub in enumerate(chunk["SUB"]):
+            if sub["LF"] != 1:
+                continue
+            if list(filter(lambda x:x["INT"] != [2], sub["Ein"].values())):
+#                print("WARNING: found non-linlin interpolation, skip energy distr. for MAT {}, MT {}, subsec {}".format(chunk["MAT"],chunk["MT"],k))
+                continue
+            chi_dict =  { ein : ssub["PDF"] for ein,ssub in sorted(sub["Ein"].items()) }
+            # merge chi_E(E') distributions on df[E,E'] with unique E' grid
+            chi = pd.DataFrame.from_dict(chi_dict).interpolate(method="slinear").fillna(0).transpose()
+            # include default points in E grid and interpolate
+            eg_new = list(union_grid(chi.index, np.logspace(-5, 7, 13)))
+            chi = pandas_interpolate(chi, eg_new, method='slinear', axis='rows')
+            chi.index.name = "Ein"
+            chi.columns.name = "Eout"
+            DictDf.update({ (chunk["MAT"],chunk["MT"],k) : chi })
+    DfChi = pd.DataFrame.from_dict(DictDf, orient='index')
+    DfChi.index.names = ["MAT", "MT", "K"]
+    DfChi.columns.names = ["COV"]
+    return DfChi
+
+
 def extract_cov33(tape, mt=[102]):
     from sandy.cov import triu_matrix
     from sandy.functions import union_grid
@@ -523,6 +537,51 @@ def extract_cov33(tape, mt=[102]):
     covdf = covdf.set_index(['MAT','MT','MAT1','MT1']).sort_index() # Multi-indexing
     return None if covdf.empty else covdf
 
+
+
+
+def extract_cov35(tape):
+    from sandy.cov import triu_matrix, corr2cov
+    # Get covariances (df) from each MAT, MT and Erange (these are the keys) in a dictionary.
+    DictCov = {}
+    for chunk in tape.query('MF==35').DATA:
+        for sub in chunk["SUB"]:
+            # Ek grid is one unit longer than covariance.
+            Ek = np.array(sub["Ek"])
+            Fkk = np.array(sub["Fkk"])
+            NE = sub["NE"]
+            cov = triu_matrix(Fkk, NE-1)
+            # Normalize covariance matrix dividing by the energy bin.
+            dE = 1./(Ek[1:]-Ek[:-1])
+            cov = corr2cov(cov, dE)
+            # Add zero row and column at the end of the matrix
+            cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+            cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+            cov = pd.DataFrame(cov, index=Ek, columns=Ek)
+            cov.index.name = "Ek"; cov.columns.name = "El"
+            DictCov.update({ (chunk["MAT"], chunk["MT"], sub["Elo"], sub["Ehi"]) :
+                cov })
+    # Collect covs in a list to pass to block_diag (endf6 allows only covs in diag)
+    # Recreate indexes with lists of mat, mt, elo, ehi and e.
+    from scipy.linalg import block_diag
+    covs = []; mat = []; mt = []; elo = []; ehi = []; e= []
+    for k,c in sorted(DictCov.items()):
+        covs.append(c)
+        mat.extend([k[0]]*len(c.index))
+        mt.extend([k[1]]*len(c.index))
+        elo.extend([k[2]]*len(c.index))
+        ehi.extend([k[3]]*len(c.index))
+        e.extend(c.index)
+    DfCov = block_diag(*covs)
+    DfCov = pd.DataFrame(DfCov)
+    DfCov['MAT'] = pd.Series(mat)
+    DfCov['MT'] = pd.Series(mt)
+    DfCov['Elo'] = pd.Series(elo)
+    DfCov['Ehi'] = pd.Series(ehi)
+    DfCov['E'] = pd.Series(e)
+    DfCov.set_index(['MAT', 'MT', 'Elo', 'Ehi', 'E'], inplace=True)
+    DfCov.columns = DfCov.index
+    return DfCov
 
 def merge_covs(covdf):
     query_diag = 'MT==MT1 & (MAT1==0 | MAT==MAT1)'

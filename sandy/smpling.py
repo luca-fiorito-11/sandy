@@ -20,21 +20,23 @@ import multiprocessing as mp
 #df_cov_xs.update(pd.DataFrame(Cov(df_cov_xs.as_matrix()).corr, index=Index, columns=Index))
 
 def sample_chi(tape, NSMP):
-    from scipy.linalg import block_diag
-    C = tape.query("MF==35").DATA
-    diags = tape.DATA.query("MF==35")["COVS"]
-    B = tape.DATA.loc[9228,35,18]["COVS"]
-    C = block_diag(*B.COV.tolist())
-    pass
-    
-
-def sample_xs(tape, NSMP):
-    DfCov = e6.merge_covs( e6.extract_cov33(tape) )
-    # Must add names to indexes
-    DfPert = pd.DataFrame( Cov(DfCov.as_matrix()).sampling(NSMP) + 1 ,
+    # perturbations are in absolute values
+    DfCov = e6.extract_cov35(tape)
+    DfPert = pd.DataFrame( Cov(DfCov.as_matrix()).sampling(NSMP),
                                  index = DfCov.index,
                                  columns = range(1,NSMP+1))
-    return DfPert
+    DfPert.columns.name = 'SMP'
+    return DfCov, DfPert
+
+
+def sample_xs(tape, NSMP):
+    # perturbations are in relative values
+    DfCov = e6.merge_covs( e6.extract_cov33(tape) )
+    DfPert = pd.DataFrame( Cov(DfCov.as_matrix()).sampling(NSMP) + 1,
+                                 index = DfCov.index,
+                                 columns = range(1,NSMP+1))
+    DfPert.columns.name = 'SMP'
+    return DfCov, DfPert
 
 
 def perturb(XsSeries, PertSeries):
@@ -48,13 +50,13 @@ def perturb(XsSeries, PertSeries):
     return Xs
 
 
-def sampling(tape, PertSeries, output):
+def sampling(tape, PertSeriesXs, output):
     Xs = e6.extract_xs(tape) # dictionary (keys are MAT) of dataframes
-    matListPert = PertSeries.index.get_level_values("MAT")
+    matListPert = PertSeriesXs.index.get_level_values("MAT")
     for mat in Xs:
         if mat not in matListPert:
             continue
-        mtListPert = PertSeries.loc[mat].index.get_level_values("MT")
+        mtListPert = PertSeriesXs.loc[mat].index.get_level_values("MT")
         mtListXs = Xs[mat].columns
         for mt in sorted(mtListXs, reverse=True):
             if mt in mtListPert:
@@ -80,7 +82,7 @@ def sampling(tape, PertSeries, output):
             else:
                 continue
             Xs[mat][mt] = perturb(XsSeries = Xs[mat][mt],
-                                  PertSeries = PertSeries.loc[mat,mtPert])
+                                  PertSeriesXs = PertSeriesXs.loc[mat,mtPert])
 #            Xs[mat] = Xs[mat].add(smp, fill_value=0)
         # Redundant XS
         daughters = [ x for x in range(800,850) if x in Xs[mat].columns]
@@ -134,18 +136,10 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         sys.argv.extend(["data_test\92-U-235g.jeff33", "--outdir", os.path.join("..","ttt")])
     settings.init()
-    tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x] for x in e6.split(settings.args.endf6)],
-            columns=('MAT', 'MF', 'MT','TEXT'))
-    tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
-    
-#    pool = mp.Pool(processes=settings.args.processes)
-#    AAA = pool.map( e6.process_endf_section, tape['TEXT'].tolist())
-#    data = [ pool.apply( e6.process_endf_section, args=(x)) for x in tape['TEXT'].tolist() ]
-
-    tape['DATA'] = tape['TEXT'].apply(e6.process_endf_section)
-
-    PertChi = sample_chi(tape, settings.args.samples)
-    PertXs = sample_xs(tape, settings.args.samples)
+    tape = e6.endf2df(settings.args.endf6)
+    e6.extract_chi(tape)
+    PertChi = sample_chi(tape, settings.args.samples)[1]
+    PertXs = sample_xs(tape, settings.args.samples)[1]
     Xs = e6.extract_xs(tape) # dictionary (keys are MAT) of dataframes
     #df_nu = extract_nu(tape) # dictionary (keys are MAT) of dataframes
 
