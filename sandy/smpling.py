@@ -26,7 +26,7 @@ def sample_chi(tape, NSMP):
                                  index = DfCov.index,
                                  columns = range(1,NSMP+1))
     DfPert.columns.name = 'SMP'
-    return DfCov, DfPert
+    return DfPert
 
 
 def sample_xs(tape, NSMP):
@@ -36,7 +36,7 @@ def sample_xs(tape, NSMP):
                                  index = DfCov.index,
                                  columns = range(1,NSMP+1))
     DfPert.columns.name = 'SMP'
-    return DfCov, DfPert
+    return DfPert
 
 
 def perturb(XsSeries, PertSeries):
@@ -124,6 +124,37 @@ def sampling(tape, PertSeriesXs, output):
     print (output)
     e6.write_tape(tape, output)
 
+def sampling2(tape, PertSeriesChi):
+    PertSeriesChi.name = 'SMP'
+    Chi = e6.extract_chi(tape)
+    matListPert = PertSeriesChi.index.get_level_values("MAT")
+    for mat in set(Chi.index.get_level_values("MAT")):
+        if mat not in matListPert:
+            continue
+        mtListPert = PertSeriesChi.loc[mat].index.get_level_values("MT")
+        for mt in set(Chi.index.get_level_values("MT")):
+            if mt not in mtListPert:
+                continue
+            Pert = pd.DataFrame(PertSeriesChi).query('MAT=={} & MT=={}'.format(mat, mt)).reset_index()
+            Pert = Pert.pivot(index='EINlo', columns='EOUTlo', values='SMP').ffill(axis='columns')
+            for k,chi in Chi.loc[mat,mt]['CHI'].iteritems():
+                P = e6.pandas_interpolate(Pert,
+                                          np.unique(chi.index).tolist(),
+                                          method='zero',
+                                          axis='rows')
+                P = e6.pandas_interpolate(P,
+                                          np.unique(chi.columns).tolist(),
+                                          method='zero',
+                                          axis='columns')
+                SmpChi = chi.add(P, fill_value=0).applymap(lambda x: x if x >= 0 else 0)
+                E = SmpChi.columns
+                M = SmpChi.as_matrix()
+                intergral_array = ((M[:,1:]+M[:,:-1])/2).dot(E[1:]-E[:-1])
+                SmpChi = pd.DataFrame( M/intergral_array.reshape(-1,1),
+                                       index=SmpChi.index,
+                                       columns=SmpChi.columns)
+                bbb=2
+
 if __name__ == '__main__':
     __spec__ = None
     #file = "data_test/H1.txt"
@@ -137,10 +168,9 @@ if __name__ == '__main__':
         sys.argv.extend(["data_test\92-U-235g.jeff33", "--outdir", os.path.join("..","ttt")])
     settings.init()
     tape = e6.endf2df(settings.args.endf6)
-    e6.extract_chi(tape)
-    PertChi = sample_chi(tape, settings.args.samples)[1]
-    PertXs = sample_xs(tape, settings.args.samples)[1]
-    Xs = e6.extract_xs(tape) # dictionary (keys are MAT) of dataframes
+    PertChi = sample_chi(tape, settings.args.samples)
+    PertXs = sample_xs(tape, settings.args.samples)
+    sampling2(tape, PertChi[1])
     #df_nu = extract_nu(tape) # dictionary (keys are MAT) of dataframes
 
     pool = mp.Pool(processes=settings.args.processes)

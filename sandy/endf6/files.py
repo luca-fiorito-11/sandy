@@ -11,6 +11,7 @@ from sandy.endf6.records import read_cont, read_tab1, read_tab2, read_list, read
 import matplotlib.pyplot as plt
 import pandas as pd
 import pdb
+from copy import copy
 
 
 def split(file):
@@ -469,7 +470,7 @@ def extract_chi(tape):
     Each COV is a df with Ein on rows and Eout on columns.
     """
     from sandy.functions import union_grid
-    DictDf = {}
+    DictDf = { "MAT" : [], "MT" : [], "K" : [], "CHI" : [] }
     for chunk in tape.query('MF==5').DATA:
         for k,sub in enumerate(chunk["SUB"]):
             if sub["LF"] != 1:
@@ -485,10 +486,12 @@ def extract_chi(tape):
             chi = pandas_interpolate(chi, eg_new, method='slinear', axis='rows')
             chi.index.name = "Ein"
             chi.columns.name = "Eout"
-            DictDf.update({ (chunk["MAT"],chunk["MT"],k) : chi })
-    DfChi = pd.DataFrame.from_dict(DictDf, orient='index')
-    DfChi.index.names = ["MAT", "MT", "K"]
-    DfChi.columns.names = ["COV"]
+            DictDf["MAT"].append(chunk["MAT"])
+            DictDf["MT"].append(chunk["MT"])
+            DictDf["K"].append(k)
+            DictDf["CHI"].append(chi)
+    DfChi = pd.DataFrame.from_dict(DictDf)
+    DfChi.set_index(["MAT", "MT", "K"], inplace=True)
     return DfChi
 
 
@@ -564,22 +567,24 @@ def extract_cov35(tape):
     # Collect covs in a list to pass to block_diag (endf6 allows only covs in diag)
     # Recreate indexes with lists of mat, mt, elo, ehi and e.
     from scipy.linalg import block_diag
-    covs = []; mat = []; mt = []; elo = []; ehi = []; e= []
+    covs = []; mat = []; mt = []; einlo = []; einhi = []; eoutlo= []; eouthi = []
     for k,c in sorted(DictCov.items()):
         covs.append(c)
         mat.extend([k[0]]*len(c.index))
         mt.extend([k[1]]*len(c.index))
-        elo.extend([k[2]]*len(c.index))
-        ehi.extend([k[3]]*len(c.index))
-        e.extend(c.index)
+        einlo.extend([k[2]]*len(c.index))
+        einhi.extend([k[3]]*len(c.index))
+        eoutlo.extend(c.index)
+        eouthi.extend(c.index[1:].insert(-1, c.index[-1]))
     DfCov = block_diag(*covs)
     DfCov = pd.DataFrame(DfCov)
     DfCov['MAT'] = pd.Series(mat)
     DfCov['MT'] = pd.Series(mt)
-    DfCov['Elo'] = pd.Series(elo)
-    DfCov['Ehi'] = pd.Series(ehi)
-    DfCov['E'] = pd.Series(e)
-    DfCov.set_index(['MAT', 'MT', 'Elo', 'Ehi', 'E'], inplace=True)
+    DfCov['EINlo'] = pd.Series(einlo)
+    DfCov['EINhi'] = pd.Series(einhi)
+    DfCov['EOUTlo'] = pd.Series(eoutlo)
+    DfCov['EOUThi'] = pd.Series(eouthi)
+    DfCov.set_index(['MAT', 'MT', 'EINlo', 'EINhi', 'EOUTlo', 'EOUThi'], inplace=True)
     DfCov.columns = DfCov.index
     return DfCov
 
