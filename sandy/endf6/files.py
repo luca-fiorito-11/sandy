@@ -13,7 +13,36 @@ import pandas as pd
 import pdb
 from copy import copy
 
-
+def plot_heatmap(x, y, z,
+                 xscale="lin", yscale="lin",
+                 vmin=None, vmax=None, 
+                 cmap="bwr",
+                 xlabel=None, ylabel=None, title=None):
+    r"""
+    Plot covariance matrix as a pseudocolor plot of a 2-D array.
+    The colorbar is also added to the figure.
+    """
+    fig, ax = plt.subplots()
+    pcm = ax.pcolormesh(*np.meshgrid(x, y), 
+                        z, 
+                        vmin=vmin,
+                        vmax=vmax,
+                        cmap=cmap)
+    ax.set_xscale(xscale)
+    ax.set_yscale(yscale)
+    ax.set_aspect(1) # Height is 0.5 times the width
+    # Resize the plot to make space for the colorbar
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, 0.7, box.height])
+    # set labels
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    # Plot the colorbar in desired position 
+    cbaxes = fig.add_axes([0.85, 0.1, 0.03, 0.8]) 
+    plt.colorbar(pcm, cax=cbaxes)
+    fig.show()
+    
 def split(file):
     """
     Split ``ENDF-6`` file  into MFMT sections.
@@ -220,7 +249,6 @@ def read_mf4_mt(text):
     return out
 
 def read_mf5_mt(text):
-    from sandy.functions import union_grid
     str_list = text.splitlines()
     i = 0
     out = {"MAT" : int(str_list[i][66:70]),
@@ -424,7 +452,7 @@ def pandas_interpolate(df, interp_column, method='zero', axis='both'):
         dfout = dfout.interpolate(method=method)
         dfout = dfout.reindex(interp_column)
     # Now transpose columns to rows and reinterpolate
-    if axis in ['cols', 'both']:
+    if axis in ['columns', 'both']:
         dfout = dfout.transpose()
         ug = np.unique(list(df.index) + interp_column)
         dfout = dfout.reindex(ug)
@@ -484,8 +512,8 @@ def extract_chi(tape):
             # include default points in E grid and interpolate
             eg_new = list(union_grid(chi.index, np.logspace(-5, 7, 13)))
             chi = pandas_interpolate(chi, eg_new, method='slinear', axis='rows')
-            chi.index.name = "Ein"
-            chi.columns.name = "Eout"
+            chi.index.name = "EIN"
+            chi.columns.name = "EOUT"
             DictDf["MAT"].append(chunk["MAT"])
             DictDf["MT"].append(chunk["MT"])
             DictDf["K"].append(k)
@@ -650,6 +678,22 @@ def update_xs(tape, xsdf):
             D["XS"] = XS
             D["NBR"] = [len(XS)]
             D["INT"] = [2]
+    return tape
+
+def update_chi(tape, DfChi):
+    for (mat,mt,k),chi in DfChi.CHI.items():
+        if (mat, 5, mt) not in tape.index:
+                continue
+        D = tape.DATA.loc[mat,5,mt]
+        D["SUB"][k]["Ein"]
+        # Assume all xs have only 1 interpolation region and it is linear
+#            if len(D["INT"]) != 1:
+#                raise NotImplementedError("Cannot update xs with more than 1 interp. region")
+#            if D["INT"][0] != 1:
+#                raise NotImplementedError("Cannot update xs with non-linear interpolation")
+        D["XS"] = XS
+        D["NBR"] = [len(XS)]
+        D["INT"] = [2]
     return tape
 
 def write_tape(tape, file, title=" "*66):

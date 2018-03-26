@@ -121,7 +121,6 @@ def sampling(tape, PertSeriesXs, output):
         Xs[mat] = Xs[mat][mtListXs] # keep only mt present in the original file
     tape = e6.update_xs(tape, Xs)
     tape = e6.write_mf3_mt(tape)
-    print (output)
     e6.write_tape(tape, output)
 
 def sampling2(tape, PertSeriesChi):
@@ -146,14 +145,19 @@ def sampling2(tape, PertSeriesChi):
                                           np.unique(chi.columns).tolist(),
                                           method='zero',
                                           axis='columns')
-                SmpChi = chi.add(P, fill_value=0).applymap(lambda x: x if x >= 0 else 0)
-                E = SmpChi.columns
-                M = SmpChi.as_matrix()
+                P.index.name = "EIN"
+                P.columns.name = "EOUT"
+                PertChi = chi.add(P, fill_value=0).applymap(lambda x: x if x >= 0 else 0)
+                E = PertChi.columns
+                M = PertChi.as_matrix()
                 intergral_array = ((M[:,1:]+M[:,:-1])/2).dot(E[1:]-E[:-1])
                 SmpChi = pd.DataFrame( M/intergral_array.reshape(-1,1),
-                                       index=SmpChi.index,
-                                       columns=SmpChi.columns)
-                bbb=2
+                                       index=PertChi.index,
+                                       columns=PertChi.columns)
+                Chi.loc[mat,mt,k]['CHI'] = SmpChi
+    tape = e6.update_chi(tape, Chi)
+    tape = e6.write_mf3_mt(tape)
+    return tape
 
 if __name__ == '__main__':
     __spec__ = None
@@ -168,6 +172,8 @@ if __name__ == '__main__':
         sys.argv.extend(["data_test\92-U-235g.jeff33", "--outdir", os.path.join("..","ttt")])
     settings.init()
     tape = e6.endf2df(settings.args.endf6)
+    Chi = e6.extract_chi(tape)
+    e6.update_chi(tape, Chi)
     PertChi = sample_chi(tape, settings.args.samples)
     PertXs = sample_xs(tape, settings.args.samples)
     sampling2(tape, PertChi[1])
