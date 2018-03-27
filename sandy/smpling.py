@@ -51,7 +51,7 @@ def perturb(XsSeries, PertSeries):
     return Xs
 
 
-def sampling1(tape, PertSeriesXs, output):
+def perturb_xs(tape, PertSeriesXs):
     Xs = e6.extract_xs(tape) # dictionary (keys are MAT) of dataframes
     matListPert = PertSeriesXs.index.get_level_values("MAT")
     for mat in Xs:
@@ -120,9 +120,7 @@ def sampling1(tape, PertSeriesXs, output):
         if daughters:
             Xs[mat][1] = Xs[mat][daughters].sum(axis=1)
         Xs[mat] = Xs[mat][mtListXs] # keep only mt present in the original file
-    tape = e6.update_xs(tape, Xs)
-    tape = e6.write_mf3_mt(tape)
-    e6.write_tape(tape, output)
+    return e6.write_mf3_mt( e6.update_xs(tape, Xs) )
 
 def perturb_chi(tape, PertSeriesChi):
     PertSeriesChi.name = 'SMP'
@@ -179,14 +177,18 @@ if __name__ == '__main__':
         sys.argv.extend(["data_test\92-U-235g.jeff33", "--outdir", os.path.join("..","ttt")])
     settings.init()
     tape = e6.endf2df(settings.args.endf6)
+    Xs = e6.extract_xs(tape)
     PertChi = sample_chi(tape, settings.args.samples)
     PertXs = sample_xs(tape, settings.args.samples)
 
     # Problem when running python from windows to linux
     outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
-
-    sampling(tape, outname.format(1), PertSeriesChi=PertChi[1])
+    sampling(tape, outname.format(1), PertSeriesChi=PertChi[1], PertSeriesXs=PertXs[1])
     #df_nu = extract_nu(tape) # dictionary (keys are MAT) of dataframes
 
     pool = mp.Pool(processes=settings.args.processes)
-    [pool.apply( sampling, args=(tape, PertXs[ismp], outname.format(ismp))) for ismp in range(1,settings.args.samples+1) ]
+    [pool.apply(sampling, 
+                args=(tape, outname.format(ismp)), 
+                kwds={"PertSeriesChi":PertChi[ismp], 
+                      "PertSeriesXs":PertXs[ismp]}
+                ) for ismp in range(1,settings.args.samples+1) ]

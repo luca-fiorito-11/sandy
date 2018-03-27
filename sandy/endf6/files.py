@@ -154,6 +154,7 @@ def read_mf1_nubar(text):
             out.update({ "NNF" : L.NPL, "LAMBDAS" : L.B })
         elif out["LDG"] == 1:
             # None found in JEFF33 and ENDFB8, hence not implemented
+            sys.exit("ERROR: Not implemented format")
             pass
     if out["LNU"] == 1:
         # None found in JEFF33 and ENDFB8 neither for MT455 nor for MT456
@@ -194,8 +195,7 @@ def read_mf3_mt(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2})
     T, i = read_tab1(str_list, i)
     out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBT" : T.NBT, "INT" : T.INT})
-    XS = pd.Series(T.y, index = T.x, name = out["MT"]).rename_axis("E")
-    out.update({"XS" : XS})
+    out["XS"] = pd.Series(T.y, index = T.x, name = out["MT"]).rename_axis("E")
     return out
 
 def write_mf3_mt(tape):
@@ -511,6 +511,41 @@ def pandas_interpolate(df, interp_column, method='zero', axis='both'):
     return dfout
 
 def extract_xs(tape):
+    DictDf = {}
+    for chunk in tape.query('MF==3 | (MF==1 & (MT==452 | MT==455 | MT==456))').DATA:
+        if chunk["MF"] == 3:
+            xs = pd.DataFrame(chunk["XS"])
+        if chunk["MF"] == 1:
+            xs = pd.DataFrame(chunk["NUBAR"])
+        xs.index.name = "MT"
+        xs.columns.name = "E"
+        DictDf.update({ (chunk["MAT"],chunk["MT"]) : xs })
+#        DictDf["MT"].append(chunk["MT"])
+#    XS = pd.DataFrame() # dataframe with MAT as index
+    for mat in np.unique(tape.index.get_level_values("MAT")):
+        xsdf = pd.DataFrame(tape.loc[mat,3,1].DATA["XS"])
+        if len(np.unique(xsdf.index)) != len(xsdf.index):
+            raise NotImplementedError()
+#        xsdf.columns = xsdf.columns.droplevel() # keep only MT, drop MAT
+#        xsdf.reset_index(inplace=True)
+#        xsdf["MAT"] = mat
+#        xsdf = xsdf.set_index(['MAT','E']).sort_index()
+        # No interpolation is done because xs are on unionized grid
+        for chunk in tape.query('MF==3 & MT!=1').DATA:
+            df = pd.DataFrame(chunk["XS"])
+#            df.columns = df.columns.droplevel() # keep only MT, drop MAT
+#            df.reset_index(inplace=True)
+#            df["MAT"] = mat
+#            df = df.set_index(['MAT','E']).sort_index()
+            # PROBLEM! "add" does not work for duplicated energy points
+            if len(np.unique(df.index)) != len(df.index):
+                raise NotImplementedError()
+            xsdf = xsdf.add(df, fill_value=0)
+        xsdf.fillna(0, inplace=True)
+        xsdf.columns = pd.Index(xsdf.columns, name="MT")
+#        XS = pd.concat((XS, xsdf)) # To be tested
+        XS.update({ mat : xsdf })
+    return XS
     XS = {} # DIctionary by MAT
 #    XS = pd.DataFrame() # dataframe with MAT as index
     for mat in np.unique(tape.index.get_level_values("MAT")):
