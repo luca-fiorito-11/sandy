@@ -7,7 +7,7 @@ Created on Mon Jan 16 18:03:13 2017
 import sys
 import logging
 import numpy as np
-from sandy.endf6.records import read_cont, read_tab1, read_tab2, read_list, read_text, write_cont, write_tab1, write_list#, add_records
+from sandy.endf6.records import read_cont, read_tab1, read_tab2, read_list, read_text, write_cont, write_tab1, write_list, write_tab2#, add_records
 import matplotlib.pyplot as plt
 import pandas as pd
 import pdb
@@ -15,7 +15,7 @@ from copy import copy
 
 def plot_heatmap(x, y, z,
                  xscale="lin", yscale="lin",
-                 vmin=None, vmax=None, 
+                 vmin=None, vmax=None,
                  cmap="bwr",
                  xlabel=None, ylabel=None, title=None):
     r"""
@@ -23,8 +23,8 @@ def plot_heatmap(x, y, z,
     The colorbar is also added to the figure.
     """
     fig, ax = plt.subplots()
-    pcm = ax.pcolormesh(*np.meshgrid(x, y), 
-                        z, 
+    pcm = ax.pcolormesh(*np.meshgrid(x, y),
+                        z,
                         vmin=vmin,
                         vmax=vmax,
                         cmap=cmap)
@@ -38,17 +38,17 @@ def plot_heatmap(x, y, z,
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    # Plot the colorbar in desired position 
-    cbaxes = fig.add_axes([0.85, 0.1, 0.03, 0.8]) 
+    # Plot the colorbar in desired position
+    cbaxes = fig.add_axes([0.85, 0.1, 0.03, 0.8])
     plt.colorbar(pcm, cax=cbaxes)
     fig.show()
-    
+
 def split(file):
     """
     Split ``ENDF-6`` file  into MFMT sections.
     """
     import re
-    pattern = ".{74}0.{5}\n?"
+    pattern = ".{72}[ 0]{3}.{5}\n?"
     text = open(file).read()
     U = re.split(pattern, text)
     return list(filter(None, U)) # remove empty lines
@@ -162,7 +162,7 @@ def read_mf1_nubar(text):
     else:
         # JEFF33 and ENDFB8 only have lin-lin interpolation schemes
         T, i = read_tab1(str_list, i)
-        out.update({"NBR" : T.NBT, "INT" : T.INT})
+        out.update({"NBT" : T.NBT, "INT" : T.INT})
         out["NUBAR"] = pd.Series(T.y, index = T.x, name = out["MT"]).rename_axis("E")
     return out
 
@@ -178,7 +178,7 @@ def write_mf1_nubar(tape):
         if df.DATA["LNU"] == 1:
             TEXT += write_list(0, 0, 0, 0, 0, df.DATA["C"])
         else:
-            TEXT += write_tab1(0, 0, 0, 0, df.DATA["NBR"], df.DATA["INT"],
+            TEXT += write_tab1(0, 0, 0, 0, df.DATA["NBT"], df.DATA["INT"],
                            df.DATA["NUBAR"].index, df.DATA["NUBAR"])
         TEXT = [ "{:<66}{:4}{:2}{:3}{:5}".format(l, mat, mf, mt, i+1) for i,l in enumerate(TEXT) ]
         tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TEXT) + '\n'
@@ -193,7 +193,7 @@ def read_mf3_mt(text):
     C, i = read_cont(str_list, i)
     out.update({"ZA" : C.C1, "AWR" : C.C2})
     T, i = read_tab1(str_list, i)
-    out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBR" : T.NBT, "INT" : T.INT})
+    out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBT" : T.NBT, "INT" : T.INT})
     XS = pd.Series(T.y, index = T.x, name = out["MT"]).rename_axis("E")
     out.update({"XS" : XS})
     return out
@@ -202,7 +202,7 @@ def write_mf3_mt(tape):
     for (mat,mf,mt),df in tape.loc[(slice(None),3),:].iterrows():
         TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, 0, 0)
         TEXT += write_tab1(df.DATA["QM"], df.DATA["QI"], 0, df.DATA["LR"],
-                           df.DATA["NBR"], df.DATA["INT"],
+                           df.DATA["NBT"], df.DATA["INT"],
                            df.DATA["XS"].index, df.DATA["XS"])
         TEXT = [ "{:<66}{:4}{:2}{:3}{:5}".format(l, mat, mf, mt, i+1) for i,l in enumerate(TEXT) ]
         tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TEXT) + '\n'
@@ -220,7 +220,7 @@ def read_mf4_mt(text):
         C, i = read_cont(str_list, i)
         sub = {"LI" : C.L1, "LCT" : C.L2}
         T2, i = read_tab2(str_list, i)
-        sub.update({"NE" : T2.NZ, "NBR" : T2.NBT, "INT" : T2.INT})
+        sub.update({"NE" : T2.NZ, "NBT" : T2.NBT, "INT" : T2.INT})
         NLMAX = 0
         E = []
         P = np.zeros((sub["NE"], 64)) # 64 is the largest NL allowed
@@ -236,7 +236,7 @@ def read_mf4_mt(text):
         C, i = read_cont(str_list, i)
         sub = {"LI" : C.L1, "LCT" : C.L2}
         T2, i = read_tab2(str_list, i)
-        sub.update({"NE" : T2.NZ, "NBR" : T2.NBT, "INT" : T2.INT})
+        sub.update({"NE" : T2.NZ, "NBT" : T2.NBT, "INT" : T2.INT})
         TL = []
         for i in range(sub["NE"]):
             T1, i = read_tab1(str_list, i)
@@ -260,30 +260,78 @@ def read_mf5_mt(text):
     for j in range(out["NK"]):
         Tp, i = read_tab1(str_list, i)
         P = pd.Series(Tp.y, index = Tp.x, name = "p").rename_axis("E")
-        sub = { "LF" : Tp.L2, "NBR_p" : Tp.NBT, "INT_p" : Tp.INT, "P" : P }
+        sub = { "LF" : Tp.L2, "NBT_P" : Tp.NBT, "INT_P" : Tp.INT, "P" : P }
         if sub["LF"] == 5:
             Ttheta, i = read_tab1(str_list, i)
             Tg, i = read_tab1(str_list, i)
-            sub.update({ "Ttheta" : Ttheta, "Tg" : Tg })
+            sub.update({ "Ttheta" : Ttheta, "Tg" : Tg , 'U' : Tp.C1 })
         elif sub["LF"] in (7,9):
             Ttheta, i = read_tab1(str_list, i)
-            sub.update({ "Ttheta" : Ttheta})
+            sub.update({ "Ttheta" : Ttheta, 'U' : Tp.C1})
         elif sub["LF"] == 11:
             Ta, i = read_tab1(str_list, i)
             Tb, i = read_tab1(str_list, i)
-            sub.update({ "Ta" : Ta, "Tb" : Tb })
+            sub.update({ "Ta" : Ta, "Tb" : Tb, 'U' : Tp.C1 })
         elif sub["LF"] == 12:
             TTm, i = read_tab1(str_list, i)
             sub.update({ "TTm" : TTm })
         elif sub["LF"] == 1:
             T2, i = read_tab2(str_list, i)
-            sub.update({ "NBT_Ein" : T2.NBT, "INT_Ein" : T2.INT, "Ein" : {} })
+            sub.update({ "NBT_EIN" : T2.NBT, "INT_EIN" : T2.INT, "EIN" : {} })
             for k in range(T2.NZ):
                 T1, i = read_tab1(str_list, i)
                 distr = pd.Series(T1.y, index = T1.x, name=T1.C2).rename_axis("Eout")
-                sub["Ein"].update({ T1.C2 : {"PDF" : distr, "NBT" : T1.NBT, "INT" : T1.INT}})
+                sub["EIN"].update({ T1.C2 : {"PDF" : distr, "NBT" : T1.NBT, "INT" : T1.INT}})
         out["SUB"].append(sub)
     return out
+
+def write_mf5_mt(tape):
+    for (mat,mf,mt),df in tape.loc[(slice(None),5),:].iterrows():
+        TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, len(df.DATA["SUB"]), 0)
+        for sub in df.DATA["SUB"]:
+            U = sub['U'] if 'U' in sub else 0
+            TEXT += write_tab1(U, 0, 0, sub["LF"],
+                               sub["NBT_P"], sub["INT_P"],
+                               sub["P"].index, sub["P"])
+            if sub["LF"] == 1:
+                TEXT += write_tab2(0, 0, 0, 0,
+                                   len(sub['EIN']),
+                                   sub["NBT_EIN"], sub["INT_EIN"])
+                for ein, distr in sorted(sub['EIN'].items()):
+                    TEXT += write_tab1(0, ein, 0, 0,
+                                       distr["NBT"], distr["INT"],
+                                       distr["PDF"].index, distr["PDF"])
+            elif sub["LF"] == 5:
+                t = sub['Theta']
+                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
+                                   t.NBT, t.INT,
+                                   t.x, t.y)
+                t = sub['Tg']
+                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
+                                   t.NBT, t.INT,
+                                   t.x, t.y)
+            elif sub["LF"] in (7,9):
+                t = sub['Theta']
+                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
+                                   t.NBT, t.INT,
+                                   t.x, t.y)
+            elif sub["LF"] == 11:
+                t = sub['Ta']
+                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
+                                   t.NBT, t.INT,
+                                   t.x, t.y)
+                t = sub['Tb']
+                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
+                                   t.NBT, t.INT,
+                                   t.x, t.y)
+            elif sub["LF"] == 12:
+                t = sub['TTm']
+                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
+                                   t.NBT, t.INT,
+                                   t.x, t.y)
+        TEXT = [ "{:<66}{:4}{:2}{:3}{:5}".format(l, mat, mf, mt, i+1) for i,l in enumerate(TEXT) ]
+        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TEXT) + '\n'
+    return tape
 
 def read_mf8_mt457(text):
     str_list = text.splitlines()
@@ -462,7 +510,6 @@ def pandas_interpolate(df, interp_column, method='zero', axis='both'):
     dfout.fillna(0, inplace=True)
     return dfout
 
-
 def extract_xs(tape):
     XS = {} # DIctionary by MAT
 #    XS = pd.DataFrame() # dataframe with MAT as index
@@ -503,15 +550,18 @@ def extract_chi(tape):
         for k,sub in enumerate(chunk["SUB"]):
             if sub["LF"] != 1:
                 continue
-            if list(filter(lambda x:x["INT"] != [2], sub["Ein"].values())):
-#                print("WARNING: found non-linlin interpolation, skip energy distr. for MAT {}, MT {}, subsec {}".format(chunk["MAT"],chunk["MT"],k))
+            if list(filter(lambda x:x["INT"] != [2], sub["EIN"].values())):
+                print("WARNING: found non-linlin interpolation, skip energy distr. for MAT {}, MT {}, subsec {}".format(chunk["MAT"],chunk["MT"],k))
                 continue
-            chi_dict =  { ein : ssub["PDF"] for ein,ssub in sorted(sub["Ein"].items()) }
+            chi_dict =  { ein : ssub["PDF"] for ein,ssub in sorted(sub["EIN"].items()) }
             # merge chi_E(E') distributions on df[E,E'] with unique E' grid
-            chi = pd.DataFrame.from_dict(chi_dict).interpolate(method="slinear").fillna(0).transpose()
+            # Interpolate row-by-row at missing datapoints
+            # When interpolation is not possible (edges) fill with 0
+            chi = pd.DataFrame.from_dict(chi_dict, orient='index')
+            chi = chi.interpolate(method="slinear", axis=1).fillna(0)
             # include default points in E grid and interpolate
-            eg_new = list(union_grid(chi.index, np.logspace(-5, 7, 13)))
-            chi = pandas_interpolate(chi, eg_new, method='slinear', axis='rows')
+            ein_new = list(union_grid(chi.index, np.logspace(-5, 7, 13)))
+            chi = pandas_interpolate(chi, ein_new, method='slinear', axis='rows')
             chi.index.name = "EIN"
             chi.columns.name = "EOUT"
             DictDf["MAT"].append(chunk["MAT"])
@@ -663,8 +713,8 @@ def merge_covs(covdf):
     C.index.names = ["MAT", "MT", "E"]
     return C
 
-def update_xs(tape, xsdf):
-    for mat,df in xsdf.items():
+def update_xs(tape, DfXs):
+    for mat,df in DfXs.items():
         for mt in df:
             if (mat, 3, mt) not in tape.index:
                 continue
@@ -676,24 +726,21 @@ def update_xs(tape, xsdf):
 #            if D["INT"][0] != 1:
 #                raise NotImplementedError("Cannot update xs with non-linear interpolation")
             D["XS"] = XS
-            D["NBR"] = [len(XS)]
+            D["NBT"] = [len(XS)]
             D["INT"] = [2]
     return tape
 
 def update_chi(tape, DfChi):
-    for (mat,mt,k),chi in DfChi.CHI.items():
+    for (mat, mt, k),CHI in DfChi.CHI.items():
         if (mat, 5, mt) not in tape.index:
-                continue
-        D = tape.DATA.loc[mat,5,mt]
-        D["SUB"][k]["Ein"]
-        # Assume all xs have only 1 interpolation region and it is linear
-#            if len(D["INT"]) != 1:
-#                raise NotImplementedError("Cannot update xs with more than 1 interp. region")
-#            if D["INT"][0] != 1:
-#                raise NotImplementedError("Cannot update xs with non-linear interpolation")
-        D["XS"] = XS
-        D["NBR"] = [len(XS)]
-        D["INT"] = [2]
+            continue
+        if len(tape.DATA.loc[mat,5,mt]["SUB"]) - 1 < k:
+            continue
+        # Assume that all given chi are linearly interpolated on Ein and Eout
+        D = { ein : {"PDF" : PdfSeries, "NBT" : [CHI.shape[1]], "INT" : [2]} for ein,PdfSeries in CHI.iterrows()}
+        tape.DATA.loc[mat,5,mt]["SUB"][k].update({'EIN' : D,
+                                                  'INT_EIN' : [2],
+                                                  'NBT_EIN' : [CHI.shape[0]]})
     return tape
 
 def write_tape(tape, file, title=" "*66):

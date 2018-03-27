@@ -13,6 +13,7 @@ import sandy.settings as settings
 import sys
 import os
 import multiprocessing as mp
+from copy import deepcopy
 
 
 #To produce correlation matrix
@@ -50,7 +51,7 @@ def perturb(XsSeries, PertSeries):
     return Xs
 
 
-def sampling(tape, PertSeriesXs, output):
+def sampling1(tape, PertSeriesXs, output):
     Xs = e6.extract_xs(tape) # dictionary (keys are MAT) of dataframes
     matListPert = PertSeriesXs.index.get_level_values("MAT")
     for mat in Xs:
@@ -123,7 +124,7 @@ def sampling(tape, PertSeriesXs, output):
     tape = e6.write_mf3_mt(tape)
     e6.write_tape(tape, output)
 
-def sampling2(tape, PertSeriesChi):
+def perturb_chi(tape, PertSeriesChi):
     PertSeriesChi.name = 'SMP'
     Chi = e6.extract_chi(tape)
     matListPert = PertSeriesChi.index.get_level_values("MAT")
@@ -155,9 +156,15 @@ def sampling2(tape, PertSeriesChi):
                                        index=PertChi.index,
                                        columns=PertChi.columns)
                 Chi.loc[mat,mt,k]['CHI'] = SmpChi
-    tape = e6.update_chi(tape, Chi)
-    tape = e6.write_mf3_mt(tape)
-    return tape
+    return e6.write_mf5_mt( e6.update_chi(tape, Chi) )
+
+def sampling(tape, output, PertSeriesXs=None, PertSeriesChi=None):
+    itape = deepcopy(tape)
+    if PertSeriesChi is not None:
+        itape = perturb_chi(itape, PertSeriesChi)
+    if PertSeriesXs is not None:
+        itape = perturb_xs(itape, PertSeriesXs)
+    e6.write_tape(itape, output)
 
 if __name__ == '__main__':
     __spec__ = None
@@ -172,15 +179,14 @@ if __name__ == '__main__':
         sys.argv.extend(["data_test\92-U-235g.jeff33", "--outdir", os.path.join("..","ttt")])
     settings.init()
     tape = e6.endf2df(settings.args.endf6)
-    Chi = e6.extract_chi(tape)
-    e6.update_chi(tape, Chi)
     PertChi = sample_chi(tape, settings.args.samples)
     PertXs = sample_xs(tape, settings.args.samples)
-    sampling2(tape, PertChi[1])
+
+    # Problem when running python from windows to linux
+    outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
+
+    sampling(tape, outname.format(1), PertSeriesChi=PertChi[1])
     #df_nu = extract_nu(tape) # dictionary (keys are MAT) of dataframes
 
     pool = mp.Pool(processes=settings.args.processes)
-    # Problem when running python from windows to linux
-    outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
-#    outname = os.path.join(os.path.basename(settings.args.outdir), settings.args.endf6, '{}')
     [pool.apply( sampling, args=(tape, PertXs[ismp], outname.format(ismp))) for ismp in range(1,settings.args.samples+1) ]

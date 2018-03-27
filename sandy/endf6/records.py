@@ -16,12 +16,6 @@ cont_format_r = ff.FortranRecordReader('(2E11.0,4I11)')
 list_format_r = ff.FortranRecordReader('(6E11.0)')
 ilist_format_r = ff.FortranRecordReader('(6I11)')
 
-text_format_w = ff.FortranRecordWriter('(A66,I4,I2,I3,I5)')
-cont_format_w = ff.FortranRecordWriter('(2ES11.5E1,4I11,I4,I2,I3,I5)')
-list_format_w = ff.FortranRecordWriter('(6ES11.5E1,I4,I2,I3,I5)')
-ilist_format_w = ff.FortranRecordWriter('(6I11,I4,I2,I3,I5)')
-cont_format_w = ff.FortranRecordWriter('(2ES12.6E1,4I11)')
-list_format_w = ff.FortranRecordWriter('(6ES12.6E1)')
 ilist_format_w = ff.FortranRecordWriter('(6I11)')
 
 def read_text(text, ipos):
@@ -101,6 +95,10 @@ def read_list(text, ipos):
         sys.exit("ERROR: cannot read LIST at '{}'".format(text[ipos]))
 
 def write_cont(C1, C2, L1, L2, N1, N2):
+    exps = np.abs(np.floor(np.log10(np.abs([C1,C2]))))
+    exps[np.abs(exps) == np.inf] = 0
+    form = "(" + ",".join(list(map(lambda x: 'ES12.6E1' if x<10 else 'ES12.5E2' if x<100 else 'ES12.4E3', exps))) + ",4I11)"
+    cont_format_w = ff.FortranRecordWriter(form)
     return [cont_format_w.write((C1, C2, L1, L2, N1, N2)).replace("E","")]
 
 def write_tab1(C1, C2, L1, L2, NBT, INT, x, y):
@@ -115,7 +113,22 @@ def write_tab1(C1, C2, L1, L2, NBT, INT, x, y):
         i += 6
     i = 0
     while i < NP*2:
-        TEXT.append(list_format_w.write(tab1[i:i+6]).replace("E",""))
+        L = tab1[i:i+6]
+        exps = np.abs(np.floor(np.log10(np.abs(L))))
+        exps[np.abs(exps) == np.inf] = 0
+        form = "(" + ",".join(list(map(lambda x: 'ES12.6E1' if x<10 else 'ES12.5E2' if x<100 else 'ES12.4E3', exps))) + ")"
+        list_format_w = ff.FortranRecordWriter(form)
+        TEXT.append(list_format_w.write(L).replace("E",""))
+        i += 6
+    return TEXT
+
+def write_tab2(C1, C2, L1, L2, NZ, NBT, INT):
+    tab = [item for pair in zip(NBT, INT) for item in pair]
+    NR = len(NBT)
+    TEXT = write_cont(C1, C2, L1, L2, NR, NZ)
+    i = 0
+    while i < NR*2:
+        TEXT.append(ilist_format_w.write(tab[i:i+6]))
         i += 6
     return TEXT
 
@@ -124,6 +137,11 @@ def write_list(C1, C2, L1, L2, N2, B):
     TEXT = write_cont(C1, C2, L1, L2, NPL, N2)
     i = 0
     while i < NPL:
-        TEXT.append(list_format_w.write(B[i:i+6]))
+        L = B[i:i+6]
+        exps = np.abs(np.floor(np.log10(np.abs(L))))
+        exps[np.abs(exps) == np.inf] = 0
+        form = "(" + ",".join(list(map(lambda x: 'ES12.6E1' if x<10 else 'ES12.5E2' if x<100 else 'ES12.4E3', exps))) + ")"
+        list_format_w = ff.FortranRecordWriter(form)
+        TEXT.append(list_format_w.write(L).replace("E",""))
         i += 6
     return TEXT
