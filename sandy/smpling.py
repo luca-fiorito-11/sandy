@@ -179,6 +179,7 @@ if __name__ == '__main__':
         sys.argv.extend(["data_test\92-U-235g.jeff33", "--outdir", os.path.join("..","ttt")])
     settings.init()
     tape = e6.endf2df(settings.args.endf6)
+    e6.extract_xs(tape)
     PertChi = sample_chi(tape, settings.args.samples)
     PertXs = sample_xs(tape, settings.args.samples)
 
