@@ -24,6 +24,8 @@ def init(ARGS=None):
                         help="Number of worker processes. By default, the number returned by os.cpu_count() is used")
     parser.add_argument('--pendf',
                         help="PENDF format file")
+    parser.add_argument('--njoy',
+                        help="NJOY exe file")
     parser.add_argument('-nw',
                         '--no-write',
                         help="Disable writing")

@@ -124,20 +124,22 @@ def read_mf1_mt451(text):
         T, i = read_text(str_list, i)
         TEXT.append(T)
     out.update({ "TEXT" : TEXT })
-    out["Z"] = int(TEXT[0][:3])
-    out["SYM"] = TEXT[0][4:6].rstrip()
-    out["A"] = int(TEXT[0][7:10])
-    out["M"] =  'g' if TEXT[0][10:11] is ' ' else TEXT[0][10:11].lower()
-    out['ALAB'] = TEXT[0][11:22]
-    out['EDATE'] = TEXT[0][22:32]
-    out['AUTH'] = TEXT[0][33:66]
-    out['REF'] = TEXT[1][1:22]
-    out['DDATE'] = TEXT[1][22:32]
-    out['RDATE'] = TEXT[1][33:43]
-    out['ENDATE'] = TEXT[1][55:63]
-    out['LIBVER'] = TEXT[2][:22].strip('- ')
-    out['SUB'] = TEXT[3].strip('- ')
-    out['FOR'] = TEXT[4].strip('- ')
+    # This part is not given in PENDF files
+    if out["LRP"] != 2:
+        out["Z"] = int(TEXT[0][:3])
+        out["SYM"] = TEXT[0][4:6].rstrip()
+        out["A"] = int(TEXT[0][7:10])
+        out["M"] =  'g' if TEXT[0][10:11] is ' ' else TEXT[0][10:11].lower()
+        out['ALAB'] = TEXT[0][11:22]
+        out['EDATE'] = TEXT[0][22:32]
+        out['AUTH'] = TEXT[0][33:66]
+        out['REF'] = TEXT[1][1:22]
+        out['DDATE'] = TEXT[1][22:32]
+        out['RDATE'] = TEXT[1][33:43]
+        out['ENDATE'] = TEXT[1][55:63]
+        out['LIBVER'] = TEXT[2][:22].strip('- ')
+        out['SUB'] = TEXT[3].strip('- ')
+        out['FOR'] = TEXT[4].strip('- ')
     return out
 
 def read_mf1_nubar(text):
@@ -511,13 +513,18 @@ def pandas_interpolate(df, interp_column, method='zero', axis='both'):
     return dfout
 
 def extract_xs(tape):
+    import collections
     for i,chunk in enumerate(tape.query('MF==3 | (MF==1 & (MT==452 | MT==455 | MT==456))').DATA):
         if chunk["MF"] == 3:
             xs = chunk["XS"]
         if chunk["MF"] == 1:
             xs = chunk["NUBAR"]
+        duplicates = [x for x, count in collections.Counter(xs.index).items() if count > 1]
+        if duplicates:
+            sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(chunk["MAT"],chunk["MF"],chunk["MT"])+
+                     '\n'.join(map(str,duplicates)))
         if chunk['INT'] != [2]:
-            sys.exit('ERROR: MAT{}/MF{}/MT{} interplation scheme is not lin-lin'.format(chunk["MAT"],chunk["MF"],chunk["MT"]))
+            sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(chunk["MAT"],chunk["MF"],chunk["MT"]))
         # Problem with interpolation and multiindexing. Use temporary column names and
         # restore multiindex when database is complete
         xs.name = ",".join(map(str, xs.name))
@@ -531,62 +538,7 @@ def extract_xs(tape):
     MT = list(map(lambda x:int(x.split(',')[1]), DfXs.columns))
     DfXs.columns = pd.MultiIndex.from_arrays([MAT,MT], names=['MAT','MT'])
     return DfXs
-#        xs.index.name = "MT"
-#        xs.columns.name = "E"
-#        DictDf.update({ (chunk["MAT"],chunk["MT"]) : xs.to_dict() })
-#        DictDf["MT"].append(chunk["MT"])
-#    XS = pd.DataFrame() # dataframe with MAT as index
-    chi = pd.DataFrame.from_dict(DictDf, orient='index')
-    for mat in np.unique(tape.index.get_level_values("MAT")):
-        xsdf = pd.DataFrame(tape.loc[mat,3,1].DATA["XS"])
-        if len(np.unique(xsdf.index)) != len(xsdf.index):
-            raise NotImplementedError()
-#        xsdf.columns = xsdf.columns.droplevel() # keep only MT, drop MAT
-#        xsdf.reset_index(inplace=True)
-#        xsdf["MAT"] = mat
-#        xsdf = xsdf.set_index(['MAT','E']).sort_index()
-        # No interpolation is done because xs are on unionized grid
-        for chunk in tape.query('MF==3 & MT!=1').DATA:
-            df = pd.DataFrame(chunk["XS"])
-#            df.columns = df.columns.droplevel() # keep only MT, drop MAT
-#            df.reset_index(inplace=True)
-#            df["MAT"] = mat
-#            df = df.set_index(['MAT','E']).sort_index()
-            # PROBLEM! "add" does not work for duplicated energy points
-            if len(np.unique(df.index)) != len(df.index):
-                raise NotImplementedError()
-            xsdf = xsdf.add(df, fill_value=0)
-        xsdf.fillna(0, inplace=True)
-        xsdf.columns = pd.Index(xsdf.columns, name="MT")
-#        XS = pd.concat((XS, xsdf)) # To be tested
-        XS.update({ mat : xsdf })
-    return XS
-    XS = {} # DIctionary by MAT
-#    XS = pd.DataFrame() # dataframe with MAT as index
-    for mat in np.unique(tape.index.get_level_values("MAT")):
-        xsdf = pd.DataFrame(tape.loc[mat,3,1].DATA["XS"])
-        if len(np.unique(xsdf.index)) != len(xsdf.index):
-            raise NotImplementedError()
-#        xsdf.columns = xsdf.columns.droplevel() # keep only MT, drop MAT
-#        xsdf.reset_index(inplace=True)
-#        xsdf["MAT"] = mat
-#        xsdf = xsdf.set_index(['MAT','E']).sort_index()
-        # No interpolation is done because xs are on unionized grid
-        for chunk in tape.query('MF==3 & MT!=1').DATA:
-            df = pd.DataFrame(chunk["XS"])
-#            df.columns = df.columns.droplevel() # keep only MT, drop MAT
-#            df.reset_index(inplace=True)
-#            df["MAT"] = mat
-#            df = df.set_index(['MAT','E']).sort_index()
-            # PROBLEM! "add" does not work for duplicated energy points
-            if len(np.unique(df.index)) != len(df.index):
-                raise NotImplementedError()
-            xsdf = xsdf.add(df, fill_value=0)
-        xsdf.fillna(0, inplace=True)
-        xsdf.columns = pd.Index(xsdf.columns, name="MT")
-#        XS = pd.concat((XS, xsdf)) # To be tested
-        XS.update({ mat : xsdf })
-    return XS
+
 
 def extract_chi(tape):
     """
@@ -692,6 +644,9 @@ def extract_cov35(tape):
             cov.index.name = "Ek"; cov.columns.name = "El"
             DictCov.update({ (chunk["MAT"], chunk["MT"], sub["Elo"], sub["Ehi"]) :
                 cov })
+    if not DictCov:
+        # No MF35 found. Return empty dataframe
+        return pd.DataFrame()
     # Collect covs in a list to pass to block_diag (endf6 allows only covs in diag)
     # Recreate indexes with lists of mat, mt, elo, ehi and e.
     from scipy.linalg import block_diag

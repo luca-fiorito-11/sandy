@@ -14,6 +14,8 @@ import sys
 import os
 import multiprocessing as mp
 from copy import deepcopy
+import re
+import shutil
 
 
 #To produce correlation matrix
@@ -23,6 +25,8 @@ from copy import deepcopy
 def sample_chi(tape, NSMP):
     # perturbations are in absolute values
     DfCov = e6.extract_cov35(tape)
+    if DfCov.empty:
+        return pd.DataFrame()
     DfPert = pd.DataFrame( Cov(DfCov.as_matrix()).sampling(NSMP),
                                  index = DfCov.index,
                                  columns = range(1,NSMP+1))
@@ -33,6 +37,8 @@ def sample_chi(tape, NSMP):
 def sample_xs(tape, NSMP):
     # perturbations are in relative values
     DfCov = e6.merge_covs( e6.extract_cov33(tape) )
+    if DfCov.empty:
+        return pd.DataFrame()
     DfPert = pd.DataFrame( Cov(DfCov.as_matrix()).sampling(NSMP) + 1,
                                  index = DfCov.index,
                                  columns = range(1,NSMP+1))
@@ -51,40 +57,41 @@ def perturb(XsSeries, PertSeries):
     return Xs
 
 
-def sampling1(tape, PertSeriesXs, output):
-    Xs = e6.extract_xs(tape) # dictionary (keys are MAT) of dataframes
-    matListPert = PertSeriesXs.index.get_level_values("MAT")
-    for mat in Xs:
-        if mat not in matListPert:
+def perturb_xs(tape, PertSeriesXs):
+    Xs = e6.extract_xs(tape)
+    for mat, mt in Xs:
+        if mat not in PertSeriesXs.index.get_level_values("MAT").unique():
             continue
-        mtListPert = PertSeriesXs.loc[mat].index.get_level_values("MT")
-        mtListXs = Xs[mat].columns
-        for mt in sorted(mtListXs, reverse=True):
-            if mt in mtListPert:
-                mtPert = mt
-            elif mt in range(800,850) and 107 in mtListPert:
-                mtPert = 107
-            elif mt in range(750,800) and 106 in mtListPert:
-                mtPert = 106
-            elif mt in range(700,750) and 105 in mtListPert:
-                mtPert = 105
-            elif mt in range(650,700) and 104 in mtListPert:
-                mtPert = 104
-            elif mt in range(600,650) and 103 in mtListPert:
-                mtPert = 103
-            elif mt in range(102,118) and 101 in mtListPert:
-                mtPert = 101
-            elif mt in (19,20,21,38) and 18 in mtListPert:
-                mtPert = 18
-            elif mt in (18,101) and 27 in mtListPert:
-                mtPert = 27
-            elif mt in range(50,92) and 4 in mtListPert:
-                mtPert = 4
-            else:
-                continue
-            Xs[mat][mt] = perturb(XsSeries = Xs[mat][mt],
-                                  PertSeriesXs = PertSeriesXs.loc[mat,mtPert])
-#            Xs[mat] = Xs[mat].add(smp, fill_value=0)
+        mtListPert = PertSeriesXs.loc[mat].index.get_level_values("MT").unique()
+#        mtListXs = Xs[mat].columns
+        if mt in mtListPert:
+            mtPert = mt
+        elif mt in range(800,850) and 107 in mtListPert:
+            mtPert = 107
+        elif mt in range(750,800) and 106 in mtListPert:
+            mtPert = 106
+        elif mt in range(700,750) and 105 in mtListPert:
+            mtPert = 105
+        elif mt in range(650,700) and 104 in mtListPert:
+            mtPert = 104
+        elif mt in range(600,650) and 103 in mtListPert:
+            mtPert = 103
+        elif mt in range(102,118) and 101 in mtListPert:
+            mtPert = 101
+        elif mt in (19,20,21,38) and 18 in mtListPert:
+            mtPert = 18
+        elif mt in (18,101) and 27 in mtListPert:
+            mtPert = 27
+        elif mt in range(50,92) and 4 in mtListPert:
+            mtPert = 4
+        else:
+            continue
+        P = PertSeriesXs.loc[mat,mtPert]
+        P = P.reindex(P.index.union(Xs[mat,mt].index)).ffill().fillna(1).reindex(Xs[mat,mt].index)
+        Xs[mat,mt] = Xs[mat,mt].multiply(P, axis="index")
+        # Negative values are set to zero
+        Xs[mat,mt][Xs[mat,mt] <= 0] = 0
+    for mat in Xs.columns.get_level_values("MAT").unique():
         # Redundant XS
         daughters = [ x for x in range(800,850) if x in Xs[mat].columns]
         if daughters:
@@ -176,17 +183,38 @@ if __name__ == '__main__':
     #file = "JEFF33-rdd_all.asc"
     #file = "26-Fe-56g.jeff33"
     if len(sys.argv) == 1:
-        sys.argv.extend(["data_test\92-U-235g.jeff33", "--outdir", os.path.join("..","ttt")])
+        sys.argv.extend(["data_test\H1.txt",
+                         "--outdir", os.path.join("..","ttt"),
+                         "--njoy", r"J:\NEA\NDaST\NJOY\njoy2012_50.exe"])
     settings.init()
     tape = e6.endf2df(settings.args.endf6)
-    e6.extract_xs(tape)
+
+    from sandy.njy import FileNJOY
+    fnjoy = FileNJOY()
+    # Write NJOY file
+    fnjoy.copy_to_tape(settings.args.endf6, 20, dst=settings.args.outdir)
+    fnjoy.reconr(20, 21, mat=tape.index.get_level_values('MAT').unique())
+    fnjoy.stop()
+    fnjoy.run(settings.args.njoy, cwd=settings.args.outdir)
+    settings.args.pendf = os.path.join(settings.args.outdir,
+                                       '{}.pendf'.format(os.path.basename(settings.args.endf6)))
+    shutil.move(os.path.join(settings.args.outdir, r'tape21'), settings.args.pendf)
+    # Remove NJOY junk outputs
+    os.unlink(os.path.join(settings.args.outdir, r'tape20'))
+    os.unlink(os.path.join(settings.args.outdir, r'output'))
+    ptape = e6.endf2df(settings.args.pendf)
+
+
     PertChi = sample_chi(tape, settings.args.samples)
     PertXs = sample_xs(tape, settings.args.samples)
 
     # Problem when running python from windows to linux
-    outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
+#    outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
+#    sampling(tape, outname.format(1), PertSeriesChi=PertChi[1])
 
-    sampling(tape, outname.format(1), PertSeriesChi=PertChi[1])
+    # Problem when running python from windows to linux
+    outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
+    sampling(ptape, outname.format(1), PertSeriesXs=PertXs[1])
     #df_nu = extract_nu(tape) # dictionary (keys are MAT) of dataframes
 
     pool = mp.Pool(processes=settings.args.processes)
