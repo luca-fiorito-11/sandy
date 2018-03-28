@@ -511,19 +511,29 @@ def pandas_interpolate(df, interp_column, method='zero', axis='both'):
     return dfout
 
 def extract_xs(tape):
-    DictDf = {}
-    ListXs = []
-    for chunk in tape.query('MF==3 | (MF==1 & (MT==452 | MT==455 | MT==456))').DATA:
-
+    for i,chunk in enumerate(tape.query('MF==3 | (MF==1 & (MT==452 | MT==455 | MT==456))').DATA):
         if chunk["MF"] == 3:
-            xs = pd.DataFrame(chunk["XS"])
-            ListXs.append(chunk["XS"].to_frame())
+            xs = chunk["XS"]
         if chunk["MF"] == 1:
-            xs = pd.DataFrame(chunk["NUBAR"])
-            ListXs.append(chunk["NUBAR"].to_frame())
-        xs.index.name = "MT"
-        xs.columns.name = "E"
-        DictDf.update({ (chunk["MAT"],chunk["MT"]) : xs.to_dict() })
+            xs = chunk["NUBAR"]
+        if chunk['INT'] != [2]:
+            sys.exit('ERROR: MAT{}/MF{}/MT{} interplation scheme is not lin-lin'.format(chunk["MAT"],chunk["MF"],chunk["MT"]))
+        # Problem with interpolation and multiindexing. Use temporary column names and
+        # restore multiindex when database is complete
+        xs.name = ",".join(map(str, xs.name))
+        xs = xs.to_frame().reset_index()
+        if i == 0:
+            DfXs = xs
+        else:
+            DfXs = pd.merge_ordered(DfXs, xs, on="E", how='outer').interpolate(method='slinear', axis=0).fillna(0)
+    DfXs.set_index('E', inplace=True)
+    MAT = list(map(lambda x:int(x.split(',')[0]), DfXs.columns))
+    MT = list(map(lambda x:int(x.split(',')[1]), DfXs.columns))
+    DfXs.columns = pd.MultiIndex.from_arrays([MAT,MT], names=['MAT','MT'])
+    return DfXs
+#        xs.index.name = "MT"
+#        xs.columns.name = "E"
+#        DictDf.update({ (chunk["MAT"],chunk["MT"]) : xs.to_dict() })
 #        DictDf["MT"].append(chunk["MT"])
 #    XS = pd.DataFrame() # dataframe with MAT as index
     chi = pd.DataFrame.from_dict(DictDf, orient='index')
