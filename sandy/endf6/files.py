@@ -11,7 +11,7 @@ from sandy.endf6.records import read_cont, read_tab1, read_tab2, read_list, read
 import matplotlib.pyplot as plt
 import pandas as pd
 import pdb
-from copy import copy
+from copy import copy, deepcopy
 
 def plot_heatmap(x, y, z,
                  xscale="lin", yscale="lin",
@@ -170,7 +170,7 @@ def read_mf1_nubar(text):
     return out
 
 def write_mf1_nubar(tape):
-    for (mat,mf,mt),df in tape.loc[(slice(None),1),:].iterrows():
+    for (mat,mf,mt),df in tape.query('MF==1 & (MT==452 | MT==455 | MT==456)').iterrows():
         TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], df.DATA["LDG"], df.DATA["LNU"], 0, 0)
         if df.DATA["MT"] == 455:
             if df.DATA["LDG"] == 0:
@@ -201,7 +201,7 @@ def read_mf3_mt(text):
     return out
 
 def write_mf3_mt(tape):
-    for (mat,mf,mt),df in tape.loc[(slice(None),3),:].iterrows():
+    for (mat,mf,mt),df in tape.query('MF==3').iterrows():
         TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, 0, 0)
         TEXT += write_tab1(df.DATA["QM"], df.DATA["QI"], 0, df.DATA["LR"],
                            df.DATA["NBT"], df.DATA["INT"],
@@ -514,25 +514,32 @@ def pandas_interpolate(df, interp_column, method='zero', axis='both'):
 
 def extract_xs(tape):
     import collections
-    for i,chunk in enumerate(tape.query('MF==3 | (MF==1 & (MT==452 | MT==455 | MT==456))').DATA):
-        if chunk["MF"] == 3:
-            xs = chunk["XS"]
-        if chunk["MF"] == 1:
-            xs = chunk["NUBAR"]
-        duplicates = [x for x, count in collections.Counter(xs.index).items() if count > 1]
-        if duplicates:
-            sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(chunk["MAT"],chunk["MF"],chunk["MT"])+
-                     '\n'.join(map(str,duplicates)))
-        if chunk['INT'] != [2]:
-            sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(chunk["MAT"],chunk["MF"],chunk["MT"]))
-        # Problem with interpolation and multiindexing. Use temporary column names and
-        # restore multiindex when database is complete
-        xs.name = ",".join(map(str, xs.name))
-        xs = xs.to_frame().reset_index()
-        if i == 0:
-            DfXs = xs
+    icount = 0
+    for mat in tape.index.get_level_values('MAT').unique():
+        if tape.DATA.loc[mat,1,451]['LRP'] == 1:
+            query = "MF==1 & (MT==452 | MT==455 | MT==456)"
         else:
-            DfXs = pd.merge_ordered(DfXs, xs, on="E", how='outer').interpolate(method='slinear', axis=0).fillna(0)
+            query = 'MF==3 | (MF==1 & (MT==452 | MT==455 | MT==456))'
+        for chunk in tape.loc[mat].query(query).DATA:
+            if chunk["MF"] == 3:
+                xs = chunk["XS"]
+            if chunk["MF"] == 1:
+                xs = chunk["NUBAR"]
+            duplicates = [x for x, count in collections.Counter(xs.index).items() if count > 1]
+            if duplicates:
+                sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(chunk["MAT"],chunk["MF"],chunk["MT"])+
+                         '\n'.join(map(str,duplicates)))
+            if chunk['INT'] != [2]:
+                sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(chunk["MAT"],chunk["MF"],chunk["MT"]))
+            # Problem with interpolation and multiindexing. Use temporary column names and
+            # restore multiindex when database is complete
+            xs.name = ",".join(map(str, xs.name))
+            xs = xs.to_frame().reset_index()
+            if icount == 0:
+                DfXs = xs
+            else:
+                DfXs = pd.merge_ordered(DfXs, xs, on="E", how='outer').interpolate(method='slinear', axis=0).fillna(0)
+            icount += 1
     DfXs.set_index('E', inplace=True)
     MAT = list(map(lambda x:int(x.split(',')[0]), DfXs.columns))
     MT = list(map(lambda x:int(x.split(',')[1]), DfXs.columns))
@@ -718,21 +725,63 @@ def merge_covs(covdf):
     C.index.names = ["MAT", "MT", "E"]
     return C
 
+def reconstruct_xs(DfXs):
+    for mat in DfXs.columns.get_level_values("MAT").unique():
+        ListMT = deepcopy(DfXs[mat].columns)
+        for mt in DfXs[mat].columns.get_level_values("MT").unique():
+            daughters = [ x for x in range(800,850) if x in DfXs[mat].columns]
+            if daughters:
+                DfXs[mat,107] = DfXs[mat][daughters].sum(axis=1)
+            daughters = [ x for x in range(750,800) if x in DfXs[mat].columns]
+            if daughters:
+                DfXs[mat,106] = DfXs[mat][daughters].sum(axis=1)
+            daughters = [ x for x in range(700,750) if x in DfXs[mat].columns]
+            if daughters:
+                DfXs[mat,105] = DfXs[mat][daughters].sum(axis=1)
+            daughters = [ x for x in range(650,700) if x in DfXs[mat].columns]
+            if daughters:
+                DfXs[mat,104] = DfXs[mat][daughters].sum(axis=1)
+            daughters = [ x for x in range(600,650) if x in DfXs[mat].columns]
+            if daughters:
+                DfXs[mat,103] = DfXs[mat][daughters].sum(axis=1)
+            daughters = [ x for x in range(102,118) if x in DfXs[mat].columns]
+            if daughters:
+                DfXs[mat,101] = DfXs[mat][daughters].sum(axis=1)
+            daughters = [ x for x in (19,20,21,38) if x in DfXs[mat].columns]
+            if daughters:
+                DfXs[mat,18] = DfXs[mat][daughters].sum(axis=1)
+            daughters = [ x for x in (18,101) if x in DfXs[mat].columns]
+            if daughters:
+                DfXs[mat,27] = DfXs[mat][daughters].sum(axis=1)
+            daughters = [ x for x in range(50,92) if x in DfXs[mat].columns]
+            if daughters:
+                DfXs[mat,4] = DfXs[mat][daughters].sum(axis=1)
+            daughters = [ x for x in (4,5,11,16,17,*range(22,38),41,42,44,45) if x in DfXs[mat].columns]
+            if daughters:
+                DfXs[mat,3] = DfXs[mat][daughters].sum(axis=1)
+            daughters = [ x for x in (2,3) if x in DfXs[mat].columns]
+            if daughters:
+                DfXs[mat,1] = DfXs[mat][daughters].sum(axis=1)
+            daughters = [ x for x in (455,456) if x in DfXs[mat].columns]
+            if daughters:
+                DfXs[mat,452] = DfXs[mat][daughters].sum(axis=1)
+        # keep only mts present in the original file
+        todrop = [ x for x in DfXs[mat].columns if x not in ListMT ]
+        if todrop:
+            DfXs.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
+    return DfXs
+
 def update_xs(tape, DfXs):
-    for mat,df in DfXs.items():
-        for mt in df:
-            if (mat, 3, mt) not in tape.index:
-                continue
-            XS = df[mt]
-            D = tape.DATA.loc[mat,3,mt]
-            # Assume all xs have only 1 interpolation region and it is linear
-#            if len(D["INT"]) != 1:
-#                raise NotImplementedError("Cannot update xs with more than 1 interp. region")
-#            if D["INT"][0] != 1:
-#                raise NotImplementedError("Cannot update xs with non-linear interpolation")
-            D["XS"] = XS
-            D["NBT"] = [len(XS)]
-            D["INT"] = [2]
+    for mat, mt in DfXs:
+        mf = 1 if mt in (452,455,456) else 3
+        name = 'NUBAR' if mt in (452,455,456) else 'XS'
+        if (mat, mf, mt) not in tape.index:
+            continue
+        SeriesXs = DfXs[mat,mt]
+        # Assume all xs have only 1 interpolation region and it is linear
+        tape.DATA.loc[mat,mf,mt][name] = SeriesXs
+        tape.DATA.loc[mat,mf,mt]["NBT"] = [len(SeriesXs)]
+        tape.DATA.loc[mat,mf,mt]["INT"] = [2]
     return tape
 
 def update_chi(tape, DfChi):
