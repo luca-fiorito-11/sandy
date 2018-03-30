@@ -164,12 +164,13 @@ def sampling(tape, output, PertSeriesXs=None, PertSeriesChi=None):
 if __name__ == '__main__':
     __spec__ = None
     if len(sys.argv) == 1:
-        sys.argv.extend([r"data_test\H1.txt",
-#                         "--pendf", r"..\tmp-cm\96-Cm-242g.jeff33.pendf",
-                         "--outdir", os.path.join("..","tmp-h1"),
+        sys.argv.extend([#r"data_test\92-U-235g.jeff33",
+                         r"data_test\H1.txt",
+#                         "--pendf", r"data_test\92-U-235g.jeff33.pendf",
+                         "--outdir", os.path.join("..","tmp-u1"),
                          "--njoy", r"J:\NEA\NDaST\NJOY\njoy2012_50.exe",
                          "--eig", "10",
-                         "--samples", "5"])
+                         "--samples", "100"])
     settings.init()
 
     tape = e6.endf2df(settings.args.endf6)
