@@ -183,8 +183,13 @@ def write_mf1_nubar(tape):
         else:
             TEXT += write_tab1(0, 0, 0, 0, df.DATA["NBT"], df.DATA["INT"],
                            df.DATA["NUBAR"].index, df.DATA["NUBAR"])
-        TEXT = [ "{:<66}{:4}{:2}{:3}{:5}".format(l, mat, mf, mt, i+1) for i,l in enumerate(TEXT) ]
-        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TEXT) + '\n'
+        TextOut = []; iline = 1
+        for line in TEXT:
+            if iline > 99999:
+                iline = 1
+            TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
+            iline += 1
+        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
     return tape
 
 def read_mf3_mt(text):
@@ -206,8 +211,13 @@ def write_mf3_mt(tape):
         TEXT += write_tab1(df.DATA["QM"], df.DATA["QI"], 0, df.DATA["LR"],
                            df.DATA["NBT"], df.DATA["INT"],
                            df.DATA["XS"].index, df.DATA["XS"])
-        TEXT = [ "{:<66}{:4}{:2}{:3}{:5}".format(l, mat, mf, mt, i+1) for i,l in enumerate(TEXT) ]
-        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TEXT) + '\n'
+        TextOut = []; iline = 1
+        for line in TEXT:
+            if iline > 99999:
+                iline = 1
+            TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
+            iline += 1
+        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
     return tape
 
 def read_mf4_mt(text):
@@ -331,8 +341,13 @@ def write_mf5_mt(tape):
                 TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
                                    t.NBT, t.INT,
                                    t.x, t.y)
-        TEXT = [ "{:<66}{:4}{:2}{:3}{:5}".format(l, mat, mf, mt, i+1) for i,l in enumerate(TEXT) ]
-        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TEXT) + '\n'
+        TextOut = []; iline = 1
+        for line in TEXT:
+            if iline > 99999:
+                iline = 1
+            TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
+            iline += 1
+        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
     return tape
 
 def read_mf8_mt457(text):
@@ -626,9 +641,6 @@ def extract_cov33(tape, mt=[102]):
             covdf = covdf.append(dict(zip(columns, objects)), ignore_index=True)
     covdf = covdf.set_index(['MAT','MT','MAT1','MT1']).sort_index() # Multi-indexing
     return None if covdf.empty else covdf
-
-
-
 
 def extract_cov35(tape):
     from sandy.cov import triu_matrix, corr2cov

@@ -138,40 +138,51 @@ def sampling(tape, output, PertSeriesXs=None, PertSeriesChi=None):
         itape = perturb_chi(itape, PertSeriesChi)
     if PertSeriesXs is not None:
         itape = perturb_xs(itape, PertSeriesXs)
-
     e6.write_tape(itape, output)
 
 if __name__ == '__main__':
     __spec__ = None
     if len(sys.argv) == 1:
-        sys.argv.extend(["data_test\96-Cm-242g.jeff33",
+        sys.argv.extend([r"data_test\96-Cm-242g.jeff33",
+                         "--pendf", r"..\tmp-cm\96-Cm-242g.jeff33.pendf",
                          "--outdir", os.path.join("..","tmp-cm"),
                          "--njoy", r"J:\NEA\NDaST\NJOY\njoy2012_50.exe",
-                         "-mf", "33", "-mf", "35"])
+                         "-mf", "33",
+                         "-mt", "18",
+                         "-mt", "102",
+                         "-mat", "9631"])
     settings.init()
+
     tape = e6.endf2df(settings.args.endf6)
+    if settings.args.keep_mat:
+        query = "|".join([ "MAT=={}".format(x) for x in settings.args.keep_mat])
+        tape = tape.query(query)
     if settings.args.keep_cov_mf:
         query = "|".join([ "MF=={}".format(x) for x in settings.args.keep_cov_mf])
         tape = tape.query("MF < 31 | ({})".format(query))
     if settings.args.keep_cov_mt:
-        query = "|".join([ "MF=={}".format(x) for x in settings.args.keep_cov_mf])
+        query = "|".join([ "MT=={}".format(x) for x in settings.args.keep_cov_mt])
         tape = tape.query("MF < 31 | ({})".format(query))
+    if tape.empty:
+        sys.exit("ERROR: tape is empty")
     MATS = list(tape.index.get_level_values("MAT").unique())
     MFS = list(tape.index.get_level_values("MF").unique())
 
+    # Always run. If MF35 id not wanted, then MF35 sections are already removed.
     PertXs = sample_xs(tape, settings.args.samples)
     PertChi = sample_chi(tape, settings.args.samples)
 
 #    sampling(tape, 'temp.endf', PertSeriesXs=PertXs.query("MT==452 | MT==455 | MT==456")[1])
 #    sampling(ptape, 'temp.pendf', PertSeriesXs=PertXs.query("MT!=452 & MT!=455 & MT!=456")[1])
 
-    pool = mp.Pool(processes=settings.args.processes)
-    outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
-    [ pool.apply(sampling,
-                 args = (tape, outname.format(ismp)),
-                 kwds = {"PertSeriesXs"  : PertXs[ismp] if not PertXs.empty() else None,
-                         "PertSeriesChi" : PertChi[ismp] if not PertChi.empty() else None}
-                 ) for ismp in range(1,settings.args.samples+1) ]
+    if 31 in MFS or 35 in MFS:
+        pool = mp.Pool(processes=settings.args.processes)
+        outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
+        [ pool.apply(sampling,
+                     args = (tape, outname.format(ismp)),
+                     kwds = {"PertSeriesXs"  : PertXs[ismp] if not PertXs.empty() else None,
+                             "PertSeriesChi" : PertChi[ismp] if not PertChi.empty() else None}
+                     ) for ismp in range(1,settings.args.samples+1) ]
 
     if 33 in MFS:
         if not settings.args.pendf:
