@@ -777,7 +777,12 @@ def update_xs(tape, DfXs):
         name = 'NUBAR' if mt in (452,455,456) else 'XS'
         if (mat, mf, mt) not in tape.index:
             continue
-        SeriesXs = DfXs[mat,mt]
+        # Cut threshold xs
+        iNotZero = next((i for i, x in enumerate(DfXs[mat,mt]) if x), None)
+        if iNotZero > 0:
+            SeriesXs = DfXs[mat,mt].iloc[iNotZero-1:]
+        else:
+            SeriesXs = DfXs[mat,mt]
         # Assume all xs have only 1 interpolation region and it is linear
         tape.DATA.loc[mat,mf,mt][name] = SeriesXs
         tape.DATA.loc[mat,mf,mt]["NBT"] = [len(SeriesXs)]
