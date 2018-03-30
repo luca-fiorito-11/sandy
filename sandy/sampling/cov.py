@@ -194,16 +194,12 @@ class Cov(np.ndarray):
             - :``samples``: :
                 (array) random samples
         """
-        from sandy.sandy_input import options
         logging.debug(self.prefix + "Covariance matrix dimension is {} X {}".format(*self.shape))
         y = np.random.randn(self.dim, int(nsmp))
         nonzero_idxs, cov_reduced = self.reduce_size()
         nzeros = self.shape[0] - len(nonzero_idxs)
         if nzeros > 0:
             logging.debug(self.prefix + "Found {} zeros on the diagonal, reduce matrix dimension to {} X {}".format(nzeros, *cov_reduced.shape))
-        if "no_correlations" in options:
-            if options['no_correlations']:
-                cov_reduced = cov_reduced.empty_off_diagonals()
         try:
             L_reduced = cov_reduced.cholesky()
             logging.debug(self.prefix + "Cholesky decomposition was successful")

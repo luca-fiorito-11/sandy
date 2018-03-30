@@ -6,10 +6,10 @@ Created on Mon Mar 19 22:51:03 2018
 """
 
 import pandas as pd
-import sandy.endf6.files as e6
-from sandy.cov import Cov
+from sandy.endf6 import files as e6
+from sandy import settings
+from sandy.sampling.cov import Cov
 import numpy as np
-import sandy.settings as settings
 import sys
 import os
 import multiprocessing as mp
@@ -165,9 +165,9 @@ if __name__ == '__main__':
     __spec__ = None
     if len(sys.argv) == 1:
         sys.argv.extend([#r"data_test\92-U-235g.jeff33",
-                         r"data_test\H1.txt",
+                         r"..\data_test\H1.txt",
 #                         "--pendf", r"data_test\92-U-235g.jeff33.pendf",
-                         "--outdir", os.path.join("..","tmp-u1"),
+                         "--outdir", os.path.join("..","tmp-h1"),
                          "--njoy", r"J:\NEA\NDaST\NJOY\njoy2012_50.exe",
                          "--eig", "10",
                          "--samples", "100"])
@@ -207,7 +207,7 @@ if __name__ == '__main__':
 
     if 33 in MFS:
         if not settings.args.pendf:
-            from sandy.njy import FileNJOY
+            from sandy.njoy import FileNJOY
             fnjoy = FileNJOY()
             # Write NJOY file
             fnjoy.copy_to_tape(settings.args.endf6, 20, dst=settings.args.outdir)

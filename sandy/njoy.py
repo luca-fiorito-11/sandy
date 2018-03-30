@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 18 17:36:27 2015
+Created on Wed Mar 28 15:06:23 2018
 
-@author: lfiorito
+@author: fiorito_l
 """
 import sys
 import numpy as np
 import os
 import logging
-from os.path import dirname, join
-import sandy.NJOY
-
-
-exe = join(dirname(sandy.NJOY.__file__), 'njoy.exe')
+from os.path import join
 
 class FileNJOY:
 
@@ -22,7 +18,7 @@ class FileNJOY:
         Description
         ===========
         Copy `ENDF-6` or `PENDF` inputfile to `NJOY` tape file, e.g. tape20.
-        
+
         Inputs
         ======
          - *src*: `ENDF-6` or `PENDF` inputfile's name
@@ -35,27 +31,25 @@ class FileNJOY:
         tape = 'tape{}'.format(tape)
         dst = os.path.join(dst, tape)
         shutil.copy(src, dst)
-    
-    def __init__(self, name):
+
+    def __init__(self, name='njoy.inp'):
         r"""
         Initialize `NJOY` input file.
-        
+
         Inputs:
             - name :
                 (string) `NJOY` inputfile's name
         """
-        from os.path import join
-        from sandy.sandy_input import outdir
-        self.file = join(outdir, name)
+        self.file = name
         self.text = ""
-    
-    def reconr(self, nendf, npendf, mat, reconr_err=0.001, reconr_grid=[], 
-               reconr_cards=[], reconr_tempr=0, reconr_errmax=None, 
+
+    def reconr(self, nendf, npendf, mat, reconr_err=0.001, reconr_grid=[],
+               reconr_cards=[], reconr_tempr=0, reconr_errmax=None,
                reconr_errint=None, **options):
         """
-        Define input file for `RECONR` module of `NJOY` and add it to 
+        Define input file for `RECONR` module of `NJOY` and add it to
         instance text.
-        
+
         Inputs:
             - nendf :
                 unit for endf tape
@@ -74,14 +68,14 @@ class FileNJOY:
             - reconr_tempr :
                 reconstruction temperature (deg kelvin) (default=0).
             - reconr_errmax :
-                fractional reconstruction tolerance used when 
-                resonance-integral error criterion is satisfied 
+                fractional reconstruction tolerance used when
+                resonance-integral error criterion is satisfied
                 (errmax.ge.err, default=10*err).
             - reconr_errint :
                 maximum resonance-integral error (in barns)
                 per grid point (default=err/20000)
-                (note: the max cross section difference for linearization, 
-                errlim, and for reconstruction, errmin, are also tied to 
+                (note: the max cross section difference for linearization,
+                errlim, and for reconstruction, errmin, are also tied to
                 errint.
                 To get maximum accuracy, set errint to a very small number.
                 For economical production, use the defaults.)
@@ -108,7 +102,7 @@ class FileNJOY:
             if ngrid > 0:
                 self.text += "\n".join(map("{:.5e}".format, reconr_grid)) + "\n" # card 6
         self.text += "0 /\n"
-    
+
     def stop(self):
         r"""
         Add ``NJOY`` stop command to instance's ``text``.
@@ -124,16 +118,16 @@ class FileNJOY:
         with open(self.file, 'w') as f:
             f.write(self.text)
 
-    def run(self, cwd=None):
+    def run(self, exe, cwd=None):
         """
         Run ``NJOY``.
-        
+
         Pass input file to process's stdin (it must be encoded first).
 
         ..Important::
-            In ``Python 3`` you need to convert string to bytes with a 
+            In ``Python 3`` you need to convert string to bytes with a
             ``encode()`` function
-        
+
         Inputs:
             - ``cwd`` :
                 working directory; default is current directory
@@ -145,70 +139,14 @@ class FileNJOY:
             self.write()
         else:
             stdout = stderr = PIPE
-        process = Popen(exe, shell=True, cwd=cwd,
-                        stdin=PIPE, 
-                        stdout=stdout, 
+        process = Popen(exe,
+                        shell=True,
+                        cwd=cwd,
+                        stdin=PIPE,
+                        stdout=stdout,
                         stderr=stderr)
         stdoutdata, stderrdata = process.communicate(input=stdin)
-        if process.returncode != 0:
+        if process.returncode not in [0, 24]:
             msg = "NJOY : Process status={}, cannot run njoy executable"
             logging.error(msg.format(process.returncode))
             sys.exit()
-#        
-#import pytest
-#
-#@pytest.fixture()
-#def tape20(tmpdir):
-#    from njoy import FileNJOY
-#    import py
-#    filein = py._path.local.LocalPath('../test_objects/file_H1-H2.endf')
-#    fileout = tmpdir.join('tape20')
-#    FileNJOY.copy_to_tape(str(filein), 20, dst=str(tmpdir))
-#    assert filein.readlines() == fileout.readlines()
-#    return fileout
-#
-#@pytest.fixture(scope="module")
-#def fnjoy():
-#    from njoy import FileNJOY
-#    F = FileNJOY('input_njoy')
-#    assert F.name == 'input_njoy'
-#    return F
-#
-#
-#def test_reconr_command_write_text(fnjoy):
-#    grid = [1.5e-1, 1.6e-1]
-#    fnjoy.reconr(20, 21, [125, 128], err=0.1, grid=grid)
-#    text = fnjoy.text.split('\n')
-#    assert text[0] == 'reconr'
-#    assert list(map(int, text[1].split())) == [20, 21]
-#    assert text[2] == "'SANDY runs RECONR'/"
-#    assert list(map(int, text[3].split())) == [125, 0, 2]
-#    assert list(map(float, text[4].split()[:-1])) == [0.1, 0]
-#    assert float(text[5]) == grid[0]
-#    assert float(text[6]) == grid[1]
-#    assert list(map(int, text[7].split())) == [128, 0, 2]
-#    assert list(map(float, text[8].split()[:-1])) == [0.1, 0]
-#    assert float(text[9]) == grid[0]
-#    assert float(text[10]) == grid[1]
-#    assert text[11] == '0 /'
-#
-#def test_stop_command(fnjoy):
-#    fnjoy.stop()
-#    assert fnjoy.text.split('\n')[-1] == 'stop'
-#
-#def test_write_njoy(fnjoy, tmpdir):
-#    fileout = tmpdir.join(fnjoy.name)
-#    fnjoy.file = str(fileout)
-#    fnjoy.write()
-#    assert fnjoy.text == fileout.read()
-#
-#def test_run_njoy(fnjoy, tape20, tmpdir):
-#    fnjoy.run("/home/lfiorito/work/njoy/source_2012/xnjoy-fast", 
-#              cwd=str(tmpdir))
-#    assert tmpdir.join('output').isfile()
-#    assert tmpdir.join('tape21').isfile()
-#
-#def test_run_njoy_fail(fnjoy, tmpdir):
-#    with pytest.raises(SystemExit):
-#        fnjoy.run("/home/lfiorito/work/njoy/source_2012/xnjoy-fast", 
-#                  cwd=str(tmpdir))

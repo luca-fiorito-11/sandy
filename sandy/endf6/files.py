@@ -619,7 +619,7 @@ def extract_chi(tape):
     return DfChi
 
 def extract_cov33(tape, mt=[102]):
-    from sandy.cov import triu_matrix
+    from sandy.sampling.cov import triu_matrix
     from functools import reduce
     columns = ('MAT', 'MT', 'MAT1', 'MT1', 'COV')
     DfCov = pd.DataFrame(columns=columns)
@@ -741,7 +741,7 @@ def extract_cov33(tape, mt=[102]):
     return C
 
 def extract_cov35(tape):
-    from sandy.cov import triu_matrix, corr2cov
+    from sandy.sampling.cov import triu_matrix, corr2cov
     # Get covariances (df) from each MAT, MT and Erange (these are the keys) in a dictionary.
     DictCov = {}
     for chunk in tape.query('MF==35').DATA:
