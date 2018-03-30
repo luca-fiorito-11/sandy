@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pdb
 from copy import copy, deepcopy
+from warnings import warn
 
 def plot_heatmap(x, y, z,
                  xscale="lin", yscale="lin",
@@ -140,7 +141,29 @@ def read_mf1_mt451(text):
         out['LIBVER'] = TEXT[2][:22].strip('- ')
         out['SUB'] = TEXT[3].strip('- ')
         out['FOR'] = TEXT[4].strip('- ')
+    out.update({ "RECORDS" : [] })
+    for j in range(out["NXC"]):
+        C, i = read_cont(str_list, i)
+        out["RECORDS"].append((C.L1,C.L2,C.N1,C.N2))
     return out
+
+def write_mf1_mt451(tape):
+    for (mat,mf,mt),df in tape.query('MF==1 & MT==451').iterrows():
+        TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], df.DATA["LRP"], df.DATA["LFI"], df.DATA["NLIB"], df.DATA["NMOD"])
+        TEXT += write_cont(df.DATA["ELIS"], df.DATA["STA"], df.DATA["LIS"], df.DATA["LISO"], 0, df.DATA["NFOR"])
+        TEXT += write_cont(df.DATA["AWI"], df.DATA["EMAX"], df.DATA["LREL"], 0, df.DATA["NSUB"], df.DATA["NVER"])
+        TEXT += write_cont(df.DATA["TEMP"], 0, df.DATA["LDRV"], 0, len(df.DATA["TEXT"]), len(df.DATA["RECORDS"]))
+        TEXT += df.DATA["TEXT"]
+        for mf,mt,nc,mod in df.DATA["RECORDS"]:
+            TEXT.append(" "*22 + "{:>11}{:>11}{:>11}{:>11}".format(mf,mt,nc,mod))
+        TextOut = []; iline = 1
+        for line in TEXT:
+            if iline > 99999:
+                iline = 1
+            TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
+            iline += 1
+        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
+    return tape
 
 def read_mf1_nubar(text):
     str_list = text.splitlines()
@@ -561,7 +584,6 @@ def extract_xs(tape):
     DfXs.columns = pd.MultiIndex.from_arrays([MAT,MT], names=['MAT','MT'])
     return DfXs
 
-
 def extract_chi(tape):
     """
     Extract chi cov for all MAT,MT,SUB found in tape.
@@ -596,17 +618,14 @@ def extract_chi(tape):
     DfChi.set_index(["MAT", "MT", "K"], inplace=True)
     return DfChi
 
-
 def extract_cov33(tape, mt=[102]):
     from sandy.cov import triu_matrix
-    from sandy.functions import union_grid
+    from functools import reduce
     columns = ('MAT', 'MT', 'MAT1', 'MT1', 'COV')
-    covdf = pd.DataFrame(columns=columns)
+    DfCov = pd.DataFrame(columns=columns)
     for chunk in tape.query('MF==33 | MF==31').DATA:
         for sub in chunk["SUB"].values():
             covs = []
-            if len(sub["NI"]) == 0:
-                continue
             for nisec in sub["NI"]:
                 if nisec["LB"] == 5:
                     Fkk = np.array(nisec["Fkk"])
@@ -617,30 +636,109 @@ def extract_cov33(tape, mt=[102]):
                     # add zero row and column at the end of the matrix
                     cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
                     cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-                    covs.append(pd.DataFrame(cov, index=nisec["Ek"], columns=nisec["Ek"]))
+                    e1 = e2 = nisec["Ek"]
                 elif nisec["LB"] == 1:
                     cov = np.diag(nisec["Fk"])
+                    e1 = e2 = nisec["Ek"]
                     covs.append(pd.DataFrame(cov, index=nisec["Ek"], columns=nisec["Ek"]))
                 elif nisec["LB"] == 2:
                     f = np.array(nisec["Fk"])
                     cov = f*f.reshape(-1,1)
-                    covs.append(pd.DataFrame(cov, index=nisec["Ek"], columns=nisec["Ek"]))
+                    e1 = e2 = nisec["Ek"]
                 elif nisec["LB"] == 6:
                     cov = np.array(nisec["Fkl"]).reshape(nisec["NER"]-1, nisec["NEC"]-1)
                     # add zero row and column at the end of the matrix
                     cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
                     cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-                    covs.append(pd.DataFrame(cov, index=nisec["Ek"], columns=nisec["El"]))
+                    e1 = nisec["Ek"]
+                    e2 = nisec["El"]
+                else:
+                    warn("skipped NI-type covariance with flag LB={} (MAT{}/MF{}/MT{})".fomat(nisec["LB"], chunk['MAT'], chunk['MF'], chunk['MT']), category=Warning)
+                    continue
+                cov = pd.DataFrame(cov, index=e1, columns=e2)
+                covs.append(cov)
             if len(covs) == 0:
                 continue
-            # Al union covariance matrices have the same grid (uxx) on both axis
-            uxx = union_grid(*[list(cov.index) + list(cov.columns) for cov in covs])
-            cov = np.sum([ pandas_interpolate(cov, list(uxx)).as_matrix() for cov in covs ], 0)
-            cov = pd.DataFrame(cov, index=uxx, columns=uxx)
+            if len(covs) > 1:
+                import pdb
+                pdb.set_trace()
+            # All union covariance matrices have the same grid (uxx) on both axis
+            uxx = sorted(set().union(*[ [*list(x.index), *list(x.columns)] for x in covs ]))
+            covs = list(map( lambda x: pandas_interpolate(x, uxx), covs ))
+            cov = reduce(lambda x, y: x.add(y, fill_value=0), covs)
+#            index = pd.MultiIndex.from_product([[chunk["MAT"]],
+#                                                [chunk["MT"]],
+#                                                [sub["MAT1"]],
+#                                                [sub["MT1"]],
+#                                                cov.index], names=["MAT", "MT", "MAT1", "MT1", "E"])
             objects = chunk['MAT'], chunk['MT'], sub['MAT1'], sub['MT1'], cov
-            covdf = covdf.append(dict(zip(columns, objects)), ignore_index=True)
-    covdf = covdf.set_index(['MAT','MT','MAT1','MT1']).sort_index() # Multi-indexing
-    return None if covdf.empty else covdf
+            DfCov = DfCov.append(dict(zip(columns, objects)), ignore_index=True)
+    DfCov = DfCov.set_index(['MAT','MT','MAT1','MT1']).sort_index() # Multi-indexing
+    if DfCov.empty:
+        warn("no MF[31,33] covariances found", category=Warning)
+        return pd.DataFrame()
+    # Create big cov
+    query_diag = 'MT==MT1 & (MAT1==0 | MAT==MAT1)'
+    query_offdiag = 'MT!=MT1 | MAT1!=0'
+#    import scipy as sp
+#    C = sp.linalg.block_diag(*map(lambda x:x.as_matrix(), DfCov.query(query_diag).COV))
+#    idxs = []
+#    for (mat,mt,mat1,mt1), row in DfCov.query(query_diag).iterrows():
+#        idxs.append( pd.MultiIndex.from_product([[mat],[mt],[mat1],[mt1], row.COV.index]) )
+#    index = reduce(lambda x, y: x.append(y), idxs)
+#    C = pd.DataFrame(C, index=index, columns=index)
+    diags = DfCov.query(query_diag)
+    # reset indices to be consistent with enumerate in the next loop
+    diags.reset_index(inplace=True)
+    # Process diagonal blocks
+    # This part is extracted from scipy.linalg.block_diag
+    shapes = np.array([a.COV.shape for i,a in diags.iterrows()])
+    ndim = np.sum(shapes, axis=0)[0]
+    C = np.zeros((ndim,ndim)); E = np.zeros(ndim)
+    MATS = np.zeros(ndim, dtype=int); MTS = np.zeros(ndim, dtype=int)
+    r, c = 0, 0
+    beg, end = [], []
+    for i, (rr, cc) in enumerate(shapes):
+        d = diags.iloc[i]
+        C[r:r + rr, c:c + cc] = d.COV
+        E[r:r + rr] = d.COV.index
+        MATS[r:r + rr] = d.MAT
+        MTS[r:r + rr] = d.MT
+        beg.append(r)
+        end.append(r + rr)
+        r += rr
+        c += cc
+    diags = diags.assign(BEG = beg)
+    diags = diags.assign(END = end)
+    # reset multindex to use loc method
+    diags = diags.set_index(['MAT','MT','MAT1','MT1']).sort_index()
+    # Process off-diagonal blocks
+    for (mat,mt,mat1,mt1),row in DfCov.query(query_offdiag).iterrows():
+        cov = row.COV
+        # interpolate x axis (rows)
+        try:
+            covk = diags.loc[mat,mt,0,mt]
+        except:
+            warn("cannot find covariance for MAT{}/MT{}".format(mat,mt), category=Warning)
+            continue
+        Ek = list(covk.COV.index)
+        cov = pandas_interpolate(cov, Ek, method='zero', axis='rows')
+        # interpolate y axis (cols)
+        if mat1 == 0:
+            mat1 = mat
+        try:
+            covl = diags.loc[mat1,mt1,0,mt1]
+        except:
+            warn("cannot find covariance for MAT{}/MT{}".format(mat1,mt1), category=Warning)
+            continue
+        El = list(covl.COV.index)
+        cov = pandas_interpolate(cov, El, method='zero', axis='cols')
+        C[covk.BEG:covk.END,covl.BEG:covl.END] = cov
+        C[covl.BEG:covl.END,covk.BEG:covk.END,] = cov.T
+    C = pd.DataFrame(C, index=[MATS,MTS,E], columns=[MATS,MTS,E])
+    C.index.names = ["MAT", "MT", "E"]
+    C.columns.names = ["MAT", "MT", "E"]
+    return C
 
 def extract_cov35(tape):
     from sandy.cov import triu_matrix, corr2cov
@@ -689,53 +787,6 @@ def extract_cov35(tape):
     DfCov.set_index(['MAT', 'MT', 'EINlo', 'EINhi', 'EOUTlo', 'EOUThi'], inplace=True)
     DfCov.columns = DfCov.index
     return DfCov
-
-def merge_covs(covdf):
-    query_diag = 'MT==MT1 & (MAT1==0 | MAT==MAT1)'
-    query_offdiag = 'MT!=MT1 | MAT1!=0'
-    diags = covdf.query(query_diag)
-    # reset indices to be consistent with enumerate in the next loop
-    diags.reset_index(inplace=True)
-    # Process diagonal blocks
-    # This part is extracted from scipy.linalg.block_diag
-    shapes = np.array([a.COV.shape for i,a in diags.iterrows()])
-    ndim = np.sum(shapes, axis=0)[0]
-    C = np.zeros((ndim,ndim)); E = np.zeros(ndim)
-    MATS = np.zeros(ndim, dtype=int); MTS = np.zeros(ndim, dtype=int)
-    r, c = 0, 0
-    beg, end = [], []
-    for i, (rr, cc) in enumerate(shapes):
-        d = diags.iloc[i]
-        C[r:r + rr, c:c + cc] = d.COV
-        E[r:r + rr] = d.COV.index
-        MATS[r:r + rr] = d.MAT
-        MTS[r:r + rr] = d.MT
-        beg.append(r)
-        end.append(r + rr)
-        r += rr
-        c += cc
-    diags = diags.assign(BEG = beg)
-    diags = diags.assign(END = end)
-    # reset multindex to use loc method
-    diags = diags.set_index(['MAT','MT','MAT1','MT1']).sort_index()
-    # Process off-diagonal blocks
-    for (mat,mt,mat1,mt1),row in covdf.query(query_offdiag).iterrows():
-        cov = row.COV
-        # interpolate x axis (rows)
-        covk = diags.loc[mat,mt,0,mt]
-        Ek = list(covk.COV.index)
-        cov = pandas_interpolate(cov, Ek, method='zero', axis='rows')
-        # interpolate y axis (cols)
-        if mat1 == 0:
-            mat1 = mat
-        covl = diags.loc[mat1,mt1,0,mt1]
-        El = list(covl.COV.index)
-        cov = pandas_interpolate(cov, El, method='zero', axis='cols')
-        C[covk.BEG:covk.END,covl.BEG:covl.END] = cov
-        C[covl.BEG:covl.END,covk.BEG:covk.END,] = cov.T
-    C = pd.DataFrame(C, index=[MATS,MTS,E], columns=[MATS,MTS,E])
-    C.index.names = ["MAT", "MT", "E"]
-    return C
 
 def reconstruct_xs(DfXs):
     for mat in DfXs.columns.get_level_values("MAT").unique():
@@ -814,7 +865,24 @@ def update_chi(tape, DfChi):
                                                   'NBT_EIN' : [CHI.shape[0]]})
     return tape
 
+def update_dict(tape):
+    for mat in tape.index.get_level_values('MAT').unique():
+        chunk = tape.DATA.loc[mat,1,451]
+        records = pd.DataFrame(chunk["RECORDS"],
+                               columns=["MF","MT","NC","MOD"]).set_index(["MF","MT"])
+        new_records = []
+        for (mf,mt),text in tape.loc[mat].query('MT!=451'.format(mat)).TEXT.items():
+            nc = len(text.splitlines())
+            mod = records.MOD.loc[mf,mt]
+            new_records.append((mf,mt,nc,mod))
+        nc = 4 + len(chunk["TEXT"]) + len(new_records) + 1
+        mod = records.MOD.loc[1,451]
+        new_records = [(1,451,nc,mod)] + new_records
+        chunk["RECORDS"] = new_records
+    return tape
+
 def write_tape(tape, file, title=" "*66):
+    tape = write_mf1_mt451( update_dict(tape) )
     string = "{:<66}{:4}{:2}{:3}{:5}\n".format(title, 1, 0, 0, 0)
     for mat,dfmat in tape.groupby('MAT', sort=True):
         for mf,dfmf in dfmat.groupby('MF', sort=True):
