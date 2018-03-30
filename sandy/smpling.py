@@ -17,6 +17,7 @@ from copy import deepcopy
 import shutil
 
 
+
 #To produce correlation matrix
 #Index = df_cov_xs.index
 #df_cov_xs.update(pd.DataFrame(Cov(df_cov_xs.as_matrix()).corr, index=Index, columns=Index))
@@ -26,22 +27,42 @@ def sample_chi(tape, NSMP):
     DfCov = e6.extract_cov35(tape)
     if DfCov.empty:
         return pd.DataFrame()
-    DfPert = pd.DataFrame( Cov(DfCov.as_matrix()).sampling(NSMP),
-                                 index = DfCov.index,
-                                 columns = range(1,NSMP+1))
+    cov = Cov(DfCov.as_matrix())
+    DfPert = pd.DataFrame(cov.sampling(NSMP),
+                          index = DfCov.index,
+                          columns = range(1,NSMP+1))
     DfPert.columns.name = 'SMP'
+    if settings.args.eig > 0:
+        from sandy.functions import div0
+        eigs = cov.eig()[0]
+        dim = min(len(eigs), settings.args.eig)
+        eigs_smp = Cov(np.cov(DfPert.as_matrix())).eig()[0]
+        print("MF35 eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
+        diff = div0(eigs-eigs_smp, eigs, value=np.NaN)*100.
+        E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[:dim], eigs_smp[:dim], diff[:dim])]
+        print("\n".join(E))
     return DfPert
 
 
 def sample_xs(tape, NSMP):
     # perturbations are in relative values
-    DfCov = e6.merge_covs( e6.extract_cov33(tape) )
+    DfCov = e6.extract_cov33(tape)
     if DfCov.empty:
         return pd.DataFrame()
-    DfPert = pd.DataFrame( Cov(DfCov.as_matrix()).sampling(NSMP) + 1,
+    cov = Cov(DfCov.as_matrix())
+    DfPert = pd.DataFrame( cov.sampling(NSMP) + 1,
                                  index = DfCov.index,
                                  columns = range(1,NSMP+1))
     DfPert.columns.name = 'SMP'
+    if settings.args.eig > 0:
+        from sandy.functions import div0
+        eigs = cov.eig()[0]
+        dim = min(len(eigs), settings.args.eig)
+        eigs_smp = Cov(np.cov(DfPert.as_matrix())).eig()[0]
+        print("MF[31,33] eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
+        diff = div0(eigs-eigs_smp, eigs, value=np.NaN)*100.
+        E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[:dim], eigs_smp[:dim], diff[:dim])]
+        print("\n".join(E))
     return DfPert
 
 def perturb_xs(tape, PertSeriesXs):
@@ -143,17 +164,16 @@ def sampling(tape, output, PertSeriesXs=None, PertSeriesChi=None):
 if __name__ == '__main__':
     __spec__ = None
     if len(sys.argv) == 1:
-        sys.argv.extend([r"data_test\96-Cm-242g.jeff33",
-                         "--pendf", r"..\tmp-cm\96-Cm-242g.jeff33.pendf",
-                         "--outdir", os.path.join("..","tmp-cm"),
+        sys.argv.extend([r"data_test\H1.txt",
+#                         "--pendf", r"..\tmp-cm\96-Cm-242g.jeff33.pendf",
+                         "--outdir", os.path.join("..","tmp-h1"),
                          "--njoy", r"J:\NEA\NDaST\NJOY\njoy2012_50.exe",
-                         "-mf", "33",
-                         "-mt", "18",
-                         "-mt", "102",
-                         "-mat", "9631"])
+                         "--eig", "10",
+                         "--samples", "5"])
     settings.init()
 
     tape = e6.endf2df(settings.args.endf6)
+    e6.update_dict(tape)
     if settings.args.keep_mat:
         query = "|".join([ "MAT=={}".format(x) for x in settings.args.keep_mat])
         tape = tape.query(query)
@@ -168,7 +188,7 @@ if __name__ == '__main__':
     MATS = list(tape.index.get_level_values("MAT").unique())
     MFS = list(tape.index.get_level_values("MF").unique())
 
-    # Always run. If MF35 id not wanted, then MF35 sections are already removed.
+    # Always run. If MF35 is not wanted, then MF35 sections are already removed.
     PertXs = sample_xs(tape, settings.args.samples)
     PertChi = sample_chi(tape, settings.args.samples)
 
@@ -180,8 +200,8 @@ if __name__ == '__main__':
         outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
         [ pool.apply(sampling,
                      args = (tape, outname.format(ismp)),
-                     kwds = {"PertSeriesXs"  : PertXs[ismp] if not PertXs.empty() else None,
-                             "PertSeriesChi" : PertChi[ismp] if not PertChi.empty() else None}
+                     kwds = {"PertSeriesXs"  : PertXs[ismp] if not PertXs.empty else None,
+                             "PertSeriesChi" : PertChi[ismp] if not PertChi.empty else None}
                      ) for ismp in range(1,settings.args.samples+1) ]
 
     if 33 in MFS:
@@ -205,5 +225,5 @@ if __name__ == '__main__':
         outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.pendf) + '-{}')
         [ pool.apply(sampling,
                      args = (ptape, outname.format(ismp)),
-                     kwds = {"PertSeriesXs" : PertXs[ismp] if not PertXs.empty() else None}
+                     kwds = {"PertSeriesXs" : PertXs[ismp] if not PertXs.empty else None}
                      ) for ismp in range(1,settings.args.samples+1) ]

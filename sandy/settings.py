@@ -19,6 +19,16 @@ def is_valid_file(parser, arg, r=True, w=False, x=False):
         parser.error("File {} is not executable".format(arg))
     return arg
 
+def is_valid_dir(parser, arg, mkdir=False):
+    if os.path.isdir(arg):
+        return arg
+    if mkdir:
+        os.makedirs(arg, exist_ok=True)
+    else:
+        parser.error("Directory {} does not exist".format(arg))
+    return arg
+
+
 def init(ARGS=None):
     global args
     parser = argparse.ArgumentParser(description='Run SANDY')
@@ -34,11 +44,17 @@ def init(ARGS=None):
                         help="Number of samples.")
     parser.add_argument('--outdir',
                         default=os.getcwd(),
-                        help="Target directory were outputs are stored. If it does not exist it will be created.")
+                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
+                        help="Target directory were outputs are stored (default = current working directory). If it does not exist it will be created.")
     parser.add_argument('-np','--processes',
                         type=int,
                         default=None,
                         help="Number of worker processes. By default, the number returned by os.cpu_count() is used.")
+    parser.add_argument('--eig',
+                        type=int,
+                        default=0,
+                        metavar="N",
+                        help="Print the first N eigenvalues of the evaluated covariance matrices (default = 0, do not print).")
     parser.add_argument('-mat','--keep-mat',
                         type=int,
                         action='append',
@@ -65,5 +81,3 @@ def init(ARGS=None):
                         version='%(prog)s 1.0',
                         help="SANDY's version.")
     args = parser.parse_args(args=ARGS)
-    if not os.path.exists(args.outdir):
-        os.makedirs(args.outdir, exist_ok=True)
