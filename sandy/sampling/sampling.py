@@ -57,16 +57,21 @@ def sample_xs(tape, NSMP):
     if settings.args.eig > 0:
         from sandy.functions import div0
         eigs = cov.eig()[0]
+        idxs = np.abs(eigs).argsort()[::-1]
         dim = min(len(eigs), settings.args.eig)
         eigs_smp = Cov(np.cov(DfPert.as_matrix())).eig()[0]
+        idxs_smp = np.abs(eigs_smp).argsort()[::-1]
         print("MF[31,33] eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
-        diff = div0(eigs-eigs_smp, eigs, value=np.NaN)*100.
-        E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[:dim], eigs_smp[:dim], diff[:dim])]
+        diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
+        E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
         print("\n".join(E))
     return DfPert
 
 def perturb_xs(tape, PertSeriesXs):
     Xs = e6.extract_xs(tape)
+    # Add extra energy points
+    if settings.args.energy_point:
+        Xs = Xs.reindex(Xs.index.union(settings.args.energy_point)).interpolate(method="slinear").fillna(0)
     for mat, mt in Xs:
         if mat not in PertSeriesXs.index.get_level_values("MAT").unique():
             continue
@@ -133,6 +138,9 @@ def perturb_chi(tape, PertSeriesChi):
             Pert = pd.DataFrame(PertSeriesChi).query('MAT=={} & MT=={}'.format(mat, mt)).reset_index()
             Pert = Pert.pivot(index='EINlo', columns='EOUTlo', values='SMP').ffill(axis='columns')
             for k,chi in Chi.loc[mat,mt]['CHI'].iteritems():
+                # Add extra energy points
+                if settings.args.energy_point:
+                    chi = chi.reindex(chi.index.union(settings.args.energy_point)).interpolate(method="slinear").fillna(0)
                 P = e6.pandas_interpolate(Pert,
                                           np.unique(chi.index).tolist(),
                                           method='zero',
@@ -165,12 +173,26 @@ if __name__ == '__main__':
     __spec__ = None
     if len(sys.argv) == 1:
         sys.argv.extend([#r"data_test\92-U-235g.jeff33",
-                         r"..\data_test\H1.txt",
-#                         "--pendf", r"data_test\92-U-235g.jeff33.pendf",
-                         "--outdir", os.path.join("..","tmp-h1"),
+                         r"..\data_test\92-U-235g.jeff33",
+                         "--pendf", r"..\data_test\92-U-235g.jeff33.pendf",
+                         "--outdir", os.path.join("..","tmp-u"),
                          "--njoy", r"J:\NEA\NDaST\NJOY\njoy2012_50.exe",
                          "--eig", "10",
-                         "--samples", "100"])
+                         "--samples", "100",
+                         "-e", "1e-5",
+                         "-e", "5e-5",
+                         "-e", "1e-4",
+                         "-e", "5e-4",
+                         "-e", "1e-3",
+                         "-e", "5e-3",
+                         "-e", "1e-2",
+                         "-e", "5e-2",
+                         "-e", "1e-1",
+                         "-e", "5e-1",
+                         "-e", "1e0",
+                         "-e", "5e0",
+                         "-e", "1e1",
+                         "-e", "5e1",])
     settings.init()
 
     tape = e6.endf2df(settings.args.endf6)
@@ -193,8 +215,9 @@ if __name__ == '__main__':
     PertXs = sample_xs(tape, settings.args.samples)
     PertChi = sample_chi(tape, settings.args.samples)
 
-#    sampling(tape, 'temp.endf', PertSeriesXs=PertXs.query("MT==452 | MT==455 | MT==456")[1])
-#    sampling(ptape, 'temp.pendf', PertSeriesXs=PertXs.query("MT!=452 & MT!=455 & MT!=456")[1])
+    sampling(tape,
+             'test',
+             PertSeriesChi=PertChi[1])
 
     if 31 in MFS or 35 in MFS:
         pool = mp.Pool(processes=settings.args.processes)
@@ -222,7 +245,10 @@ if __name__ == '__main__':
             os.unlink(os.path.join(settings.args.outdir, r'output'))
         ptape = e6.endf2df(settings.args.pendf)
 
-        pool = mp.Pool(processes=settings.args.processes)
+        sampling(ptape,
+                 'test',
+                 PertSeriesXs=PertXs[1])
+
         outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.pendf) + '-{}')
         [ pool.apply(sampling,
                      args = (ptape, outname.format(ismp)),

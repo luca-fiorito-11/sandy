@@ -590,7 +590,7 @@ def extract_chi(tape):
     Return a df with MAT,MT,SUB as index and COV as value
     Each COV is a df with Ein on rows and Eout on columns.
     """
-    from sandy.functions import union_grid
+#    from sandy.functions import union_grid
     DictDf = { "MAT" : [], "MT" : [], "K" : [], "CHI" : [] }
     for chunk in tape.query('MF==5').DATA:
         for k,sub in enumerate(chunk["SUB"]):
@@ -605,9 +605,9 @@ def extract_chi(tape):
             # When interpolation is not possible (edges) fill with 0
             chi = pd.DataFrame.from_dict(chi_dict, orient='index')
             chi = chi.interpolate(method="slinear", axis=1).fillna(0)
-            # include default points in E grid and interpolate
-            ein_new = list(union_grid(chi.index, np.logspace(-5, 7, 13)))
-            chi = pandas_interpolate(chi, ein_new, method='slinear', axis='rows')
+#            # include default points in E grid and interpolate
+#            ein_new = list(union_grid(chi.index, np.logspace(-5, 7, 13)))
+#            chi = pandas_interpolate(chi, ein_new, method='slinear', axis='rows')
             chi.index.name = "EIN"
             chi.columns.name = "EOUT"
             DictDf["MAT"].append(chunk["MAT"])
