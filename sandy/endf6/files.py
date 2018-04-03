@@ -576,7 +576,10 @@ def extract_xs(tape):
             if icount == 0:
                 DfXs = xs
             else:
-                DfXs = pd.merge_ordered(DfXs, xs, on="E", how='outer').interpolate(method='slinear', axis=0).fillna(0)
+                try:
+                    DfXs = pd.merge_ordered(DfXs, xs, on="E", how='outer').interpolate(method='slinear', axis=0).fillna(0)
+                except:
+                    aaa=1
             icount += 1
     DfXs.set_index('E', inplace=True)
     MAT = list(map(lambda x:int(x.split(',')[0]), DfXs.columns))

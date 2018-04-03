@@ -35,11 +35,13 @@ def sample_chi(tape, NSMP):
     if settings.args.eig > 0:
         from sandy.functions import div0
         eigs = cov.eig()[0]
+        idxs = np.abs(eigs).argsort()[::-1]
         dim = min(len(eigs), settings.args.eig)
         eigs_smp = Cov(np.cov(DfPert.as_matrix())).eig()[0]
+        idxs_smp = np.abs(eigs_smp).argsort()[::-1]
         print("MF35 eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
-        diff = div0(eigs-eigs_smp, eigs, value=np.NaN)*100.
-        E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[:dim], eigs_smp[:dim], diff[:dim])]
+        diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
+        E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
         print("\n".join(E))
     return DfPert
 
@@ -173,12 +175,12 @@ if __name__ == '__main__':
     __spec__ = None
     if len(sys.argv) == 1:
         sys.argv.extend([#r"data_test\92-U-235g.jeff33",
-                         r"..\data_test\92-U-235g.jeff33",
-                         "--pendf", r"..\data_test\92-U-235g.jeff33.pendf",
+                         r"..\data_test\H1.txt",
+                         "--pendf", r"..\data_test\H1.txt.pendf",
                          "--outdir", os.path.join("..","tmp-u"),
                          "--njoy", r"J:\NEA\NDaST\NJOY\njoy2012_50.exe",
                          "--eig", "10",
-                         "--samples", "100",
+                         "--samples", "5",
                          "-e", "1e-5",
                          "-e", "5e-5",
                          "-e", "1e-4",
@@ -215,18 +217,20 @@ if __name__ == '__main__':
     PertXs = sample_xs(tape, settings.args.samples)
     PertChi = sample_chi(tape, settings.args.samples)
 
-    sampling(tape,
-             'test',
-             PertSeriesChi=PertChi[1])
 
     if 31 in MFS or 35 in MFS:
-        pool = mp.Pool(processes=settings.args.processes)
         outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
-        [ pool.apply(sampling,
-                     args = (tape, outname.format(ismp)),
-                     kwds = {"PertSeriesXs"  : PertXs[ismp] if not PertXs.empty else None,
-                             "PertSeriesChi" : PertChi[ismp] if not PertChi.empty else None}
-                     ) for ismp in range(1,settings.args.samples+1) ]
+        for ismp in range(1,settings.args.samples+1):
+            sampling(tape.copy(),
+                     outname.format(ismp),
+                     PertSeriesXs=PertXs[ismp] if not PertXs.empty else None,
+                     PertSeriesChi=PertChi[ismp] if not PertChi.empty else None)
+#        pool = mp.Pool(processes=settings.args.processes)
+#        [ pool.apply(sampling,
+#                     args = (tape, outname.format(ismp)),
+#                     kwds = {"PertSeriesXs"  : PertXs[ismp] if not PertXs.empty else None,
+#                             "PertSeriesChi" : PertChi[ismp] if not PertChi.empty else None}
+#                     ) for ismp in range(1,settings.args.samples+1) ]
 
     if 33 in MFS:
         if not settings.args.pendf:
@@ -245,12 +249,15 @@ if __name__ == '__main__':
             os.unlink(os.path.join(settings.args.outdir, r'output'))
         ptape = e6.endf2df(settings.args.pendf)
 
-        sampling(ptape,
-                 'test',
-                 PertSeriesXs=PertXs[1])
-
         outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.pendf) + '-{}')
-        [ pool.apply(sampling,
-                     args = (ptape, outname.format(ismp)),
-                     kwds = {"PertSeriesXs" : PertXs[ismp] if not PertXs.empty else None}
-                     ) for ismp in range(1,settings.args.samples+1) ]
+        for ismp in range(1,settings.args.samples+1):
+            aaa=1
+            sampling(deepcopy(ptape),
+                     outname.format(ismp),
+                     PertSeriesXs=PertXs[ismp] if not PertXs.empty else None)
+            aaa=1
+#        pool = mp.Pool(processes=settings.args.processes)
+#        [ pool.apply(sampling,
+#                     args = (ptape, outname.format(ismp)),
+#                     kwds = {"PertSeriesXs" : PertXs[ismp] if not PertXs.empty else None}
+#                     ) for ismp in range(1,settings.args.samples+1) ]
