@@ -253,31 +253,23 @@ def read_mf4_mt(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2, "LTT" : C.L2})
     if out["LTT"] in (1,3):
         C, i = read_cont(str_list, i)
-        sub = {"LI" : C.L1, "LCT" : C.L2}
+        lpc = {"LI" : C.L1, "LCT" : C.L2}
         T2, i = read_tab2(str_list, i)
-        sub.update({"NE" : T2.NZ, "NBT" : T2.NBT, "INT" : T2.INT})
-        NLMAX = 0
-        E = []
-        P = np.zeros((sub["NE"], 64)) # 64 is the largest NL allowed
-        for j in range(sub["NE"]):
+        lpc.update({"NE" : T2.NZ, "NBT" : T2.NBT, "INT" : T2.INT, "E" : {} })
+        for j in range(lpc["NE"]):
             L, i = read_list(str_list, i)
-            E.append(L.C2)
-            P[j,:L.NPL] = L.B
-            NLMAX = max(NLMAX, L.NPL)
-        columns = ["P{}".format(j+1) for j in range(NLMAX)]
-        sub.update({"P" : pd.DataFrame(P[:,:NLMAX], index=E, columns=columns)})
-        out.update({"LPC" : sub})
+            lpc["E"].update({ L.C2 : {"P" : L.B, "T" : L.C1, "LT" : L.L1}})
+        out.update({"LPC" : lpc})
     if out["LTT"] in (2,3):
         C, i = read_cont(str_list, i)
         sub = {"LI" : C.L1, "LCT" : C.L2}
         T2, i = read_tab2(str_list, i)
-        sub.update({"NE" : T2.NZ, "NBT" : T2.NBT, "INT" : T2.INT})
-        TL = []
+        sub.update({"NE" : T2.NZ, "NBT" : T2.NBT, "INT" : T2.INT, "E" : {}})
         for i in range(sub["NE"]):
             T1, i = read_tab1(str_list, i)
-            TL.append(T1)
-            sub.update({"TL" : TL})
-        out.update({"TPD" : sub})
+            distr = pd.Series(T1.y, index = T1.x, name=T1.C2).rename_axis("mu")
+            sub["E"].update({ T1.C2 : {"T" : T1.C1, "LT" : T1.L1, "PDF" : distr, "NBT" : T1.NBT, "INT" : T1.INT}})
+        out.update({"TAB" : sub})
     if out["LTT"] == 0:
         C, i = read_cont(str_list, i)
         out.update({"ISO" : {"LI" : C.L1, "LCT" : C.L2}})
@@ -620,6 +612,26 @@ def extract_chi(tape):
     DfChi = pd.DataFrame.from_dict(DictDf)
     DfChi.set_index(["MAT", "MT", "K"], inplace=True)
     return DfChi
+
+def extract_mu(tape):
+#    NLMAX = 0
+    keys = []
+    ListPc = []
+    for chunk in tape.query('MF==4').DATA:
+        if "LPC" in chunk:
+            # check interpolation
+            for e,sub in sorted(chunk["LPC"]["E"].items()):
+                keys.append((chunk["MAT"], chunk["MT"], e))
+#                NPL = len(sub["P"])
+#                P[i,:NPL] = sub["P"]
+#                NLMAX = max(NLMAX, NPL)
+                ListPc.append(sub["P"])
+    index = pd.MultiIndex.from_tuples(keys, names=("MAT", "MT", "E"))
+    DfPc = pd.DataFrame(ListPc, index=index).fillna(0)
+    DfPc.columns = range(1, DfPc.shape[1]+1)
+    DfPc.columns.name = "LegCoeff"
+    # print warning if exceeded NLMAX
+    return DfPc
 
 def extract_cov33(tape, mt=[102]):
     from sandy.sampling.cov import triu_matrix

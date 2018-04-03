@@ -178,7 +178,7 @@ if __name__ == '__main__':
                          r"..\data_test\H1.txt",
                          "--pendf", r"..\data_test\H1.txt.pendf",
                          "--outdir", os.path.join("..","tmp-u"),
-                         "--njoy", r"J:\NEA\NDaST\NJOY\njoy2012_50.exe",
+#                         "--njoy", r"J:\NEA\NDaST\NJOY\njoy2012_50.exe",
                          "--eig", "10",
                          "--samples", "5",
                          "-e", "1e-5",
@@ -198,7 +198,8 @@ if __name__ == '__main__':
     settings.init()
 
     tape = e6.endf2df(settings.args.endf6)
-    e6.update_dict(tape)
+    A=e6.extract_xs(tape)
+    
     if settings.args.keep_mat:
         query = "|".join([ "MAT=={}".format(x) for x in settings.args.keep_mat])
         tape = tape.query(query)
