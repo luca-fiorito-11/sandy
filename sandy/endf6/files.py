@@ -71,14 +71,18 @@ def split(file):
             - n-98-Cf-254.jeff32
 """
 
-def process_endf_section(text):
+def process_endf_section(text, keep_mf=None, keep_mt=None):
     mf = int(text[70:72])
     mt = int(text[72:75])
-#    if mf not in (5,35):
-#        return None
-    if mf ==1 and mt == 451:
+    if mf ==1 and mt == 451: # read always
         return read_mf1_mt451(text)
-    elif mf ==1 and mt in (452, 455, 456):
+    if keep_mf:
+        if mf not in keep_mf:
+            return None
+    if keep_mt:
+        if mt not in keep_mt:
+            return None
+    if mf ==1 and mt in (452, 455, 456):
         return read_mf1_nubar(text)
     elif mf == 3:
         return read_mf3_mt(text)
@@ -95,14 +99,11 @@ def process_endf_section(text):
     else:
         return None
 
-def endf2df(file):
+def endf2df(file, keep_mf=None, keep_mt=None):
     tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x] for x in split(file)],
             columns=('MAT', 'MF', 'MT','TEXT'))
     tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
-    tape['DATA'] = tape['TEXT'].apply(process_endf_section)
-#    pool = mp.Pool(processes=settings.args.processes)
-#    AAA = pool.map( e6.process_endf_section, tape['TEXT'].tolist())
-#    data = [ pool.apply( e6.process_endf_section, args=(x)) for x in tape['TEXT'].tolist() ]
+    tape['DATA'] = tape['TEXT'].apply(process_endf_section, keep_mf=keep_mf, keep_mt=keep_mt)
     return tape
 
 

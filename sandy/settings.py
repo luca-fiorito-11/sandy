@@ -29,7 +29,7 @@ def is_valid_dir(parser, arg, mkdir=False):
     return arg
 
 
-def init(ARGS=None):
+def init_sampling(ARGS=None):
     global args
     parser = argparse.ArgumentParser(description='Run SANDY')
     parser.add_argument('endf6',
