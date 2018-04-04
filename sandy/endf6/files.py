@@ -154,8 +154,7 @@ def write_mf1_mt451(tape):
         TEXT += write_cont(df.DATA["AWI"], df.DATA["EMAX"], df.DATA["LREL"], 0, df.DATA["NSUB"], df.DATA["NVER"])
         TEXT += write_cont(df.DATA["TEMP"], 0, df.DATA["LDRV"], 0, len(df.DATA["TEXT"]), len(df.DATA["RECORDS"]))
         TEXT += df.DATA["TEXT"]
-        for mf,mt,nc,mod in df.DATA["RECORDS"]:
-            TEXT.append(" "*22 + "{:>11}{:>11}{:>11}{:>11}".format(mf,mt,nc,mod))
+        TEXT += [ " "*22 + "{:>11}{:>11}{:>11}{:>11}".format(mfnxc,mtnxc,ncnxc,modnxc) for mfnxc,mtnxc,ncnxc,modnxc in df.DATA["RECORDS"]]
         TextOut = []; iline = 1
         for line in TEXT:
             if iline > 99999:
@@ -568,10 +567,7 @@ def extract_xs(tape):
             if icount == 0:
                 DfXs = xs
             else:
-                try:
-                    DfXs = pd.merge_ordered(DfXs, xs, on="E", how='outer').interpolate(method='slinear', axis=0).fillna(0)
-                except:
-                    aaa=1
+                DfXs = pd.merge_ordered(DfXs, xs, on="E", how='outer').interpolate(method='slinear', axis=0).fillna(0)
             icount += 1
     DfXs.set_index('E', inplace=True)
     MAT = list(map(lambda x:int(x.split(',')[0]), DfXs.columns))
