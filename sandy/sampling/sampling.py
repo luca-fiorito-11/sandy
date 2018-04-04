@@ -182,12 +182,12 @@ def run():
         from os.path import join
         sd = os.path.dirname(os.path.realpath(sd))
         td = os.path.dirname(os.path.realpath(td))
-        sys.argv.extend([join(td, r"H1.txt"),
-                         "--pendf", join(td, r"H1.txt.pendf"),
+        sys.argv.extend([join(td, r"92-U-235g.jeff33"),
+                         "--pendf", join(td, r"92-U-235g.jeff33.pendf"),
                          "--outdir", join(td, r"tmp-dir"),
                          "--njoy", join(sd, r"njoy2012_50.exe"),
                          "--eig", "10",
-                         "--samples", "2",
+                         "--samples", "100",
                          "-e", "1e-5",
                          "-e", "5e-5",
                          "-e", "1e-4",
