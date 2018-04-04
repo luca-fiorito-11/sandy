@@ -188,8 +188,8 @@ def run():
         from os.path import join
         sd = os.path.dirname(os.path.realpath(sd))
         td = os.path.dirname(os.path.realpath(td))
-        sys.argv.extend([join(td, r"92-U-235g.jeff33"),
-                         "--pendf", join(td, r"92-U-235g.jeff33.pendf"),
+        sys.argv.extend([join(td, r"94-Pu-239g.jeff33"),
+#                         "--pendf", join(td, r"H1.txt.pendf"),
                          "--outdir", r"tmp-dir",
                          "--njoy", join(sd, r"njoy2012_50.exe"),
                          "--eig", "10",
@@ -209,10 +209,9 @@ def run():
                          "-e", "5e0",
                          "-e", "1e1",
                          "-e", "5e1",])
-    settings.init()
+    settings.init_sampling()
 
-    tape = e6.endf2df(settings.args.endf6)
-#    A=e6.extract_xs(tape)
+    tape = e6.endf2df(settings.args.endf6)#, keep_mf=[3], keep_mt=[102])
 
     if settings.args.keep_mat:
         query = "|".join([ "MAT=={}".format(x) for x in settings.args.keep_mat])
