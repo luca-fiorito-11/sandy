@@ -1,2 +1,2 @@
-recursive-include sandy *.py *.so *.exe *.inp *.dat *.txt *.pendf
+recursive-include sandy *.py *.so *.exe *.inp *.dat *.txt *.pendf *.jeff33
 include setup.py README.md

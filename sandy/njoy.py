@@ -43,7 +43,7 @@ class FileNJOY:
         self.file = name
         self.text = ""
 
-    def reconr(self, nendf, npendf, mat, reconr_err=0.001, reconr_grid=[],
+    def reconr(self, nendf, npendf, mat, reconr_err=0.01, reconr_grid=[],
                reconr_cards=[], reconr_tempr=0, reconr_errmax=None,
                reconr_errint=None, **options):
         """
