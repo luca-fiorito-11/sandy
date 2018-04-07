@@ -72,6 +72,9 @@ def init_sampling(ARGS=None):
                         type=float,
                         action='append',
                         help="Additional energy points (in eV) to include in the incoming-neutron energy grid (default = None). Provide each energy point as an individual optional argument, e.g. -e 100.0 -e 201.5")
+    parser.add_argument('--test',
+                        default=None,
+                        help="Run SANDY test case overwriting the other input options (default = None).")
     parser.add_argument('--njoy',
                         type=lambda x: is_valid_file(parser, x, x=True),
                         metavar="EXE",
