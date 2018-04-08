@@ -28,6 +28,13 @@ def is_valid_dir(parser, arg, mkdir=False):
         parser.error("Directory {} does not exist".format(arg))
     return arg
 
+def init_test(ARGS=None):
+    global args
+    parser = argparse.ArgumentParser(description='Run SANDY')
+    parser.add_argument('--test',
+                        default=None,
+                        help="Run SANDY test case overwriting the other input options (default = None).")
+    args = parser.parse_args(args=ARGS)
 
 def init_sampling(ARGS=None):
     global args
@@ -48,7 +55,7 @@ def init_sampling(ARGS=None):
                         help="Target directory were outputs are stored (default = current working directory). If it does not exist it will be created.")
     parser.add_argument('-np','--processes',
                         type=int,
-                        default=None,
+                        default=1,
                         help="Number of worker processes. By default, the number returned by os.cpu_count() is used.")
     parser.add_argument('--eig',
                         type=int,
@@ -72,9 +79,6 @@ def init_sampling(ARGS=None):
                         type=float,
                         action='append',
                         help="Additional energy points (in eV) to include in the incoming-neutron energy grid (default = None). Provide each energy point as an individual optional argument, e.g. -e 100.0 -e 201.5")
-    parser.add_argument('--test',
-                        default=None,
-                        help="Run SANDY test case overwriting the other input options (default = None).")
     parser.add_argument('--njoy',
                         type=lambda x: is_valid_file(parser, x, x=True),
                         metavar="EXE",

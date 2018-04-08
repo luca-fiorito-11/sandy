@@ -185,64 +185,37 @@ def sampling(tape, output, PertSeriesXs=None, PertSeriesChi=None, ismp=None, **k
 
 def run():
     t0 = time.time()
-#    if len(sys.argv) == 1:
-#        from sandy.data_test import __file__ as td
-#        from sandy import __file__ as sd
-#        from os.path import join
-#        sd = os.path.dirname(os.path.realpath(sd))
-#        td = os.path.dirname(os.path.realpath(td))
-#        sys.argv.extend([join(td, r"H1.txt.jeff33"),
-#                         "--pendf", join(td, r"92-U-238g.jeff33.pendf"),
-#                         "--outdir", r"tmp-aaa",
-#                         "--njoy", join(sd, r"njoy2012_50.exe"),
-#                         "--eig", "10",
-#                         "--samples", "10",
-#                         "--processes", "1",
-#                         "-mf", "33",
-#                         "-e", "1e-5",
-#                         "-e", "5e-5",
-#                         "-e", "1e-4",
-#                         "-e", "5e-4",
-#                         "-e", "1e-3",
-#                         "-e", "5e-3",
-#                         "-e", "1e-2",
-#                         "-e", "5e-2",
-#                         "-e", "1e-1",
-#                         "-e", "5e-1",
-#                         "-e", "1e0",
-#                         "-e", "5e0",
-#                         "-e", "1e1",
-#                         "-e", "5e1",])
-    settings.init_sampling()
+    settings.init_test()
     if settings.args.test:
         from sandy.data_test import __file__ as td
         from sandy import __file__ as sd
         from os.path import join
         sd = os.path.dirname(os.path.realpath(sd))
         td = os.path.dirname(os.path.realpath(td))
-        sys.argv.extend([join(td, r"1-H-1g.jeff33"),
-                         "--pendf", join(td, r"1-H-1g.jeff33.pendf"),
-                         "--outdir", r"tmpdir",
-                         "--njoy", join(sd, r"njoy2012_50.exe"),
-                         "--eig", "10",
-                         "--samples", "10",
-                         "--processes", "1",
-                         "-mf", "33",
-                         "-e", "1e-5",
-                         "-e", "5e-5",
-                         "-e", "1e-4",
-                         "-e", "5e-4",
-                         "-e", "1e-3",
-                         "-e", "5e-3",
-                         "-e", "1e-2",
-                         "-e", "5e-2",
-                         "-e", "1e-1",
-                         "-e", "5e-1",
-                         "-e", "1e0",
-                         "-e", "5e0",
-                         "-e", "1e1",
-                         "-e", "5e1",])
-        settings.init_sampling()
+        sys.argv = [sys.argv[0],
+                    join(td, r"1-H-1g.jeff33"),
+                     "--pendf", join(td, r"1-H-1g.jeff33.pendf"),
+                     "--outdir", r"tmpdir",
+                     "--njoy", join(sd, r"njoy2012_50.exe"),
+                     "--eig", "10",
+                     "--samples", "10",
+                     "--processes", "1",
+                     "-mf", "33",
+                     "-e", "1e-5",
+                     "-e", "5e-5",
+                     "-e", "1e-4",
+                     "-e", "5e-4",
+                     "-e", "1e-3",
+                     "-e", "5e-3",
+                     "-e", "1e-2",
+                     "-e", "5e-2",
+                     "-e", "1e-1",
+                     "-e", "5e-1",
+                     "-e", "1e0",
+                     "-e", "5e0",
+                     "-e", "1e1",
+                     "-e", "5e1",]
+    settings.init_sampling()
 
     tape = e6.endf2df(settings.args.endf6)#, keep_mf=[3], keep_mt=[102])
 
