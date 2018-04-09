@@ -223,6 +223,71 @@ def write_mf1_nubar(tapein):
         tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
     return tape
 
+def read_mf2_mt151(text):
+    str_list = text.splitlines()
+    i = 0
+    out = {"MAT" : int(str_list[i][66:70]),
+           "MF" : int(str_list[i][70:72]),
+           "MT" : int(str_list[i][72:75])}
+    C, i = read_cont(str_list, i)
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "NIS" : C.N1})
+    C, i = read_cont(str_list, i)
+    out.update({"ZAI" : C.C1, "ABN" : C.C2, "LFW" : C.L2, "NER" : C.N1})
+    for j in range(out["NER"]):
+        C, i = read_cont(str_list, i)
+        sub = {"EL" : C.C1, "EH" : C.C2, "LRU" : C.L1, "LRF" : C.L2, "NRO" : C.N1, "NAPS" : C.N2}
+        if sub["NRO"] != 0:
+            T, i = read_tab1(str_list, i)
+            sub.update({"NBT" : T.NBT, "INT" : T.INT})
+            sub["AP"] = pd.Series(T.y, index = T.x).rename_axis("E")
+        if sub["LRU"] == 0:
+            C, i = read_cont(str_list, i)
+            sub.update({"SPI" : C.C1, "SR" : C.C2, "NLS" : C.N1})
+        if sub["LRU"] == 1:
+            if sub["LRF"] in (1,2):
+                C, i = read_cont(str_list, i)
+                sub.update({"SPI" : C.C1, "SR" : C.C2, "NLS" : C.N1})
+                L, i = read_list(str_list, i)
+            elif sub["LRF"] == 3:
+                C, i = read_cont(str_list, i)
+                sub.update({"SPI" : C.C1, "SR" : C.C2, "LAD" : C.L1, "NLS" : C.N1, "NLSC" : C.N2})
+                L, i = read_list(str_list, i)
+            elif sub["LRF"] == 4:
+                sys.exit("ERROR: SANDY cannot read resonance parameters in Adler-Adler formalism")
+            elif sub["LRF"] == 5:
+                sys.exit("ERROR: General R-matrix formalism no longer available in ENDF-6")
+            elif sub["LRF"] == 6:
+                sys.exit("ERROR: Hybrid R-function formalism no longer available in ENDF-6")
+            elif sub["LRF"] == 7:
+                C, i = read_cont(str_list, i)
+                sub.update({"IFG" : C.L1, "KRM" : C.L2, "NJS" : C.N1, "KRL" : C.N2})
+                for k in range(sub["NJS"]):
+                    L1, i = read_list(str_list, i)
+                    L2, i = read_list(str_list, i)
+                    L3, i = read_list(str_list, i)
+        elif sub["LRU"] == 1:
+            if sub["LRF"] == 1 and out["LFW"] == 0:
+                C, i = read_cont(str_list, i)
+                sub.update({"SPI" : C.C1, "SR" : C.C2, "LSSF" : C.L1, "NLS" : C.N1})
+                for k in range(sub["NLS"]):
+                    L, i = read_list(str_list, i)
+            elif sub["LRF"] == 1 and out["LFW"] == 1:
+                C, i = read_cont(str_list, i)
+                sub.update({"SPI" : C.C1, "SR" : C.C2, "LSSF" : C.L1, "NE" : C.N1, "NLS" : C.N2})
+                L, i = read_list(str_list, i)
+                for k in range(sub["NLS"]):
+                    C, i = read_cont(str_list, i)
+                    for l in range(C.N1):
+                        L, i = read_list(str_list, i)
+            elif sub["LRF"] == 2:
+                C, i = read_cont(str_list, i)
+                sub.update({"SPI" : C.C1, "SR" : C.C2, "LSSF" : C.L1, "NLS" : C.N1})
+                for k in range(sub["NLS"]):
+                    C, i = read_cont(str_list, i)
+                    for l in range(C.N1):
+                        L, i = read_list(str_list, i)                
+    return out
+
 def read_mf3_mt(text):
     str_list = text.splitlines()
     i = 0
