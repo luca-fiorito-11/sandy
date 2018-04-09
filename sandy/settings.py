@@ -55,7 +55,7 @@ def init_sampling(ARGS=None):
                         help="Target directory were outputs are stored (default = current working directory). If it does not exist it will be created.")
     parser.add_argument('-np','--processes',
                         type=int,
-                        default=1,
+                        default=None,
                         help="Number of worker processes. By default, the number returned by os.cpu_count() is used.")
     parser.add_argument('--eig',
                         type=int,
@@ -74,6 +74,7 @@ def init_sampling(ARGS=None):
     parser.add_argument('-mt','--keep-cov-mt',
                         type=int,
                         action='append',
+                        metavar="{1,..,999}",
                         help="Keep only the selected covariance MT sections (default = keep all). Allowed values range from 1 to 999. Provide each MT section as an individual optional argument, e.g. -mt 18 -mt 102")
     parser.add_argument('-e','--energy-point',
                         type=float,
