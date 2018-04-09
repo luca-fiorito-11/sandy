@@ -199,8 +199,10 @@ def run():
                      "--njoy", join(sd, r"njoy2012_50.exe"),
                      "--eig", "10",
                      "--samples", "10",
-                     "--processes", "1",
+#                     "--processes", "1",
+                     "-mf", "31",
                      "-mf", "33",
+                     "-mf", "35",
                      "-e", "1e-5",
                      "-e", "5e-5",
                      "-e", "1e-4",
@@ -230,6 +232,7 @@ def run():
         tape = tape.query("MF < 31 | ({})".format(query))
     if tape.empty:
         sys.exit("ERROR: tape is empty")
+
     MATS = list(tape.index.get_level_values("MAT").unique())
     MFS = list(tape.index.get_level_values("MF").unique())
 
