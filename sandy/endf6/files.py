@@ -148,7 +148,11 @@ def read_mf1_mt451(text):
         out["RECORDS"].append((C.L1,C.L2,C.N1,C.N2))
     return out
 
-def write_mf1_mt451(tape):
+def write_mf1_mt451(tapein):
+    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
+    for k,row in tapein.iterrows():
+        tape.loc[k].DATA = deepcopy(row.DATA)
+        tape.loc[k].TEXT = deepcopy(row.TEXT)
     for (mat,mf,mt),df in tape.query('MF==1 & MT==451').iterrows():
         TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], df.DATA["LRP"], df.DATA["LFI"], df.DATA["NLIB"], df.DATA["NMOD"])
         TEXT += write_cont(df.DATA["ELIS"], df.DATA["STA"], df.DATA["LIS"], df.DATA["LISO"], 0, df.DATA["NFOR"])
@@ -192,7 +196,11 @@ def read_mf1_nubar(text):
         out["NUBAR"] = pd.Series(T.y, index = T.x, name = (out["MAT"],out["MT"])).rename_axis("E")
     return out
 
-def write_mf1_nubar(tape):
+def write_mf1_nubar(tapein):
+    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
+    for k,row in tapein.iterrows():
+        tape.loc[k].DATA = deepcopy(row.DATA)
+        tape.loc[k].TEXT = deepcopy(row.TEXT)
     for (mat,mf,mt),df in tape.query('MF==1 & (MT==452 | MT==455 | MT==456)').iterrows():
         TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], df.DATA["LDG"], df.DATA["LNU"], 0, 0)
         if df.DATA["MT"] == 455:
@@ -228,8 +236,14 @@ def read_mf3_mt(text):
     out["XS"] = pd.Series(T.y, index = T.x, name = (out["MAT"],out["MT"])).rename_axis("E")
     return out
 
-def write_mf3_mt(tape):
+def write_mf3_mt(tapein):
+    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
+    for k,row in tapein.iterrows():
+        tape.loc[k].DATA = deepcopy(row.DATA)
+        tape.loc[k].TEXT = deepcopy(row.TEXT)
     for (mat,mf,mt),df in tape.query('MF==3').iterrows():
+        if df.DATA is None:
+            continue
         TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, 0, 0)
         TEXT += write_tab1(df.DATA["QM"], df.DATA["QI"], 0, df.DATA["LR"],
                            df.DATA["NBT"], df.DATA["INT"],
@@ -312,7 +326,11 @@ def read_mf5_mt(text):
         out["SUB"].append(sub)
     return out
 
-def write_mf5_mt(tape):
+def write_mf5_mt(tapein):
+    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
+    for k,row in tapein.iterrows():
+        tape.loc[k].DATA = deepcopy(row.DATA)
+        tape.loc[k].TEXT = deepcopy(row.TEXT)
     for (mat,mf,mt),df in tape.loc[(slice(None),5),:].iterrows():
         TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, len(df.DATA["SUB"]), 0)
         for sub in df.DATA["SUB"]:
@@ -525,7 +543,7 @@ def read_mf35_mt(text):
 
 def pandas_interpolate(df, interp_column, method='zero', axis='both'):
     # interp_column is a list
-    dfout = df.copy()
+    dfout = pd.DataFrame(df.copy(), index=df.index.copy(), columns=df.columns.copy())
     if axis in ['rows', 'both']:
         ug = np.unique(list(dfout.index) + interp_column)
         dfout = dfout.reindex(ug)
@@ -551,10 +569,8 @@ def extract_xs(tape):
         else:
             query = 'MF==3 | (MF==1 & (MT==452 | MT==455 | MT==456))'
         for chunk in tape.loc[mat].query(query).DATA:
-            if chunk["MF"] == 3:
-                xs = chunk["XS"]
-            if chunk["MF"] == 1:
-                xs = chunk["NUBAR"]
+            key = "NUBAR" if chunk["MF"] == 1 else "XS"
+            xs = deepcopy(chunk[key])
             duplicates = [x for x, count in collections.Counter(xs.index).items() if count > 1]
             if duplicates:
                 sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(chunk["MAT"],chunk["MF"],chunk["MT"])+
@@ -846,7 +862,11 @@ def reconstruct_xs(DfXs):
             DfXs.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
     return DfXs
 
-def update_xs(tape, DfXs):
+def update_xs(tapein, DfXs):
+    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
+    for k,row in tapein.iterrows():
+        tape.loc[k].DATA = deepcopy(row.DATA)
+        tape.loc[k].TEXT = deepcopy(row.TEXT)
     for mat, mt in DfXs:
         mf = 1 if mt in (452,455,456) else 3
         name = 'NUBAR' if mt in (452,455,456) else 'XS'
@@ -864,7 +884,11 @@ def update_xs(tape, DfXs):
         tape.DATA.loc[mat,mf,mt]["INT"] = [2]
     return tape
 
-def update_chi(tape, DfChi):
+def update_chi(tapein, DfChi):
+    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
+    for k,row in tapein.iterrows():
+        tape.loc[k].DATA = deepcopy(row.DATA)
+        tape.loc[k].TEXT = deepcopy(row.TEXT)
     for (mat, mt, k),CHI in DfChi.CHI.items():
         if (mat, 5, mt) not in tape.index:
             continue
@@ -877,7 +901,11 @@ def update_chi(tape, DfChi):
                                                   'NBT_EIN' : [CHI.shape[0]]})
     return tape
 
-def update_dict(tape):
+def update_dict(tapein):
+    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
+    for k,row in tapein.iterrows():
+        tape.loc[k].DATA = deepcopy(row.DATA)
+        tape.loc[k].TEXT = deepcopy(row.TEXT)
     for mat in tape.index.get_level_values('MAT').unique():
         chunk = tape.DATA.loc[mat,1,451]
         records = pd.DataFrame(chunk["RECORDS"],
