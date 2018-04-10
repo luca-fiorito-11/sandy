@@ -16,22 +16,38 @@ from copy import deepcopy
 import shutil
 import time
 from os.path import join, dirname, realpath
-import matplotlib
-matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-def run(path, mat, mf, mt, orig, filecov=None):
+def run(path, mat, mf, mt, orig=None, cov=None):
+    if orig is not None:
+        print ("read best estimate from", orig)
+        BE = e6.extract_xs(e6.endf2df(orig, keep_mf=[mf], keep_mt=[mt]))[mat,mt]
+    if cov is not None:
+        print ("read covariance from", cov)
+        DfCov = e6.extract_cov33(e6.endf2df(cov, keep_mf=[mf+30], keep_mt=[mt]))
+        DfCov.index = DfCov.index.droplevel("MAT").droplevel("MT")
+        DfCov.columns = DfCov.columns.droplevel("MAT").droplevel("MT")
+    Std = pd.Series(np.sqrt(np.diag(DfCov))*100., index=DfCov.index)
     key = "NUBAR" if mt in (452,455,456) else "XS"
-    A = []
+    ListXs = []
     for inp in os.listdir(path):
-        Xs = e6.endf2df(join(path,inp), keep_mf=[mf], keep_mt=[mt]).DATA.loc[mat,mf,mt][key]
         print ("read file ", inp)
-        Xs.name = inp
-        A.append(Xs)
-    Xs = e6.endf2df(orig, keep_mf=[mf], keep_mt=[mt]).DATA.loc[mat,mf,mt][key]
-    Xs.name = orig
-    A.append(Xs)
-    A = pd.DataFrame(A).T
+        D = e6.endf2df(join(path,inp), keep_mf=[mf], keep_mt=[mt]).DATA.loc[mat,mf,mt][key]
+        D.name = inp
+        ListXs.append(D)
+    A = pd.DataFrame(ListXs)
+    SmpMean = A.mean()
+    SS = A.std()/SmpMean*100.
+    Std.plot(logx=True, drawstyle="steps", label="stdev", legend=True)
+    SS.plot(logx=True, drawstyle="steps", label="smp stdev", legend=True)
+    plt.show()
+    (Std/SS-1).plot(logx=True, drawstyle="steps")
+    plt.show()
+    BE.plot(loglog=True, label="data", legend=True)
+    SmpMean.plot(loglog=True, label="smp mean", legend=True)
+    plt.show()
+    (SmpMean/BE-1).plot(logx=True, drawstyle="steps")
+    plt.show()
     for i in range(1,6):
         A[i] /= A[0]
     ListPerts = []
@@ -62,4 +78,4 @@ if __name__ == '__main__':
     from sandy.data_test import __file__ as td
     sd = dirname(realpath(sd))
     td = dirname(realpath(td))
-    run(join(sd, r"..\U5t"), 9228, 1, 456, join(td, r"92-U-235g.jeff33"))
+    run(join(sd, r"..\tmpdir"), 125, 3, 102, orig=join(td,r"h1.pendf"), cov=join(td,r"h1.endf"))

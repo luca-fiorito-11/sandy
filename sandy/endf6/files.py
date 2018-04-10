@@ -634,6 +634,8 @@ def extract_xs(tape):
         else:
             query = 'MF==3 | (MF==1 & (MT==452 | MT==455 | MT==456))'
         for chunk in tape.loc[mat].query(query).DATA:
+            if not chunk:
+                continue
             key = "NUBAR" if chunk["MF"] == 1 else "XS"
             xs = deepcopy(chunk[key])
             duplicates = [x for x, count in collections.Counter(xs.index).items() if count > 1]
@@ -717,6 +719,8 @@ def extract_cov33(tape, mt=[102]):
     columns = ('MAT', 'MT', 'MAT1', 'MT1', 'COV')
     DfCov = pd.DataFrame(columns=columns)
     for chunk in tape.query('MF==33 | MF==31').DATA:
+        if not chunk:
+            continue
         for sub in chunk["SUB"].values():
             covs = []
             for nisec in sub["NI"]:
@@ -733,7 +737,6 @@ def extract_cov33(tape, mt=[102]):
                 elif nisec["LB"] == 1:
                     cov = np.diag(nisec["Fk"])
                     e1 = e2 = nisec["Ek"]
-                    covs.append(pd.DataFrame(cov, index=nisec["Ek"], columns=nisec["Ek"]))
                 elif nisec["LB"] == 2:
                     f = np.array(nisec["Fk"])
                     cov = f*f.reshape(-1,1)
