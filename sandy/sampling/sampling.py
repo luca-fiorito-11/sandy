@@ -185,38 +185,6 @@ def sampling(tape, output, PertSeriesXs=None, PertSeriesChi=None, ismp=None, **k
 
 def run():
     t0 = time.time()
-    settings.init_test()
-    if settings.args.test:
-        from sandy.data_test import __file__ as td
-        from sandy import __file__ as sd
-        from os.path import join
-        sd = os.path.dirname(os.path.realpath(sd))
-        td = os.path.dirname(os.path.realpath(td))
-        sys.argv = [sys.argv[0],
-                    join(td, r"h1.endf"),
-                     "--pendf", join(td, r"h1.pendf"),
-                     "--outdir", r"tmpdir",
-                     "--njoy", join(sd, r"njoy2012_50.exe"),
-                     "--eig", "10",
-                     "--samples", "100",
-                     "--processes", "1",
-#                     "-mf", "31",
-                     "-mf", "33",
-#                     "-mf", "35",
-                     "-e", "1e-5",
-                     "-e", "5e-5",
-                     "-e", "1e-4",
-                     "-e", "5e-4",
-                     "-e", "1e-3",
-                     "-e", "5e-3",
-                     "-e", "1e-2",
-                     "-e", "5e-2",
-                     "-e", "1e-1",
-                     "-e", "5e-1",
-                     "-e", "1e0",
-                     "-e", "5e0",
-                     "-e", "1e1",
-                     "-e", "5e1",]
     settings.init_sampling()
 
     tape = e6.endf2df(settings.args.endf6)#, keep_mf=[3], keep_mt=[102])

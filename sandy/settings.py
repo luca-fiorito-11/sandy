@@ -28,12 +28,25 @@ def is_valid_dir(parser, arg, mkdir=False):
         parser.error("Directory {} does not exist".format(arg))
     return arg
 
-def init_test(ARGS=None):
+def init_plotter(ARGS=None):
     global args
     parser = argparse.ArgumentParser(description='Run SANDY')
-    parser.add_argument('--test',
+    parser.add_argument('smpdir',
+                        type=lambda x: is_valid_dir(parser, x),
+                        help="Path to directory containing (only) samples for one evaluated file.")
+    parser.add_argument('mat',
+                        type=int,
+                        help="MAT number (only one).")
+    parser.add_argument('mt',
+                        type=int,
+                        metavar="{1,..,999}",
+                        help="MT number (only one).")
+    parser.add_argument('--original',
                         default=None,
-                        help="Run SANDY test case overwriting the other input options (default = None).")
+                        help="ENDF-6 or PENDF file containing the original data.")
+    parser.add_argument('--cov',
+                        default=None,
+                        help="ENDF-6 file containing the original covariance data.")
     args = parser.parse_args(args=ARGS)
 
 def init_sampling(ARGS=None):
