@@ -20,11 +20,11 @@ import matplotlib.pyplot as plt
 
 def run(path, mat, mf, mt, orig=None, cov=None):
     if orig is not None:
-        print ("read best estimate from", orig)
+        print ("read best estimates from", orig)
         BE = e6.extract_xs(e6.endf2df(orig, keep_mf=[mf], keep_mt=[mt]))[mat,mt]
     if cov is not None:
-        print ("read covariance from", cov)
-        DfCov = e6.extract_cov33(e6.endf2df(cov, keep_mf=[mf+30], keep_mt=[mt]))
+        print ("read covariances from", cov)
+        DfCov = e6.extract_cov33(e6.endf2df(cov, keep_mf=[mf+30], keep_mt=[456]))
         DfCov.index = DfCov.index.droplevel("MAT").droplevel("MT")
         DfCov.columns = DfCov.columns.droplevel("MAT").droplevel("MT")
     Std = pd.Series(np.sqrt(np.diag(DfCov))*100., index=DfCov.index)
@@ -37,16 +37,29 @@ def run(path, mat, mf, mt, orig=None, cov=None):
         ListXs.append(D)
     A = pd.DataFrame(ListXs)
     SmpMean = A.mean()
-    SS = A.std()/SmpMean*100.
-    Std.plot(logx=True, drawstyle="steps", label="stdev", legend=True)
-    SS.plot(logx=True, drawstyle="steps", label="smp stdev", legend=True)
+    SmpStd = A.std()/SmpMean*100.
+    StdDiff = (SmpMean/BE-1)*100.
+
+    fig, ax = plt.subplots()
+    Std.plot(logx=True, drawstyle="steps", label="data", legend=True, ax=ax)
+    SmpStd.plot(logx=True, linestyle="None", marker='o', markerfacecolor='None', label="samples", legend=True, ax=ax)
+    ax.set_xlabel("E (eV)")
+    ax.set_ylabel("stdev (%)")
+    ax.legend(loc='best', fancybox=True, shadow=True)
     plt.show()
-    (Std/SS-1).plot(logx=True, drawstyle="steps")
-    plt.show()
-    BE.plot(loglog=True, label="data", legend=True)
-    SmpMean.plot(loglog=True, label="smp mean", legend=True)
-    plt.show()
-    (SmpMean/BE-1).plot(logx=True, drawstyle="steps")
+#    (Std/SS-1).plot(logx=True, drawstyle="steps")
+#    plt.show()
+
+    fig, ax = plt.subplots()
+    BE.plot(logx=True, label="data", legend=True, ax=ax)
+    SmpMean.plot(logx=True, label="samples", legend=True, ax=ax)
+    ax.set_xlabel("E (eV)")
+    ax.set_ylabel("NUBAR (-)")
+    ax.legend(loc='best', fancybox=True, shadow=True)
+#    plt.show()
+    ax2 = ax.twinx()
+    (SmpMean/BE-1).plot(logx=True, linestyle="None", marker='o', markerfacecolor='None', ax=ax2, alpha=0.8)
+    ax2.set_ylabel('DIFF (%)')
     plt.show()
     for i in range(1,6):
         A[i] /= A[0]
@@ -78,4 +91,4 @@ if __name__ == '__main__':
     from sandy.data_test import __file__ as td
     sd = dirname(realpath(sd))
     td = dirname(realpath(td))
-    run(join(sd, r"..\tmpdir"), 125, 3, 102, orig=join(td,r"h1.pendf"), cov=join(td,r"h1.endf"))
+    run(join(sd, r"sampling//pu9-tmpdir"), 9437, 1, 452, orig=join(td,r"pu239.endf"), cov=join(td,r"pu239.endf"))
