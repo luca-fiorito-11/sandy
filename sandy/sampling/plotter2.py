@@ -19,12 +19,13 @@ from os.path import join, dirname, realpath
 import matplotlib.pyplot as plt
 
 from bokeh.layouts import column
-from bokeh.models import CustomJS, ColumnDataSource, Slider
+from bokeh.models import CustomJS, ColumnDataSource, Slider, HoverTool
+
 from bokeh.plotting import figure, output_file, show
 from bokeh.palettes import Spectral4
 
 def run():
-    tools = "box_zoom,save,reset"
+    tools = "box_zoom,pan,save,reset"
     settings.init_plotter()
     mat = settings.args.mat
     mt = settings.args.mt
@@ -76,46 +77,84 @@ def run():
     pmean.line(x="E", y="Data", source=source, color=Spectral4[0], alpha=1, legend=r"data")
     pmean.line(x="E", y="Mean", source=source, color=Spectral4[1], alpha=1, legend=r"samples")
     pmean.legend.location = "top_left"
-    pmean.legend.click_policy="mute"
+    pmean.legend.click_policy = "mute"
+
 
     Ratio = Smp.copy().drop(["Diff_mean", "Diff_rstd", "Rstd", "Runc"], axis=1).set_index("E")
     Ratio = pd.DataFrame(Ratio.values/Ratio.Data.to_frame().values, index=Ratio.index, columns=Ratio.columns)#.replace([-np.inf,np.inf], [np.NaN,100])
+    Ratio["UncTop"] = Ratio.Data + Ratio.Unc
+    Ratio["UncBottom"] = Ratio.Data - Ratio.Unc
+    Ratio["StdTop"] = Ratio.Data + Ratio.Std
+    Ratio["StdBottom"] = Ratio.Data - Ratio.Std
+    Ratio.drop(["Std", "Unc"], axis=1, inplace=True)
+
+    source = ColumnDataSource(Ratio.iloc[:,range(10)])
 
     x_axis_type = "log"
-    y_axis_type = "linear" if mt in (452,455,456) else "log"
-    pratio = figure(x_range=pstd.x_range, plot_width=800, plot_height=250, x_axis_type=x_axis_type, y_axis_type=y_axis_type, tools=tools)
-    pratio.line(x="E", y="Data", source=source, color=Spectral4[0], alpha=1, legend=r"data")
-    pratio.line(x="E", y="Mean", source=source, color=Spectral4[1], alpha=1, legend=r"samples")
-    pratio.legend.location = "top_left"
-    pratio.legend.click_policy="mute"
+    y_axis_type = "linear"
+    pratio = figure(x_range=pstd.x_range, plot_width=1600, plot_height=400, x_axis_type=x_axis_type, y_axis_type=y_axis_type, tools=tools)
+    pratio.line(x=Ratio.index.values, y=Ratio.Data.values, line_width=2, color=Spectral4[0], alpha=1, legend=r"data")
+    pratio.line(x=Ratio.index.values, y=Ratio.Mean.values, line_width=2, color=Spectral4[1], alpha=1, legend=r"mean")
+    pratio.line(x=Ratio.index.values, y=Ratio.UncTop.values, line_width=2, line_dash="dotted", color=Spectral4[2], alpha=1, legend=r"stdev")
+    pratio.line(x=Ratio.index.values, y=Ratio.UncBottom.values, line_width=2, line_dash="dotted", color=Spectral4[2], alpha=1)
+    pratio.line(x=Ratio.index.values, y=Ratio.StdTop.values, line_width=2, line_dash="dotted", color=Spectral4[3], alpha=1, legend=r"unc")
+    pratio.line(x=Ratio.index.values, y=Ratio.StdBottom.values, line_width=2, line_dash="dotted", color=Spectral4[3], alpha=1)
+    Ratio.drop(["Data", "Mean", "UncTop", "UncBottom", "StdTop", "StdBottom"], axis=1, inplace=True)
+    numcols = len(Ratio.columns)
+#    mypalette=Spectral4[4:4+numcols]
+    names = []
+    for name in  Ratio:
+        names.append(name)
+        l = pratio.line(x=Ratio.index.values,
+                        y=Ratio[name].values,
+                        line_color='gray',
+                        name=name,
+                        line_alpha=0.5,
+                        hover_line_alpha=1.0,)
+        pratio.add_tools(HoverTool(renderers=[l], tooltips=[
+                ('Name', name),
+                ("E", "@x"),
+                ("y", "@y")
+            ]))
 
-    layout = column(pmean, pstd)
+#    pratio.add_tools(HoverTool(tooltips=[
+#        ('Name', '$name'),
+#        ("E", "@x"),
+#        ("y", "@y")
+#        ]))
+
+    pratio.legend.location = "top_left"
+    pratio.legend.click_policy = "mute"
+
+
+
+    layout = column(pmean, pstd, pratio)
     show(layout)
 
-    for i in range(1,6):
-        A[i] /= A[0]
-    ListPerts = []
-    rowold = pd.Series()
-    for e,row in A.iterrows():
-        row.drop(0, inplace=True)
-        if rowold.empty:
-            e0 = deepcopy(e)
-        elif not np.allclose(row, rowold):
-            ListPerts.append(( e0, e, *rowold.tolist() ))
-            e0 = deepcopy(e)
-        rowold = deepcopy(row)
-    B = pd.DataFrame.from_records(ListPerts)
-    B.set_index([0, 1], inplace=True)
-    C = B.as_matrix()
-    C = np.insert(C, C.shape[0], C[-1]*C.shape[1], axis=0)
-    C = np.insert(C, C.shape[1], C[:,-1]*C.shape[0], axis=1)
-    C = np.corrcoef(C)
-    x = B.index.get_level_values(0).tolist() + [B.index.get_level_values(1).tolist()[-1]]
-    e6.plot_heatmap(x, x, C,
-                    xscale="log", yscale="log",
-                    vmin=-1, vmax=1,
-                    cmap="bwr",
-                    xlabel=None, ylabel=None, title=None)
+#    for i in range(1,6):
+#        A[i] /= A[0]
+#    ListPerts = []
+#    rowold = pd.Series()
+#    for e,row in A.iterrows():
+#        row.drop(0, inplace=True)
+#        if rowold.empty:
+#            e0 = deepcopy(e)
+#        elif not np.allclose(row, rowold):
+#            ListPerts.append(( e0, e, *rowold.tolist() ))
+#            e0 = deepcopy(e)
+#        rowold = deepcopy(row)
+#    B = pd.DataFrame.from_records(ListPerts)
+#    B.set_index([0, 1], inplace=True)
+#    C = B.as_matrix()
+#    C = np.insert(C, C.shape[0], C[-1]*C.shape[1], axis=0)
+#    C = np.insert(C, C.shape[1], C[:,-1]*C.shape[0], axis=1)
+#    C = np.corrcoef(C)
+#    x = B.index.get_level_values(0).tolist() + [B.index.get_level_values(1).tolist()[-1]]
+#    e6.plot_heatmap(x, x, C,
+#                    xscale="log", yscale="log",
+#                    vmin=-1, vmax=1,
+#                    cmap="bwr",
+#                    xlabel=None, ylabel=None, title=None)
 
 if __name__ == '__main__':
     from sandy import __file__ as sd
