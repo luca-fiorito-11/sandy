@@ -49,6 +49,14 @@ def init_plotter(ARGS=None):
                         help="ENDF-6 file containing the original covariance data.")
     args = parser.parse_args(args=ARGS)
 
+def init_checker(ARGS=None):
+    global args
+    parser = argparse.ArgumentParser(description='Run SANDY')
+    parser.add_argument('smpdir',
+                        type=lambda x: is_valid_dir(parser, x),
+                        help="Path to directory containing (only) samples for one evaluated file.")
+    args = parser.parse_args(args=ARGS)
+
 def init_sampling(ARGS=None):
     global args
     parser = argparse.ArgumentParser(description='Run SANDY')
@@ -97,9 +105,6 @@ def init_sampling(ARGS=None):
                         type=lambda x: is_valid_file(parser, x, x=True),
                         metavar="EXE",
                         help="NJOY exe file.")
-#    parser.add_argument('-nw',
-#                        '--no-write',
-#                        help="Disable writing.")
     parser.add_argument("-v",
                         '--version',
                         action='version',
