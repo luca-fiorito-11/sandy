@@ -176,6 +176,12 @@ def sampling(tape, output, PertSeriesXs=None, PertSeriesChi=None, ismp=None, **k
         tape = perturb_chi(tape, PertSeriesChi, **kwargs)
     if PertSeriesXs is not None:
         tape = perturb_xs(tape, PertSeriesXs, **kwargs)
+        if ( kwargs['keep_cov_mf'] is None or 33 in kwargs['keep_cov_mf'] ) and 33 in tape.index.get_level_values("MF"):
+            if kwargs['pendf'] is None:
+                pass # run reconr
+            ptape = perturb_xs(kwargs['pendf'], PertSeriesXs, **kwargs)
+            aaa=1
+
     e6.write_tape(tape, output)
     if ismp is not None:
         print("Created sample {} in file '{}' in {:.2f} sec".format(ismp, output, time.time()-t0,))
@@ -208,8 +214,11 @@ def run():
     PertXs = sample_xs(tape, settings.args.samples, **vars(settings.args))
     PertChi = sample_chi(tape, settings.args.samples, **vars(settings.args))
 
+    kwargs = vars(settings.args)
+    if kwargs['pendf']:
+        kwargs['pendf'] = e6.endf2df(kwargs['pendf'])
 
-    if 31 in MFS or 35 in MFS:
+    if True:#31 in MFS or 35 in MFS:
         outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
         if settings.args.processes == 1:
             for ismp in range(1,settings.args.samples+1):
@@ -217,7 +226,8 @@ def run():
                          outname.format(ismp),
                          PertSeriesXs=PertXs[ismp] if not PertXs.empty else None,
                          PertSeriesChi=PertChi[ismp] if not PertChi.empty else None,
-                         ismp=ismp)
+                         ismp=ismp,
+                         **vars(settings.args))
         else:
             pool = mp.Pool(processes=settings.args.processes)
             [ pool.apply(sampling,
