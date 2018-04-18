@@ -13,6 +13,7 @@ import pandas as pd
 import pdb
 from copy import copy, deepcopy
 from warnings import warn
+from sandy.tests import TimeDecorator
 
 def plot_heatmap(x, y, z,
                  xscale="lin", yscale="lin",
@@ -44,6 +45,7 @@ def plot_heatmap(x, y, z,
     plt.colorbar(pcm, cax=cbaxes)
     fig.show()
 
+#@TimeDecorator
 def split(file):
     """
     Split ``ENDF-6`` file  into MFMT sections.
@@ -74,7 +76,7 @@ def split(file):
 def process_endf_section(text, keep_mf=None, keep_mt=None):
     mf = int(text[70:72])
     mt = int(text[72:75])
-    if mf ==1 and mt == 451: # read always
+    if mf == 1 and mt == 451: # read always
         return read_mf1_mt451(text)
     if keep_mf:
         if mf not in keep_mf:
@@ -82,20 +84,22 @@ def process_endf_section(text, keep_mf=None, keep_mt=None):
     if keep_mt:
         if mt not in keep_mt:
             return None
-    if mf ==1 and mt in (452, 455, 456):
+    if mf == 1 and mt in (452, 455, 456):
         return read_mf1_nubar(text)
+    elif mf == 2 and mt == 151: # read always
+        return read_mf2_mt151(text)
     elif mf == 3:
         return read_mf3_mt(text)
     elif mf == 4:
         return read_mf4_mt(text)
-    elif mf == 5:
-        return read_mf5_mt(text)
+#    elif mf == 5:
+#        return read_mf5_mt(text)
     elif mf == 8 and mt == 457:
         return read_mf8_mt457(text)
     elif mf == 31 or mf == 33:
         return read_mf33_mt(text)
-    elif mf == 35:
-        return read_mf35_mt(text)
+#    elif mf == 35:
+#        return read_mf35_mt(text)
     else:
         return None
 
@@ -230,62 +234,65 @@ def read_mf2_mt151(text):
            "MF" : int(str_list[i][70:72]),
            "MT" : int(str_list[i][72:75])}
     C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "NIS" : C.N1})
-    C, i = read_cont(str_list, i)
-    out.update({"ZAI" : C.C1, "ABN" : C.C2, "LFW" : C.L2, "NER" : C.N1})
-    for j in range(out["NER"]):
+    out.update({ "ZA" : C.C1, "AWR" : C.C2, "NIS" : C.N1, "ZAI" : {} })
+    for i_iso in range(out["NIS"]): # LOOP ISOTOPES
         C, i = read_cont(str_list, i)
-        sub = {"EL" : C.C1, "EH" : C.C2, "LRU" : C.L1, "LRF" : C.L2, "NRO" : C.N1, "NAPS" : C.N2}
-        if sub["NRO"] != 0:
-            T, i = read_tab1(str_list, i)
-            sub.update({"NBT" : T.NBT, "INT" : T.INT})
-            sub["AP"] = pd.Series(T.y, index = T.x).rename_axis("E")
-        if sub["LRU"] == 0:
+        zai = { "ZAI" : C.C1, "ABN" : C.C2, "LFW" : C.L2, "NER" : C.N1, "ERANGE" : {} }
+        for i_erange in range(zai["NER"]): # LOOP ENERGY RANGES
             C, i = read_cont(str_list, i)
-            sub.update({"SPI" : C.C1, "SR" : C.C2, "NLS" : C.N1})
-        if sub["LRU"] == 1:
-            if sub["LRF"] in (1,2):
+            sub = {"EL" : C.C1, "EH" : C.C2, "LRU" : C.L1, "LRF" : C.L2, "NRO" : C.N1, "NAPS" : C.N2}
+            if sub["NRO"] != 0: # Tabulated scattering radius
+                T, i = read_tab1(str_list, i)
+                sub.update({"NBT" : T.NBT, "INT" : T.INT})
+                sub["AP"] = pd.Series(T.y, index = T.x).rename_axis("E")
+            if sub["LRU"] == 0: # ONLY SCATTERING RADIUS
                 C, i = read_cont(str_list, i)
                 sub.update({"SPI" : C.C1, "SR" : C.C2, "NLS" : C.N1})
-                L, i = read_list(str_list, i)
-            elif sub["LRF"] == 3:
-                C, i = read_cont(str_list, i)
-                sub.update({"SPI" : C.C1, "SR" : C.C2, "LAD" : C.L1, "NLS" : C.N1, "NLSC" : C.N2})
-                L, i = read_list(str_list, i)
-            elif sub["LRF"] == 4:
-                sys.exit("ERROR: SANDY cannot read resonance parameters in Adler-Adler formalism")
-            elif sub["LRF"] == 5:
-                sys.exit("ERROR: General R-matrix formalism no longer available in ENDF-6")
-            elif sub["LRF"] == 6:
-                sys.exit("ERROR: Hybrid R-function formalism no longer available in ENDF-6")
-            elif sub["LRF"] == 7:
-                C, i = read_cont(str_list, i)
-                sub.update({"IFG" : C.L1, "KRM" : C.L2, "NJS" : C.N1, "KRL" : C.N2})
-                for k in range(sub["NJS"]):
-                    L1, i = read_list(str_list, i)
-                    L2, i = read_list(str_list, i)
-                    L3, i = read_list(str_list, i)
-        elif sub["LRU"] == 1:
-            if sub["LRF"] == 1 and out["LFW"] == 0:
-                C, i = read_cont(str_list, i)
-                sub.update({"SPI" : C.C1, "SR" : C.C2, "LSSF" : C.L1, "NLS" : C.N1})
-                for k in range(sub["NLS"]):
+            if sub["LRU"] == 1: # RESOLVED RESONANCES
+                if sub["LRF"] in (1,2): # BREIT-WIGNER
+                    C, i = read_cont(str_list, i)
+                    sub.update({"SPI" : C.C1, "SR" : C.C2, "NLS" : C.N1})
                     L, i = read_list(str_list, i)
-            elif sub["LRF"] == 1 and out["LFW"] == 1:
-                C, i = read_cont(str_list, i)
-                sub.update({"SPI" : C.C1, "SR" : C.C2, "LSSF" : C.L1, "NE" : C.N1, "NLS" : C.N2})
-                L, i = read_list(str_list, i)
-                for k in range(sub["NLS"]):
+                elif sub["LRF"] == 3: # REICH-MOORE
                     C, i = read_cont(str_list, i)
-                    for l in range(C.N1):
+                    sub.update({"SPI" : C.C1, "SR" : C.C2, "LAD" : C.L1, "NLS" : C.N1, "NLSC" : C.N2})
+                    L, i = read_list(str_list, i)
+                elif sub["LRF"] == 4: # ADLER-ADLER
+                    sys.exit("ERROR: SANDY cannot read resonance parameters in Adler-Adler formalism")
+                elif sub["LRF"] == 5: # GENERAL R-MATRIX
+                    sys.exit("ERROR: General R-matrix formalism no longer available in ENDF-6")
+                elif sub["LRF"] == 6: # HYBRID R-FUNCTION
+                    sys.exit("ERROR: Hybrid R-function formalism no longer available in ENDF-6")
+                elif sub["LRF"] == 7: # LIMITED R-MATRIX
+                    C, i = read_cont(str_list, i)
+                    sub.update({"IFG" : C.L1, "KRM" : C.L2, "NJS" : C.N1, "KRL" : C.N2})
+                    for j in range(sub["NJS"]):
+                        L1, i = read_list(str_list, i)
+                        L2, i = read_list(str_list, i)
+                        L3, i = read_list(str_list, i)
+            elif sub["LRU"] == 2: # UNRESOLVED RESONANCES
+                if sub["LRF"] == 1 and out["LFW"] == 0: # CASE A
+                    C, i = read_cont(str_list, i)
+                    sub.update({"SPI" : C.C1, "SR" : C.C2, "LSSF" : C.L1, "NLS" : C.N1})
+                    for k in range(sub["NLS"]):
                         L, i = read_list(str_list, i)
-            elif sub["LRF"] == 2:
-                C, i = read_cont(str_list, i)
-                sub.update({"SPI" : C.C1, "SR" : C.C2, "LSSF" : C.L1, "NLS" : C.N1})
-                for k in range(sub["NLS"]):
+                elif sub["LRF"] == 1 and out["LFW"] == 1: # CASE B
                     C, i = read_cont(str_list, i)
-                    for l in range(C.N1):
-                        L, i = read_list(str_list, i)                
+                    sub.update({"SPI" : C.C1, "SR" : C.C2, "LSSF" : C.L1, "NE" : C.N1, "NLS" : C.N2})
+                    L, i = read_list(str_list, i)
+                    for k in range(sub["NLS"]):
+                        C, i = read_cont(str_list, i)
+                        for l in range(C.N1):
+                            L, i = read_list(str_list, i)
+                elif sub["LRF"] == 2: # CASE C
+                    C, i = read_cont(str_list, i)
+                    sub.update({"SPI" : C.C1, "SR" : C.C2, "LSSF" : C.L1, "NLS" : C.N1})
+                    for k in range(sub["NLS"]):
+                        C, i = read_cont(str_list, i)
+                        for l in range(C.N1):
+                            L, i = read_list(str_list, i)
+            zai["ERANGE"].update({ (sub["EL"],sub["EH"]) : sub })
+        out["ZAI"].update({ zai["ZAI"] : zai })
     return out
 
 def read_mf3_mt(text):
@@ -974,14 +981,18 @@ def update_dict(tapein):
     for k,row in tapein.iterrows():
         tape.loc[k].DATA = deepcopy(row.DATA)
         tape.loc[k].TEXT = deepcopy(row.TEXT)
-    for mat in tape.index.get_level_values('MAT').unique():
+    for mat in sorted(tape.index.get_level_values('MAT').unique()):
         chunk = tape.DATA.loc[mat,1,451]
         records = pd.DataFrame(chunk["RECORDS"],
                                columns=["MF","MT","NC","MOD"]).set_index(["MF","MT"])
         new_records = []
-        for (mf,mt),text in tape.loc[mat].query('MT!=451'.format(mat)).TEXT.items():
+        for (mf,mt),text in sorted(tape.loc[mat].query('MT!=451'.format(mat)).TEXT.items()):
             nc = len(text.splitlines())
-            mod = records.MOD.loc[mf,mt]
+            # when copying PENDF sections (MF2/MT152) mod is not present in the dictionary
+            try:
+                mod = records.MOD.loc[mf,mt]
+            except:
+                mod = 0
             new_records.append((mf,mt,nc,mod))
         nc = 4 + len(chunk["TEXT"]) + len(new_records) + 1
         mod = records.MOD.loc[1,451]

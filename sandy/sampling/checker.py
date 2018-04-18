@@ -96,6 +96,6 @@ if __name__ == '__main__':
     from sandy.data_test import __file__ as td
     sd = dirname(realpath(sd))
     td = dirname(realpath(td))
-    extra_args = [join(sd, r"sampling\h1-tmpdir")]
+    extra_args = [join(sd, r"sampling\cm242-tmpdir")]
     sys.argv = [sys.argv[0]] + extra_args
     run()
