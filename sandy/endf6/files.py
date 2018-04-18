@@ -56,7 +56,25 @@ def split(file):
     U = re.split(pattern, text)
     return list(filter(None, U)) # remove empty lines
 
+def split2df(file):
+    columns = ('MAT', 'MF', 'MT','TEXT')
+    rows = []
+    for x in split(file):
+        mat = int(x[66:70])
+        mf = int(x[70:72])
+        mt = int(x[72:75])
+        text = "\n".join([ y[:66] for y in x.split("\n") ])
+        rows.append([mat, mf, mt, text])
+    return pd.DataFrame(rows, columns=columns)
 
+from sandy import __file__ as sd
+from sandy.data_test import __file__ as td
+from os. path import dirname, realpath, join
+sd = dirname(realpath(sd))
+
+
+A=split2df(join(td,r"u235.pendf"))
+aaa=1
 """
         Found error in:
             - n-17-Cl-035.jeff32
