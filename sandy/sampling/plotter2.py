@@ -161,10 +161,10 @@ if __name__ == '__main__':
     from sandy.data_test import __file__ as td
     sd = dirname(realpath(sd))
     td = dirname(realpath(td))
-    extra_args = [join(sd, r"sampling\h1-tmpdir"),
-                 "125",
+    extra_args = [join(sd, r"sampling\u5-33-tmpdir\pendf"),
+                 "9228",
                  "102",
-                 "--original", join(td,r"h1.pendf"),
-                 "--cov", join(td,r"h1.endf"),]
+                 "--original", join(td,r"u235.pendf"),
+                 "--cov", join(td,r"u235.endf"),]
     sys.argv = [sys.argv[0]] + extra_args
     run()
