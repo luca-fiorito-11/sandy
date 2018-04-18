@@ -91,6 +91,7 @@ def init_sampling(ARGS=None):
                         type=int,
                         action='append',
                         choices=range(31,36),
+                        default=[],
                         help="Keep only the selected covariance MF sections (default = keep all). Allowed values are [31, 32, 33, 34, 35]. Provide each MF section as an individual optional argument, e.g. -mf 33 -mf 35")
     parser.add_argument('-mt','--keep-cov-mt',
                         type=int,

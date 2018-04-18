@@ -8,7 +8,23 @@ import sys
 import numpy as np
 import os
 import logging
-from os.path import join
+from os.path import join, basename, splitext
+import shutil
+
+def get_pendf(EndfName, NjoyExe, mat, wd=None):
+    fnjoy = FileNJOY()
+    # Write NJOY file
+    fnjoy.copy_to_tape(EndfName, 20, dst=wd)
+#    mat = int(open(EndfName).readlines()[1][66:70])
+    fnjoy.reconr(20, 21, mat=mat)
+    fnjoy.stop()
+    fnjoy.run(NjoyExe, cwd=wd)
+    PendfName = join(wd, splitext(basename(EndfName))[0]+".pendf")
+    shutil.move(os.path.join(wd, r'tape21'), PendfName)
+    # Remove NJOY junk outputs
+    os.unlink(os.path.join(wd, r'tape20'))
+    os.unlink(os.path.join(wd, r'output'))
+    return PendfName
 
 class FileNJOY:
 
@@ -43,7 +59,7 @@ class FileNJOY:
         self.file = name
         self.text = ""
 
-    def reconr(self, nendf, npendf, mat, reconr_err=0.01, reconr_grid=[],
+    def reconr(self, nendf, npendf, mat, reconr_err=1, reconr_grid=[],
                reconr_cards=[], reconr_tempr=0, reconr_errmax=None,
                reconr_errint=None, **options):
         """

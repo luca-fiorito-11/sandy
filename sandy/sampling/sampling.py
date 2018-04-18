@@ -17,6 +17,8 @@ from copy import deepcopy
 import shutil
 import time
 import matplotlib.pyplot as plt
+from sandy.njoy import get_pendf
+from sandy.tests import TimeDecorator
 
 #To produce correlation matrix
 #Index = df_cov_xs.index
@@ -71,6 +73,7 @@ def sample_xs(tape, NSMP, **kwargs):
             print("\n".join(E))
     return DfPert
 
+@TimeDecorator
 def perturb_xs(tape, PertSeriesXs, **kwargs):
     Xs = e6.extract_xs(tape)
     indexName = Xs.index.name
@@ -170,23 +173,41 @@ def perturb_chi(tape, PertSeriesChi, **kwargs):
                 Chi.loc[mat,mt,k]['CHI'] = SmpChi
     return e6.write_mf5_mt( e6.update_chi(tape, Chi) )
 
-def sampling(tape, output, PertSeriesXs=None, PertSeriesChi=None, ismp=None, **kwargs):
+def sampling(tape, ismp, PertSeriesNubar=None, PertSeriesRes=None, PertSeriesXs=None, PertSeriesChi=None, **kwargs):
     t0 = time.time()
+    if PertSeriesXs is not None:
+        ptape = kwargs["pendf"].query("MF==3 | (MF==2 & MT==152)")
+    if PertSeriesNubar is not None:
+        tape = perturb_xs(tape, PertSeriesNubar, **kwargs)
     if PertSeriesChi is not None:
         tape = perturb_chi(tape, PertSeriesChi, **kwargs)
+    if PertSeriesRes is not None:
+        tape = perturb_res(tape, PertSeriesRes, **kwargs)
+        if PertSeriesXs is not None:
+            tmpdir = os.path.join(kwargs["outdir"], "tmp-{}".format(ismp))
+            os.makedirs(tmpdir, exist_ok=True)
+            output = os.path.join(tmpdir, kwargs["endf6"])
+            e6.write_tape(tape, output)
+            mat = tape.index.get_level_values("MAT")[0]
+            pendf = get_pendf(output, kwargs['njoy'], mat=mat, wd=tmpdir)
+            ptape = e6.endf2df(pendf).query("MF==3 | (MF==2 & MT==152)")
     if PertSeriesXs is not None:
+        tape = tape.query("MF!=3").append(ptape)
         tape = perturb_xs(tape, PertSeriesXs, **kwargs)
-        if ( kwargs['keep_cov_mf'] is None or 33 in kwargs['keep_cov_mf'] ) and 33 in tape.index.get_level_values("MF"):
-            if kwargs['pendf'] is None:
-                pass # run reconr
-            ptape = perturb_xs(kwargs['pendf'], PertSeriesXs, **kwargs)
-            aaa=1
-
+    output = os.path.join(kwargs["outdir"], os.path.basename(kwargs["endf6"]) + '-{}'.format(ismp))
     e6.write_tape(tape, output)
-    if ismp is not None:
-        print("Created sample {} in file '{}' in {:.2f} sec".format(ismp, output, time.time()-t0,))
-    else:
-        print("Created file '{}' in {:.2f} sec".format(output, time.time()-t0,))
+    print("Created file '{}' in {:.2f} sec".format(output, time.time()-t0,))
+#    if 33 in kwargs['keep_cov_mf']:
+#        if kwargs['pendf'] is not None:
+#            ptape = kwargs['pendf'].query("MF==3 | (MF==2 & MT==152)")
+#        else:
+#            mat = tape.index.get_level_values("MAT")[0]
+#            pendf = get_pendf(kwargs['endf6'], kwargs['njoy'], mat=mat, wd=kwargs['outdir'])
+#            ptape = e6.endf2df(pendf).query("MF==3 | (MF==2 & MT==152)")
+#        tape = tape.query("MF!=3").append(ptape)
+#        for mat in tape.index.get_level_values('MAT').unique():
+#            tape.DATA.loc[mat,1,451]['LRP'] == 2
+#    tape = perturb_xs(tape, PertSeriesXs, **kwargs)
 
 
 def run():
@@ -207,27 +228,45 @@ def run():
     if tape.empty:
         sys.exit("ERROR: tape is empty")
 
-    MATS = list(tape.index.get_level_values("MAT").unique())
-    MFS = list(tape.index.get_level_values("MF").unique())
+    MATS = set(tape.index.get_level_values("MAT"))
 
-    # Always run. If MF35 is not wanted, then MF35 sections are already removed.
-    PertXs = sample_xs(tape, settings.args.samples, **vars(settings.args))
-    PertChi = sample_chi(tape, settings.args.samples, **vars(settings.args))
-
+    # Further setup of settings
     kwargs = vars(settings.args)
-    if kwargs['pendf']:
-        kwargs['pendf'] = e6.endf2df(kwargs['pendf'])
+    MFS = set(tape.query("MF>=31 & MF<=35").index.get_level_values("MF"))
+    if not kwargs["keep_cov_mf"]:
+        kwargs["keep_cov_mf"] = MFS
+    else:
+        kwargs["keep_cov_mf"] = set(kwargs["keep_cov_mf"]) & MFS
+    if 33 in kwargs["keep_cov_mf"]:
+        if 32 in kwargs["keep_cov_mf"]:
+            if not kwargs['njoy']:
+                sys.exit("ERROR: njoy executable is requested. Use option \"--njoy EXE\"")
+        if kwargs['pendf']:
+            kwargs['pendf'] = e6.endf2df(kwargs['pendf'])
+        elif kwargs['njoy']:
+            print("Run RECONR for file {}".format(os.path.basename(kwargs['endf6'])))
+            kwargs['pendf'] = e6.endf2df(get_pendf(kwargs['endf6'], kwargs['njoy'], mat=list(MATS)[0], wd=kwargs['outdir']))
+        else:
+            sys.exit("ERROR: use either option --pendf or --njoy")
+        if kwargs['pendf'].empty:
+            sys.exit("ERROR: pendf tape is empty")
+        
+    # Always run. If MF35 is not wanted, then MF35 sections are already removed.
+    PertXs = sample_xs(tape, settings.args.samples, **kwargs)
+    PertNubar = PertXs.query("MT==452 | MT==455 | MT==456")
+    PertXs = PertXs.query("MT!=452 & MT!=455 & MT!=456")
+    PertChi = sample_chi(tape, settings.args.samples, **kwargs)
 
     if True:#31 in MFS or 35 in MFS:
         outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
         if settings.args.processes == 1:
             for ismp in range(1,settings.args.samples+1):
                 sampling(tape,
-                         outname.format(ismp),
-                         PertSeriesXs=PertXs[ismp] if not PertXs.empty else None,
-                         PertSeriesChi=PertChi[ismp] if not PertChi.empty else None,
-                         ismp=ismp,
-                         **vars(settings.args))
+                         ismp,
+                         PertSeriesNubar=PertNubar[ismp] if (not PertNubar.empty and 31 in kwargs["keep_cov_mf"]) else None,
+                         PertSeriesXs=PertXs[ismp] if (not PertXs.empty and 33 in kwargs["keep_cov_mf"]) else None,
+                         PertSeriesChi=PertChi[ismp] if (not PertChi.empty and 35 in kwargs["keep_cov_mf"]) else None,
+                         **kwargs)
         else:
             pool = mp.Pool(processes=settings.args.processes)
             [ pool.apply(sampling,
@@ -235,10 +274,11 @@ def run():
                          kwds = {**{"PertSeriesXs"  : PertXs[ismp] if not PertXs.empty else None,
                                     "PertSeriesChi" : PertChi[ismp] if not PertChi.empty else None,
                                     "ismp" : ismp},
-                                 **vars(settings.args)}
+                                 **kwargs}
                          ) for ismp in range(1,settings.args.samples+1) ]
 
-    if 33 in MFS:
+    sys.exit()
+    if 33 in kwargs["keep_cov_mf"]:
         if not settings.args.pendf:
             from sandy.njoy import FileNJOY
             fnjoy = FileNJOY()
