@@ -54,7 +54,7 @@ def split(file):
     pattern = ".{72}[ 0]{3}.{5}\n?"
     text = open(file).read()
     U = re.split(pattern, text)
-    return list(filter(None, U)) # remove empty lines
+    return filter(None, U) # remove empty lines
 
 
 """
