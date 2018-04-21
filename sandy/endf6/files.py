@@ -466,6 +466,9 @@ def read_mf8_mt457(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2, "LIS" : C.L1, "LISO" : C.L2, "NST" :C.N1, "NSP" : C.N2})
     L, i = read_list(str_list, i)
     out.update({"HL" : L.C1, "DHL" : L.C2, "E" : L.B[::2], "DE" : L.B[1::2]})
+    L, i = read_list(str_list, i)
+    out.update({"SPI" : L.C1, "PAR" : L.C2})
+    out.update({ "DK" : [ {"RTYP" : RTYP, "RFS" : RFS, "Q" : Q, "DQ" : DQ, "BR" : BR, "DBR" : DBR } for RTYP, RFS, Q, DQ, BR, DBR in  zip(*[iter(L.B)]*6) ] })
     return out
 
 def read_mf33_mt(text):
