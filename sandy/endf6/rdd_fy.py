@@ -14,7 +14,7 @@ import sys
 from sandy.tests import TimeDecorator
 #from e6 import read_float
 
-class DecayDataFile():
+class RDDFile():
 
     def __init__(self, file):
         self.file = file
@@ -101,7 +101,7 @@ class DecayDataFile():
 
     @TimeDecorator
     def extract_qmatrix(self):
-        bm = self.extract_bmatrix()
+        bm = self.extract_bmatrix(timelimit=100)
         B = np.identity(len(bm)) - bm.as_matrix()
         Q = np.linalg.pinv(B)
         return pd.DataFrame(Q, index=bm.index, columns=bm.columns)
@@ -113,6 +113,28 @@ class DecayDataFile():
 #        eye = np.eye(B.shape[0])
 #        Q = sp.sparse.csc_matrix(lu.solve(eye))
 
+
+class FYFile():
+
+    def __init__(self, file):
+        self.file = file
+
+    @TimeDecorator
+    def extract_fy(self):
+        IFY = []; CFY = []
+        for chunk in e6.split(self.file):
+            mf = int(chunk[70:72])
+            mt = int(chunk[72:75])
+            if mf == 8 and mt == 454:
+                data = e6.read_mf8_fy(chunk)
+                for e in data["E"]:
+                    IFY.extend([ dict({ "ZAP" : data["ZA"], "E" : e }, **fy) for fy in data["E"][e]["FY"] ])
+            elif mf == 8 and mt == 459:
+                data = e6.read_mf8_fy(chunk)
+                for e in data["E"]:
+                    CFY.extend([ dict({ "ZAP" : data["ZA"], "E" : e }, **fy) for fy in data["E"][e]["FY"] ])
+        return pd.DataFrame(IFY), pd.DataFrame(CFY)
+
 def test_jeff33_decay_constants():
     """
     Extract decay constants from jeff file and write in csv format.
@@ -121,7 +143,7 @@ def test_jeff33_decay_constants():
     from sandy import __file__ as sd
     sd = dirname(realpath(sd))
     td = dirname(realpath(td))
-    A = DecayDataFile( join(td, r"RDD.jeff33") ).extract_lambdas()
+    A = RDDFile( join(td, r"RDD.jeff33") ).extract_lambdas()
     aaa=1
 
 def test_jeff33_qmatrix():
@@ -132,7 +154,19 @@ def test_jeff33_qmatrix():
     from sandy import __file__ as sd
     sd = dirname(realpath(sd))
     td = dirname(realpath(td))
-    Q = DecayDataFile( join(td, r"RDD.jeff33") ).extract_qmatrix()
+    Q = RDDFile( join(td, r"RDD.jeff33") ).extract_qmatrix()
+    index = Q.index.get_level_values("ZA_PARENT")*10 + Q.index.get_level_values("LISO_PARENT")
+    IFY, CFY = FYFile( join(td, r"FY.jeff33") ).extract_fy()
+    for (zap,e), dfi in IFY.groupby(["ZAP", "E"]):
+        ify = dfi.set_index(dfi.ZAFP*10+dfi.FPS).reindex(index).YI.fillna(0)
+        dfc = CFY.query("ZAP=={} & E=={}".format(zap,e))
+        cfy = dfc.set_index(dfc.ZAFP*10+dfc.FPS).reindex(index).YI.fillna(0).to_frame()
+        cfy["calc"] = Q.as_matrix().dot(ify.values)
+        C = cfy.query("YI > 0")
+        diff = C["calc"]/C["YI"]-1
+        C["diff"] = diff
+        D=C.query("diff > 1e-5")
+        aaa=1
     aaa=1
 
 
