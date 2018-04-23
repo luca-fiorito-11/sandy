@@ -56,7 +56,27 @@ def split(file):
     U = re.split(pattern, text)
     return filter(None, U) # remove empty lines
 
+def split2df(file):
+    columns = ('MAT', 'MF', 'MT','TEXT')
+    rows = []
+    for x in split(file):
+        mat = int(x[66:70])
+        mf = int(x[70:72])
+        mt = int(x[72:75])
+        text = "\n".join([ y[:66] for y in x.split("\n") ])
+        rows.append([mat, mf, mt, text])
+    return pd.DataFrame(rows, columns=columns)
 
+from sandy.data_test import __file__ as td
+from os. path import dirname, realpath, join
+td = dirname(realpath(td))
+
+
+A=split2df(join(td,r"u235.pendf"))
+A["LIB"] = "JEFF-3.3"
+aaa=1
+store = pd.HDFStore('nypd_motors.h5')
+A.to_hdf5("AAA.h5", "chunks", format='table', data_columns=True, append=True,)
 """
         Found error in:
             - n-17-Cl-035.jeff32
