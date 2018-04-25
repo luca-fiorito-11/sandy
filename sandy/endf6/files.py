@@ -54,7 +54,7 @@ def split(file):
     pattern = ".{72}[ 0]{3}.{5}\n?"
     text = open(file).read()
     U = re.split(pattern, text)
-    return list(filter(None, U)) # remove empty lines
+    return filter(None, U) # remove empty lines
 
 def split2df(file):
     columns = ('MAT', 'MF', 'MT','TEXT')
@@ -67,16 +67,16 @@ def split2df(file):
         rows.append([mat, mf, mt, text])
     return pd.DataFrame(rows, columns=columns)
 
-from sandy.data_test import __file__ as td
-from os. path import dirname, realpath, join
-td = dirname(realpath(td))
-
-
-A=split2df(join(td,r"u235.pendf"))
-A["LIB"] = "JEFF-3.3"
-aaa=1
-store = pd.HDFStore('nypd_motors.h5')
-A.to_hdf5("AAA.h5", "chunks", format='table', data_columns=True, append=True,)
+#from sandy.data_test import __file__ as td
+#from os. path import dirname, realpath, join
+#td = dirname(realpath(td))
+#
+#
+#A=split2df(join(td,r"u235.pendf"))
+#A["LIB"] = "JEFF-3.3"
+#aaa=1
+#store = pd.HDFStore('nypd_motors.h5')
+#A.to_hdf5("AAA.h5", "chunks", format='table', data_columns=True, append=True,)
 """
         Found error in:
             - n-17-Cl-035.jeff32
@@ -122,6 +122,7 @@ def process_endf_section(text, keep_mf=None, keep_mt=None):
 #        return read_mf35_mt(text)
     else:
         return None
+
 
 def endf2df(file, keep_mf=None, keep_mt=None):
     tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x] for x in split(file)],
@@ -485,6 +486,27 @@ def read_mf8_mt457(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2, "LIS" : C.L1, "LISO" : C.L2, "NST" :C.N1, "NSP" : C.N2})
     L, i = read_list(str_list, i)
     out.update({"HL" : L.C1, "DHL" : L.C2, "E" : L.B[::2], "DE" : L.B[1::2]})
+    L, i = read_list(str_list, i)
+    out.update({"SPI" : L.C1, "PAR" : L.C2, "DK" : []})
+    if out["NST"] == 0:
+        # Update list of decay modes when nuclide is radioactive
+        out.update({ "DK" : [ {"RTYP" : RTYP, "RFS" : RFS, "Q" : Q, "DQ" : DQ, "BR" : BR, "DBR" : DBR } for RTYP, RFS, Q, DQ, BR, DBR in  zip(*[iter(L.B)]*6) ] })
+    return out
+
+def read_mf8_fy(text):
+    str_list = text.splitlines()
+    i = 0
+    out = {"MAT" : int(str_list[i][66:70]),
+           "MF" : int(str_list[i][70:72]),
+           "MT" : int(str_list[i][72:75])}
+    C, i = read_cont(str_list, i)
+    out.update({ "ZA" : C.C1, "AWR" : C.C2, "E" : {} })
+    for j in range(C.L1):
+        L, i = read_list(str_list, i)
+        FY = [{ "ZAFP" : ZAFP, "FPS" : FPS, "YI" : YI, "DYI" : DYI } for ZAFP, FPS, YI, DYI in  zip(*[iter(L.B)]*4) ]
+        out["E"].update({ L.C1 : { "FY" : FY } })
+        if j > 0:
+            out["E"][L.C1].update({ "I" : L.L1 })
     return out
 
 def read_mf33_mt(text):
