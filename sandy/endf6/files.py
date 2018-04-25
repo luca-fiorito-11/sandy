@@ -51,7 +51,9 @@ def split(file):
     Split ``ENDF-6`` file  into MFMT sections.
     """
     import re
-    pattern = ".{72}[ 0]{3}.{5}\n?"
+#    pattern = ".{72}[ 0]{3}.{5}\n?" # this pattern created problems in 28-Ni-58g.jeff33
+
+    pattern = ".{72}  0.{5}\n"
     text = open(file).read()
     U = re.split(pattern, text)
     return filter(None, U) # remove empty lines
@@ -70,7 +72,6 @@ def split2df(file):
 def split2df_byZAM(file):
     tape = split2df(file)
     byZAM = tape.query("MF==1 & MT==451")
-
     byZAM["ZAM"] = byZAM.TEXT.apply(lambda x: int(float(read_float(x[:11]))*10+int(x[100:111])))
     byZAM = byZAM.drop(["MF", "MT", "TEXT"], axis=1)
     return tape.merge(byZAM, how="left", on="MAT").drop("MAT", axis=1)
