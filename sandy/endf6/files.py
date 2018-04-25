@@ -7,7 +7,7 @@ Created on Mon Jan 16 18:03:13 2017
 import sys
 import logging
 import numpy as np
-from sandy.endf6.records import read_cont, read_tab1, read_tab2, read_list, read_text, write_cont, write_tab1, write_list, write_tab2#, add_records
+from sandy.endf6.records import read_cont, read_tab1, read_tab2, read_list, read_text, write_cont, write_tab1, write_list, write_tab2, read_float#, add_records
 import matplotlib.pyplot as plt
 import pandas as pd
 import pdb
@@ -66,6 +66,14 @@ def split2df(file):
         text = "\n".join([ y[:66] for y in x.split("\n") ])
         rows.append([mat, mf, mt, text])
     return pd.DataFrame(rows, columns=columns)
+
+def split2df_byZAM(file):
+    tape = split2df(file)
+    byZAM = tape.query("MF==1 & MT==451")
+
+    byZAM["ZAM"] = byZAM.TEXT.apply(lambda x: int(float(read_float(x[:11]))*10+int(x[100:111])))
+    byZAM = byZAM.drop(["MF", "MT", "TEXT"], axis=1)
+    return tape.merge(byZAM, how="left", on="MAT").drop("MAT", axis=1)
 
 #from sandy.data_test import __file__ as td
 #from os. path import dirname, realpath, join
