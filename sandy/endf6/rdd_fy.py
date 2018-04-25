@@ -146,6 +146,26 @@ class FYFile():
                     CFY.extend([ dict({ "ZAP" : data["ZA"], "E" : e }, **fy) for fy in data["E"][e]["FY"] ])
         return pd.DataFrame(IFY), pd.DataFrame(CFY)
 
+def check_rdd_fy(RDD, FY):
+    from numpy.linalg import lstsq
+    from scipy.stats import chisquare
+    B = RDDFile( RDD ).extract_bmatrix(timelimit=1000)
+    index = B.index.get_level_values("ZA_PARENT")*10 + B.index.get_level_values("LISO_PARENT")
+    IFY, CFY = FYFile( FY ).extract_fy()
+    # Loop fissioning systems
+    for (zap,e), dfi in IFY.groupby(["ZAP", "E"]):
+        dfc = CFY.query("ZAP=={} & E=={}".format(zap,e))
+        ify = dfi.set_index(dfi.ZAFP*10+dfi.FPS).reindex(index).YI.fillna(0)
+        cfy = dfc.set_index(dfc.ZAFP*10+dfc.FPS).reindex(index).YI.fillna(0)
+        C = cfy.to_frame().rename(columns={'YI' : 'CY'})
+        C['IY'] = ify.values
+        C['CY_calc'], res, rank, sing = lstsq((np.identity(len(B)) - B.as_matrix()), C.IY.values)
+        C["diff"] = np.abs(C.CY_calc/C.CY-1).values
+        C["Z"] = pd.Series(C.index.values/10000, dtype=int).values
+        C["A"] = pd.Series((C.index.values-C.Z.values*10000)/10, dtype=int).values
+        chi2, p_value = chisquare(C.CY.loc[C.CY>0], f_exp=C.CY_calc.loc[C.CY>0])
+        print(zap,e,chi2,p_value)
+
 def test_jeff33_decay_constants():
     """
     Extract decay constants from jeff file and write in csv format.
@@ -198,27 +218,9 @@ def test_jeff33_rdd_fy():
     96245.0 0.0253 0.311911363568 1.0
     96245.0 400000.0 0.509813267668 1.0
     """
-    from numpy.linalg import lstsq
-    from scipy.stats import chisquare
     from sandy.data_test import __file__ as td
-    from sandy import __file__ as sd
-    sd = dirname(realpath(sd))
-    td = dirname(realpath(td))
-    B = RDDFile( join(td, r"RDD.jeff33") ).extract_bmatrix(timelimit=1000)
-    index = B.index.get_level_values("ZA_PARENT")*10 + B.index.get_level_values("LISO_PARENT")
-    IFY, CFY = FYFile( join(td, r"FY.jeff33") ).extract_fy()
-    for (zap,e), dfi in IFY.groupby(["ZAP", "E"]):
-        dfc = CFY.query("ZAP=={} & E=={}".format(zap,e))
-        ify = dfi.set_index(dfi.ZAFP*10+dfi.FPS).reindex(index).YI.fillna(0)
-        cfy = dfc.set_index(dfc.ZAFP*10+dfc.FPS).reindex(index).YI.fillna(0)
-        C = cfy.to_frame().rename(columns={'YI' : 'CY'})
-        C['IY'] = ify.values
-        C['CY_calc'], res, rank, sing = lstsq((np.identity(len(B)) - B.as_matrix()), C.IY.values)
-        C["diff"] = np.abs(C.CY_calc/C.CY-1).values
-        C["Z"] = pd.Series(C.index.values/10000, dtype=int).values
-        C["A"] = pd.Series((C.index.values-C.Z.values*10000)/10, dtype=int).values
-        chi2, p_value = chisquare(C.CY.loc[C.CY>0], f_exp=C.CY_calc.loc[C.CY>0])
-        print(zap,e,chi2,p_value)
+    check_rdd_fy(join(dirname(realpath(td)), r"RDD.jeff33"),
+                 join(dirname(realpath(td)), r"FY.jeff33"))
 
 
 test_jeff33_rdd_fy()
