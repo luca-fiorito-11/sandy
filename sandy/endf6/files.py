@@ -682,39 +682,46 @@ def pandas_interpolate(df, interp_column, method='zero', axis='both'):
     dfout.fillna(0, inplace=True)
     return dfout
 
-def extract_xs(tape):
-    import collections
-    icount = 0
-    for mat in tape.index.get_level_values('MAT').unique():
-        if tape.DATA.loc[mat,1,451]['LRP'] == 1:
-            query = "MF==1 & (MT==452 | MT==455 | MT==456)"
-        else:
-            query = 'MF==3 | (MF==1 & (MT==452 | MT==455 | MT==456))'
-        for chunk in tape.loc[mat].query(query).DATA:
-            if not chunk:
-                continue
-            key = "NUBAR" if chunk["MF"] == 1 else "XS"
-            xs = deepcopy(chunk[key])
-            duplicates = [x for x, count in collections.Counter(xs.index).items() if count > 1]
-            if duplicates:
-                sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(chunk["MAT"],chunk["MF"],chunk["MT"])+
-                         '\n'.join(map(str,duplicates)))
-            if chunk['INT'] != [2]:
-                sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(chunk["MAT"],chunk["MF"],chunk["MT"]))
-            # Problem with interpolation and multiindexing. Use temporary column names and
-            # restore multiindex when database is complete
-            xs.name = ",".join(map(str, xs.name))
-            xs = xs.to_frame().reset_index()
-            if icount == 0:
-                DfXs = xs
-            else:
-                DfXs = pd.merge_ordered(DfXs, xs, on="E", how='outer').interpolate(method='slinear', axis=0).fillna(0)
-            icount += 1
-    DfXs.set_index('E', inplace=True)
-    MAT = list(map(lambda x:int(x.split(',')[0]), DfXs.columns))
-    MT = list(map(lambda x:int(x.split(',')[1]), DfXs.columns))
-    DfXs.columns = pd.MultiIndex.from_arrays([MAT,MT], names=['MAT','MT'])
-    return DfXs
+
+
+class Xs(pd.DataFrame):
+
+    @classmethod
+    def from_tape(cls, tape):
+        import collections
+        icount = 0
+#        lrps = tape.query("MF==1 & MT==451").DATA.apply(lambda x: x["LRP"])
+        for mat in tape.index.get_level_values('MAT').unique():
+            query = "(MF==1 & (MT==452 | MT==455 | MT==456))"
+            if tape.DATA.loc[mat,1,451]['LRP'] == 2:
+                query += ' | MF==3'
+            for chunk in tape.loc[mat].query(query).DATA:
+                if not chunk:
+                    continue
+                key = "NUBAR" if chunk["MF"] == 1 else "XS"
+                xs = deepcopy(chunk[key])
+                duplicates = [x for x, count in collections.Counter(xs.index).items() if count > 1]
+                if duplicates:
+                    sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(chunk["MAT"],chunk["MF"],chunk["MT"])+
+                             '\n'.join(map(str,duplicates)))
+                if chunk['INT'] != [2]:
+                    sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(chunk["MAT"],chunk["MF"],chunk["MT"]))
+                # Problem with interpolation and multiindexing. Use temporary column names and
+                # restore multiindex when database is complete
+                xs.name = ",".join(map(str, xs.name))
+                xs = xs.to_frame().reset_index()
+                if icount == 0:
+                    DfXs = xs
+                else:
+                    DfXs = pd.merge_ordered(DfXs, xs, on="E", how='outer').interpolate(method='slinear', axis=0).fillna(0)
+                icount += 1
+        DfXs.set_index('E', inplace=True)
+        MAT = list(map(lambda x:int(x.split(',')[0]), DfXs.columns))
+        MT = list(map(lambda x:int(x.split(',')[1]), DfXs.columns))
+        DfXs.columns = pd.MultiIndex.from_arrays([MAT,MT], names=['MAT','MT'])
+        return cls(DfXs)
+
+
 
 def extract_chi(tape):
     """
