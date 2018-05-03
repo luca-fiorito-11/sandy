@@ -686,11 +686,31 @@ def pandas_interpolate(df, interp_column, method='zero', axis='both'):
 
 class Xs(pd.DataFrame):
 
+    redundant_xs = {107 : range(800,850),
+                    106 : range(750,800),
+                    105 : range(700,750),
+                    104 : range(650,700),
+                    103 : range(600,650),
+                    101 : range(102,118),
+                    18 : (19,20,21,38),
+                    27 : (18,101),
+                    4 : range(50,92),
+                    3 : (4,5,11,16,17,*range(22,38),41,42,44,45),
+                    1 : (2,3),
+                    452 : (455,456)}
     @classmethod
     def from_tape(cls, tape):
+        """
+        Extract cross sections/nubar (xs) from endf-6 file dataframe (tape).
+        xs are linearized on unique grid.
+        Missing points are linearly interpolated (use zero when out of domain).
+
+        Conditions:
+            - xs interpolation law must be lin-lin
+            - No duplicate points on energy grid
+        """
         from collections import Counter
         from functools import reduce
-#        lrps = tape.query("MF==1 & MT==451").DATA.apply(lambda x: x["LRP"])
         xsList = []
         for mat in tape.index.get_level_values('MAT').unique():
             query = "(MF==1 & (MT==452 | MT==455 | MT==456))"
@@ -712,8 +732,70 @@ class Xs(pd.DataFrame):
         xs.columns.names = ["MAT", "MT"]
         return cls(xs)
 
+    def reconstruct_sums(self, drop=True):
+        """
+        Reconstruct redundant xs.
+        """
+        frame = self.copy()
+        for mat in frame.columns.get_level_values("MAT").unique():
+            for parent, daughters in sorted(Xs.redundant_xs.items(), reverse=True):
+                daughters = [ x for x in daughters if x in frame[mat].columns]
+                if daughters:
+                    frame[mat,parent] = frame[mat][daughters].sum(axis=1)
+            # keep only mts present in the original file
+            if drop:
+                todrop = [ x for x in frame[mat].columns if x not in self.columns.get_level_values("MT") ]
+                frame.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
+        return Xs(frame)
 
+    def update_tape(self, tapein):
+        tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
+        for k,row in tapein.iterrows():
+            tape.loc[k].DATA = deepcopy(row.DATA)
+            tape.loc[k].TEXT = deepcopy(row.TEXT)
+        for mat, mt in self:
+            mf = 1 if mt in (452,455,456) else 3
+            name = 'NUBAR' if mt in (452,455,456) else 'XS'
+            if (mat, mf, mt) not in tape.index:
+                continue
+            # Cut threshold xs
+            iNotZero = next((i for i, x in enumerate(self[mat,mt]) if x), None)
+            if iNotZero > 0:
+                SeriesXs = self[mat,mt].iloc[iNotZero-1:]
+            else:
+                SeriesXs = self[mat,mt]
+            # Assume all xs have only 1 interpolation region and it is linear
+            tape.DATA.loc[mat,mf,mt][name] = SeriesXs
+            tape.DATA.loc[mat,mf,mt]["NBT"] = [len(SeriesXs)]
+            tape.DATA.loc[mat,mf,mt]["INT"] = [2]
+        return tape
 
+    def perturb(self, pert, **kwargs):
+#        indexName = Xs.index.name
+        # Add extra energy points
+#        if "energy_point" in kwargs:
+#            Xs = Xs.reindex(Xs.index.union(kwargs["energy_point"])).interpolate(method="slinear").fillna(0)
+#        Xs.index.name = indexName
+        for mat, mt in self:
+            if mat not in pert.index.get_level_values("MAT").unique():
+                continue
+            lmtp = pert.loc[mat].index.get_level_values("MT").unique()
+            mtPert = None
+            if mt in lmtp:
+                mtPert = mt
+            else:
+                for parent, daughters in sorted(self.__class__.redundant_xs.items(), reverse=True):
+                    if mt in daughters and not list(filter(lambda x: x in lmtp, daughters)) and parent in lmtp:
+                        mtPert = parent
+                        break
+            if not mtPert:
+                continue
+            P = PertSeriesXs.loc[mat,mtPert]
+            P = P.reindex(P.index.union(Xs[mat,mt].index)).ffill().fillna(1).reindex(Xs[mat,mt].index)
+            Xs[mat,mt] = Xs[mat,mt].multiply(P, axis="index")
+            # Negative values are set to zero
+            Xs[mat,mt][Xs[mat,mt] <= 0] = 0
+        Xs = e6.reconstruct_xs(Xs)
 
 
 def extract_chi(tape):
