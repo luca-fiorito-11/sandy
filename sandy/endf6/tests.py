@@ -19,7 +19,9 @@ def test_xs():
     file = join(dirname(realpath(td)), r"h1.pendf")
     tape = e6.endf2df(file)
     xs = Xs.from_tape(tape)
-    
+    xs.reconstruct_sums()
+    xs.check_sums()
+
     DfRDD = check_masses([RDD])[0].query("MF==1 & MT==451")#.rename(columns={"AWR": "AWR_RDD"})
     DfN = pd.concat(check_masses(map(lambda x : join(path, x), listdir(path))))
     C = DfN.merge(DfRDD.drop(["MF","MT"], axis=1), how="left", on=["ZAM"], suffixes=("_N","_RDD"))
