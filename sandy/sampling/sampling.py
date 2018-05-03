@@ -6,7 +6,7 @@ Created on Mon Mar 19 22:51:03 2018
 """
 
 import pandas as pd
-from sandy.endf6 import files as e6
+import sandy.endf6.files as e6
 from sandy import settings
 from sandy.sampling.cov import Cov
 import numpy as np
@@ -55,9 +55,7 @@ def sample_xs(tape, NSMP, **kwargs):
     if DfCov.empty:
         return pd.DataFrame()
     cov = Cov(DfCov.as_matrix())
-    DfPert = pd.DataFrame( cov.sampling(NSMP) + 1,
-                                 index = DfCov.index,
-                                 columns = range(1,NSMP+1))
+    DfPert = pd.DataFrame( cov.sampling(NSMP) + 1, index=DfCov.index, columns=range(1,NSMP+1))
     DfPert.columns.name = 'SMP'
     if "eig" in kwargs:
         if kwargs["eig"] > 0:
@@ -75,7 +73,7 @@ def sample_xs(tape, NSMP, **kwargs):
 
 @TimeDecorator
 def perturb_xs(tape, PertSeriesXs, **kwargs):
-    Xs = e6.extract_xs(tape)
+    Xs = e6.Xs.from_tape(tape)
     indexName = Xs.index.name
     # Add extra energy points
     if "energy_point" in kwargs:
@@ -250,12 +248,15 @@ def run():
             sys.exit("ERROR: use either option --pendf or --njoy")
         if kwargs['pendf'].empty:
             sys.exit("ERROR: pendf tape is empty")
-        
+
     # Always run. If MF35 is not wanted, then MF35 sections are already removed.
     PertXs = sample_xs(tape, settings.args.samples, **kwargs)
     PertNubar = PertXs.query("MT==452 | MT==455 | MT==456")
     PertXs = PertXs.query("MT!=452 & MT!=455 & MT!=456")
     PertChi = sample_chi(tape, settings.args.samples, **kwargs)
+
+    A = e6.Xs.from_tape(tape)
+    A.perturb(PertXs[1])
 
     if True:#31 in MFS or 35 in MFS:
         outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
