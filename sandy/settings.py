@@ -60,9 +60,12 @@ def init_checker(ARGS=None):
 def init_sampling(ARGS=None):
     global args
     parser = argparse.ArgumentParser(description='Run SANDY')
-    parser.add_argument('endf6',
+    parser.add_argument('file',
                         type=lambda x: is_valid_file(parser, x),
-                        help="ENDF-6 format file.")
+                        help="ENDF-6 or PENDF format file.")
+    parser.add_argument('--covfile',
+                        type=lambda x: is_valid_file(parser, x),
+                        help="ENDF-6 or ERRORR format file.")
     parser.add_argument('--pendf',
                         type=lambda x: is_valid_file(parser, x),
                         help="PENDF format file.")
@@ -83,29 +86,29 @@ def init_sampling(ARGS=None):
                         default=0,
                         metavar="N",
                         help="Print the first N eigenvalues of the evaluated covariance matrices (default = 0, do not print).")
-    parser.add_argument('-mat','--keep-mat',
-                        type=int,
-                        action='append',
-                        help="Keep only the selected MAT sections (default = keep all). Allowed values range from 1 to 9999. Provide each MAT section as an individual optional argument, e.g. -mat 9228 -mat 125")
-    parser.add_argument('-mf','--keep-cov-mf',
-                        type=int,
-                        action='append',
-                        choices=range(31,36),
-                        default=[],
-                        help="Keep only the selected covariance MF sections (default = keep all). Allowed values are [31, 32, 33, 34, 35]. Provide each MF section as an individual optional argument, e.g. -mf 33 -mf 35")
-    parser.add_argument('-mt','--keep-cov-mt',
-                        type=int,
-                        action='append',
-                        metavar="{1,..,999}",
-                        help="Keep only the selected covariance MT sections (default = keep all). Allowed values range from 1 to 999. Provide each MT section as an individual optional argument, e.g. -mt 18 -mt 102")
+#    parser.add_argument('-mat','--keep-mat',
+#                        type=int,
+#                        action='append',
+#                        help="Keep only the selected MAT sections (default = keep all). Allowed values range from 1 to 9999. Provide each MAT section as an individual optional argument, e.g. -mat 9228 -mat 125")
+#    parser.add_argument('-mf','--keep-cov-mf',
+#                        type=int,
+#                        action='append',
+#                        choices=range(31,36),
+#                        default=[],
+#                        help="Keep only the selected covariance MF sections (default = keep all). Allowed values are [31, 32, 33, 34, 35]. Provide each MF section as an individual optional argument, e.g. -mf 33 -mf 35")
+#    parser.add_argument('-mt','--keep-cov-mt',
+#                        type=int,
+#                        action='append',
+#                        metavar="{1,..,999}",
+#                        help="Keep only the selected covariance MT sections (default = keep all). Allowed values range from 1 to 999. Provide each MT section as an individual optional argument, e.g. -mt 18 -mt 102")
     parser.add_argument('-e','--energy-point',
                         type=float,
                         action='append',
                         help="Additional energy points (in eV) to include in the incoming-neutron energy grid (default = None). Provide each energy point as an individual optional argument, e.g. -e 100.0 -e 201.5")
-    parser.add_argument('--njoy',
-                        type=lambda x: is_valid_file(parser, x, x=True),
-                        metavar="EXE",
-                        help="NJOY exe file.")
+#    parser.add_argument('--njoy',
+#                        type=lambda x: is_valid_file(parser, x, x=True),
+#                        metavar="EXE",
+#                        help="NJOY exe file.")
     parser.add_argument("-v",
                         '--version',
                         action='version',
