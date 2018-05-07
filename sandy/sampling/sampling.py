@@ -207,57 +207,83 @@ def sampling(tape, ismp, PertSeriesNubar=None, PertSeriesRes=None, PertSeriesXs=
 #            tape.DATA.loc[mat,1,451]['LRP'] == 2
 #    tape = perturb_xs(tape, PertSeriesXs, **kwargs)
 
+def sampling2(ismp, PertSeriesXs, **kwargs):
+    global tape
+    t0 = time.time()
+    tapeout = e6.Xs.from_tape(tape).perturb(PertSeriesXs).update_tape(tape)
+    tapeout = e6.write_mf1_nubar(tapeout)
+    tapeout = e6.write_mf3_mt(tapeout)
+    output = os.path.join(kwargs["outdir"], os.path.basename(kwargs["file"]) + '-{}'.format(ismp))
+    e6.write_tape(tapeout, output)
+    print("Created file '{}' in {:.2f} sec".format(output, time.time()-t0,))
+
 
 def run():
     t0 = time.time()
     settings.init_sampling()
 
-    tape = e6.endf2df(settings.args.endf6)#, keep_mf=[3], keep_mt=[102])
+    global tape
+    tape = e6.endf2df(settings.args.file)#, keep_mf=[3], keep_mt=[102])
+    covtape = e6.endf2df(settings.args.covfile)#, keep_mf=[3], keep_mt=[102])
 
-    if settings.args.keep_mat:
-        query = "|".join([ "MAT=={}".format(x) for x in settings.args.keep_mat])
-        tape = tape.query(query)
-    if settings.args.keep_cov_mf:
-        query = "|".join([ "MF=={}".format(x) for x in settings.args.keep_cov_mf])
-        tape = tape.query("MF < 31 | ({})".format(query))
-    if settings.args.keep_cov_mt:
-        query = "|".join([ "MT=={}".format(x) for x in settings.args.keep_cov_mt])
-        tape = tape.query("MF < 31 | ({})".format(query))
+#    if settings.args.keep_mat:
+#        query = "|".join([ "MAT=={}".format(x) for x in settings.args.keep_mat])
+#        tape = tape.query(query)
+#    if settings.args.keep_cov_mf:
+#        query = "|".join([ "MF=={}".format(x) for x in settings.args.keep_cov_mf])
+#        tape = tape.query("MF < 31 | ({})".format(query))
+#    if settings.args.keep_cov_mt:
+#        query = "|".join([ "MT=={}".format(x) for x in settings.args.keep_cov_mt])
+#        tape = tape.query("MF < 31 | ({})".format(query))
     if tape.empty:
         sys.exit("ERROR: tape is empty")
+    if covtape.empty:
+        sys.exit("ERROR: covtape is empty")
 
     MATS = set(tape.index.get_level_values("MAT"))
 
     # Further setup of settings
     kwargs = vars(settings.args)
-    MFS = set(tape.query("MF>=31 & MF<=35").index.get_level_values("MF"))
-    if not kwargs["keep_cov_mf"]:
-        kwargs["keep_cov_mf"] = MFS
-    else:
-        kwargs["keep_cov_mf"] = set(kwargs["keep_cov_mf"]) & MFS
-    if 33 in kwargs["keep_cov_mf"]:
-        if 32 in kwargs["keep_cov_mf"]:
-            if not kwargs['njoy']:
-                sys.exit("ERROR: njoy executable is requested. Use option \"--njoy EXE\"")
-        if kwargs['pendf']:
-            kwargs['pendf'] = e6.endf2df(kwargs['pendf'])
-        elif kwargs['njoy']:
-            print("Run RECONR for file {}".format(os.path.basename(kwargs['endf6'])))
-            kwargs['pendf'] = e6.endf2df(get_pendf(kwargs['endf6'], kwargs['njoy'], mat=list(MATS)[0], wd=kwargs['outdir']))
-        else:
-            sys.exit("ERROR: use either option --pendf or --njoy")
-        if kwargs['pendf'].empty:
-            sys.exit("ERROR: pendf tape is empty")
+#    MFS = set(tape.query("MF>=31 & MF<=35").index.get_level_values("MF"))
+#    if not kwargs["keep_cov_mf"]:
+#        kwargs["keep_cov_mf"] = MFS
+#    else:
+#        kwargs["keep_cov_mf"] = set(kwargs["keep_cov_mf"]) & MFS
+#    if 33 in kwargs["keep_cov_mf"]:
+#        if 32 in kwargs["keep_cov_mf"]:
+#            if not kwargs['njoy']:
+#                sys.exit("ERROR: njoy executable is requested. Use option \"--njoy EXE\"")
+#        if kwargs['pendf']:
+#            kwargs['pendf'] = e6.endf2df(kwargs['pendf'])
+#        elif kwargs['njoy']:
+#            print("Run RECONR for file {}".format(os.path.basename(kwargs['endf6'])))
+#            kwargs['pendf'] = e6.endf2df(get_pendf(kwargs['endf6'], kwargs['njoy'], mat=list(MATS)[0], wd=kwargs['outdir']))
+#        else:
+#            sys.exit("ERROR: use either option --pendf or --njoy")
+#        if kwargs['pendf'].empty:
+#            sys.exit("ERROR: pendf tape is empty")
 
     # Always run. If MF35 is not wanted, then MF35 sections are already removed.
-    PertXs = sample_xs(tape, settings.args.samples, **kwargs)
-    PertNubar = PertXs.query("MT==452 | MT==455 | MT==456")
-    PertXs = PertXs.query("MT!=452 & MT!=455 & MT!=456")
-    PertChi = sample_chi(tape, settings.args.samples, **kwargs)
+    PertXs = sample_xs(covtape, settings.args.samples, **kwargs)
+#    PertNubar = PertXs.query("MT==452 | MT==455 | MT==456")
+#    PertXs = PertXs.query("MT!=452 & MT!=455 & MT!=456")
+    PertChi = sample_chi(covtape, settings.args.samples, **kwargs)
 
-    A = e6.Xs.from_tape(tape)
-    A.perturb(PertXs[1])
 
+#    pool = mp.Pool(processes=settings.args.processes)
+#    [ pool.apply(sampling2,
+#                 args = PertXs[ismp],
+#                 kwds = {**kwargs}
+#                 ) for ismp in range(1,settings.args.samples+1) ]
+    for ismp in range(1,settings.args.samples+1):
+        sampling2(ismp, PertXs[ismp], **kwargs)
+    print("Total running time: {:.2f} sec".format(time.time() - t0))
+    sys.exit()
+
+
+
+    tapeout = e6.Xs.from_tape(tape).perturb(PertXs[1]).update_tape(tape)
+    aaa=1
     if True:#31 in MFS or 35 in MFS:
         outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
         if settings.args.processes == 1:

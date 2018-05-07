@@ -771,12 +771,13 @@ class Xs(pd.DataFrame):
         return tape
 
     def perturb(self, pert, **kwargs):
+        frame = self.copy()
 #        indexName = Xs.index.name
         # Add extra energy points
 #        if "energy_point" in kwargs:
 #            Xs = Xs.reindex(Xs.index.union(kwargs["energy_point"])).interpolate(method="slinear").fillna(0)
 #        Xs.index.name = indexName
-        for mat, mt in self:
+        for mat, mt in frame:
             if mat not in pert.index.get_level_values("MAT").unique():
                 continue
             lmtp = pert.loc[mat].index.get_level_values("MT").unique()
@@ -790,12 +791,12 @@ class Xs(pd.DataFrame):
                         break
             if not mtPert:
                 continue
-            P = PertSeriesXs.loc[mat,mtPert]
-            P = P.reindex(P.index.union(Xs[mat,mt].index)).ffill().fillna(1).reindex(Xs[mat,mt].index)
-            Xs[mat,mt] = Xs[mat,mt].multiply(P, axis="index")
+            P = pert.loc[mat,mtPert]
+            P = P.reindex(P.index.union(frame[mat,mt].index)).ffill().fillna(1).reindex(frame[mat,mt].index)
+            frame[mat,mt] = frame[mat,mt].multiply(P, axis="index")
             # Negative values are set to zero
-            Xs[mat,mt][Xs[mat,mt] <= 0] = 0
-        Xs = e6.reconstruct_xs(Xs)
+            frame[mat,mt][frame[mat,mt] <= 0] = 0
+        return Xs(frame).reconstruct_sums()
 
 
 def extract_chi(tape):
