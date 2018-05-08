@@ -6,7 +6,7 @@ Created on Mon Mar 19 22:51:03 2018
 """
 
 import pandas as pd
-import sandy.endf6.files as e6
+import sandy.formats.endf6 as e6
 from sandy import settings
 from sandy.sampling.cov import Cov
 import numpy as np
@@ -213,9 +213,11 @@ def sampling2(ismp, PertSeriesXs, **kwargs):
     tapeout = e6.Xs.from_tape(tape).perturb(PertSeriesXs).update_tape(tape)
     tapeout = e6.write_mf1_nubar(tapeout)
     tapeout = e6.write_mf3_mt(tapeout)
+    
     output = os.path.join(kwargs["outdir"], os.path.basename(kwargs["file"]) + '-{}'.format(ismp))
-    e6.write_tape(tapeout, output)
+    string = e6.Endf6(tapeout).to_file(output)
     print("Created file '{}' in {:.2f} sec".format(output, time.time()-t0,))
+    return string
 
 
 def run():
@@ -223,9 +225,8 @@ def run():
     settings.init_sampling()
 
     global tape
-    tape = e6.endf2df(settings.args.file)#, keep_mf=[3], keep_mt=[102])
-    covtape = e6.endf2df(settings.args.covfile)#, keep_mf=[3], keep_mt=[102])
-
+    tape = e6.Endf6.from_file(settings.args.file).process()
+    covtape = e6.Endf6.from_file(settings.args.covfile).process() #, keep_mf=[3], keep_mt=[102])
 #    if settings.args.keep_mat:
 #        query = "|".join([ "MAT=={}".format(x) for x in settings.args.keep_mat])
 #        tape = tape.query(query)
@@ -270,9 +271,9 @@ def run():
     PertChi = sample_chi(covtape, settings.args.samples, **kwargs)
 
 
-#    pool = mp.Pool(processes=settings.args.processes)
+#    pool = mp.Pool(processes=4)
 #    [ pool.apply(sampling2,
-#                 args = PertXs[ismp],
+#                 args = (ismp, PertXs[ismp]),
 #                 kwds = {**kwargs}
 #                 ) for ismp in range(1,settings.args.samples+1) ]
     for ismp in range(1,settings.args.samples+1):
