@@ -7,7 +7,7 @@ Created on Fri May 11 15:08:25 2018
 from sandy.formats.records import read_cont, read_list, read_float
 from os.path import join, dirname, realpath
 import pandas as pd
-from sandy.formats.endf6 import split
+from sandy.formats.endf6 import split, XsCov
 import numpy as np
 
 def process_errorr_section(text, keep_mf=None, keep_mt=None):
@@ -106,18 +106,7 @@ def read_mf33_mt(text):
 
 
 
-class ErrorrCov(pd.DataFrame):
 
-    @classmethod
-    def from_tape(cls, tape):
-        mat = tape.index.get_level_values("MAT")[0]
-        eg = tape.loc[mat,1,451].DATA["EG"]
-        List = []
-        for x in tape.query('MF==33 | MF==31').DATA:
-            for mt1,y in x["RP"].items():
-                List.append([x["MT"], mt1, y[mt1]])
-        frame = pd.DataFrame(List, columns=('MT', 'MT1', 'COV'))
-        return
 
 ##############
 # UNIT TESTS #
@@ -127,6 +116,6 @@ def test_read_errorr():
     from sandy.data_test import __file__ as td
     td = dirname(realpath(td))
     tape = Errorr.from_file(join(td, r"fe56.errorr")).process()
-    ErrorrCov.from_tape(tape)
+    XsCov.from_errorr_tape(tape)
 
 test_read_errorr()

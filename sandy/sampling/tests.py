@@ -132,6 +132,21 @@ def test_Cm242():
     sys.argv = [sys.argv[0]] + extra_args
     sampling.run()
 
+def test_Fe56():
+    from sandy.sampling import sampling
+    from sandy.data_test import __file__ as td
+    from sandy import __file__ as sd
+    sd = dirname(realpath(sd))
+    td = dirname(realpath(td))
+    extra_args = [join(td, r"fe56.pendf"),
+                 "--covfile", join(td, r"fe56.errorr"),
+                 "--outdir", r"fe56-tmpdir",
+#                 "--njoy", join(sd, r"njoy2012_50.exe"),
+                 "--eig", "10",
+                 "--samples", "10",]
+    sys.argv = [sys.argv[0]] + extra_args
+    sampling.run()
+
 def run_tests():
     args = [abspath(__file__)]
     if len(sys.argv) > 1:
@@ -139,4 +154,4 @@ def run_tests():
     pytest.main(args)
 
 #run_tests()
-test_Cm242()
+test_Fe56()

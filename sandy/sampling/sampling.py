@@ -19,6 +19,9 @@ import time
 import matplotlib.pyplot as plt
 from sandy.njoy import get_pendf
 from sandy.tests import TimeDecorator
+from sandy.formats.errorr import Errorr
+import re
+
 
 #To produce correlation matrix
 #Index = df_cov_xs.index
@@ -51,7 +54,8 @@ def sample_chi(tape, NSMP, **kwargs):
 
 def sample_xs(tape, NSMP, **kwargs):
     # perturbations are in relative values
-    DfCov = e6.extract_cov33(tape)
+    from sandy.formats.endf6 import XsCov
+    DfCov = XsCov.from_errorr_tape(tape)
     if DfCov.empty:
         return pd.DataFrame()
     cov = Cov(DfCov.as_matrix())
@@ -70,6 +74,28 @@ def sample_xs(tape, NSMP, **kwargs):
             E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
             print("\n".join(E))
     return DfPert
+
+#def sample_xs(tape, NSMP, **kwargs):
+#    # perturbations are in relative values
+#    DfCov = e6.extract_cov33(tape)
+#    if DfCov.empty:
+#        return pd.DataFrame()
+#    cov = Cov(DfCov.as_matrix())
+#    DfPert = pd.DataFrame( cov.sampling(NSMP) + 1, index=DfCov.index, columns=range(1,NSMP+1))
+#    DfPert.columns.name = 'SMP'
+#    if "eig" in kwargs:
+#        if kwargs["eig"] > 0:
+#            from sandy.functions import div0
+#            eigs = cov.eig()[0]
+#            idxs = np.abs(eigs).argsort()[::-1]
+#            dim = min(len(eigs), kwargs["eig"])
+#            eigs_smp = Cov(np.cov(DfPert.as_matrix())).eig()[0]
+#            idxs_smp = np.abs(eigs_smp).argsort()[::-1]
+#            print("MF[31,33] eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
+#            diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
+#            E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
+#            print("\n".join(E))
+#    return DfPert
 
 @TimeDecorator
 def perturb_xs(tape, PertSeriesXs, **kwargs):
@@ -226,50 +252,26 @@ def run():
 
     global tape
     tape = e6.Endf6.from_file(settings.args.file).process()
-    covtape = e6.Endf6.from_file(settings.args.covfile).process() #, keep_mf=[3], keep_mt=[102])
-#    if settings.args.keep_mat:
-#        query = "|".join([ "MAT=={}".format(x) for x in settings.args.keep_mat])
-#        tape = tape.query(query)
-#    if settings.args.keep_cov_mf:
-#        query = "|".join([ "MF=={}".format(x) for x in settings.args.keep_cov_mf])
-#        tape = tape.query("MF < 31 | ({})".format(query))
-#    if settings.args.keep_cov_mt:
-#        query = "|".join([ "MT=={}".format(x) for x in settings.args.keep_cov_mt])
-#        tape = tape.query("MF < 31 | ({})".format(query))
+    for line in open(settings.args.covfile).readlines():
+        pattern = ".{44}(?P<ERRFLAG>.{11}).{15} 1451"
+        found = re.search(pattern, line)
+        if not found: continue
+        if int(found.group("ERRFLAG")) == -11:
+            covtape = Errorr.from_file(settings.args.covfile).process()#, keep_mf=[3], keep_mt=[102])
+        else:
+            covtape = e6.Endf6.from_file(settings.args.covfile).process()
+        break
     if tape.empty:
         sys.exit("ERROR: tape is empty")
     if covtape.empty:
         sys.exit("ERROR: covtape is empty")
 
-    MATS = set(tape.index.get_level_values("MAT"))
-
     # Further setup of settings
     kwargs = vars(settings.args)
-#    MFS = set(tape.query("MF>=31 & MF<=35").index.get_level_values("MF"))
-#    if not kwargs["keep_cov_mf"]:
-#        kwargs["keep_cov_mf"] = MFS
-#    else:
-#        kwargs["keep_cov_mf"] = set(kwargs["keep_cov_mf"]) & MFS
-#    if 33 in kwargs["keep_cov_mf"]:
-#        if 32 in kwargs["keep_cov_mf"]:
-#            if not kwargs['njoy']:
-#                sys.exit("ERROR: njoy executable is requested. Use option \"--njoy EXE\"")
-#        if kwargs['pendf']:
-#            kwargs['pendf'] = e6.endf2df(kwargs['pendf'])
-#        elif kwargs['njoy']:
-#            print("Run RECONR for file {}".format(os.path.basename(kwargs['endf6'])))
-#            kwargs['pendf'] = e6.endf2df(get_pendf(kwargs['endf6'], kwargs['njoy'], mat=list(MATS)[0], wd=kwargs['outdir']))
-#        else:
-#            sys.exit("ERROR: use either option --pendf or --njoy")
-#        if kwargs['pendf'].empty:
-#            sys.exit("ERROR: pendf tape is empty")
 
     # Always run. If MF35 is not wanted, then MF35 sections are already removed.
     PertXs = sample_xs(covtape, settings.args.samples, **kwargs)
-#    PertNubar = PertXs.query("MT==452 | MT==455 | MT==456")
-#    PertXs = PertXs.query("MT!=452 & MT!=455 & MT!=456")
     PertChi = sample_chi(covtape, settings.args.samples, **kwargs)
-
 
 #    pool = mp.Pool(processes=4)
 #    [ pool.apply(sampling2,
@@ -282,64 +284,5 @@ def run():
     sys.exit()
 
 
-
-    tapeout = e6.Xs.from_tape(tape).perturb(PertXs[1]).update_tape(tape)
-    aaa=1
-    if True:#31 in MFS or 35 in MFS:
-        outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.endf6) + '-{}')
-        if settings.args.processes == 1:
-            for ismp in range(1,settings.args.samples+1):
-                sampling(tape,
-                         ismp,
-                         PertSeriesNubar=PertNubar[ismp] if (not PertNubar.empty and 31 in kwargs["keep_cov_mf"]) else None,
-                         PertSeriesXs=PertXs[ismp] if (not PertXs.empty and 33 in kwargs["keep_cov_mf"]) else None,
-                         PertSeriesChi=PertChi[ismp] if (not PertChi.empty and 35 in kwargs["keep_cov_mf"]) else None,
-                         **kwargs)
-        else:
-            pool = mp.Pool(processes=settings.args.processes)
-            [ pool.apply(sampling,
-                         args = (tape, outname.format(ismp)),
-                         kwds = {**{"PertSeriesXs"  : PertXs[ismp] if not PertXs.empty else None,
-                                    "PertSeriesChi" : PertChi[ismp] if not PertChi.empty else None,
-                                    "ismp" : ismp},
-                                 **kwargs}
-                         ) for ismp in range(1,settings.args.samples+1) ]
-
-    sys.exit()
-    if 33 in kwargs["keep_cov_mf"]:
-        if not settings.args.pendf:
-            from sandy.njoy import FileNJOY
-            fnjoy = FileNJOY()
-            # Write NJOY file
-            fnjoy.copy_to_tape(settings.args.endf6, 20, dst=settings.args.outdir)
-            fnjoy.reconr(20, 21, mat=tape.index.get_level_values('MAT').unique())
-            fnjoy.stop()
-            fnjoy.run(settings.args.njoy, cwd=settings.args.outdir)
-            settings.args.pendf = os.path.join(settings.args.outdir,
-                                               '{}.pendf'.format(os.path.basename(settings.args.endf6)))
-            shutil.move(os.path.join(settings.args.outdir, r'tape21'), settings.args.pendf)
-            # Remove NJOY junk outputs
-            os.unlink(os.path.join(settings.args.outdir, r'tape20'))
-            os.unlink(os.path.join(settings.args.outdir, r'output'))
-        ptape = e6.endf2df(settings.args.pendf)
-
-        outname = os.path.join(settings.args.outdir, os.path.basename(settings.args.pendf) + '-{}')
-        if settings.args.processes == 1:
-            for ismp in range(1,settings.args.samples+1):
-                sampling(ptape,
-                         outname.format(ismp),
-                         PertSeriesXs=PertXs[ismp] if not PertXs.empty else None,
-                         ismp=ismp,
-                         **vars(settings.args))
-        else:
-            pool = mp.Pool(processes=settings.args.processes)
-            [ pool.apply(sampling,
-                         args = (ptape, outname.format(ismp)),
-                         kwds = {**{"PertSeriesXs" : PertXs[ismp] if not PertXs.empty else None,
-                                    },
-                                 **vars(settings.args)}
-                         ) for ismp in range(1,settings.args.samples+1) ]
-    print("Total running time: {:.2f} sec".format(time.time() - t0))
-
-if __name__ == '__main__':
-    run()
+#if __name__ == '__main__':
+#    run()
