@@ -146,8 +146,8 @@ class Endf6(pd.DataFrame):
     def from_file(cls, file):
         """
         Read ENDF-6 formatted file and split it into MAT/MF/MT sections.
-        Produce Endf6 instance (pandas.DataFrame) with columns
-            MAT MF MT TEXT DATA
+        Produce Endf6 instance (pandas.DataFrame) with index MAT,MF,MT and
+        columns TEXT,DATA.
         """
         columns = ('MAT', 'MF', 'MT','TEXT')
         rows = []
