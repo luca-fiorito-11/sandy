@@ -165,12 +165,13 @@ class Endf6(pd.DataFrame):
     def by_ZAM(self):
         """
         Change index from MAT,MF,MT to ZAM,MF,MT.
+        Return a pd.DataFrame instance (not Endf6 instance, because most of the methods do not support ZAM).
         """
         tape = self.copy().reset_index()
         iso = tape.query("MF==1 & MT==451")
         iso["ZAM"] = iso.TEXT.apply(lambda x: int(float(read_float(x[:11]))*10+int(x[103:114]))).values
         tape =  tape.merge(iso[["MAT","ZAM"]], how="left", on="MAT").drop("MAT", axis=1).set_index(['ZAM','MF','MT']).sort_index()
-        return Endf6(tape)
+        return tape
 
     def process(self, keep_mf=None, keep_mt=None):
         """
@@ -182,12 +183,10 @@ class Endf6(pd.DataFrame):
 
     def to_string(self, title=" "*66):
         """
-        Write TEXT column to string.
+        First update MF1/MT451 dictionary.
+        Then, Write TEXT column to string.
         """
-        tape = pd.DataFrame(index=self.index.copy(), columns=self.columns.copy())
-        for k,row in self.iterrows():
-            tape.loc[k].TEXT = deepcopy(row.TEXT)
-#        tape = write_mf1_mt451( update_dict(tape) )
+        tape = self.update_dict().write_mf1_mt451()
         string = "{:<66}{:4}{:2}{:3}{:5}\n".format(title, 1, 0, 0, 0)
         for mat,dfmat in tape.groupby('MAT', sort=True):
             for mf,dfmf in dfmat.groupby('MF', sort=True):
@@ -240,6 +239,101 @@ class Endf6(pd.DataFrame):
         xs.columns.names = ["MAT", "MT"]
         return Xs(xs)
 
+    def update_dict(self):
+        """
+        Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
+        """
+        tape = pd.DataFrame(index=self.index.copy(), columns=self.columns.copy())
+        for k,row in self.iterrows():
+            tape.loc[k].DATA = deepcopy(row.DATA)
+            tape.loc[k].TEXT = deepcopy(row.TEXT)
+        for mat in sorted(tape.index.get_level_values('MAT').unique()):
+            chunk = tape.DATA.loc[mat,1,451]
+            records = pd.DataFrame(chunk["RECORDS"],
+                                   columns=["MF","MT","NC","MOD"]).set_index(["MF","MT"])
+            new_records = []
+            for (mf,mt),text in sorted(tape.loc[mat].query('MT!=451'.format(mat)).TEXT.items()):
+                nc = len(text.splitlines())
+                # when copying PENDF sections (MF2/MT152) mod is not present in the dictionary
+                try:
+                    mod = records.MOD.loc[mf,mt]
+                except:
+                    mod = 0
+                new_records.append((mf,mt,nc,mod))
+            nc = 4 + len(chunk["TEXT"]) + len(new_records) + 1
+            mod = records.MOD.loc[1,451]
+            new_records = [(1,451,nc,mod)] + new_records
+            chunk["RECORDS"] = new_records
+        return Endf6(tape)
+
+    def write_mf1_mt451(self):
+        tape = pd.DataFrame(index=self.index.copy(), columns=self.columns.copy())
+        for k,row in self.iterrows():
+            tape.loc[k].DATA = deepcopy(row.DATA)
+            tape.loc[k].TEXT = deepcopy(row.TEXT)
+        for (mat,mf,mt),df in tape.query('MF==1 & MT==451').iterrows():
+            TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], df.DATA["LRP"], df.DATA["LFI"], df.DATA["NLIB"], df.DATA["NMOD"])
+            TEXT += write_cont(df.DATA["ELIS"], df.DATA["STA"], df.DATA["LIS"], df.DATA["LISO"], 0, df.DATA["NFOR"])
+            TEXT += write_cont(df.DATA["AWI"], df.DATA["EMAX"], df.DATA["LREL"], 0, df.DATA["NSUB"], df.DATA["NVER"])
+            TEXT += write_cont(df.DATA["TEMP"], 0, df.DATA["LDRV"], 0, len(df.DATA["TEXT"]), len(df.DATA["RECORDS"]))
+            TEXT += df.DATA["TEXT"]
+            TEXT += [ " "*22 + "{:>11}{:>11}{:>11}{:>11}".format(mfnxc,mtnxc,ncnxc,modnxc) for mfnxc,mtnxc,ncnxc,modnxc in df.DATA["RECORDS"]]
+            TextOut = []; iline = 1
+            for line in TEXT:
+                if iline > 99999:
+                    iline = 1
+                TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
+                iline += 1
+            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
+        return Endf6(tape)
+
+    def write_mf1_nubar(self):
+        tape = pd.DataFrame(index=self.index.copy(), columns=self.columns.copy())
+        for k,row in self.iterrows():
+            tape.loc[k].DATA = deepcopy(row.DATA)
+            tape.loc[k].TEXT = deepcopy(row.TEXT)
+        for (mat,mf,mt),df in tape.query('MF==1 & (MT==452 | MT==455 | MT==456)').iterrows():
+            TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], df.DATA["LDG"], df.DATA["LNU"], 0, 0)
+            if df.DATA["MT"] == 455:
+                if df.DATA["LDG"] == 0:
+                    TEXT += write_list(0, 0, 0, 0, 0, df.DATA["LAMBDAS"])
+                elif df.DATA["LDG"] == 1:
+                    # Not found in JEFF33 and ENDFB8, hence not implemented
+                    pass
+            if df.DATA["LNU"] == 1:
+                TEXT += write_list(0, 0, 0, 0, 0, df.DATA["C"])
+            else:
+                TEXT += write_tab1(0, 0, 0, 0, df.DATA["NBT"], df.DATA["INT"],
+                               df.DATA["NUBAR"].index, df.DATA["NUBAR"])
+            TextOut = []; iline = 1
+            for line in TEXT:
+                if iline > 99999:
+                    iline = 1
+                TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
+                iline += 1
+            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
+        return Endf6(tape)
+
+    def write_mf3_mt(self):
+        tape = pd.DataFrame(index=self.index.copy(), columns=self.columns.copy())
+        for k,row in self.iterrows():
+            tape.loc[k].DATA = deepcopy(row.DATA)
+            tape.loc[k].TEXT = deepcopy(row.TEXT)
+        for (mat,mf,mt),df in tape.query('MF==3').iterrows():
+            if df.DATA is None:
+                continue
+            TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, 0, 0)
+            TEXT += write_tab1(df.DATA["QM"], df.DATA["QI"], 0, df.DATA["LR"],
+                               df.DATA["NBT"], df.DATA["INT"],
+                               df.DATA["XS"].index, df.DATA["XS"])
+            TextOut = []; iline = 1
+            for line in TEXT:
+                if iline > 99999:
+                    iline = 1
+                TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
+                iline += 1
+            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
+        return Endf6(tape)
 
 def read_mf1_mt451(text):
     str_list = text.splitlines()
@@ -282,27 +376,6 @@ def read_mf1_mt451(text):
         out["RECORDS"].append((C.L1,C.L2,C.N1,C.N2))
     return out
 
-def write_mf1_mt451(tapein):
-    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
-    for k,row in tapein.iterrows():
-        tape.loc[k].DATA = deepcopy(row.DATA)
-        tape.loc[k].TEXT = deepcopy(row.TEXT)
-    for (mat,mf,mt),df in tape.query('MF==1 & MT==451').iterrows():
-        TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], df.DATA["LRP"], df.DATA["LFI"], df.DATA["NLIB"], df.DATA["NMOD"])
-        TEXT += write_cont(df.DATA["ELIS"], df.DATA["STA"], df.DATA["LIS"], df.DATA["LISO"], 0, df.DATA["NFOR"])
-        TEXT += write_cont(df.DATA["AWI"], df.DATA["EMAX"], df.DATA["LREL"], 0, df.DATA["NSUB"], df.DATA["NVER"])
-        TEXT += write_cont(df.DATA["TEMP"], 0, df.DATA["LDRV"], 0, len(df.DATA["TEXT"]), len(df.DATA["RECORDS"]))
-        TEXT += df.DATA["TEXT"]
-        TEXT += [ " "*22 + "{:>11}{:>11}{:>11}{:>11}".format(mfnxc,mtnxc,ncnxc,modnxc) for mfnxc,mtnxc,ncnxc,modnxc in df.DATA["RECORDS"]]
-        TextOut = []; iline = 1
-        for line in TEXT:
-            if iline > 99999:
-                iline = 1
-            TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
-            iline += 1
-        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
-    return tape
-
 def read_mf1_nubar(text):
     str_list = text.splitlines()
     i = 0
@@ -329,33 +402,6 @@ def read_mf1_nubar(text):
         out.update({"NBT" : T.NBT, "INT" : T.INT})
         out["NUBAR"] = pd.Series(T.y, index = T.x, name = (out["MAT"],out["MT"])).rename_axis("E")
     return out
-
-def write_mf1_nubar(tapein):
-    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
-    for k,row in tapein.iterrows():
-        tape.loc[k].DATA = deepcopy(row.DATA)
-        tape.loc[k].TEXT = deepcopy(row.TEXT)
-    for (mat,mf,mt),df in tape.query('MF==1 & (MT==452 | MT==455 | MT==456)').iterrows():
-        TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], df.DATA["LDG"], df.DATA["LNU"], 0, 0)
-        if df.DATA["MT"] == 455:
-            if df.DATA["LDG"] == 0:
-                TEXT += write_list(0, 0, 0, 0, 0, df.DATA["LAMBDAS"])
-            elif df.DATA["LDG"] == 1:
-                # Not found in JEFF33 and ENDFB8, hence not implemented
-                pass
-        if df.DATA["LNU"] == 1:
-            TEXT += write_list(0, 0, 0, 0, 0, df.DATA["C"])
-        else:
-            TEXT += write_tab1(0, 0, 0, 0, df.DATA["NBT"], df.DATA["INT"],
-                           df.DATA["NUBAR"].index, df.DATA["NUBAR"])
-        TextOut = []; iline = 1
-        for line in TEXT:
-            if iline > 99999:
-                iline = 1
-            TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
-            iline += 1
-        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
-    return tape
 
 def read_mf2_mt151(text):
     str_list = text.splitlines()
@@ -437,27 +483,6 @@ def read_mf3_mt(text):
     out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBT" : T.NBT, "INT" : T.INT})
     out["XS"] = pd.Series(T.y, index = T.x, name = (out["MAT"],out["MT"])).rename_axis("E")
     return out
-
-def write_mf3_mt(tapein):
-    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
-    for k,row in tapein.iterrows():
-        tape.loc[k].DATA = deepcopy(row.DATA)
-        tape.loc[k].TEXT = deepcopy(row.TEXT)
-    for (mat,mf,mt),df in tape.query('MF==3').iterrows():
-        if df.DATA is None:
-            continue
-        TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, 0, 0)
-        TEXT += write_tab1(df.DATA["QM"], df.DATA["QI"], 0, df.DATA["LR"],
-                           df.DATA["NBT"], df.DATA["INT"],
-                           df.DATA["XS"].index, df.DATA["XS"])
-        TextOut = []; iline = 1
-        for line in TEXT:
-            if iline > 99999:
-                iline = 1
-            TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
-            iline += 1
-        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
-    return tape
 
 def read_mf4_mt(text):
     str_list = text.splitlines()
@@ -764,24 +789,24 @@ def read_mf35_mt(text):
            "Fkk" : L.B[L.N2:] })
     return out
 
-def pandas_interpolate(df, interp_column, method='zero', axis='both'):
-    # interp_column is a list
-    dfout = pd.DataFrame(df.copy(), index=df.index.copy(), columns=df.columns.copy())
-    if axis in ['rows', 'both']:
-        ug = np.unique(list(dfout.index) + interp_column)
-        dfout = dfout.reindex(ug)
-        dfout = dfout.interpolate(method=method)
-        dfout = dfout.reindex(interp_column)
-    # Now transpose columns to rows and reinterpolate
-    if axis in ['columns', 'both']:
-        dfout = dfout.transpose()
-        ug = np.unique(list(df.index) + interp_column)
-        dfout = dfout.reindex(ug)
-        dfout = dfout.interpolate(method=method)
-        dfout = dfout.reindex(interp_column)
-        dfout = dfout.transpose()
-    dfout.fillna(0, inplace=True)
-    return dfout
+#def pandas_interpolate(df, interp_column, method='zero', axis='both'):
+#    # interp_column is a list
+#    dfout = pd.DataFrame(df.copy(), index=df.index.copy(), columns=df.columns.copy())
+#    if axis in ['rows', 'both']:
+#        ug = np.unique(list(dfout.index) + interp_column)
+#        dfout = dfout.reindex(ug)
+#        dfout = dfout.interpolate(method=method)
+#        dfout = dfout.reindex(interp_column)
+#    # Now transpose columns to rows and reinterpolate
+#    if axis in ['columns', 'both']:
+#        dfout = dfout.transpose()
+#        ug = np.unique(list(df.index) + interp_column)
+#        dfout = dfout.reindex(ug)
+#        dfout = dfout.interpolate(method=method)
+#        dfout = dfout.reindex(interp_column)
+#        dfout = dfout.transpose()
+#    dfout.fillna(0, inplace=True)
+#    return dfout
 
 
 
@@ -836,7 +861,7 @@ class Xs(pd.DataFrame):
             tape.DATA.loc[mat,mf,mt][name] = SeriesXs
             tape.DATA.loc[mat,mf,mt]["NBT"] = [len(SeriesXs)]
             tape.DATA.loc[mat,mf,mt]["INT"] = [2]
-        return tape
+        return Endf6(tape)
 
     def perturb(self, pert, **kwargs):
         frame = self.copy()
@@ -1103,73 +1128,73 @@ def extract_cov35(tape):
     DfCov.columns = DfCov.index
     return DfCov
 
-def reconstruct_xs(DfXs):
-    for mat in DfXs.columns.get_level_values("MAT").unique():
-        ListMT = deepcopy(DfXs[mat].columns)
-        for mt in DfXs[mat].columns.get_level_values("MT").unique():
-            daughters = [ x for x in range(800,850) if x in DfXs[mat].columns]
-            if daughters:
-                DfXs[mat,107] = DfXs[mat][daughters].sum(axis=1)
-            daughters = [ x for x in range(750,800) if x in DfXs[mat].columns]
-            if daughters:
-                DfXs[mat,106] = DfXs[mat][daughters].sum(axis=1)
-            daughters = [ x for x in range(700,750) if x in DfXs[mat].columns]
-            if daughters:
-                DfXs[mat,105] = DfXs[mat][daughters].sum(axis=1)
-            daughters = [ x for x in range(650,700) if x in DfXs[mat].columns]
-            if daughters:
-                DfXs[mat,104] = DfXs[mat][daughters].sum(axis=1)
-            daughters = [ x for x in range(600,650) if x in DfXs[mat].columns]
-            if daughters:
-                DfXs[mat,103] = DfXs[mat][daughters].sum(axis=1)
-            daughters = [ x for x in range(102,118) if x in DfXs[mat].columns]
-            if daughters:
-                DfXs[mat,101] = DfXs[mat][daughters].sum(axis=1)
-            daughters = [ x for x in (19,20,21,38) if x in DfXs[mat].columns]
-            if daughters:
-                DfXs[mat,18] = DfXs[mat][daughters].sum(axis=1)
-            daughters = [ x for x in (18,101) if x in DfXs[mat].columns]
-            if daughters:
-                DfXs[mat,27] = DfXs[mat][daughters].sum(axis=1)
-            daughters = [ x for x in range(50,92) if x in DfXs[mat].columns]
-            if daughters:
-                DfXs[mat,4] = DfXs[mat][daughters].sum(axis=1)
-            daughters = [ x for x in (4,5,11,16,17,*range(22,38),41,42,44,45) if x in DfXs[mat].columns]
-            if daughters:
-                DfXs[mat,3] = DfXs[mat][daughters].sum(axis=1)
-            daughters = [ x for x in (2,3) if x in DfXs[mat].columns]
-            if daughters:
-                DfXs[mat,1] = DfXs[mat][daughters].sum(axis=1)
-            daughters = [ x for x in (455,456) if x in DfXs[mat].columns]
-            if daughters:
-                DfXs[mat,452] = DfXs[mat][daughters].sum(axis=1)
-        # keep only mts present in the original file
-        todrop = [ x for x in DfXs[mat].columns if x not in ListMT ]
-        if todrop:
-            DfXs.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
-    return DfXs
-
-def update_xs(tapein, DfXs):
-    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
-    for k,row in tapein.iterrows():
-        tape.loc[k].DATA = deepcopy(row.DATA)
-        tape.loc[k].TEXT = deepcopy(row.TEXT)
-    for mat, mt in DfXs:
-        mf = 1 if mt in (452,455,456) else 3
-        name = 'NUBAR' if mt in (452,455,456) else 'XS'
-        if (mat, mf, mt) not in tape.index:
-            continue
-        # Cut threshold xs
-        iNotZero = next((i for i, x in enumerate(DfXs[mat,mt]) if x), None)
-        if iNotZero > 0:
-            SeriesXs = DfXs[mat,mt].iloc[iNotZero-1:]
-        else:
-            SeriesXs = DfXs[mat,mt]
-        # Assume all xs have only 1 interpolation region and it is linear
-        tape.DATA.loc[mat,mf,mt][name] = SeriesXs
-        tape.DATA.loc[mat,mf,mt]["NBT"] = [len(SeriesXs)]
-        tape.DATA.loc[mat,mf,mt]["INT"] = [2]
-    return tape
+#def reconstruct_xs(DfXs):
+#    for mat in DfXs.columns.get_level_values("MAT").unique():
+#        ListMT = deepcopy(DfXs[mat].columns)
+#        for mt in DfXs[mat].columns.get_level_values("MT").unique():
+#            daughters = [ x for x in range(800,850) if x in DfXs[mat].columns]
+#            if daughters:
+#                DfXs[mat,107] = DfXs[mat][daughters].sum(axis=1)
+#            daughters = [ x for x in range(750,800) if x in DfXs[mat].columns]
+#            if daughters:
+#                DfXs[mat,106] = DfXs[mat][daughters].sum(axis=1)
+#            daughters = [ x for x in range(700,750) if x in DfXs[mat].columns]
+#            if daughters:
+#                DfXs[mat,105] = DfXs[mat][daughters].sum(axis=1)
+#            daughters = [ x for x in range(650,700) if x in DfXs[mat].columns]
+#            if daughters:
+#                DfXs[mat,104] = DfXs[mat][daughters].sum(axis=1)
+#            daughters = [ x for x in range(600,650) if x in DfXs[mat].columns]
+#            if daughters:
+#                DfXs[mat,103] = DfXs[mat][daughters].sum(axis=1)
+#            daughters = [ x for x in range(102,118) if x in DfXs[mat].columns]
+#            if daughters:
+#                DfXs[mat,101] = DfXs[mat][daughters].sum(axis=1)
+#            daughters = [ x for x in (19,20,21,38) if x in DfXs[mat].columns]
+#            if daughters:
+#                DfXs[mat,18] = DfXs[mat][daughters].sum(axis=1)
+#            daughters = [ x for x in (18,101) if x in DfXs[mat].columns]
+#            if daughters:
+#                DfXs[mat,27] = DfXs[mat][daughters].sum(axis=1)
+#            daughters = [ x for x in range(50,92) if x in DfXs[mat].columns]
+#            if daughters:
+#                DfXs[mat,4] = DfXs[mat][daughters].sum(axis=1)
+#            daughters = [ x for x in (4,5,11,16,17,*range(22,38),41,42,44,45) if x in DfXs[mat].columns]
+#            if daughters:
+#                DfXs[mat,3] = DfXs[mat][daughters].sum(axis=1)
+#            daughters = [ x for x in (2,3) if x in DfXs[mat].columns]
+#            if daughters:
+#                DfXs[mat,1] = DfXs[mat][daughters].sum(axis=1)
+#            daughters = [ x for x in (455,456) if x in DfXs[mat].columns]
+#            if daughters:
+#                DfXs[mat,452] = DfXs[mat][daughters].sum(axis=1)
+#        # keep only mts present in the original file
+#        todrop = [ x for x in DfXs[mat].columns if x not in ListMT ]
+#        if todrop:
+#            DfXs.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
+#    return DfXs
+#
+#def update_xs(tapein, DfXs):
+#    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
+#    for k,row in tapein.iterrows():
+#        tape.loc[k].DATA = deepcopy(row.DATA)
+#        tape.loc[k].TEXT = deepcopy(row.TEXT)
+#    for mat, mt in DfXs:
+#        mf = 1 if mt in (452,455,456) else 3
+#        name = 'NUBAR' if mt in (452,455,456) else 'XS'
+#        if (mat, mf, mt) not in tape.index:
+#            continue
+#        # Cut threshold xs
+#        iNotZero = next((i for i, x in enumerate(DfXs[mat,mt]) if x), None)
+#        if iNotZero > 0:
+#            SeriesXs = DfXs[mat,mt].iloc[iNotZero-1:]
+#        else:
+#            SeriesXs = DfXs[mat,mt]
+#        # Assume all xs have only 1 interpolation region and it is linear
+#        tape.DATA.loc[mat,mf,mt][name] = SeriesXs
+#        tape.DATA.loc[mat,mf,mt]["NBT"] = [len(SeriesXs)]
+#        tape.DATA.loc[mat,mf,mt]["INT"] = [2]
+#    return tape
 
 def update_chi(tapein, DfChi):
     tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
@@ -1188,44 +1213,7 @@ def update_chi(tapein, DfChi):
                                                   'NBT_EIN' : [CHI.shape[0]]})
     return tape
 
-def update_dict(tapein):
-    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
-    for k,row in tapein.iterrows():
-        tape.loc[k].DATA = deepcopy(row.DATA)
-        tape.loc[k].TEXT = deepcopy(row.TEXT)
-    for mat in sorted(tape.index.get_level_values('MAT').unique()):
-        chunk = tape.DATA.loc[mat,1,451]
-        records = pd.DataFrame(chunk["RECORDS"],
-                               columns=["MF","MT","NC","MOD"]).set_index(["MF","MT"])
-        new_records = []
-        for (mf,mt),text in sorted(tape.loc[mat].query('MT!=451'.format(mat)).TEXT.items()):
-            nc = len(text.splitlines())
-            # when copying PENDF sections (MF2/MT152) mod is not present in the dictionary
-            try:
-                mod = records.MOD.loc[mf,mt]
-            except:
-                mod = 0
-            new_records.append((mf,mt,nc,mod))
-        nc = 4 + len(chunk["TEXT"]) + len(new_records) + 1
-        mod = records.MOD.loc[1,451]
-        new_records = [(1,451,nc,mod)] + new_records
-        chunk["RECORDS"] = new_records
-    return tape
 
-def write_tape(tape, file, title=" "*66):
-    tape = write_mf1_mt451( update_dict(tape) )
-    string = "{:<66}{:4}{:2}{:3}{:5}\n".format(title, 1, 0, 0, 0)
-    for mat,dfmat in tape.groupby('MAT', sort=True):
-        for mf,dfmf in dfmat.groupby('MF', sort=True):
-            for mt,dfmt in dfmf.groupby('MT', sort=True):
-                for text in dfmt.TEXT:
-                    string += text.encode('ascii', 'replace').decode('ascii')
-                string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, mf, 0, 99999)
-            string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, 0, 0, 0)
-        string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), 0, 0, 0, 0)
-    string += "{:<66}{:4}{:2}{:3}{:5}".format(*write_cont(*[0]*6), -1, 0, 0, 0)
-    with open(file, 'w', encoding="ascii") as f:
-        f.write(string)
 
 def write_decay_data_csv(tape, filename):
     df = tape.query("MF==8 & MT==457")
