@@ -208,6 +208,38 @@ class Endf6(pd.DataFrame):
         with open(file, 'w', encoding="ascii") as f:
             f.write(string)
 
+    def get_xs(self):
+        """
+        Extract cross sections/nubar (xs).
+        xs are linearized on unique grid.
+        Missing points are linearly interpolated (use zero when out of domain).
+
+        Conditions:
+            - xs interpolation law must be lin-lin
+            - No duplicate points on energy grid
+        """
+        from collections import Counter
+        from functools import reduce
+        xsList = []
+        for mat in self.index.get_level_values('MAT').unique():
+            query = "(MF==1 & (MT==452 | MT==455 | MT==456))"
+            if self.DATA.loc[mat,1,451]['LRP'] == 2:
+                query += ' | MF==3'
+            for chunk in self.loc[mat].query(query).DATA:
+                if not chunk: continue
+                key = "NUBAR" if chunk["MF"] == 1 else "XS"
+                xs = chunk[key]
+                duplicates = [x for x, count in Counter(xs.index).items() if count > 1]
+                if duplicates:
+                    sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(chunk["MAT"],chunk["MF"],chunk["MT"])+
+                             '\n'.join(map(str,duplicates)))
+                if chunk['INT'] != [2]:
+                    sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(chunk["MAT"],chunk["MF"],chunk["MT"]))
+                xsList.append(xs.to_frame())
+        xs = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), xsList).sort_index().interpolate(method='slinear', axis=0).fillna(0)
+        xs.columns.names = ["MAT", "MT"]
+        return Xs(xs)
+
 
 def read_mf1_mt451(text):
     str_list = text.splitlines()
@@ -767,39 +799,6 @@ class Xs(pd.DataFrame):
                     3 : (4,5,11,16,17,*range(22,38),41,42,44,45),
                     1 : (2,3),
                     452 : (455,456)}
-    @classmethod
-    def from_tape(cls, tape):
-        """
-        Extract cross sections/nubar (xs) from endf-6 file dataframe (tape).
-        xs are linearized on unique grid.
-        Missing points are linearly interpolated (use zero when out of domain).
-
-        Conditions:
-            - xs interpolation law must be lin-lin
-            - No duplicate points on energy grid
-        """
-        from collections import Counter
-        from functools import reduce
-        xsList = []
-        for mat in tape.index.get_level_values('MAT').unique():
-            query = "(MF==1 & (MT==452 | MT==455 | MT==456))"
-            if tape.DATA.loc[mat,1,451]['LRP'] == 2:
-                query += ' | MF==3'
-            for chunk in tape.loc[mat].query(query).DATA:
-                if not chunk:
-                    continue
-                key = "NUBAR" if chunk["MF"] == 1 else "XS"
-                xs = chunk[key]
-                duplicates = [x for x, count in Counter(xs.index).items() if count > 1]
-                if duplicates:
-                    sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(chunk["MAT"],chunk["MF"],chunk["MT"])+
-                             '\n'.join(map(str,duplicates)))
-                if chunk['INT'] != [2]:
-                    sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(chunk["MAT"],chunk["MF"],chunk["MT"]))
-                xsList.append(xs.to_frame())
-        xs = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), xsList).sort_index().interpolate(method='slinear', axis=0).fillna(0)
-        xs.columns.names = ["MAT", "MT"]
-        return cls(xs)
 
     def reconstruct_sums(self, drop=True):
         """
