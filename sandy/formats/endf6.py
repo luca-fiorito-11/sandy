@@ -874,26 +874,7 @@ class XsCov(pd.DataFrame):
     index = E1, E2, ..., El
     """
 
-    @classmethod
-    def from_errorr_tape(cls, tape):
-        mat = tape.index.get_level_values("MAT")[0]
-        eg = tape.loc[mat,1,451].DATA["EG"]
-        List = []
-        for x in tape.query('MF==33 | MF==31').DATA:
-            for mt1,y in x["RP"].items():
-                List.append([mat, x["MT"], mat, mt1, y])
-        frame = pd.DataFrame(List, columns=('MAT', 'MT','MAT1', 'MT1', 'COV'))
-        MI = [(mat,mt,e) for mat,mt in sorted(set(zip(frame.MAT, frame.MT))) for e in eg]
-        index = pd.MultiIndex.from_tuples(MI, names=("MAT", "MT", "E"))
-        # initialize union matrix
-        matrix = np.zeros((len(index),len(index)))
-        for i,row in frame.iterrows():
-            ix = index.get_loc((row.MAT,row.MT))
-            ix1 = index.get_loc((row.MAT1,row.MT1))
-            matrix[ix.start:ix.stop-1,ix1.start:ix1.stop-1] = row.COV
-        i_lower = np.tril_indices(len(index), -1)
-        matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
-        return cls(matrix, index=index, columns=index)
+    pass
 
 
 
