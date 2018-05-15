@@ -246,34 +246,32 @@ def sampling2(ismp, PertSeriesXs, **kwargs):
     return string, output
 
 
-def run():
+def run(iargs=None):
     t0 = time.time()
-    settings.init_sampling()
+    settings.init_sampling(iargs)
 
+    # LOAD DATA FILE
     global tape
     tape = e6.Endf6.from_file(settings.args.file).process()
-    for line in open(settings.args.covfile).readlines():
-        pattern = ".{44}(?P<ERRFLAG>.{11}).{15} 1451"
-        found = re.search(pattern, line)
-        if not found: continue
-        if int(found.group("ERRFLAG")) == -11:
-            covtape = Errorr.from_file(settings.args.covfile).process()#, keep_mf=[3], keep_mt=[102])
-        else:
-            covtape = e6.Endf6.from_file(settings.args.covfile).process()
-        break
     if tape.empty:
         sys.exit("ERROR: tape is empty")
+
+    # LOAD COVARIANCE FILE
+    if settings.args.errorr_cov:
+        covtape = Errorr.from_file(settings.args.errorr_cov).process()#, keep_mf=[3], keep_mt=[102])
+    elif settings.args.endf6_cov:
+        covtape = e6.Endf6.from_file(settings.args.endf6_cov).process()
     if covtape.empty:
         sys.exit("ERROR: covtape is empty")
 
     # Further setup of settings
-    settings.args.processes = 10
     kwargs = vars(settings.args)
 
-    # Always run. If MF35 is not wanted, then MF35 sections are already removed.
+    # EXTRACT PERTURBATIONS FROM COV FILE
     PertXs = sample_xs(covtape, settings.args.samples, **kwargs)
     PertChi = sample_chi(covtape, settings.args.samples, **kwargs)
 
+    # APPLY PERTURBATIONS
     if settings.args.processes == 1:
         outs = [sampling2(i, PertXs[i], **kwargs) for i in range(1,settings.args.samples+1)]
     else:
@@ -284,6 +282,7 @@ def run():
                                  ) for i in range(1,settings.args.samples+1) ]
         outs = list(map(lambda x:x.get(), outs))
 
+    # DUMP TO FILES
     for string, output in outs:
         with open(output, 'w') as f:
             f.write(string)

@@ -57,18 +57,19 @@ def init_checker(ARGS=None):
                         help="Path to directory containing (only) samples for one evaluated file.")
     args = parser.parse_args(args=ARGS)
 
-def init_sampling(ARGS=None):
+def init_sampling(iargs=None):
     global args
     parser = argparse.ArgumentParser(description='Run SANDY')
     parser.add_argument('file',
                         type=lambda x: is_valid_file(parser, x),
                         help="ENDF-6 or PENDF format file.")
-    parser.add_argument('--covfile',
-                        type=lambda x: is_valid_file(parser, x),
-                        help="ENDF-6 or ERRORR format file.")
-    parser.add_argument('--pendf',
-                        type=lambda x: is_valid_file(parser, x),
-                        help="PENDF format file.")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--endf6-cov',
+                       type=lambda x: is_valid_file(parser, x),
+                       help="ENDF-6 file containing covariances.")
+    group.add_argument('--errorr-cov',
+                       type=lambda x: is_valid_file(parser, x),
+                       help="ERRORR file containing covariances.")
     parser.add_argument('--samples',
                         type=int,
                         default=100,
@@ -79,8 +80,8 @@ def init_sampling(ARGS=None):
                         help="Target directory were outputs are stored (default = current working directory). If it does not exist it will be created.")
     parser.add_argument('-np','--processes',
                         type=int,
-                        default=None,
-                        help="Number of worker processes. By default, the number returned by os.cpu_count() is used.")
+                        default=1,
+                        help="Number of worker processes (default=1).")
     parser.add_argument('--eig',
                         type=int,
                         default=0,
@@ -114,4 +115,4 @@ def init_sampling(ARGS=None):
                         action='version',
                         version='%(prog)s 1.0',
                         help="SANDY's version.")
-    args = parser.parse_args(args=ARGS)
+    args = parser.parse_args(args=iargs)
