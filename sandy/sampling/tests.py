@@ -160,13 +160,13 @@ def test_Fe56(tmpdir, capsys):
 #    iargs = [join(td, r"fe56.pendf"),
 #             "--errorr-cov", join(td, r"fe56.errorr"),
 #             "--outdir", join(sd, r"fe56-tmpdir"),
-#             "--processes", str(os.cpu_count()),
 ##                 "--njoy", join(sd, r"njoy2012_50.exe"),
 #             "--eig", "10",
 #             "--samples", "10",]
 #    sampling.run(iargs)
 #
 #test()
+#sys.exit()
 
 def run():
     args = [realpath(__file__),

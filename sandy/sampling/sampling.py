@@ -236,7 +236,7 @@ def sampling(tape, ismp, PertSeriesNubar=None, PertSeriesRes=None, PertSeriesXs=
 def sampling2(ismp, PertSeriesXs, **kwargs):
     global tape
     t0 = time.time()
-    tapeout = e6.Xs.from_tape(tape).perturb(PertSeriesXs).update_tape(tape)
+    tapeout = tape.get_xs().perturb(PertSeriesXs).update_tape(tape)
     tapeout = e6.write_mf1_nubar(tapeout)
     tapeout = e6.write_mf3_mt(tapeout)
 
