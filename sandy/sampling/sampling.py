@@ -54,8 +54,7 @@ def sample_chi(tape, NSMP, **kwargs):
 
 def sample_xs(tape, NSMP, **kwargs):
     # perturbations are in relative values
-    from sandy.formats.endf6 import XsCov
-    DfCov = XsCov.from_errorr_tape(tape)
+    DfCov = tape.get_cov()
     if DfCov.empty:
         return pd.DataFrame()
     cov = Cov(DfCov.as_matrix())
@@ -97,65 +96,65 @@ def sample_xs(tape, NSMP, **kwargs):
 #            print("\n".join(E))
 #    return DfPert
 
-@TimeDecorator
-def perturb_xs(tape, PertSeriesXs, **kwargs):
-    Xs = e6.Xs.from_tape(tape)
-    indexName = Xs.index.name
-    # Add extra energy points
-    if "energy_point" in kwargs:
-        Xs = Xs.reindex(Xs.index.union(kwargs["energy_point"])).interpolate(method="slinear").fillna(0)
-    Xs.index.name = indexName
-    for mat, mt in Xs:
-        if mat not in PertSeriesXs.index.get_level_values("MAT").unique():
-            continue
-        mtListPert = PertSeriesXs.loc[mat].index.get_level_values("MT").unique()
-        if mt in mtListPert:
-            mtPert = mt
-        elif mt in range(800,850) \
-        and not list(filter(lambda x: x in mtListPert, range(800,850))) \
-        and 107 in mtListPert:
-            mtPert = 107
-        elif mt in range(750,800) \
-        and not list(filter(lambda x: x in mtListPert, range(750,800))) \
-        and 106 in mtListPert:
-            mtPert = 106
-        elif mt in range(700,750) \
-        and not list(filter(lambda x: x in mtListPert, range(700,750))) \
-        and 105 in mtListPert:
-            mtPert = 105
-        elif mt in range(650,700) \
-        and not list(filter(lambda x: x in mtListPert, range(650,700))) \
-        and 104 in mtListPert:
-            mtPert = 104
-        elif mt in range(600,650) \
-        and not list(filter(lambda x: x in mtListPert, range(600,650))) \
-        and 103 in mtListPert:
-            mtPert = 103
-        elif mt in range(102,118) \
-        and not list(filter(lambda x: x in mtListPert, range(102,118))) \
-        and 101 in mtListPert:
-            mtPert = 101
-        elif mt in (19,20,21,38) \
-        and not list(filter(lambda x: x in mtListPert, (19,20,21,38))) \
-        and 18 in mtListPert:
-            mtPert = 18
-        elif mt in (18,101) \
-        and not list(filter(lambda x: x in mtListPert, (18,101))) \
-        and 27 in mtListPert:
-            mtPert = 27
-        elif mt in range(50,92) \
-        and not list(filter(lambda x: x in mtListPert, range(50,92))) \
-        and 4 in mtListPert:
-            mtPert = 4
-        else:
-            continue
-        P = PertSeriesXs.loc[mat,mtPert]
-        P = P.reindex(P.index.union(Xs[mat,mt].index)).ffill().fillna(1).reindex(Xs[mat,mt].index)
-        Xs[mat,mt] = Xs[mat,mt].multiply(P, axis="index")
-        # Negative values are set to zero
-        Xs[mat,mt][Xs[mat,mt] <= 0] = 0
-    Xs = e6.reconstruct_xs(Xs)
-    return e6.write_mf1_nubar( e6.write_mf3_mt( e6.update_xs(tape, Xs) ) )
+#@TimeDecorator
+#def perturb_xs(tape, PertSeriesXs, **kwargs):
+#    Xs = e6.Xs.from_tape(tape)
+#    indexName = Xs.index.name
+#    # Add extra energy points
+#    if "energy_point" in kwargs:
+#        Xs = Xs.reindex(Xs.index.union(kwargs["energy_point"])).interpolate(method="slinear").fillna(0)
+#    Xs.index.name = indexName
+#    for mat, mt in Xs:
+#        if mat not in PertSeriesXs.index.get_level_values("MAT").unique():
+#            continue
+#        mtListPert = PertSeriesXs.loc[mat].index.get_level_values("MT").unique()
+#        if mt in mtListPert:
+#            mtPert = mt
+#        elif mt in range(800,850) \
+#        and not list(filter(lambda x: x in mtListPert, range(800,850))) \
+#        and 107 in mtListPert:
+#            mtPert = 107
+#        elif mt in range(750,800) \
+#        and not list(filter(lambda x: x in mtListPert, range(750,800))) \
+#        and 106 in mtListPert:
+#            mtPert = 106
+#        elif mt in range(700,750) \
+#        and not list(filter(lambda x: x in mtListPert, range(700,750))) \
+#        and 105 in mtListPert:
+#            mtPert = 105
+#        elif mt in range(650,700) \
+#        and not list(filter(lambda x: x in mtListPert, range(650,700))) \
+#        and 104 in mtListPert:
+#            mtPert = 104
+#        elif mt in range(600,650) \
+#        and not list(filter(lambda x: x in mtListPert, range(600,650))) \
+#        and 103 in mtListPert:
+#            mtPert = 103
+#        elif mt in range(102,118) \
+#        and not list(filter(lambda x: x in mtListPert, range(102,118))) \
+#        and 101 in mtListPert:
+#            mtPert = 101
+#        elif mt in (19,20,21,38) \
+#        and not list(filter(lambda x: x in mtListPert, (19,20,21,38))) \
+#        and 18 in mtListPert:
+#            mtPert = 18
+#        elif mt in (18,101) \
+#        and not list(filter(lambda x: x in mtListPert, (18,101))) \
+#        and 27 in mtListPert:
+#            mtPert = 27
+#        elif mt in range(50,92) \
+#        and not list(filter(lambda x: x in mtListPert, range(50,92))) \
+#        and 4 in mtListPert:
+#            mtPert = 4
+#        else:
+#            continue
+#        P = PertSeriesXs.loc[mat,mtPert]
+#        P = P.reindex(P.index.union(Xs[mat,mt].index)).ffill().fillna(1).reindex(Xs[mat,mt].index)
+#        Xs[mat,mt] = Xs[mat,mt].multiply(P, axis="index")
+#        # Negative values are set to zero
+#        Xs[mat,mt][Xs[mat,mt] <= 0] = 0
+#    Xs = e6.reconstruct_xs(Xs)
+#    return e6.write_mf1_nubar( e6.write_mf3_mt( e6.update_xs(tape, Xs) ) )
 
 def perturb_chi(tape, PertSeriesChi, **kwargs):
     PertSeriesChi.name = 'SMP'
@@ -239,7 +238,6 @@ def sampling2(ismp, PertSeriesXs, **kwargs):
     tapeout = tape.get_xs().perturb(PertSeriesXs).update_tape(tape)
     tapeout = e6.write_mf1_nubar(tapeout)
     tapeout = e6.write_mf3_mt(tapeout)
-
     output = os.path.join(kwargs["outdir"], os.path.basename(kwargs["file"]) + '-{}'.format(ismp))
     string = e6.Endf6(tapeout).to_string(output)
     print("Created file '{}' in {:.2f} sec".format(output, time.time()-t0,))
