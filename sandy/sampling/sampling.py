@@ -239,11 +239,11 @@ def sampling2(ismp, PertSeriesXs, **kwargs):
     tapeout = e6.Xs.from_tape(tape).perturb(PertSeriesXs).update_tape(tape)
     tapeout = e6.write_mf1_nubar(tapeout)
     tapeout = e6.write_mf3_mt(tapeout)
-    
+
     output = os.path.join(kwargs["outdir"], os.path.basename(kwargs["file"]) + '-{}'.format(ismp))
-    string = e6.Endf6(tapeout).to_file(output)
+    string = e6.Endf6(tapeout).to_string(output)
     print("Created file '{}' in {:.2f} sec".format(output, time.time()-t0,))
-    return string
+    return string, output
 
 
 def run():
@@ -267,22 +267,24 @@ def run():
         sys.exit("ERROR: covtape is empty")
 
     # Further setup of settings
+    settings.args.processes = 10
     kwargs = vars(settings.args)
 
     # Always run. If MF35 is not wanted, then MF35 sections are already removed.
     PertXs = sample_xs(covtape, settings.args.samples, **kwargs)
     PertChi = sample_chi(covtape, settings.args.samples, **kwargs)
 
-#    pool = mp.Pool(processes=4)
-#    [ pool.apply(sampling2,
-#                 args = (ismp, PertXs[ismp]),
-#                 kwds = {**kwargs}
-#                 ) for ismp in range(1,settings.args.samples+1) ]
-    for ismp in range(1,settings.args.samples+1):
-        sampling2(ismp, PertXs[ismp], **kwargs)
+    if settings.args.processes == 1:
+        outs = [sampling2(i, PertXs[i], **kwargs) for i in range(1,settings.args.samples+1)]
+    else:
+        pool = mp.Pool(processes=settings.args.processes)
+        outs = [pool.apply_async(sampling2,
+                                 args = (i, PertXs[i]),
+                                 kwds = {**kwargs}
+                                 ) for i in range(1,settings.args.samples+1) ]
+        outs = list(map(lambda x:x.get(), outs))
+
+    for string, output in outs:
+        with open(output, 'w') as f:
+            f.write(string)
     print("Total running time: {:.2f} sec".format(time.time() - t0))
-    sys.exit()
-
-
-#if __name__ == '__main__':
-#    run()
