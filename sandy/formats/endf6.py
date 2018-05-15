@@ -239,6 +239,73 @@ class Endf6(pd.DataFrame):
         xs.columns.names = ["MAT", "MT"]
         return Xs(xs)
 
+    def get_cov(self):
+        from sandy.sampling.cov import triu_matrix
+        from functools import reduce
+        List = []; eg = set()
+        for chunk in self.query('MF==33 | MF==31').DATA:
+            mat = chunk['MAT']; mt = chunk['MT']
+            for sub in chunk["SUB"].values():
+                mat1 = sub['MAT1'] if sub['MAT1'] != 0 else mat; mt1 = sub['MT1']
+                covs = []
+                for nisec in sub["NI"]:
+                    if nisec["LB"] == 5:
+                        Fkk = np.array(nisec["Fkk"])
+                        if nisec["LS"] == 0: # to be tested
+                            cov = Fkk.reshape(nisec["NE"]-1, nisec["NE"]-1)
+                        else:
+                            cov = triu_matrix(Fkk, nisec["NE"]-1)
+                        # add zero row and column at the end of the matrix
+                        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                        e1 = e2 = nisec["Ek"]
+                    elif nisec["LB"] == 1:
+                        cov = np.diag(nisec["Fk"])
+                        e1 = e2 = nisec["Ek"]
+                    elif nisec["LB"] == 2:
+                        f = np.array(nisec["Fk"])
+                        cov = f*f.reshape(-1,1)
+                        e1 = e2 = nisec["Ek"]
+                    elif nisec["LB"] == 6:
+                        cov = np.array(nisec["Fkl"]).reshape(nisec["NER"]-1, nisec["NEC"]-1)
+                        # add zero row and column at the end of the matrix
+                        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                        e1 = nisec["Ek"]
+                        e2 = nisec["El"]
+                    else:
+                        warn("skipped NI-type covariance with flag LB={} (MAT{}/MF{}/MT{})".fomat(nisec["LB"], chunk['MAT'], chunk['MF'], chunk['MT']), category=Warning)
+                        continue
+                    cov = pd.DataFrame(cov, index=e1, columns=e2)
+                    covs.append(cov)
+                if len(covs) == 0:
+                    continue
+                if len(covs) > 1:
+                    import pdb
+                    pdb.set_trace()
+                cov = reduce(lambda x, y: x.add(y, fill_value=0).fillna(0), covs).fillna(0)
+                eg |= set(cov.index.values)
+                List.append([mat, mt, mat1, mt1, cov])
+        if not List:
+            warn("no MF[31,33] covariances found", category=Warning)
+            return pd.DataFrame()
+        frame = pd.DataFrame(List, columns=('MAT', 'MT','MAT1', 'MT1', 'COV'))
+        eg = sorted(eg)
+        frame.COV = frame.COV.apply(lambda x:cov_interp(x, eg))
+        # From here, the method is identical to Errorr.get_cov()
+        # Except that the size of eg is equal to the size of each matrix (we include the value for 2e7)
+        MI = [(mat,mt,e) for mat,mt in sorted(set(zip(frame.MAT, frame.MT))) for e in eg]
+        index = pd.MultiIndex.from_tuples(MI, names=("MAT", "MT", "E"))
+        # initialize union matrix
+        matrix = np.zeros((len(index),len(index)))
+        for i,row in frame.iterrows():
+            ix = index.get_loc((row.MAT,row.MT))
+            ix1 = index.get_loc((row.MAT1,row.MT1))
+            matrix[ix.start:ix.stop,ix1.start:ix1.stop] = row.COV
+        i_lower = np.tril_indices(len(index), -1)
+        matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
+        return XsCov(matrix, index=index, columns=index)
+
     def update_dict(self):
         """
         Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
@@ -789,24 +856,16 @@ def read_mf35_mt(text):
            "Fkk" : L.B[L.N2:] })
     return out
 
-#def pandas_interpolate(df, interp_column, method='zero', axis='both'):
-#    # interp_column is a list
-#    dfout = pd.DataFrame(df.copy(), index=df.index.copy(), columns=df.columns.copy())
-#    if axis in ['rows', 'both']:
-#        ug = np.unique(list(dfout.index) + interp_column)
-#        dfout = dfout.reindex(ug)
-#        dfout = dfout.interpolate(method=method)
-#        dfout = dfout.reindex(interp_column)
-#    # Now transpose columns to rows and reinterpolate
-#    if axis in ['columns', 'both']:
-#        dfout = dfout.transpose()
-#        ug = np.unique(list(df.index) + interp_column)
-#        dfout = dfout.reindex(ug)
-#        dfout = dfout.interpolate(method=method)
-#        dfout = dfout.reindex(interp_column)
-#        dfout = dfout.transpose()
-#    dfout.fillna(0, inplace=True)
-#    return dfout
+def cov_interp(df, interp_column, method='zero', axis='both'):
+    # interp_column is a list
+    frame = pd.DataFrame(df.copy(), index=df.index.copy(), columns=df.columns.copy())
+    index = np.unique(list(frame.index) + interp_column)
+    columns = np.unique(list(frame.columns) + interp_column)
+    if axis in ['rows', 'both']:
+        frame = frame.reindex(index).interpolate(method=method).reindex(interp_column)
+    if axis in ['columns', 'both']:
+        frame = frame.transpose().reindex(columns).interpolate(method=method).reindex(interp_column).transpose()
+    return frame.fillna(0)
 
 
 
