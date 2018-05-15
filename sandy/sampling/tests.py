@@ -112,7 +112,7 @@ def test_Cm242(tmpdir, capsys):
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
-             "--samples", "10",]
+             "--samples", "300",]
     sampling.run(iargs)
     captured = capsys.readouterr()
     with open(join(str(tmpdir), "sandy.stdout"), 'w') as f: f.write(captured.out)
@@ -127,7 +127,7 @@ def test_Fe56_errorr(tmpdir, capsys):
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
-             "--samples", "10",]
+             "--samples", "300",]
     sampling.run(iargs)
     captured = capsys.readouterr()
     with open(join(str(tmpdir), "sandy.stdout"), 'w') as f: f.write(captured.out)
