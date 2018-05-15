@@ -147,8 +147,7 @@ class Endf6(pd.DataFrame):
         """
         Read ENDF-6 formatted file and split it into MAT/MF/MT sections.
         Produce Endf6 instance (pandas.DataFrame) with columns
-            MAT MF MT TEXT
-
+            MAT MF MT TEXT DATA
         """
         columns = ('MAT', 'MF', 'MT','TEXT')
         rows = []
@@ -164,6 +163,9 @@ class Endf6(pd.DataFrame):
         return cls(frame)
 
     def by_ZAM(self):
+        """
+        Change index from MAT,MF,MT to ZAM,MF,MT.
+        """
         tape = self.copy().reset_index()
         iso = tape.query("MF==1 & MT==451")
         iso["ZAM"] = iso.TEXT.apply(lambda x: int(float(read_float(x[:11]))*10+int(x[103:114]))).values
