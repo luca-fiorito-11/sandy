@@ -114,16 +114,16 @@ def process_endf_section(text, keep_mf=None, keep_mt=None):
             return None
     if mf == 1 and mt in (452, 455, 456):
         return read_mf1_nubar(text)
-    elif mf == 2 and mt == 151: # read always
-        return read_mf2_mt151(text)
+#    elif mf == 2 and mt == 151: # read always
+#        return read_mf2_mt151(text)
     elif mf == 3:
         return read_mf3_mt(text)
-    elif mf == 4:
-        return read_mf4_mt(text)
+#    elif mf == 4:
+#        return read_mf4_mt(text)
 #    elif mf == 5:
 #        return read_mf5_mt(text)
-    elif mf == 8 and mt == 457:
-        return read_mf8_mt457(text)
+#    elif mf == 8 and mt == 457:
+#        return read_mf8_mt457(text)
     elif mf == 31 or mf == 33:
         return read_mf33_mt(text)
 #    elif mf == 35:
@@ -141,15 +141,14 @@ def endf2df(file, keep_mf=None, keep_mt=None):
 
 
 class Endf6(pd.DataFrame):
-    
+
     @classmethod
-    def from_file(cls, file, by='MAT'):
+    def from_file(cls, file):
         """
         Read ENDF-6 formatted file and split it into MAT/MF/MT sections.
-        Produce Endf6 instance (pandas.DataFrame) either with columns
+        Produce Endf6 instance (pandas.DataFrame) with columns
             MAT MF MT TEXT
-        or
-            ZAM MF MT TEXT
+
         """
         columns = ('MAT', 'MF', 'MT','TEXT')
         rows = []
@@ -160,24 +159,20 @@ class Endf6(pd.DataFrame):
             text = "\n".join([ y for y in x.split("\n") ])
             rows.append([mat, mf, mt, text])
         frame = pd.DataFrame(rows, columns=columns)
-        if by == "MAT":
-            frame = frame.set_index(['MAT','MF','MT']).sort_index()
-            frame["DATA"] = None
-            return cls(frame)
-        elif by == "ZAM":
-            byZAM = frame.query("MF==1 & MT==451")
-            byZAM["ZAM"] = byZAM.TEXT.apply(lambda x: int(float(read_float(x[:11]))*10+int(x[100:111]))).values
-            byZAM = byZAM.drop(["MF", "MT", "TEXT"], axis=1)
-            frame =  frame.merge(byZAM, how="left", on="MAT").drop("MAT", axis=1)
-            frame = frame.set_index(['ZAM','MF','MT']).sort_index()
-            frame["DATA"] = None
-            return cls(frame)
-        else:
-            raise NotImplementedError("wrong argument 'by'")
-    
+        frame = frame.set_index(['MAT','MF','MT']).sort_index()
+        frame["DATA"] = None
+        return cls(frame)
+
+    def by_ZAM(self):
+        tape = self.copy().reset_index()
+        iso = tape.query("MF==1 & MT==451")
+        iso["ZAM"] = iso.TEXT.apply(lambda x: int(float(read_float(x[:11]))*10+int(x[103:114]))).values
+        tape =  tape.merge(iso[["MAT","ZAM"]], how="left", on="MAT").drop("MAT", axis=1).set_index(['ZAM','MF','MT']).sort_index()
+        return Endf6(tape)
+
     def process(self, keep_mf=None, keep_mt=None):
         """
-        Parse TEXT column. 
+        Parse TEXT column.
         """
         tape = self.copy()
         tape['DATA'] = tape['TEXT'].apply(process_endf_section, keep_mf=keep_mf, keep_mt=keep_mt)
@@ -185,7 +180,7 @@ class Endf6(pd.DataFrame):
 
     def to_string(self, title=" "*66):
         """
-        Write TEXT column to string. 
+        Write TEXT column to string.
         """
         tape = pd.DataFrame(index=self.index.copy(), columns=self.columns.copy())
         for k,row in self.iterrows():
@@ -202,10 +197,10 @@ class Endf6(pd.DataFrame):
             string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), 0, 0, 0, 0)
         string += "{:<66}{:4}{:2}{:3}{:5}".format(*write_cont(*[0]*6), -1, 0, 0, 0)
         return string
-    
+
     def to_file(self, file, title=" "*66):
         """
-        Write TEXT column to file. 
+        Write TEXT column to file.
         """
         string = self.to_string(title=title)
         with open(file, 'w', encoding="ascii") as f:
