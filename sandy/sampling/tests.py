@@ -151,6 +151,23 @@ def test_Fe56(tmpdir, capsys):
     with open(join(str(tmpdir), "sandy.stdout"), 'w') as f: f.write(captured.out)
     with open(join(str(tmpdir), "sandy.stderr"), 'w') as f: f.write(captured.err)
 
+#def test():
+#    from sandy.sampling import sampling
+#    from sandy.data_test import __file__ as td
+#    from sandy import __file__ as sd
+#    sd = dirname(realpath(sd))
+#    td = dirname(realpath(td))
+#    iargs = [join(td, r"fe56.pendf"),
+#             "--errorr-cov", join(td, r"fe56.errorr"),
+#             "--outdir", join(sd, r"fe56-tmpdir"),
+#             "--processes", str(os.cpu_count()),
+##                 "--njoy", join(sd, r"njoy2012_50.exe"),
+#             "--eig", "10",
+#             "--samples", "10",]
+#    sampling.run(iargs)
+#
+#test()
+
 def run():
     args = [realpath(__file__),
             "--basetemp=sandy_tests",]
