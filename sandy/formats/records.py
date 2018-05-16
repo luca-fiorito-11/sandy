@@ -128,6 +128,14 @@ def read_list(text, ipos):
     except:
         sys.exit("ERROR: cannot read LIST at '{}'".format(text[ipos]))
 
+def write_float(x):
+    mantissa, exp = "{:>12.6E}".format(x).split('E')
+    exp = int(exp)
+    if exp >=10 or exp <= -10:
+        return "{:>8}{}{:>}".format(mantissa[:-1], "-" if np.sign(exp) < 0 else "+", abs(exp))
+    else:
+        return "{:>9}{}{:>}".format(mantissa, "-" if np.sign(exp) < 0 else "+", abs(exp))
+
 def write_cont(C1, C2, L1, L2, N1, N2):
     from sandy.functions import log10
     exps = np.abs(np.floor(log10(np.abs([C1,C2]))))
@@ -149,7 +157,8 @@ def write_tab1(C1, C2, L1, L2, NBT, INT, x, y):
         i += 6
     i = 0
     while i < NP*2:
-        TEXT.append("".join(map(lambda x:"{:>12.5E}".format(x), tab1[i:i+6])).replace("E",""))
+        TEXT.append("".join(map(write_float, tab1[i:i+6])))
+#        TEXT.append("".join(map(lambda x:"{:>12.5E}".format(x), tab1[i:i+6])).replace("E",""))
 #        L = tab1[i:i+6]
 #        exps = np.abs(np.floor(log10(np.abs(L))))
 #        form = "(" + ",".join(list(map(lambda x: 'ES12.6E1' if x<10 else 'ES12.5E2' if x<100 else 'ES12.4E3', exps))) + ")"
