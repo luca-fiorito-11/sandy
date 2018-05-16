@@ -131,10 +131,57 @@ def read_list(text, ipos):
 def write_float(x):
     mantissa, exp = "{:>12.6E}".format(x).split('E')
     exp = int(exp)
-    if exp >=10 or exp <= -10:
-        return "{:>8}{}{:>}".format(mantissa[:-1], "-" if np.sign(exp) < 0 else "+", abs(exp))
+    sign = np.sign(exp)
+    if exp == -1:
+        return "{}{:>1.8f}".format("" if np.sign(float(mantissa)) < 0 else " ", x)
+    elif exp == 0:
+        return "{}{:>1.8f}".format("" if np.sign(float(mantissa)) < 0 else " ", x)
+    elif exp == 1:
+        return "{}{:>2.7f}".format("" if np.sign(float(mantissa)) < 0 else " ", x)
+    elif exp == 2:
+        return "{}{:>3.6f}".format("" if np.sign(float(mantissa)) < 0 else " ", x)
+    elif exp == 3:
+        return "{}{:>4.5f}".format("" if np.sign(float(mantissa)) < 0 else " ", x)
+    elif exp == 4:
+        return "{}{:>5.4f}".format("" if np.sign(float(mantissa)) < 0 else " ", x)
+    elif exp == 5:
+        return "{}{:>6.3f}".format("" if np.sign(float(mantissa)) < 0 else " ", x)
+    elif exp == 6:
+        return "{}{:>7.2f}".format("" if np.sign(float(mantissa)) < 0 else " ", x)
+    elif exp == 7:
+        return "{}{:>8.1f}".format("" if np.sign(float(mantissa)) < 0 else " ", x)
+    elif exp == 8:
+        return "{}{:>9.0f}.".format("" if np.sign(float(mantissa)) < 0 else " ", x)
+    elif exp == 9:
+        return "{}{:>10.0f}".format("" if np.sign(float(mantissa)) < 0 else " ", x)
+    elif exp >=10 or exp <= -10:
+        return "{:>8}{}{:>}".format(mantissa[:-1], "-" if sign < 0 else "+", abs(exp))
     else:
-        return "{:>9}{}{:>}".format(mantissa, "-" if np.sign(exp) < 0 else "+", abs(exp))
+        return "{:>9}{}{:>}".format(mantissa, "-" if sign < 0 else "+", abs(exp))
+
+#print(write_float(1e-11))
+#print(write_float(1e-10))
+#print(write_float(1e-9))
+#print(write_float(1e-8))
+#print(write_float(1e-7))
+#print(write_float(1e-6))
+#print(write_float(1e-5))
+#print(write_float(1e-4))
+#print(write_float(1e-3))
+#print(write_float(1e-2))
+#print(write_float(1e-1))
+#print(write_float(0))
+#print(write_float(1e0))
+#print(write_float(1e1))
+#print(write_float(1e2))
+#print(write_float(1e3))
+#print(write_float(1e5))
+#print(write_float(1e6))
+#print(write_float(1e7))
+#print(write_float(1e8))
+#print(write_float(1e9))
+#print(write_float(1e10))
+#print(write_float(1e11))
 
 def write_cont(C1, C2, L1, L2, N1, N2):
     from sandy.functions import log10
