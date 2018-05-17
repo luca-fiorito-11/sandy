@@ -176,7 +176,7 @@ class Endf6(pd.DataFrame):
         """
         columns = ('MAT', 'MF', 'MT','TEXT')
         rows = []
-        for x in split(file):
+        for x in split_text(text):
             mat = int(x[66:70])
             mf = int(x[70:72])
             mt = int(x[72:75])

@@ -5,7 +5,7 @@ Created on Wed Apr  4 21:43:21 2018
 @author: lucaf
 """
 import pandas as pd
-from sandy.endf6 import files as e6
+import sandy.formats.endf6 as e6
 from sandy import settings
 from sandy.sampling.cov import Cov
 import numpy as np
@@ -17,6 +17,7 @@ import shutil
 import time
 from os.path import join, dirname, realpath
 import matplotlib.pyplot as plt
+from functools import reduce
 
 from bokeh.layouts import column
 from bokeh.models import CustomJS, ColumnDataSource, Slider, HoverTool
@@ -24,34 +25,55 @@ from bokeh.models import CustomJS, ColumnDataSource, Slider, HoverTool
 from bokeh.plotting import figure, output_file, show
 from bokeh.palettes import Spectral4
 
-def run():
+def run(iargs=None):
     tools = "box_zoom,pan,save,reset"
-    settings.init_plotter()
-    mat = settings.args.mat
-    mt = settings.args.mt
-    mf,key = (1,"NUBAR") if mt in (452,455,456) else (3,"XS")
+#    settings.init_plotter(iargs)
+#    mat = settings.args.mat
+#    mt = settings.args.mt
+#    mf,key = (1,"NUBAR") if mt in (452,455,456) else (3,"XS")
+#
+#    if settings.args.original:
+#        print ("read best estimates from", settings.args.original)
+#        Data = e6.extract_xs(e6.endf2df(settings.args.original, keep_mf=[mf], keep_mt=[mt]))[mat,mt]
+#        Data.name = "Data"
+#
+#    if settings.args.cov:
+#        print ("read covariances from", settings.args.cov)
+#        DfCov = e6.extract_cov33(e6.endf2df(settings.args.cov, keep_mf=[mf+30], keep_mt=[mt]))
+#        DfCov.index = DfCov.index.droplevel("MAT").droplevel("MT")
+#        DfCov.columns = DfCov.columns.droplevel("MAT").droplevel("MT")
+#        Runc = pd.Series(np.sqrt(np.diag(DfCov))*100., index=DfCov.index)
+#        Runc.name = "Runc"
 
-    if settings.args.original:
-        print ("read best estimates from", settings.args.original)
-        Data = e6.extract_xs(e6.endf2df(settings.args.original, keep_mf=[mf], keep_mt=[mt]))[mat,mt]
-        Data.name = "Data"
-
-    if settings.args.cov:
-        print ("read covariances from", settings.args.cov)
-        DfCov = e6.extract_cov33(e6.endf2df(settings.args.cov, keep_mf=[mf+30], keep_mt=[mt]))
-        DfCov.index = DfCov.index.droplevel("MAT").droplevel("MT")
-        DfCov.columns = DfCov.columns.droplevel("MAT").droplevel("MT")
-        Runc = pd.Series(np.sqrt(np.diag(DfCov))*100., index=DfCov.index)
-        Runc.name = "Runc"
-
+    DictText = {}
+    for i in range(3):
+        ismp = i + 1
+        inp = "../../sandy_tests/test_Fe56_errorr0"+"/fe56.pendf-"+str(ismp)
+        with open(inp) as f:
+            DictText.update({ (ismp,inp) :f.read() })
+#        xs = e6.Endf6.from_file(inp).process(keep_mf=[1,3]).get_xs()
+#        xs.columns = pd.MultiIndex.from_tuples([(mat,mt,ismp) for mat,mt in xs.columns.values], names=["MAT", "MT", "SMP"])
+#        print ("read file ", inp)
+#        D = e6.endf2df(join(settings.args.smpdir,inp), keep_mf=[mf], keep_mt=[mt]).DATA.loc[mat,mf,mt][key]
+#        D.name = inp
+#        ListXs.append(D)
     ListXs = []
-    for inp in os.listdir(settings.args.smpdir):
-        print ("read file ", inp)
-        D = e6.endf2df(join(settings.args.smpdir,inp), keep_mf=[mf], keep_mt=[mt]).DATA.loc[mat,mf,mt][key]
-        D.name = inp
-        ListXs.append(D)
-    Smp = pd.DataFrame(ListXs).T
-    Smp['Mean'] = Smp.mean(axis=1)
+    for (ismp,inp), text in DictText.items():
+        xs = e6.Endf6.from_text(text).process(keep_mf=[1,3]).get_xs()
+        xs.columns = pd.MultiIndex.from_tuples([(mat,mt,ismp) for mat,mt in xs.columns.values], names=["MAT", "MT", "SMP"])
+        ListXs.append(xs)
+#        pool = mp.Pool(processes=settings.args.processes)
+#        outs = [pool.apply_async(sampling2,
+#                                 args = (i, PertXs[i]),
+#                                 kwds = {**kwargs}
+#                                 ) for i in range(1,settings.args.samples+1) ]
+#        outs = list(map(lambda x:x.get(), outs))    Smp = pd.DataFrame(ListXs).T
+    xs = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
+    mean = xs.groupby(axis=1, level=["MAT","MT"]).mean()
+    mean.columns = pd.MultiIndex.from_tuples([(mat,mt,"MEAN") for mat,mt in std.columns.values], names=["MAT", "MT", "MEAN"])
+    std = xs.groupby(axis=1, level=["MAT","MT"]).std()
+    std.columns = pd.MultiIndex.from_tuples([(mat,mt,"STD") for mat,mt in std.columns.values], names=["MAT", "MT", "STD"])
+
     Smp['Std'] = Smp.std(axis=1).fillna(0)
     Smp['Rstd'] = (Smp.Std/Smp.Mean*100).replace([-np.inf,np.inf], np.nan).fillna(0)
 
@@ -155,6 +177,17 @@ def run():
 #                    vmin=-1, vmax=1,
 #                    cmap="bwr",
 #                    xlabel=None, ylabel=None, title=None)
+
+def test():
+    from sandy.data_test import __file__ as td
+    from sandy import __file__ as sd
+    sd = dirname(realpath(sd))
+    td = dirname(realpath(td))
+    iargs = [r"cm242.endf",]
+    run(iargs)
+
+test()
+sys.exit()
 
 if __name__ == '__main__':
     from sandy import __file__ as sd
