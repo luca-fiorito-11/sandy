@@ -46,14 +46,19 @@ def plot_heatmap(x, y, z,
     fig.show()
 
 #@TimeDecorator
-def split(file):
+def split_file(file):
     """
-    Split ``ENDF-6`` file  into MFMT sections.
+    Split ``ENDF-6`` file  into MF/MT sections.
+    """
+    return split_text(open(file).read())
+
+def split_text(text):
+    """
+    Split text (list of strings) into MF/MT sections.
     """
     import re
 #    pattern = ".{72}[ 0]{3}.{5}\n?" # this pattern created problems in 28-Ni-58g.jeff33
     pattern = ".{72}  0[ 0-9]{5}\n|.{68}-1 0  0[ 0-9]{5}" # problems in 28-Ni-58g.jeff33 where one line exceeds 80 chars
-    text = open(file).read()
     U = re.split(pattern, text)
     return filter(None, U) # remove empty lines
 
@@ -144,6 +149,26 @@ class Endf6(pd.DataFrame):
 
     @classmethod
     def from_file(cls, file):
+        """
+        Read ENDF-6 formatted file and split it into MAT/MF/MT sections.
+        Produce Endf6 instance (pandas.DataFrame) with index MAT,MF,MT and
+        columns TEXT,DATA.
+        """
+        columns = ('MAT', 'MF', 'MT','TEXT')
+        rows = []
+        for x in split_file(file):
+            mat = int(x[66:70])
+            mf = int(x[70:72])
+            mt = int(x[72:75])
+            text = "\n".join([ y for y in x.split("\n") ])
+            rows.append([mat, mf, mt, text])
+        frame = pd.DataFrame(rows, columns=columns)
+        frame = frame.set_index(['MAT','MF','MT']).sort_index()
+        frame["DATA"] = None
+        return cls(frame)
+
+    @classmethod
+    def from_text(cls, text):
         """
         Read ENDF-6 formatted file and split it into MAT/MF/MT sections.
         Produce Endf6 instance (pandas.DataFrame) with index MAT,MF,MT and
