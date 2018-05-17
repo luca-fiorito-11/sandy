@@ -112,7 +112,7 @@ def test_Cm242(tmpdir, capsys):
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
-             "--samples", "300",]
+             "--samples", "10",]
     sampling.run(iargs)
     captured = capsys.readouterr()
     with open(join(str(tmpdir), "sandy.stdout"), 'w') as f: f.write(captured.out)
@@ -127,7 +127,7 @@ def test_Fe56_errorr(tmpdir, capsys):
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
-             "--samples", "300",]
+             "--samples", "10",]
     sampling.run(iargs)
     captured = capsys.readouterr()
     with open(join(str(tmpdir), "sandy.stdout"), 'w') as f: f.write(captured.out)
@@ -139,9 +139,10 @@ def test_Fe56_errorr(tmpdir, capsys):
 #    from sandy import __file__ as sd
 #    sd = dirname(realpath(sd))
 #    td = dirname(realpath(td))
-#    iargs = [join(td, r"cm242.endf"),
-#             "--endf6-cov", join(td, r"cm242.endf"),
-#             "--outdir", join(sd, r"cm242-tmpdir"),
+#    iargs = [join(td, r"fe56.pendf"),
+#             "--errorr-cov", join(td, r"fe56.errorr"),
+#             "--outdir", join(sd, r"fe56-tmpdir"),
+#             "--processes", "1",
 #             "--eig", "10",
 #             "--samples", "10",]
 #    sampling.run(iargs)

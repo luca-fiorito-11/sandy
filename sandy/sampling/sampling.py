@@ -237,7 +237,7 @@ def sampling2(ismp, PertSeriesXs, **kwargs):
     t0 = time.time()
     tapeout = tape.get_xs().perturb(PertSeriesXs).update_tape(tape).write_mf1_nubar().write_mf3_mt()
     output = os.path.join(kwargs["outdir"], os.path.basename(kwargs["file"]) + '-{}'.format(ismp))
-    string = tapeout.to_string(output)
+    string = tapeout.to_string()
     print("Created file '{}' in {:.2f} sec".format(output, time.time()-t0,))
     return string, output
 
