@@ -25,6 +25,15 @@ from bokeh.models import CustomJS, ColumnDataSource, Slider, HoverTool
 from bokeh.plotting import figure, output_file, show
 from bokeh.palettes import Spectral4
 
+def process_mp(ismp, PertSeriesXs, **kwargs):
+    global tape
+    t0 = time.time()
+    tapeout = tape.get_xs().perturb(PertSeriesXs).update_tape(tape).write_mf1_nubar().write_mf3_mt()
+    output = os.path.join(kwargs["outdir"], os.path.basename(kwargs["file"]) + '-{}'.format(ismp))
+    string = tapeout.to_string()
+    print("Created file '{}' in {:.2f} sec".format(output, time.time()-t0,))
+    return string, output
+
 def run(iargs=None):
     tools = "box_zoom,pan,save,reset"
 #    settings.init_plotter(iargs)
@@ -45,6 +54,7 @@ def run(iargs=None):
 #        Runc = pd.Series(np.sqrt(np.diag(DfCov))*100., index=DfCov.index)
 #        Runc.name = "Runc"
 
+    global DictText
     DictText = {}
     for i in range(3):
         ismp = i + 1
@@ -70,10 +80,16 @@ def run(iargs=None):
 #        outs = list(map(lambda x:x.get(), outs))    Smp = pd.DataFrame(ListXs).T
     xs = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
     mean = xs.groupby(axis=1, level=["MAT","MT"]).mean()
-    mean.columns = pd.MultiIndex.from_tuples([(mat,mt,"MEAN") for mat,mt in std.columns.values], names=["MAT", "MT", "MEAN"])
+    mean.columns = pd.MultiIndex.from_tuples([(mat,mt,"MEAN") for mat,mt in mean.columns.values], names=["MAT", "MT", "MEAN"])
     std = xs.groupby(axis=1, level=["MAT","MT"]).std()
     std.columns = pd.MultiIndex.from_tuples([(mat,mt,"STD") for mat,mt in std.columns.values], names=["MAT", "MT", "STD"])
-
+    ix = (std != 0).any(axis=0)
+    std = std.loc[:, ix] # delete zero std
+    mean = xs.groupby(axis=1, level=["MAT","MT"]).mean()
+    mean.columns = pd.MultiIndex.from_tuples([(mat,mt,"MEAN") for mat,mt in mean.columns.values], names=["MAT", "MT", "MEAN"])
+    ix.index = ix.index.set_levels(["MEAN"], level=2)
+    mean = mean.loc[:,ix] # delete zero std
+    std = std.divide(mean.as_matrix(), fill_value=0).fillna(0)
     Smp['Std'] = Smp.std(axis=1).fillna(0)
     Smp['Rstd'] = (Smp.Std/Smp.Mean*100).replace([-np.inf,np.inf], np.nan).fillna(0)
 
