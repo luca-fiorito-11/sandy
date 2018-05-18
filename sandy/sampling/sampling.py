@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 from sandy.njoy import get_pendf
 from sandy.tests import TimeDecorator
 from sandy.formats.errorr import Errorr
+import platform
 import re
 
 
@@ -271,7 +272,14 @@ def run(iargs=None):
     if settings.args.processes == 1:
         outs = [sampling2(i, PertXs[i], **kwargs) for i in range(1,settings.args.samples+1)]
     else:
-        pool = mp.Pool(processes=settings.args.processes)
+        if platform.system() == "Windows":
+            def init_pool(the_tape):
+                global tape
+                tape = the_tape
+            pool = mp.Pool(processes=settings.args.processes, 
+                           initializer=init_pool(tape))
+        else:
+            pool = mp.Pool(processes=settings.args.processes)
         outs = [pool.apply_async(sampling2,
                                  args = (i, PertXs[i]),
                                  kwds = {**kwargs}
