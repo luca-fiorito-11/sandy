@@ -44,7 +44,7 @@ setup(
     install_requires = ['numpy',
                         'scipy',
                         'matplotlib',
-                        'pytest',
+                        'pytest>=3.3',
                         'fortranformat>=0.2.5',
                         'pandas>=0.20'],
     include_package_data = True,
