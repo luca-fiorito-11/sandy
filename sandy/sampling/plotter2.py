@@ -78,13 +78,15 @@ def run(iargs=None):
 #                                 kwds = {**kwargs}
 #                                 ) for i in range(1,settings.args.samples+1) ]
 #        outs = list(map(lambda x:x.get(), outs))    Smp = pd.DataFrame(ListXs).T
-    xs = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
-    mean = xs.groupby(axis=1, level=["MAT","MT"]).mean()
-    mean.columns = pd.MultiIndex.from_tuples([(mat,mt,"MEAN") for mat,mt in mean.columns.values], names=["MAT", "MT", "MEAN"])
-    std = xs.groupby(axis=1, level=["MAT","MT"]).std()
-    std.columns = pd.MultiIndex.from_tuples([(mat,mt,"STD") for mat,mt in std.columns.values], names=["MAT", "MT", "STD"])
-    ix = (std != 0).any(axis=0)
-    std = std.loc[:, ix] # delete zero std
+#    xs = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
+    xs = reduce(lambda l,r : l.join(r), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
+    for mat in xs.columns.get_level_values('MAT').unique():
+        mean = xs[mat].groupby(axis=1, level=["MT"]).mean()
+        mean.columns = list(map(str, mean.columns))
+        std = xs[mat].groupby(axis=1, level=["MT"]).std()
+        std.columns = list(map(str, std.columns))
+        ix = (std != 0).any(axis=0)
+        std = std.loc[:, ix] # delete zero std
     mean = xs.groupby(axis=1, level=["MAT","MT"]).mean()
     mean.columns = pd.MultiIndex.from_tuples([(mat,mt,"MEAN") for mat,mt in mean.columns.values], names=["MAT", "MT", "MEAN"])
     ix.index = ix.index.set_levels(["MEAN"], level=2)
