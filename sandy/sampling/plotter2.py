@@ -4,84 +4,128 @@ Created on Wed Apr  4 21:43:21 2018
 
 @author: lucaf
 """
-import pandas as pd
-import sandy.formats.endf6 as e6
-from sandy import settings
-from sandy.sampling.cov import Cov
-import numpy as np
 import sys
 import os
-import multiprocessing as mp
-from copy import deepcopy
-import shutil
-import time
-from os.path import join, dirname, realpath
-import matplotlib.pyplot as plt
-from functools import reduce
-from itertools import accumulate
 
-from bokeh.layouts import column
-from bokeh.models import CustomJS, ColumnDataSource, Slider, HoverTool, Div
-from bokeh.plotting import figure, output_file, show
-from bokeh.palettes import Spectral4
-from bokeh.io import save
+def functi(x):
+    from time import sleep
+    print("start f(" + x + ")")
+    sleep(5)
+    print("end   f(" + x + ")")
+    return "did " + x
 
-def process_mp(ismp, PertSeriesXs, **kwargs):
-    global tape
+def mycallback(x):
+    global blah
+    blah = "called back"
+    print("My callback " + str(x))
+
+
+
+def myerrorcallback(r):
+    print("My errorcallback " + str(r))
+
+def process_sp(ismp, inp, text, **kwargs):
+    import pandas as pd
+    import time
+    import sandy.formats.endf6 as e6
     t0 = time.time()
-    tapeout = tape.get_xs().perturb(PertSeriesXs).update_tape(tape).write_mf1_nubar().write_mf3_mt()
-    output = os.path.join(kwargs["outdir"], os.path.basename(kwargs["file"]) + '-{}'.format(ismp))
-    string = tapeout.to_string()
-    print("Created file '{}' in {:.2f} sec".format(output, time.time()-t0,))
-    return string, output
+    xs = e6.Endf6.from_text(text).process(keep_mf=[1,3]).get_xs()
+    xs.columns = pd.MultiIndex.from_tuples([(mat,mt,ismp) for mat,mt in xs.columns.values], names=["MAT", "MT", "SMP"])
+    print("Processed file '{}' in {:.2f} sec".format(inp, time.time()-t0,))
+    return xs
 
 def run(iargs=None):
+    import pandas as pd
+    import sandy.formats.endf6 as e6
+    from sandy.formats.errorr import Errorr
+    from sandy import settings
+    import numpy as np
+    import platform
+    import multiprocessing as mp
+    import time
+    from functools import reduce
+    from bokeh.layouts import column
+    from bokeh.models import CustomJS, ColumnDataSource, Slider, HoverTool, Div
+    from bokeh.plotting import figure, output_file, show
+    from bokeh.palettes import Spectral4
+    from bokeh.io import save
+
+    t0 = time.time()
+    settings.init_plotter(iargs)
+    # Further setup of settings
+    kwargs = vars(settings.args)
     tools = "box_zoom,pan,save,reset"
-#    settings.init_plotter(iargs)
-#    mat = settings.args.mat
-#    mt = settings.args.mt
-#    mf,key = (1,"NUBAR") if mt in (452,455,456) else (3,"XS")
-#
-#    if settings.args.original:
-#        print ("read best estimates from", settings.args.original)
-#        Data = e6.extract_xs(e6.endf2df(settings.args.original, keep_mf=[mf], keep_mt=[mt]))[mat,mt]
-#        Data.name = "Data"
-#
-#    if settings.args.cov:
-#        print ("read covariances from", settings.args.cov)
-#        DfCov = e6.extract_cov33(e6.endf2df(settings.args.cov, keep_mf=[mf+30], keep_mt=[mt]))
-#        DfCov.index = DfCov.index.droplevel("MAT").droplevel("MT")
-#        DfCov.columns = DfCov.columns.droplevel("MAT").droplevel("MT")
-#        Runc = pd.Series(np.sqrt(np.diag(DfCov))*100., index=DfCov.index)
-#        Runc.name = "Runc"
+
+
+    # LOAD REFERENCE FILE
+    tape = e6.Endf6.from_file(settings.args.file).process(keep_mf=[1,3])
+    if tape.empty:
+        sys.exit("ERROR: tape is empty")
+    xsRef = tape.get_xs()
+
+    # LOAD COVARIANCE FILE
+    if settings.args.errorr_cov:
+        covtape = Errorr.from_file(settings.args.errorr_cov).process(keep_mf=[31,33])
+    elif settings.args.endf6_cov:
+        covtape = e6.Endf6.from_file(settings.args.endf6_cov).process(keep_mf=[31,33])
+    if covtape.empty:
+        sys.exit("ERROR: covtape is empty")
+    covRef = covtape.get_cov()
 
     global DictText
     DictText = {}
-    nsmp = 3
-    for i in range(nsmp):
-        ismp = i + 1
-        inp = "../../sandy_tests/test_Fe56_errorr0"+"/fe56.pendf-"+str(ismp)
+    # IMPORT SAMPLES INTO DATAFRAME
+    # Keep reading and processing separate to parallelize the processing
+    baseoutput = os.path.join(kwargs["outdir"], os.path.basename(kwargs["file"]))
+    for ismp in range(1, kwargs["samples"]+1):
+        inp = baseoutput + "-" + str(ismp)
         with open(inp) as f:
             DictText.update({ (ismp,inp) :f.read() })
-#        xs = e6.Endf6.from_file(inp).process(keep_mf=[1,3]).get_xs()
-#        xs.columns = pd.MultiIndex.from_tuples([(mat,mt,ismp) for mat,mt in xs.columns.values], names=["MAT", "MT", "SMP"])
-#        print ("read file ", inp)
-#        D = e6.endf2df(join(settings.args.smpdir,inp), keep_mf=[mf], keep_mt=[mt]).DATA.loc[mat,mf,mt][key]
-#        D.name = inp
-#        ListXs.append(D)
-    ListXs = []
-    for (ismp,inp), text in DictText.items():
-        xs = e6.Endf6.from_text(text).process(keep_mf=[1,3]).get_xs()
-        xs.columns = pd.MultiIndex.from_tuples([(mat,mt,ismp) for mat,mt in xs.columns.values], names=["MAT", "MT", "SMP"])
-        ListXs.append(xs)
-#        pool = mp.Pool(processes=settings.args.processes)
-#        outs = [pool.apply_async(sampling2,
-#                                 args = (i, PertXs[i]),
-#                                 kwds = {**kwargs}
-#                                 ) for i in range(1,settings.args.samples+1) ]
-#        outs = list(map(lambda x:x.get(), outs))    Smp = pd.DataFrame(ListXs).T
-#    xs = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
+
+    ListXs = [process_sp(ismp, inp, text, **kwargs) for (ismp,inp),text in DictText.items()]
+#    if kwargs["processes"] == 1:
+#        ListXs = [process_sp(ismp, inp, **kwargs) for ismp,inp in DictText.keys()]
+#    else:
+#        if platform.system() == "Windows":
+#            def init_pool(the_dicttext):
+#                global DictText
+#                DictText = the_dicttext
+#            pool = mp.Pool(processes=kwargs["processes"],
+#                           initializer=init_pool(DictText))
+#        else:
+#            pool = mp.Pool(processes=kwargs["processes"])
+#        queue = Queue()
+#        for times in [2,3,0,2]:
+#            queue.put(times)
+#        def slowstart(q):
+#            import os
+#            num = q.get()
+#            print "slowstart: process id = {0} (sleep({1}))".format(os.getpid(),num)
+#            sleep(num)
+#        def init_pool(initarg):
+#            text
+#            global DictText
+#            DictText = the_dicttext
+#        servers=["s1","s2","s3","s4","s5","s6"]
+#        blah = "no callback"
+#        with mp.Pool(processes=kwargs["processes"]) as pool:
+#            A=[]
+#            for server in servers:
+#                r = pool.apply_async(functi, (server,),  callback=mycallback, error_callback=myerrorcallback)
+#                A.append(r)
+#            pool.close()
+#            pool.join()
+#            print (blah)
+#        outs = [pool.apply_async(functi, args=(x)) for x in [1,2,3]]
+#                                 args = (ismp, inp),
+#                                 ) for ismp,inp in DictText.keys() ]
+#        pool.close()
+#        ListXs = list(map(lambda x:x.get(), outs))
+
     xs = reduce(lambda l,r : l.join(r), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
+
+
+    width = 1500; height = 300
     for mat in xs.columns.get_level_values('MAT').unique():
         for mt in xs[mat].columns.get_level_values('MT').unique():
             df = xs[mat][mt]
@@ -90,42 +134,67 @@ def run(iargs=None):
             STD = df.std(axis=1).divide(MEAN.values).replace(np.inf, 0).fillna(0) * 100.
             if (STD==0).all(): continue
             df = df.divide(MEAN.values, axis=0).replace(np.inf, 1).fillna(1)
-            A = {j+1:df.iloc[:,:j+1].apply(np.mean) for j in range(1,nsmp)}
-#            mean = pd.Series({j+1:np.mean(df.iloc[:,:3].values) for j in range(1,nsmp)})
-#            std = pd.Series({j+1:np.std(df.iloc[:,:3].values) for j in range(1,nsmp)})
-            df['MEAN'] = MEAN
-            df['STD'] = STD
+#            mean = pd.Series({j+1:np.mean(df.iloc[:,:3].values) for j in range(1,kwargs["samples"])})
+#            std = pd.Series({j+1:np.std(df.iloc[:,:3].values) for j in range(1,kwargs["samples"])})
 #            convergence = pd.DataFrame([mean,std], index=["MEAN", "STD"]).T
 #            convergence.index.name = "SMP"
 
-            source = ColumnDataSource(df)
-
-#            mean = xs[mat].groupby(axis=1, level=["MT"]).mean()
-#            mean.columns = list(map(str, mean.columns))
-#            std = xs[mat].groupby(axis=1, level=["MT"]).std()
-#            std.columns = list(map(str, std.columns))
-#            ix = (std != 0).any(axis=0)
-#            std = std.loc[:, ix] # delete zero std
-#            mean = mean.loc[:, ix] # delete zero std
-
             x_axis_type = "log"
             y_axis_type = "linear" if mt in (452,455,456) else "log"
-            title = r"Average"
-            pmean = figure(plot_width=1000, plot_height=350, x_axis_type=x_axis_type, y_axis_type=y_axis_type, tools=tools, title=title)
-#            pmean.line(x="E", y="Data", source=source, color=Spectral4[0], alpha=1, legend=r"data")
-            pmean.line(x="E", y="MEAN", source=source, color=Spectral4[1], alpha=1, legend=r"samples")
-            pmean.legend.location = "top_left"
-#            pmean.legend.click_policy = "mute"
+            title = r"Evaluated reaction"
+            peval = figure(plot_width=width, plot_height=height, x_axis_type=x_axis_type, y_axis_type=y_axis_type, tools=tools, title=title)
+            data = xsRef[mat][mt]
+            x = data.index
+            y = data.values
+            peval.line(x, y, color=Spectral4[1], alpha=.8)
+            peval.add_tools(HoverTool(tooltips=[
+                    ("E", "@x"),
+                    ("XS", "@y")
+                    ]))
 
             x_axis_type = "log"
             y_axis_type = "linear"
-            title = r"Standard deviation"
-            pstd = figure(x_range=pmean.x_range, plot_width=1000, plot_height=350, x_axis_type=x_axis_type, y_axis_type=y_axis_type, tools=tools, title=title)
-#            pstd.line(x="E", y="Runc", source=source, color=Spectral4[0], alpha=1, legend=r"data")
-            pstd.circle(x="E", y="STD", source=source, color=Spectral4[1], alpha=1, legend=r"samples")
+            title = r"Standard deviation (%)"
+            pstd = figure(x_range=peval.x_range, plot_width=width, plot_height=height, x_axis_type=x_axis_type, y_axis_type=y_axis_type, tools=tools, title=title)
+            pstd.circle(x=STD.index, y=STD.values, color=Spectral4[1], alpha=.8, legend=r"samples")
+            try:
+                data = covRef[mat][mt].loc[mat,mt]
+                x = data.index
+                y = np.sqrt(np.diag(data.as_matrix())) * 100.
+                pstd.circle(x, y, color=Spectral4[2], alpha=.8, legend=r"eval")
+            except:
+                pass
             pstd.legend.location = "top_left"
-#            pstd.legend.click_policy="mute"
+            pstd.legend.click_policy="mute"
+            pstd.add_tools(HoverTool(tooltips=[
+                    ("E", "@x"),
+                    ("Stdev (%)", "@y")
+                    ]))
 
+            x_axis_type = "log"
+            y_axis_type = "log"
+            title = r"Ratios"
+            pratio = figure(x_range=peval.x_range, plot_width=width, plot_height=height, x_axis_type=x_axis_type, y_axis_type=y_axis_type, tools=tools, title=title)
+            left = xsRef[mat][mt].rename("DATA").to_frame().reset_index()
+            right = MEAN.rename("SMP").to_frame().reset_index()
+            data = pd.merge_ordered(left, right, how='right', fill_method='slinear').fillna(0)
+            data["RATIO"] = data.SMP.divide(data.DATA.values).replace(np.inf, 0).fillna(0)
+            pratio.line(x=data.E, y=data.RATIO, color=Spectral4[3], alpha=.8, legend=r"mean")
+            try:
+                cov = covRef[mat][mt].loc[mat,mt]
+                left = pd.Series(np.sqrt(np.diag(cov.as_matrix())) * 100., index=cov.index).rename("DATA").to_frame().reset_index()
+                right = STD.rename("SMP").to_frame().reset_index()
+                data = pd.merge_ordered(left, right, how='left', fill_method='ffill').fillna(0)
+                data["RATIO"] = data.SMP.divide(data.DATA.values).replace(np.inf, 0).fillna(0)
+                pratio.circle(x=data.E, y=data.RATIO, color=Spectral4[1], alpha=.8, legend=r"stdev")
+            except:
+                pass
+            pratio.legend.location = "top_left"
+            pratio.legend.click_policy="mute"
+            pratio.add_tools(HoverTool(tooltips=[
+                    ("E", "@x"),
+                    ("Ratio", "@y")
+                    ]))
 
 #            source = ColumnDataSource(convergence)
 #            pconv = figure(plot_width=1000, plot_height=350, x_axis_type="linear", y_axis_type="linear", tools=tools)
@@ -133,16 +202,19 @@ def run(iargs=None):
 #            pconv.line(x="SMP", y="STD", source=source, color=Spectral4[2], alpha=1, legend=r"std")
 #            pconv.legend.location = "top_left"
 
-            plots = column(pmean, pstd)
+            plots = column(peval, pstd, pratio)
             header = r"""<h1>MAT={} MT={}</h1>
 
             <hr>
 
             """.format(mat,mt)
             layout = column(Div(text=header), plots)
-            save(layout, filename="{}-{}.html".format(mat,mt))
-    sys.exit()
-#    A=[x/(i+1) for i,x in enumerate(accumulate([1,2,3,4]))]
+            name = "{}-{}-{}.html".format(os.path.basename(baseoutput),mat,mt)
+            output_file(os.path.join(kwargs["plotdir"],name))
+            print("save file {}".format(name))
+            save(layout)
+    print("Total running time: {:.2f} sec".format(time.time() - t0))
+    return
 
     mean = xs.groupby(axis=1, level=["MAT","MT"]).mean()
     mean.columns = pd.MultiIndex.from_tuples([(mat,mt,"MEAN") for mat,mt in mean.columns.values], names=["MAT", "MT", "MEAN"])
@@ -253,26 +325,32 @@ def run(iargs=None):
 #                    cmap="bwr",
 #                    xlabel=None, ylabel=None, title=None)
 
-def test():
+def test_Fe56_errorr():
     from sandy.data_test import __file__ as td
-    from sandy import __file__ as sd
-    sd = dirname(realpath(sd))
-    td = dirname(realpath(td))
-    iargs = [r"cm242.endf",]
+    td = os.path.dirname(os.path.realpath(td))
+    iargs = [os.path.join(td, r"fe56.pendf"),
+             "--errorr-cov", os.path.join(td, r"fe56.errorr"),
+             "--outdir", "sandy_tests/test_Fe56_errorr0/",
+             "--processes", "3",#str(os.cpu_count()),
+             "--samples", "3",]
     run(iargs)
+#    captured = capsys.readouterr()
+#    with open(join(str(tmpdir), "sandy.stdout"), 'w') as f: f.write(captured.out)
+#    with open(join(str(tmpdir), "sandy.stderr"), 'w') as f: f.write(captured.err)
 
-test()
+
+test_Fe56_errorr()
 sys.exit()
 
 if __name__ == '__main__':
     from sandy import __file__ as sd
     from sandy.data_test import __file__ as td
-    sd = dirname(realpath(sd))
-    td = dirname(realpath(td))
-    extra_args = [join(sd, r"sampling\u5-33-tmpdir\pendf"),
+    sd = os.path.dirname(os.path.realpath(sd))
+    td = os.path.dirname(os.path.realpath(td))
+    extra_args = [os.path.join(sd, r"sampling\u5-33-tmpdir\pendf"),
                  "9228",
                  "102",
-                 "--original", join(td,r"u235.pendf"),
-                 "--cov", join(td,r"u235.endf"),]
+                 "--original", os.path.join(td,r"u235.pendf"),
+                 "--cov", os.path.join(td,r"u235.endf"),]
     sys.argv = [sys.argv[0]] + extra_args
     run()

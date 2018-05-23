@@ -51,7 +51,8 @@ setup(
     entry_points={
     'console_scripts': [
         'sandy=sandy.sampling.sampling:run',
-        'sandy_tests=sandy.sampling.tests:run',
+        'sandy_tests=sandy.sampling.tests:runtests',
+        'sandy_xs_plotter=sandy.sampling.plotter2:main',
         ],
     },
 )
