@@ -18,12 +18,13 @@ import time
 from os.path import join, dirname, realpath
 import matplotlib.pyplot as plt
 from functools import reduce
+from itertools import accumulate
 
 from bokeh.layouts import column
-from bokeh.models import CustomJS, ColumnDataSource, Slider, HoverTool
-
+from bokeh.models import CustomJS, ColumnDataSource, Slider, HoverTool, Div
 from bokeh.plotting import figure, output_file, show
 from bokeh.palettes import Spectral4
+from bokeh.io import save
 
 def process_mp(ismp, PertSeriesXs, **kwargs):
     global tape
@@ -56,7 +57,8 @@ def run(iargs=None):
 
     global DictText
     DictText = {}
-    for i in range(3):
+    nsmp = 3
+    for i in range(nsmp):
         ismp = i + 1
         inp = "../../sandy_tests/test_Fe56_errorr0"+"/fe56.pendf-"+str(ismp)
         with open(inp) as f:
@@ -81,12 +83,67 @@ def run(iargs=None):
 #    xs = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
     xs = reduce(lambda l,r : l.join(r), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
     for mat in xs.columns.get_level_values('MAT').unique():
-        mean = xs[mat].groupby(axis=1, level=["MT"]).mean()
-        mean.columns = list(map(str, mean.columns))
-        std = xs[mat].groupby(axis=1, level=["MT"]).std()
-        std.columns = list(map(str, std.columns))
-        ix = (std != 0).any(axis=0)
-        std = std.loc[:, ix] # delete zero std
+        for mt in xs[mat].columns.get_level_values('MT').unique():
+            df = xs[mat][mt]
+            df.columns = list(map(str, df.columns))
+            MEAN = df.mean(axis=1)
+            STD = df.std(axis=1).divide(MEAN.values).replace(np.inf, 0).fillna(0) * 100.
+            if (STD==0).all(): continue
+            df = df.divide(MEAN.values, axis=0).replace(np.inf, 1).fillna(1)
+            A = {j+1:df.iloc[:,:j+1].apply(np.mean) for j in range(1,nsmp)}
+#            mean = pd.Series({j+1:np.mean(df.iloc[:,:3].values) for j in range(1,nsmp)})
+#            std = pd.Series({j+1:np.std(df.iloc[:,:3].values) for j in range(1,nsmp)})
+            df['MEAN'] = MEAN
+            df['STD'] = STD
+#            convergence = pd.DataFrame([mean,std], index=["MEAN", "STD"]).T
+#            convergence.index.name = "SMP"
+
+            source = ColumnDataSource(df)
+
+#            mean = xs[mat].groupby(axis=1, level=["MT"]).mean()
+#            mean.columns = list(map(str, mean.columns))
+#            std = xs[mat].groupby(axis=1, level=["MT"]).std()
+#            std.columns = list(map(str, std.columns))
+#            ix = (std != 0).any(axis=0)
+#            std = std.loc[:, ix] # delete zero std
+#            mean = mean.loc[:, ix] # delete zero std
+
+            x_axis_type = "log"
+            y_axis_type = "linear" if mt in (452,455,456) else "log"
+            title = r"Average"
+            pmean = figure(plot_width=1000, plot_height=350, x_axis_type=x_axis_type, y_axis_type=y_axis_type, tools=tools, title=title)
+#            pmean.line(x="E", y="Data", source=source, color=Spectral4[0], alpha=1, legend=r"data")
+            pmean.line(x="E", y="MEAN", source=source, color=Spectral4[1], alpha=1, legend=r"samples")
+            pmean.legend.location = "top_left"
+#            pmean.legend.click_policy = "mute"
+
+            x_axis_type = "log"
+            y_axis_type = "linear"
+            title = r"Standard deviation"
+            pstd = figure(x_range=pmean.x_range, plot_width=1000, plot_height=350, x_axis_type=x_axis_type, y_axis_type=y_axis_type, tools=tools, title=title)
+#            pstd.line(x="E", y="Runc", source=source, color=Spectral4[0], alpha=1, legend=r"data")
+            pstd.circle(x="E", y="STD", source=source, color=Spectral4[1], alpha=1, legend=r"samples")
+            pstd.legend.location = "top_left"
+#            pstd.legend.click_policy="mute"
+
+
+#            source = ColumnDataSource(convergence)
+#            pconv = figure(plot_width=1000, plot_height=350, x_axis_type="linear", y_axis_type="linear", tools=tools)
+#            pconv.line(x="SMP", y="MEAN", source=source, color=Spectral4[1], alpha=1, legend=r"mean")
+#            pconv.line(x="SMP", y="STD", source=source, color=Spectral4[2], alpha=1, legend=r"std")
+#            pconv.legend.location = "top_left"
+
+            plots = column(pmean, pstd)
+            header = r"""<h1>MAT={} MT={}</h1>
+
+            <hr>
+
+            """.format(mat,mt)
+            layout = column(Div(text=header), plots)
+            save(layout, filename="{}-{}.html".format(mat,mt))
+    sys.exit()
+#    A=[x/(i+1) for i,x in enumerate(accumulate([1,2,3,4]))]
+
     mean = xs.groupby(axis=1, level=["MAT","MT"]).mean()
     mean.columns = pd.MultiIndex.from_tuples([(mat,mt,"MEAN") for mat,mt in mean.columns.values], names=["MAT", "MT", "MEAN"])
     ix.index = ix.index.set_levels(["MEAN"], level=2)
