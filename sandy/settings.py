@@ -57,15 +57,9 @@ def init_plotter(iargs=None):
                         default=os.path.join(os.getcwd(),"html_files"),
                         type=lambda x: is_valid_dir(parser, x, mkdir=True),
                         help="Target directory where plots are stored (default = current working directory/html_files). If it does not exist it will be created.")
-    args = parser.parse_args(args=iargs)
+    args = parser.parse_known_args(args=iargs)[0]
 
-def init_checker(ARGS=None):
-    global args
-    parser = argparse.ArgumentParser(description='Run SANDY')
-    parser.add_argument('smpdir',
-                        type=lambda x: is_valid_dir(parser, x),
-                        help="Path to directory containing (only) samples for one evaluated file.")
-    args = parser.parse_args(args=ARGS)
+
 
 def init_sampling(iargs=None):
     global args
@@ -101,7 +95,9 @@ def init_sampling(iargs=None):
                         default=os.path.join(os.getcwd(),"html_files"),
                         type=lambda x: is_valid_dir(parser, x, mkdir=True),
                         help="Target directory where plots are stored (default = current working directory/html_files). If it does not exist it will be created.")
-
+    parser.add_argument('-p','--plot',
+                        action='store_false',
+                        help="Turn on xs plotting.")
 #    parser.add_argument('-mat','--keep-mat',
 #                        type=int,
 #                        action='append',
@@ -130,4 +126,4 @@ def init_sampling(iargs=None):
                         action='version',
                         version='%(prog)s 1.0',
                         help="SANDY's version.")
-    args = parser.parse_args(args=iargs)
+    args = parser.parse_known_args(args=iargs)[0]
