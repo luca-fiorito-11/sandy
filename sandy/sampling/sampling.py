@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 from sandy.njoy import get_pendf
 from sandy.tests import TimeDecorator
 from sandy.formats.errorr import Errorr
+import platform
 import re
 
 
@@ -74,87 +75,6 @@ def sample_xs(tape, NSMP, **kwargs):
             print("\n".join(E))
     return DfPert
 
-#def sample_xs(tape, NSMP, **kwargs):
-#    # perturbations are in relative values
-#    DfCov = e6.extract_cov33(tape)
-#    if DfCov.empty:
-#        return pd.DataFrame()
-#    cov = Cov(DfCov.as_matrix())
-#    DfPert = pd.DataFrame( cov.sampling(NSMP) + 1, index=DfCov.index, columns=range(1,NSMP+1))
-#    DfPert.columns.name = 'SMP'
-#    if "eig" in kwargs:
-#        if kwargs["eig"] > 0:
-#            from sandy.functions import div0
-#            eigs = cov.eig()[0]
-#            idxs = np.abs(eigs).argsort()[::-1]
-#            dim = min(len(eigs), kwargs["eig"])
-#            eigs_smp = Cov(np.cov(DfPert.as_matrix())).eig()[0]
-#            idxs_smp = np.abs(eigs_smp).argsort()[::-1]
-#            print("MF[31,33] eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
-#            diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
-#            E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
-#            print("\n".join(E))
-#    return DfPert
-
-#@TimeDecorator
-#def perturb_xs(tape, PertSeriesXs, **kwargs):
-#    Xs = e6.Xs.from_tape(tape)
-#    indexName = Xs.index.name
-#    # Add extra energy points
-#    if "energy_point" in kwargs:
-#        Xs = Xs.reindex(Xs.index.union(kwargs["energy_point"])).interpolate(method="slinear").fillna(0)
-#    Xs.index.name = indexName
-#    for mat, mt in Xs:
-#        if mat not in PertSeriesXs.index.get_level_values("MAT").unique():
-#            continue
-#        mtListPert = PertSeriesXs.loc[mat].index.get_level_values("MT").unique()
-#        if mt in mtListPert:
-#            mtPert = mt
-#        elif mt in range(800,850) \
-#        and not list(filter(lambda x: x in mtListPert, range(800,850))) \
-#        and 107 in mtListPert:
-#            mtPert = 107
-#        elif mt in range(750,800) \
-#        and not list(filter(lambda x: x in mtListPert, range(750,800))) \
-#        and 106 in mtListPert:
-#            mtPert = 106
-#        elif mt in range(700,750) \
-#        and not list(filter(lambda x: x in mtListPert, range(700,750))) \
-#        and 105 in mtListPert:
-#            mtPert = 105
-#        elif mt in range(650,700) \
-#        and not list(filter(lambda x: x in mtListPert, range(650,700))) \
-#        and 104 in mtListPert:
-#            mtPert = 104
-#        elif mt in range(600,650) \
-#        and not list(filter(lambda x: x in mtListPert, range(600,650))) \
-#        and 103 in mtListPert:
-#            mtPert = 103
-#        elif mt in range(102,118) \
-#        and not list(filter(lambda x: x in mtListPert, range(102,118))) \
-#        and 101 in mtListPert:
-#            mtPert = 101
-#        elif mt in (19,20,21,38) \
-#        and not list(filter(lambda x: x in mtListPert, (19,20,21,38))) \
-#        and 18 in mtListPert:
-#            mtPert = 18
-#        elif mt in (18,101) \
-#        and not list(filter(lambda x: x in mtListPert, (18,101))) \
-#        and 27 in mtListPert:
-#            mtPert = 27
-#        elif mt in range(50,92) \
-#        and not list(filter(lambda x: x in mtListPert, range(50,92))) \
-#        and 4 in mtListPert:
-#            mtPert = 4
-#        else:
-#            continue
-#        P = PertSeriesXs.loc[mat,mtPert]
-#        P = P.reindex(P.index.union(Xs[mat,mt].index)).ffill().fillna(1).reindex(Xs[mat,mt].index)
-#        Xs[mat,mt] = Xs[mat,mt].multiply(P, axis="index")
-#        # Negative values are set to zero
-#        Xs[mat,mt][Xs[mat,mt] <= 0] = 0
-#    Xs = e6.reconstruct_xs(Xs)
-#    return e6.write_mf1_nubar( e6.write_mf3_mt( e6.update_xs(tape, Xs) ) )
 
 def perturb_chi(tape, PertSeriesChi, **kwargs):
     PertSeriesChi.name = 'SMP'
@@ -232,17 +152,18 @@ def sampling(tape, ismp, PertSeriesNubar=None, PertSeriesRes=None, PertSeriesXs=
 #            tape.DATA.loc[mat,1,451]['LRP'] == 2
 #    tape = perturb_xs(tape, PertSeriesXs, **kwargs)
 
-def sampling2(ismp, PertSeriesXs, **kwargs):
+def sampling_sp(ismp, PertSeriesXs, **kwargs):
     global tape
     t0 = time.time()
     tapeout = tape.get_xs().perturb(PertSeriesXs).update_tape(tape).write_mf1_nubar().write_mf3_mt()
     output = os.path.join(kwargs["outdir"], os.path.basename(kwargs["file"]) + '-{}'.format(ismp))
-    string = tapeout.to_string(output)
+    string = tapeout.to_string()
     print("Created file '{}' in {:.2f} sec".format(output, time.time()-t0,))
     return string, output
 
 
 def run(iargs=None):
+    from sandy.sampling import plotter
     t0 = time.time()
     settings.init_sampling(iargs)
 
@@ -269,10 +190,17 @@ def run(iargs=None):
 
     # APPLY PERTURBATIONS
     if settings.args.processes == 1:
-        outs = [sampling2(i, PertXs[i], **kwargs) for i in range(1,settings.args.samples+1)]
+        outs = [sampling_sp(i, PertXs[i], **kwargs) for i in range(1,settings.args.samples+1)]
     else:
-        pool = mp.Pool(processes=settings.args.processes)
-        outs = [pool.apply_async(sampling2,
+        if platform.system() == "Windows":
+            def init_pool(the_tape):
+                global tape
+                tape = the_tape
+            pool = mp.Pool(processes=settings.args.processes,
+                           initializer=init_pool(tape))
+        else:
+            pool = mp.Pool(processes=settings.args.processes)
+        outs = [pool.apply_async(sampling_sp,
                                  args = (i, PertXs[i]),
                                  kwds = {**kwargs}
                                  ) for i in range(1,settings.args.samples+1) ]
@@ -282,4 +210,8 @@ def run(iargs=None):
     for string, output in outs:
         with open(output, 'w') as f:
             f.write(string)
+
+    # PLOTTING IS OPTIONAL
+    if kwargs["p"]:
+        plotter.run(iargs)
     print("Total running time: {:.2f} sec".format(time.time() - t0))

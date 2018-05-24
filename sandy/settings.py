@@ -28,34 +28,38 @@ def is_valid_dir(parser, arg, mkdir=False):
         parser.error("Directory {} does not exist".format(arg))
     return arg
 
-def init_plotter(ARGS=None):
+def init_plotter(iargs=None):
     global args
-    parser = argparse.ArgumentParser(description='Run SANDY')
-    parser.add_argument('smpdir',
-                        type=lambda x: is_valid_dir(parser, x),
-                        help="Path to directory containing (only) samples for one evaluated file.")
-    parser.add_argument('mat',
+    parser = argparse.ArgumentParser(description='Run SANDY xs-plotter')
+    parser.add_argument('file',
+                        type=lambda x: is_valid_file(parser, x),
+                        help="ENDF-6 or PENDF format file.")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--endf6-cov',
+                       type=lambda x: is_valid_file(parser, x),
+                       help="ENDF-6 file containing covariances.")
+    group.add_argument('--errorr-cov',
+                       type=lambda x: is_valid_file(parser, x),
+                       help="ERRORR file containing covariances.")
+    parser.add_argument('--samples',
                         type=int,
-                        help="MAT number (only one).")
-    parser.add_argument('mt',
+                        default=100,
+                        help="Number of samples.")
+    parser.add_argument('--outdir',
+                        default=os.getcwd(),
+                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
+                        help="Target directory where outputs are stored (default = current working directory). If it does not exist it will be created.")
+    parser.add_argument('-np','--processes',
                         type=int,
-                        metavar="{1,..,999}",
-                        help="MT number (only one).")
-    parser.add_argument('--original',
-                        default=None,
-                        help="ENDF-6 or PENDF file containing the original data.")
-    parser.add_argument('--cov',
-                        default=None,
-                        help="ENDF-6 file containing the original covariance data.")
-    args = parser.parse_args(args=ARGS)
+                        default=1,
+                        help="Number of worker processes (default=1).")
+    parser.add_argument('--plotdir',
+                        default=os.path.join(os.getcwd(),"html_files"),
+                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
+                        help="Target directory where plots are stored (default = current working directory/html_files). If it does not exist it will be created.")
+    args = parser.parse_known_args(args=iargs)[0]
 
-def init_checker(ARGS=None):
-    global args
-    parser = argparse.ArgumentParser(description='Run SANDY')
-    parser.add_argument('smpdir',
-                        type=lambda x: is_valid_dir(parser, x),
-                        help="Path to directory containing (only) samples for one evaluated file.")
-    args = parser.parse_args(args=ARGS)
+
 
 def init_sampling(iargs=None):
     global args
@@ -87,6 +91,13 @@ def init_sampling(iargs=None):
                         default=0,
                         metavar="N",
                         help="Print the first N eigenvalues of the evaluated covariance matrices (default = 0, do not print).")
+    parser.add_argument('--plotdir',
+                        default=os.path.join(os.getcwd(),"html_files"),
+                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
+                        help="Target directory where plots are stored (default = current working directory/html_files). If it does not exist it will be created.")
+    parser.add_argument('-p',
+                        action='store_true',
+                        help="Turn on xs plotting.")
 #    parser.add_argument('-mat','--keep-mat',
 #                        type=int,
 #                        action='append',
@@ -115,4 +126,4 @@ def init_sampling(iargs=None):
                         action='version',
                         version='%(prog)s 1.0',
                         help="SANDY's version.")
-    args = parser.parse_args(args=iargs)
+    args = parser.parse_known_args(args=iargs)[0]

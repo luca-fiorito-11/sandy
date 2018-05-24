@@ -44,14 +44,16 @@ setup(
     install_requires = ['numpy',
                         'scipy',
                         'matplotlib',
-                        'pytest',
+                        'pytest>=3.3',
                         'fortranformat>=0.2.5',
+                        'bokeh>=0.12.10'
                         'pandas>=0.20'],
     include_package_data = True,
     entry_points={
     'console_scripts': [
         'sandy=sandy.sampling.sampling:run',
-        'sandy_tests=sandy.sampling.tests:run',
+        'sandy_tests=sandy.sampling.tests:runtests',
+        'sandy_xs_plotter=sandy.sampling.plotter2:main',
         ],
     },
 )

@@ -8,6 +8,9 @@ from os.path import join, dirname, realpath
 import os
 import sys
 import pytest
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 #def test_H1():
 #    from sandy.sampling import sampling
@@ -103,7 +106,21 @@ import pytest
 #    sampling.run()
 #
 
-def test_Cm242(tmpdir, capsys):
+def test_H1(tmpdir):
+    from sandy.sampling import sampling
+    from sandy.data_test import __file__ as td
+    td = dirname(realpath(td))
+    iargs = [join(td, r"h1.pendf"),
+             "--errorr-cov", join(td, r"h1.errorr"),
+             "--outdir", str(tmpdir),
+             "--processes", str(os.cpu_count()),
+             "--eig", "10",
+             "--samples", "100",
+             "--plotdir", os.path.join(str(tmpdir), r"html_files"),
+             "-p"]
+    sampling.run(iargs)
+
+def test_Cm242(tmpdir):
     from sandy.sampling import sampling
     from sandy.data_test import __file__ as td
     td = dirname(realpath(td))
@@ -112,13 +129,12 @@ def test_Cm242(tmpdir, capsys):
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
-             "--samples", "300",]
+             "--samples", "10",
+             "--plotdir", os.path.join(str(tmpdir), r"html_files"),
+             "-p"]
     sampling.run(iargs)
-    captured = capsys.readouterr()
-    with open(join(str(tmpdir), "sandy.stdout"), 'w') as f: f.write(captured.out)
-    with open(join(str(tmpdir), "sandy.stderr"), 'w') as f: f.write(captured.err)
 
-def test_Fe56_errorr(tmpdir, capsys):
+def test_Fe56_errorr(tmpdir):
     from sandy.sampling import sampling
     from sandy.data_test import __file__ as td
     td = dirname(realpath(td))
@@ -127,29 +143,10 @@ def test_Fe56_errorr(tmpdir, capsys):
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
-             "--samples", "300",]
+             "--samples", "10",]
     sampling.run(iargs)
-    captured = capsys.readouterr()
-    with open(join(str(tmpdir), "sandy.stdout"), 'w') as f: f.write(captured.out)
-    with open(join(str(tmpdir), "sandy.stderr"), 'w') as f: f.write(captured.err)
 
-#def test():
-#    from sandy.sampling import sampling
-#    from sandy.data_test import __file__ as td
-#    from sandy import __file__ as sd
-#    sd = dirname(realpath(sd))
-#    td = dirname(realpath(td))
-#    iargs = [join(td, r"cm242.endf"),
-#             "--endf6-cov", join(td, r"cm242.endf"),
-#             "--outdir", join(sd, r"cm242-tmpdir"),
-#             "--eig", "10",
-#             "--samples", "10",]
-#    sampling.run(iargs)
-#
-#test()
-#sys.exit()
-
-def run():
+def runtests():
     args = [realpath(__file__),
             "--basetemp=sandy_tests",]
     if len(sys.argv) > 1:
@@ -157,4 +154,4 @@ def run():
     pytest.main(args)
 
 if __name__ == "__main__":
-    run()
+    runtests()
