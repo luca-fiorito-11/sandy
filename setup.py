@@ -46,6 +46,7 @@ setup(
                         'matplotlib',
                         'pytest>=3.3',
                         'fortranformat>=0.2.5',
+                        'bokeh>=0.12.10'
                         'pandas>=0.20'],
     include_package_data = True,
     entry_points={
