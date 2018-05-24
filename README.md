@@ -29,8 +29,10 @@ The following dependencies are required to ensure the correct functioning of SAN
 * pandas >= 0.20
 * numpy
 * scipy
-* pytest
+* pytest >= 3.3
 * matplotlib
+* bokeh >= 0.12.10
+* fortranformat >= 0.2.5
 ```
 
 ##### <a name="installation"></a>Installation
