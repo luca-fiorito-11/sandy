@@ -163,6 +163,7 @@ def sampling_sp(ismp, PertSeriesXs, **kwargs):
 
 
 def run(iargs=None):
+    from sandy.sampling import plotter
     t0 = time.time()
     settings.init_sampling(iargs)
 
@@ -209,4 +210,8 @@ def run(iargs=None):
     for string, output in outs:
         with open(output, 'w') as f:
             f.write(string)
+
+    # PLOTTING IS OPTIONAL
+    if kwargs["p"]:
+        plotter.run(iargs)
     print("Total running time: {:.2f} sec".format(time.time() - t0))

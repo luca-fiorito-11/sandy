@@ -95,8 +95,8 @@ def init_sampling(iargs=None):
                         default=os.path.join(os.getcwd(),"html_files"),
                         type=lambda x: is_valid_dir(parser, x, mkdir=True),
                         help="Target directory where plots are stored (default = current working directory/html_files). If it does not exist it will be created.")
-    parser.add_argument('-p','--plot',
-                        action='store_false',
+    parser.add_argument('-p',
+                        action='store_true',
                         help="Turn on xs plotting.")
 #    parser.add_argument('-mat','--keep-mat',
 #                        type=int,

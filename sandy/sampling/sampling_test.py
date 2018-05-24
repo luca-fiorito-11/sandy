@@ -8,6 +8,9 @@ from os.path import join, dirname, realpath
 import os
 import sys
 import pytest
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 #def test_H1():
 #    from sandy.sampling import sampling
@@ -103,6 +106,20 @@ import pytest
 #    sampling.run()
 #
 
+def test_H1(tmpdir):
+    from sandy.sampling import sampling
+    from sandy.data_test import __file__ as td
+    td = dirname(realpath(td))
+    iargs = [join(td, r"h1.pendf"),
+             "--errorr-cov", join(td, r"h1.errorr"),
+             "--outdir", str(tmpdir),
+             "--processes", str(os.cpu_count()),
+             "--eig", "10",
+             "--samples", "100",
+             "--plotdir", os.path.join(str(tmpdir), r"html_files"),
+             "-p"]
+    sampling.run(iargs)
+
 def test_Cm242(tmpdir):
     from sandy.sampling import sampling
     from sandy.data_test import __file__ as td
@@ -112,7 +129,9 @@ def test_Cm242(tmpdir):
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
-             "--samples", "10",]
+             "--samples", "10",
+             "--plotdir", os.path.join(str(tmpdir), r"html_files"),
+             "-p"]
     sampling.run(iargs)
 
 def test_Fe56_errorr(tmpdir):
