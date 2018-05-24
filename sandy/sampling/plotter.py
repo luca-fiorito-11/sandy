@@ -182,7 +182,7 @@ def run(iargs=None):
             pratio.line(x=data.E, y=data.RATIO, color=Spectral4[3], alpha=.8, legend=r"mean")
             try:
                 cov = covRef[mat][mt].loc[mat,mt]
-                left = pd.Series(np.sqrt(np.diag(cov.as_matrix())) * 100., index=cov.index).rename("DATA").to_frame().reset_index()
+                left = pd.Series(np.sqrt(np.diag(cov.values)) * 100., index=cov.index).rename("DATA").to_frame().reset_index()
                 right = STD.rename("SMP").to_frame().reset_index()
                 data = pd.merge_ordered(left, right, how='left', fill_method='ffill').fillna(0)
                 data["RATIO"] = data.SMP.divide(data.DATA.values).replace(np.inf, 0).fillna(0)

@@ -26,14 +26,14 @@ import re
 
 #To produce correlation matrix
 #Index = df_cov_xs.index
-#df_cov_xs.update(pd.DataFrame(Cov(df_cov_xs.as_matrix()).corr, index=Index, columns=Index))
+#df_cov_xs.update(pd.DataFrame(Cov(df_cov_xs.values).corr, index=Index, columns=Index))
 
 def sample_chi(tape, NSMP, **kwargs):
     # perturbations are in absolute values
     DfCov = e6.extract_cov35(tape)
     if DfCov.empty:
         return pd.DataFrame()
-    cov = Cov(DfCov.as_matrix())
+    cov = Cov(DfCov.values)
     DfPert = pd.DataFrame(cov.sampling(NSMP),
                           index = DfCov.index,
                           columns = range(1,NSMP+1))
@@ -44,7 +44,7 @@ def sample_chi(tape, NSMP, **kwargs):
             eigs = cov.eig()[0]
             idxs = np.abs(eigs).argsort()[::-1]
             dim = min(len(eigs), kwargs["eig"])
-            eigs_smp = Cov(np.cov(DfPert.as_matrix())).eig()[0]
+            eigs_smp = Cov(np.cov(DfPert.values)).eig()[0]
             idxs_smp = np.abs(eigs_smp).argsort()[::-1]
             print("MF35 eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
             diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
@@ -58,7 +58,7 @@ def sample_xs(tape, NSMP, **kwargs):
     DfCov = tape.get_cov()
     if DfCov.empty:
         return pd.DataFrame()
-    cov = Cov(DfCov.as_matrix())
+    cov = Cov(DfCov.values)
     DfPert = pd.DataFrame( cov.sampling(NSMP) + 1, index=DfCov.index, columns=range(1,NSMP+1))
     DfPert.columns.name = 'SMP'
     if "eig" in kwargs:
@@ -67,7 +67,7 @@ def sample_xs(tape, NSMP, **kwargs):
             eigs = cov.eig()[0]
             idxs = np.abs(eigs).argsort()[::-1]
             dim = min(len(eigs), kwargs["eig"])
-            eigs_smp = Cov(np.cov(DfPert.as_matrix())).eig()[0]
+            eigs_smp = Cov(np.cov(DfPert.values)).eig()[0]
             idxs_smp = np.abs(eigs_smp).argsort()[::-1]
             print("MF[31,33] eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
             diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
@@ -108,7 +108,7 @@ def perturb_chi(tape, PertSeriesChi, **kwargs):
                 P.columns.name = "EOUT"
                 PertChi = chi.add(P, fill_value=0).applymap(lambda x: x if x >= 0 else 0)
                 E = PertChi.columns
-                M = PertChi.as_matrix()
+                M = PertChi.values
                 intergral_array = ((M[:,1:]+M[:,:-1])/2).dot(E[1:]-E[:-1])
                 SmpChi = pd.DataFrame( M/intergral_array.reshape(-1,1),
                                        index=PertChi.index,
