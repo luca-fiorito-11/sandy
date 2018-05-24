@@ -60,8 +60,19 @@ sandy --version
 
 Once the installation is completed, type the following from any directory to automatically run SANDY's automated tests
 
-```
+```bash
 sandy_tests
+```
+
+```sandy_tests``` accepts any ```pytest``` command line option.
+Therefore, add the following options to:
+ - ```-s``` to disable all captures
+ - ```-v``` to display more information
+ - ```--durations=N``` to get a list of the slowest 10 test durations
+ 
+ ```bash
+# Example
+sandy_tests -s -v --durations=10
 ```
 
 #### <a name="usage"></a>Usage
@@ -92,7 +103,7 @@ optional arguments:
   --errorr-cov ERRORR_COV
                         ERRORR file containing covariances.
   --samples SAMPLES     Number of samples.
-  --outdir OUTDIR       Target directory were outputs are stored (default =
+  --outdir OUTDIR       Target directory where outputs are stored (default =
                         current working directory). If it does not exist it
                         will be created.
   -np PROCESSES, --processes PROCESSES
