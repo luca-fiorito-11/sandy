@@ -160,7 +160,7 @@ def run(iargs=None):
             try:
                 data = covRef[mat][mt].loc[mat,mt]
                 x = data.index
-                y = np.sqrt(np.diag(data.as_matrix())) * 100.
+                y = np.sqrt(np.diag(data.values)) * 100.
                 pstd.circle(x, y, color=Spectral4[2], alpha=.8, legend=r"eval")
             except:
                 pass
