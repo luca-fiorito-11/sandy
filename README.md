@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/luca-fiorito-11/sandy.svg?branch=devel)](https://travis-ci.org/luca-fiorito-11/sandy)
+
 # SANDY
 
 ### Sampling nuclear data and uncertainty
