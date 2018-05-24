@@ -7,7 +7,7 @@ Created on Fri May 11 15:08:25 2018
 from sandy.formats.records import read_cont, read_list, read_float
 from os.path import join, dirname, realpath
 import pandas as pd
-from sandy.formats.endf6 import split, XsCov
+from sandy.formats.endf6 import split_file, XsCov
 import numpy as np
 
 def process_errorr_section(text, keep_mf=None, keep_mt=None):
@@ -39,7 +39,7 @@ class Errorr(pd.DataFrame):
         """
         columns = ('MAT', 'MF', 'MT','TEXT')
         rows = []
-        for x in split(file):
+        for x in split_file(file):
             mat = int(x[66:70])
             mf = int(x[70:72])
             mt = int(x[72:75])
