@@ -214,4 +214,17 @@ def run(iargs=None):
     # PLOTTING IS OPTIONAL
     if kwargs["p"]:
         plotter.run(iargs)
-    print("Total running time: {:.2f} sec".format(time.time() - t0))
+    print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
+
+
+#from sandy.data_test import __file__ as td
+#td = os.path.dirname(os.path.realpath(td))
+#iargs = [os.path.join(td, r"h1.pendf"),
+#         "--errorr-cov", os.path.join(td, r"h1.errorr"),
+#         "--outdir", str("CCC"),
+#         "--processes", "1",
+#         "--eig", "10",
+#         "--samples", "3",
+#         "--plotdir", r"OOO/html_files",
+#         "-p"]
+#run(iargs)
