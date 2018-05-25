@@ -12,31 +12,32 @@ import fortranformat as ff
 from collections import namedtuple
 from sandy.tests import TimeDecorator
 import re
-
-text_format_r = ff.FortranRecordReader('(A66)')
-cont_format_r = ff.FortranRecordReader('(2E11.0,4I11)')
 list_format_r = ff.FortranRecordReader('(6E11.0)')
 ilist_format_r = ff.FortranRecordReader('(6I11)')
-
 ilist_format_w = ff.FortranRecordWriter('(6I11)')
 
 def read_text(text, ipos):
-#    TEXT = namedtuple('TEXT', 'HL')
     try:
-        TEXT = text_format_r.read(text[ipos])[0]
+        out = "".join(["{:>11}".format(x) for x in text.iloc[ipos][:6].fillna('')])
         ipos += 1
-        return TEXT, ipos
+        return out, ipos
     except:
-        sys.exit("ERROR: cannot read TEXT at '{}'".format(text[ipos]))
+        mat=text.MAT.iloc[0]
+        mf=text.MF.iloc[0]
+        mt=text.MT.iloc[0]
+        sys.exit("ERROR: cannot read TEXT at line {} for MAT{}/MF{}/MT{}".format(ipos,mat,mf,mt))
 
 def read_cont(text, ipos):
     CONT = namedtuple('CONT', 'C1 C2 L1 L2 N1 N2')
     try:
-        C = CONT(*cont_format_r.read(text[ipos]))
+        out = text.iloc[ipos][:2].tolist() + text.iloc[ipos][2:6].astype(int).tolist()
         ipos += 1
-        return C, ipos
+        return CONT(*out), ipos
     except:
-        sys.exit("ERROR: cannot read CONT at '{}'".format(text[ipos]))
+        mat=text.MAT.iloc[0]
+        mf=text.MF.iloc[0]
+        mt=text.MT.iloc[0]
+        sys.exit("ERROR: cannot read CONT at line {} for MAT{}/MF{}/MT{}".format(ipos,mat,mf,mt))
 
 def read_float(item):
     # stripping takes 2 extra secs
@@ -52,44 +53,22 @@ def read_tab1(text, ipos):
     TAB1 = namedtuple('TAB1', 'C1 C2 L1 L2 NR NP NBT INT x y')
     try:
         C, ipos = read_cont(text, ipos)
-        i = 0
-        tab = []
-        while i < C.N1*2:
-            tab.extend(ilist_format_r.read(text[ipos]))
-            ipos += 1
-            i += 6
-        tab = tab[:C.N1*2]
+        iadd = int(np.ceil(C.N1*2/6))
+        tab = text.iloc[ipos:ipos+iadd,:6].values.flatten()[:C.N1*2].astype(int).tolist()
+        ipos += iadd
+#        i = 0
+#        tab = []
+#        while i < C.N1*2:
+#            out = text.iloc[ipos][:6].fillna(0).astype(int).values
+#            tab.extend(out)
+#            ipos += 1
+#            i += 6
+#        tab = tab[:C.N1*2]
         NBT = tab[::2]
         INT = tab[1::2]
         iadd = int(np.ceil(C.N2*2/6))
-        # 3rd method, 3.14 secs
-        string = "".join([ text[ipos+i][:66] for i in range(int(iadd))])[:C.N2*2*11]
-        # mapping here makes it 1 sec slower
-#        string = "".join(map(lambda x : x[:66], text[ipos:ipos+iadd]))[:C.N2*2*11]
-        tab = list(map(read_float, re.findall(".{11}", string)))
-        # 6th method, 7.34
-#        tab = np.genfromtxt(
-#                map(lambda x: x.encode(), text[ipos:ipos+iadd]),
-#                delimiter=[11]*6,
-#                converters=dict(zip(range(6), [read_float]*6))
-#                ).flatten()[:C.N2*2]
-        # 5th method, 13.6 secs
-#        string = re.sub("(.{11})", "\\1 ", string) # add spaces
-#        tab = np.array(re.sub('([0-9])([+-])', '\\1E\\2', string).split(), dtype=float)
-#        B = re.sub('([0-9]-)', '\\1E-', A)
-        # 4th method, 9 secs
-#        tab = [ read_float(x) for x in re.findall(".{11}", string)]
-        # 2nd method, 24 secs
-#        list_format_r = ff.FortranRecordReader('({}E11.0)'.format(C.N2*2))
-#        tab = list_format_r.read(string)
-        # 1st method, 38 secs
-#        i = 0
-#        tab = []
-#        while i < C.N2*2:
-#            tab.extend(list_format_r.read(text[ipos]))
-#            ipos += 1
-#            i += 6
-#        tab = tab[:C.N2*2]
+        tab = text.iloc[ipos:ipos+iadd,:6].values.flatten()[:C.N2*2]
+        ipos += iadd
         x = np.array(tab[::2], dtype=float)
         y = np.array(tab[1::2], dtype=float)
         return TAB1(C.C1, C.C2, C.L1, C.L2, C.N1, C.N2, NBT, INT, x, y), ipos
@@ -117,14 +96,10 @@ def read_list(text, ipos):
     LIST = namedtuple('LIST', 'C1 C2 L1 L2 NPL N2 B')
     try:
         C, ipos = read_cont(text, ipos)
-        i = 0
-        tab = []
-        while i < C.N1:
-            tab.extend(list_format_r.read(text[ipos]))
-            ipos += 1
-            i += 6
-        tab = tab[:C.N1]
-        return LIST(C.C1, C.C2, C.L1, C.L2, C.N1, C.N2, tab), ipos
+        iadd = int(np.ceil(C.N1/6))
+        tab = text.iloc[ipos:ipos+iadd,:6].values.flatten()[:C.N1].tolist()
+        ipos += iadd
+        return LIST(*list(C), tab), ipos
     except:
         sys.exit("ERROR: cannot read LIST at '{}'".format(text[ipos]))
 

@@ -204,18 +204,18 @@ def run(iargs=None):
 #            pconv.legend.location = "top_left"
 
             plots = column(peval, pstd, pratio)
-            header = r"""<h1>MAT={} MT={}</h1>
+            header = r"""<h1>MAT={} MT={}</h1> #SAMPLES={}
 
             <hr>
 
-            """.format(mat,mt)
+            """.format(mat,mt,kwargs["samples"])
             layout = column(Div(text=header), plots)
             name = "{}-{}-{}.html".format(os.path.basename(baseoutput),mat,mt)
             outfile = os.path.join(kwargs["plotdir"],name)
             output_file(outfile)
             print("save file {}".format(outfile))
             save(layout)
-    print("Total running time: {:.2f} sec".format(time.time() - t0))
+    print("Total running time 'plotter': {:.2f} sec".format(time.time() - t0))
 
 
 
