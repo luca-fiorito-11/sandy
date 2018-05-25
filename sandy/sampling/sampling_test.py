@@ -129,7 +129,7 @@ def test_Cm242(tmpdir):
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
-             "--samples", "10",
+             "--samples", "100",
              "--plotdir", os.path.join(str(tmpdir), r"html_files"),
              "-p"]
     sampling.run(iargs)

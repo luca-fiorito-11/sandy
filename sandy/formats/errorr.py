@@ -7,7 +7,7 @@ Created on Fri May 11 15:08:25 2018
 from sandy.formats.records import read_cont, read_list, read_float
 from os.path import join, dirname, realpath
 import pandas as pd
-from sandy.formats.endf6 import split_file, XsCov
+from sandy.formats.endf6 import split_endf, XsCov
 import numpy as np
 
 def process_errorr_section(text, keep_mf=None, keep_mt=None):
@@ -32,22 +32,13 @@ class Errorr(pd.DataFrame):
 
     @classmethod
     def from_file(cls, file):
-        """
-        Read ENDF-6 formatted file and split it into MAT/MF/MT sections.
-        Produce Endf6 instance (pandas.DataFrame) with columns
-            MAT MF MT TEXT
-        """
-        columns = ('MAT', 'MF', 'MT','TEXT')
-        rows = []
-        for x in split_file(file):
-            mat = int(x[66:70])
-            mf = int(x[70:72])
-            mt = int(x[72:75])
-            text = "\n".join([ y for y in x.split("\n") ])
-            rows.append([mat, mf, mt, text])
-        frame = pd.DataFrame(rows, columns=columns).set_index(['MAT','MF','MT']).sort_index()
-        frame["DATA"] = None
-        return cls(frame)
+        from sandy.formats.endf6 import Endf6
+        return cls(Endf6.from_file(file))
+
+    @classmethod
+    def from_text(cls, text):
+        from sandy.formats.endf6 import Endf6
+        return cls(Endf6.from_text(text))
 
     def process(self, keep_mf=None, keep_mt=None):
         """
@@ -79,11 +70,11 @@ class Errorr(pd.DataFrame):
 
 
 def read_mf1_mt451(text):
-    str_list = text.splitlines()
+    str_list = split_endf(text)
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
     C, i = read_cont(str_list, i)
     out.update({"ZA" : C.C1, "AWR" : C.C2, "ERRFLAG" :C.N1})
     L, i = read_list(str_list, i)
@@ -91,21 +82,21 @@ def read_mf1_mt451(text):
     return out
 
 def read_mf3_mt(text):
-    str_list = text.splitlines()
+    str_list = split_endf(text)
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
     L, i = read_list(str_list, i)
     out.update({"XS" : L.B})
     return out
 
 def read_mf33_mt(text):
-    str_list = text.splitlines()
+    str_list = split_endf(text)
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
     C, i = read_cont(str_list, i)
     out.update({"ZA" : C.C1, "AWR" : C.C2, "RP" : {}})
     for rp in range(C.N2): # number of reaction pairs

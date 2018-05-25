@@ -45,66 +45,25 @@ def plot_heatmap(x, y, z,
     plt.colorbar(pcm, cax=cbaxes)
     fig.show()
 
-#@TimeDecorator
-def split_file(file):
-    """
-    Split ``ENDF-6`` file  into MF/MT sections.
-    """
-    return split_text(open(file).read())
 
-def split_text(text):
+def split_endf(text):
     """
-    Split text (list of strings) into MF/MT sections.
+    Read ENDF-6 formatted file and split it into MAT/MF/MT sections.
+    Produce Endf6 instance (pandas.DataFrame) with index MAT,MF,MT and
+    columns TEXT,DATA.
     """
-    import re
-#    pattern = ".{72}[ 0]{3}.{5}\n?" # this pattern created problems in 28-Ni-58g.jeff33
-    pattern = ".{72}  0[ 0-9]{5}\n|.{68}-1 0  0[ 0-9]{5}" # problems in 28-Ni-58g.jeff33 where one line exceeds 80 chars
-    U = re.split(pattern, text)
-    return filter(None, U) # remove empty lines
+    from io import StringIO
+    def read_float(x):
+        try:
+            return float(x[0] + x[1:].replace('+', 'E+').replace('-', 'E-'))
+        except:
+            return x
+    widths = [11,11,11,11,11,11,4,2,3]
+    columns = ["C1", "C2", "L1", "L2", "N1", "N2","MAT", "MF", "MT"]
+    converters = dict(zip(columns[:6],[read_float]*6))
+    frame =  pd.read_fwf(StringIO(text), widths=widths, names=columns, converters=converters)
+    return frame
 
-def split2df(file):
-    columns = ('MAT', 'MF', 'MT','TEXT')
-    rows = []
-    for x in split(file):
-        mat = int(x[66:70])
-        mf = int(x[70:72])
-        mt = int(x[72:75])
-        text = "\n".join([ y[:66] for y in x.split("\n") ])
-        rows.append([mat, mf, mt, text])
-    return pd.DataFrame(rows, columns=columns)
-
-def split2df_byZAM(file):
-    tape = split2df(file)
-    byZAM = tape.query("MF==1 & MT==451")
-    byZAM["ZAM"] = byZAM.TEXT.apply(lambda x: int(float(read_float(x[:11]))*10+int(x[100:111]))).values
-    byZAM = byZAM.drop(["MF", "MT", "TEXT"], axis=1)
-    return tape.merge(byZAM, how="left", on="MAT").drop("MAT", axis=1)
-
-#from sandy.data_test import __file__ as td
-#from os. path import dirname, realpath, join
-#td = dirname(realpath(td))
-#
-#
-#A=split2df(join(td,r"u235.pendf"))
-#A["LIB"] = "JEFF-3.3"
-#aaa=1
-#store = pd.HDFStore('nypd_motors.h5')
-#A.to_hdf5("AAA.h5", "chunks", format='table', data_columns=True, append=True,)
-"""
-        Found error in:
-            - n-17-Cl-035.jeff32
-            - n-3-Li-007.jeff32
-            - n-63-Eu-152.jeff32
-            - n-63-Eu-153.jeff32
-            - n-64-Gd-155.jeff32
-            - n-77-Ir-193.jeff32
-            - n-90-Th-229.jeff32
-            - n-94-Pu-238.jeff32
-            - n-94-Pu-241.jeff32
-            - n-94-Pu-242.jeff32
-            - n-97-Bk-250.jeff32
-            - n-98-Cf-254.jeff32
-"""
 
 def process_endf_section(text, keep_mf=None, keep_mt=None):
     mf = int(text[70:72])
@@ -119,30 +78,12 @@ def process_endf_section(text, keep_mf=None, keep_mt=None):
             return None
     if mf == 1 and mt in (452, 455, 456):
         return read_mf1_nubar(text)
-#    elif mf == 2 and mt == 151: # read always
-#        return read_mf2_mt151(text)
     elif mf == 3:
         return read_mf3_mt(text)
-#    elif mf == 4:
-#        return read_mf4_mt(text)
-#    elif mf == 5:
-#        return read_mf5_mt(text)
-#    elif mf == 8 and mt == 457:
-#        return read_mf8_mt457(text)
     elif mf == 31 or mf == 33:
         return read_mf33_mt(text)
-#    elif mf == 35:
-#        return read_mf35_mt(text)
     else:
         return None
-
-
-def endf2df(file, keep_mf=None, keep_mt=None):
-    tape = pd.DataFrame([[int(x[66:70]), int(x[70:72]), int(x[72:75]), x] for x in split(file)],
-            columns=('MAT', 'MF', 'MT','TEXT'))
-    tape = tape.set_index(['MAT','MF','MT']).sort_index() # Multi-indexing
-    tape['DATA'] = tape['TEXT'].apply(process_endf_section, keep_mf=keep_mf, keep_mt=keep_mt)
-    return tape
 
 
 class Endf6(pd.DataFrame):
@@ -154,18 +95,9 @@ class Endf6(pd.DataFrame):
         Produce Endf6 instance (pandas.DataFrame) with index MAT,MF,MT and
         columns TEXT,DATA.
         """
-        columns = ('MAT', 'MF', 'MT','TEXT')
-        rows = []
-        for x in split_file(file):
-            mat = int(x[66:70])
-            mf = int(x[70:72])
-            mt = int(x[72:75])
-            text = "\n".join([ y for y in x.split("\n") ])
-            rows.append([mat, mf, mt, text])
-        frame = pd.DataFrame(rows, columns=columns)
-        frame = frame.set_index(['MAT','MF','MT']).sort_index()
-        frame["DATA"] = None
-        return cls(frame)
+        with open(file) as f:
+            text = f.read()
+        return cls.from_text(text)
 
     @classmethod
     def from_text(cls, text):
@@ -174,18 +106,14 @@ class Endf6(pd.DataFrame):
         Produce Endf6 instance (pandas.DataFrame) with index MAT,MF,MT and
         columns TEXT,DATA.
         """
-        columns = ('MAT', 'MF', 'MT','TEXT')
-        rows = []
-        for x in split_text(text):
-            mat = int(x[66:70])
-            mf = int(x[70:72])
-            mt = int(x[72:75])
-            text = "\n".join([ y for y in x.split("\n") ])
-            rows.append([mat, mf, mt, text])
-        frame = pd.DataFrame(rows, columns=columns)
-        frame = frame.set_index(['MAT','MF','MT']).sort_index()
-        frame["DATA"] = None
-        return cls(frame)
+        from io import StringIO
+        lines = text.splitlines()
+        tape = pd.read_fwf(StringIO(text), widths=[66,4,2,3], names=["TEXT","MAT","MF","MT"], usecols=["MAT","MF","MT"]).query("MAT>0 & MF>0 & MT>0")
+        d = {(int(mat),int(mf),int(mt)):"\n".join([lines[i] for i in g.tolist()]) for (mat,mf,mt),g in tape.groupby(["MAT","MF","MT"]).groups.items()}
+        tape = pd.DataFrame.from_dict(d, orient='index').rename(columns={0:"TEXT"})
+        tape.index = pd.MultiIndex.from_tuples(tape.index, names=["MAT", "MF", "MT"])
+        tape["DATA"] = None
+        return cls(tape)
 
     def by_ZAM(self):
         """
@@ -428,11 +356,11 @@ class Endf6(pd.DataFrame):
         return Endf6(tape)
 
 def read_mf1_mt451(text):
-    str_list = text.splitlines()
+    str_list = split_endf(text)
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
     C, i = read_cont(str_list, i)
     out.update({"ZA" : C.C1, "AWR" : C.C2, "LRP" : C.L1, "LFI" : C.L2, "NLIB" :C.N1, "NMOD" : C.N2})
     C, i = read_cont(str_list, i)
@@ -469,11 +397,11 @@ def read_mf1_mt451(text):
     return out
 
 def read_mf1_nubar(text):
-    str_list = text.splitlines()
+    str_list = split_endf(text)
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
     C, i = read_cont(str_list, i)
     out.update({"ZA" : C.C1, "AWR" : C.C2, "LDG" : C.L1, "LNU" : C.L2})
     if out["MT"] == 455:
@@ -496,11 +424,11 @@ def read_mf1_nubar(text):
     return out
 
 def read_mf2_mt151(text):
-    str_list = text.splitlines()
+    str_list = split_endf(text)
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
     C, i = read_cont(str_list, i)
     out.update({ "ZA" : C.C1, "AWR" : C.C2, "NIS" : C.N1, "ZAI" : {} })
     for i_iso in range(out["NIS"]): # LOOP ISOTOPES
@@ -564,11 +492,11 @@ def read_mf2_mt151(text):
     return out
 
 def read_mf3_mt(text):
-    str_list = text.splitlines()
+    str_list = split_endf(text)
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
     C, i = read_cont(str_list, i)
     out.update({"ZA" : C.C1, "AWR" : C.C2})
     T, i = read_tab1(str_list, i)
@@ -577,11 +505,11 @@ def read_mf3_mt(text):
     return out
 
 def read_mf4_mt(text):
-    str_list = text.splitlines()
+    str_list = split_endf(text)
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
     C, i = read_cont(str_list, i)
     out.update({"ZA" : C.C1, "AWR" : C.C2, "LTT" : C.L2})
     if out["LTT"] in (1,3):
@@ -609,11 +537,11 @@ def read_mf4_mt(text):
     return out
 
 def read_mf5_mt(text):
-    str_list = text.splitlines()
+    str_list = split_endf(text)
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
     C, i = read_cont(str_list, i)
     # subsections for partial energy distributions are given in a list
     out.update({"ZA" : C.C1, "AWR" : C.C2, "NK" : C.N1, "SUB" : [] })
@@ -703,11 +631,11 @@ def write_mf5_mt(tapein):
     return tape
 
 def read_mf8_mt457(text):
-    str_list = text.splitlines()
+    str_list = split_endf(text)
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
     C, i = read_cont(str_list, i)
     out.update({"ZA" : C.C1, "AWR" : C.C2, "LIS" : C.L1, "LISO" : C.L2, "NST" :C.N1, "NSP" : C.N2})
     L, i = read_list(str_list, i)
@@ -720,11 +648,11 @@ def read_mf8_mt457(text):
     return out
 
 def read_mf8_fy(text):
-    str_list = text.splitlines()
+    str_list = split_endf(text)
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
     C, i = read_cont(str_list, i)
     out.update({ "ZA" : C.C1, "AWR" : C.C2, "E" : {} })
     for j in range(C.L1):
@@ -736,11 +664,11 @@ def read_mf8_fy(text):
     return out
 
 def read_mf33_mt(text):
-    str_list = text.splitlines()
+    str_list = split_endf(text)
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
     C, i = read_cont(str_list, i)
     # Subsections are given as dictionary values.
     # Keys are MAT1*100+MT1
@@ -801,12 +729,15 @@ def read_mf33_mt(text):
         out["SUB"].update({sub["MAT1"]*1000+sub["MT1"] : sub})
     return out
 
-def read_mf34_mt(text):
-    str_list = text.splitlines()
+def read_mf34_mt(str_list):
+#    str_list = text.splitlines()
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
+#    out = {"MAT" : int(str_list[i][66:70]),
+#           "MF" : int(str_list[i][70:72]),
+#           "MT" : int(str_list[i][72:75])}
     C, i = read_cont(str_list, i)
     # Subsections are given as dictionary values.
     # Keys are MAT1*100+MT1
@@ -867,12 +798,15 @@ def read_mf34_mt(text):
         out["SUB"].update({sub["MAT1"]*1000+sub["MT1"] : sub})
     return out
 
-def read_mf35_mt(text):
-    str_list = text.splitlines()
+def read_mf35_mt(str_list):
+#    str_list = text.splitlines()
     i = 0
-    out = {"MAT" : int(str_list[i][66:70]),
-           "MF" : int(str_list[i][70:72]),
-           "MT" : int(str_list[i][72:75])}
+    out = {"MAT" : str_list["MAT"].iloc[0],
+           "MF" : str_list["MF"].iloc[0],
+           "MT" : str_list["MT"].iloc[0]}
+#    out = {"MAT" : int(str_list[i][66:70]),
+#           "MF" : int(str_list[i][70:72]),
+#           "MT" : int(str_list[i][72:75])}
     C, i = read_cont(str_list, i)
     out.update({ "ZA" : C.C1, "AWR" : C.C2, "NK" : C.N1, "SUB" : []})
     for k in range(out["NK"]):
@@ -880,6 +814,8 @@ def read_mf35_mt(text):
         out["SUB"].append({ "Elo" : L.C1, "Ehi" : L.C2, "NE" : L.N2, "Ek" : L.B[:L.N2],
            "Fkk" : L.B[L.N2:] })
     return out
+
+
 
 def cov_interp(df, interp_column, method='zero', axis='both'):
     # interp_column is a list
