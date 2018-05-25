@@ -16,11 +16,24 @@
 #
 #-----------------------------------------------------------------------
 #
-import os,time
+import os,time,shutil
 import pandas as pd
 
 class PyNjoyError(Exception):
     """Exception indicating an error in PyNjoy."""
+
+def TimeDecorator(foo):
+    """
+    Output the time a function takes
+    to execute.
+    """
+    def wrapper(*args, **kwargs):
+        t1 = time.time()
+        out = foo(*args, **kwargs)
+        t2 = time.time()
+        print("Time to run function {}: {} sec".format(foo, t2-t1))
+        return out
+    return wrapper
 
 class PyNjoy:
     def __init__(self):
@@ -42,13 +55,44 @@ class PyNjoy:
         self.ifprod = 0
         self.jp1 = 0
         self.iverw = 4
-        self.iprint = 1
-        # THERMR options
+        # General options
+        self.iprint = 1  # by default set verbosity to max
+        self.temperatures = [293.6]
+        # RECONR/BROADR default options
+        self.err = 0.005
+        # PURR/UNRESR default options
+        self.dilutions = [1e10] # default is infinite dilution only
+        self.purr = True
+        # THERMR default options
         self.iin = 1
         self.icoh = 1
         self.iform = 0
         self.natom = 1
         self.mtref = 221
+
+    def runNjoy(self, inputfile, cwd):
+        """
+        Run ``NJOY``.
+        Pass input file to process's stdin (it must be encoded first).
+        ..Important::
+            In ``Python 3`` you need to convert string to bytes with a
+            ``encode()`` function
+        Inputs:
+            - ``cwd`` :
+                working directory; default is current directory
+        """
+        from subprocess import Popen, PIPE
+        process = Popen(self.NjoyExec,
+                        shell=True,
+                        cwd=cwd,
+                        stdin=PIPE,
+                        stdout=PIPE,
+                        stderr=PIPE)
+        inp = open(inputfile).read().encode()
+        stdoutdata, stderrdata = process.communicate(inp)
+        if process.returncode not in [0, 24]:
+            raise PyNjoyError("NJOY exit status {}, cannot run njoy executable".format(process.returncode))
+
 
     def pendf(self, *args, **kwargs):
         print(" --- make pendf for " + self.hmat + " ---")
@@ -56,8 +100,7 @@ class PyNjoy:
         myCwd = os.getcwd()
         if not os.path.isfile(os.path.expandvars(self.evaluationFile)): raise PyNjoyError("evaluation file " + self.evaluationFile + " not found")
         if not os.path.isdir(self.evaluationName): os.mkdir(self.evaluationName)
-        os.chdir(self.evaluationName)
-        options = dict(self.__dict__, **dict(default, **kwargs))
+#        os.chdir(self.evaluationName)
         textDil=""
         if self.dilutions:
             nbDil = len(self.dilutions)
@@ -113,18 +156,19 @@ class PyNjoy:
 #          nbAtoms = 1
 #          elasOpt = 0
         htime = time.ctime(time.time())
-        self.__dict__.update({"textDil": textDil, \
-                              "nbDil"  : nbDil,   \
-                              "textTmp": textTmp, \
-                              "nbTmp"  : nbTmp,   \
+        kwargs.update({"textDil": textDil,
+                       "nbDil"  : nbDil,
+                       "textTmp": textTmp,
+                       "nbTmp"  : nbTmp,
+                       "htime"  : htime})
 #                              "unitLaw": unitLaw, \
 #                              "matLaw" : matLaw,  \
 #                              "typeLaw": typeLaw, \
 #                              "iform"  : iform,   \
 #                              "nbAtoms": nbAtoms, \
 #                              "elasOpt": elasOpt, \
-                              "htime"  : htime})#,   \
 #                              "matsab_inc" : matsab_inc})
+        kwargs = dict(self.__dict__, **kwargs)
 
         text_data = """
         moder
@@ -138,7 +182,7 @@ class PyNjoy:
         -21 -22
         'pendf tape from %(evaluationName)s'/
         %(mat)d 1 0/
-        0.001  0.  0.005/
+        %(err)E  0.  %(err)E/
         '%(hmat)s from %(evaluationName)s at %(htime)s' /
         0/
         --
@@ -149,10 +193,10 @@ class PyNjoy:
         broadr
         -21 -22 -23
         %(mat)d %(nbTmp)d 0 0 0./
-        0.001/
+        %(err)E/
         %(textTmp)s/
         0/
-        """ % self.__dict__
+        """ % kwargs
 
         if self.scatteringLaw:
             text_data += """
@@ -165,10 +209,10 @@ class PyNjoy:
             --
             thermr
             -27 -23 -25
-            %(matLaw)d %(mat)d 16 %(nbTmp)d %(typeLaw)d %(elasOpt)d %(iform)d %(nbAtoms)d %(matsab_inc)d 0/
+            %(matLaw)d %(mat)d 32 %(nbTmp)d %(typeLaw)d %(elasOpt)d %(iform)d %(nbAtoms)d %(matsab_inc)d 0/
             %(textTmp)s/
             0.001 4.0
-            """ % self.__dict__
+            """ % kwargs
         else:
             text_data += """
             -- *********************************************************
@@ -179,35 +223,46 @@ class PyNjoy:
             0 %(mat)d 20 %(nbTmp)d %(iin)d %(icoh)d %(iform)d %(natom)d 221 %(iprint)d
             %(textTmp)s/
             0.001 4.0
-            """ % self.__dict__
-            if self.purr:
-                text_data += """
-                purr
-                -21 -24 -25
-                %(mat)d %(nbTmp)d %(nbDil)d 20 32/
-                %(textTmp)s/
-                %(textDil)s/
-                0/
-                """ % self.__dict__
+            """ % kwargs
+            if self.dilutions:
+                if self.purr:
+                    text_data += """
+                    purr
+                    -21 -24 -25
+                    %(mat)d %(nbTmp)d %(nbDil)d 20 32/
+                    %(textTmp)s/
+                    %(textDil)s/
+                    0/
+                    """ % kwargs
+                else:
+                    text_data += """
+                    unresr
+                    -21 -24 -25
+                    %(mat)d %(nbTmp)d %(nbDil)d 1/
+                    %(textTmp)s/
+                    %(textDil)s/
+                    0/
+                    """ % kwargs
             else:
                 text_data += """
-                unresr
-                -21 -24 -25
-                %(mat)d %(nbTmp)d %(nbDil)d 1/
-                %(textTmp)s/
-                %(textDil)s/
-                0/
-                """ % self.__dict__
+                moder
+                -24 -25
+                """ % kwargs
         text_data += """
         moder
         -25 29
         stop
-        """ % self.__dict__
-        file_data = open("file_data",'w')
-        file_data.write(text_data)
-        file_data.close()
-        os.system("ln -s " + self.evaluationFile + " tape20")
-        os.system(myNjoy)
+        """ % kwargs
+        inputfile = os.path.join(self.evaluationName, "file_data")
+        with open(inputfile,'w') as f:
+            f.write(text_data)
+        evalfile = os.path.abspath(self.evaluationFile)
+        outdir = os.path.join(self.evaluationName, self.hmat)
+        os.symlink(evalfile, os.path.join(outdir, "tape20"))
+        self.runNjoy(inputfile, outdir)
+#        shutil.move(os.path.join(self.evaluationName, "tape20"), os.path.join(self.evaluationName, "tape20"))
+        import pdb
+        pdb.set_trace()
         os.system("mv tape29 pendf" + self.hmat)
         os.system("mv file_data file_data_pendf" + self.hmat)
         os.system("mv output out_pendf_" + self.hmat)
