@@ -96,11 +96,9 @@ class PyNjoy:
 
     def pendf(self, *args, **kwargs):
         print(" --- make pendf for " + self.hmat + " ---")
-        default = {"iprint":0, "newfor":1, "iopp":1, "hk":''}
         myCwd = os.getcwd()
         if not os.path.isfile(os.path.expandvars(self.evaluationFile)): raise PyNjoyError("evaluation file " + self.evaluationFile + " not found")
         if not os.path.isdir(self.evaluationName): os.mkdir(self.evaluationName)
-#        os.chdir(self.evaluationName)
         textDil=""
         if self.dilutions:
             nbDil = len(self.dilutions)
@@ -983,7 +981,7 @@ class PyNjoy:
         os.chdir(self.evaluationName)
         options = dict(self.__dict__, **dict(default, **kwargs))
         for tmp,suff in zip(self.temperatures, self.suffixes):
-            options.upadte({"tmp":tmp, "suff":suff})
+            options.update({"tmp":tmp, "suff":suff})
             text_data = """
             moder
             20 -21
