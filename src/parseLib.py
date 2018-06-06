@@ -152,10 +152,10 @@ class PyNjoy:
 #        self.wdir = os.path.normpath(wdir)
 #        self.evaluationName = os.path.basename(self.wdir)
         self.processes = None
-        self.capture = True
+        self.capsys = True
         self.NjoyExec = "njoy2016"
         self.wdir = os.getcwd()
-        self.evaluationName = os.path.abspath("pynjoy")
+        self.evaluationName = os.path.abspath("lib")
         self.iwt = 4
         self.legendre = 1
         self.legendregg = 6
@@ -188,6 +188,12 @@ class PyNjoy:
         self.iform = 0
         self.natom = 1
         self.mtref = 221
+        # ACER default options
+        self.ace = True # run acer by default
+        self.suffixes = [".03"]
+        self.newfor = 1
+        self.iopp = 1
+        self.hk = ''
         self.__dict__.update(kwargs)
 
 
@@ -201,7 +207,7 @@ class PyNjoy:
             ``encode()`` function
         """
         from subprocess import Popen, PIPE
-        if self.capture:
+        if self.capsys:
             stderr = stdout = PIPE
         else:
             stderr = stdout = None
@@ -216,10 +222,25 @@ class PyNjoy:
         if process.returncode not in [0, 24]:
             raise PyNjoyError("NJOY exit status {}, cannot run njoy executable".format(process.returncode))
 
+    def runBash(self, inputfile, cwd):
+        from subprocess import Popen, PIPE
+        if self.capsys:
+            stderr = stdout = PIPE
+        else:
+            stderr = stdout = None
+        process = Popen("bash {}".format(inputfile),
+                        shell=True,
+                        cwd=cwd,
+                        stdin=PIPE,
+                        stdout=stdout,
+                        stderr=stderr)
+        stdoutdata, stderrdata = process.communicate()
+        if process.returncode not in [0, 24]:
+            raise PyNjoyError("NJOY exit status {}, cannot run njoy executable".format(process.returncode))
 
-    def write_pendf(self, **kwargs):
+    def pendf(self, **kwargs):
         kwargs = dict(self.__dict__, **kwargs)
-        print(" --- write pendf input  for " + kwargs["hmat"] + " ---")
+        print(" --- run pendf for " + kwargs["hmat"] + " ---")
         if not os.path.isfile(os.path.expandvars(kwargs["evaluationFile"])): raise PyNjoyError("evaluation file " + kwargs["evaluationFile"] + " not found")
         mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
         os.makedirs(mydir, exist_ok=True)
@@ -234,7 +255,9 @@ class PyNjoy:
         kwargs["htime"] = time.ctime(time.time())
 
         # MODER + RECONR + BROADR
-        text_data = """
+        text_data = """#!/bin/bash
+set -e
+cat > input_pendf.%(hmat)s << EOF
 moder
 20 -21
 --
@@ -322,26 +345,102 @@ unresr
 moder
 %(tapePendf)d 29
 stop
+EOF
+
 """ % kwargs
-        inputfile = os.path.join(mydir, "input_pendf." + kwargs["hmat"])
+        text_data += """
+ln -sf %(evaluationFile)s tape20
+%(NjoyExec)s < input_pendf.%(hmat)s
+mv output output_pendf.%(hmat)s
+mv tape29 %(filename)s.pendf
+rm -f tape*
+""" % kwargs
+        inputfile = os.path.join(mydir, "run_pendf_{}.sh".format(kwargs["hmat"]))
         with open(inputfile,'w') as f:
             f.write(text_data)
-        try:
-            os.symlink(kwargs["evaluationFile"], os.path.join(mydir, "tape20"))
-        except:
-            shutil.copyfile(kwargs["evaluationFile"], os.path.join(mydir, "tape20"))
+        self.runBash(inputfile, mydir)
+#        sys.exit()
+#        try:
+#            os.symlink(kwargs["evaluationFile"], os.path.join(mydir, "tape20"))
+#        except:
+#            shutil.copyfile(kwargs["evaluationFile"], os.path.join(mydir, "tape20"))
+#        self.runNjoy(inputfile, mydir)
+#        if os.path.isfile(os.path.join(mydir, "tape29")):
+#            shutil.move(os.path.join(mydir, "tape29"), os.path.join(mydir, kwargs["filename"] + ".pendf"))
+#        else:
+#            raise PyNjoyError("pendf file for " + kwargs["hmat"] + " was not created")
+#        shutil.move(os.path.join(mydir, "output"), os.path.join(mydir, "output_pendf." + kwargs["hmat"]))
+#        for fileName in os.listdir(mydir):
+#            if fileName[:4] == 'tape': os.remove(os.path.join(mydir,fileName))
 
-    def run_pendf(self, **kwargs):
-        kwargs = dict(self.__dict__, **kwargs)
-        print(" --- run pendf input  for " + kwargs["hmat"] + " ---")
+
+    def acer(self, **fileOptions):
+        kwargs = dict(self.__dict__, **fileOptions)
+        print(" --- run acer for " + kwargs["hmat"] + " ---")
         mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
-        inputfile = os.path.join(mydir, "input_pendf." + kwargs["hmat"])
-        self.runNjoy(inputfile, mydir)
-        shutil.move(os.path.join(mydir, "tape29"), os.path.join(mydir, kwargs["filename"] + ".pendf"))
-        shutil.move(os.path.join(mydir, "output"), os.path.join(mydir, "output_pendf." + kwargs["hmat"]))
-        for fileName in os.listdir(mydir):
-          if fileName[:4] == 'tape': os.remove(os.path.join(mydir,fileName))
+        kwargs["htime"] = time.ctime(time.time())
+        for tmp,suff in zip(kwargs["temperatures"], kwargs["suffixes"]):
+            kwargs.update({"tmp":tmp, "suff":suff})
+            text_data = """#!/bin/bash
+set -e
+cat > input_acer%(suff)s.%(hmat)s << EOF
+moder
+20 -21
+moder
+29 -25
+acer
+-21 -25 0 38 39
+1 %(iprint)d 1 %(suff)s 0/
+'%(hk)s'/
+%(mat)d  %(tmp)E /
+%(newfor)d %(iopp)d/
+0.001/
+-- acer / Check ACE files
+-- 0 38 0 40 41
+-- 7 1 1 -1/
+-- /
+stop
+EOF
 
+""" % kwargs
+            text_data += """
+ln -sf %(evaluationFile)s tape20
+ln -sf %(filename)s.pendf tape29
+%(NjoyExec)s < input_acer%(suff)s.%(hmat)s
+mv output output_acer%(suff)s.%(hmat)s
+mv tape38 %(filename)s%(suff)s.ace
+sed -e 's/filename/%(filename)s%(suff)s.ace/' -e 's/route/0/' tape39 | xargs > %(filename)s%(suff)s.xsdir
+rm -f tape*
+""" % kwargs
+            inputfile = os.path.join(mydir, "run_acer_{}{}.sh".format(kwargs["hmat"], suff))
+            with open(inputfile,'w') as f:
+                f.write(text_data)
+            self.runBash(inputfile, mydir)
+#            inputfile = os.path.join(mydir, "input_acer." + kwargs["hmat"])
+#            with open(inputfile,'w') as f:
+#                f.write(text_data)
+#            try:
+#                os.symlink(kwargs["evaluationFile"], os.path.join(mydir, "tape20"))
+#            except:
+#                shutil.copyfile(kwargs["evaluationFile"], os.path.join(mydir, "tape20"))
+#            try:
+#                os.symlink(os.path.join(mydir, kwargs["filename"] + ".pendf"), os.path.join(mydir, "tape29"))
+#            except:
+#                shutil.copyfile(os.path.join(mydir, kwargs["filename"] + ".pendf"), os.path.join(mydir, "tape29"))
+#            self.runNjoy(inputfile, mydir)
+#            if os.path.isfile(os.path.join(mydir, "tape38")):
+#                shutil.move(os.path.join(mydir, "tape38"), os.path.join(mydir, kwargs["filename"] + kwargs["suff"] + ".ace"))
+#            else:
+#                raise PyNjoyError("ace file for " + kwargs["hmat"] + " was not created")
+#            shutil.move(os.path.join(mydir, "output"), os.path.join(mydir, "output_acer" + kwargs["suff"] + "." + kwargs["hmat"]))
+#            for fileName in os.listdir(mydir):
+#                if fileName[:4] == 'tape': os.remove(os.path.join(mydir,fileName))
+
+
+    def run_modules(self, **fileOptions):
+        self.pendf(**fileOptions)
+        if self.ace:
+            self.acer(**fileOptions)
 
 
 class evalLib(pd.DataFrame):
@@ -355,23 +454,25 @@ class evalLib(pd.DataFrame):
             frame = pd.concat([evalFile(x).to_frame() for x in f.read().splitlines()], sort=False)
         return cls(frame)
 
-    def setup_njoy(self, **kwargs):
-        njoy = PyNjoy(**kwargs)
-        for i,row in self.iterrows():
-            if row.nsub == 10:
-                njoy.write_pendf(**row.to_dict())
-        return njoy
-
-    def run_njoy(self, **kwargs):
+    def run_njoy(self, **njoyOptions):
         import multiprocessing as mp
-        njoy = self.setup_njoy(**kwargs)
-        processes = kwargs["processes"] if "processes" in kwargs else None
-        pool = mp.Pool(processes=processes)
-        outs = [pool.apply_async(njoy.run_pendf, kwds = {**row.to_dict()}) for i,row in self.iterrows()]
+        njoy = PyNjoy(**njoyOptions)
+        pool = mp.Pool(processes=njoy.processes)
+        outs = [pool.apply_async(njoy.run_modules, kwds = {**row.to_dict()}) for i,row in self.iterrows()]
         outs = list(map(lambda x:x.get(), outs))
-
+        if njoy.ace:
+            xsdirFiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(njoy.evaluationName)) for f in fn if f.endswith(".xsdir")]
+            aceFiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(njoy.evaluationName)) for f in fn if f.endswith(".ace")]
+            mydir = os.path.join(njoy.evaluationName, "ace")
+            os.makedirs(mydir, exist_ok=True)
+            with open(os.path.join(mydir, os.path.basename(njoy.evaluationName)+".xsdir"), 'w') as f:
+                for file in sorted(xsdirFiles):
+                    f.write(open(file).read())
+            for file in sorted(aceFiles):
+                shutil.move(file, os.path.join(mydir, os.path.basename(file)))
 
 #lib = PyNjoy()
 #file = evalFile("1-H-3g.jeff33")
 #lib.pendf(**file.__dict__)
-evalLib.from_file("inputs").run_njoy(capture=True)
+if __name__ == "__main__":
+    evalLib.from_file("inputs").run_njoy(capsys=False, thermr=False, purr=False, temperatures=[293.6,600,900,1200], suffixes=['.03','.06','.09','.12'])
