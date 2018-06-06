@@ -10,18 +10,13 @@ import sandy.formats.endf6 as e6
 from sandy import settings
 from sandy.sampling.cov import Cov
 import numpy as np
-import sys
-import os
+import sys, os, time, shutil, re, platform
 import multiprocessing as mp
 from copy import deepcopy
-import shutil
-import time
 import matplotlib.pyplot as plt
 from sandy.njoy import get_pendf
 from sandy.tests import TimeDecorator
 from sandy.formats.errorr import Errorr
-import platform
-import re
 
 
 #To produce correlation matrix
@@ -215,16 +210,3 @@ def run(iargs=None):
     if kwargs["p"]:
         plotter.run(iargs)
     print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
-
-
-#from sandy.data_test import __file__ as td
-#td = os.path.dirname(os.path.realpath(td))
-#iargs = [os.path.join(td, r"h1.pendf"),
-#         "--errorr-cov", os.path.join(td, r"h1.errorr"),
-#         "--outdir", str("CCC"),
-#         "--processes", "1",
-#         "--eig", "10",
-#         "--samples", "3",
-#         "--plotdir", r"OOO/html_files",
-#         "-p"]
-#run(iargs)
