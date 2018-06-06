@@ -7,4 +7,4 @@ install:
   - python setup.py install
 # command to run tests
 script:
-  - pytest -s  -v --basetemp=sandy_tests
+  - pytest -s  -v --basetemp=sandy_tests -m "not slow"
