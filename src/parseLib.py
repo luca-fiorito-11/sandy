@@ -147,10 +147,13 @@ class evalFile:
 
 class PyNjoy:
 
-    def __init__(self, wdir, **kwargs):
+    def __init__(self, **kwargs):
 #        self.sab = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sab.csv")
 #        self.wdir = os.path.normpath(wdir)
 #        self.evaluationName = os.path.basename(self.wdir)
+        self.processes = None
+        self.capture = True
+        self.NjoyExec = "njoy2016"
         self.wdir = os.getcwd()
         self.evaluationName = os.path.abspath("pynjoy")
         self.iwt = 4
@@ -179,11 +182,15 @@ class PyNjoy:
         self.dilutions = [1e10] # default is infinite dilution only
         self.purr = True
         # THERMR default options
+        self.thermr = True
         self.iin = 1
         self.icoh = 1
         self.iform = 0
         self.natom = 1
         self.mtref = 221
+        self.__dict__.update(kwargs)
+
+
 
     def runNjoy(self, inputfile, cwd):
         """
@@ -194,24 +201,28 @@ class PyNjoy:
             ``encode()`` function
         """
         from subprocess import Popen, PIPE
+        if self.capture:
+            stderr = stdout = PIPE
+        else:
+            stderr = stdout = None
         process = Popen(self.NjoyExec,
                         shell=True,
                         cwd=cwd,
                         stdin=PIPE,
-                        stdout=PIPE,
-                        stderr=PIPE)
+                        stdout=stdout,
+                        stderr=stderr)
         inp = open(inputfile).read().encode()
         stdoutdata, stderrdata = process.communicate(inp)
         if process.returncode not in [0, 24]:
             raise PyNjoyError("NJOY exit status {}, cannot run njoy executable".format(process.returncode))
 
 
-    def pendf(self, *args, **kwargs):
+    def write_pendf(self, **kwargs):
         kwargs = dict(self.__dict__, **kwargs)
-        print(" --- make pendf for " + kwargs["hmat"] + " ---")
+        print(" --- write pendf input  for " + kwargs["hmat"] + " ---")
         if not os.path.isfile(os.path.expandvars(kwargs["evaluationFile"])): raise PyNjoyError("evaluation file " + kwargs["evaluationFile"] + " not found")
         mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
-        if not os.path.isdir(mydir): os.mkdir(mydir)
+        os.makedirs(mydir, exist_ok=True)
         if kwargs["dilutions"]:
             kwargs["nbDil"] = len(kwargs["dilutions"])
             kwargs["textDil"] = " ".join(["%E"%dil for dil in kwargs["dilutions"]])
@@ -222,6 +233,7 @@ class PyNjoy:
         kwargs["textTmp"] = " ".join(["%E"%tmp for tmp in kwargs["temperatures"]])
         kwargs["htime"] = time.ctime(time.time())
 
+        # MODER + RECONR + BROADR
         text_data = """
 moder
 20 -21
@@ -249,9 +261,13 @@ broadr
 %(textTmp)s/
 0/
 """ % kwargs
+        kwargs["tapeEndf"] = -21
+        kwargs["tapePendf"] = -23
 
-        if self.scatteringLaw:
-            text_data += """
+        # THERMR (OPTIONAL)
+        if self.thermr:
+            if self.scatteringLaw:
+                text_data += """
 moder
 26 -27
 --
@@ -265,95 +281,97 @@ thermr
 %(textTmp)s/
 0.001 4.0
 """ % kwargs
-        else:
-            text_data += """
+            else:
+                text_data += """
+--
 -- *********************************************************
 -- Add thermal scattering data for free-gas
 -- *********************************************************
+--
 thermr
-0 -23 -24
+0 %(tapePendf)d -24
 0 %(mat)d 20 %(nbTmp)d %(iin)d %(icoh)d %(iform)d %(natom)d 221 %(iprint)d
 %(textTmp)s/
 0.001 4.0
 """ % kwargs
-            if self.dilutions:
-                if self.purr:
-                    text_data += """
+                kwargs["tapePendf"] = -24
+
+        # PURR || UNRESR (OPTIONAL)
+        if self.dilutions:
+            if self.purr:
+                text_data += """
 purr
--21 -24 -25
+%(tapeEndf)d %(tapePendf)d -25
 %(mat)d %(nbTmp)d %(nbDil)d 20 32/
 %(textTmp)s/
 %(textDil)s/
 0/
 """ % kwargs
-                else:
-                    text_data += """
+                kwargs["tapePendf"] = -25
+            else:
+                text_data += """
 unresr
--21 -24 -25
+%(tapeEndf)d %(tapePendf)d -25
 %(mat)d %(nbTmp)d %(nbDil)d 1/
 %(textTmp)s/
 %(textDil)s/
 0/
 """ % kwargs
-            else:
-                text_data += """
-moder
--24 -25
-""" % kwargs
+                kwargs["tapePendf"] = -25
         text_data += """
 moder
--25 29
+%(tapePendf)d 29
 stop
 """ % kwargs
-        inputfile = os.path.join(mydir, "njoy.inp")
+        inputfile = os.path.join(mydir, "input_pendf." + kwargs["hmat"])
         with open(inputfile,'w') as f:
             f.write(text_data)
-        os.symlink(kwargs["evaluationFile"], os.path.join(mydir, "tape20"))
+        try:
+            os.symlink(kwargs["evaluationFile"], os.path.join(mydir, "tape20"))
+        except:
+            shutil.copyfile(kwargs["evaluationFile"], os.path.join(mydir, "tape20"))
+
+    def run_pendf(self, **kwargs):
+        kwargs = dict(self.__dict__, **kwargs)
+        print(" --- run pendf input  for " + kwargs["hmat"] + " ---")
+        mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
+        inputfile = os.path.join(mydir, "input_pendf." + kwargs["hmat"])
         self.runNjoy(inputfile, mydir)
-#        shutil.move(os.path.join(self.evaluationName, "tape20"), os.path.join(self.evaluationName, "tape20"))
-        import pdb
-        pdb.set_trace()
-        os.system("mv tape29 pendf" + self.hmat)
-        os.system("mv file_data file_data_pendf" + self.hmat)
-        os.system("mv output out_pendf_" + self.hmat)
-        os.system("chmod 644 out_pendf_" + self.hmat)
-        for fileName in os.listdir(os.getcwd()):
-          if fileName[:4] == 'tape': os.remove(fileName)
-        os.chdir(myCwd)
+        shutil.move(os.path.join(mydir, "tape29"), os.path.join(mydir, kwargs["filename"] + ".pendf"))
+        shutil.move(os.path.join(mydir, "output"), os.path.join(mydir, "output_pendf." + kwargs["hmat"]))
+        for fileName in os.listdir(mydir):
+          if fileName[:4] == 'tape': os.remove(os.path.join(mydir,fileName))
 
 
 
 class evalLib(pd.DataFrame):
 
-#    def __init__(self, listFiles, name):
-#        self.name = name
-#        self.extend([evalFile(file) for file in listFiles])
     @classmethod
-    def from_file(cls, file):
-        with open(file) as f:
-            frame = pd.concat([evalFile(x).to_frame() for x in f.read().splitlines()])
+    def from_file(cls, inputfile):
+        """
+        Populate dataframe using each row of a given inputfile as the filename of a nuclear data evaluation
+        """
+        with open(inputfile) as f:
+            frame = pd.concat([evalFile(x).to_frame() for x in f.read().splitlines()], sort=False)
         return cls(frame)
 
-    def to_njoy(self, **kwargs):
+    def setup_njoy(self, **kwargs):
+        njoy = PyNjoy(**kwargs)
         for i,row in self.iterrows():
             if row.nsub == 10:
-                text = """from PyNjoy import PyNjoy
+                njoy.write_pendf(**row.to_dict())
+        return njoy
 
-lib = PyNjoy()
-lib.evaluationName = '%(evaluationName)s'
-lib.NjoyExec = '%(NjoyExec)s'
+    def run_njoy(self, **kwargs):
+        import multiprocessing as mp
+        njoy = self.setup_njoy(**kwargs)
+        processes = kwargs["processes"] if "processes" in kwargs else None
+        pool = mp.Pool(processes=processes)
+        outs = [pool.apply_async(njoy.run_pendf, kwds = {**row.to_dict()}) for i,row in self.iterrows()]
+        outs = list(map(lambda x:x.get(), outs))
 
-lib.pendf(mat=%(endf)d, hmat='%(tag)s')
-lib.acer(mat=%(endf)d, hmat='%(tag)s')
-""" % dict(row.to_dict(), **kwargs)
-            elif row.nsub == 12:
-                sys.exit()
-            with open("aaa", 'w') as f: f.write(text)
-            aaa=1
 
-lib = PyNjoy("njoy2016")
-file = evalFile("1-H-3g.jeff33")
-lib.pendf(**file.__dict__)
-A = evalLib.from_file("inputs")
-A.to_njoy(evaluationName="AAA", NjoyExec="njoy2016")
-bbb=1
+#lib = PyNjoy()
+#file = evalFile("1-H-3g.jeff33")
+#lib.pendf(**file.__dict__)
+evalLib.from_file("inputs").run_njoy(capture=True)
