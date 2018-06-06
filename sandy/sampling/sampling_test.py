@@ -4,7 +4,6 @@ Created on Mon Apr  9 13:46:32 2018
 
 @author: fiorito_l
 """
-from os.path import join, dirname, realpath
 import os
 import sys
 import pytest
@@ -110,9 +109,9 @@ warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 def test_H1(tmpdir):
     from sandy.sampling import sampling
     from sandy.data_test import __file__ as td
-    td = dirname(realpath(td))
-    iargs = [join(td, r"h1.pendf"),
-             "--errorr-cov", join(td, r"h1.errorr"),
+    td = os.path.dirname(os.path.realpath(td))
+    iargs = [os.path.join(td, r"h1.pendf"),
+             "--errorr-cov", os.path.join(td, r"h1.errorr"),
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
@@ -125,9 +124,9 @@ def test_H1(tmpdir):
 def test_Cm242(tmpdir):
     from sandy.sampling import sampling
     from sandy.data_test import __file__ as td
-    td = dirname(realpath(td))
-    iargs = [join(td, r"cm242.endf"),
-             "--endf6-cov", join(td, r"cm242.endf"),
+    td = os.path.dirname(os.path.realpath(td))
+    iargs = [os.path.join(td, r"cm242.endf"),
+             "--endf6-cov", os.path.join(td, r"cm242.endf"),
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
@@ -140,9 +139,9 @@ def test_Cm242(tmpdir):
 def test_Fe56_errorr(tmpdir):
     from sandy.sampling import sampling
     from sandy.data_test import __file__ as td
-    td = dirname(realpath(td))
-    iargs = [join(td, r"fe56.pendf"),
-             "--errorr-cov", join(td, r"fe56.errorr"),
+    td = os.path.dirname(os.path.realpath(td))
+    iargs = [os.path.join(td, r"fe56.pendf"),
+             "--errorr-cov", os.path.join(td, r"fe56.errorr"),
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
@@ -154,9 +153,9 @@ def test_Fe56_errorr(tmpdir):
 def test_U5_errorr(tmpdir):
     from sandy.sampling import sampling
     from sandy.data_test import __file__ as td
-    td = dirname(realpath(td))
-    iargs = [join(td, r"u235.pendf"),
-             "--errorr-cov", join(td, r"u235.errorr"),
+    td = os.path.dirname(os.path.realpath(td))
+    iargs = [os.path.join(td, r"u235.pendf"),
+             "--errorr-cov", os.path.join(td, r"u235.errorr"),
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()) if os.cpu_count() < 10 else str(10),
              "--eig", "10",
@@ -166,7 +165,7 @@ def test_U5_errorr(tmpdir):
     sampling.run(iargs)
 
 def runtests():
-    args = [realpath(__file__),
+    args = [os.path.realpath(__file__),
             "--basetemp=sandy_tests",]
     if len(sys.argv) > 1:
         args += sys.argv[1:]

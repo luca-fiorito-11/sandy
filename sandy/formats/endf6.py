@@ -4,13 +4,11 @@ Created on Mon Jan 16 18:03:13 2017
 
 @author: lfiorito
 """
-import sys
-import logging
+import sys, time, pdb
 import numpy as np
 from sandy.formats.records import read_cont, read_tab1, read_tab2, read_list, read_text, write_cont, write_tab1, write_list, write_tab2, read_float#, add_records
 import matplotlib.pyplot as plt
 import pandas as pd
-import pdb
 from copy import copy, deepcopy
 from warnings import warn
 from sandy.tests import TimeDecorator
@@ -62,7 +60,7 @@ def split_endf(text):
     columns = ["C1", "C2", "L1", "L2", "N1", "N2","MAT", "MF", "MT"]
     converters = dict(zip(columns[:6],[read_float]*6))
     frame =  pd.read_fwf(StringIO(text), widths=widths, names=columns, converters=converters)
-    return frame
+    return frame.query("MAT>0 & MF>0 & MT>0")
 
 
 def process_endf_section(text, keep_mf=None, keep_mt=None):
