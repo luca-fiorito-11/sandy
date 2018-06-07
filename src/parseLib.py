@@ -409,33 +409,22 @@ ln -sf %(filename)s.pendf tape29
 %(NjoyExec)s < input_acer%(suff)s.%(hmat)s
 mv output output_acer%(suff)s.%(hmat)s
 mv tape38 %(filename)s%(suff)s.ace
-sed -e 's/filename/%(filename)s%(suff)s.ace/' -e 's/route/0/' tape39 | xargs > %(filename)s%(suff)s.xsdir
+mv tape39 %(filename)s%(suff)s.xsdir
 rm -f tape*
 """ % kwargs
             inputfile = os.path.join(mydir, "run_acer_{}{}.sh".format(kwargs["hmat"], suff))
             with open(inputfile,'w') as f:
                 f.write(text_data)
             self.runBash(inputfile, mydir)
-#            inputfile = os.path.join(mydir, "input_acer." + kwargs["hmat"])
-#            with open(inputfile,'w') as f:
-#                f.write(text_data)
-#            try:
-#                os.symlink(kwargs["evaluationFile"], os.path.join(mydir, "tape20"))
-#            except:
-#                shutil.copyfile(kwargs["evaluationFile"], os.path.join(mydir, "tape20"))
-#            try:
-#                os.symlink(os.path.join(mydir, kwargs["filename"] + ".pendf"), os.path.join(mydir, "tape29"))
-#            except:
-#                shutil.copyfile(os.path.join(mydir, kwargs["filename"] + ".pendf"), os.path.join(mydir, "tape29"))
-#            self.runNjoy(inputfile, mydir)
-#            if os.path.isfile(os.path.join(mydir, "tape38")):
-#                shutil.move(os.path.join(mydir, "tape38"), os.path.join(mydir, kwargs["filename"] + kwargs["suff"] + ".ace"))
-#            else:
-#                raise PyNjoyError("ace file for " + kwargs["hmat"] + " was not created")
-#            shutil.move(os.path.join(mydir, "output"), os.path.join(mydir, "output_acer" + kwargs["suff"] + "." + kwargs["hmat"]))
-#            for fileName in os.listdir(mydir):
-#                if fileName[:4] == 'tape': os.remove(os.path.join(mydir,fileName))
-
+            xsdirfile = os.path.join(mydir, kwargs["filename"] + kwargs["suff"] + ".xsdir")
+            if os.path.isfile(xsdirfile):
+                with open(xsdirfile) as f:
+                    xargs = f.read().split()
+                xargs[2] = "%(filename)s%(suff)s.ace" % kwargs
+                xargs[3] = "0" % kwargs
+                xargs[0] = ".".join([str(kwargs['za'] + 300*kwargs["liso"]), xargs[0].split('.')[1]])
+                with open(xsdirfile, 'w') as f:
+                    f.write(" ".join(xargs))
 
     def run_modules(self, **fileOptions):
         self.pendf(**fileOptions)
@@ -474,5 +463,6 @@ class evalLib(pd.DataFrame):
 #lib = PyNjoy()
 #file = evalFile("1-H-3g.jeff33")
 #lib.pendf(**file.__dict__)
+#lib.acer(**file.__dict__)
 if __name__ == "__main__":
-    evalLib.from_file("inputs").run_njoy(capsys=False, thermr=False, purr=False, temperatures=[293.6,600,900,1200], suffixes=['.03','.06','.09','.12'])
+    evalLib.from_file("inputs").run_njoy(capsys=False, thermr=False, purr=False, temperatures=[293.6], suffixes=['.03'])
