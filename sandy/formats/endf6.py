@@ -143,7 +143,7 @@ class Endf6(pd.DataFrame):
             for mf,dfmf in dfmat.groupby('MF', sort=True):
                 for mt,dfmt in dfmf.groupby('MT', sort=True):
                     for text in dfmt.TEXT:
-                        string += text.encode('ascii', 'replace').decode('ascii')
+                        string += text.encode('ascii', 'replace').decode('ascii') + "\n"
                     string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, mf, 0, 99999)
                 string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, 0, 0, 0)
             string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), 0, 0, 0, 0)
@@ -302,7 +302,7 @@ class Endf6(pd.DataFrame):
                     iline = 1
                 TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
                 iline += 1
-            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
+            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut)
         return Endf6(tape)
 
     def write_mf1_nubar(self):
@@ -329,7 +329,7 @@ class Endf6(pd.DataFrame):
                     iline = 1
                 TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
                 iline += 1
-            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
+            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut)
         return Endf6(tape)
 
     def write_mf3_mt(self):
@@ -350,7 +350,7 @@ class Endf6(pd.DataFrame):
                     iline = 1
                 TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
                 iline += 1
-            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
+            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut)
         return Endf6(tape)
 
 def read_mf1_mt451(text):

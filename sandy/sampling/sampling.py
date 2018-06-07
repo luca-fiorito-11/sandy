@@ -210,3 +210,13 @@ def run(iargs=None):
     if kwargs["p"]:
         plotter.run(iargs)
     print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
+
+#from sandy.data_test import __file__ as td
+#td = os.path.dirname(os.path.realpath(td))
+#iargs = [os.path.join(td, r"cm242.endf"),
+#         "--endf6-cov", os.path.join(td, r"cm242.endf"),
+#         "--outdir", "oop",
+#         "--processes", "1",
+#         "--eig", "10",
+#         "--samples", "2",]
+#run(iargs)
