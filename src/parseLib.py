@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created on Fri May 25 16:58:11 2018
@@ -5,7 +6,7 @@ Created on Fri May 25 16:58:11 2018
 @author: fiorito_l
 """
 import pandas as pd
-import os, re, sys, time, shutil
+import os, re, sys, time, shutil, argparse, pdb
 
 sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [42,125,0,8,221,'tol'],
@@ -175,25 +176,27 @@ class PyNjoy:
         self.iverw = 4
         # General options
         self.iprint = 1  # by default set verbosity to max
-        self.temperatures = [293.6]
+        self.temps = [293.6]
         # RECONR/BROADR default options
         self.err = 0.005
         # PURR/UNRESR default options
-        self.dilutions = [1e10] # default is infinite dilution only
-        self.purr = True
+        self.sig0 = [1e10] # default is infinite dilution only
         # THERMR default options
-        self.thermr = True
         self.iin = 1
         self.icoh = 1
         self.iform = 0
         self.natom = 1
         self.mtref = 221
         # ACER default options
-        self.ace = True # run acer by default
         self.suffixes = [".03"]
         self.newfor = 1
         self.iopp = 1
         self.hk = ''
+        # SKIP modules
+        self.no_acer = False
+        self.no_thermr = False
+        self.no_broadr = False
+        self.no_purr = False
         self.__dict__.update(kwargs)
 
 
@@ -244,17 +247,17 @@ class PyNjoy:
         if not os.path.isfile(os.path.expandvars(kwargs["evaluationFile"])): raise PyNjoyError("evaluation file " + kwargs["evaluationFile"] + " not found")
         mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
         os.makedirs(mydir, exist_ok=True)
-        if kwargs["dilutions"]:
-            kwargs["nbDil"] = len(kwargs["dilutions"])
-            kwargs["textDil"] = " ".join(["%E"%dil for dil in kwargs["dilutions"]])
+        if kwargs["sig0"]:
+            kwargs["nbDil"] = len(kwargs["sig0"])
+            kwargs["textDil"] = " ".join(["%E"%dil for dil in kwargs["sig0"]])
         else:
             kwargs["nbDil"] = 0
             kwargs["textDil"] = ""
-        kwargs["nbTmp"] = len(kwargs["temperatures"])
-        kwargs["textTmp"] = " ".join(["%E"%tmp for tmp in kwargs["temperatures"]])
+        kwargs["nbTmp"] = len(kwargs["temps"])
+        kwargs["textTmp"] = " ".join(["%E"%tmp for tmp in kwargs["temps"]])
         kwargs["htime"] = time.ctime(time.time())
 
-        # MODER + RECONR + BROADR
+        # MODER + RECONR
         text_data = """#!/bin/bash
 set -e
 cat > input_pendf.%(hmat)s << EOF
@@ -272,23 +275,29 @@ reconr
 %(err)E  0.  %(err)E/
 '%(hmat)s from %(evaluationName)s at %(htime)s' /
 0/
+""" % kwargs
+        kwargs["tapeEndf"] = -21
+        kwargs["tapePendf"] = -22
+
+        # BROADR (OPTIONAL)
+        if not kwargs["no_broadr"]:
+            text_data += """
 --
 -- *********************************************************
 -- Perform Doppler-broadening
 -- *********************************************************
 --
 broadr
--21 -22 -23
+%(tapeEndf)d %(tapePendf)d -23
 %(mat)d %(nbTmp)d 0 0 0./
 %(err)E %(thnmax)E %(err)E/
 %(textTmp)s/
 0/
 """ % kwargs
-        kwargs["tapeEndf"] = -21
-        kwargs["tapePendf"] = -23
+            kwargs["tapePendf"] = -23
 
         # THERMR (OPTIONAL)
-        if self.thermr:
+        if not kwargs["no_thermr"]:
             if self.scatteringLaw:
                 text_data += """
 moder
@@ -320,8 +329,8 @@ thermr
                 kwargs["tapePendf"] = -24
 
         # PURR || UNRESR (OPTIONAL)
-        if self.dilutions:
-            if self.purr:
+        if kwargs["sig0"]:
+            if not kwargs["no_purr"]:
                 text_data += """
 purr
 %(tapeEndf)d %(tapePendf)d -25
@@ -330,7 +339,6 @@ purr
 %(textDil)s/
 0/
 """ % kwargs
-                kwargs["tapePendf"] = -25
             else:
                 text_data += """
 unresr
@@ -340,7 +348,7 @@ unresr
 %(textDil)s/
 0/
 """ % kwargs
-                kwargs["tapePendf"] = -25
+            kwargs["tapePendf"] = -25
         text_data += """
 moder
 %(tapePendf)d 29
@@ -359,19 +367,6 @@ rm -f tape*
         with open(inputfile,'w') as f:
             f.write(text_data)
         self.runBash(inputfile, mydir)
-#        sys.exit()
-#        try:
-#            os.symlink(kwargs["evaluationFile"], os.path.join(mydir, "tape20"))
-#        except:
-#            shutil.copyfile(kwargs["evaluationFile"], os.path.join(mydir, "tape20"))
-#        self.runNjoy(inputfile, mydir)
-#        if os.path.isfile(os.path.join(mydir, "tape29")):
-#            shutil.move(os.path.join(mydir, "tape29"), os.path.join(mydir, kwargs["filename"] + ".pendf"))
-#        else:
-#            raise PyNjoyError("pendf file for " + kwargs["hmat"] + " was not created")
-#        shutil.move(os.path.join(mydir, "output"), os.path.join(mydir, "output_pendf." + kwargs["hmat"]))
-#        for fileName in os.listdir(mydir):
-#            if fileName[:4] == 'tape': os.remove(os.path.join(mydir,fileName))
 
 
     def acer(self, **fileOptions):
@@ -379,7 +374,7 @@ rm -f tape*
         print(" --- run acer for " + kwargs["hmat"] + " ---")
         mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
         kwargs["htime"] = time.ctime(time.time())
-        for tmp,suff in zip(kwargs["temperatures"], kwargs["suffixes"]):
+        for tmp,suff in zip(kwargs["temps"], kwargs["suffixes"]):
             kwargs.update({"tmp":tmp, "suff":suff})
             text_data = """#!/bin/bash
 set -e
@@ -428,8 +423,9 @@ rm -f tape*
 
     def run_modules(self, **fileOptions):
         self.pendf(**fileOptions)
-        if self.ace:
+        if not self.no_acer:
             self.acer(**fileOptions)
+
 
 
 class evalLib(pd.DataFrame):
@@ -449,7 +445,7 @@ class evalLib(pd.DataFrame):
         pool = mp.Pool(processes=njoy.processes)
         outs = [pool.apply_async(njoy.run_modules, kwds = {**row.to_dict()}) for i,row in self.iterrows()]
         outs = list(map(lambda x:x.get(), outs))
-        if njoy.ace:
+        if not njoy.no_acer:
             xsdirFiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(njoy.evaluationName)) for f in fn if f.endswith(".xsdir")]
             aceFiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(njoy.evaluationName)) for f in fn if f.endswith(".ace")]
             mydir = os.path.join(njoy.evaluationName, "ace")
@@ -464,5 +460,91 @@ class evalLib(pd.DataFrame):
 #file = evalFile("1-H-3g.jeff33")
 #lib.pendf(**file.__dict__)
 #lib.acer(**file.__dict__)
+
+def is_valid_file(parser, arg, r=True, w=False, x=False):
+    arg = os.path.abspath(os.path.realpath(os.path.normpath(arg)))
+    if not os.path.isfile(arg):
+        parser.error("File {} does not exist".format(arg))
+    if r and not os.access(arg, os.R_OK):
+        parser.error("File {} is not readable".format(arg))
+    if w and not os.access(arg, os.W_OK):
+        parser.error("File {} is not writable".format(arg))
+    if x and not os.access(arg, os.X_OK):
+        parser.error("File {} is not executable".format(arg))
+    return arg
+
+def is_valid_dir(parser, arg, mkdir=False):
+    arg = os.path.abspath(os.path.realpath(os.path.normpath(arg)))
+    if os.path.isdir(arg):
+        return arg
+    if mkdir:
+        os.makedirs(arg, exist_ok=True)
+    else:
+        parser.error("Directory {} does not exist".format(arg))
+    return arg
+
 if __name__ == "__main__":
-    evalLib.from_file("inputs").run_njoy(capsys=False, thermr=False, purr=False, temperatures=[293.6], suffixes=['.03'])
+    parser = argparse.ArgumentParser(description='Run SANDY')
+    parser.add_argument('-i','--inputfile',
+                        type=lambda x: is_valid_file(parser, x),
+                        required=True,
+                        help="<Required> List of evaluated files to be processed (one file per line).")
+    parser.add_argument('--processes',
+                        type=int,
+                        default=1,
+                        help="Number of worker processes (default=1).")
+    parser.add_argument('--capsys',
+                        type=bool,
+                        default=False,
+                        help="Capture NJOY stderr and stdout (default=False).")
+    parser.add_argument('--NjoyExec',
+                        default='njoy2016',
+                        help="NJOY executable (default=njoy2016).")
+    parser.add_argument('--evaluationName',
+                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
+                        default="lib",
+                        metavar="lib",
+                        help="Name of the evaluation.")
+    parser.add_argument('--iprint',
+                        type=int,
+                        choices=range(2),
+                        default=1,
+                        help="NJOY verbosity: 0=min, 1=max (default=1).")
+    parser.add_argument('--no-broadr',
+                        action="store_true",
+                        help="Skip BROADR module in the NJOY sequence.")
+    parser.add_argument('--no-thermr',
+                        action="store_true",
+                        help="Skip THERMR module in the NJOY sequence.")
+    parser.add_argument('--no-purr',
+                        action="store_true",
+                        help="Replace PURR module with UNRESR in the NJOY sequence.")
+    parser.add_argument('--no-acer',
+                        action="store_true",
+                        help="Skip ACER module in the NJOY sequence.")
+    parser.add_argument('--temps',
+                        type=float,
+                        default = [293.6],
+                        nargs='+',
+                        help="Temperature values (default=[293.6]).")
+    parser.add_argument('--sig0',
+                        type=float,
+                        default=None,
+                        nargs='+',
+                        help="Sigma0 values: if none is given, do not run PURR or UNRESR (default=None).")
+    parser.add_argument('--err',
+                        type=float,
+                        default=0.005,
+                        help="Fractional tolerance for RECONR and BROADR (default=0.005).")
+    parser.add_argument('--suffixes',
+                        type=str,
+                        default=[".03"],
+                        nargs='+',
+                        help="Suffixes for ACE files, as many as temperature values (default=[\".03\"]]).")
+    parser.add_argument("-v",
+                        '--version',
+                        action='version',
+                        version='%(prog)s 1.0',
+                        help="")
+    args = parser.parse_args()
+    evalLib.from_file(args.inputfile).run_njoy(**vars(args))
