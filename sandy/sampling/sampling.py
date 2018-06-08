@@ -160,24 +160,25 @@ def sampling_sp(ismp, PertSeriesXs, **kwargs):
 def run(iargs=None):
     from sandy.sampling import plotter
     t0 = time.time()
+
+    # SETUP OF SETTINGS
     settings.init_sampling(iargs)
+    kwargs = vars(settings.args)
 
     # LOAD DATA FILE
     global tape
-    tape = e6.Endf6.from_file(settings.args.file).process()
+    tape = e6.Endf6.from_file(kwargs["file"]).process()
     if tape.empty:
         sys.exit("ERROR: tape is empty")
 
     # LOAD COVARIANCE FILE
-    if settings.args.errorr_cov:
-        covtape = Errorr.from_file(settings.args.errorr_cov).process()#, keep_mf=[3], keep_mt=[102])
-    elif settings.args.endf6_cov:
+    if kwargs["errorr_cov"]:
+        covtape = Errorr.from_file(settings.args.errorr_cov).process()
+    elif kwargs["endf6_cov"]:
         covtape = e6.Endf6.from_file(settings.args.endf6_cov).process()
     if covtape.empty:
         sys.exit("ERROR: covtape is empty")
 
-    # Further setup of settings
-    kwargs = vars(settings.args)
 
     # EXTRACT PERTURBATIONS FROM COV FILE
     PertXs = sample_xs(covtape, settings.args.samples, **kwargs)
@@ -211,12 +212,4 @@ def run(iargs=None):
         plotter.run(iargs)
     print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
 
-#from sandy.data_test import __file__ as td
-#td = os.path.dirname(os.path.realpath(td))
-#iargs = [os.path.join(td, r"cm242.endf"),
-#         "--endf6-cov", os.path.join(td, r"cm242.endf"),
-#         "--outdir", "oop",
-#         "--processes", "1",
-#         "--eig", "10",
-#         "--samples", "2",]
-#run(iargs)
+

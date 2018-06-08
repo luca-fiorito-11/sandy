@@ -4,11 +4,11 @@ Created on Mon Jan 16 18:03:13 2017
 
 @author: lfiorito
 """
-import sys, time, pdb
+import sys, time, pdb, os, re
 import numpy as np
-from sandy.formats.records import read_cont, read_tab1, read_tab2, read_list, read_text, write_cont, write_tab1, write_list, write_tab2, read_float#, add_records
+from sandy.formats.records import read_cont, read_tab1, read_tab2, read_list, read_text, write_cont, write_tab1, write_list, write_tab2, read_float
 import pandas as pd
-from copy import copy, deepcopy
+from copy import deepcopy
 from warnings import warn
 from sandy.tests import TimeDecorator
 
@@ -79,8 +79,12 @@ def process_endf_section(text, keep_mf=None, keep_mt=None):
         return read_mf1_nubar(text)
     elif mf == 3:
         return read_mf3_mt(text)
+    elif mf == 5:
+        return read_mf5_mt(text)
     elif mf == 31 or mf == 33:
         return read_mf33_mt(text)
+    elif mf == 35:
+        return read_mf35_mt(text)
     else:
         return None
 
@@ -165,7 +169,7 @@ class Endf6(pd.DataFrame):
         Missing points are linearly interpolated (use zero when out of domain).
 
         Conditions:
-            - xs interpolation law must be lin-lin
+            - Interpolation law must be lin-lin
             - No duplicate points on energy grid
         """
         from collections import Counter
@@ -189,6 +193,46 @@ class Endf6(pd.DataFrame):
         xs = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), xsList).sort_index().interpolate(method='slinear', axis=0).fillna(0)
         xs.columns.names = ["MAT", "MT"]
         return Xs(xs)
+
+    def get_chi(self):
+        """
+        Extract energy distributions.
+
+        Conditions:
+            - Interpolation law must be lin-lin
+            - No duplicate points on energy grid
+        """
+        """
+        Extract chi cov for all MAT,MT,SUB found in tape.
+        Return a df with MAT,MT,SUB as index and COV as value
+        Each COV is a df with Ein on rows and Eout on columns.
+        """
+        DictDf = { "MAT" : [], "MT" : [], "K" : [], "CHI" : [] }
+        for chunk in tape.query('MF==5').DATA:
+            for k,sub in enumerate(chunk["SUB"]):
+                if sub["LF"] != 1:
+                    continue
+                if list(filter(lambda x:x["INT"] != [2], sub["EIN"].values())):
+                    print("WARNING: found non-linlin interpolation, skip energy distr. for MAT {}, MT {}, subsec {}".format(chunk["MAT"],chunk["MT"],k))
+                    continue
+                chi_dict =  { ein : ssub["PDF"] for ein,ssub in sorted(sub["EIN"].items()) }
+                # merge chi_E(E') distributions on df[E,E'] with unique E' grid
+                # Interpolate row-by-row at missing datapoints
+                # When interpolation is not possible (edges) fill with 0
+                chi = pd.DataFrame.from_dict(chi_dict, orient='index')
+                chi = chi.interpolate(method="slinear", axis=1).fillna(0)
+    #            # include default points in E grid and interpolate
+    #            ein_new = list(union_grid(chi.index, np.logspace(-5, 7, 13)))
+    #            chi = pandas_interpolate(chi, ein_new, method='slinear', axis='rows')
+                chi.index.name = "EIN"
+                chi.columns.name = "EOUT"
+                DictDf["MAT"].append(chunk["MAT"])
+                DictDf["MT"].append(chunk["MT"])
+                DictDf["K"].append(k)
+                DictDf["CHI"].append(chi)
+        DfChi = pd.DataFrame.from_dict(DictDf)
+        DfChi.set_index(["MAT", "MT", "K"], inplace=True)
+        return DfChi
 
     def get_cov(self):
         from sandy.sampling.cov import triu_matrix
@@ -374,10 +418,18 @@ def read_mf1_mt451(text):
     out.update({ "TEXT" : TEXT })
     # This part is not given in PENDF files
     if out["LRP"] != 2:
-        out["Z"] = int(TEXT[0][:3])
-        out["SYM"] = TEXT[0][4:6].rstrip()
-        out["A"] = int(TEXT[0][7:10])
-        out["M"] =  'g' if TEXT[0][10:11] is ' ' else TEXT[0][10:11].lower()
+        groups = TEXT[0][:11].split("-")
+        out["Z"] = int(groups[0])
+        out["SYM"] = groups[1].strip()
+        out["A"] = re.sub(r"\D", "", groups[2])
+        out["M"] = re.sub(r"[0-9\s]", "", groups[2].lower())
+        if not out["M"]: out["M"] = 'g'
+#        out["A"] = int(TEXT[0][7:10])
+#        out["M"] =  'g' if TEXT[0][10:11] is ' ' else TEXT[0][10:11].lower()
+#        out["Z"] = int(TEXT[0][:3])
+#        out["SYM"] = TEXT[0][4:6].rstrip()
+#        out["A"] = int(TEXT[0][7:10])
+#        out["M"] =  'g' if TEXT[0][10:11] is ' ' else TEXT[0][10:11].lower()
         out['ALAB'] = TEXT[0][11:22]
         out['EDATE'] = TEXT[0][22:32]
         out['AUTH'] = TEXT[0][33:66]
@@ -548,10 +600,22 @@ def read_mf5_mt(text):
         P = pd.Series(Tp.y, index = Tp.x, name = "p").rename_axis("E")
         sub = { "LF" : Tp.L2, "NBT_P" : Tp.NBT, "INT_P" : Tp.INT, "P" : P }
         if sub["LF"] == 5:
+            """
+            Found in:
+                100-Fm-255g.jeff33 (x6)
+                88-Ra-226g.jeff33 (x6)
+                91-Pa-233g.jeff33 (x6)
+                92-U-239g.jeff33
+                92-U-240g.jeff33
+            """
             Ttheta, i = read_tab1(str_list, i)
             Tg, i = read_tab1(str_list, i)
             sub.update({ "Ttheta" : Ttheta, "Tg" : Tg , 'U' : Tp.C1 })
         elif sub["LF"] in (7,9):
+            """
+            Found in:
+                27-Co-59g.jeff33
+            """
             Ttheta, i = read_tab1(str_list, i)
             sub.update({ "Ttheta" : Ttheta, 'U' : Tp.C1})
         elif sub["LF"] == 11:
@@ -975,129 +1039,6 @@ def extract_mu(tape):
     # print warning if exceeded NLMAX
     return DfPc
 
-def extract_cov33(tape, mt=[102]):
-    from sandy.sampling.cov import triu_matrix
-    from functools import reduce
-    columns = ('MAT', 'MT', 'MAT1', 'MT1', 'COV')
-    DfCov = pd.DataFrame(columns=columns)
-    for chunk in tape.query('MF==33 | MF==31').DATA:
-        if not chunk:
-            continue
-        for sub in chunk["SUB"].values():
-            covs = []
-            for nisec in sub["NI"]:
-                if nisec["LB"] == 5:
-                    Fkk = np.array(nisec["Fkk"])
-                    if nisec["LS"] == 0: # to be tested
-                        cov = Fkk.reshape(nisec["NE"]-1, nisec["NE"]-1)
-                    else:
-                        cov = triu_matrix(Fkk, nisec["NE"]-1)
-                    # add zero row and column at the end of the matrix
-                    cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-                    cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-                    e1 = e2 = nisec["Ek"]
-                elif nisec["LB"] == 1:
-                    cov = np.diag(nisec["Fk"])
-                    e1 = e2 = nisec["Ek"]
-                elif nisec["LB"] == 2:
-                    f = np.array(nisec["Fk"])
-                    cov = f*f.reshape(-1,1)
-                    e1 = e2 = nisec["Ek"]
-                elif nisec["LB"] == 6:
-                    cov = np.array(nisec["Fkl"]).reshape(nisec["NER"]-1, nisec["NEC"]-1)
-                    # add zero row and column at the end of the matrix
-                    cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-                    cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-                    e1 = nisec["Ek"]
-                    e2 = nisec["El"]
-                else:
-                    warn("skipped NI-type covariance with flag LB={} (MAT{}/MF{}/MT{})".fomat(nisec["LB"], chunk['MAT'], chunk['MF'], chunk['MT']), category=Warning)
-                    continue
-                cov = pd.DataFrame(cov, index=e1, columns=e2)
-                covs.append(cov)
-            if len(covs) == 0:
-                continue
-            if len(covs) > 1:
-                import pdb
-                pdb.set_trace()
-            # All union covariance matrices have the same grid (uxx) on both axis
-            uxx = sorted(set().union(*[ [*list(x.index), *list(x.columns)] for x in covs ]))
-            covs = list(map( lambda x: pandas_interpolate(x, uxx), covs ))
-            cov = reduce(lambda x, y: x.add(y, fill_value=0), covs)
-#            index = pd.MultiIndex.from_product([[chunk["MAT"]],
-#                                                [chunk["MT"]],
-#                                                [sub["MAT1"]],
-#                                                [sub["MT1"]],
-#                                                cov.index], names=["MAT", "MT", "MAT1", "MT1", "E"])
-            objects = chunk['MAT'], chunk['MT'], sub['MAT1'], sub['MT1'], cov
-            DfCov = DfCov.append(dict(zip(columns, objects)), ignore_index=True)
-    DfCov = DfCov.set_index(['MAT','MT','MAT1','MT1']).sort_index() # Multi-indexing
-    if DfCov.empty:
-        warn("no MF[31,33] covariances found", category=Warning)
-        return pd.DataFrame()
-    # Create big cov
-    query_diag = 'MT==MT1 & (MAT1==0 | MAT==MAT1)'
-    query_offdiag = 'MT!=MT1 | MAT1!=0'
-#    import scipy as sp
-#    C = sp.linalg.block_diag(*map(lambda x:x.as_matrix(), DfCov.query(query_diag).COV))
-#    idxs = []
-#    for (mat,mt,mat1,mt1), row in DfCov.query(query_diag).iterrows():
-#        idxs.append( pd.MultiIndex.from_product([[mat],[mt],[mat1],[mt1], row.COV.index]) )
-#    index = reduce(lambda x, y: x.append(y), idxs)
-#    C = pd.DataFrame(C, index=index, columns=index)
-    diags = DfCov.query(query_diag)
-    # reset indices to be consistent with enumerate in the next loop
-    diags.reset_index(inplace=True)
-    # Process diagonal blocks
-    # This part is extracted from scipy.linalg.block_diag
-    shapes = np.array([a.COV.shape for i,a in diags.iterrows()])
-    ndim = np.sum(shapes, axis=0)[0]
-    C = np.zeros((ndim,ndim)); E = np.zeros(ndim)
-    MATS = np.zeros(ndim, dtype=int); MTS = np.zeros(ndim, dtype=int)
-    r, c = 0, 0
-    beg, end = [], []
-    for i, (rr, cc) in enumerate(shapes):
-        d = diags.iloc[i]
-        C[r:r + rr, c:c + cc] = d.COV
-        E[r:r + rr] = d.COV.index
-        MATS[r:r + rr] = d.MAT
-        MTS[r:r + rr] = d.MT
-        beg.append(r)
-        end.append(r + rr)
-        r += rr
-        c += cc
-    diags = diags.assign(BEG = beg)
-    diags = diags.assign(END = end)
-    # reset multindex to use loc method
-    diags = diags.set_index(['MAT','MT','MAT1','MT1']).sort_index()
-    # Process off-diagonal blocks
-    for (mat,mt,mat1,mt1),row in DfCov.query(query_offdiag).iterrows():
-        cov = row.COV
-        # interpolate x axis (rows)
-        try:
-            covk = diags.loc[mat,mt,0,mt]
-        except:
-            warn("cannot find covariance for MAT{}/MT{}".format(mat,mt), category=Warning)
-            continue
-        Ek = list(covk.COV.index)
-        cov = pandas_interpolate(cov, Ek, method='zero', axis='rows')
-        # interpolate y axis (cols)
-        if mat1 == 0:
-            mat1 = mat
-        try:
-            covl = diags.loc[mat1,mt1,0,mt1]
-        except:
-            warn("cannot find covariance for MAT{}/MT{}".format(mat1,mt1), category=Warning)
-            continue
-        El = list(covl.COV.index)
-        cov = pandas_interpolate(cov, El, method='zero', axis='cols')
-        C[covk.BEG:covk.END,covl.BEG:covl.END] = cov
-        C[covl.BEG:covl.END,covk.BEG:covk.END,] = cov.T
-    C = pd.DataFrame(C, index=[MATS,MTS,E], columns=[MATS,MTS,E])
-    C.index.names = ["MAT", "MT", "E"]
-    C.columns.names = ["MAT", "MT", "E"]
-    return C
-
 def extract_cov35(tape):
     from sandy.sampling.cov import triu_matrix, corr2cov
     # Get covariances (df) from each MAT, MT and Erange (these are the keys) in a dictionary.
@@ -1247,3 +1188,10 @@ def write_decay_data_csv(tape, filename):
     df['EHP'] = df.DATA.apply(lambda x : x['E'][2])
     df['DEHP'] = df.DATA.apply(lambda x : x['DE'][2])
     df[['Z','A','M','HL','DHL','ELP','DELP','EEM','DEEM','EHP','DEHP']].to_csv(filename, index=False)
+
+from sandy.data_test import __path__ as paths
+tape = Endf6.from_file(os.path.join(paths[0], r"u235.endf")).process(keep_mf=[5]).get_chi()
+#for i in open("../../list5_jeff").read().splitlines():
+#    print("../../../../list5_jeff/"+i)
+#    tape = Endf6.from_file("../../../../list5_jeff/"+i).process(keep_mf=[5])
+#aaa=1
