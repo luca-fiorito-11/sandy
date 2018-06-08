@@ -7,48 +7,49 @@ Created on Mon Jan 16 18:03:13 2017
 import sys, time, pdb
 import numpy as np
 from sandy.formats.records import read_cont, read_tab1, read_tab2, read_list, read_text, write_cont, write_tab1, write_list, write_tab2, read_float#, add_records
-import matplotlib.pyplot as plt
 import pandas as pd
 from copy import copy, deepcopy
 from warnings import warn
 from sandy.tests import TimeDecorator
 
-def plot_heatmap(x, y, z,
-                 xscale="lin", yscale="lin",
-                 vmin=None, vmax=None,
-                 cmap="bwr",
-                 xlabel=None, ylabel=None, title=None):
-    r"""
-    Plot covariance matrix as a pseudocolor plot of a 2-D array.
-    The colorbar is also added to the figure.
-    """
-    fig, ax = plt.subplots()
-    pcm = ax.pcolormesh(*np.meshgrid(x, y),
-                        z,
-                        vmin=vmin,
-                        vmax=vmax,
-                        cmap=cmap)
-    ax.set_xscale(xscale)
-    ax.set_yscale(yscale)
-    ax.set_aspect(1) # Height is 0.5 times the width
-    # Resize the plot to make space for the colorbar
-    box = ax.get_position()
-    ax.set_position([box.x0, box.y0, 0.7, box.height])
-    # set labels
-    ax.set_title(title)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    # Plot the colorbar in desired position
-    cbaxes = fig.add_axes([0.85, 0.1, 0.03, 0.8])
-    plt.colorbar(pcm, cax=cbaxes)
-    fig.show()
+#def plot_heatmap(x, y, z,
+#                 xscale="lin", yscale="lin",
+#                 vmin=None, vmax=None,
+#                 cmap="bwr",
+#                 xlabel=None, ylabel=None, title=None):
+#    r"""
+#    Plot covariance matrix as a pseudocolor plot of a 2-D array.
+#    The colorbar is also added to the figure.
+#    """
+#    import matplotlib.pyplot as plt
+#    fig, ax = plt.subplots()
+#    pcm = ax.pcolormesh(*np.meshgrid(x, y),
+#                        z,
+#                        vmin=vmin,
+#                        vmax=vmax,
+#                        cmap=cmap)
+#    ax.set_xscale(xscale)
+#    ax.set_yscale(yscale)
+#    ax.set_aspect(1) # Height is 0.5 times the width
+#    # Resize the plot to make space for the colorbar
+#    box = ax.get_position()
+#    ax.set_position([box.x0, box.y0, 0.7, box.height])
+#    # set labels
+#    ax.set_title(title)
+#    ax.set_xlabel(xlabel)
+#    ax.set_ylabel(ylabel)
+#    # Plot the colorbar in desired position
+#    cbaxes = fig.add_axes([0.85, 0.1, 0.03, 0.8])
+#    plt.colorbar(pcm, cax=cbaxes)
+#    fig.show()
 
 
 def split_endf(text):
     """
-    Read ENDF-6 formatted file and split it into MAT/MF/MT sections.
-    Produce Endf6 instance (pandas.DataFrame) with index MAT,MF,MT and
-    columns TEXT,DATA.
+    Read ENDF-6 formatted file and split it into columns based on field widths:
+        C1 C2 L1 L2 N1 N2 MAT MF MT
+        11 11 11 11 11 11  4   2  3.
+    Store list in dataframe.
     """
     from io import StringIO
     def read_float(x):
@@ -89,9 +90,7 @@ class Endf6(pd.DataFrame):
     @classmethod
     def from_file(cls, file):
         """
-        Read ENDF-6 formatted file and split it into MAT/MF/MT sections.
-        Produce Endf6 instance (pandas.DataFrame) with index MAT,MF,MT and
-        columns TEXT,DATA.
+        Read ENDF-6 formatted file and call from_text method.
         """
         with open(file) as f:
             text = f.read()
@@ -100,9 +99,10 @@ class Endf6(pd.DataFrame):
     @classmethod
     def from_text(cls, text):
         """
-        Read ENDF-6 formatted file and split it into MAT/MF/MT sections.
-        Produce Endf6 instance (pandas.DataFrame) with index MAT,MF,MT and
-        columns TEXT,DATA.
+        Read ENDF-6 formatted file and split it into column based on field width:
+            TEXT MAT MF MT
+              66   4  2  3
+        Store list in dataframe with MultiIndex (MAT,MF,MT).
         """
         from io import StringIO
         lines = text.splitlines()
