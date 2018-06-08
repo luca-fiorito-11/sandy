@@ -69,7 +69,7 @@ class evalFile:
         converters = dict(zip(columns[:6],[read_float]*6))
         tape = pd.read_fwf(file, widths=widths, names=columns, converters=converters).query("MAT>0 & MF>0 & MT>0")
         self.filename = os.path.basename(file)
-        self.tape = self.evaluationFile = os.path.abspath(os.path.realpath(file))
+        self.tape = self.endfFile = os.path.abspath(os.path.realpath(file))
         self.endf = self.mat = tape.MAT.iloc[0] # ENDF-6 MAT number
         info = tape.query("MF==1 & MT==451")
         self.za = int(info.C1.iloc[0])
@@ -166,7 +166,6 @@ class PyNjoy:
         self.branchingN2N = None
         self.gstr = 0
         self.oldlib = None
-        self.purr = None
         self.sgref = 1.0E10
         self.yields = None
         self.iburn = -1
@@ -197,6 +196,8 @@ class PyNjoy:
         self.no_thermr = False
         self.no_broadr = False
         self.no_purr = False
+        self.no_reconr = False
+        self.unresr= False
         self.__dict__.update(kwargs)
 
 
@@ -241,28 +242,35 @@ class PyNjoy:
         if process.returncode not in [0, 24]:
             raise PyNjoyError("NJOY exit status {}, cannot run njoy executable".format(process.returncode))
 
-    def pendf(self, **kwargs):
-        kwargs = dict(self.__dict__, **kwargs)
+    def pendf(self, **fileOptions):
+        kwargs = dict(self.__dict__, **fileOptions)
         print(" --- run pendf for " + kwargs["hmat"] + " ---")
-        if not os.path.isfile(os.path.expandvars(kwargs["evaluationFile"])): raise PyNjoyError("evaluation file " + kwargs["evaluationFile"] + " not found")
+        if not os.path.isfile(os.path.expandvars(kwargs["endfFile"])): raise PyNjoyError("evaluation file " + kwargs["endfFile"] + " not found")
         mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
         os.makedirs(mydir, exist_ok=True)
-        if kwargs["sig0"]:
-            kwargs["nbDil"] = len(kwargs["sig0"])
-            kwargs["textDil"] = " ".join(["%E"%dil for dil in kwargs["sig0"]])
-        else:
-            kwargs["nbDil"] = 0
-            kwargs["textDil"] = ""
+        kwargs["nbDil"] = len(kwargs["sig0"])
+        kwargs["textDil"] = " ".join(["%E"%dil for dil in kwargs["sig0"]])
         kwargs["nbTmp"] = len(kwargs["temps"])
         kwargs["textTmp"] = " ".join(["%E"%tmp for tmp in kwargs["temps"]])
         kwargs["htime"] = time.ctime(time.time())
-
-        # MODER + RECONR
+        text_bash = """ln -sf %(endfFile)s tape20\n""" % kwargs
         text_data = """#!/bin/bash
 set -e
 cat > input_pendf.%(hmat)s << EOF
 moder
 20 -21
+""" % kwargs
+        kwargs["tapeEndf"] = -21
+
+        # RECONR
+        if kwargs["no_reconr"]:
+            text_bash += "ln -sf %(pendfFile)s tape30\n" % kwargs
+            text_data += """
+moder
+30 -22
+""" % kwargs
+        else:
+            text_data += """
 --
 -- *********************************************************
 -- Reconstruct XS from resonance parameters
@@ -276,7 +284,6 @@ reconr
 '%(hmat)s from %(evaluationName)s at %(htime)s' /
 0/
 """ % kwargs
-        kwargs["tapeEndf"] = -21
         kwargs["tapePendf"] = -22
 
         # BROADR (OPTIONAL)
@@ -328,10 +335,9 @@ thermr
 """ % kwargs
                 kwargs["tapePendf"] = -24
 
-        # PURR || UNRESR (OPTIONAL)
-        if kwargs["sig0"]:
-            if not kwargs["no_purr"]:
-                text_data += """
+        # PURR(OPTIONAL)
+        if not kwargs["no_purr"]:
+            text_data += """
 purr
 %(tapeEndf)d %(tapePendf)d -25
 %(mat)d %(nbTmp)d %(nbDil)d 20 32/
@@ -339,16 +345,21 @@ purr
 %(textDil)s/
 0/
 """ % kwargs
-            else:
-                text_data += """
+            kwargs["tapePendf"] = -25
+
+        # UNRESR (OPTIONAL)
+        if kwargs["unresr"]:
+            text_data += """
 unresr
-%(tapeEndf)d %(tapePendf)d -25
+%(tapeEndf)d %(tapePendf)d -26
 %(mat)d %(nbTmp)d %(nbDil)d 1/
 %(textTmp)s/
 %(textDil)s/
 0/
 """ % kwargs
-            kwargs["tapePendf"] = -25
+            kwargs["tapePendf"] = -26
+
+
         text_data += """
 moder
 %(tapePendf)d 29
@@ -356,13 +367,13 @@ stop
 EOF
 
 """ % kwargs
-        text_data += """
-ln -sf %(evaluationFile)s tape20
+        text_bash += """
 %(NjoyExec)s < input_pendf.%(hmat)s
 mv output output_pendf.%(hmat)s
 mv tape29 %(filename)s.pendf
 rm -f tape*
 """ % kwargs
+        text_data += text_bash
         inputfile = os.path.join(mydir, "run_pendf_{}.sh".format(kwargs["hmat"]))
         with open(inputfile,'w') as f:
             f.write(text_data)
@@ -399,7 +410,7 @@ EOF
 
 """ % kwargs
             text_data += """
-ln -sf %(evaluationFile)s tape20
+ln -sf %(endfFile)s tape20
 ln -sf %(filename)s.pendf tape29
 %(NjoyExec)s < input_acer%(suff)s.%(hmat)s
 mv output output_acer%(suff)s.%(hmat)s
@@ -433,10 +444,23 @@ class evalLib(pd.DataFrame):
     @classmethod
     def from_file(cls, inputfile):
         """
-        Populate dataframe using each row of a given inputfile as the filename of a nuclear data evaluation
+        Populate dataframe using each row of a given inputfile.
+        Example of inputfile:
+            ENDF-1  [PENDF-1]
+            ENDF-2  [PENDF-2]
+            ...
+            ENDF-N  [PENDF-2]
+        Values in brackets [] are optional.
         """
-        with open(inputfile) as f:
-            frame = pd.concat([evalFile(x).to_frame() for x in f.read().splitlines()], sort=False)
+        lines = open(inputfile).read().splitlines()
+        evals = []
+        for line in lines:
+            groups = line.split()
+            E = evalFile(groups[0])
+            if len(groups) > 1:
+                E.pendfFile = os.path.abspath(os.path.realpath(groups[1]))
+            evals.append(E.to_frame())
+        frame = pd.concat(evals, sort=False)
         return cls(frame)
 
     def run_njoy(self, **njoyOptions):
@@ -452,7 +476,7 @@ class evalLib(pd.DataFrame):
             os.makedirs(mydir, exist_ok=True)
             with open(os.path.join(mydir, os.path.basename(njoy.evaluationName)+".xsdir"), 'w') as f:
                 for file in sorted(xsdirFiles):
-                    f.write(open(file).read())
+                    f.write(open(file).read() + '\n')
             for file in sorted(aceFiles):
                 shutil.move(file, os.path.join(mydir, os.path.basename(file)))
 
@@ -488,7 +512,7 @@ if __name__ == "__main__":
     parser.add_argument('-i','--inputfile',
                         type=lambda x: is_valid_file(parser, x),
                         required=True,
-                        help="<Required> List of evaluated files to be processed (one file per line).")
+                        help="<Required> List of endf files to be processed (one file per line).")
     parser.add_argument('--processes',
                         type=int,
                         default=1,
@@ -510,6 +534,9 @@ if __name__ == "__main__":
                         choices=range(2),
                         default=1,
                         help="NJOY verbosity: 0=min, 1=max (default=1).")
+    parser.add_argument('--no-reconr',
+                        action="store_true",
+                        help="<Developer only> Skip RECONR module in the NJOY sequence.")
     parser.add_argument('--no-broadr',
                         action="store_true",
                         help="Skip BROADR module in the NJOY sequence.")
@@ -517,6 +544,9 @@ if __name__ == "__main__":
                         action="store_true",
                         help="Skip THERMR module in the NJOY sequence.")
     parser.add_argument('--no-purr',
+                        action="store_true",
+                        help="Skip PURR module in the NJOY sequence.")
+    parser.add_argument('--unresr',
                         action="store_true",
                         help="Replace PURR module with UNRESR in the NJOY sequence.")
     parser.add_argument('--no-acer',
@@ -529,9 +559,9 @@ if __name__ == "__main__":
                         help="Temperature values (default=[293.6]).")
     parser.add_argument('--sig0',
                         type=float,
-                        default=None,
+                        default=[1e10],
                         nargs='+',
-                        help="Sigma0 values: if none is given, do not run PURR or UNRESR (default=None).")
+                        help="Sigma0 values (default=[1e10]).")
     parser.add_argument('--err',
                         type=float,
                         default=0.005,
