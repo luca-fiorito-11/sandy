@@ -79,15 +79,20 @@ def read_tab2(text, ipos):
     TAB2 = namedtuple('TAB2', 'C1 C2 L1 L2 NR NZ NBT INT')
     try:
         C, ipos = read_cont(text, ipos)
-        i = 0
-        tab = []
-        while i < C.N1*2:
-            tab.extend(ilist_format_r.read(text[ipos]))
-            ipos += 1
-            i += 6
-        tab = tab[:C.N1*2]
+        iadd = int(np.ceil(C.N1*2/6))
+        tab = text.iloc[ipos:ipos+iadd,:6].values.flatten()[:C.N1*2].astype(int).tolist()
+        ipos += iadd
         NBT = tab[::2]
         INT = tab[1::2]
+#        i = 0
+#        tab = []
+#        while i < C.N1*2:
+#            tab.extend(ilist_format_r.read(text[ipos]))
+#            ipos += 1
+#            i += 6
+#        tab = tab[:C.N1*2]
+#        NBT = tab[::2]
+#        INT = tab[1::2]
         return TAB2(C.C1, C.C2, C.L1, C.L2, C.N1, C.N2, NBT, INT), ipos
     except:
         sys.exit("ERROR: cannot read TAB2 at '{}'".format(text[ipos]))

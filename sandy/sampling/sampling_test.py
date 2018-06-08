@@ -11,36 +11,6 @@ import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
-#def test_H1():
-#    from sandy.sampling import sampling
-#    from sandy.data_test import __file__ as td
-#    from sandy import __file__ as sd
-#    sd = dirname(realpath(sd))
-#    td = dirname(realpath(td))
-#    extra_args = [join(td, r"h1.endf"),
-##                 "--pendf", join(td, r"h1.pendf"),
-#                 "--outdir", r"h1-tmpdir",
-#                 "--njoy", join(sd, r"njoy2012_50.exe"),
-#                 "--eig", "10",
-#                 "--samples", "10",
-#                 "--processes", "1",
-##                 "-mf", "33",
-#                 "-e", "1e-5",
-#                 "-e", "5e-5",
-#                 "-e", "1e-4",
-#                 "-e", "5e-4",
-#                 "-e", "1e-3",
-#                 "-e", "5e-3",
-#                 "-e", "1e-2",
-#                 "-e", "5e-2",
-#                 "-e", "1e-1",
-#                 "-e", "5e-1",
-#                 "-e", "1e0",
-#                 "-e", "5e0",
-#                 "-e", "1e1",
-#                 "-e", "5e1",]
-#    sys.argv = [sys.argv[0]] + extra_args
-#    sampling.run()
 #
 #def test_U5():
 #    from sandy.sampling import sampling
