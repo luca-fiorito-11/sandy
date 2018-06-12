@@ -95,7 +95,7 @@ class Errorr(pd.DataFrame):
         frame.columns.name = "DATA"
         frame.index = cov.index
         frame = frame.unstack(level=["MAT","MT"])
-        frame.columns = frame.columns.swaplevel(i=0, j=2).swaplevel(i=0, j=1)
+        frame.columns = frame.columns.reorder_levels(["MAT","MT","DATA"])
         return frame
 
 
