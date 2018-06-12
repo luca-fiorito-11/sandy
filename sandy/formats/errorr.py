@@ -7,7 +7,7 @@ Created on Fri May 11 15:08:25 2018
 from sandy.formats.records import read_cont, read_list, read_float
 from os.path import join, dirname, realpath
 import pandas as pd
-from sandy.formats.endf6 import split_endf, XsCov
+from sandy.formats.endf6 import split_endf, XsCov, Xs
 import numpy as np
 
 def process_errorr_section(text, keep_mf=None, keep_mt=None):
@@ -49,6 +49,9 @@ class Errorr(pd.DataFrame):
         return Errorr(tape)
 
     def get_cov(self):
+        """
+        Extract xs covariances from errorr file into XsCov instance.
+        """
         mat = self.index.get_level_values("MAT")[0]
         eg = self.loc[mat,1,451].DATA["EG"]
         List = []
@@ -67,6 +70,34 @@ class Errorr(pd.DataFrame):
         i_lower = np.tril_indices(len(index), -1)
         matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
         return XsCov(matrix, index=index, columns=index)
+
+    def get_xs(self):
+        """
+        Extract xs from errorr file into Xs instance.
+        """
+        mat = self.index.get_level_values("MAT")[0]
+        eg = self.loc[mat,1,451].DATA["EG"]
+        XsDict = dict(map(lambda x: ((x["MAT"],x["MT"]), x["XS"]), self.query("MF==3").DATA))
+        frame = pd.DataFrame.from_dict(XsDict)
+        frame.index = eg[:-1]
+        frame = frame.reindex(eg, method='ffill')
+        return Xs(frame)
+
+    def get_std(self):
+        """
+        Extract xs and std from errorr file into dataframe.
+        """
+        xs = self.get_xs()
+        cov = self.get_cov()
+        stdvals = np.sqrt(np.diag(cov.values))
+        xsvals =  xs.values.T.flatten()
+        frame = pd.DataFrame.from_dict({"XS" : xsvals, "STD" : stdvals})
+        frame.columns.name = "DATA"
+        frame.index = cov.index
+        frame = frame.unstack(level=["MAT","MT"])
+        frame.columns = frame.columns.swaplevel(i=0, j=2).swaplevel(i=0, j=1)
+        return frame
+
 
 
 def read_mf1_mt451(text):
@@ -122,10 +153,8 @@ def read_mf33_mt(text):
 # UNIT TESTS #
 ##############
 
-#def test_read_errorr():
-#    from sandy.data_test import __file__ as td
-#    td = dirname(realpath(td))
-#    tape = Errorr.from_file(join(td, r"fe56.errorr")).process()
-#    XsCov.from_errorr_tape(tape)
-#
-#test_read_errorr()
+#from sandy.data_test import __path__ as td
+#A = Errorr.from_file(join(td[0], r"fe56.errorr")).process()
+#xs = A.get_std()
+#aaa=1
+

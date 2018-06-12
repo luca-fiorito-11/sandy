@@ -843,6 +843,11 @@ class Xs(pd.DataFrame):
                     1 : (2,3),
                     452 : (455,456)}
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.name = "E"
+        self.columns.names = ["MAT", "MT"]
+
     def reconstruct_sums(self, drop=True):
         """
         Reconstruct redundant xs.
