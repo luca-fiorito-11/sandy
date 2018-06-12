@@ -153,7 +153,7 @@ class PyNjoy:
 #        self.wdir = os.path.normpath(wdir)
 #        self.evaluationName = os.path.basename(self.wdir)
         self.processes = None
-        self.capsys = True
+        self.capsys = False
         self.NjoyExec = "njoy2016"
         self.wdir = os.getcwd()
         self.evaluationName = os.path.abspath("lib")
@@ -191,14 +191,30 @@ class PyNjoy:
         self.newfor = 1
         self.iopp = 1
         self.hk = ''
+        # GROUPR default options
+        self.ign = 2 # neutron group structure for GROUPR
+        self.igg = 0
+        self.iwt = 6
+        self.lord = 1
+        self.nstr = None
+        self.gstr = None
+        # ERRORR default options
+        self.igne = 2 # neutron group structure for ERRORR
+        self.iwte = 6
+        self.irelco = 1
+        self.irespr = 1
         # SKIP modules
-        self.no_acer = False
         self.no_thermr = False
         self.no_broadr = False
         self.no_purr = False
         self.no_reconr = False
         self.unresr= False
+        self.run_acer = False
+        self.run_groupr = False
+        self.run_errorr = False
         self.__dict__.update(kwargs)
+        # Run checks
+        if len(self.temps)> 10: raise PyNjoyError("cannot have more than 10 temperatures")
 
 
 
@@ -378,11 +394,158 @@ rm -f tape*
         with open(inputfile,'w') as f:
             f.write(text_data)
         self.runBash(inputfile, mydir)
+        return os.path.join(mydir, "%(filename)s.pendf" % kwargs)
 
+    def groupr(self, **fileOptions):
+        kwargs = dict(self.__dict__, **fileOptions)
+        print(" --- run groupr for " + kwargs["hmat"] + " ---")
+        if not os.path.isfile(os.path.expandvars(kwargs["endfFile"])): raise PyNjoyError("evaluation file " + kwargs["endfFile"] + " not found")
+        if not os.path.isfile(os.path.expandvars(kwargs["pendfFile"])): raise PyNjoyError("evaluation file " + kwargs["pendfFile"] + " not found")
+        mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
+        os.makedirs(mydir, exist_ok=True)
+        kwargs["nbDil"] = len(kwargs["sig0"])
+        kwargs["textDil"] = " ".join(["%E"%dil for dil in kwargs["sig0"]])
+        kwargs["nbTmp"] = len(kwargs["temps"])
+        kwargs["textTmp"] = " ".join(["%E"%tmp for tmp in kwargs["temps"]])
+        if kwargs["ign"] == -99: # 1 GROUP (1E-5 to 2E7)
+            kwargs["ign"] = 1
+            kwargs["nstr"] = """1 /
+1E-5 2E7 /
+"""
+        elif kwargs["ign"] == -98: # 1 GROUP (resonance integral)
+            kwargs["ign"] = 1
+            kwargs["nstr"] = """1 /
+5E-1 1e5 /
+"""
+        kwargs["htime"] = time.ctime(time.time())
+        text_bash = """
+ln -sf %(endfFile)s tape20
+ln -sf %(pendfFile)s tape29
+
+%(NjoyExec)s < input_gendf.%(hmat)s
+mv output output_gendf.%(hmat)s
+mv tape30 %(filename)s.gendf
+rm -f tape*
+""" % kwargs
+        text_data = """#!/bin/bash
+set -e
+cat > input_gendf.%(hmat)s << EOF
+moder
+20 -21
+moder
+29 -25
+groupr
+-21 -25 0 -26
+%(mat)d %(ign)d %(igg)d %(iwt)d %(lord)d %(nbTmp)d %(nbDil)d %(iprint)d /
+'%(hmat)s from %(evaluationName)s at %(htime)s' /
+%(textTmp)s /
+%(textDil)s /
+""" % kwargs
+        if kwargs["nstr"]:
+            text_data += """%(nstr)s""" % kwargs
+        for tmp in kwargs["temps"]:
+            text_data += """3/
+6/
+0/
+"""
+        text_data += """0/
+moder
+-26 30
+stop
+EOF
+
+""" % kwargs
+        text_data += text_bash
+        inputfile = os.path.join(mydir, "run_gendf_{}.sh".format(kwargs["hmat"]))
+        with open(inputfile,'w') as f:
+            f.write(text_data)
+        self.runBash(inputfile, mydir)
+        return os.path.join(mydir, "%(filename)s.gendf" % kwargs)
+
+    def errorr(self, **fileOptions):
+        kwargs = dict(self.__dict__, **fileOptions)
+        print(" --- run errorr for " + kwargs["hmat"] + " ---")
+        if not os.path.isfile(os.path.expandvars(kwargs["endfFile"])): raise PyNjoyError("evaluation file " + kwargs["endfFile"] + " not found")
+        mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
+        os.makedirs(mydir, exist_ok=True)
+        if kwargs["igne"] == -99: # 1 GROUP (1E-5 to 2E7)
+            kwargs["igne"] = 1
+            kwargs["nstr"] = """1 /
+1E-5 2E7 /
+"""
+        elif kwargs["igne"] == -98: # 1 GROUP (resonance integral)
+            kwargs["igne"] = 1
+            kwargs["nstr"] = """1 /
+5E-1 1e5 /
+"""
+        kwargs["htime"] = time.ctime(time.time())
+        for tmp,suff in zip(kwargs["temps"], kwargs["suffixes"]):
+            kwargs.update({"tmp":tmp, "suff":suff})
+            text_data = """
+moder
+20 -21
+moder
+29 -25
+"""
+            if "gendfFile" in kwargs:
+                if not os.path.isfile(os.path.expandvars(kwargs["gendfFile"])): raise PyNjoyError("evaluation file " + kwargs["gendfFile"] + " not found")
+                text_data += """
+errorr
+-21 0 -25 33 /
+"""
+            elif "pendfFile" in kwargs:
+                if not os.path.isfile(os.path.expandvars(kwargs["pendfFile"])): raise PyNjoyError("evaluation file " + kwargs["pendfFile"] + " not found")
+                text_data += """
+errorr
+-21 -25 0 33 /
+"""
+            else:
+                raise PyNjoyError("user must define either pendfFile or gendfFile attribute")
+            text_data += """%(mat)d %(igne)d %(iwte)d %(iprint)d %(irelco)d /
+%(iprint)d %(tmp)E /
+0 33 %(irespr)d %(lord)d /
+""" % kwargs
+            if kwargs["nstr"]:
+                text_data += """%(nstr)s
+""" % kwargs
+            text_data += """
+stop
+"""
+            text_bash = """#!/bin/bash
+set -e
+cat > input_errorr%(suff)s.%(hmat)s << EOF
+""" % kwargs + text_data + """
+EOF
+
+ln -sf %(endfFile)s tape20
+""" % kwargs
+            if "gendfFile" in kwargs:
+                if not os.path.isfile(os.path.expandvars(kwargs["gendfFile"])): raise PyNjoyError("evaluation file " + kwargs["gendfFile"] + " not found")
+                text_bash += """
+ln -sf %(gendfFile)s tape29
+""" % kwargs
+            elif "pendfFile" in kwargs:
+                if not os.path.isfile(os.path.expandvars(kwargs["pendfFile"])): raise PyNjoyError("evaluation file " + kwargs["pendfFile"] + " not found")
+                text_bash += """
+ln -sf %(pendfFile)s tape29
+""" % kwargs
+
+            text_bash += """
+%(NjoyExec)s < input_errorr%(suff)s.%(hmat)s
+mv output output_errorr%(suff)s.%(hmat)s
+mv tape33 %(filename)s%(suff)s.errorr
+rm -f tape*
+""" % kwargs
+            inputfile = os.path.join(mydir, "run_errorr_{}{}.sh".format(kwargs["hmat"], suff))
+            with open(inputfile,'w') as f:
+                f.write(text_bash)
+            self.runBash(inputfile, mydir)
 
     def acer(self, **fileOptions):
         kwargs = dict(self.__dict__, **fileOptions)
         print(" --- run acer for " + kwargs["hmat"] + " ---")
+        if not os.path.isfile(os.path.expandvars(kwargs["endfFile"])): raise PyNjoyError("evaluation file " + kwargs["endfFile"] + " not found")
+        if not os.path.isfile(os.path.expandvars(kwargs["pendfFile"])): raise PyNjoyError("evaluation file " + kwargs["pendfFile"] + " not found")
         mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
         kwargs["htime"] = time.ctime(time.time())
         for tmp,suff in zip(kwargs["temps"], kwargs["suffixes"]):
@@ -433,9 +596,14 @@ rm -f tape*
                     f.write(" ".join(xargs))
 
     def run_modules(self, **fileOptions):
-        self.pendf(**fileOptions)
-        if not self.no_acer:
+#        kwargs = dict(self.__dict__, **fileOptions)
+        fileOptions["pendfFile"] = self.pendf(**fileOptions)
+        if self.run_acer:
             self.acer(**fileOptions)
+        if self.run_groupr:
+            self.groupr(**fileOptions)
+        if self.run_errorr:
+            self.errorr(**fileOptions)
 
 
 
@@ -469,7 +637,7 @@ class evalLib(pd.DataFrame):
         pool = mp.Pool(processes=njoy.processes)
         outs = [pool.apply_async(njoy.run_modules, kwds = {**row.to_dict()}) for i,row in self.iterrows()]
         outs = list(map(lambda x:x.get(), outs))
-        if not njoy.no_acer:
+        if njoy.run_acer:
             xsdirFiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(njoy.evaluationName)) for f in fn if f.endswith(".xsdir")]
             aceFiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(njoy.evaluationName)) for f in fn if f.endswith(".ace")]
             mydir = os.path.join(njoy.evaluationName, "ace")
@@ -480,10 +648,11 @@ class evalLib(pd.DataFrame):
             for file in sorted(aceFiles):
                 shutil.move(file, os.path.join(mydir, os.path.basename(file)))
 
-#lib = PyNjoy()
+#lib = PyNjoy(iwt=-98, capsys=False)
 #file = evalFile("1-H-3g.jeff33")
-#lib.pendf(**file.__dict__)
-#lib.acer(**file.__dict__)
+#file.pendfFile = lib.pendf(**file.__dict__)
+#lib.errorr(**file.__dict__)
+#sys.exit()
 
 def is_valid_file(parser, arg, r=True, w=False, x=False):
     arg = os.path.abspath(os.path.realpath(os.path.normpath(arg)))
@@ -546,12 +715,21 @@ if __name__ == "__main__":
     parser.add_argument('--no-purr',
                         action="store_true",
                         help="Skip PURR module in the NJOY sequence.")
+#    parser.add_argument('--no-pendf',
+#                        action="store_true",
+#                        help="Skip all NJOY modules necessary to produce a PENDF file.")
     parser.add_argument('--unresr',
                         action="store_true",
                         help="Replace PURR module with UNRESR in the NJOY sequence.")
-    parser.add_argument('--no-acer',
+    parser.add_argument('--run-groupr',
                         action="store_true",
-                        help="Skip ACER module in the NJOY sequence.")
+                        help="Run GROUPR module in the NJOY sequence.")
+    parser.add_argument('--run-acer',
+                        action="store_true",
+                        help="Run ACER module in the NJOY sequence.")
+    parser.add_argument('--run-errorr',
+                        action="store_true",
+                        help="Run ERRORR module in the NJOY sequence.")
     parser.add_argument('--temps',
                         type=float,
                         default = [293.6],
@@ -566,6 +744,22 @@ if __name__ == "__main__":
                         type=float,
                         default=0.005,
                         help="Fractional tolerance for RECONR and BROADR (default=0.005).")
+    parser.add_argument('--ign',
+                        type=int,
+                        default=2,
+                        help="Neutron group structure option for GROUPR (default=2 : csewg 239-group structure).")
+    parser.add_argument('--igne',
+                        type=int,
+                        default=2,
+                        help="Neutron group structure option for ERRORR (default=2 : csewg 239-group structure).")
+    parser.add_argument('--iwt',
+                        type=int,
+                        default=6,
+                        help="Weight function option for GROUPR (default=6 : Maxwellian - 1/E - fission - fusion).")
+    parser.add_argument('--iwte',
+                        type=int,
+                        default=6,
+                        help="Weight function option for ERRORR (default=6 : Maxwellian - 1/E - fission - fusion).")
     parser.add_argument('--suffixes',
                         type=str,
                         default=[".03"],
