@@ -1189,13 +1189,10 @@ def write_decay_data_csv(tape, filename):
     df['DEHP'] = df.DATA.apply(lambda x : x['DE'][2])
     df[['Z','A','M','HL','DHL','ELP','DELP','EEM','DEEM','EHP','DEHP']].to_csv(filename, index=False)
 
-<<<<<<< Updated upstream
-from sandy.data_test import __path__ as paths
-tape = Endf6.from_file(os.path.join(paths[0], r"u235.endf")).process(keep_mf=[5]).get_chi()
-=======
+
 #from sandy.data_test import __path__ as paths
 #tape = Endf6.from_file(os.path.join(paths[0], r"u235.endf")).process(keep_mf=[5]).get_chi()
->>>>>>> Stashed changes
+
 #for i in open("../../list5_jeff").read().splitlines():
 #    print("../../../../list5_jeff/"+i)
 #    tape = Endf6.from_file("../../../../list5_jeff/"+i).process(keep_mf=[5])
