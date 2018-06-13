@@ -1,1 +1,0 @@
-# njoy_test
