@@ -623,8 +623,9 @@ class evalLib(pd.DataFrame):
         lines = open(inputfile).read().splitlines()
         evals = []
         for line in lines:
-            groups = line.split()
+            groups = line.split() # 0-ENDF [1-PENDF]
             E = evalFile(groups[0])
+            print("parsing {}".format(groups[0]))
             if len(groups) > 1:
                 E.pendfFile = os.path.abspath(os.path.realpath(groups[1]))
             evals.append(E.to_frame())
