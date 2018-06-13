@@ -14,7 +14,6 @@ import sys, os, time, shutil, re, platform
 import multiprocessing as mp
 from copy import deepcopy
 import matplotlib.pyplot as plt
-from sandy.njoy import get_pendf
 from sandy.tests import TimeDecorator
 from sandy.formats.errorr import Errorr
 
