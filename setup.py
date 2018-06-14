@@ -1,32 +1,14 @@
-from setuptools import setup, find_packages
-from codecs import open # To use a consistent encoding
-from os.path import abspath, dirname, join, isfile, split
+from setuptools import find_packages
+from numpy.distutils.core import setup, Extension
 import os
-import sys
-import stat
 
 
-#def makepdf():
-#    from subprocess import Popen, PIPE
-#    command = "make"
-#    args = [command, 'latexpdf']
-#    process = Popen(args, shell=False, cwd='docs', stdin=PIPE, stdout=PIPE,
-#                    stderr=PIPE)
-#    stdoutdata, stderrdata = process.communicate()
-#    if process.returncode != 0:
-#        sys.stdout.write(stdoutdata.decode())
-#        sys.stderr.write(stderrdata.decode())
-#        sys.stderr.write("ERROR IN THE COMPILATION OF SANDY'S DEVELOPMENT MANUAL")
-#        err()
+extensions = [
+        Extension(name='rwf',
+                  sources=[os.path.join(*['fortran', 'rwfortran.f'])]
+                  ),
+        ]
 
-#makepdf()
-
-
-# Get the long description from the relevant file
-#with open(join(here, 'README.rst'), encoding='utf-8') as f:
-#    long_description = f.read()
-
-#--------------------------------------------------------------------------
 setup(
     name = 'sandy',
     version = '0.1',
@@ -49,11 +31,13 @@ setup(
                         'bokeh>=0.12.10'
                         'pandas>=0.20'],
     include_package_data = True,
+    ext_modules = extensions,
     entry_points={
     'console_scripts': [
         'sandy=sandy.sampling.sampling:run',
         'sandy_tests=sandy.sampling.tests:runtests',
         'sandy_xs_plotter=sandy.sampling.plotter2:main',
+        'sandy_njoy=sandy.njoy.njoy:process_lib'
         ],
     },
 )

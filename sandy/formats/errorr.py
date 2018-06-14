@@ -85,7 +85,9 @@ class Errorr(pd.DataFrame):
 
     def get_std(self):
         """
-        Extract xs and std from errorr file into dataframe.
+        Extract xs and std from errorr file into dataframe:
+            index = energy
+            columns = (MAT, MT, DATA)
         """
         xs = self.get_xs()
         cov = self.get_cov()
