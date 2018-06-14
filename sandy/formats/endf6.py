@@ -4,44 +4,15 @@ Created on Mon Jan 16 18:03:13 2017
 
 @author: lfiorito
 """
-import sys, time, pdb, os, re
+import sys, time, pdb, os, re, pytest
 import numpy as np
-from sandy.formats.records import read_cont, read_tab1, read_tab2, read_list, read_text, write_cont, write_tab1, write_list, write_tab2, read_float
+#from . import read_cont, read_tab1, read_tab2, read_list, read_text, read_float
+#from . import write_cont, write_tab1, write_list, write_tab2
+from .records2 import read_control, read_cont
 import pandas as pd
 from copy import deepcopy
 from warnings import warn
 from sandy.tests import TimeDecorator
-
-#def plot_heatmap(x, y, z,
-#                 xscale="lin", yscale="lin",
-#                 vmin=None, vmax=None,
-#                 cmap="bwr",
-#                 xlabel=None, ylabel=None, title=None):
-#    r"""
-#    Plot covariance matrix as a pseudocolor plot of a 2-D array.
-#    The colorbar is also added to the figure.
-#    """
-#    import matplotlib.pyplot as plt
-#    fig, ax = plt.subplots()
-#    pcm = ax.pcolormesh(*np.meshgrid(x, y),
-#                        z,
-#                        vmin=vmin,
-#                        vmax=vmax,
-#                        cmap=cmap)
-#    ax.set_xscale(xscale)
-#    ax.set_yscale(yscale)
-#    ax.set_aspect(1) # Height is 0.5 times the width
-#    # Resize the plot to make space for the colorbar
-#    box = ax.get_position()
-#    ax.set_position([box.x0, box.y0, 0.7, box.height])
-#    # set labels
-#    ax.set_title(title)
-#    ax.set_xlabel(xlabel)
-#    ax.set_ylabel(ylabel)
-#    # Plot the colorbar in desired position
-#    cbaxes = fig.add_axes([0.85, 0.1, 0.03, 0.8])
-#    plt.colorbar(pcm, cax=cbaxes)
-#    fig.show()
 
 
 def split_endf(text):
@@ -109,24 +80,43 @@ class Endf6(pd.DataFrame):
         Store list in dataframe with MultiIndex (MAT,MF,MT).
         """
         from io import StringIO
-        lines = text.splitlines()
-        tape = pd.read_fwf(StringIO(text), widths=[66,4,2,3], names=["TEXT","MAT","MF","MT"], usecols=["MAT","MF","MT"]).query("MAT>0 & MF>0 & MT>0")
-        d = {(int(mat),int(mf),int(mt)):"\n".join([lines[i] for i in g.tolist()]) for (mat,mf,mt),g in tape.groupby(["MAT","MF","MT"]).groups.items()}
-        tape = pd.DataFrame.from_dict(d, orient='index').rename(columns={0:"TEXT"})
-        tape.index = pd.MultiIndex.from_tuples(tape.index, names=["MAT", "MF", "MT"])
-        tape["DATA"] = None
+        tape = pd.read_fwf(
+                StringIO(text),
+                widths = [66, 4, 2, 3],
+                names = ["TEXT", "MAT", "MF", "MT"],
+                usecols = ["MAT", "MF", "MT"]
+                )
+        tape["TEXT"] = text.splitlines(True)
+        tape = tape.query("MAT>0 & MF>0 & MT>0").groupby(["MAT","MF","MT"]).sum()
         return cls(tape)
 
-    def by_ZAM(self):
+#    def by_ZAM(self):
+#        """
+#        Change index from MAT,MF,MT to ZAM,MF,MT.
+#        Return a pd.DataFrame instance (not Endf6 instance, because most of the methods do not support ZAM).
+#        """
+#        tape = self.copy().reset_index()
+#        text = tape.query("MF==1 & MT==451").TEXT.iloc[0].splitlines()
+#        i = 0
+#        A, i = read_cont(text, i)
+#        B, i = read_cont(text, i)
+#        tape = int(A.C1)*10 + B.L1
+#        assert False
+#        iso["ZAM"] = iso.TEXT.apply(lambda x: int(float(read_float(x[:11]))*10+int(x[103:114]))).values
+#        tape =  tape.merge(iso[["MAT","ZAM"]], how="left", on="MAT").drop("MAT", axis=1).set_index(['ZAM','MF','MT']).sort_index()
+#        return tape
+
+    def read_section(self, mat, mf, mt):
         """
-        Change index from MAT,MF,MT to ZAM,MF,MT.
-        Return a pd.DataFrame instance (not Endf6 instance, because most of the methods do not support ZAM).
+        Parse MAT/MF/MT section
         """
-        tape = self.copy().reset_index()
-        iso = tape.query("MF==1 & MT==451")
-        iso["ZAM"] = iso.TEXT.apply(lambda x: int(float(read_float(x[:11]))*10+int(x[103:114]))).values
-        tape =  tape.merge(iso[["MAT","ZAM"]], how="left", on="MAT").drop("MAT", axis=1).set_index(['ZAM','MF','MT']).sort_index()
-        return tape
+        if mf == 1:
+            from .MF1 import read
+        elif mf == 3:
+            from .MF3 import read
+        else:
+            sys.exit("ERROR: SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
+        return read(self.loc[mat,mf,mt].TEXT)
 
     def process(self, keep_mf=None, keep_mt=None):
         """
@@ -136,23 +126,23 @@ class Endf6(pd.DataFrame):
         tape['DATA'] = tape['TEXT'].apply(process_endf_section, keep_mf=keep_mf, keep_mt=keep_mt)
         return Endf6(tape)
 
-    def to_string(self, title=" "*66):
-        """
-        First update MF1/MT451 dictionary.
-        Then, Write TEXT column to string.
-        """
-        tape = self.update_dict().write_mf1_mt451()
-        string = "{:<66}{:4}{:2}{:3}{:5}\n".format(title, 1, 0, 0, 0)
-        for mat,dfmat in tape.groupby('MAT', sort=True):
-            for mf,dfmf in dfmat.groupby('MF', sort=True):
-                for mt,dfmt in dfmf.groupby('MT', sort=True):
-                    for text in dfmt.TEXT:
-                        string += text.encode('ascii', 'replace').decode('ascii') + "\n"
-                    string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, mf, 0, 99999)
-                string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, 0, 0, 0)
-            string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), 0, 0, 0, 0)
-        string += "{:<66}{:4}{:2}{:3}{:5}".format(*write_cont(*[0]*6), -1, 0, 0, 0)
-        return string
+#    def to_string(self, title=" "*66):
+#        """
+#        First update MF1/MT451 dictionary.
+#        Then, Write TEXT column to string.
+#        """
+#        tape = self.update_dict().write_mf1_mt451()
+#        string = "{:<66}{:4}{:2}{:3}{:5}\n".format(title, 1, 0, 0, 0)
+#        for mat,dfmat in tape.groupby('MAT', sort=True):
+#            for mf,dfmf in dfmat.groupby('MF', sort=True):
+#                for mt,dfmt in dfmf.groupby('MT', sort=True):
+#                    for text in dfmt.TEXT:
+#                        string += text.encode('ascii', 'replace').decode('ascii') + "\n"
+#                    string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, mf, 0, 99999)
+#                string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, 0, 0, 0)
+#            string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), 0, 0, 0, 0)
+#        string += "{:<66}{:4}{:2}{:3}{:5}".format(*write_cont(*[0]*6), -1, 0, 0, 0)
+#        return string
 
     def to_file(self, file, title=" "*66):
         """
@@ -1202,3 +1192,17 @@ def write_decay_data_csv(tape, filename):
 #    print("../../../../list5_jeff/"+i)
 #    tape = Endf6.from_file("../../../../list5_jeff/"+i).process(keep_mf=[5])
 #aaa=1
+
+@pytest.fixture(scope="module")
+def testPu9():
+    from sandy.data_test import Pu9
+    tape = Endf6.from_text("\n".join(Pu9.endf6))
+    assert (tape.index.get_level_values("MAT").unique() == 9437).all()
+    return tape
+
+def test_read_section(testPu9):
+    testPu9.read_section(9437, 3, 102)
+    testPu9.read_section(9437, 1, 451)
+    testPu9.read_section(9437, 1, 452)
+    testPu9.read_section(9437, 1, 455)
+    testPu9.read_section(9437, 1, 456)

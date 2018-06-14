@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created on Fri May 25 16:58:11 2018
@@ -6,7 +5,7 @@ Created on Fri May 25 16:58:11 2018
 @author: fiorito_l
 """
 import pandas as pd
-import os, re, sys, time, shutil, argparse, pdb
+import os, sys, time, pdb, shutil, re
 
 sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [42,125,0,8,221,'tol'],
@@ -33,28 +32,6 @@ sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [26,425,2,1,231,'be'],
                                   [60,1325,0,2,221,'asap']],
 columns = ['matde','matdp','icoh','natom','mtref','ext'])
-
-
-
-class PyNjoyError(Exception):
-    """Exception indicating an error in PyNjoy."""
-
-
-
-def TimeDecorator(foo):
-    """
-    Output the time a function takes
-    to execute.
-    """
-    def wrapper(*args, **kwargs):
-        t1 = time.time()
-        out = foo(*args, **kwargs)
-        t2 = time.time()
-        print("Time to run function {}: {} sec".format(foo, t2-t1))
-        return out
-    return wrapper
-
-
 
 class evalFile:
 
@@ -146,7 +123,7 @@ class evalFile:
         return pd.DataFrame.from_dict(self.__dict__, orient="index").T
 
 
-class PyNjoy:
+class Njoy:
 
     def __init__(self, **kwargs):
 #        self.sab = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sab.csv")
@@ -214,7 +191,7 @@ class PyNjoy:
         self.run_errorr = False
         self.__dict__.update(kwargs)
         # Run checks
-        if len(self.temps)> 10: raise PyNjoyError("cannot have more than 10 temperatures")
+        if len(self.temps)> 10: raise NotImplementedError("cannot have more than 10 temperatures")
 
 
 
@@ -240,7 +217,7 @@ class PyNjoy:
         inp = open(inputfile).read().encode()
         stdoutdata, stderrdata = process.communicate(inp)
         if process.returncode not in [0, 24]:
-            raise PyNjoyError("NJOY exit status {}, cannot run njoy executable".format(process.returncode))
+            raise NotImplementedError("NJOY exit status {}, cannot run njoy executable".format(process.returncode))
 
     def runBash(self, inputfile, cwd):
         from subprocess import Popen, PIPE
@@ -248,7 +225,8 @@ class PyNjoy:
             stderr = stdout = PIPE
         else:
             stderr = stdout = None
-        process = Popen("bash {}".format(inputfile),
+        command = "bash {}".format(inputfile)
+        process = Popen(command,
                         shell=True,
                         cwd=cwd,
                         stdin=PIPE,
@@ -256,12 +234,12 @@ class PyNjoy:
                         stderr=stderr)
         stdoutdata, stderrdata = process.communicate()
         if process.returncode not in [0, 24]:
-            raise PyNjoyError("NJOY exit status {}, cannot run njoy executable".format(process.returncode))
+            raise NotImplementedError("exit status {} when running \"{}\"".format(process.returncode, command))
 
     def pendf(self, **fileOptions):
         kwargs = dict(self.__dict__, **fileOptions)
         print(" --- run pendf for " + kwargs["hmat"] + " ---")
-        if not os.path.isfile(os.path.expandvars(kwargs["endfFile"])): raise PyNjoyError("evaluation file " + kwargs["endfFile"] + " not found")
+        if not os.path.isfile(os.path.expandvars(kwargs["endfFile"])): raise NotImplementedError("evaluation file " + kwargs["endfFile"] + " not found")
         mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
         os.makedirs(mydir, exist_ok=True)
         kwargs["nbDil"] = len(kwargs["sig0"])
@@ -399,8 +377,8 @@ rm -f tape*
     def groupr(self, **fileOptions):
         kwargs = dict(self.__dict__, **fileOptions)
         print(" --- run groupr for " + kwargs["hmat"] + " ---")
-        if not os.path.isfile(os.path.expandvars(kwargs["endfFile"])): raise PyNjoyError("evaluation file " + kwargs["endfFile"] + " not found")
-        if not os.path.isfile(os.path.expandvars(kwargs["pendfFile"])): raise PyNjoyError("evaluation file " + kwargs["pendfFile"] + " not found")
+        if not os.path.isfile(os.path.expandvars(kwargs["endfFile"])): raise NotImplementedError("evaluation file " + kwargs["endfFile"] + " not found")
+        if not os.path.isfile(os.path.expandvars(kwargs["pendfFile"])): raise NotImplementedError("evaluation file " + kwargs["pendfFile"] + " not found")
         mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
         os.makedirs(mydir, exist_ok=True)
         kwargs["nbDil"] = len(kwargs["sig0"])
@@ -465,7 +443,7 @@ EOF
     def errorr(self, **fileOptions):
         kwargs = dict(self.__dict__, **fileOptions)
         print(" --- run errorr for " + kwargs["hmat"] + " ---")
-        if not os.path.isfile(os.path.expandvars(kwargs["endfFile"])): raise PyNjoyError("evaluation file " + kwargs["endfFile"] + " not found")
+        if not os.path.isfile(os.path.expandvars(kwargs["endfFile"])): raise NotImplementedError("evaluation file " + kwargs["endfFile"] + " not found")
         mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
         os.makedirs(mydir, exist_ok=True)
         if kwargs["igne"] == -99: # 1 GROUP (1E-5 to 2E7)
@@ -488,19 +466,19 @@ moder
 29 -25
 """
             if "gendfFile" in kwargs:
-                if not os.path.isfile(os.path.expandvars(kwargs["gendfFile"])): raise PyNjoyError("evaluation file " + kwargs["gendfFile"] + " not found")
+                if not os.path.isfile(os.path.expandvars(kwargs["gendfFile"])): raise NotImplementedError("evaluation file " + kwargs["gendfFile"] + " not found")
                 text_data += """
 errorr
 -21 0 -25 33 /
 """
             elif "pendfFile" in kwargs:
-                if not os.path.isfile(os.path.expandvars(kwargs["pendfFile"])): raise PyNjoyError("evaluation file " + kwargs["pendfFile"] + " not found")
+                if not os.path.isfile(os.path.expandvars(kwargs["pendfFile"])): raise NotImplementedError("evaluation file " + kwargs["pendfFile"] + " not found")
                 text_data += """
 errorr
 -21 -25 0 33 /
 """
             else:
-                raise PyNjoyError("user must define either pendfFile or gendfFile attribute")
+                raise NotImplementedError("user must define either pendfFile or gendfFile attribute")
             text_data += """%(mat)d %(igne)d %(iwte)d %(iprint)d %(irelco)d /
 %(iprint)d %(tmp)E /
 0 33 %(irespr)d %(lord)d /
@@ -520,12 +498,12 @@ EOF
 ln -sf %(endfFile)s tape20
 """ % kwargs
             if "gendfFile" in kwargs:
-                if not os.path.isfile(os.path.expandvars(kwargs["gendfFile"])): raise PyNjoyError("evaluation file " + kwargs["gendfFile"] + " not found")
+                if not os.path.isfile(os.path.expandvars(kwargs["gendfFile"])): raise NotImplementedError("evaluation file " + kwargs["gendfFile"] + " not found")
                 text_bash += """
 ln -sf %(gendfFile)s tape29
 """ % kwargs
             elif "pendfFile" in kwargs:
-                if not os.path.isfile(os.path.expandvars(kwargs["pendfFile"])): raise PyNjoyError("evaluation file " + kwargs["pendfFile"] + " not found")
+                if not os.path.isfile(os.path.expandvars(kwargs["pendfFile"])): raise NotImplementedError("evaluation file " + kwargs["pendfFile"] + " not found")
                 text_bash += """
 ln -sf %(pendfFile)s tape29
 """ % kwargs
@@ -544,8 +522,8 @@ rm -f tape*
     def acer(self, **fileOptions):
         kwargs = dict(self.__dict__, **fileOptions)
         print(" --- run acer for " + kwargs["hmat"] + " ---")
-        if not os.path.isfile(os.path.expandvars(kwargs["endfFile"])): raise PyNjoyError("evaluation file " + kwargs["endfFile"] + " not found")
-        if not os.path.isfile(os.path.expandvars(kwargs["pendfFile"])): raise PyNjoyError("evaluation file " + kwargs["pendfFile"] + " not found")
+        if not os.path.isfile(os.path.expandvars(kwargs["endfFile"])): raise NotImplementedError("evaluation file " + kwargs["endfFile"] + " not found")
+        if not os.path.isfile(os.path.expandvars(kwargs["pendfFile"])): raise NotImplementedError("evaluation file " + kwargs["pendfFile"] + " not found")
         mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
         kwargs["htime"] = time.ctime(time.time())
         for tmp,suff in zip(kwargs["temps"], kwargs["suffixes"]):
@@ -596,7 +574,6 @@ rm -f tape*
                     f.write(" ".join(xargs))
 
     def run_modules(self, **fileOptions):
-#        kwargs = dict(self.__dict__, **fileOptions)
         fileOptions["pendfFile"] = self.pendf(**fileOptions)
         if self.run_acer:
             self.acer(**fileOptions)
@@ -634,142 +611,33 @@ class evalLib(pd.DataFrame):
 
     def run_njoy(self, **njoyOptions):
         import multiprocessing as mp
-        njoy = PyNjoy(**njoyOptions)
-        pool = mp.Pool(processes=njoy.processes)
-        outs = [pool.apply_async(njoy.run_modules, kwds = {**row.to_dict()}) for i,row in self.iterrows()]
+        nj = Njoy(**njoyOptions)
+        pool = mp.Pool(processes=nj.processes)
+        outs = [pool.apply_async(nj.run_modules, kwds = {**row.to_dict()}) for i,row in self.iterrows()]
         outs = list(map(lambda x:x.get(), outs))
-        if njoy.run_acer:
-            xsdirFiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(njoy.evaluationName)) for f in fn if f.endswith(".xsdir")]
-            aceFiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(njoy.evaluationName)) for f in fn if f.endswith(".ace")]
-            mydir = os.path.join(njoy.evaluationName, "ace")
+        if nj.run_acer:
+            xsdirFiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(nj.evaluationName)) for f in fn if f.endswith(".xsdir")]
+            aceFiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(nj.evaluationName)) for f in fn if f.endswith(".ace")]
+            mydir = os.path.join(nj.evaluationName, "ace")
             os.makedirs(mydir, exist_ok=True)
-            with open(os.path.join(mydir, os.path.basename(njoy.evaluationName)+".xsdir"), 'w') as f:
+            with open(os.path.join(mydir, os.path.basename(nj.evaluationName)+".xsdir"), 'w') as f:
                 for file in sorted(xsdirFiles):
                     f.write(open(file).read() + '\n')
             for file in sorted(aceFiles):
                 shutil.move(file, os.path.join(mydir, os.path.basename(file)))
 
-#lib = PyNjoy(iwt=-98, capsys=False)
-#file = evalFile("1-H-3g.jeff33")
-#file.pendfFile = lib.pendf(**file.__dict__)
-#lib.errorr(**file.__dict__)
-#sys.exit()
 
-def is_valid_file(parser, arg, r=True, w=False, x=False):
-    arg = os.path.abspath(os.path.realpath(os.path.normpath(arg)))
-    if not os.path.isfile(arg):
-        parser.error("File {} does not exist".format(arg))
-    if r and not os.access(arg, os.R_OK):
-        parser.error("File {} is not readable".format(arg))
-    if w and not os.access(arg, os.W_OK):
-        parser.error("File {} is not writable".format(arg))
-    if x and not os.access(arg, os.X_OK):
-        parser.error("File {} is not executable".format(arg))
-    return arg
+def process_lib():
+    from sandy import settings
+    inputs = settings.init_njoy()
+    evalLib.from_file(inputs["inputfile"]).run_njoy(**inputs)
 
-def is_valid_dir(parser, arg, mkdir=False):
-    arg = os.path.abspath(os.path.realpath(os.path.normpath(arg)))
-    if os.path.isdir(arg):
-        return arg
-    if mkdir:
-        os.makedirs(arg, exist_ok=True)
-    else:
-        parser.error("Directory {} does not exist".format(arg))
-    return arg
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Run SANDY')
-    parser.add_argument('-i','--inputfile',
-                        type=lambda x: is_valid_file(parser, x),
-                        required=True,
-                        help="<Required> List of endf files to be processed (one file per line).")
-    parser.add_argument('--processes',
-                        type=int,
-                        default=1,
-                        help="Number of worker processes (default=1).")
-    parser.add_argument('--capsys',
-                        type=bool,
-                        default=False,
-                        help="Capture NJOY stderr and stdout (default=False).")
-    parser.add_argument('--NjoyExec',
-                        default='njoy2016',
-                        help="NJOY executable (default=njoy2016).")
-    parser.add_argument('--evaluationName',
-                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
-                        default="lib",
-                        metavar="lib",
-                        help="Name of the evaluation.")
-    parser.add_argument('--iprint',
-                        type=int,
-                        choices=range(2),
-                        default=1,
-                        help="NJOY verbosity: 0=min, 1=max (default=1).")
-    parser.add_argument('--no-reconr',
-                        action="store_true",
-                        help="<Developer only> Skip RECONR module in the NJOY sequence.")
-    parser.add_argument('--no-broadr',
-                        action="store_true",
-                        help="Skip BROADR module in the NJOY sequence.")
-    parser.add_argument('--no-thermr',
-                        action="store_true",
-                        help="Skip THERMR module in the NJOY sequence.")
-    parser.add_argument('--no-purr',
-                        action="store_true",
-                        help="Skip PURR module in the NJOY sequence.")
-#    parser.add_argument('--no-pendf',
-#                        action="store_true",
-#                        help="Skip all NJOY modules necessary to produce a PENDF file.")
-    parser.add_argument('--unresr',
-                        action="store_true",
-                        help="Replace PURR module with UNRESR in the NJOY sequence.")
-    parser.add_argument('--run-groupr',
-                        action="store_true",
-                        help="Run GROUPR module in the NJOY sequence.")
-    parser.add_argument('--run-acer',
-                        action="store_true",
-                        help="Run ACER module in the NJOY sequence.")
-    parser.add_argument('--run-errorr',
-                        action="store_true",
-                        help="Run ERRORR module in the NJOY sequence.")
-    parser.add_argument('--temps',
-                        type=float,
-                        default = [293.6],
-                        nargs='+',
-                        help="Temperature values (default=[293.6]).")
-    parser.add_argument('--sig0',
-                        type=float,
-                        default=[1e10],
-                        nargs='+',
-                        help="Sigma0 values (default=[1e10]).")
-    parser.add_argument('--err',
-                        type=float,
-                        default=0.005,
-                        help="Fractional tolerance for RECONR and BROADR (default=0.005).")
-    parser.add_argument('--ign',
-                        type=int,
-                        default=2,
-                        help="Neutron group structure option for GROUPR (default=2 : csewg 239-group structure).")
-    parser.add_argument('--igne',
-                        type=int,
-                        default=2,
-                        help="Neutron group structure option for ERRORR (default=2 : csewg 239-group structure).")
-    parser.add_argument('--iwt',
-                        type=int,
-                        default=6,
-                        help="Weight function option for GROUPR (default=6 : Maxwellian - 1/E - fission - fusion).")
-    parser.add_argument('--iwte',
-                        type=int,
-                        default=6,
-                        help="Weight function option for ERRORR (default=6 : Maxwellian - 1/E - fission - fusion).")
-    parser.add_argument('--suffixes',
-                        type=str,
-                        default=[".03"],
-                        nargs='+',
-                        help="Suffixes for ACE files, as many as temperature values (default=[\".03\"]]).")
-    parser.add_argument("-v",
-                        '--version',
-                        action='version',
-                        version='%(prog)s 1.0',
-                        help="")
-    args = parser.parse_args()
-    evalLib.from_file(args.inputfile).run_njoy(**vars(args))
+def process_RI(inputfile):
+    from sandy.formats.errorr import Errorr
+    List = []
+    for file in open(inputfile).read().splitlines():
+        toadd = Errorr.from_file(file).process().get_std().iloc[0].unstack("DATA")
+        List.append(toadd)
+    frame = pd.concat(List).query("MT==1|MT==2|MT==18|MT==102")
+    pdb.set_trace()
