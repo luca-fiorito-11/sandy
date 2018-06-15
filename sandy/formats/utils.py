@@ -6,9 +6,14 @@ Created on Thu Jun 14 09:19:24 2018
 """
 
 import pandas as pd
+import numpy as np
+
+
 
 class Section(dict):
     pass
+
+
 
 class Xs(pd.DataFrame):
 
@@ -96,3 +101,64 @@ class Xs(pd.DataFrame):
             # Negative values are set to zero
             frame[mat,mt][frame[mat,mt] <= 0] = 0
         return Xs(frame).reconstruct_sums()
+
+
+
+class XsCov(pd.DataFrame):
+    """
+    columns =  (MATi,MTj) ... (MATm,MTn)
+    index = E1, E2, ..., El
+    """
+
+    pass
+
+
+def triu_matrix(arr, size):
+    """
+    Given the upper triangular values of a **square symmetric** matrix in
+    an array, return the full matrix.
+
+    Inputs:
+        - arr :
+            (1d array) array with the upper triangular values of the matrix
+        - size :
+            (int) dimension of the matrix
+
+    Outputs:
+        - matrix :
+            (2d array) reconstructed 2d-array with symmetric matrix
+    """
+    matrix = np.zeros([size, size])
+    indices = np.triu_indices(size)
+    matrix[indices] = arr
+    matrix += np.triu(matrix, 1).T
+    return matrix
+
+
+
+def up2down(C):
+    """
+    Given a covariance matrix in input, copy the upper triangular part to the
+    lower triangular part.
+
+    Inputs:
+        - C :
+            (2d-array) input covariance matrix
+
+    Outputs:
+        - C1 :
+            (2d-array) output covariance matrix
+    """
+    U = np.triu(C)
+    L = np.triu(C, 1).T
+    C1 = U + L
+    return C1
+
+
+
+def corr2cov(corr, s):
+    dim = corr.shape[0]
+    S = np.repeat(s, dim).reshape(dim, dim)
+    cov = S.T * (corr * S)
+    cov = up2down(cov)
+    return cov

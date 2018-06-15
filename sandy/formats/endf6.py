@@ -312,18 +312,28 @@ class Endf6(pd.DataFrame):
         DfChi = pd.DataFrame.from_dict(DictDf).set_index(["MAT", "MT", "K"])
         return DfChi
 
-    def get_xs_cov(self):
-        from sandy.sampling.cov import triu_matrix
+    def get_xs_cov(self, listmat=None, listmt=None):
+        from .utils import XsCov, triu_matrix
         from functools import reduce
+        query = "(MF==33 | MF==31)"
+        if listmat is not None:
+            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+            query += " & ({})".format(query_mats)
+        if listmt is not None:
+            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+            query += " & ({})".format(query_mts)
+        tape = self.query(query)
         List = []; eg = set()
-        for chunk in self.query('MF==33 | MF==31').DATA:
-            mat = chunk['MAT']; mt = chunk['MT']
-            for sub in chunk["SUB"].values():
-                mat1 = sub['MAT1'] if sub['MAT1'] != 0 else mat; mt1 = sub['MT1']
+        for ix,text in tape.TEXT.iteritems():
+            X = self.read_section(*ix)
+            mat = X['MAT']; mt = X['MT']
+            for sub in X["SUB"].values():
+                mat1 = sub['MAT1'] if sub['MAT1'] != 0 else mat;
+                mt1 = sub['MT1']
                 covs = []
-                for nisec in sub["NI"]:
+                for i,nisec in sub["NI"].items():
                     if nisec["LB"] == 5:
-                        Fkk = np.array(nisec["Fkk"])
+                        Fkk = np.array(nisec["FKK"])
                         if nisec["LS"] == 0: # to be tested
                             cov = Fkk.reshape(nisec["NE"]-1, nisec["NE"]-1)
                         else:
@@ -331,23 +341,23 @@ class Endf6(pd.DataFrame):
                         # add zero row and column at the end of the matrix
                         cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
                         cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-                        e1 = e2 = nisec["Ek"]
+                        e1 = e2 = nisec["EK"]
                     elif nisec["LB"] == 1:
-                        cov = np.diag(nisec["Fk"])
-                        e1 = e2 = nisec["Ek"]
+                        cov = np.diag(nisec["FK"])
+                        e1 = e2 = nisec["EK"]
                     elif nisec["LB"] == 2:
-                        f = np.array(nisec["Fk"])
+                        f = np.array(nisec["FK"])
                         cov = f*f.reshape(-1,1)
-                        e1 = e2 = nisec["Ek"]
+                        e1 = e2 = nisec["EK"]
                     elif nisec["LB"] == 6:
-                        cov = np.array(nisec["Fkl"]).reshape(nisec["NER"]-1, nisec["NEC"]-1)
+                        cov = np.array(nisec["FKL"]).reshape(nisec["NER"]-1, nisec["NEC"]-1)
                         # add zero row and column at the end of the matrix
                         cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
                         cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-                        e1 = nisec["Ek"]
-                        e2 = nisec["El"]
+                        e1 = nisec["EK"]
+                        e2 = nisec["EL"]
                     else:
-                        warn("skipped NI-type covariance with flag LB={} (MAT{}/MF{}/MT{})".fomat(nisec["LB"], chunk['MAT'], chunk['MF'], chunk['MT']), category=Warning)
+                        warn("skipped NI-type covariance with flag LB={} for MAT{}/MF{}/MT{}".fomat(nisec["LB"], *ix), category=Warning)
                         continue
                     cov = pd.DataFrame(cov, index=e1, columns=e2)
                     covs.append(cov)
@@ -360,7 +370,7 @@ class Endf6(pd.DataFrame):
                 eg |= set(cov.index.values)
                 List.append([mat, mt, mat1, mt1, cov])
         if not List:
-            warn("no MF[31,33] covariances found", category=Warning)
+            warn("no MF[31,33] covariance found", category=Warning)
             return pd.DataFrame()
         frame = pd.DataFrame(List, columns=('MAT', 'MT','MAT1', 'MT1', 'COV'))
         eg = sorted(eg)
@@ -475,105 +485,6 @@ class Endf6(pd.DataFrame):
             tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut)
         return Endf6(tape)
 
-def read_mf2_mt151(text):
-    str_list = split_endf(text)
-    i = 0
-    out = {"MAT" : str_list["MAT"].iloc[0],
-           "MF" : str_list["MF"].iloc[0],
-           "MT" : str_list["MT"].iloc[0]}
-    C, i = read_cont(str_list, i)
-    out.update({ "ZA" : C.C1, "AWR" : C.C2, "NIS" : C.N1, "ZAI" : {} })
-    for i_iso in range(out["NIS"]): # LOOP ISOTOPES
-        C, i = read_cont(str_list, i)
-        zai = { "ZAI" : C.C1, "ABN" : C.C2, "LFW" : C.L2, "NER" : C.N1, "ERANGE" : {} }
-        for i_erange in range(zai["NER"]): # LOOP ENERGY RANGES
-            C, i = read_cont(str_list, i)
-            sub = {"EL" : C.C1, "EH" : C.C2, "LRU" : C.L1, "LRF" : C.L2, "NRO" : C.N1, "NAPS" : C.N2}
-            if sub["NRO"] != 0: # Tabulated scattering radius
-                T, i = read_tab1(str_list, i)
-                sub.update({"NBT" : T.NBT, "INT" : T.INT})
-                sub["AP"] = pd.Series(T.y, index = T.x).rename_axis("E")
-            if sub["LRU"] == 0: # ONLY SCATTERING RADIUS
-                C, i = read_cont(str_list, i)
-                sub.update({"SPI" : C.C1, "SR" : C.C2, "NLS" : C.N1})
-            if sub["LRU"] == 1: # RESOLVED RESONANCES
-                if sub["LRF"] in (1,2): # BREIT-WIGNER
-                    C, i = read_cont(str_list, i)
-                    sub.update({"SPI" : C.C1, "SR" : C.C2, "NLS" : C.N1})
-                    L, i = read_list(str_list, i)
-                elif sub["LRF"] == 3: # REICH-MOORE
-                    C, i = read_cont(str_list, i)
-                    sub.update({"SPI" : C.C1, "SR" : C.C2, "LAD" : C.L1, "NLS" : C.N1, "NLSC" : C.N2})
-                    L, i = read_list(str_list, i)
-                elif sub["LRF"] == 4: # ADLER-ADLER
-                    sys.exit("ERROR: SANDY cannot read resonance parameters in Adler-Adler formalism")
-                elif sub["LRF"] == 5: # GENERAL R-MATRIX
-                    sys.exit("ERROR: General R-matrix formalism no longer available in ENDF-6")
-                elif sub["LRF"] == 6: # HYBRID R-FUNCTION
-                    sys.exit("ERROR: Hybrid R-function formalism no longer available in ENDF-6")
-                elif sub["LRF"] == 7: # LIMITED R-MATRIX
-                    C, i = read_cont(str_list, i)
-                    sub.update({"IFG" : C.L1, "KRM" : C.L2, "NJS" : C.N1, "KRL" : C.N2})
-                    for j in range(sub["NJS"]):
-                        L1, i = read_list(str_list, i)
-                        L2, i = read_list(str_list, i)
-                        L3, i = read_list(str_list, i)
-            elif sub["LRU"] == 2: # UNRESOLVED RESONANCES
-                if sub["LRF"] == 1 and out["LFW"] == 0: # CASE A
-                    C, i = read_cont(str_list, i)
-                    sub.update({"SPI" : C.C1, "SR" : C.C2, "LSSF" : C.L1, "NLS" : C.N1})
-                    for k in range(sub["NLS"]):
-                        L, i = read_list(str_list, i)
-                elif sub["LRF"] == 1 and out["LFW"] == 1: # CASE B
-                    C, i = read_cont(str_list, i)
-                    sub.update({"SPI" : C.C1, "SR" : C.C2, "LSSF" : C.L1, "NE" : C.N1, "NLS" : C.N2})
-                    L, i = read_list(str_list, i)
-                    for k in range(sub["NLS"]):
-                        C, i = read_cont(str_list, i)
-                        for l in range(C.N1):
-                            L, i = read_list(str_list, i)
-                elif sub["LRF"] == 2: # CASE C
-                    C, i = read_cont(str_list, i)
-                    sub.update({"SPI" : C.C1, "SR" : C.C2, "LSSF" : C.L1, "NLS" : C.N1})
-                    for k in range(sub["NLS"]):
-                        C, i = read_cont(str_list, i)
-                        for l in range(C.N1):
-                            L, i = read_list(str_list, i)
-            zai["ERANGE"].update({ (sub["EL"],sub["EH"]) : sub })
-        out["ZAI"].update({ zai["ZAI"] : zai })
-    return out
-
-def read_mf4_mt(text):
-    str_list = split_endf(text)
-    i = 0
-    out = {"MAT" : str_list["MAT"].iloc[0],
-           "MF" : str_list["MF"].iloc[0],
-           "MT" : str_list["MT"].iloc[0]}
-    C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "LTT" : C.L2})
-    if out["LTT"] in (1,3):
-        C, i = read_cont(str_list, i)
-        lpc = {"LI" : C.L1, "LCT" : C.L2}
-        T2, i = read_tab2(str_list, i)
-        lpc.update({"NE" : T2.NZ, "NBT" : T2.NBT, "INT" : T2.INT, "E" : {} })
-        for j in range(lpc["NE"]):
-            L, i = read_list(str_list, i)
-            lpc["E"].update({ L.C2 : {"P" : L.B, "T" : L.C1, "LT" : L.L1}})
-        out.update({"LPC" : lpc})
-    if out["LTT"] in (2,3):
-        C, i = read_cont(str_list, i)
-        sub = {"LI" : C.L1, "LCT" : C.L2}
-        T2, i = read_tab2(str_list, i)
-        sub.update({"NE" : T2.NZ, "NBT" : T2.NBT, "INT" : T2.INT, "E" : {}})
-        for i in range(sub["NE"]):
-            T1, i = read_tab1(str_list, i)
-            distr = pd.Series(T1.y, index = T1.x, name=T1.C2).rename_axis("mu")
-            sub["E"].update({ T1.C2 : {"T" : T1.C1, "LT" : T1.L1, "PDF" : distr, "NBT" : T1.NBT, "INT" : T1.INT}})
-        out.update({"TAB" : sub})
-    if out["LTT"] == 0:
-        C, i = read_cont(str_list, i)
-        out.update({"ISO" : {"LI" : C.L1, "LCT" : C.L2}})
-    return out
 
 
 def write_mf5_mt(tapein):
@@ -633,190 +544,8 @@ def write_mf5_mt(tapein):
         tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
     return tape
 
-def read_mf8_mt457(text):
-    str_list = split_endf(text)
-    i = 0
-    out = {"MAT" : str_list["MAT"].iloc[0],
-           "MF" : str_list["MF"].iloc[0],
-           "MT" : str_list["MT"].iloc[0]}
-    C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "LIS" : C.L1, "LISO" : C.L2, "NST" :C.N1, "NSP" : C.N2})
-    L, i = read_list(str_list, i)
-    out.update({"HL" : L.C1, "DHL" : L.C2, "E" : L.B[::2], "DE" : L.B[1::2]})
-    L, i = read_list(str_list, i)
-    out.update({"SPI" : L.C1, "PAR" : L.C2, "DK" : []})
-    if out["NST"] == 0:
-        # Update list of decay modes when nuclide is radioactive
-        out.update({ "DK" : [ {"RTYP" : RTYP, "RFS" : RFS, "Q" : Q, "DQ" : DQ, "BR" : BR, "DBR" : DBR } for RTYP, RFS, Q, DQ, BR, DBR in  zip(*[iter(L.B)]*6) ] })
-    return out
 
-def read_mf8_fy(text):
-    str_list = split_endf(text)
-    i = 0
-    out = {"MAT" : str_list["MAT"].iloc[0],
-           "MF" : str_list["MF"].iloc[0],
-           "MT" : str_list["MT"].iloc[0]}
-    C, i = read_cont(str_list, i)
-    out.update({ "ZA" : C.C1, "AWR" : C.C2, "E" : {} })
-    for j in range(C.L1):
-        L, i = read_list(str_list, i)
-        FY = [{ "ZAFP" : ZAFP, "FPS" : FPS, "YI" : YI, "DYI" : DYI } for ZAFP, FPS, YI, DYI in  zip(*[iter(L.B)]*4) ]
-        out["E"].update({ L.C1 : { "FY" : FY } })
-        if j > 0:
-            out["E"][L.C1].update({ "I" : L.L1 })
-    return out
 
-def read_mf33_mt(text):
-    str_list = split_endf(text)
-    i = 0
-    out = {"MAT" : str_list["MAT"].iloc[0],
-           "MF" : str_list["MF"].iloc[0],
-           "MT" : str_list["MT"].iloc[0]}
-    C, i = read_cont(str_list, i)
-    # Subsections are given as dictionary values.
-    # Keys are MAT1*100+MT1
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "MTL" : C.L2, "SUB" : {}})
-    for j in range(C.N2):
-        sub = {}
-        C, i = read_cont(str_list, i)
-        sub.update({"XMF1" : C.C1, "XLFS1" : C.C2, "MAT1" : C.L1, "MT1" : C.L2})
-        NC = C.N1
-        NI = C.N2
-        NCLIST = []
-        for k in range(NC):
-            C, i = read_cont(str_list, i)
-            subsub = {"LTY" : C.L2}
-            if subsub["LTY"] == 0:
-                L, i = read_list(str_list, i)
-                subsub.update({"E1" : L.C1, "E2" : L.C2,
-                               "CI" : L.B[:L.N2], "XMTI" : L.B[L.N2:]})
-                NCLIST.append(subsub)
-            elif subsub["LTY"] in (1,2,3):
-                L, i = read_list(str_list, i)
-                subsub.update({"E1" : L.C1, "E2" : L.C2, "MATS" : L.L1, "MTS" : L.L2,
-                               "XMFS" : L.B[0], "XLFSS" : L.B[1],
-                               "EI" : L.B[2:2+L.N2], "WEI" : L.B[2+L.N2:]})
-                NCLIST.append(subsub)
-            NCLIST.append(subsub)
-        sub.update({"NC" : NCLIST})
-        NILIST = []
-        for k in range(NI):
-            L, i = read_list(str_list, i)
-            subsub = {"LB" : L.L2}
-            if subsub["LB"] in range(5):
-                subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
-                if subsub["LT"] == 0:
-                    subsub.update({"Ek" : L.B[::2], "Fk" : L.B[1::2]})
-                else:
-                    pdb.set_trace()
-                    Nk = subsub["NP"] - subsub["LT"]
-                    ARRk = L.B[:Nk]
-                    ARRl = L.B[Nk:]
-                    subsub.update({"Ek" : ARRk[:Nk/2], "Fk" : ARRk[Nk/2:],
-                                   "El" : ARRl[:subsub["LT"]], "Fl" : ARRl[subsub["LT"]:]})
-            elif subsub["LB"] == 5:
-                subsub.update({"LS" : L.L1, "NT" : L.NPL, "NE" : L.N2,
-                               "Ek" : L.B[:L.N2], "Fkk" : L.B[L.N2:]})
-            elif subsub["LB"] == 6:
-                subsub.update({"NT" : L.NPL, "NER" : L.N2, "NEC" : (L.NPL-1)//L.N2})
-                subsub.update({"Ek" : L.B[:subsub["NER"]]})
-                subsub.update({"El" : L.B[subsub["NER"]:subsub["NER"]+subsub["NEC"]]})
-                subsub.update({"Fkl" : L.B[subsub["NER"]+subsub["NEC"]:]})
-            elif subsub["LB"] in (8,9):
-                subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
-                subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
-            else:
-                pdb.set_trace()
-            NILIST.append(subsub)
-        sub.update({"NI" : NILIST})
-        out["SUB"].update({sub["MAT1"]*1000+sub["MT1"] : sub})
-    return out
-
-def read_mf34_mt(str_list):
-#    str_list = text.splitlines()
-    i = 0
-    out = {"MAT" : str_list["MAT"].iloc[0],
-           "MF" : str_list["MF"].iloc[0],
-           "MT" : str_list["MT"].iloc[0]}
-#    out = {"MAT" : int(str_list[i][66:70]),
-#           "MF" : int(str_list[i][70:72]),
-#           "MT" : int(str_list[i][72:75])}
-    C, i = read_cont(str_list, i)
-    # Subsections are given as dictionary values.
-    # Keys are MAT1*100+MT1
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "MTL" : C.L2, "SUB" : {}})
-    for j in range(C.N2):
-        sub = {}
-        C, i = read_cont(str_list, i)
-        sub.update({"XMF1" : C.C1, "XLFS1" : C.C2, "MAT1" : C.L1, "MT1" : C.L2})
-        NC = C.N1
-        NI = C.N2
-        NCLIST = []
-        for k in range(NC):
-            C, i = read_cont(str_list, i)
-            subsub = {"LTY" : C.L2}
-            if subsub["LTY"] == 0:
-                L, i = read_list(str_list, i)
-                subsub.update({"E1" : L.C1, "E2" : L.C2,
-                               "CI" : L.B[:L.N2], "XMTI" : L.B[L.N2:]})
-                NCLIST.append(subsub)
-            elif subsub["LTY"] in (1,2,3):
-                L, i = read_list(str_list, i)
-                subsub.update({"E1" : L.C1, "E2" : L.C2, "MATS" : L.L1, "MTS" : L.L2,
-                               "XMFS" : L.B[0], "XLFSS" : L.B[1],
-                               "EI" : L.B[2:2+L.N2], "WEI" : L.B[2+L.N2:]})
-                NCLIST.append(subsub)
-            NCLIST.append(subsub)
-        sub.update({"NC" : NCLIST})
-        NILIST = []
-        for k in range(NI):
-            L, i = read_list(str_list, i)
-            subsub = {"LB" : L.L2}
-            if subsub["LB"] in range(5):
-                subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
-                if subsub["LT"] == 0:
-                    subsub.update({"Ek" : L.B[::2], "Fk" : L.B[1::2]})
-                else:
-                    pdb.set_trace()
-                    Nk = subsub["NP"] - subsub["LT"]
-                    ARRk = L.B[:Nk]
-                    ARRl = L.B[Nk:]
-                    subsub.update({"Ek" : ARRk[:Nk/2], "Fk" : ARRk[Nk/2:],
-                                   "El" : ARRl[:subsub["LT"]], "Fl" : ARRl[subsub["LT"]:]})
-            elif subsub["LB"] == 5:
-                subsub.update({"LS" : L.L1, "NT" : L.NPL, "NE" : L.N2,
-                               "Ek" : L.B[:L.N2], "Fkk" : L.B[L.N2:]})
-            elif subsub["LB"] == 6:
-                subsub.update({"NT" : L.NPL, "NER" : L.N2, "NEC" : (L.NPL-1)//L.N2})
-                subsub.update({"Ek" : L.B[:subsub["NER"]]})
-                subsub.update({"El" : L.B[subsub["NER"]:subsub["NER"]+subsub["NEC"]]})
-                subsub.update({"Fkl" : L.B[subsub["NER"]+subsub["NEC"]:]})
-            elif subsub["LB"] in (8,9):
-                subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
-                subsub.update({"Ek" : L.B[:subsub["NP"]], "Fk" : L.B[subsub["NP"]:]})
-            else:
-                pdb.set_trace()
-            NILIST.append(subsub)
-        sub.update({"NI" : NILIST})
-        out["SUB"].update({sub["MAT1"]*1000+sub["MT1"] : sub})
-    return out
-
-def read_mf35_mt(str_list):
-#    str_list = text.splitlines()
-    i = 0
-    out = {"MAT" : str_list["MAT"].iloc[0],
-           "MF" : str_list["MF"].iloc[0],
-           "MT" : str_list["MT"].iloc[0]}
-#    out = {"MAT" : int(str_list[i][66:70]),
-#           "MF" : int(str_list[i][70:72]),
-#           "MT" : int(str_list[i][72:75])}
-    C, i = read_cont(str_list, i)
-    out.update({ "ZA" : C.C1, "AWR" : C.C2, "NK" : C.N1, "SUB" : []})
-    for k in range(out["NK"]):
-        L, i = read_list(str_list, i)
-        out["SUB"].append({ "Elo" : L.C1, "Ehi" : L.C2, "NE" : L.N2, "Ek" : L.B[:L.N2],
-           "Fkk" : L.B[L.N2:] })
-    return out
 
 
 
@@ -834,13 +563,7 @@ def cov_interp(df, interp_column, method='zero', axis='both'):
 
 
 
-class XsCov(pd.DataFrame):
-    """
-    columns =  (MATi,MTj) ... (MATm,MTn)
-    index = E1, E2, ..., El
-    """
 
-    pass
 
 
 
@@ -946,73 +669,7 @@ def extract_cov35(tape):
     DfCov.columns = DfCov.index
     return DfCov
 
-#def reconstruct_xs(DfXs):
-#    for mat in DfXs.columns.get_level_values("MAT").unique():
-#        ListMT = deepcopy(DfXs[mat].columns)
-#        for mt in DfXs[mat].columns.get_level_values("MT").unique():
-#            daughters = [ x for x in range(800,850) if x in DfXs[mat].columns]
-#            if daughters:
-#                DfXs[mat,107] = DfXs[mat][daughters].sum(axis=1)
-#            daughters = [ x for x in range(750,800) if x in DfXs[mat].columns]
-#            if daughters:
-#                DfXs[mat,106] = DfXs[mat][daughters].sum(axis=1)
-#            daughters = [ x for x in range(700,750) if x in DfXs[mat].columns]
-#            if daughters:
-#                DfXs[mat,105] = DfXs[mat][daughters].sum(axis=1)
-#            daughters = [ x for x in range(650,700) if x in DfXs[mat].columns]
-#            if daughters:
-#                DfXs[mat,104] = DfXs[mat][daughters].sum(axis=1)
-#            daughters = [ x for x in range(600,650) if x in DfXs[mat].columns]
-#            if daughters:
-#                DfXs[mat,103] = DfXs[mat][daughters].sum(axis=1)
-#            daughters = [ x for x in range(102,118) if x in DfXs[mat].columns]
-#            if daughters:
-#                DfXs[mat,101] = DfXs[mat][daughters].sum(axis=1)
-#            daughters = [ x for x in (19,20,21,38) if x in DfXs[mat].columns]
-#            if daughters:
-#                DfXs[mat,18] = DfXs[mat][daughters].sum(axis=1)
-#            daughters = [ x for x in (18,101) if x in DfXs[mat].columns]
-#            if daughters:
-#                DfXs[mat,27] = DfXs[mat][daughters].sum(axis=1)
-#            daughters = [ x for x in range(50,92) if x in DfXs[mat].columns]
-#            if daughters:
-#                DfXs[mat,4] = DfXs[mat][daughters].sum(axis=1)
-#            daughters = [ x for x in (4,5,11,16,17,*range(22,38),41,42,44,45) if x in DfXs[mat].columns]
-#            if daughters:
-#                DfXs[mat,3] = DfXs[mat][daughters].sum(axis=1)
-#            daughters = [ x for x in (2,3) if x in DfXs[mat].columns]
-#            if daughters:
-#                DfXs[mat,1] = DfXs[mat][daughters].sum(axis=1)
-#            daughters = [ x for x in (455,456) if x in DfXs[mat].columns]
-#            if daughters:
-#                DfXs[mat,452] = DfXs[mat][daughters].sum(axis=1)
-#        # keep only mts present in the original file
-#        todrop = [ x for x in DfXs[mat].columns if x not in ListMT ]
-#        if todrop:
-#            DfXs.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
-#    return DfXs
-#
-#def update_xs(tapein, DfXs):
-#    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
-#    for k,row in tapein.iterrows():
-#        tape.loc[k].DATA = deepcopy(row.DATA)
-#        tape.loc[k].TEXT = deepcopy(row.TEXT)
-#    for mat, mt in DfXs:
-#        mf = 1 if mt in (452,455,456) else 3
-#        name = 'NUBAR' if mt in (452,455,456) else 'XS'
-#        if (mat, mf, mt) not in tape.index:
-#            continue
-#        # Cut threshold xs
-#        iNotZero = next((i for i, x in enumerate(DfXs[mat,mt]) if x), None)
-#        if iNotZero > 0:
-#            SeriesXs = DfXs[mat,mt].iloc[iNotZero-1:]
-#        else:
-#            SeriesXs = DfXs[mat,mt]
-#        # Assume all xs have only 1 interpolation region and it is linear
-#        tape.DATA.loc[mat,mf,mt][name] = SeriesXs
-#        tape.DATA.loc[mat,mf,mt]["NBT"] = [len(SeriesXs)]
-#        tape.DATA.loc[mat,mf,mt]["INT"] = [2]
-#    return tape
+
 
 def update_chi(tapein, DfChi):
     tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
@@ -1064,6 +721,13 @@ def testPu9():
     assert (tape.index.get_level_values("MAT").unique() == 9437).all()
     return tape
 
+@pytest.fixture(scope="module")
+def testH1():
+    from sandy.data_test import H1
+    tape = Endf6.from_text("\n".join(H1.pendf))
+    assert (tape.index.get_level_values("MAT").unique() == 125).all()
+    return tape
+
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.xs
@@ -1104,11 +768,11 @@ def test_read_xs_cov(testPu9):
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.xs
-def test_extract_xs():
-    from sandy.data_test import Pu9
-    tape = Endf6.from_text("\n".join(Pu9.pendf))
-    tape.get_xs(listmat=[9437], listmt=[1,2,102,4])
-    xs = tape.get_xs(listmat=[125])
+def test_extract_xs(testH1):
+    from sandy.data_test import H1
+    tape = Endf6.from_text("\n".join(H1.pendf))
+    tape.get_xs(listmat=[125], listmt=[1,2,102,4])
+    xs = tape.get_xs(listmat=[9437])
     assert xs.empty
 
 @pytest.mark.formats
@@ -1122,3 +786,10 @@ def test_extract_nubar(testPu9):
 @pytest.mark.chi
 def test_extract_chi(testPu9):
     testPu9.get_edistr()
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.xs
+@pytest.mark.cov
+def test_extract_xs_cov(testPu9):
+    testPu9.get_xs_cov()
