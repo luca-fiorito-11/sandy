@@ -4,7 +4,7 @@ Created on Thu Jun 14 09:23:33 2018
 
 @author: fiorito_l
 """
-from ..records2 import read_cont, read_tab1, read_control, read_text, read_list, write_cont, write_tab1
+from ..records2 import read_cont, read_tab1, read_control, read_text, read_list, write_cont, write_tab1, write_list
 from ..utils import Section
 import re, sys
 
@@ -19,18 +19,9 @@ def read(text):
 def write(sec):
     if sec["MT"] == 451:
         return write_info(sec)
-    elif MT in (452,455,456):
+    elif sec["MT"] in (452,455,456):
         return write_nubar(sec)
-    text = write_cont(sec["ZA"], sec["AWR"], 0, 0, 0, 0)
-    text += write_tab1(sec["QM"], sec["QI"], 0, sec["LR"], sec["NBT"], sec["INT"], sec["E"], sec["XS"])
-    TextOut = []; iline = 1
-    for line in text:
-        if iline > 99999:
-            iline = 1
-        TextOut.append("{:<66}{:4}{:2}{:3}{:5}\n".format(line, sec["MAT"], sec["MF"], sec["MT"], iline))
-        iline += 1
-#    tape.at[(mat,mf,mt),'TEXT'] = "".join(TextOut)
-    return "".join(TextOut)
+
 
 def read_info(text):
     str_list = text.splitlines()
@@ -104,3 +95,23 @@ def read_nubar(text):
         T, i = read_tab1(str_list, i)
         out.update({"NBT" : T.NBT, "INT" : T.INT, "E" : T.x, "NUBAR" : T.y})
     return out
+
+
+def write_nubar(sec):
+    text = write_cont(sec["ZA"], sec["AWR"], sec["LDG"], sec["LNU"], 0, 0)
+    if sec["MT"] == 455:
+        if sec["LDG"] == 0:
+            text += write_list(0, 0, 0, 0, 0, sec["LAMBDAS"])
+        elif sec["LDG"] == 1:
+            sys.exit("ERROR: Not found in JEFF33 and ENDFB8, hence not implemented")
+    if sec["LNU"] == 1:
+        text += write_list(0, 0, 0, 0, 0, sec["C"])
+    else:
+        text += write_tab1(0, 0, 0, 0, sec["NBT"], sec["INT"], sec["E"], sec["NUBAR"])
+    TextOut = []; iline = 1
+    for line in text:
+        if iline > 99999:
+            iline = 1
+        TextOut.append("{:<66}{:4}{:2}{:3}{:5}\n".format(line, sec["MAT"], sec["MF"], sec["MT"], iline))
+        iline += 1
+    return "".join(TextOut)

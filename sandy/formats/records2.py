@@ -219,6 +219,18 @@ def read_list(text, ipos):
     ipos += iadd
     return LIST(*list(C), tab), ipos
 
+def write_list(C1, C2, L1, L2, N2, B):
+    """
+    Write ENDF-6 **list** record.
+
+    Outputs:
+        - list of string
+    """
+    NPL = len(B)
+    text = write_cont(C1, C2, L1, L2, NPL, N2)
+    text += write_dlist(B)
+    return text
+
 @pytest.mark.unit_test
 @pytest.mark.records
 @pytest.mark.read
@@ -237,6 +249,19 @@ def test_read_dlist():
     string = " 1.000000-5 2.868348+0 3.000000-5 2.868348+0 1.000000-3 2.868348+09437 1452    4"
     array = np.array(list(map(float,string[:66].replace("+", "E+").replace("-", "E-").split())))
     assert (array == read_dlist(string)).all()
+
+@pytest.mark.unit_test
+@pytest.mark.records
+@pytest.mark.read
+@pytest.mark.write
+@pytest.mark.list
+def test_read_list():
+    from sandy.data_test import Pu9
+    (C1, C2, L1, L2, NPL, N2, B), ipos = read_list(Pu9.endf6, 1809)
+    assert len(B) == NPL
+    text = write_list(C1, C2, L1, L2, N2, B)
+    original_text = [x[:66] for x in Pu9.endf6[1809:ipos]]
+    assert text == original_text
 
 @pytest.mark.unit_test
 @pytest.mark.records

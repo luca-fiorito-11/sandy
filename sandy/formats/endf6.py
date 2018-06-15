@@ -436,32 +436,32 @@ class Endf6(pd.DataFrame):
             tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut)
         return Endf6(tape)
 
-    def write_mf1_nubar(self):
-        tape = pd.DataFrame(index=self.index.copy(), columns=self.columns.copy())
-        for k,row in self.iterrows():
-            tape.loc[k].DATA = deepcopy(row.DATA)
-            tape.loc[k].TEXT = deepcopy(row.TEXT)
-        for (mat,mf,mt),df in tape.query('MF==1 & (MT==452 | MT==455 | MT==456)').iterrows():
-            TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], df.DATA["LDG"], df.DATA["LNU"], 0, 0)
-            if df.DATA["MT"] == 455:
-                if df.DATA["LDG"] == 0:
-                    TEXT += write_list(0, 0, 0, 0, 0, df.DATA["LAMBDAS"])
-                elif df.DATA["LDG"] == 1:
-                    # Not found in JEFF33 and ENDFB8, hence not implemented
-                    pass
-            if df.DATA["LNU"] == 1:
-                TEXT += write_list(0, 0, 0, 0, 0, df.DATA["C"])
-            else:
-                TEXT += write_tab1(0, 0, 0, 0, df.DATA["NBT"], df.DATA["INT"],
-                               df.DATA["NUBAR"].index, df.DATA["NUBAR"])
-            TextOut = []; iline = 1
-            for line in TEXT:
-                if iline > 99999:
-                    iline = 1
-                TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
-                iline += 1
-            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut)
-        return Endf6(tape)
+#    def write_mf1_nubar(self):
+#        tape = pd.DataFrame(index=self.index.copy(), columns=self.columns.copy())
+#        for k,row in self.iterrows():
+#            tape.loc[k].DATA = deepcopy(row.DATA)
+#            tape.loc[k].TEXT = deepcopy(row.TEXT)
+#        for (mat,mf,mt),df in tape.query('MF==1 & (MT==452 | MT==455 | MT==456)').iterrows():
+#            TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], df.DATA["LDG"], df.DATA["LNU"], 0, 0)
+#            if df.DATA["MT"] == 455:
+#                if df.DATA["LDG"] == 0:
+#                    TEXT += write_list(0, 0, 0, 0, 0, df.DATA["LAMBDAS"])
+#                elif df.DATA["LDG"] == 1:
+#                    # Not found in JEFF33 and ENDFB8, hence not implemented
+#                    pass
+#            if df.DATA["LNU"] == 1:
+#                TEXT += write_list(0, 0, 0, 0, 0, df.DATA["C"])
+#            else:
+#                TEXT += write_tab1(0, 0, 0, 0, df.DATA["NBT"], df.DATA["INT"],
+#                               df.DATA["NUBAR"].index, df.DATA["NUBAR"])
+#            TextOut = []; iline = 1
+#            for line in TEXT:
+#                if iline > 99999:
+#                    iline = 1
+#                TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
+#                iline += 1
+#            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut)
+#        return Endf6(tape)
 
 
 
@@ -725,19 +725,28 @@ def test_read_info(testPu9):
 @pytest.mark.endf6
 @pytest.mark.nubar
 def test_read_nubar452(testPu9):
-    testPu9.read_section(9437, 1, 452)
+    S = testPu9.read_section(9437, 1, 452)
+    from .MF1 import write
+    text = write(S)
+    assert testPu9.TEXT.loc[9437,1,452] == text
 
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.nubar
 def test_read_nubar455(testPu9):
-    testPu9.read_section(9437, 1, 455)
+    S = testPu9.read_section(9437, 1, 455)
+    from .MF1 import write
+    text = write(S)
+    assert testPu9.TEXT.loc[9437,1,455] == text
 
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.nubar
 def test_read_nubar456(testPu9):
-    testPu9.read_section(9437, 1, 456)
+    S = testPu9.read_section(9437, 1, 456)
+    from .MF1 import write
+    text = write(S)
+    assert testPu9.TEXT.loc[9437,1,456] == text
 
 @pytest.mark.formats
 @pytest.mark.endf6
