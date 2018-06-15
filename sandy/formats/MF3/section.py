@@ -16,5 +16,4 @@ def read(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2})
     T, i = read_tab1(str_list, i)
     out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBT" : T.NBT, "INT" : T.INT, "E" : T.x, "XS" : T.y})
-#    out["XS"] = pd.Series(T.y, index = T.x, name = (out["MAT"],out["MT"])).rename_axis("E")
     return Section(out)
