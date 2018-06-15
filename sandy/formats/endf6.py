@@ -114,6 +114,8 @@ class Endf6(pd.DataFrame):
             from .MF1 import read
         elif mf == 3:
             from .MF3 import read
+        elif mf == 5:
+            from .MF5 import read
         else:
             sys.exit("ERROR: SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
         return read(self.loc[mat,mf,mt].TEXT)
@@ -267,44 +269,45 @@ class Endf6(pd.DataFrame):
 #        xs.columns.names = ["MAT", "MT"]
 #        return Xs(xs)
 
-    def get_chi(self):
-        """
-        Extract energy distributions.
-
-        Conditions:
-            - Interpolation law must be lin-lin
-            - No duplicate points on energy grid
-        """
+    def get_edistr(self, listmat=None, listmt=None):
         """
         Extract chi cov for all MAT,MT,SUB found in tape.
         Return a df with MAT,MT,SUB as index and COV as value
         Each COV is a df with Ein on rows and Eout on columns.
         """
-        DictDf = { "MAT" : [], "MT" : [], "K" : [], "CHI" : [] }
-        for chunk in tape.query('MF==5').DATA:
-            for k,sub in enumerate(chunk["SUB"]):
-                if sub["LF"] != 1:
+        query = "MF==5"
+        if listmat is not None:
+            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+            query += " & ({})".format(query_mats)
+        if listmt is not None:
+            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+            query += " & ({})".format(query_mts)
+        tape = self.query(query)
+        DictDf = { "MAT" : [], "MT" : [], "K" : [], "EDISTR" : [] }
+        for ix,text in tape.TEXT.iteritems():
+            X = self.read_section(*ix)
+            for k,pdistr in X["PDISTR"].items():
+                if pdistr["LF"] != 1:
+                    print("WARNING: non-tabulated distribution for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
                     continue
-                if list(filter(lambda x:x["INT"] != [2], sub["EIN"].values())):
-                    print("WARNING: found non-linlin interpolation, skip energy distr. for MAT {}, MT {}, subsec {}".format(chunk["MAT"],chunk["MT"],k))
+                if list(filter(lambda x:x["INT"] != [2], pdistr["EIN"].values())):
+                    print("WARNING: found non-linlin interpolation, skip energy distr. for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
                     continue
-                chi_dict =  { ein : ssub["PDF"] for ein,ssub in sorted(sub["EIN"].items()) }
+                D =  { ein : pd.Series(v["EDISTR"], index=v["EOUT"]) for ein,v in sorted(pdistr["EIN"].items()) }
                 # merge chi_E(E') distributions on df[E,E'] with unique E' grid
                 # Interpolate row-by-row at missing datapoints
                 # When interpolation is not possible (edges) fill with 0
-                chi = pd.DataFrame.from_dict(chi_dict, orient='index')
-                chi = chi.interpolate(method="slinear", axis=1).fillna(0)
+                edistr = pd.DataFrame.from_dict(D, orient='index').interpolate(method="slinear", axis=1).fillna(0)
     #            # include default points in E grid and interpolate
     #            ein_new = list(union_grid(chi.index, np.logspace(-5, 7, 13)))
     #            chi = pandas_interpolate(chi, ein_new, method='slinear', axis='rows')
-                chi.index.name = "EIN"
-                chi.columns.name = "EOUT"
-                DictDf["MAT"].append(chunk["MAT"])
-                DictDf["MT"].append(chunk["MT"])
+                edistr.index.name = "EIN"
+                edistr.columns.name = "EOUT"
+                DictDf["MAT"].append(X["MAT"])
+                DictDf["MT"].append(X["MT"])
                 DictDf["K"].append(k)
-                DictDf["CHI"].append(chi)
-        DfChi = pd.DataFrame.from_dict(DictDf)
-        DfChi.set_index(["MAT", "MT", "K"], inplace=True)
+                DictDf["EDISTR"].append(edistr)
+        DfChi = pd.DataFrame.from_dict(DictDf).set_index(["MAT", "MT", "K"])
         return DfChi
 
     def get_cov(self):
@@ -470,82 +473,6 @@ class Endf6(pd.DataFrame):
             tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut)
         return Endf6(tape)
 
-def read_mf1_mt451(text):
-    str_list = split_endf(text)
-    i = 0
-    out = {"MAT" : str_list["MAT"].iloc[0],
-           "MF" : str_list["MF"].iloc[0],
-           "MT" : str_list["MT"].iloc[0]}
-    C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "LRP" : C.L1, "LFI" : C.L2, "NLIB" :C.N1, "NMOD" : C.N2})
-    C, i = read_cont(str_list, i)
-    out.update({"ELIS" : C.C1, "STA" : C.C2, "LIS" : C.L1, "LISO" : C.L2, "NFOR" : C.N2})
-    C, i = read_cont(str_list, i)
-    out.update({"AWI" : C.C1, "EMAX" : C.C2, "LREL" : C.L1, "NSUB" : C.N1, "NVER" : C.N2})
-    C, i = read_cont(str_list, i)
-    out.update({"TEMP" : C.C1, "LDRV" : C.L1, "NWD" : C.N1, "NXC" : C.N2})
-    TEXT = []
-    for j in range(out["NWD"]):
-        T, i = read_text(str_list, i)
-        TEXT.append(T)
-    out.update({ "TEXT" : TEXT })
-    # This part is not given in PENDF files
-    if out["LRP"] != 2:
-        groups = TEXT[0][:11].split("-")
-        out["Z"] = int(groups[0])
-        out["SYM"] = groups[1].strip()
-        out["A"] = re.sub(r"\D", "", groups[2])
-        out["M"] = re.sub(r"[0-9\s]", "", groups[2].lower())
-        if not out["M"]: out["M"] = 'g'
-#        out["A"] = int(TEXT[0][7:10])
-#        out["M"] =  'g' if TEXT[0][10:11] is ' ' else TEXT[0][10:11].lower()
-#        out["Z"] = int(TEXT[0][:3])
-#        out["SYM"] = TEXT[0][4:6].rstrip()
-#        out["A"] = int(TEXT[0][7:10])
-#        out["M"] =  'g' if TEXT[0][10:11] is ' ' else TEXT[0][10:11].lower()
-        out['ALAB'] = TEXT[0][11:22]
-        out['EDATE'] = TEXT[0][22:32]
-        out['AUTH'] = TEXT[0][33:66]
-        out['REF'] = TEXT[1][1:22]
-        out['DDATE'] = TEXT[1][22:32]
-        out['RDATE'] = TEXT[1][33:43]
-        out['ENDATE'] = TEXT[1][55:63]
-        out['LIBVER'] = TEXT[2][:22].strip('- ')
-        out['SUB'] = TEXT[3].strip('- ')
-        out['FOR'] = TEXT[4].strip('- ')
-    out.update({ "RECORDS" : [] })
-    for j in range(out["NXC"]):
-        C, i = read_cont(str_list, i)
-        out["RECORDS"].append((C.L1,C.L2,C.N1,C.N2))
-    return out
-
-def read_mf1_nubar(text):
-    str_list = split_endf(text)
-    i = 0
-    out = {"MAT" : str_list["MAT"].iloc[0],
-           "MF" : str_list["MF"].iloc[0],
-           "MT" : str_list["MT"].iloc[0]}
-    C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "LDG" : C.L1, "LNU" : C.L2})
-    if out["MT"] == 455:
-        if out["LDG"] == 0:
-            L, i = read_list(str_list, i)
-            out.update({ "NNF" : L.NPL, "LAMBDAS" : L.B })
-        elif out["LDG"] == 1:
-            # None found in JEFF33 and ENDFB8, hence not implemented
-            sys.exit("ERROR: Not implemented format")
-            pass
-    if out["LNU"] == 1:
-        # None found in JEFF33 and ENDFB8 neither for MT455 nor for MT456
-        L, i = read_list(str_list, i)
-        out.update({ "NC" : L.NPL, "C" : L.B})
-    else:
-        # JEFF33 and ENDFB8 only have lin-lin interpolation schemes
-        T, i = read_tab1(str_list, i)
-        out.update({"NBT" : T.NBT, "INT" : T.INT})
-        out["NUBAR"] = pd.Series(T.y, index = T.x, name = (out["MAT"],out["MT"])).rename_axis("E")
-    return out
-
 def read_mf2_mt151(text):
     str_list = split_endf(text)
     i = 0
@@ -614,19 +541,6 @@ def read_mf2_mt151(text):
         out["ZAI"].update({ zai["ZAI"] : zai })
     return out
 
-def read_mf3_mt(text):
-    str_list = split_endf(text)
-    i = 0
-    out = {"MAT" : str_list["MAT"].iloc[0],
-           "MF" : str_list["MF"].iloc[0],
-           "MT" : str_list["MT"].iloc[0]}
-    C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2})
-    T, i = read_tab1(str_list, i)
-    out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBT" : T.NBT, "INT" : T.INT})
-    out["XS"] = pd.Series(T.y, index = T.x, name = (out["MAT"],out["MT"])).rename_axis("E")
-    return out
-
 def read_mf4_mt(text):
     str_list = split_endf(text)
     i = 0
@@ -659,54 +573,6 @@ def read_mf4_mt(text):
         out.update({"ISO" : {"LI" : C.L1, "LCT" : C.L2}})
     return out
 
-#def read_mf5_mt(text):
-#    str_list = split_endf(text)
-#    i = 0
-#    out = {"MAT" : str_list["MAT"].iloc[0],
-#           "MF" : str_list["MF"].iloc[0],
-#           "MT" : str_list["MT"].iloc[0]}
-#    C, i = read_cont(str_list, i)
-#    # subsections for partial energy distributions are given in a list
-#    out.update({"ZA" : C.C1, "AWR" : C.C2, "NK" : C.N1, "SUB" : [] })
-#    for j in range(out["NK"]):
-#        Tp, i = read_tab1(str_list, i)
-#        P = pd.Series(Tp.y, index = Tp.x, name = "p").rename_axis("E")
-#        sub = { "LF" : Tp.L2, "NBT_P" : Tp.NBT, "INT_P" : Tp.INT, "P" : P }
-#        if sub["LF"] == 5:
-#            """
-#            Found in:
-#                100-Fm-255g.jeff33 (x6)
-#                88-Ra-226g.jeff33 (x6)
-#                91-Pa-233g.jeff33 (x6)
-#                92-U-239g.jeff33
-#                92-U-240g.jeff33
-#            """
-#            Ttheta, i = read_tab1(str_list, i)
-#            Tg, i = read_tab1(str_list, i)
-#            sub.update({ "Ttheta" : Ttheta, "Tg" : Tg , 'U' : Tp.C1 })
-#        elif sub["LF"] in (7,9):
-#            """
-#            Found in:
-#                27-Co-59g.jeff33
-#            """
-#            Ttheta, i = read_tab1(str_list, i)
-#            sub.update({ "Ttheta" : Ttheta, 'U' : Tp.C1})
-#        elif sub["LF"] == 11:
-#            Ta, i = read_tab1(str_list, i)
-#            Tb, i = read_tab1(str_list, i)
-#            sub.update({ "Ta" : Ta, "Tb" : Tb, 'U' : Tp.C1 })
-#        elif sub["LF"] == 12:
-#            TTm, i = read_tab1(str_list, i)
-#            sub.update({ "TTm" : TTm })
-#        elif sub["LF"] == 1:
-#            T2, i = read_tab2(str_list, i)
-#            sub.update({ "NBT_EIN" : T2.NBT, "INT_EIN" : T2.INT, "EIN" : {} })
-#            for k in range(T2.NZ):
-#                T1, i = read_tab1(str_list, i)
-#                distr = pd.Series(T1.y, index = T1.x, name=T1.C2).rename_axis("Eout")
-#                sub["EIN"].update({ T1.C2 : {"PDF" : distr, "NBT" : T1.NBT, "INT" : T1.INT}})
-#        out["SUB"].append(sub)
-#    return out
 
 def write_mf5_mt(tapein):
     tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
@@ -965,93 +831,6 @@ def cov_interp(df, interp_column, method='zero', axis='both'):
 
 
 
-#class Xs(pd.DataFrame):
-#
-#    redundant_xs = {107 : range(800,850),
-#                    106 : range(750,800),
-#                    105 : range(700,750),
-#                    104 : range(650,700),
-#                    103 : range(600,650),
-#                    101 : range(102,118),
-#                    18 : (19,20,21,38),
-#                    27 : (18,101),
-#                    4 : range(50,92),
-#                    3 : (4,5,11,16,17,*range(22,38),41,42,44,45),
-#                    1 : (2,3),
-#                    452 : (455,456)}
-#
-#    def __init__(self, *args, **kwargs):
-#        super().__init__(*args, **kwargs)
-#        self.index.name = "E"
-#        self.columns.names = ["MAT", "MT"]
-#
-#    def reconstruct_sums(self, drop=True):
-#        """
-#        Reconstruct redundant xs.
-#        """
-#        frame = self.copy()
-#        for mat in frame.columns.get_level_values("MAT").unique():
-#            for parent, daughters in sorted(Xs.redundant_xs.items(), reverse=True):
-#                daughters = [ x for x in daughters if x in frame[mat].columns]
-#                if daughters:
-#                    frame[mat,parent] = frame[mat][daughters].sum(axis=1)
-#            # keep only mts present in the original file
-#            if drop:
-#                todrop = [ x for x in frame[mat].columns if x not in self.columns.get_level_values("MT") ]
-#                frame.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
-#        return Xs(frame)
-#
-#    def update_tape(self, tapein):
-#        tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
-#        for k,row in tapein.iterrows():
-#            tape.loc[k].DATA = deepcopy(row.DATA)
-#            tape.loc[k].TEXT = deepcopy(row.TEXT)
-#        for mat, mt in self:
-#            mf = 1 if mt in (452,455,456) else 3
-#            name = 'NUBAR' if mt in (452,455,456) else 'XS'
-#            if (mat, mf, mt) not in tape.index:
-#                continue
-#            # Cut threshold xs
-#            iNotZero = next((i for i, x in enumerate(self[mat,mt]) if x), None)
-#            if iNotZero > 0:
-#                SeriesXs = self[mat,mt].iloc[iNotZero-1:]
-#            else:
-#                SeriesXs = self[mat,mt]
-#            # Assume all xs have only 1 interpolation region and it is linear
-#            tape.DATA.loc[mat,mf,mt][name] = SeriesXs
-#            tape.DATA.loc[mat,mf,mt]["NBT"] = [len(SeriesXs)]
-#            tape.DATA.loc[mat,mf,mt]["INT"] = [2]
-#        return Endf6(tape)
-#
-#    def perturb(self, pert, **kwargs):
-#        frame = self.copy()
-##        indexName = Xs.index.name
-#        # Add extra energy points
-##        if "energy_point" in kwargs:
-##            Xs = Xs.reindex(Xs.index.union(kwargs["energy_point"])).interpolate(method="slinear").fillna(0)
-##        Xs.index.name = indexName
-#        for mat, mt in frame:
-#            if mat not in pert.index.get_level_values("MAT").unique():
-#                continue
-#            lmtp = pert.loc[mat].index.get_level_values("MT").unique()
-#            mtPert = None
-#            if mt in lmtp:
-#                mtPert = mt
-#            else:
-#                for parent, daughters in sorted(self.__class__.redundant_xs.items(), reverse=True):
-#                    if mt in daughters and not list(filter(lambda x: x in lmtp, daughters)) and parent in lmtp:
-#                        mtPert = parent
-#                        break
-#            if not mtPert:
-#                continue
-#            P = pert.loc[mat,mtPert]
-#            P = P.reindex(P.index.union(frame[mat,mt].index)).ffill().fillna(1).reindex(frame[mat,mt].index)
-#            frame[mat,mt] = frame[mat,mt].multiply(P, axis="index")
-#            # Negative values are set to zero
-#            frame[mat,mt][frame[mat,mt] <= 0] = 0
-#        return Xs(frame).reconstruct_sums()
-
-
 
 class XsCov(pd.DataFrame):
     """
@@ -1307,8 +1086,7 @@ def test_read_nubar(testPu9):
 @pytest.mark.endf6
 @pytest.mark.chi
 def test_read_chi(testPu9):
-    A=testPu9.read_section(9437, 5, 18)
-    pdb.set_trace()
+    testPu9.read_section(9437, 5, 18)
 
 @pytest.mark.formats
 @pytest.mark.endf6
@@ -1325,3 +1103,9 @@ def test_extract_xs():
 @pytest.mark.nubar
 def test_extract_nubar(testPu9):
     testPu9.get_nubar(listmt=[452,456])
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.chi
+def test_extract_chi(testPu9):
+    testPu9.get_edistr()

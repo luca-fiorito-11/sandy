@@ -54,6 +54,6 @@ def read(text):
             sub.update({ "NBT_EIN" : T2.NBT, "INT_EIN" : T2.INT, "EIN" : {} })
             for k in range(T2.NZ):
                 T1, i = read_tab1(str_list, i)
-                sub["EIN"].update({ T1.C2 : {"EOUT" : T1.x, "PDF" : T1.y, "NBT" : T1.NBT, "INT" : T1.INT}})
-        out["SUB"].update({j : sub})
+                sub["EIN"].update({ T1.C2 : {"EOUT" : T1.x, "EDISTR" : T1.y, "NBT" : T1.NBT, "INT" : T1.INT}})
+        out["PDISTR"].update({j : sub})
     return Section(out)
