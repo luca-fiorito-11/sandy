@@ -4,7 +4,7 @@ Created on Thu Jun 14 09:23:33 2018
 
 @author: fiorito_l
 """
-from ..records2 import read_cont, read_tab1, read_control, read_text, read_list
+from ..records2 import read_cont, read_tab1, read_control, read_text, read_list, write_cont, write_tab1
 from ..utils import Section
 import re, sys
 
@@ -15,6 +15,22 @@ def read(text):
         return read_info(text)
     elif MT in (452,455,456):
         return read_nubar(text)
+
+def write(sec):
+    if sec["MT"] == 451:
+        return write_info(sec)
+    elif MT in (452,455,456):
+        return write_nubar(sec)
+    text = write_cont(sec["ZA"], sec["AWR"], 0, 0, 0, 0)
+    text += write_tab1(sec["QM"], sec["QI"], 0, sec["LR"], sec["NBT"], sec["INT"], sec["E"], sec["XS"])
+    TextOut = []; iline = 1
+    for line in text:
+        if iline > 99999:
+            iline = 1
+        TextOut.append("{:<66}{:4}{:2}{:3}{:5}\n".format(line, sec["MAT"], sec["MF"], sec["MT"], iline))
+        iline += 1
+#    tape.at[(mat,mf,mt),'TEXT'] = "".join(TextOut)
+    return "".join(TextOut)
 
 def read_info(text):
     str_list = text.splitlines()

@@ -4,7 +4,7 @@ Created on Thu Jun 14 10:22:58 2018
 
 @author: fiorito_l
 """
-import sys, pytest, rwf
+import sys, pytest, rwf, pdb
 import numpy as np
 from collections import namedtuple
 
@@ -56,6 +56,24 @@ def read_cont(text, ipos):
     ipos += 1
     return CONT(float(c1), float(c2), int(l1), int(l2), int(n1), int(n2)), ipos
 
+def write_cont(C1, C2, L1, L2, N1, N2):
+    """
+    Write ENDF-6 **cont** record.
+
+    Outputs:
+        - list of string
+    """
+    C1 = np.array(C1, dtype=float)
+    C2 = np.array(C2, dtype=float)
+    L1 = np.array(L1, dtype=int)
+    L2 = np.array(L2, dtype=int)
+    N1 = np.array(N1, dtype=int)
+    N2 = np.array(N2, dtype=int)
+    string = np.array("*"*67)
+    rwf.wcont(string, C1, C2, L1, L2, N1, N2)
+    string = str(string, 'utf-8')[:66] # byte string coming from f2py must be converted
+    return [string]
+
 def read_text(text, ipos):
     string = text[ipos]
     try:
@@ -72,6 +90,13 @@ def read_ilist(string):
         sys.exit("ERROR : line '{}' is not in ILIST format".format(string))
     return array.tolist()
 
+def write_ilist(b):
+    length = len(b)*11
+    string = np.array("*"*(length + 1))
+    rwf.wilist(string, b, length)
+    string = str(string, 'utf-8')[:length]
+    return [string[0+i:66+i] + ' '*(66-len(string[0+i:66+i])) for i in range(0, len(string), 66)]
+
 def read_dlist(string):
     array = np.zeros(6, dtype=float)
     io_status = np.array(0, dtype=int)
@@ -79,6 +104,13 @@ def read_dlist(string):
     if io_status != 0:
         sys.exit("ERROR : line '{}' is not in DLIST format".format(string))
     return array.tolist()
+
+def write_dlist(b):
+    length = len(b)*11
+    string = np.array("*"*(length + 1))
+    rwf.wlist(string, b, length)
+    string = str(string, 'utf-8')[:length]
+    return [string[0+i:66+i] + ' '*(66-len(string[0+i:66+i])) for i in range(0, len(string), 66)]
 
 def read_tab2(text, ipos):
     """
@@ -161,6 +193,22 @@ def read_tab1(text, ipos):
     y = np.array(tab[1::2], dtype=float)
     return TAB1(*list(TAB2), x, y), ipos
 
+def write_tab1(C1, C2, L1, L2, NBT, INT, x, y):
+    """
+    Write ENDF-6 **tab1** record.
+
+    Outputs:
+        - list of string
+    """
+    N1 = len(NBT)
+    N2 = len(x)
+    text = write_cont(C1, C2, L1, L2, N1, N2)
+    b = [ z for item in zip(NBT, INT) for z in item ]
+    text += write_ilist(b)
+    b = [ z for item in zip(x, y) for z in item ]
+    text += write_dlist(b)
+    return text
+
 def read_list(text, ipos):
     import itertools
     LIST = namedtuple('LIST', 'C1 C2 L1 L2 NPL N2 B')
@@ -173,6 +221,8 @@ def read_list(text, ipos):
 
 @pytest.mark.unit_test
 @pytest.mark.records
+@pytest.mark.read
+@pytest.mark.ilist
 def test_read_ilist():
     string = "       3201          2                                            9437 1452    3"
     L = list(map(int, string[:66].replace("+", "E+").replace("-", "E-").split()))
@@ -181,6 +231,8 @@ def test_read_ilist():
 
 @pytest.mark.unit_test
 @pytest.mark.records
+@pytest.mark.read
+@pytest.mark.dlist
 def test_read_dlist():
     string = " 1.000000-5 2.868348+0 3.000000-5 2.868348+0 1.000000-3 2.868348+09437 1452    4"
     array = np.array(list(map(float,string[:66].replace("+", "E+").replace("-", "E-").split())))
@@ -188,6 +240,8 @@ def test_read_dlist():
 
 @pytest.mark.unit_test
 @pytest.mark.records
+@pytest.mark.read
+@pytest.mark.cont
 def test_read_cont():
     from sandy.data_test import Pu9
     (C1, C2, L1, L2, N1, N2), ipos = read_cont(Pu9.endf6, 1)
@@ -201,6 +255,9 @@ def test_read_cont():
 
 @pytest.mark.unit_test
 @pytest.mark.records
+@pytest.mark.read
+@pytest.mark.write
+@pytest.mark.tab1
 def test_read_tab1():
     from sandy.data_test import Pu9
     (C1, C2, L1, L2, NR, NP, NBT, INT, x, y), ipos = read_tab1(Pu9.endf6, 738)
@@ -209,3 +266,44 @@ def test_read_tab1():
     assert mf == 1
     assert mt == 0
     assert ns == 99999
+    text = write_tab1(C1, C2, L1, L2, NBT, INT, x, y)
+    original_text = [x[:66] for x in Pu9.endf6[738:ipos]]
+    assert text == original_text
+
+@pytest.mark.unit_test
+@pytest.mark.records
+@pytest.mark.read
+@pytest.mark.text
+def test_read_text():
+    from sandy.data_test import Pu9
+    string, ipos = read_text(Pu9.endf6, 6)
+    assert ipos == 7
+    assert string == " JEFF33T3             DIST-DEC17 REV3-DEC17            20171231   "
+
+@pytest.mark.unit_test
+@pytest.mark.records
+@pytest.mark.write
+@pytest.mark.cont
+def test_write_cont():
+    text = write_cont(94239, 236.9986, 1, 1, 2, 1)
+    assert len(text) == 1
+    assert text[0] == ' 9.423900+4 2.369986+2          1          1          2          1'
+
+@pytest.mark.unit_test
+@pytest.mark.records
+@pytest.mark.write
+@pytest.mark.ilist
+def test_write_ilist():
+    text = write_ilist([3, 4, 5])
+    assert len(text) == 1
+    assert text[0] == '          3          4          5                                 '
+
+@pytest.mark.unit_test
+@pytest.mark.records
+@pytest.mark.write
+@pytest.mark.dlist
+def test_write_dlist():
+    text = write_dlist([94239, 236.9986, 1, 1, 2, 1, 94239, 236.9986, 1, 1, 2])
+    assert len(text) == 2
+    assert text[0] == ' 9.423900+4 2.369986+2 1.000000+0 1.000000+0 2.000000+0 1.000000+0'
+    assert text[1] == ' 9.423900+4 2.369986+2 1.000000+0 1.000000+0 2.000000+0           '

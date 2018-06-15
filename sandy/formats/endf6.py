@@ -364,7 +364,6 @@ class Endf6(pd.DataFrame):
                 if len(covs) == 0:
                     continue
                 if len(covs) > 1:
-                    import pdb
                     pdb.set_trace()
                 cov = reduce(lambda x, y: x.add(y, fill_value=0).fillna(0), covs).fillna(0)
                 eg |= set(cov.index.values)
@@ -455,27 +454,6 @@ class Endf6(pd.DataFrame):
             else:
                 TEXT += write_tab1(0, 0, 0, 0, df.DATA["NBT"], df.DATA["INT"],
                                df.DATA["NUBAR"].index, df.DATA["NUBAR"])
-            TextOut = []; iline = 1
-            for line in TEXT:
-                if iline > 99999:
-                    iline = 1
-                TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
-                iline += 1
-            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut)
-        return Endf6(tape)
-
-    def write_mf3_mt(self):
-        tape = pd.DataFrame(index=self.index.copy(), columns=self.columns.copy())
-        for k,row in self.iterrows():
-            tape.loc[k].DATA = deepcopy(row.DATA)
-            tape.loc[k].TEXT = deepcopy(row.TEXT)
-        for (mat,mf,mt),df in tape.query('MF==3').iterrows():
-            if df.DATA is None:
-                continue
-            TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, 0, 0)
-            TEXT += write_tab1(df.DATA["QM"], df.DATA["QI"], 0, df.DATA["LR"],
-                               df.DATA["NBT"], df.DATA["INT"],
-                               df.DATA["XS"].index, df.DATA["XS"])
             TextOut = []; iline = 1
             for line in TEXT:
                 if iline > 99999:
@@ -732,7 +710,10 @@ def testH1():
 @pytest.mark.endf6
 @pytest.mark.xs
 def test_read_xs(testPu9):
-    testPu9.read_section(9437, 3, 102)
+    S = testPu9.read_section(9437, 3, 102)
+    from .MF3 import write
+    text = write(S)
+    assert testPu9.TEXT.loc[9437,3,102] == text
 
 @pytest.mark.formats
 @pytest.mark.endf6
@@ -743,9 +724,19 @@ def test_read_info(testPu9):
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.nubar
-def test_read_nubar(testPu9):
+def test_read_nubar452(testPu9):
     testPu9.read_section(9437, 1, 452)
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.nubar
+def test_read_nubar455(testPu9):
     testPu9.read_section(9437, 1, 455)
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.nubar
+def test_read_nubar456(testPu9):
     testPu9.read_section(9437, 1, 456)
 
 @pytest.mark.formats
