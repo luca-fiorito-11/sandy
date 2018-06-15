@@ -71,6 +71,38 @@ Cf2py intent(in) c1, c2
 c
 c
 c
+      subroutine wilist(string,list,n)
+      integer  :: n,i
+      integer*8   :: list(n)
+      character*11 :: tmp
+      character*(*) :: string
+Cf2py intent(inout) string
+Cf2py intent(in,copy) list
+Cf2py integer intent(hide),depend(list) :: n=shape(list,0)
+      do i = 1,n
+         write(tmp,'(I11)') list(i)
+         string((i-1)*11+1:i*11) = tmp
+      enddo
+      end subroutine wilist
+c
+c
+c
+      subroutine wlist(string,list,n)
+      integer  :: n,i
+      real*8   :: list(n)
+      character*11 :: tmp
+      character*(*) :: string
+Cf2py intent(inout) string
+Cf2py intent(in,copy) list
+Cf2py integer intent(hide),depend(list) :: n=shape(list,0)
+      do i = 1,n
+         call wreal(list(i), tmp)
+         string((i-1)*11+1:i*11) = tmp
+      enddo
+      end subroutine wlist
+c
+c
+c
       subroutine rcont(string,io_status,c1,c2,l1,l2,n1,n2)
       real*8 :: c1,c2
       integer:: l1,l2,n1,n2,io_status
