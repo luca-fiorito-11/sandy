@@ -116,6 +116,8 @@ class Endf6(pd.DataFrame):
             from .MF3 import read
         elif mf == 5:
             from .MF5 import read
+        elif mf == 33 or mf == 31:
+            from .MF33 import read
         else:
             sys.exit("ERROR: SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
         return read(self.loc[mat,mf,mt].TEXT)
@@ -310,7 +312,7 @@ class Endf6(pd.DataFrame):
         DfChi = pd.DataFrame.from_dict(DictDf).set_index(["MAT", "MT", "K"])
         return DfChi
 
-    def get_cov(self):
+    def get_xs_cov(self):
         from sandy.sampling.cov import triu_matrix
         from functools import reduce
         List = []; eg = set()
@@ -1087,6 +1089,17 @@ def test_read_nubar(testPu9):
 @pytest.mark.chi
 def test_read_chi(testPu9):
     testPu9.read_section(9437, 5, 18)
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.xs
+@pytest.mark.cov
+def test_read_xs_cov(testPu9):
+    testPu9.read_section(9437, 33, 1)
+    testPu9.read_section(9437, 33, 2)
+    testPu9.read_section(9437, 33, 18)
+    testPu9.read_section(9437, 31, 456)
+    testPu9.read_section(9437, 33, 102)
 
 @pytest.mark.formats
 @pytest.mark.endf6
