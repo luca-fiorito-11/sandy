@@ -62,6 +62,8 @@ def process_endf_section(text, keep_mf=None, keep_mt=None):
 
 class Endf6(pd.DataFrame):
 
+    Format = "endf6"
+
     @classmethod
     def from_file(cls, file):
         """
@@ -719,7 +721,10 @@ def test_read_xs(testPu9):
 @pytest.mark.endf6
 @pytest.mark.info
 def test_read_info(testPu9):
-    testPu9.read_section(9437, 1, 451)
+    S = testPu9.read_section(9437, 1, 451)
+    from .MF1 import write
+    text = write(S)
+    assert testPu9.TEXT.loc[9437,1,451] == text
 
 @pytest.mark.formats
 @pytest.mark.endf6
