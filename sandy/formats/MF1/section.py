@@ -71,6 +71,21 @@ def read_info(text):
         out["RECORDS"].append((C.L1,C.L2,C.N1,C.N2))
     return Section(out)
 
+def write_info(sec):
+    text = write_cont(sec["ZA"], sec["AWR"], sec["LRP"], sec["LFI"], sec["NLIB"], sec["NMOD"])
+    text += write_cont(sec["ELIS"], sec["STA"], sec["LIS"], sec["LISO"], 0, sec["NFOR"])
+    text += write_cont(sec["AWI"], sec["EMAX"], sec["LREL"], 0, sec["NSUB"], sec["NVER"])
+    text += write_cont(sec["TEMP"], 0, sec["LDRV"], 0, len(sec["TEXT"]), len(sec["RECORDS"]))
+    text += sec["TEXT"]
+    text += [ " "*22 + "{:>11}{:>11}{:>11}{:>11}".format(*x) for x in sec["RECORDS"]]
+    TextOut = []; iline = 1
+    for line in text:
+        if iline > 99999:
+            iline = 1
+        TextOut.append("{:<66}{:4}{:2}{:3}{:5}\n".format(line, sec["MAT"], sec["MF"], sec["MT"], iline))
+        iline += 1
+    return "".join(TextOut)
+
 def read_nubar(text):
     str_list = text.splitlines()
     MAT, MF, MT = read_control(str_list[0])[:3]
