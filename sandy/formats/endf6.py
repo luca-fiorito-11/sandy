@@ -417,112 +417,63 @@ class Endf6(pd.DataFrame):
             chunk["RECORDS"] = new_records
         return Endf6(tape)
 
-    def write_mf1_mt451(self):
-        tape = pd.DataFrame(index=self.index.copy(), columns=self.columns.copy())
-        for k,row in self.iterrows():
-            tape.loc[k].DATA = deepcopy(row.DATA)
-            tape.loc[k].TEXT = deepcopy(row.TEXT)
-        for (mat,mf,mt),df in tape.query('MF==1 & MT==451').iterrows():
-            TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], df.DATA["LRP"], df.DATA["LFI"], df.DATA["NLIB"], df.DATA["NMOD"])
-            TEXT += write_cont(df.DATA["ELIS"], df.DATA["STA"], df.DATA["LIS"], df.DATA["LISO"], 0, df.DATA["NFOR"])
-            TEXT += write_cont(df.DATA["AWI"], df.DATA["EMAX"], df.DATA["LREL"], 0, df.DATA["NSUB"], df.DATA["NVER"])
-            TEXT += write_cont(df.DATA["TEMP"], 0, df.DATA["LDRV"], 0, len(df.DATA["TEXT"]), len(df.DATA["RECORDS"]))
-            TEXT += df.DATA["TEXT"]
-            TEXT += [ " "*22 + "{:>11}{:>11}{:>11}{:>11}".format(mfnxc,mtnxc,ncnxc,modnxc) for mfnxc,mtnxc,ncnxc,modnxc in df.DATA["RECORDS"]]
-            TextOut = []; iline = 1
-            for line in TEXT:
-                if iline > 99999:
-                    iline = 1
-                TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
-                iline += 1
-            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut)
-        return Endf6(tape)
 
-#    def write_mf1_nubar(self):
-#        tape = pd.DataFrame(index=self.index.copy(), columns=self.columns.copy())
-#        for k,row in self.iterrows():
-#            tape.loc[k].DATA = deepcopy(row.DATA)
-#            tape.loc[k].TEXT = deepcopy(row.TEXT)
-#        for (mat,mf,mt),df in tape.query('MF==1 & (MT==452 | MT==455 | MT==456)').iterrows():
-#            TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], df.DATA["LDG"], df.DATA["LNU"], 0, 0)
-#            if df.DATA["MT"] == 455:
-#                if df.DATA["LDG"] == 0:
-#                    TEXT += write_list(0, 0, 0, 0, 0, df.DATA["LAMBDAS"])
-#                elif df.DATA["LDG"] == 1:
-#                    # Not found in JEFF33 and ENDFB8, hence not implemented
-#                    pass
-#            if df.DATA["LNU"] == 1:
-#                TEXT += write_list(0, 0, 0, 0, 0, df.DATA["C"])
-#            else:
-#                TEXT += write_tab1(0, 0, 0, 0, df.DATA["NBT"], df.DATA["INT"],
-#                               df.DATA["NUBAR"].index, df.DATA["NUBAR"])
-#            TextOut = []; iline = 1
-#            for line in TEXT:
-#                if iline > 99999:
-#                    iline = 1
-#                TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
-#                iline += 1
-#            tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut)
-#        return Endf6(tape)
-
-
-
-def write_mf5_mt(tapein):
-    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
-    for k,row in tapein.iterrows():
-        tape.loc[k].DATA = deepcopy(row.DATA)
-        tape.loc[k].TEXT = deepcopy(row.TEXT)
-    for (mat,mf,mt),df in tape.loc[(slice(None),5),:].iterrows():
-        TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, len(df.DATA["SUB"]), 0)
-        for sub in df.DATA["SUB"]:
-            U = sub['U'] if 'U' in sub else 0
-            TEXT += write_tab1(U, 0, 0, sub["LF"],
-                               sub["NBT_P"], sub["INT_P"],
-                               sub["P"].index, sub["P"])
-            if sub["LF"] == 1:
-                TEXT += write_tab2(0, 0, 0, 0,
-                                   len(sub['EIN']),
-                                   sub["NBT_EIN"], sub["INT_EIN"])
-                for ein, distr in sorted(sub['EIN'].items()):
-                    TEXT += write_tab1(0, ein, 0, 0,
-                                       distr["NBT"], distr["INT"],
-                                       distr["PDF"].index, distr["PDF"])
-            elif sub["LF"] == 5:
-                t = sub['Theta']
-                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
-                                   t.NBT, t.INT,
-                                   t.x, t.y)
-                t = sub['Tg']
-                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
-                                   t.NBT, t.INT,
-                                   t.x, t.y)
-            elif sub["LF"] in (7,9):
-                t = sub['Theta']
-                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
-                                   t.NBT, t.INT,
-                                   t.x, t.y)
-            elif sub["LF"] == 11:
-                t = sub['Ta']
-                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
-                                   t.NBT, t.INT,
-                                   t.x, t.y)
-                t = sub['Tb']
-                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
-                                   t.NBT, t.INT,
-                                   t.x, t.y)
-            elif sub["LF"] == 12:
-                t = sub['TTm']
-                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
-                                   t.NBT, t.INT,
-                                   t.x, t.y)
-        TextOut = []; iline = 1
-        for line in TEXT:
-            if iline > 99999:
-                iline = 1
-            TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
-            iline += 1
-        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
-    return tape
+#def write_mf5_mt(tapein):
+#    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
+#    for k,row in tapein.iterrows():
+#        tape.loc[k].DATA = deepcopy(row.DATA)
+#        tape.loc[k].TEXT = deepcopy(row.TEXT)
+#    for (mat,mf,mt),df in tape.loc[(slice(None),5),:].iterrows():
+#        TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, len(df.DATA["SUB"]), 0)
+#        for sub in df.DATA["SUB"]:
+#            U = sub['U'] if 'U' in sub else 0
+#            TEXT += write_tab1(U, 0, 0, sub["LF"],
+#                               sub["NBT_P"], sub["INT_P"],
+#                               sub["P"].index, sub["P"])
+#            if sub["LF"] == 1:
+#                TEXT += write_tab2(0, 0, 0, 0,
+#                                   len(sub['EIN']),
+#                                   sub["NBT_EIN"], sub["INT_EIN"])
+#                for ein, distr in sorted(sub['EIN'].items()):
+#                    TEXT += write_tab1(0, ein, 0, 0,
+#                                       distr["NBT"], distr["INT"],
+#                                       distr["PDF"].index, distr["PDF"])
+#            elif sub["LF"] == 5:
+#                t = sub['Theta']
+#                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
+#                                   t.NBT, t.INT,
+#                                   t.x, t.y)
+#                t = sub['Tg']
+#                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
+#                                   t.NBT, t.INT,
+#                                   t.x, t.y)
+#            elif sub["LF"] in (7,9):
+#                t = sub['Theta']
+#                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
+#                                   t.NBT, t.INT,
+#                                   t.x, t.y)
+#            elif sub["LF"] == 11:
+#                t = sub['Ta']
+#                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
+#                                   t.NBT, t.INT,
+#                                   t.x, t.y)
+#                t = sub['Tb']
+#                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
+#                                   t.NBT, t.INT,
+#                                   t.x, t.y)
+#            elif sub["LF"] == 12:
+#                t = sub['TTm']
+#                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
+#                                   t.NBT, t.INT,
+#                                   t.x, t.y)
+#        TextOut = []; iline = 1
+#        for line in TEXT:
+#            if iline > 99999:
+#                iline = 1
+#            TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
+#            iline += 1
+#        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
+#    return tape
 
 
 
@@ -757,7 +708,10 @@ def test_read_nubar456(testPu9):
 @pytest.mark.endf6
 @pytest.mark.chi
 def test_read_chi(testPu9):
-    testPu9.read_section(9437, 5, 18)
+    S = testPu9.read_section(9437, 5, 18)
+    from .MF5 import write
+    text = write(S)
+    assert testPu9.TEXT.loc[9437,5,18] == text
 
 @pytest.mark.formats
 @pytest.mark.endf6
