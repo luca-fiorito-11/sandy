@@ -153,6 +153,19 @@ def read_tab2(text, ipos):
     INT = tab[1::2]
     return TAB2(C.C1, C.C2, C.L1, C.L2, C.N1, C.N2, NBT, INT), ipos
 
+def write_tab2(C1, C2, L1, L2, N2, NBT, INT):
+    """
+    Write ENDF-6 **tab2** record.
+
+    Outputs:
+        - list of string
+    """
+    N1 = len(NBT)
+    text = write_cont(C1, C2, L1, L2, N1, N2)
+    b = [ z for item in zip(NBT, INT) for z in item ]
+    text += write_ilist(b)
+    return text
+
 def read_tab1(text, ipos):
     """
     Read ENDF-6 **tab1** record.
@@ -200,11 +213,8 @@ def write_tab1(C1, C2, L1, L2, NBT, INT, x, y):
     Outputs:
         - list of string
     """
-    N1 = len(NBT)
     N2 = len(x)
-    text = write_cont(C1, C2, L1, L2, N1, N2)
-    b = [ z for item in zip(NBT, INT) for z in item ]
-    text += write_ilist(b)
+    text = write_tab2(C1, C2, L1, L2, N2, NBT, INT)
     b = [ z for item in zip(x, y) for z in item ]
     text += write_dlist(b)
     return text

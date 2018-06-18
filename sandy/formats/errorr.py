@@ -4,60 +4,105 @@ Created on Fri May 11 15:08:25 2018
 
 @author: fiorito_l
 """
-from sandy.formats.records import read_cont, read_list, read_float
-from os.path import join, dirname, realpath
 import pandas as pd
-from sandy.formats.endf6 import split_endf, XsCov, Xs
+import sys, pytest
 import numpy as np
 
-def process_errorr_section(text, keep_mf=None, keep_mt=None):
-    mf = int(text[70:72])
-    mt = int(text[72:75])
-    if mf == 1 and mt == 451: # read always
-        return read_mf1_mt451(text)
-    if keep_mf:
-        if mf not in keep_mf:
-            return None
-    if keep_mt:
-        if mt not in keep_mt:
-            return None
-    elif mf == 3:
-        return read_mf3_mt(text)
-    elif mf == 33:
-        return read_mf33_mt(text)
-    else:
-        return None
+#def process_errorr_section(text, keep_mf=None, keep_mt=None):
+#    mf = int(text[70:72])
+#    mt = int(text[72:75])
+#    if mf == 1 and mt == 451: # read always
+#        return read_mf1_mt451(text)
+#    if keep_mf:
+#        if mf not in keep_mf:
+#            return None
+#    if keep_mt:
+#        if mt not in keep_mt:
+#            return None
+#    elif mf == 3:
+#        return read_mf3_mt(text)
+#    elif mf == 33:
+#        return read_mf33_mt(text)
+#    else:
+#        return None
+
 
 class Errorr(pd.DataFrame):
 
+    Format = "errorr"
+
     @classmethod
     def from_file(cls, file):
-        from sandy.formats.endf6 import Endf6
+        from .endf6 import Endf6
         return cls(Endf6.from_file(file))
 
     @classmethod
     def from_text(cls, text):
-        from sandy.formats.endf6 import Endf6
+        from .endf6 import Endf6
         return cls(Endf6.from_text(text))
 
-    def process(self, keep_mf=None, keep_mt=None):
+    def read_section(self, mat, mf, mt):
         """
-        Parse TEXT column.
+        Parse MAT/MF/MT section
         """
-        tape = self.copy()
-        tape['DATA'] = tape['TEXT'].apply(process_errorr_section, keep_mf=keep_mf, keep_mt=keep_mt)
-        return Errorr(tape)
+        if mf == 1:
+            from .MF1 import read_errorr as read
+        elif mf == 3:
+            from .MF3 import read_errorr as read
+        elif mf == 33 or mf == 31:
+            from .MF33 import read_errorr as read
+        else:
+            sys.exit("ERROR: SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
+        return read(self.loc[mat,mf,mt].TEXT)
 
-    def get_cov(self):
+    def get_xs(self, listmat=None, listmt=None):
+        """
+        Extract xs from errorr file into Xs instance.
+        """
+        from .utils import Xs
+        query = "MF==3"
+        if listmat is not None:
+            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+            query += " & ({})".format(query_mats)
+        if listmt is not None:
+            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+            query += " & ({})".format(query_mts)
+        tape = self.query(query)
+        mat = self.index.get_level_values("MAT")[0]
+        eg = self.read_section(mat,1,451)["EG"]
+        ListXs = []
+        for ix,text in tape.TEXT.iteritems():
+            mat,mf,mt = ix
+            X = self.read_section(*ix)
+            xs = pd.Series(X["XS"], index=eg[:-1], name=(X["MAT"],X["MT"])).rename_axis("E").to_frame()
+            ListXs.append(xs)
+        if not ListXs:
+            return pd.DataFrame()
+        # Use concat instead of merge because indexes are the same
+        frame = pd.concat(ListXs, axis=1).reindex(eg, method="ffill")
+        return Xs(frame)
+
+    def get_xs_cov(self, listmat=None, listmt=None):
         """
         Extract xs covariances from errorr file into XsCov instance.
         """
+        from .utils import XsCov
+        query = "(MF==33 | MF==31)"
+        if listmat is not None:
+            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+            query += " & ({})".format(query_mats)
+        if listmt is not None:
+            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+            query += " & ({})".format(query_mts)
+        tape = self.query(query)
         mat = self.index.get_level_values("MAT")[0]
-        eg = self.loc[mat,1,451].DATA["EG"]
+        eg = self.read_section(mat,1,451)["EG"]
         List = []
-        for x in self.query('MF==33 | MF==31').DATA:
-            for mt1,y in x["RP"].items():
-                List.append([mat, x["MT"], mat, mt1, y])
+        for ix,text in tape.TEXT.iteritems():
+            mat,mf,mt = ix
+            X = self.read_section(*ix)
+            for mt1,y in X["RP"].items():
+                List.append([mat, X["MT"], mat, mt1, y])
         frame = pd.DataFrame(List, columns=('MAT', 'MT','MAT1', 'MT1', 'COV'))
         MI = [(mat,mt,e) for mat,mt in sorted(set(zip(frame.MAT, frame.MT))) for e in eg]
         index = pd.MultiIndex.from_tuples(MI, names=("MAT", "MT", "E"))
@@ -70,18 +115,6 @@ class Errorr(pd.DataFrame):
         i_lower = np.tril_indices(len(index), -1)
         matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
         return XsCov(matrix, index=index, columns=index)
-
-    def get_xs(self):
-        """
-        Extract xs from errorr file into Xs instance.
-        """
-        mat = self.index.get_level_values("MAT")[0]
-        eg = self.loc[mat,1,451].DATA["EG"]
-        XsDict = dict(map(lambda x: ((x["MAT"],x["MT"]), x["XS"]), self.query("MF==3").DATA))
-        frame = pd.DataFrame.from_dict(XsDict)
-        frame.index = eg[:-1]
-        frame = frame.reindex(eg, method='ffill')
-        return Xs(frame)
 
     def get_std(self):
         """
@@ -101,62 +134,41 @@ class Errorr(pd.DataFrame):
         return frame
 
 
+@pytest.fixture(scope="module")
+def testH1():
+    from sandy.data_test import H1
+    tape = Errorr.from_text("\n".join(H1.errorr))
+    assert (tape.index.get_level_values("MAT").unique() == 125).all()
+    return tape
 
-def read_mf1_mt451(text):
-    str_list = split_endf(text)
-    i = 0
-    out = {"MAT" : str_list["MAT"].iloc[0],
-           "MF" : str_list["MF"].iloc[0],
-           "MT" : str_list["MT"].iloc[0]}
-    C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "ERRFLAG" :C.N1})
-    L, i = read_list(str_list, i)
-    out.update({"EG" : L.B})
-    return out
+@pytest.mark.formats
+@pytest.mark.errorr
+@pytest.mark.info
+def test_read_info(testH1):
+    testH1.read_section(125, 1, 451)
 
-def read_mf3_mt(text):
-    str_list = split_endf(text)
-    i = 0
-    out = {"MAT" : str_list["MAT"].iloc[0],
-           "MF" : str_list["MF"].iloc[0],
-           "MT" : str_list["MT"].iloc[0]}
-    L, i = read_list(str_list, i)
-    out.update({"XS" : L.B})
-    return out
+@pytest.mark.formats
+@pytest.mark.errorr
+@pytest.mark.xs
+def test_read_xs(testH1):
+    testH1.read_section(125, 3, 102)
 
-def read_mf33_mt(text):
-    str_list = split_endf(text)
-    i = 0
-    out = {"MAT" : str_list["MAT"].iloc[0],
-           "MF" : str_list["MF"].iloc[0],
-           "MT" : str_list["MT"].iloc[0]}
-    C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "RP" : {}})
-    for rp in range(C.N2): # number of reaction pairs
-        C, i = read_cont(str_list, i)
-        MT1 = C.L2
-        NG = C.N2
-        M = np.zeros((NG,NG))
-        while True:
-            L, i = read_list(str_list, i)
-            NGCOL = L.L1
-            GROW = L.N2
-            GCOL = L.L2
-            M[GROW-1, GCOL-1:GCOL+NGCOL-1] = L.B
-            if GCOL+NGCOL >= NG and GROW >= NG: break
-        out["RP"].update({MT1 : M})
-    return out
+@pytest.mark.formats
+@pytest.mark.errorr
+@pytest.mark.cov
+@pytest.mark.xs
+def test_read_xs_cov(testH1):
+    testH1.read_section(125, 33, 102)
 
+@pytest.mark.formats
+@pytest.mark.errorr
+@pytest.mark.xs
+def test_extract_xs(testH1):
+    testH1.get_xs(listmat=[125], listmt=[1,2])
 
-
-
-
-##############
-# UNIT TESTS #
-##############
-
-#from sandy.data_test import __path__ as td
-#A = Errorr.from_file(join(td[0], r"fe56.errorr")).process()
-#xs = A.get_std()
-#aaa=1
-
+@pytest.mark.formats
+@pytest.mark.errorr
+@pytest.mark.cov
+@pytest.mark.xs
+def test_extract_xs_cov(testH1):
+    testH1.get_xs_cov()
