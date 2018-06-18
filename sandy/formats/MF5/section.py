@@ -60,7 +60,7 @@ def read(text):
 
 def write(sec):
     text = write_cont(sec["ZA"], sec["AWR"], 0, 0, len(sec["PDISTR"]), 0)
-    for sub in sec["PDISTR"]:
+    for k,sub in sorted(sec["PDISTR"].items()):
         U = sub['U'] if 'U' in sub else 0
         text += write_tab1(U, 0, 0, sub["LF"], sub["NBT_P"], sub["INT_P"], sub["E_P"], sub["P"])
         if sub["LF"] == 1:

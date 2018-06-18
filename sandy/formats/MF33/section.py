@@ -7,6 +7,7 @@ Created on Thu Jun 14 09:23:33 2018
 from ..records2 import read_cont, read_control, read_list
 from ..utils import Section
 import pdb
+import numpy as np
 
 def read(text):
     str_list = text.splitlines()
@@ -69,3 +70,25 @@ def read(text):
         sub.update({"NI" : NIDICT})
         out["SUB"].update({sub["MAT1"]*1000+sub["MT1"] : sub})
     return Section(out)
+
+def read_errorr(text):
+    str_list = text.splitlines()
+    MAT, MF, MT = read_control(str_list[0])[:3]
+    out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
+    i = 0
+    C, i = read_cont(str_list, i)
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "RP" : {}})
+    for rp in range(C.N2): # number of reaction pairs
+        C, i = read_cont(str_list, i)
+        MT1 = C.L2
+        NG = C.N2
+        M = np.zeros((NG,NG))
+        while True:
+            L, i = read_list(str_list, i)
+            NGCOL = L.L1
+            GROW = L.N2
+            GCOL = L.L2
+            M[GROW-1, GCOL-1:GCOL+NGCOL-1] = L.B
+            if GCOL+NGCOL >= NG and GROW >= NG: break
+        out["RP"].update({MT1 : M})
+    return out

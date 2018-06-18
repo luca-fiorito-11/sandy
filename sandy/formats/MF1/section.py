@@ -22,6 +22,16 @@ def write(sec):
     elif sec["MT"] in (452,455,456):
         return write_nubar(sec)
 
+def read_errorr(text):
+    str_list = text.splitlines()
+    MAT, MF, MT = read_control(str_list[0])[:3]
+    out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
+    i = 0
+    C, i = read_cont(str_list, i)
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "ERRFLAG" :C.N1})
+    L, i = read_list(str_list, i)
+    out.update({"EG" : L.B})
+    return out
 
 def read_info(text):
     str_list = text.splitlines()

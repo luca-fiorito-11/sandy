@@ -124,13 +124,13 @@ class Endf6(pd.DataFrame):
             sys.exit("ERROR: SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
         return read(self.loc[mat,mf,mt].TEXT)
 
-    def process(self, keep_mf=None, keep_mt=None):
-        """
-        Parse TEXT column.
-        """
-        tape = self.copy()
-        tape['DATA'] = tape['TEXT'].apply(process_endf_section, keep_mf=keep_mf, keep_mt=keep_mt)
-        return Endf6(tape)
+#    def process(self, keep_mf=None, keep_mt=None):
+#        """
+#        Parse TEXT column.
+#        """
+#        tape = self.copy()
+#        tape['DATA'] = tape['TEXT'].apply(process_endf_section, keep_mf=keep_mf, keep_mt=keep_mt)
+#        return Endf6(tape)
 
 #    def to_string(self, title=" "*66):
 #        """
@@ -195,6 +195,25 @@ class Endf6(pd.DataFrame):
         frame = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
         return Xs(frame)
 
+    def update_xs(self, xsFrame):
+        from .MF3 import write
+        tape = self.copy()
+        mf = 3
+        for (mat,mt),S in xsFrame.iteritems():
+            if (mat,mf,mt) not in self.index: continue
+            sec = self.read_section(mat,mf,mt)
+            # Cut threshold xs
+            iNotZero = next((i for i,x in enumerate(S) if x), None)
+            if iNotZero > 0: S = S.iloc[iNotZero-1:]
+            sec["E"] = S.index.values
+            sec["XS"] = S.values
+            # Assume all xs have only 1 interpolation region and it is linear
+            sec["NBT"] = [S.size]
+            sec["INT"] = [2]
+            text = write(sec)
+            tape.loc[mat,mf,mt].TEXT = text
+        return Endf6(tape)
+
     def get_nubar(self, listmat=None, listmt=None):
         """
         Extract selected nubar.
@@ -231,6 +250,26 @@ class Endf6(pd.DataFrame):
             return pd.DataFrame()
         frame = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
         return Xs(frame)
+
+    def update_nubar(self, xsFrame):
+        from .MF1 import write
+        tape = self.copy()
+        mf = 1
+        for (mat,mt),S in xsFrame.iteritems():
+            if (mat,mf,mt) not in self.index: continue
+            sec = self.read_section(mat,mf,mt)
+            # Cut threshold xs
+            iNotZero = next((i for i,x in enumerate(S) if x), None)
+            if iNotZero > 0: S = S.iloc[iNotZero-1:]
+            sec["E"] = S.index.values
+            sec["NUBAR"] = S.values
+            # Assume all xs have only 1 interpolation region and it is linear
+            sec["NBT"] = [S.size]
+            sec["INT"] = [2]
+            text = write(sec)
+            tape.loc[mat,mf,mt].TEXT = text
+        return Endf6(tape)
+
 #    def get_xs(self):
 #        xsList = []
 #        for mat in self.index.get_level_values('MAT').unique():
@@ -728,17 +767,57 @@ def test_read_xs_cov(testPu9):
 @pytest.mark.endf6
 @pytest.mark.xs
 def test_extract_xs(testH1):
-    from sandy.data_test import H1
-    tape = Endf6.from_text("\n".join(H1.pendf))
-    tape.get_xs(listmat=[125], listmt=[1,2,102,4])
-    xs = tape.get_xs(listmat=[9437])
+    testH1.get_xs(listmat=[125], listmt=[1,2,102,4])
+    xs = testH1.get_xs(listmat=[9437])
     assert xs.empty
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.xs
+def test_reconstruct_xs(testH1):
+    xs = testH1.get_xs()
+    xs[(125,51)] = 1
+    xs[(125,2)] = xs[(125,102)] = xs[(125,1)]
+    SUM = xs[(125,1)].values*2 + 1
+    rec_xs = xs.reconstruct_sums(drop=False)
+    assert (rec_xs[(125,4)].values == 1).all()
+    assert np.isclose(rec_xs[(125,1)].values,SUM).all()
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.xs
+def test_update_xs(testH1):
+    xs = testH1.get_xs()
+    xs[(125,2)] = 1
+    new = testH1.update_xs(xs)
+    assert (new.read_section(125,3,2)["XS"] == 1).all()
+    assert (testH1.read_section(125,3,2)["XS"] != new.read_section(125,3,2)["XS"]).all()
 
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.nubar
 def test_extract_nubar(testPu9):
     testPu9.get_nubar(listmt=[452,456])
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.nubar
+def test_reconstruct_nubar(testPu9):
+    nubar = testPu9.get_nubar()
+    nubar[(9437,455)] = 1
+    SUM = nubar[(9437,456)].values + 1
+    rec_nubar = nubar.reconstruct_sums()
+    assert np.isclose(rec_nubar[(9437,452)].values,SUM).all()
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.nubar
+def test_update_nubar(testPu9):
+    nubar = testPu9.get_nubar()
+    nubar[(9437,452)] = 1
+    new = testPu9.update_nubar(nubar)
+    assert (new.read_section(9437,1,452)["NUBAR"] == 1).all()
+    assert (testPu9.read_section(9437,1,452)["NUBAR"] != new.read_section(9437,1,452)["NUBAR"]).all()
 
 @pytest.mark.formats
 @pytest.mark.endf6
