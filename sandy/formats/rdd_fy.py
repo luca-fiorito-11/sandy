@@ -4,14 +4,14 @@ Created on Fri Apr 20 16:42:45 2018
 
 @author: lucaf
 """
-from sandy.endf6 import files as e6
+#from sandy.endf6 import files as e6
 import pandas as pd
 from os.path import join, dirname, realpath
 import numpy as np
 import scipy as sp
 import copy
 import sys
-from sandy.tests import TimeDecorator
+#from sandy.tests import TimeDecorator
 #from e6 import read_float
 
 def B2Q(dfB):
@@ -40,7 +40,6 @@ class RDDFile():
                 ListLambdas.append([ data["ZA"], data["LISO"], DC, DDC ])
         return pd.DataFrame(ListLambdas, columns=["ZA","LISO","DC", "DDC"])
 
-    @TimeDecorator
     def extract_decaychains(self):
         ListDC = []
         for chunk in e6.split(self.file):
@@ -88,7 +87,6 @@ class RDDFile():
         df["DDC"] = np.log(2.) * df.DHL/df.HL * df.DC
         return df
 
-    @TimeDecorator
     def extract_bmatrix(self, timelimit=np.inf, n=False):
         secyear = 60*60*24*365.25
         tl = secyear*timelimit
@@ -109,7 +107,6 @@ class RDDFile():
         xt.index = xt.columns = df.groupby(["ZA_PARENT","LISO_PARENT"]).nunique().index
         return xt.T
 
-    @TimeDecorator
     def extract_qmatrix(self, timelimit=np.inf, n=False):
         bm = self.extract_bmatrix(timelimit=timelimit)
         return B2Q(bm)
@@ -130,7 +127,6 @@ class FYFile():
     def __init__(self, file):
         self.file = file
 
-    @TimeDecorator
     def extract_fy(self):
         IFY = []; CFY = []
         for chunk in e6.split(self.file):
@@ -166,61 +162,61 @@ def check_rdd_fy(RDD, FY):
         chi2, p_value = chisquare(C.CY.loc[C.CY>0], f_exp=C.CY_calc.loc[C.CY>0])
         print(zap,e,chi2,p_value)
 
-def test_jeff33_decay_constants():
-    """
-    Extract decay constants from jeff file and write in csv format.
-    """
-    from sandy.data_test import __file__ as td
-    from sandy import __file__ as sd
-    sd = dirname(realpath(sd))
-    td = dirname(realpath(td))
-    A = RDDFile( join(td, r"RDD.jeff33") ).extract_lambdas()
-    aaa=1
+#def test_jeff33_decay_constants():
+#    """
+#    Extract decay constants from jeff file and write in csv format.
+#    """
+#    from sandy.data_test import __file__ as td
+#    from sandy import __file__ as sd
+#    sd = dirname(realpath(sd))
+#    td = dirname(realpath(td))
+#    A = RDDFile( join(td, r"RDD.jeff33") ).extract_lambdas()
+#    aaa=1
 
-def test_jeff33_rdd_fy():
-    """
-    ISO E CHI^2 PVALUE
-    90232.0 400000.0 9.09849076297 1.0
-    90232.0 14000000.0 111.981926453 1.0
-    92233.0 0.0253 1.76057717685 1.0
-    92233.0 400000.0 1.13547668601 1.0
-    92233.0 14000000.0 1.98728653841 1.0
-    92234.0 400000.0 0.653759104852 1.0
-    92235.0 0.0253 0.929158792529 1.0
-    92235.0 400000.0 1.58365367609 1.0
-    92235.0 14000000.0 4.4516291131 1.0
-    92236.0 0.0253 329.909545277 1.0
-    92236.0 400000.0 31.4154974493 1.0
-    92238.0 400000.0 128.797656121 1.0
-    92238.0 14000000.0 6.84650480105 1.0
-    93237.0 0.0253 1.8310359522 1.0
-    93237.0 400000.0 4.19247484827 1.0
-    93238.0 0.0253 10.4958975282 1.0
-    93238.0 400000.0 6.82070527688 1.0
-    94238.0 0.0253 0.0253452224653 1.0
-    94238.0 400000.0 0.196266006335 1.0
-    94239.0 0.0253 0.752322322921 1.0
-    94239.0 400000.0 2.5143568177 1.0
-    94240.0 400000.0 4.61164409854 1.0
-    94241.0 0.0253 0.125947777869 1.0
-    94241.0 400000.0 18.8692182249 1.0
-    94242.0 400000.0 26.8780592723 1.0
-    95241.0 0.0253 0.668792606384 1.0
-    95241.0 400000.0 1.08959344195 1.0
-    95242.0 0.0253 2.79542677863 1.0
-    95242.0 400000.0 5.11511820113 1.0
-    95243.0 0.0253 3.10548964903 1.0
-    95243.0 400000.0 4.94311274336 1.0
-    96243.0 0.0253 0.122632005282 1.0
-    96243.0 400000.0 0.234333804263 1.0
-    96244.0 0.0253 0.11360176429 1.0
-    96244.0 400000.0 1.46044874563 1.0
-    96245.0 0.0253 0.311911363568 1.0
-    96245.0 400000.0 0.509813267668 1.0
-    """
-    from sandy.data_test import __file__ as td
-    check_rdd_fy(join(dirname(realpath(td)), r"RDD.jeff33"),
-                 join(dirname(realpath(td)), r"FY.jeff33"))
-
-
-test_jeff33_rdd_fy()
+#def test_jeff33_rdd_fy():
+#    """
+#    ISO E CHI^2 PVALUE
+#    90232.0 400000.0 9.09849076297 1.0
+#    90232.0 14000000.0 111.981926453 1.0
+#    92233.0 0.0253 1.76057717685 1.0
+#    92233.0 400000.0 1.13547668601 1.0
+#    92233.0 14000000.0 1.98728653841 1.0
+#    92234.0 400000.0 0.653759104852 1.0
+#    92235.0 0.0253 0.929158792529 1.0
+#    92235.0 400000.0 1.58365367609 1.0
+#    92235.0 14000000.0 4.4516291131 1.0
+#    92236.0 0.0253 329.909545277 1.0
+#    92236.0 400000.0 31.4154974493 1.0
+#    92238.0 400000.0 128.797656121 1.0
+#    92238.0 14000000.0 6.84650480105 1.0
+#    93237.0 0.0253 1.8310359522 1.0
+#    93237.0 400000.0 4.19247484827 1.0
+#    93238.0 0.0253 10.4958975282 1.0
+#    93238.0 400000.0 6.82070527688 1.0
+#    94238.0 0.0253 0.0253452224653 1.0
+#    94238.0 400000.0 0.196266006335 1.0
+#    94239.0 0.0253 0.752322322921 1.0
+#    94239.0 400000.0 2.5143568177 1.0
+#    94240.0 400000.0 4.61164409854 1.0
+#    94241.0 0.0253 0.125947777869 1.0
+#    94241.0 400000.0 18.8692182249 1.0
+#    94242.0 400000.0 26.8780592723 1.0
+#    95241.0 0.0253 0.668792606384 1.0
+#    95241.0 400000.0 1.08959344195 1.0
+#    95242.0 0.0253 2.79542677863 1.0
+#    95242.0 400000.0 5.11511820113 1.0
+#    95243.0 0.0253 3.10548964903 1.0
+#    95243.0 400000.0 4.94311274336 1.0
+#    96243.0 0.0253 0.122632005282 1.0
+#    96243.0 400000.0 0.234333804263 1.0
+#    96244.0 0.0253 0.11360176429 1.0
+#    96244.0 400000.0 1.46044874563 1.0
+#    96245.0 0.0253 0.311911363568 1.0
+#    96245.0 400000.0 0.509813267668 1.0
+#    """
+#    from sandy.data_test import __file__ as td
+#    check_rdd_fy(join(dirname(realpath(td)), r"RDD.jeff33"),
+#                 join(dirname(realpath(td)), r"FY.jeff33"))
+#
+#
+#test_jeff33_rdd_fy()

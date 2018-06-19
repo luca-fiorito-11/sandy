@@ -4,7 +4,7 @@ Created on Thu Jun 14 09:23:33 2018
 
 @author: fiorito_l
 """
-from ..records2 import read_cont, read_control, read_list
+from ..records import read_cont, read_control, read_list
 from ..utils import Section
 import pdb
 import numpy as np

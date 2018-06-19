@@ -51,29 +51,6 @@ class Xs(pd.DataFrame):
                 frame.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
         return Xs(frame)
 
-#    def update_tape(self, tapein):
-#        from copy import deepcopy
-#        tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
-#        for k,row in tapein.iterrows():
-#            tape.loc[k].DATA = deepcopy(row.DATA)
-#            tape.loc[k].TEXT = deepcopy(row.TEXT)
-#        for mat, mt in self:
-#            mf = 1 if mt in (452,455,456) else 3
-#            name = 'NUBAR' if mt in (452,455,456) else 'XS'
-#            if (mat, mf, mt) not in tape.index:
-#                continue
-#            # Cut threshold xs
-#            iNotZero = next((i for i, x in enumerate(self[mat,mt]) if x), None)
-#            if iNotZero > 0:
-#                SeriesXs = self[mat,mt].iloc[iNotZero-1:]
-#            else:
-#                SeriesXs = self[mat,mt]
-#            # Assume all xs have only 1 interpolation region and it is linear
-#            tape.DATA.loc[mat,mf,mt][name] = SeriesXs
-#            tape.DATA.loc[mat,mf,mt]["NBT"] = [len(SeriesXs)]
-#            tape.DATA.loc[mat,mf,mt]["INT"] = [2]
-#        return Endf6(tape)
-
     def perturb(self, pert, **kwargs):
         frame = self.copy()
 #        indexName = Xs.index.name

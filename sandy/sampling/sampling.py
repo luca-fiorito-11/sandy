@@ -204,9 +204,23 @@ def run(iargs=None):
 def sampling_mp(ismp):
     global tape, PertXs
     t0 = time.time()
-    xs = tape.get_xs().perturb(PertXs[ismp])
-    tape = tape.update_xs(xs)
-    print("Created sample {} in {:.2f} sec".format(ismp, time.time()-t0,))
+    mat = tape.index.get_level_values("MAT")[0]
+    info = tape.read_section(mat, 1, 451)
+    lrp = info["LRP"]
+    name = info["NAME"]
+    if lrp == 2:
+        try:
+            xs = tape.get_xs().perturb(PertXs[ismp])
+            tape = tape.update_xs(xs)
+        except:
+            pass
+    else:
+        try:
+            nubar = tape.get_nubar().perturb(PertXs[ismp])
+            tape = tape.update_nubar(nubar)
+        except:
+            pass
+    print("Created sample {} for {} in {:.2f} sec".format(ismp, name, time.time()-t0,))
     return tape.update_info().write_string()
 
 def sampling(iargs=None):
@@ -215,9 +229,8 @@ def sampling(iargs=None):
     init = settings.init_sampling(iargs)
 
     # LOAD DATA FILE
-    global tape
-    tape = Endf6.from_file(init.file)
-    if tape.empty: sys.exit("ERROR: tape is empty")
+    ftape = Endf6.from_file(init.file)
+    if ftape.empty: sys.exit("ERROR: tape is empty")
 
     # LOAD COVARIANCE FILE
     if init.errorr_cov:
@@ -227,32 +240,39 @@ def sampling(iargs=None):
     if covtape.empty: sys.exit("ERROR: covtape is empty")
 
 
-    # EXTRACT PERTURBATIONS FROM XS COV FILE
+    # EXTRACT PERTURBATIONS FROM XS/NUBAR COV FILE
     global PertXs
     try:
         PertXs = covtape.get_xs_cov().get_samples(init.samples, eig=init.eig)
     except:
-        PertXs = None
+        PertXs = pd.DataFrame()
+    if PertXs.empty: # Add checks for other data (MF35, MF34, ...)
+        sys.exit("ERROR: no covariance matrix was found")
 
-    # APPLY PERTURBATIONS
-    if init.processes == 1:
-        outs = {i : sampling_mp(i) for i in range(1,init.samples+1)}
-    else:
-        if platform.system() == "Windows":
-            def init_pool(the_tape):
-                global tape
-                tape = the_tape
-            pool = mp.Pool(processes=settings.args.processes,
-                           initializer=init_pool(tape))
+    # APPLY PERTURBATIONS BY MAT
+    global tape
+    for mat, tape in ftape.groupby('MAT'):
+        tape = Endf6(tape)
+        name = tape.read_section(mat, 1, 451)["NAME"]
+
+        if init.processes == 1:
+            outs = {i : sampling_mp(i) for i in range(1,init.samples+1)}
         else:
-            pool = mp.Pool(processes=init.processes)
-        outs = {i : pool.apply_async(sampling_mp, args=(i,)) for i in range(1,init.samples+1)}
-        outs = {i : out.get() for i,out in outs.items()}
+            if platform.system() == "Windows":
+                def init_pool(the_tape):
+                    global tape
+                    tape = the_tape
+                pool = mp.Pool(processes=settings.args.processes,
+                               initializer=init_pool(tape))
+            else:
+                pool = mp.Pool(processes=init.processes)
+            outs = {i : pool.apply_async(sampling_mp, args=(i,)) for i in range(1,init.samples+1)}
+            outs = {i : out.get() for i,out in outs.items()}
 
-    # DUMP TO FILES
-    for ismp, string in outs.items():
-        output = os.path.join(init.outdir, os.path.basename(init.file) + '-{}'.format(ismp))
-        with open(output, 'w') as f: f.write(string)
+        # DUMP TO FILES
+        for ismp, string in outs.items():
+            output = os.path.join(init.outdir, '{}-{}-{}'.format(name, int(mat), ismp))
+            with open(output, 'w') as f: f.write(string)
 
     # PLOTTING IS OPTIONAL
 #    if kwargs["p"]:
@@ -285,3 +305,62 @@ def test_sample_xs():
     assert np.isclose(ratio[mat,mt].values[mask1], pert[mat,mt].values[mask2]).all()
     assert newtape.loc[125,3,102].TEXT != pendftape.loc[125,3,102].TEXT
     assert newtape.loc[125,3,2].TEXT == pendftape.loc[125,3,2].TEXT
+
+@pytest.mark.sampling
+@pytest.mark.errorr
+@pytest.mark.xs
+def test_H1(tmpdir):
+    from ..data_test import H1
+    iargs = [os.path.join(H1.__path__[0], r"h1.pendf"),
+             "--errorr-cov", os.path.join(H1.__path__[0], r"h1.errorr"),
+             "--outdir", str(tmpdir),
+             "--processes", str(os.cpu_count()),
+             "--eig", "10",
+             "--samples", "100",]
+#             "--plotdir", os.path.join(str(tmpdir), r"html_files"),
+#             "-p"]
+    sampling(iargs)
+
+@pytest.mark.sampling
+@pytest.mark.endf6
+@pytest.mark.nubar
+def test_Cm242(tmpdir):
+    from ..data_test import Cm242
+    iargs = [os.path.join(Cm242.__path__[0], r"cm242.endf"),
+             "--endf6-cov", os.path.join(Cm242.__path__[0], r"cm242.endf"),
+             "--outdir", str(tmpdir),
+             "--processes", str(os.cpu_count()),
+             "--eig", "10",
+             "--samples", "100",]
+#             "--plotdir", os.path.join(str(tmpdir), r"html_files"),
+#             "-p"]
+    sampling(iargs)
+
+@pytest.mark.sampling
+@pytest.mark.errorr
+@pytest.mark.xs
+def test_Fe56_errorr(tmpdir):
+    from ..data_test import Fe56
+    iargs = [os.path.join(Fe56.__path__[0], r"fe56.pendf"),
+             "--errorr-cov", os.path.join(Fe56.__path__[0], r"fe56.errorr"),
+             "--outdir", str(tmpdir),
+             "--processes", str(os.cpu_count()),
+             "--eig", "10",
+             "--samples", "10",]
+    sampling(iargs)
+
+@pytest.mark.sampling
+@pytest.mark.errorr
+@pytest.mark.xs
+@pytest.mark.slow
+def test_U5_errorr(tmpdir):
+    from ..data_test import U5
+    iargs = [os.path.join(U5.__path__[0], r"u235.pendf"),
+             "--errorr-cov", os.path.join(U5.__path__[0], r"u235.errorr"),
+             "--outdir", str(tmpdir),
+             "--processes", str(os.cpu_count()) if os.cpu_count() < 10 else str(10),
+             "--eig", "10",
+             "--samples", "100",]
+#             "--plotdir", os.path.join(str(tmpdir), r"html_files"),
+#             "-p"]
+    sampling(iargs)
