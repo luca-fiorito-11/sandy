@@ -241,7 +241,6 @@ def write_list(C1, C2, L1, L2, N2, B):
     text += write_dlist(B)
     return text
 
-@pytest.mark.unit_test
 @pytest.mark.records
 @pytest.mark.read
 @pytest.mark.ilist
@@ -251,7 +250,6 @@ def test_read_ilist():
     assert L == read_ilist(string)[:2]
     assert read_ilist(string)[2:] == [0, 0, 0, 0]
 
-@pytest.mark.unit_test
 @pytest.mark.records
 @pytest.mark.read
 @pytest.mark.dlist
@@ -260,7 +258,6 @@ def test_read_dlist():
     array = np.array(list(map(float,string[:66].replace("+", "E+").replace("-", "E-").split())))
     assert (array == read_dlist(string)).all()
 
-@pytest.mark.unit_test
 @pytest.mark.records
 @pytest.mark.read
 @pytest.mark.write
@@ -273,7 +270,6 @@ def test_read_list():
     original_text = [x[:66] for x in Pu9.endf6[1809:ipos]]
     assert text == original_text
 
-@pytest.mark.unit_test
 @pytest.mark.records
 @pytest.mark.read
 @pytest.mark.cont
@@ -288,7 +284,6 @@ def test_read_cont():
     assert N1 == 2
     assert N2 == 1
 
-@pytest.mark.unit_test
 @pytest.mark.records
 @pytest.mark.read
 @pytest.mark.write
@@ -305,7 +300,6 @@ def test_read_tab1():
     original_text = [x[:66] for x in Pu9.endf6[738:ipos]]
     assert text == original_text
 
-@pytest.mark.unit_test
 @pytest.mark.records
 @pytest.mark.read
 @pytest.mark.text
@@ -315,7 +309,6 @@ def test_read_text():
     assert ipos == 7
     assert string == " JEFF33T3             DIST-DEC17 REV3-DEC17            20171231   "
 
-@pytest.mark.unit_test
 @pytest.mark.records
 @pytest.mark.write
 @pytest.mark.cont
@@ -324,7 +317,6 @@ def test_write_cont():
     assert len(text) == 1
     assert text[0] == ' 9.423900+4 2.369986+2          1          1          2          1'
 
-@pytest.mark.unit_test
 @pytest.mark.records
 @pytest.mark.write
 @pytest.mark.ilist
@@ -333,7 +325,6 @@ def test_write_ilist():
     assert len(text) == 1
     assert text[0] == '          3          4          5                                 '
 
-@pytest.mark.unit_test
 @pytest.mark.records
 @pytest.mark.write
 @pytest.mark.dlist
