@@ -69,8 +69,7 @@ class Endf6(pd.DataFrame):
         """
         Read ENDF-6 formatted file and call from_text method.
         """
-        with open(file) as f:
-            text = f.read()
+        with open(file) as f: text = f.read()
         return cls.from_text(text)
 
     @classmethod
@@ -89,7 +88,8 @@ class Endf6(pd.DataFrame):
                 usecols = ["MAT", "MF", "MT"]
                 )
         tape["TEXT"] = text.splitlines(True)
-        tape = tape.query("MAT>0 & MF>0 & MT>0").groupby(["MAT","MF","MT"]).sum()
+        tape = tape.query("MAT>0 & MF>0 & MT>0")
+        tape = tape.groupby(["MAT","MF","MT"]).sum()
         return cls(tape)
 
 #    def by_ZAM(self):
@@ -132,23 +132,24 @@ class Endf6(pd.DataFrame):
 #        tape['DATA'] = tape['TEXT'].apply(process_endf_section, keep_mf=keep_mf, keep_mt=keep_mt)
 #        return Endf6(tape)
 
-#    def to_string(self, title=" "*66):
-#        """
-#        First update MF1/MT451 dictionary.
-#        Then, Write TEXT column to string.
-#        """
-#        tape = self.update_dict().write_mf1_mt451()
-#        string = "{:<66}{:4}{:2}{:3}{:5}\n".format(title, 1, 0, 0, 0)
-#        for mat,dfmat in tape.groupby('MAT', sort=True):
-#            for mf,dfmf in dfmat.groupby('MF', sort=True):
-#                for mt,dfmt in dfmf.groupby('MT', sort=True):
-#                    for text in dfmt.TEXT:
-#                        string += text.encode('ascii', 'replace').decode('ascii') + "\n"
-#                    string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, mf, 0, 99999)
-#                string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), mat, 0, 0, 0)
-#            string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), 0, 0, 0, 0)
-#        string += "{:<66}{:4}{:2}{:3}{:5}".format(*write_cont(*[0]*6), -1, 0, 0, 0)
-#        return string
+    def write_string(self, title=" "*66):
+        """
+        First update MF1/MT451 dictionary.
+        Then, Write TEXT column to string.
+        """
+        from .records2 import write_cont
+        tape = self.copy()
+        string = "{:<66}{:4}{:2}{:3}{:5}\n".format(title, 1, 0, 0, 0)
+        for mat,dfmat in tape.groupby('MAT', sort=True):
+            for mf,dfmf in dfmat.groupby('MF', sort=True):
+                for mt,dfmt in dfmf.groupby('MT', sort=True):
+                    for text in dfmt.TEXT:
+                        string += text.encode('ascii', 'replace').decode('ascii') + "\n"
+                    string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), int(mat), int(mf), 0, 99999)
+                string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), int(mat), 0, 0, 0)
+            string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), 0, 0, 0, 0)
+        string += "{:<66}{:4}{:2}{:3}{:5}".format(*write_cont(*[0]*6), -1, 0, 0, 0)
+        return string
 
     def to_file(self, file, title=" "*66):
         """
@@ -433,11 +434,11 @@ class Endf6(pd.DataFrame):
         """
         Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
         """
+        from .MF1 import write
         tape = self.copy()
         for mat in sorted(tape.index.get_level_values('MAT').unique()):
-            chunk = tape.DATA.loc[mat,1,451]
-            records = pd.DataFrame(chunk["RECORDS"],
-                                   columns=["MF","MT","NC","MOD"]).set_index(["MF","MT"])
+            sec = self.read_section(mat,1,451)
+            records = pd.DataFrame(sec["RECORDS"], columns=["MF","MT","NC","MOD"]).set_index(["MF","MT"])
             new_records = []
             for (mf,mt),text in sorted(tape.loc[mat].query('MT!=451'.format(mat)).TEXT.items()):
                 nc = len(text.splitlines())
@@ -447,10 +448,12 @@ class Endf6(pd.DataFrame):
                 except:
                     mod = 0
                 new_records.append((mf,mt,nc,mod))
-            nc = 4 + len(chunk["TEXT"]) + len(new_records) + 1
+            nc = 4 + len(sec["TEXT"]) + len(new_records) + 1
             mod = records.MOD.loc[1,451]
             new_records = [(1,451,nc,mod)] + new_records
-            chunk["RECORDS"] = new_records
+            sec["RECORDS"] = new_records
+            text = write(sec)
+            tape.loc[mat,1,451].TEXT = text
         return Endf6(tape)
 
 
@@ -833,6 +836,20 @@ def test_extract_xs_cov(testPu9):
 @pytest.mark.endf6
 @pytest.mark.info
 def test_update_info(testPu9):
-    assert False
-    testPu9.loc[9437,3,1].TEXT = testPu9.loc[9437,3,1].TEXT
-    testPu9.get_xs_cov()
+    testPu9.loc[9437,3,1].TEXT = "\n".join(testPu9.loc[9437,3,1].TEXT.splitlines()[:10]) + "\n"
+    testPu9 = Endf6(testPu9.drop([(9437,3,102)]))
+    new = testPu9.update_info()
+    recordsold = testPu9.read_section(9437,1,451)["RECORDS"]
+    recordsnew = new.read_section(9437,1,451)["RECORDS"]
+    assert (3,102,147,1) in recordsold
+    assert (3,102,147,1) not in recordsnew
+    assert (3,1,188,1) in recordsold
+    assert (3,1,10,1) in recordsnew
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.write
+def test_write_to_string(testH1):
+    string = testH1.write_string()
+    newtape = Endf6.from_text(string)
+    assert testH1.equals(newtape)

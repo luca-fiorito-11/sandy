@@ -6,22 +6,11 @@ Created on Mon Mar 19 22:51:03 2018
 """
 
 import pandas as pd
-#import sandy.formats.endf6 as e6
-from sandy import settings
-#from sandy.sampling.cov import Cov
+from .. import settings
 import numpy as np
-import sys, os, time, shutil, re, platform, pdb
+import sys, os, time, platform, pdb, pytest
 import multiprocessing as mp
-#from copy import deepcopy
-#import matplotlib.pyplot as plt
-#from sandy.tests import TimeDecorator
-#from sandy.formats.errorr import Errorr
-import pytest
 
-
-#To produce correlation matrix
-#Index = df_cov_xs.index
-#df_cov_xs.update(pd.DataFrame(Cov(df_cov_xs.values).corr, index=Index, columns=Index))
 
 def sample_chi(tape, NSMP, **kwargs):
     # perturbations are in absolute values
@@ -111,7 +100,7 @@ def perturb_chi(tape, PertSeriesChi, **kwargs):
                 Chi.loc[mat,mt,k]['CHI'] = SmpChi
     return e6.write_mf5_mt( e6.update_chi(tape, Chi) )
 
-def sampling(tape, ismp, PertSeriesNubar=None, PertSeriesRes=None, PertSeriesXs=None, PertSeriesChi=None, **kwargs):
+def samplingold(tape, ismp, PertSeriesNubar=None, PertSeriesRes=None, PertSeriesXs=None, PertSeriesChi=None, **kwargs):
     t0 = time.time()
     if PertSeriesXs is not None:
         ptape = kwargs["pendf"].query("MF==3 | (MF==2 & MT==152)")
@@ -212,6 +201,64 @@ def run(iargs=None):
         plotter.run(iargs)
     print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
 
+def sampling_mp(ismp):
+    global tape, PertXs
+    t0 = time.time()
+    xs = tape.get_xs().perturb(PertXs[ismp])
+    tape = tape.update_xs(xs)
+    print("Created sample {} in {:.2f} sec".format(ismp, time.time()-t0,))
+    return tape.update_info().write_string()
+
+def sampling(iargs=None):
+    from ..formats import Endf6, Errorr
+    t0 = time.time()
+    init = settings.init_sampling(iargs)
+
+    # LOAD DATA FILE
+    global tape
+    tape = Endf6.from_file(init.file)
+    if tape.empty: sys.exit("ERROR: tape is empty")
+
+    # LOAD COVARIANCE FILE
+    if init.errorr_cov:
+        covtape = Errorr.from_file(init.errorr_cov)
+    elif init.endf6_cov:
+        covtape = Endf6.from_file(init.endf6_cov)
+    if covtape.empty: sys.exit("ERROR: covtape is empty")
+
+
+    # EXTRACT PERTURBATIONS FROM XS COV FILE
+    global PertXs
+    try:
+        PertXs = covtape.get_xs_cov().get_samples(init.samples, eig=init.eig)
+    except:
+        PertXs = None
+
+    # APPLY PERTURBATIONS
+    if init.processes == 1:
+        outs = {i : sampling_mp(i) for i in range(1,init.samples+1)}
+    else:
+        if platform.system() == "Windows":
+            def init_pool(the_tape):
+                global tape
+                tape = the_tape
+            pool = mp.Pool(processes=settings.args.processes,
+                           initializer=init_pool(tape))
+        else:
+            pool = mp.Pool(processes=init.processes)
+        outs = {i : pool.apply_async(sampling_mp, args=(i,)) for i in range(1,init.samples+1)}
+        outs = {i : out.get() for i,out in outs.items()}
+
+    # DUMP TO FILES
+    for ismp, string in outs.items():
+        output = os.path.join(init.outdir, os.path.basename(init.file) + '-{}'.format(ismp))
+        with open(output, 'w') as f: f.write(string)
+
+    # PLOTTING IS OPTIONAL
+#    if kwargs["p"]:
+#        plotter.run(iargs)
+    print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
+
 
 
 @pytest.mark.sampling
@@ -222,9 +269,9 @@ def test_sample_xs():
     from ..formats import Errorr, Endf6
     from random import randint
     errtape = Errorr.from_text("\n".join(H1.errorr))
-    pendftape = Endf6.from_text("\n".join(H1.pendf))
     nsmp = 1000
     perts = errtape.get_xs_cov(listmt=[102]).get_samples(nsmp, eig=10)
+    pendftape = Endf6.from_text("\n".join(H1.pendf))
     xs = pendftape.get_xs()
     ismp = randint(1, nsmp);
     pert = perts[ismp]
