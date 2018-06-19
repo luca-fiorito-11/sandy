@@ -222,4 +222,4 @@ def init_sampling(iargs=None):
                         version='%(prog)s 1.0',
                         help="SANDY's version.")
     args = parser.parse_known_args(args=iargs)[0]
-    return vars(args)
+    return args
