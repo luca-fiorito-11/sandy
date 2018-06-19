@@ -8,24 +8,6 @@ import pandas as pd
 import sys, pytest
 import numpy as np
 
-#def process_errorr_section(text, keep_mf=None, keep_mt=None):
-#    mf = int(text[70:72])
-#    mt = int(text[72:75])
-#    if mf == 1 and mt == 451: # read always
-#        return read_mf1_mt451(text)
-#    if keep_mf:
-#        if mf not in keep_mf:
-#            return None
-#    if keep_mt:
-#        if mt not in keep_mt:
-#            return None
-#    elif mf == 3:
-#        return read_mf3_mt(text)
-#    elif mf == 33:
-#        return read_mf33_mt(text)
-#    else:
-#        return None
-
 
 class Errorr(pd.DataFrame):
 

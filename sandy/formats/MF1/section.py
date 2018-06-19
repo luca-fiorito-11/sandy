@@ -4,7 +4,7 @@ Created on Thu Jun 14 09:23:33 2018
 
 @author: fiorito_l
 """
-from ..records2 import read_cont, read_tab1, read_control, read_text, read_list, write_cont, write_tab1, write_list
+from ..records import read_cont, read_tab1, read_control, read_text, read_list, write_cont, write_tab1, write_list
 from ..utils import Section
 import re, sys
 
@@ -34,6 +34,7 @@ def read_errorr(text):
     return out
 
 def read_info(text):
+    from sandy.csv import elements, metastates
     str_list = text.splitlines()
     MAT, MF, MT = read_control(str_list[0])[:3]
     out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
@@ -46,6 +47,11 @@ def read_info(text):
     out.update({"AWI" : C.C1, "EMAX" : C.C2, "LREL" : C.L1, "NSUB" : C.N1, "NVER" : C.N2})
     C, i = read_cont(str_list, i)
     out.update({"TEMP" : C.C2, "LDRV" : C.L1, "NWD" : C.N1, "NXC" : C.N2})
+    out["Z"] = int(out["ZA"]//1000)
+    out["A"] = int(out["ZA"]-out["Z"]*1000)
+    out["SYM"] = elements["SYM"].to_dict()[out["Z"]]
+    out["M"] = metastates["META"].to_dict()[out["LISO"]]
+    out["NAME"] = "{}-{}-{}{}".format(out["Z"], out["SYM"], out["A"], out["M"])
     TEXT = []
     for j in range(out["NWD"]):
         T, i = read_text(str_list, i)
@@ -53,11 +59,11 @@ def read_info(text):
     out.update({ "TEXT" : TEXT })
     # This part is not given in PENDF files
     if out["LRP"] != 2:
-        groups = TEXT[0][:11].split("-")
-        out["Z"] = int(groups[0])
-        out["SYM"] = groups[1].strip()
-        out["A"] = re.sub(r"\D", "", groups[2])
-        out["M"] = re.sub(r"[0-9\s]", "", groups[2].lower())
+#        groups = TEXT[0][:11].split("-")
+#        out["Z"] = int(groups[0])
+#        out["SYM"] = groups[1].strip()
+#        out["A"] = re.sub(r"\D", "", groups[2])
+#        out["M"] = re.sub(r"[0-9\s]", "", groups[2].lower())
 #        if not out["M"]: out["M"] = 'g'
 #            out["A"] = int(TEXT[0][7:10])
 #            out["M"] =  'g' if TEXT[0][10:11] is ' ' else TEXT[0][10:11].lower()

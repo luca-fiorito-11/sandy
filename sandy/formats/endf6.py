@@ -6,58 +6,55 @@ Created on Mon Jan 16 18:03:13 2017
 """
 import sys, time, pdb, os, re, pytest
 import numpy as np
-#from . import read_cont, read_tab1, read_tab2, read_list, read_text, read_float
-#from . import write_cont, write_tab1, write_list, write_tab2
-#from .records2 import read_control, read_cont
 import pandas as pd
 from copy import deepcopy
 from warnings import warn
-from sandy.tests import TimeDecorator
+from ..tests import TimeDecorator
 
 
-def split_endf(text):
-    """
-    Read ENDF-6 formatted file and split it into columns based on field widths:
-        C1 C2 L1 L2 N1 N2 MAT MF MT
-        11 11 11 11 11 11  4   2  3.
-    Store list in dataframe.
-    """
-    from io import StringIO
-    def read_float(x):
-        try:
-            return float(x[0] + x[1:].replace('+', 'E+').replace('-', 'E-'))
-        except:
-            return x
-    widths = [11,11,11,11,11,11,4,2,3]
-    columns = ["C1", "C2", "L1", "L2", "N1", "N2","MAT", "MF", "MT"]
-    converters = dict(zip(columns[:6],[read_float]*6))
-    frame =  pd.read_fwf(StringIO(text), widths=widths, names=columns, converters=converters)
-    return frame.query("MAT>0 & MF>0 & MT>0")
-
-
-def process_endf_section(text, keep_mf=None, keep_mt=None):
-    mf = int(text[70:72])
-    mt = int(text[72:75])
-    if mf == 1 and mt == 451: # read always
-        return read_mf1_mt451(text)
-    if keep_mf:
-        if mf not in keep_mf:
-            return None
-    if keep_mt:
-        if mt not in keep_mt:
-            return None
-    if mf == 1 and mt in (452, 455, 456):
-        return read_mf1_nubar(text)
-    elif mf == 3:
-        return read_mf3_mt(text)
-    elif mf == 5:
-        return read_mf5_mt(text)
-    elif mf == 31 or mf == 33:
-        return read_mf33_mt(text)
-    elif mf == 35:
-        return read_mf35_mt(text)
-    else:
-        return None
+#def split_endf(text):
+#    """
+#    Read ENDF-6 formatted file and split it into columns based on field widths:
+#        C1 C2 L1 L2 N1 N2 MAT MF MT
+#        11 11 11 11 11 11  4   2  3.
+#    Store list in dataframe.
+#    """
+#    from io import StringIO
+#    def read_float(x):
+#        try:
+#            return float(x[0] + x[1:].replace('+', 'E+').replace('-', 'E-'))
+#        except:
+#            return x
+#    widths = [11,11,11,11,11,11,4,2,3]
+#    columns = ["C1", "C2", "L1", "L2", "N1", "N2","MAT", "MF", "MT"]
+#    converters = dict(zip(columns[:6],[read_float]*6))
+#    frame =  pd.read_fwf(StringIO(text), widths=widths, names=columns, converters=converters)
+#    return frame.query("MAT>0 & MF>0 & MT>0")
+#
+#
+#def process_endf_section(text, keep_mf=None, keep_mt=None):
+#    mf = int(text[70:72])
+#    mt = int(text[72:75])
+#    if mf == 1 and mt == 451: # read always
+#        return read_mf1_mt451(text)
+#    if keep_mf:
+#        if mf not in keep_mf:
+#            return None
+#    if keep_mt:
+#        if mt not in keep_mt:
+#            return None
+#    if mf == 1 and mt in (452, 455, 456):
+#        return read_mf1_nubar(text)
+#    elif mf == 3:
+#        return read_mf3_mt(text)
+#    elif mf == 5:
+#        return read_mf5_mt(text)
+#    elif mf == 31 or mf == 33:
+#        return read_mf33_mt(text)
+#    elif mf == 35:
+#        return read_mf35_mt(text)
+#    else:
+#        return None
 
 
 class Endf6(pd.DataFrame):
@@ -137,7 +134,7 @@ class Endf6(pd.DataFrame):
         First update MF1/MT451 dictionary.
         Then, Write TEXT column to string.
         """
-        from .records2 import write_cont
+        from .records import write_cont
         tape = self.copy()
         string = "{:<66}{:4}{:2}{:3}{:5}\n".format(title, 1, 0, 0, 0)
         for mat,dfmat in tape.groupby('MAT', sort=True):
@@ -270,48 +267,6 @@ class Endf6(pd.DataFrame):
             text = write(sec)
             tape.loc[mat,mf,mt].TEXT = text
         return Endf6(tape)
-
-#    def get_xs(self):
-#        xsList = []
-#        for mat in self.index.get_level_values('MAT').unique():
-#            query = "(MF==1 & (MT==452 | MT==455 | MT==456))"
-#            if self.DATA.loc[mat,1,451]['LRP'] == 2:
-#                query += ' | MF==3'
-#            for chunk in self.loc[mat].query(query).DATA:
-#                if not chunk: continue
-#                key = "NUBAR" if chunk["MF"] == 1 else "XS"
-#                xs = chunk[key]
-#                duplicates = [x for x, count in Counter(xs.index).items() if count > 1]
-#                if duplicates:
-#                    sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(chunk["MAT"],chunk["MF"],chunk["MT"])+
-#                             '\n'.join(map(str,duplicates)))
-#                if chunk['INT'] != [2]:
-#                    sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(chunk["MAT"],chunk["MF"],chunk["MT"]))
-#                xsList.append(xs.to_frame())
-#        xs = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), xsList).sort_index().interpolate(method='slinear', axis=0).fillna(0)
-#        xs.columns.names = ["MAT", "MT"]
-#        return Xs(xs)
-#        from collections import Counter
-#        from functools import reduce
-#        xsList = []
-#        for mat in self.index.get_level_values('MAT').unique():
-#            query = "(MF==1 & (MT==452 | MT==455 | MT==456))"
-#            if self.DATA.loc[mat,1,451]['LRP'] == 2:
-#                query += ' | MF==3'
-#            for chunk in self.loc[mat].query(query).DATA:
-#                if not chunk: continue
-#                key = "NUBAR" if chunk["MF"] == 1 else "XS"
-#                xs = chunk[key]
-#                duplicates = [x for x, count in Counter(xs.index).items() if count > 1]
-#                if duplicates:
-#                    sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(chunk["MAT"],chunk["MF"],chunk["MT"])+
-#                             '\n'.join(map(str,duplicates)))
-#                if chunk['INT'] != [2]:
-#                    sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(chunk["MAT"],chunk["MF"],chunk["MT"]))
-#                xsList.append(xs.to_frame())
-#        xs = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), xsList).sort_index().interpolate(method='slinear', axis=0).fillna(0)
-#        xs.columns.names = ["MAT", "MT"]
-#        return Xs(xs)
 
     def get_edistr(self, listmat=None, listmt=None):
         """
@@ -455,66 +410,6 @@ class Endf6(pd.DataFrame):
             text = write(sec)
             tape.loc[mat,1,451].TEXT = text
         return Endf6(tape)
-
-
-#def write_mf5_mt(tapein):
-#    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
-#    for k,row in tapein.iterrows():
-#        tape.loc[k].DATA = deepcopy(row.DATA)
-#        tape.loc[k].TEXT = deepcopy(row.TEXT)
-#    for (mat,mf,mt),df in tape.loc[(slice(None),5),:].iterrows():
-#        TEXT = write_cont(df.DATA["ZA"], df.DATA["AWR"], 0, 0, len(df.DATA["SUB"]), 0)
-#        for sub in df.DATA["SUB"]:
-#            U = sub['U'] if 'U' in sub else 0
-#            TEXT += write_tab1(U, 0, 0, sub["LF"],
-#                               sub["NBT_P"], sub["INT_P"],
-#                               sub["P"].index, sub["P"])
-#            if sub["LF"] == 1:
-#                TEXT += write_tab2(0, 0, 0, 0,
-#                                   len(sub['EIN']),
-#                                   sub["NBT_EIN"], sub["INT_EIN"])
-#                for ein, distr in sorted(sub['EIN'].items()):
-#                    TEXT += write_tab1(0, ein, 0, 0,
-#                                       distr["NBT"], distr["INT"],
-#                                       distr["PDF"].index, distr["PDF"])
-#            elif sub["LF"] == 5:
-#                t = sub['Theta']
-#                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
-#                                   t.NBT, t.INT,
-#                                   t.x, t.y)
-#                t = sub['Tg']
-#                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
-#                                   t.NBT, t.INT,
-#                                   t.x, t.y)
-#            elif sub["LF"] in (7,9):
-#                t = sub['Theta']
-#                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
-#                                   t.NBT, t.INT,
-#                                   t.x, t.y)
-#            elif sub["LF"] == 11:
-#                t = sub['Ta']
-#                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
-#                                   t.NBT, t.INT,
-#                                   t.x, t.y)
-#                t = sub['Tb']
-#                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
-#                                   t.NBT, t.INT,
-#                                   t.x, t.y)
-#            elif sub["LF"] == 12:
-#                t = sub['TTm']
-#                TEXT += write_tab1(t.C1, t.C2, t.L1, t.L2,
-#                                   t.NBT, t.INT,
-#                                   t.x, t.y)
-#        TextOut = []; iline = 1
-#        for line in TEXT:
-#            if iline > 99999:
-#                iline = 1
-#            TextOut.append("{:<66}{:4}{:2}{:3}{:5}".format(line, mat, mf, mt, iline))
-#            iline += 1
-#        tape.at[(mat,mf,mt),'TEXT'] = "\n".join(TextOut) + '\n'
-#    return tape
-
-
 
 
 
@@ -675,14 +570,6 @@ def write_decay_data_csv(tape, filename):
     df['DEHP'] = df.DATA.apply(lambda x : x['DE'][2])
     df[['Z','A','M','HL','DHL','ELP','DELP','EEM','DEEM','EHP','DEHP']].to_csv(filename, index=False)
 
-
-#from sandy.data_test import __path__ as paths
-#tape = Endf6.from_file(os.path.join(paths[0], r"u235.endf")).process(keep_mf=[5]).get_chi()
-
-#for i in open("../../list5_jeff").read().splitlines():
-#    print("../../../../list5_jeff/"+i)
-#    tape = Endf6.from_file("../../../../list5_jeff/"+i).process(keep_mf=[5])
-#aaa=1
 
 @pytest.fixture(scope="module")
 def testPu9():
