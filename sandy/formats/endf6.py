@@ -429,14 +429,11 @@ class Endf6(pd.DataFrame):
         matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
         return XsCov(matrix, index=index, columns=index)
 
-    def update_dict(self):
+    def update_info(self):
         """
         Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
         """
-        tape = pd.DataFrame(index=self.index.copy(), columns=self.columns.copy())
-        for k,row in self.iterrows():
-            tape.loc[k].DATA = deepcopy(row.DATA)
-            tape.loc[k].TEXT = deepcopy(row.TEXT)
+        tape = self.copy()
         for mat in sorted(tape.index.get_level_values('MAT').unique()):
             chunk = tape.DATA.loc[mat,1,451]
             records = pd.DataFrame(chunk["RECORDS"],
@@ -830,4 +827,12 @@ def test_extract_chi(testPu9):
 @pytest.mark.xs
 @pytest.mark.cov
 def test_extract_xs_cov(testPu9):
+    testPu9.get_xs_cov()
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.info
+def test_update_info(testPu9):
+    assert False
+    testPu9.loc[9437,3,1].TEXT = testPu9.loc[9437,3,1].TEXT
     testPu9.get_xs_cov()

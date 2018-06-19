@@ -6,16 +6,17 @@ Created on Mon Mar 19 22:51:03 2018
 """
 
 import pandas as pd
-import sandy.formats.endf6 as e6
+#import sandy.formats.endf6 as e6
 from sandy import settings
-from sandy.sampling.cov import Cov
+#from sandy.sampling.cov import Cov
 import numpy as np
-import sys, os, time, shutil, re, platform
+import sys, os, time, shutil, re, platform, pdb
 import multiprocessing as mp
-from copy import deepcopy
-import matplotlib.pyplot as plt
-from sandy.tests import TimeDecorator
-from sandy.formats.errorr import Errorr
+#from copy import deepcopy
+#import matplotlib.pyplot as plt
+#from sandy.tests import TimeDecorator
+#from sandy.formats.errorr import Errorr
+import pytest
 
 
 #To produce correlation matrix
@@ -212,3 +213,28 @@ def run(iargs=None):
     print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
 
 
+
+@pytest.mark.sampling
+@pytest.mark.xs
+def test_sample_xs():
+    # Test utils.Xs methods "get_samples", "perturb" and "update"
+    from ..data_test import H1
+    from ..formats import Errorr, Endf6
+    from random import randint
+    errtape = Errorr.from_text("\n".join(H1.errorr))
+    pendftape = Endf6.from_text("\n".join(H1.pendf))
+    nsmp = 1000
+    perts = errtape.get_xs_cov(listmt=[102]).get_samples(nsmp, eig=10)
+    xs = pendftape.get_xs()
+    ismp = randint(1, nsmp);
+    pert = perts[ismp]
+    pxs = xs.perturb(pert)
+    newtape = pendftape.update_xs(pxs)
+    assert perts.shape[1] == nsmp
+    mat = 125; mt = 102
+    ratio = pxs/xs.values
+    mask1 = np.in1d(ratio[mat,mt].index, pert[mat,mt].index)
+    mask2 = np.in1d(pert[mat,mt].index, ratio[mat,mt].index)
+    assert np.isclose(ratio[mat,mt].values[mask1], pert[mat,mt].values[mask2]).all()
+    assert newtape.loc[125,3,102].TEXT != pendftape.loc[125,3,102].TEXT
+    assert newtape.loc[125,3,2].TEXT == pendftape.loc[125,3,2].TEXT
