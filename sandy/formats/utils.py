@@ -82,8 +82,7 @@ class Xs(pd.DataFrame):
 #            Xs = Xs.reindex(Xs.index.union(kwargs["energy_point"])).interpolate(method="slinear").fillna(0)
 #        Xs.index.name = indexName
         for mat, mt in frame:
-            if mat not in pert.index.get_level_values("MAT").unique():
-                continue
+            if mat not in pert.index.get_level_values("MAT").unique(): continue
             lmtp = pert.loc[mat].index.get_level_values("MT").unique()
             mtPert = None
             if mt in lmtp:
@@ -93,8 +92,7 @@ class Xs(pd.DataFrame):
                     if mt in daughters and not list(filter(lambda x: x in lmtp, daughters)) and parent in lmtp:
                         mtPert = parent
                         break
-            if not mtPert:
-                continue
+            if not mtPert: continue
             P = pert.loc[mat,mtPert]
             P = P.reindex(P.index.union(frame[mat,mt].index)).ffill().fillna(1).reindex(frame[mat,mt].index)
             frame[mat,mt] = frame[mat,mt].multiply(P, axis="index")
@@ -103,13 +101,33 @@ class Xs(pd.DataFrame):
         return Xs(frame).reconstruct_sums()
 
 
-
 class XsCov(pd.DataFrame):
     """
     columns =  (MATi,MTj) ... (MATm,MTn)
     index = E1, E2, ..., El
     """
-    pass
+
+    def to_matrix(self):
+        return self.index, Cov(self.values)
+
+    def get_samples(self, nsmp, **kwargs):
+        from ..functions import div0
+        index, cov = self.to_matrix()
+        frame = pd.DataFrame(cov.sampling(nsmp) + 1, index=index, columns=range(1,nsmp+1))
+        frame.columns.name = 'SMP'
+        if "eig" in kwargs:
+            if kwargs["eig"] > 0:
+                eigs = cov.eig()[0]
+                idxs = np.abs(eigs).argsort()[::-1]
+                dim = min(len(eigs), kwargs["eig"])
+                eigs_smp = Cov(np.cov(frame.values)).eig()[0]
+                idxs_smp = np.abs(eigs_smp).argsort()[::-1]
+                print("MF[31,33] eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
+                diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
+                E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
+                print("\n".join(E))
+        return frame
+
 
 
 def triu_matrix(arr, size):
