@@ -1,6 +1,6 @@
 language: python
 before_script:
-  - sudo apt-get install gfortran 
+  - sudo apt-get install gfortran
 python:
   - "3.6"
 # command to install dependencies
