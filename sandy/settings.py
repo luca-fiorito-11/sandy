@@ -223,3 +223,16 @@ def init_sampling(iargs=None):
                         help="SANDY's version.")
     args = parser.parse_known_args(args=iargs)[0]
     return args
+
+
+def init_ri(iargs=None):
+    parser = argparse.ArgumentParser(description=None)
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--pendf',
+                       type=lambda x: is_valid_file(parser, x),
+                       help="PENDF file.")
+    group.add_argument('--errorr',
+                       type=lambda x: is_valid_file(parser, x),
+                       help="ERRORR file.")
+    args = parser.parse_known_args(args=iargs)[0]
+    return args
