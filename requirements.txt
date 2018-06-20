@@ -1,0 +1,6 @@
+numpy
+scipy
+matplotlib
+pytest >= 3.3
+bokeh >= 0.12.10
+pandas >= 0.20

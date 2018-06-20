@@ -1,0 +1,16 @@
+language: python
+addons:
+  apt:
+    packages:
+      - gfortran
+script:
+  - make
+python:
+  - "3.6"
+# command to install dependencies
+install:
+  - pip install -r requirements.txt
+  - python setup.py install
+# command to run tests
+script:
+  - test $TRAVIS_BRANCH = "devel" && pytest -s  -v --basetemp=sandy_tests -m "not slow"
