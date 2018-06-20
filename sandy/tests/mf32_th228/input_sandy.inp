@@ -1,4 +1,0 @@
-endf : Th228.dat
-mf : [32]
-samples : 1000
-mode : sampling
