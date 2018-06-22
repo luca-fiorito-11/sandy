@@ -51,7 +51,7 @@ def read_info(text):
     out["A"] = int(out["ZA"]-out["Z"]*1000)
     out["SYM"] = elements["SYM"].to_dict()[out["Z"]]
     out["M"] = metastates["META"].to_dict()[out["LISO"]]
-    out["NAME"] = "{}-{}-{}{}".format(out["Z"], out["SYM"], out["A"], out["M"])
+    out["TAG"] = "{}-{}-{}{}".format(out["Z"], out["SYM"], out["A"], out["M"])
     TEXT = []
     for j in range(out["NWD"]):
         T, i = read_text(str_list, i)

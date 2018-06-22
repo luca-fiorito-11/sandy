@@ -5,21 +5,27 @@ Created on Thu Jan 12 11:10:49 2017
 @author: lfiorito
 """
 import numpy as np
-import logging
+import os
 
+def force_symlink(file1, file2):
+    try:
+        os.symlink(file1, file2)
+    except FileExistsError:
+        os.remove(file2)
+        os.symlink(file1, file2)
 
 def zero_interp(xx_old, arr, xx_new):
     """
     Reshape array on its first dimension by using zero interpolation.
-    If some x-values of the new grid exceed the bounds of the old grid, set 
+    If some x-values of the new grid exceed the bounds of the old grid, set
     the corresponing interpolated array to zero in those positions.
-    
+
     Inputs:
         - xx_old :
             old array of tabulated x-values.
         - xx_new :
             new array of tabulated x-values.
-    
+
     Outputs:
         - arr_new :
             array reshaped according to xx_new.
@@ -34,15 +40,15 @@ def zero_interp(xx_old, arr, xx_new):
 def zero_interp_1d(xx_old, arr, xx_new):
     """
     Reshape array on its first dimension by using zero interpolation.
-    If some x-values of the new grid exceed the bounds of the old grid, set 
+    If some x-values of the new grid exceed the bounds of the old grid, set
     the corresponing interpolated array to zero in those positions.
-    
+
     Inputs:
         - xx_old :
             old array of tabulated x-values.
         - xx_new :
             new array of tabulated x-values.
-    
+
     Outputs:
         - arr_new :
             array reshaped according to xx_new.
@@ -65,15 +71,15 @@ def zero_interp_1d(xx_old, arr, xx_new):
 def zero_interp_2d(xx_old, arr, xx_new):
     """
     Reshape array on its first dimension by using zero interpolation.
-    If some x-values of the new grid exceed the bounds of the old grid, set 
+    If some x-values of the new grid exceed the bounds of the old grid, set
     the corresponing interpolated array to zero in those positions.
-    
+
     Inputs:
         - xx_old :
             old array of tabulated x-values.
         - xx_new :
             new array of tabulated x-values.
-    
+
     Outputs:
         - arr_new :
             array reshaped according to xx_new.
@@ -98,7 +104,7 @@ def zero_interp_2d(xx_old, arr, xx_new):
 def div0( a, b , value=0):
     """
     Ignore division by zero.
-    
+
     Inputs:
         - a :
             (array or scalar) numerator
@@ -106,13 +112,13 @@ def div0( a, b , value=0):
             (array or scalar) denominator
         - value :
             (scalar) standard replacer when division by zero is found (default is zero)
-    
+
     Outputs:
         - c :
             (array or scalar) a/b
-    
+
     ..Example::
-        
+
         div0( [-1, 0, 1], 0 ) -> [0, 0, 0]
     """
     with np.errstate(divide='ignore', invalid='ignore'):
@@ -127,7 +133,7 @@ def div0( a, b , value=0):
 def log10( x, value=0):
     """
     Ignore division by zero.
-    
+
     Inputs:
         - a :
             numerator
@@ -135,12 +141,12 @@ def log10( x, value=0):
             denominator
         - value :
             standard replacer when division by zero is found
-    
+
     Outputs:
         - c: a/b
-    
+
     ..Example::
-        
+
         div0( [-1, 0, 1], 0 ) -> [0, 0, 0]
     """
     with np.errstate(divide='ignore', invalid='ignore'):
@@ -153,7 +159,7 @@ def split_by_n( seq, n ):
     Description
     ===========
     A generator to divide a sequence into chunks of n units.
-    
+
     Inputs
     ======
      - *seq*: sequence to be divided;
@@ -162,7 +168,7 @@ def split_by_n( seq, n ):
     while seq:
         yield seq[:n]
         seq = seq[n:]
-    
+
 
 def isnum(item, rais=True):
     """
@@ -178,7 +184,7 @@ def isnum(item, rais=True):
         else:
             return False
 
-def printProgress (iteration, total, prefix = '', suffix = '', 
+def printProgress (iteration, total, prefix = '', suffix = '',
                    decimals = 1, barLength = 100):
     """
     Call in a loop to create terminal progress bar
@@ -206,7 +212,7 @@ def printProgress (iteration, total, prefix = '', suffix = '',
 def union_grid(*xgrids):
     """
     Return union grid from a list of grids.
-    
+
     Inputs:
         - :``xgrids``: :
             (list) input grids
@@ -236,7 +242,7 @@ def find_nearest(my_array, my_value, opt='below'):
 def contains(item, xmin, xmax):
     r"""
     Check if item is included in a given domain.
-    
+
     Inputs:
         - item :
             (scalar or iterable) x-value(s) to check
@@ -244,10 +250,10 @@ def contains(item, xmin, xmax):
             (scalar) lower bound of the domain
         - xmax :
             (scalar) upper bound of the domain
-    
+
     Outputs:
         - mask:
-            (boolean array/scalar) True if item is included, otherwise False 
+            (boolean array/scalar) True if item is included, otherwise False
     """
     if xmin > xmax:
         raise ValueError("Lower bound 'xmin' must be smaller than upper bound 'xmax'")

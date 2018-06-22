@@ -7,6 +7,7 @@ Created on Fri May 25 16:58:11 2018
 import pandas as pd
 import os, sys, time, pdb, shutil, re
 
+
 sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [42,125,0,8,221,'tol'],
                                   [59,1425,0,1,221,'si'],
@@ -131,9 +132,6 @@ class Njoy:
 #        self.evaluationName = os.path.basename(self.wdir)
         self.processes = None
         self.capsys = False
-        self.NjoyExec = "njoy2016"
-        self.wdir = os.getcwd()
-        self.evaluationName = os.path.abspath("lib")
         self.iwt = 4
         self.legendre = 1
         self.legendregg = 6
@@ -151,35 +149,43 @@ class Njoy:
         self.jp1 = 0
         self.iverw = 4
         # General options
-        self.iprint = 1  # by default set verbosity to max
-        self.temps = [293.6]
+        self.BROADR = True
+        self.THERMR = True
+        self.HEATR = False
+        self.UNRESR = False
+        self.PURR = True
+        self.EXEC = "njoy2016"
+        self.WDIR = os.getcwd()
+        self.FOLDER = os.path.abspath("lib")
+        self.IPRINT = 1  # by default set verbosity to max
+        self.TEMPS = [293.6]
         # RECONR/BROADR default options
-        self.err = 0.005
+        self.ERR = 0.005
         # PURR/UNRESR default options
-        self.sig0 = [1e10] # default is infinite dilution only
+        self.SIG0 = [1e10] # default is infinite dilution only
         # THERMR default options
-        self.iin = 1
-        self.icoh = 1
-        self.iform = 0
-        self.natom = 1
-        self.mtref = 221
+        self.IIN = 1
+        self.ICOH = 1
+        self.IFORM = 0
+        self.NATOM = 1
+        self.MTREF = 221
         # ACER default options
-        self.suffixes = [".03"]
-        self.newfor = 1
-        self.iopp = 1
-        self.hk = ''
+        self.SUFFIXES = [".03"]
+        self.NEWFOR = 1
+        self.IOPP = 1
+        self.HK = ''
         # GROUPR default options
-        self.ign = 2 # neutron group structure for GROUPR
-        self.igg = 0
-        self.iwt = 6
-        self.lord = 1
-        self.nstr = None
-        self.gstr = None
+        self.IGN = 2 # neutron group structure for GROUPR
+        self.IGG = 0
+        self.IWT = 6
+        self.LORD = 1
+        self.NSTR = None
+        self.GSTR = None
         # ERRORR default options
-        self.igne = 2 # neutron group structure for ERRORR
-        self.iwte = 6
-        self.irelco = 1
-        self.irespr = 1
+        self.IGNE = 2 # neutron group structure for ERRORR
+        self.IWTE = 6
+        self.IRELCO = 1
+        self.IRESPR = 1
         # SKIP modules
         self.no_thermr = False
         self.no_broadr = False
@@ -191,7 +197,7 @@ class Njoy:
         self.run_errorr = False
         self.__dict__.update(kwargs)
         # Run checks
-        if len(self.temps)> 10: raise NotImplementedError("cannot have more than 10 temperatures")
+        if len(self.TEMPS)> 10: raise NotImplementedError("cannot have more than 10 temperatures")
 
 
 
@@ -208,8 +214,8 @@ class Njoy:
             stderr = stdout = PIPE
         else:
             stderr = stdout = None
-        process = Popen(self.NjoyExec,
-                        shell=True,
+        process = Popen(self.EXEC,
+                        shell=False,
                         cwd=cwd,
                         stdin=PIPE,
                         stdout=stdout,
@@ -236,131 +242,147 @@ class Njoy:
         if process.returncode not in [0, 24]:
             raise NotImplementedError("exit status {} when running \"{}\"".format(process.returncode, command))
 
-    def pendf(self, **fileOptions):
-        kwargs = dict(self.__dict__, **fileOptions)
-        print(" --- run pendf for " + kwargs["hmat"] + " ---")
-        if not os.path.isfile(os.path.expandvars(kwargs["endfFile"])): raise NotImplementedError("evaluation file " + kwargs["endfFile"] + " not found")
-        mydir = os.path.join(kwargs["evaluationName"], kwargs["filename"])
-        os.makedirs(mydir, exist_ok=True)
-        kwargs["nbDil"] = len(kwargs["sig0"])
-        kwargs["textDil"] = " ".join(["%E"%dil for dil in kwargs["sig0"]])
-        kwargs["nbTmp"] = len(kwargs["temps"])
-        kwargs["textTmp"] = " ".join(["%E"%tmp for tmp in kwargs["temps"]])
-        kwargs["htime"] = time.ctime(time.time())
-        text_bash = """ln -sf %(endfFile)s tape20\n""" % kwargs
-        text_data = """#!/bin/bash
-set -e
-cat > input_pendf.%(hmat)s << EOF
+    @staticmethod
+    def moder_input(tapein, tapeout, **kwargs):
+        text = """
 moder
-20 -21
-""" % kwargs
-        kwargs["tapeEndf"] = -21
+{} {}
+""".format(tapein, tapeout)
+        return text
 
-        # RECONR
-        if kwargs["no_reconr"]:
-            text_bash += "ln -sf %(pendfFile)s tape30\n" % kwargs
-            text_data += """
-moder
-30 -22
-""" % kwargs
-        else:
-            text_data += """
---
--- *********************************************************
+    @staticmethod
+    def reconr_input(endfin, pendfout, **kwargs):
+        kwargs.update({"ENDFIN" : endfin, "PENDFOUT" : pendfout})
+        text = """--
+-- *****************************************
 -- Reconstruct XS from resonance parameters
--- *********************************************************
+-- *****************************************
 --
 reconr
--21 -22
-'pendf tape from %(evaluationName)s'/
-%(mat)d 1 0/
-%(err)E  0.  %(err)E/
-'%(hmat)s from %(evaluationName)s at %(htime)s' /
+%(ENDFIN)d %(PENDFOUT)d
+'pendf tape from '/
+%(MAT)d 1 0/
+%(ERR)E  0.  %(ERR)E/
+'%(TAG)s with NJOY at %(TIME)s' /
 0/
 """ % kwargs
-        kwargs["tapePendf"] = -22
+        return text
 
-        # BROADR (OPTIONAL)
-        if not kwargs["no_broadr"]:
-            text_data += """
---
--- *********************************************************
+    @staticmethod
+    def broadr_input(endfin, pendfin, pendfout, **kwargs):
+        kwargs.update({"ENDFIN" : endfin, "PENDFIN" : pendfin, "PENDFOUT" : pendfout})
+        text = """--
+-- *****************************************
 -- Perform Doppler-broadening
--- *********************************************************
+-- *****************************************
 --
 broadr
-%(tapeEndf)d %(tapePendf)d -23
-%(mat)d %(nbTmp)d 0 0 0./
-%(err)E %(thnmax)E %(err)E/
-%(textTmp)s/
+%(ENDFIN)d %(PENDFIN)d %(PENDFOUT)d
+%(MAT)d %(NTEMPS)d 0 0 0./
+%(ERR)E %(THNMAX)E %(ERR)E/
+%(TEXTTEMPS)s/
 0/
 """ % kwargs
-            kwargs["tapePendf"] = -23
+        return text
 
-        # THERMR (OPTIONAL)
-        if not kwargs["no_thermr"]:
-            if self.scatteringLaw:
-                text_data += """
-moder
-26 -27
---
--- *********************************************************
--- Add thermal scattering data
--- *********************************************************
---
-thermr
--27 -23 -25
-%(matLaw)d %(mat)d 32 %(nbTmp)d %(typeLaw)d %(elasOpt)d %(iform)d %(nbAtoms)d %(matsab_inc)d 0/
-%(textTmp)s/
-0.001 4.0
-""" % kwargs
-            else:
-                text_data += """
---
--- *********************************************************
+    @staticmethod
+    def thermr_input(endfin, pendfin, pendfout, **kwargs):
+        kwargs.update({"ENDFIN" : endfin, "PENDFIN" : pendfin, "PENDFOUT" : pendfout})
+        text = """--
+-- *****************************************
 -- Add thermal scattering data for free-gas
--- *********************************************************
+-- *****************************************
 --
 thermr
-0 %(tapePendf)d -24
-0 %(mat)d 20 %(nbTmp)d %(iin)d %(icoh)d %(iform)d %(natom)d 221 %(iprint)d
-%(textTmp)s/
+%(ENDFIN)d %(PENDFIN)d %(PENDFOUT)d
+0 %(MAT)d 20 %(NTEMPS)d %(IIN)d %(ICOH)d %(IFORM)d %(NATOM)d 221 %(IPRINT)d
+%(TEXTTEMPS)s/
 0.001 4.0
 """ % kwargs
-                kwargs["tapePendf"] = -24
+        return text
 
-        # PURR(OPTIONAL)
-        if not kwargs["no_purr"]:
-            text_data += """
+    @staticmethod
+    def purr_input(endfin, pendfin, pendfout, **kwargs):
+        kwargs.update({"ENDFIN" : endfin, "PENDFIN" : pendfin, "PENDFOUT" : pendfout})
+        text = """
 purr
-%(tapeEndf)d %(tapePendf)d -25
-%(mat)d %(nbTmp)d %(nbDil)d 20 32/
-%(textTmp)s/
-%(textDil)s/
+%(ENDFIN)d %(PENDFIN)d %(PENDFOUT)d
+%(MAT)d %(NTEMPS)d %(NSIG0)d 20 32/
+%(TEXTTEMPS)s/
+%(TEXTSIG0)s/
 0/
 """ % kwargs
-            kwargs["tapePendf"] = -25
+        return text
 
-        # UNRESR (OPTIONAL)
-        if kwargs["unresr"]:
-            text_data += """
+    @staticmethod
+    def unresr_input(endfin, pendfin, pendfout, **kwargs):
+        kwargs.update({"ENDFIN" : endfin, "PENDFIN" : pendfin, "PENDFOUT" : pendfout})
+        text = """
 unresr
-%(tapeEndf)d %(tapePendf)d -26
-%(mat)d %(nbTmp)d %(nbDil)d 1/
-%(textTmp)s/
-%(textDil)s/
+%(ENDFIN)d %(PENDFIN)d %(PENDFOUT)d
+%(MAT)d %(NTEMPS)d %(NSIG0)d 1/
+%(TEXTTEMPS)s/
+%(TEXTSIG0)s/
 0/
 """ % kwargs
-            kwargs["tapePendf"] = -26
+        return text
 
 
-        text_data += """
-moder
-%(tapePendf)d 29
-stop
-EOF
+    def pendf(self, **fileOptions):
+        from ..functions import force_symlink
+        kwargs = dict(self.__dict__, **fileOptions)
+        print(" --- run pendf for {} ---".format(kwargs["TAG"]))
+        if not os.path.isfile(kwargs["TAPE"]): raise NotImplementedError("evaluation file {} not found".format(kwargs["TAPE"]))
+        mydir = os.path.join(kwargs["FOLDER"], kwargs["FILENAME"])
+        os.makedirs(mydir, exist_ok=True)
+        kwargs["NSIG0"] = len(kwargs["SIG0"])
+        kwargs["TEXTSIG0"] = " ".join(["%E"%dil for dil in kwargs["SIG0"]])
+        kwargs["NTEMPS"] = len(kwargs["TEMPS"])
+        kwargs["TEXTTEMPS"] = " ".join(["%E"%tmp for tmp in kwargs["TEMPS"]])
+        kwargs["TIME"] = time.ctime(time.time())
+        text_bash = "" #"""ln -sf %(endfFile)s tape20\n""" % kwargs
+#        text_data = """#!/bin/bash
+#set -e
+#cat > input_pendf.%(hmat)s << EOF
+#moder
+#20 -21
+#""" % kwargs
 
-""" % kwargs
+
+        force_symlink(kwargs["TAPE"], os.path.join(mydir, "tape20"))
+        text = self.moder_input(20, -21, **kwargs)
+        if "PENDF" in kwargs:
+#            text_bash += "ln -sf %(pendfFile)s tape30\n" % kwargs
+            text += self.moder_input(30, -22, **kwargs)
+        text += self.reconr_input(-21, -22, **kwargs)
+        e = -21; p = -22
+        if kwargs["BROADR"]:
+            text += self.broadr_input(e, p, -23, **kwargs)
+            p = -23
+        if kwargs["THERMR"]:
+            text += self.thermr_input(0, p, -24, **kwargs)
+            p = -24
+        if kwargs["UNRESR"]:
+            text += self.unresr_input(e, p, -25, **kwargs)
+            p = -25
+        if kwargs["PURR"]:
+            text += self.purr_input(e, p, -26, **kwargs)
+            p = -26
+        text += self.moder_input(p, 29, **kwargs)
+        text += "stop"
+
+        inputfile = os.path.join(mydir, "input_pendf_{}".format(kwargs["TAG"]))
+        with open(inputfile,'w') as f: f.write(text)
+        self.runNjoy(inputfile, mydir)
+        oldpendf = os.path.join(mydir, "tape29")
+        newpendf = os.path.join(mydir, "{}.pendf".format(kwargs["TAG"]))
+        if os.path.isfile(oldpendf):
+            if os.path.getsize(oldpendf) > 0:
+                shutil.move(oldpendf, newpendf)
+        shutil.move(os.path.join(mydir, "output"), os.path.join(mydir, "output_pendf.{}".format(kwargs["TAG"])))
+        for filename in os.listdir(mydir):
+            if filename[:4] == 'tape': os.remove(os.path.join(mydir, filename))
+        return newpendf
         text_bash += """
 %(NjoyExec)s < input_pendf.%(hmat)s
 mv output output_pendf.%(hmat)s
@@ -573,7 +595,7 @@ rm -f tape*
                 with open(xsdirfile, 'w') as f:
                     f.write(" ".join(xargs))
 
-    def run_modules(self, **fileOptions):
+    def run(self, **fileOptions):
         fileOptions["pendfFile"] = self.pendf(**fileOptions)
         if self.run_acer:
             self.acer(**fileOptions)
@@ -613,7 +635,7 @@ class evalLib(pd.DataFrame):
         import multiprocessing as mp
         nj = Njoy(**njoyOptions)
         pool = mp.Pool(processes=nj.processes)
-        outs = [pool.apply_async(nj.run_modules, kwds = {**row.to_dict()}) for i,row in self.iterrows()]
+        outs = [pool.apply_async(nj.run, kwds = {**row.to_dict()}) for i,row in self.iterrows()]
         outs = list(map(lambda x:x.get(), outs))
         if nj.run_acer:
             xsdirFiles = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(nj.evaluationName)) for f in fn if f.endswith(".xsdir")]
@@ -628,16 +650,18 @@ class evalLib(pd.DataFrame):
 
 
 def process_lib():
-    from sandy import settings
+    from .. import settings
     inputs = settings.init_njoy()
     evalLib.from_file(inputs["inputfile"]).run_njoy(**inputs)
 
-
-def process_RI(inputfile):
-    from sandy.formats.errorr import Errorr
-    List = []
-    for file in open(inputfile).read().splitlines():
-        toadd = Errorr.from_file(file).process().get_std().iloc[0].unstack("DATA")
-        List.append(toadd)
-    frame = pd.concat(List).query("MT==1|MT==2|MT==18|MT==102")
+if __name__ == "__main__":
+#    from sandy.njoy import parser
+#    init = settings.init_njoy()
+    from ..formats import Endf6
+    from ..data_test import H1
+    nj = Njoy(BROADR=False, THERMR=False, PURR=False, UNRESR=True)
+    tape = Endf6.from_file(os.path.join(H1.__path__[0], r"h1.endf"))
+    tape.parse()
+    pendf = nj.pendf(**tape.__dict__)
     pdb.set_trace()
+#    evalLib.from_file(inputs["inputfile"]).run_njoy(inputs)

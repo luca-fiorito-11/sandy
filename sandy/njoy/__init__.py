@@ -1,1 +1,1 @@
-from sandy.njoy import *
+#from .njoy import *
