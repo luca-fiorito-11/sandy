@@ -7,7 +7,7 @@ Created on Thu Jun 14 09:19:24 2018
 
 import pandas as pd
 import numpy as np
-import logging
+import logging, pdb
 
 
 class Section(dict):
@@ -77,6 +77,41 @@ class Xs(pd.DataFrame):
             frame[mat,mt][frame[mat,mt] <= 0] = 0
         return Xs(frame).reconstruct_sums()
 
+    def macs(self, E0=0.0253, Elo=1E-5, Ehi=1E1):
+        """
+        Calculate Maxwellian averaged cross sections.
+        """
+        from math import sqrt, pi
+        from ..integrals.macs import maxw_int, maxw_xs_int
+        # add points to the index
+        index = set(self.index.values)
+        index.update([Elo, Ehi])
+        index = np.array(sorted(index))
+        index = index[(index >= Elo) & (index <= Ehi)]
+        xs = self.reindex(index).interpolate(method='slinear', axis=0).fillna(0)
+        data = [[E0,
+                 xs.index[i],
+                 xs.index[i+1],
+                 maxw_int(E0, xs.index[i], xs.index[i+1])
+                 ] for i in range(len(xs)-1)]
+        dframe = pd.DataFrame(data, columns=["E0", "E1", "E2", "INT"])
+        cond = dframe.E1/E0 >= 1e-5
+        records = []
+        for (mat,mt),x in xs.items():
+            data = [[E0,
+                     x.index[i],
+                     x.iloc[i],
+                     x.index[i+1],
+                     x.iloc[i+1],
+                     maxw_xs_int(E0, x.index[i], x.iloc[i], x.index[i+1], x.iloc[i+1])
+                     ] for i in range(len(x)-1)]
+            nframe = pd.DataFrame(data, columns=["E0", "E1", "S1", "E2", "S2", "INT"])
+            N = nframe[cond].INT.sum(); D = dframe[cond].INT.sum()
+            I = N / D * (2/sqrt(pi))
+            skipped = "{}/{}".format(sum(cond==False), len(dframe))
+            records.append([mat, mt, I, D, Elo, Ehi, E0, skipped])
+        return pd.DataFrame(records, columns=["MAT", "MT", "MACS", "FLUX", "Elo", "Ehi", "E0","SKIPPED"])
+
 
 class XsCov(pd.DataFrame):
     """
@@ -104,6 +139,31 @@ class XsCov(pd.DataFrame):
                 E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
                 print("\n".join(E))
         return frame
+
+    def macs(self, E0=0.0253, Elo=1E-5, Ehi=1E1):
+        from ..integrals.macs import maxw_int
+        records = []
+        for (mat,mt),sec in self.groupby(["MAT","MT"]):
+            C = sec[mat,mt].loc[mat,mt]
+            E = set(C.index.values)
+            E.update([Elo, Ehi])
+            E = np.array(sorted(E))
+            E = E[(E >= Elo) & (E <= Ehi)]
+            C = C.reindex(E).ffill().fillna(0).T.reindex(E).ffill().fillna(0)
+            data = [[E0,
+                     E[i],
+                     E[i+1],
+                     maxw_int(E0, E[i], E[i+1])
+                     ] for i in range(len(E)-1)]
+            dframe = pd.DataFrame(data, columns=["E0", "E1", "E2", "INT"])
+            cond = dframe.E1/E0 >= 1e-5
+            D = dframe[cond].INT.sum()
+            S = dframe[cond].INT / D
+            rvar = S.dot(C.values[:-1,:-1][cond][:,cond].dot(S))
+            rstd = np.sqrt(rvar)
+            skipped = "{}/{}".format(sum(cond==False), len(dframe))
+            records.append([mat, mt, rvar, rstd, D, Elo, Ehi, E0, skipped])
+        return pd.DataFrame.from_records(records, columns=["MAT", "MT", "VAR", "STD", "FLUX", "Elo", "Ehi", "E0","SKIPPED"])
 
 
 

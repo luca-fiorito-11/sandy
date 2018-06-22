@@ -227,12 +227,21 @@ def init_sampling(iargs=None):
 
 def init_ri(iargs=None):
     parser = argparse.ArgumentParser(description=None)
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--pendf',
+    parser.add_argument('--pendf',
                        type=lambda x: is_valid_file(parser, x),
                        help="PENDF file.")
-    group.add_argument('--errorr',
+    parser.add_argument('--errorr',
                        type=lambda x: is_valid_file(parser, x),
                        help="ERRORR file.")
+    parser.add_argument('--kT',
+                        type=float,
+                        default=[0.0253],
+                        nargs='+',
+                        help="Maxwellian temperature kT in eV (default=[0.0253]).")
+    parser.add_argument('-mt','--listmt',
+                        type=int,
+                        default=[1,2,18,102],
+                        nargs='+',
+                        help="List of MT sections (default=[1,2,18,102]).")
     args = parser.parse_known_args(args=iargs)[0]
     return args
