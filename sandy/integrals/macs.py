@@ -60,7 +60,7 @@ def macs(iargs=None):
     from ..formats import Endf6, Errorr
     from .. import settings
     MACS = None; MACS_UNC = None
-    init = settings.init_ri(iargs)
+    init = settings.init_macs(iargs)
     if init.pendf is not None:
         xs = Endf6.from_file(init.pendf).get_xs(listmt=init.listmt)
         MACS = pd.concat([xs.macs(E0=kT) for kT in init.kT]).reset_index(drop=True)
