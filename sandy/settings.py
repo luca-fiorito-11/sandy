@@ -225,7 +225,7 @@ def init_sampling(iargs=None):
     return args
 
 
-def init_ri(iargs=None):
+def init_macs(iargs=None):
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('--pendf',
                        type=lambda x: is_valid_file(parser, x),
