@@ -4,12 +4,11 @@ Created on Mon Jan 16 18:03:13 2017
 
 @author: lfiorito
 """
-import sys, time, pdb, os, re, pytest
+import sys, pdb, os, pytest
 import numpy as np
 import pandas as pd
 from copy import deepcopy
 from warnings import warn
-from ..tests import TimeDecorator
 
 
 #def split_endf(text):
@@ -67,7 +66,10 @@ class Endf6(pd.DataFrame):
         Read ENDF-6 formatted file and call from_text method.
         """
         with open(file) as f: text = f.read()
-        return cls.from_text(text)
+        out = cls.from_text(text)
+        out.TAPE = os.path.abspath(os.path.realpath(os.path.expandvars(file)))
+        out.FILENAME = os.path.basename(out.TAPE)
+        return out
 
     @classmethod
     def from_text(cls, text):
@@ -411,6 +413,18 @@ class Endf6(pd.DataFrame):
             tape.loc[mat,1,451].TEXT = text
         return Endf6(tape)
 
+    def parse(self):
+        mats = self.index.get_level_values("MAT").unique()
+        if len(mats) > 1:
+            raise NotImplementedError("file contains more than 1 MAT")
+        self.mat = self.endf = mats[0]
+        if hasattr(self, "tape"):
+            self.filename = os.path.basename(self.tape)
+        INFO = self.read_section(mats[0], 1 ,451)
+        del INFO["TEXT"], INFO["RECORDS"]
+        self.__dict__.update(**INFO)
+        self.EHRES = 0
+        self.THNMAX = - self.EHRES if self.EHRES != 0 else 2.0E6
 
 
 

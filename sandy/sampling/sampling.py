@@ -207,7 +207,7 @@ def sampling_mp(ismp):
     mat = tape.index.get_level_values("MAT")[0]
     info = tape.read_section(mat, 1, 451)
     lrp = info["LRP"]
-    name = info["NAME"]
+    name = info["TAG"]
     if lrp == 2:
         try:
             xs = tape.get_xs().perturb(PertXs[ismp])
@@ -253,7 +253,7 @@ def sampling(iargs=None):
     global tape
     for mat, tape in ftape.groupby('MAT'):
         tape = Endf6(tape)
-        name = tape.read_section(mat, 1, 451)["NAME"]
+        name = tape.read_section(mat, 1, 451)["TAG"]
 
         if init.processes == 1:
             outs = {i : sampling_mp(i) for i in range(1,init.samples+1)}
