@@ -4,8 +4,27 @@ Created on Wed Mar 21 15:21:37 2018
 
 @author: fiorito_l
 """
-import os, argparse
+import os, argparse, pdb, textwrap
 
+class EmptyIsConst(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if len(values) == 0:
+            string = option_string.lower()
+            if string == "--temps":
+                values = [293.6]
+            elif string == "--kerma":
+                values = [302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447]
+            elif string == "--sig0":
+                values = [1E10]
+        setattr(namespace, self.dest, values)
+
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 def is_valid_file(parser, arg, r=True, w=False, x=False):
     arg = os.path.abspath(os.path.realpath(os.path.normpath(arg)))
@@ -63,89 +82,142 @@ def init_plotter(iargs=None):
     args = parser.parse_known_args(args=iargs)[0]
     return vars(args)
 
-
-
 def init_njoy(iargs=None):
-    global args
-    parser = argparse.ArgumentParser(description='Run NJOY')
-    parser.add_argument('-i','--inputfile',
+    parser = argparse.ArgumentParser(description='Run NJOY', formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('tape',
                         type=lambda x: is_valid_file(parser, x),
-                        required=True,
-                        help="<Required> List of endf files to be processed (one file per line).")
-    parser.add_argument('--processes',
-                        type=int,
-                        default=1,
-                        help="Number of worker processes (default=1).")
-    parser.add_argument('--capsys',
-                        action="store_true",
-                        help="Capture NJOY stderr and stdout (default=False).")
-    parser.add_argument('--NjoyExec',
-                        default='njoy2016',
-                        help="NJOY executable (default=njoy2016).")
-    parser.add_argument('--evaluationName',
-                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
-                        default="lib",
-                        metavar="lib",
-                        help="Name of the evaluation.")
-    parser.add_argument('--iprint',
-                        type=int,
-                        choices=range(2),
-                        default=1,
-                        help="NJOY verbosity: 0=min, 1=max (default=1).")
-    parser.add_argument('--no-reconr',
-                        action="store_true",
-                        help="<Developer only> Skip RECONR module in the NJOY sequence.")
-    parser.add_argument('--no-broadr',
-                        action="store_true",
-                        help="Skip BROADR module in the NJOY sequence.")
-    parser.add_argument('--no-thermr',
-                        action="store_true",
-                        help="Skip THERMR module in the NJOY sequence.")
-    parser.add_argument('--no-purr',
-                        action="store_true",
-                        help="Skip PURR module in the NJOY sequence.")
+                        help="ENDF-6 format file.")
+    parser.add_argument('--broadr',
+                        type=str2bool,
+                        default=argparse.SUPPRESS,
+                        metavar=True,
+                        help=argparse.SUPPRESS)
+    parser.add_argument('--purr',
+                        type=str2bool,
+                        default=argparse.SUPPRESS,
+                        metavar=True,
+                        help=argparse.SUPPRESS)
     parser.add_argument('--unresr',
+                        type=str2bool,
+                        default=argparse.SUPPRESS,
+                        metavar=False,
+                        help=argparse.SUPPRESS)
+    parser.add_argument('--thermr',
+                        type=str2bool,
+                        default=argparse.SUPPRESS,
+                        metavar=True,
+                        help=argparse.SUPPRESS)
+    parser.add_argument('--heatr',
+                        type=str2bool,
+                        default=argparse.SUPPRESS,
+                        metavar=False,
+                        help=argparse.SUPPRESS)
+    parser.add_argument('--acer',
+                        type=str2bool,
+                        default=argparse.SUPPRESS,
+                        metavar=False,
+                        help=argparse.SUPPRESS)
+    parser.add_argument('-p','--pendf',
                         action="store_true",
-                        help="Replace PURR module with UNRESR in the NJOY sequence.")
-    parser.add_argument('--run-groupr',
+                        help="produce PENDF file")
+    parser.add_argument('-a','--ace',
                         action="store_true",
-                        help="Run GROUPR module in the NJOY sequence.")
-    parser.add_argument('--run-acer',
+                        help="produce ACE file")
+    parser.add_argument('-g','--gendf',
                         action="store_true",
-                        help="Run ACER module in the NJOY sequence.")
-    parser.add_argument('--run-errorr',
+                        help="produce GENDF file")
+    parser.add_argument('-e','--errorr',
                         action="store_true",
-                        help="Run ERRORR module in the NJOY sequence.")
+                        help="produce ERRORR file")
+#    parser.add_argument('--capsys',
+#                        action="store_true",
+#                        help="capture NJOY stderr and stdout (default=False)")
+#    parser.add_argument('--NjoyExec',
+#                        default='njoy2016',
+#                        help="NJOY executable (default=njoy2016).")
+#    parser.add_argument('--evaluationName',
+#                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
+#                        default=argparse.SUPPRESS,
+#                        metavar="lib",
+#                        help="Name of the evaluation.")
+#    parser.add_argument('--iprint',
+#                        type=int,
+#                        choices=range(2),
+#                        default=argparse.SUPPRESS,
+#                        help="NJOY verbosity: 0=min, 1=max (default=1).")
     parser.add_argument('--temps',
                         type=float,
-                        default = [293.6],
+                        default = argparse.SUPPRESS,
                         nargs='+',
-                        help="Temperature values (default=[293.6]).")
+                        help="list of temperature values")
     parser.add_argument('--sig0',
                         type=float,
-                        default=[1e10],
+                        default = argparse.SUPPRESS,
                         nargs='+',
-                        help="Sigma0 values (default=[1e10]).")
+                        help="list of dilution values")
+    parser.add_argument('--kerma',
+                        type=int,
+                        action=EmptyIsConst,
+                        default = argparse.SUPPRESS,
+                        nargs='*',
+                        help="partial kermas (default=None)")
+#    parser.add_argument('--qa',
+#                        default=[],
+#                        nargs='+',
+#                        help="MT number and associated user Q-value (default=None).")
     parser.add_argument('--err',
                         type=float,
-                        default=0.005,
-                        help="Fractional tolerance for RECONR and BROADR (default=0.005).")
+                        default=argparse.SUPPRESS,
+                        help="fractional tolerance for RECONR and BROADR (default=0.001)")
+    parser.add_argument('--free-gas',
+                        default=argparse.SUPPRESS,
+                        action="store_true",
+                        help="compute thermal cross section for free-gas scatterer (THERMR)")
+    parser.add_argument('--ptable',
+                        default=argparse.SUPPRESS,
+                        action="store_true",
+                        help="compute probability tables (PURR)")
+    parser.add_argument('--gaspr',
+                        default=argparse.SUPPRESS,
+                        action="store_true",
+                        help="compute gas-production cross sections (GASPR)")
     parser.add_argument('--ign',
-                        type=int,
-                        default=2,
-                        help="Neutron group structure option for GROUPR (default=2 : csewg 239-group structure).")
-    parser.add_argument('--igne',
-                        type=int,
-                        default=2,
-                        help="Neutron group structure option for ERRORR (default=2 : csewg 239-group structure).")
+                        default=argparse.SUPPRESS,
+                        help='''Neutron group structure option for GROUPR
+ file : read from file
+ - 2 : csewg 239-group structure [default]
+ - 3 : lanl 30-group structure
+ - 4 : anl 27-group structure
+ - 5 : rrd 50-group structure
+ - 6 : gam-i 68-group structure
+ - 7 : gam-ii 100-group structure
+ - 8 : laser-thermos 35-group structure
+ - 9 : epri-cpm 69-group structure
+ - 10 : lanl 187-group structure
+ - 11 : lanl 70-group structure
+ - 12 : sand-ii 620-group structure
+ - 13 : lanl 80-group structure
+ - 14 : eurlib 100-group structure
+ - 15 : sand-iia 640-group structure
+ - 16 : vitamin-e 174-group structure
+ - 17 : vitamin-j 175-group structure
+ - 19 : ecco 33-group structure
+ - 20 : ecco 1968-group structure
+ - 21 : tripoli 315-group structure
+ - 22 : xmas lwpc 172-group structure
+ - 23 : vit-j lwpc 175-group structure''')
     parser.add_argument('--iwt',
-                        type=int,
-                        default=6,
+                        default=argparse.SUPPRESS,
                         help="Weight function option for GROUPR (default=6 : Maxwellian - 1/E - fission - fusion).")
+    parser.add_argument('--igne',
+                        default=argparse.SUPPRESS,
+                        help="Neutron group structure option for ERRORR (default=2 : csewg 239-group structure).")
     parser.add_argument('--iwte',
-                        type=int,
-                        default=6,
+                        default=argparse.SUPPRESS,
                         help="Weight function option for ERRORR (default=6 : Maxwellian - 1/E - fission - fusion).")
+    parser.add_argument('--plot',
+                        action="store_true",
+                        help="Activate plotting capabilities.")
     parser.add_argument('--suffixes',
                         type=str,
                         default=[".03"],
@@ -157,8 +229,7 @@ def init_njoy(iargs=None):
                         version='%(prog)s 1.0',
                         help="")
     args = parser.parse_args()
-    return vars(args)
-
+    return args
 
 def init_sampling(iargs=None):
     global args
