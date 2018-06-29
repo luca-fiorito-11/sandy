@@ -113,6 +113,44 @@ class Xs(pd.DataFrame):
         return pd.DataFrame(records, columns=["MAT", "MT", "MACS", "FLUX", "Elo", "Ehi", "E0","SKIPPED"])
 
 
+class Edistr(pd.DataFrame):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = ["MAT", "MT", "K", "EIN"]
+        self.columns.name = "EOUT"
+
+    def add_points(self, extra_points):
+        """
+        Add additional incoming energy points.
+        """
+        frame = self.copy()
+        List = []
+        for (mat,mt,k),df in frame.groupby(["MAT","MT","K"]):
+            grid = sorted((set(df.loc[mat, mt, k].index) | set(extra_points)))
+            df = df.reset_index().set_index("EIN").reindex(grid).interpolate(method='slinear').fillna(0).reset_index()
+            df["MAT"] = df["MAT"].astype(int)
+            df["MT"] = df["MT"].astype(int)
+            df["K"] = df["K"].astype(int)
+            df = df.set_index(["MAT","MT","K","EIN"])
+            List.append(df)
+        return Edistr(pd.concat(List, axis=0))
+
+    def normalize(self):
+        """
+        Normalize each outgoing energy distribution to 1.
+        """
+        List = []#pd.DataFrame([v/v.sum() for i,v in self.iterrows()])
+        for i,v in self.iterrows():
+            dx = v.index.values[1:] - v.index.values[:-1]
+            y = (v.values[1:]+v.values[:-1])/2
+            List.append(v/y.dot(dx))
+        frame = pd.DataFrame(List)
+        frame.index = pd.MultiIndex.from_tuples(frame.index)
+        return Edistr(frame)
+
+
+
 class XsCov(pd.DataFrame):
     """
     columns =  (MATi,MTj) ... (MATm,MTn)

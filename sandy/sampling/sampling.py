@@ -231,6 +231,7 @@ def sampling(iargs=None):
     # LOAD DATA FILE
     ftape = Endf6.from_file(init.file)
     if ftape.empty: sys.exit("ERROR: tape is empty")
+    pdb.set_trace()
 
     # LOAD COVARIANCE FILE
     if init.errorr_cov:
@@ -357,6 +358,20 @@ def test_U5_errorr(tmpdir):
     from ..data_test import U5
     iargs = [os.path.join(U5.__path__[0], r"u235.pendf"),
              "--errorr-cov", os.path.join(U5.__path__[0], r"u235.errorr"),
+             "--outdir", str(tmpdir),
+             "--processes", str(os.cpu_count()) if os.cpu_count() < 10 else str(10),
+             "--eig", "10",
+             "--samples", "100",]
+#             "--plotdir", os.path.join(str(tmpdir), r"html_files"),
+#             "-p"]
+    sampling(iargs)
+
+@pytest.mark.sampling
+@pytest.mark.chi
+def test_U5_chi_errorr(tmpdir):
+    from ..data_test import U5
+    iargs = [os.path.join(U5.__path__[0], r"u235.endf"),
+             "--endf6-cov", os.path.join(U5.__path__[0], r"u235.endf"),
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()) if os.cpu_count() < 10 else str(10),
              "--eig", "10",
