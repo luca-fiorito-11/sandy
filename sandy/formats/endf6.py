@@ -424,7 +424,7 @@ class Endf6(pd.DataFrame):
         del INFO["TEXT"], INFO["RECORDS"]
         self.__dict__.update(**INFO)
         self.EHRES = 0
-        self.THNMAX = - self.EHRES if self.EHRES != 0 else 2.0E6
+        self.THNMAX = - self.EHRES if self.EHRES != 0 else 1.0E6
 
 
 

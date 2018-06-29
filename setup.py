@@ -28,8 +28,10 @@ setup(
                         'matplotlib',
                         'pytest>=3.3',
                         'fortranformat>=0.2.5',
-                        'bokeh>=0.12.10'
+                        'bokeh>=0.12.10',
                         'pandas>=0.20'],
+#    setup_requires=["pytest-runner",],
+    tests_require=["pytest",],
     include_package_data = True,
     ext_modules = extensions,
     entry_points={

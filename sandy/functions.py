@@ -5,7 +5,29 @@ Created on Thu Jan 12 11:10:49 2017
 @author: lfiorito
 """
 import numpy as np
-import os
+import os, pdb
+
+def run_process(cmd, cwd=None, timeout=3600, verbose=True):
+    import subprocess as sp
+    process = sp.Popen("exec " + cmd,
+                       shell=True,
+                       cwd=cwd,
+                       stdin=None,
+                       stdout=sp.PIPE,
+                       stderr=sp.PIPE,)
+    try:
+        stdoutdata, stderrdata = process.communicate(timeout=timeout)
+    except sp.TimeoutExpired as exc:
+        process.kill()
+        stdoutdata, stderrdata = process.communicate()
+        stderrdata += (r"'{}' took longer than {} seconds to complete and it was killed".format(cmd, timeout)).encode()
+    stdout = stdoutdata.decode('utf-8', errors='ignore').rstrip()
+    stderr = stderrdata.decode('utf-8', errors='ignore').rstrip()
+    if verbose:
+        print(stdout)
+    returncode = process.returncode
+    if returncode: print("process failed to run\n".format(returncode) + stderr)
+    return process.returncode, stdout, stderr
 
 def force_symlink(file1, file2):
     try:
