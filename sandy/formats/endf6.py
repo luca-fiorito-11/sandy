@@ -276,6 +276,7 @@ class Endf6(pd.DataFrame):
         Return a df with MAT,MT,SUB as index and COV as value
         Each COV is a df with Ein on rows and Eout on columns.
         """
+        from .utils import Edistr
         query = "MF==5"
         if listmat is not None:
             query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
@@ -285,6 +286,7 @@ class Endf6(pd.DataFrame):
             query += " & ({})".format(query_mts)
         tape = self.query(query)
         DictDf = { "MAT" : [], "MT" : [], "K" : [], "EDISTR" : [] }
+        DictEdistr =  {}
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)
             for k,pdistr in X["PDISTR"].items():
@@ -294,20 +296,27 @@ class Endf6(pd.DataFrame):
                 if list(filter(lambda x:x["INT"] != [2], pdistr["EIN"].values())):
                     print("WARNING: found non-linlin interpolation, skip energy distr. for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
                     continue
-                D =  { ein : pd.Series(v["EDISTR"], index=v["EOUT"]) for ein,v in sorted(pdistr["EIN"].items()) }
+                for ein,v in sorted(pdistr["EIN"].items()):
+                    DictEdistr.update({(X["MAT"], X["MT"], k, ein) : pd.Series(v["EDISTR"], index=v["EOUT"])})
+#                D =  { ein : pd.Series(v["EDISTR"], index=v["EOUT"]) for ein,v in sorted(pdistr["EIN"].items()) }
                 # merge chi_E(E') distributions on df[E,E'] with unique E' grid
                 # Interpolate row-by-row at missing datapoints
                 # When interpolation is not possible (edges) fill with 0
-                edistr = pd.DataFrame.from_dict(D, orient='index').interpolate(method="slinear", axis=1).fillna(0)
+#                edistr = pd.DataFrame.from_dict(D, orient='index').interpolate(method="slinear", axis=1).fillna(0)
     #            # include default points in E grid and interpolate
     #            ein_new = list(union_grid(chi.index, np.logspace(-5, 7, 13)))
     #            chi = pandas_interpolate(chi, ein_new, method='slinear', axis='rows')
-                edistr.index.name = "EIN"
-                edistr.columns.name = "EOUT"
-                DictDf["MAT"].append(X["MAT"])
-                DictDf["MT"].append(X["MT"])
-                DictDf["K"].append(k)
-                DictDf["EDISTR"].append(edistr)
+#                edistr.index.name = "EIN"
+#                edistr.columns.name = "EOUT"
+#                DictDf["MAT"].append(X["MAT"])
+#                DictDf["MT"].append(X["MT"])
+#                DictDf["K"].append(k)
+#                DictDf["EDISTR"].append(edistr)
+        if not DictEdistr:
+            return pd.DataFrame()
+        frame = pd.DataFrame.from_dict(DictEdistr, orient='index').interpolate(method="slinear", axis=1).fillna(0)
+        return Edistr(frame)
+
         DfChi = pd.DataFrame.from_dict(DictDf).set_index(["MAT", "MT", "K"])
         return DfChi
 
@@ -720,11 +729,35 @@ def test_update_nubar(testPu9):
     assert (new.read_section(9437,1,452)["NUBAR"] == 1).all()
     assert (testPu9.read_section(9437,1,452)["NUBAR"] != new.read_section(9437,1,452)["NUBAR"]).all()
 
+
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.chi
 def test_extract_chi(testPu9):
-    testPu9.get_edistr()
+    testPu9.get_edistr().add_points([1E-1, 1E0])
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.chi
+def test_normalize_chi(testPu9):
+    chi = testPu9.get_edistr().normalize()
+    for i,v in chi.iterrows():
+        dx = v.index.values[1:] - v.index.values[:-1]
+        y = (v.values[1:]+v.values[:-1])/2
+        assert np.isclose(y.dot(dx), 1, rtol=1e-10)
+
+#@pytest.mark.formats
+#@pytest.mark.endf6
+#@pytest.mark.chi
+#@pytest.mark.aaa
+#def test_update_chi(testPu9):
+#    chi = testPu9.get_edistr()
+#    chi[(9437,18,1,1e-5)] = 1
+#    pdb.set_trace()
+#    new = testPu9.update_nubar(nubar)
+#    assert (new.read_section(9437,1,452)["NUBAR"] == 1).all()
+#    assert (testPu9.read_section(9437,1,452)["NUBAR"] != new.read_section(9437,1,452)["NUBAR"]).all()
+
 
 @pytest.mark.formats
 @pytest.mark.endf6
