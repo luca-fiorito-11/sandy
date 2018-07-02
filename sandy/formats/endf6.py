@@ -7,7 +7,6 @@ Created on Mon Jan 16 18:03:13 2017
 import sys, pdb, os, pytest
 import numpy as np
 import pandas as pd
-from copy import deepcopy
 from warnings import warn
 
 
@@ -119,6 +118,8 @@ class Endf6(pd.DataFrame):
             from .MF5 import read
         elif mf == 33 or mf == 31:
             from .MF33 import read
+        elif mf == 35:
+            from .MF35 import read
         else:
             sys.exit("ERROR: SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
         return read(self.loc[mat,mf,mt].TEXT)
@@ -143,7 +144,7 @@ class Endf6(pd.DataFrame):
             for mf,dfmf in dfmat.groupby('MF', sort=True):
                 for mt,dfmt in dfmf.groupby('MT', sort=True):
                     for text in dfmt.TEXT:
-                        string += text.encode('ascii', 'replace').decode('ascii') + "\n"
+                        string += text.encode('ascii', 'replace').decode('ascii')
                     string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), int(mat), int(mf), 0, 99999)
                 string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), int(mat), 0, 0, 0)
             string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), 0, 0, 0, 0)
@@ -191,6 +192,7 @@ class Endf6(pd.DataFrame):
                 sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(*ix))
             ListXs.append(xs)
         if not ListXs:
+            warn(UserWarning("no cross section was found"))
             return pd.DataFrame()
         frame = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
         return Xs(frame)
@@ -213,112 +215,6 @@ class Endf6(pd.DataFrame):
             text = write(sec)
             tape.loc[mat,mf,mt].TEXT = text
         return Endf6(tape)
-
-    def get_nubar(self, listmat=None, listmt=None):
-        """
-        Extract selected nubar.
-        nubar are linearized on unique grid.
-        Missing points are linearly interpolated (use zero when out of domain).
-
-        Conditions:
-            - Interpolation law must be lin-lin
-            - No duplicate points on energy grid
-        """
-        from .utils import Xs
-        from collections import Counter
-        from functools import reduce
-        query = "MF==1 & (MT==452 | MT==455 | MT==456)"
-        if listmat is not None:
-            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-            query += " & ({})".format(query_mats)
-        if listmt is not None:
-            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-            query += " & ({})".format(query_mts)
-        tape = self.query(query)
-        ListXs = []
-        for ix,text in tape.TEXT.iteritems():
-            X = self.read_section(*ix)
-            xs = pd.Series(X["NUBAR"], index=X["E"], name=(X["MAT"],X["MT"])).rename_axis("E").to_frame()
-            duplicates = [x for x, count in Counter(xs.index).items() if count > 1]
-            if duplicates:
-                sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(*ix) +
-                         '\n'.join(map(str,duplicates)))
-            if X['INT'] != [2]:
-                sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(*ix))
-            ListXs.append(xs)
-        if not ListXs:
-            return pd.DataFrame()
-        frame = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
-        return Xs(frame)
-
-    def update_nubar(self, xsFrame):
-        from .MF1 import write
-        tape = self.copy()
-        mf = 1
-        for (mat,mt),S in xsFrame.iteritems():
-            if (mat,mf,mt) not in self.index: continue
-            sec = self.read_section(mat,mf,mt)
-            # Cut threshold xs
-            iNotZero = next((i for i,x in enumerate(S) if x), None)
-            if iNotZero > 0: S = S.iloc[iNotZero-1:]
-            sec["E"] = S.index.values
-            sec["NUBAR"] = S.values
-            # Assume all xs have only 1 interpolation region and it is linear
-            sec["NBT"] = [S.size]
-            sec["INT"] = [2]
-            text = write(sec)
-            tape.loc[mat,mf,mt].TEXT = text
-        return Endf6(tape)
-
-    def get_edistr(self, listmat=None, listmt=None):
-        """
-        Extract chi cov for all MAT,MT,SUB found in tape.
-        Return a df with MAT,MT,SUB as index and COV as value
-        Each COV is a df with Ein on rows and Eout on columns.
-        """
-        from .utils import Edistr
-        query = "MF==5"
-        if listmat is not None:
-            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-            query += " & ({})".format(query_mats)
-        if listmt is not None:
-            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-            query += " & ({})".format(query_mts)
-        tape = self.query(query)
-        DictDf = { "MAT" : [], "MT" : [], "K" : [], "EDISTR" : [] }
-        DictEdistr =  {}
-        for ix,text in tape.TEXT.iteritems():
-            X = self.read_section(*ix)
-            for k,pdistr in X["PDISTR"].items():
-                if pdistr["LF"] != 1:
-                    print("WARNING: non-tabulated distribution for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
-                    continue
-                if list(filter(lambda x:x["INT"] != [2], pdistr["EIN"].values())):
-                    print("WARNING: found non-linlin interpolation, skip energy distr. for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
-                    continue
-                for ein,v in sorted(pdistr["EIN"].items()):
-                    DictEdistr.update({(X["MAT"], X["MT"], k, ein) : pd.Series(v["EDISTR"], index=v["EOUT"])})
-#                D =  { ein : pd.Series(v["EDISTR"], index=v["EOUT"]) for ein,v in sorted(pdistr["EIN"].items()) }
-                # merge chi_E(E') distributions on df[E,E'] with unique E' grid
-                # Interpolate row-by-row at missing datapoints
-                # When interpolation is not possible (edges) fill with 0
-#                edistr = pd.DataFrame.from_dict(D, orient='index').interpolate(method="slinear", axis=1).fillna(0)
-    #            # include default points in E grid and interpolate
-    #            ein_new = list(union_grid(chi.index, np.logspace(-5, 7, 13)))
-    #            chi = pandas_interpolate(chi, ein_new, method='slinear', axis='rows')
-#                edistr.index.name = "EIN"
-#                edistr.columns.name = "EOUT"
-#                DictDf["MAT"].append(X["MAT"])
-#                DictDf["MT"].append(X["MT"])
-#                DictDf["K"].append(k)
-#                DictDf["EDISTR"].append(edistr)
-        if not DictEdistr:
-            return pd.DataFrame()
-        frame = pd.DataFrame.from_dict(DictEdistr, orient='index').interpolate(method="slinear", axis=1).fillna(0)
-        return Edistr(frame)
-
-        DfChi = pd.DataFrame.from_dict(DictDf).set_index(["MAT", "MT", "K"])
-        return DfChi
 
     def get_xs_cov(self, listmat=None, listmt=None):
         from .utils import XsCov, triu_matrix
@@ -396,6 +292,167 @@ class Endf6(pd.DataFrame):
         matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
         return XsCov(matrix, index=index, columns=index)
 
+    def get_nubar(self, listmat=None, listmt=None):
+        """
+        Extract selected nubar.
+        nubar are linearized on unique grid.
+        Missing points are linearly interpolated (use zero when out of domain).
+
+        Conditions:
+            - Interpolation law must be lin-lin
+            - No duplicate points on energy grid
+        """
+        from .utils import Xs
+        from collections import Counter
+        from functools import reduce
+        query = "MF==1 & (MT==452 | MT==455 | MT==456)"
+        if listmat is not None:
+            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+            query += " & ({})".format(query_mats)
+        if listmt is not None:
+            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+            query += " & ({})".format(query_mts)
+        tape = self.query(query)
+        ListXs = []
+        for ix,text in tape.TEXT.iteritems():
+            X = self.read_section(*ix)
+            xs = pd.Series(X["NUBAR"], index=X["E"], name=(X["MAT"],X["MT"])).rename_axis("E").to_frame()
+            duplicates = [x for x, count in Counter(xs.index).items() if count > 1]
+            if duplicates:
+                sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(*ix) +
+                         '\n'.join(map(str,duplicates)))
+            if X['INT'] != [2]:
+                sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(*ix))
+            ListXs.append(xs)
+        if not ListXs:
+            warn(UserWarning("no fission neutron multiplicity was found"))
+            return pd.DataFrame()
+        frame = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
+        return Xs(frame)
+
+    def update_nubar(self, xsFrame):
+        from .MF1 import write
+        tape = self.copy()
+        mf = 1
+        for (mat,mt),S in xsFrame.iteritems():
+            if (mat,mf,mt) not in self.index: continue
+            sec = self.read_section(mat,mf,mt)
+            # Cut threshold xs
+            iNotZero = next((i for i,x in enumerate(S) if x), None)
+            if iNotZero > 0: S = S.iloc[iNotZero-1:]
+            sec["E"] = S.index.values
+            sec["NUBAR"] = S.values
+            # Assume all xs have only 1 interpolation region and it is linear
+            sec["NBT"] = [S.size]
+            sec["INT"] = [2]
+            text = write(sec)
+            tape.loc[mat,mf,mt].TEXT = text
+        return Endf6(tape)
+
+    def get_edistr(self, listmat=None, listmt=None, verbose=True):
+        """
+        Extract chi cov for all MAT,MT,SUB found in tape.
+        Return a df with MAT,MT,SUB as index and COV as value
+        Each COV is a df with Ein on rows and Eout on columns.
+        """
+        from .utils import Edistr
+        query = "MF==5"
+        if listmat is not None:
+            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+            query += " & ({})".format(query_mats)
+        if listmt is not None:
+            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+            query += " & ({})".format(query_mts)
+        tape = self.query(query)
+        DictEdistr =  {}
+        for ix,text in tape.TEXT.iteritems():
+            X = self.read_section(*ix)
+            for k,pdistr in X["PDISTR"].items():
+                if pdistr["LF"] != 1:
+                    if verbose: warn(UserWarning("WARNING: non-tabulated distribution for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k)))
+                    continue
+                if list(filter(lambda x:x["INT"] != [2], pdistr["EIN"].values())):
+                    if verbose: warn(UserWarning("WARNING: found non-linlin interpolation, skip energy distr. for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k)))
+                    continue
+                for ein,v in sorted(pdistr["EIN"].items()):
+                    DictEdistr.update({(X["MAT"], X["MT"], k, ein) : pd.Series(v["EDISTR"], index=v["EOUT"])})
+        if not DictEdistr:
+            warn(UserWarning("no tabulated energy distribution was found"))
+            return pd.DataFrame()
+        frame = pd.DataFrame.from_dict(DictEdistr, orient='index').interpolate(method="slinear", axis=1).fillna(0)
+        return Edistr(frame)
+
+    def update_edistr(self, edistrFrame):
+        from .MF5 import write
+        mf = 5
+        tape = self.copy()
+        for (mat,mt),S in edistrFrame.groupby(["MAT","MT"]):
+            if (mat,mf,mt) not in self.index: continue
+            sec = self.read_section(mat,mf,mt)
+            for k,S in S.groupby(["K"]):
+                if sec["PDISTR"][k]["LF"] != 1: continue
+                for ein in S.index.get_level_values("EIN"):
+                    dict_distr = {"EDISTR" : S.loc[mat,mt,k,ein].values,
+                                  "EOUT" : S.loc[mat,mt,k,ein].index.values,
+                                  "NBT" : [S.loc[mat,mt,k,ein].values.size],
+                                  "INT" : [2]}
+                    sec["PDISTR"][k]["EIN"].update({ein : dict_distr})
+                sec["PDISTR"][k]["NBT_EIN"] = [len(sec["PDISTR"][k]["EIN"])]
+                sec["PDISTR"][k]["INT_EIN"] = [2]
+            text = write(sec)
+            tape.loc[mat,mf,mt].TEXT = text
+        return Endf6(tape)
+
+    def get_edistr_cov(self, listmat=None, listmt=None):
+        from .utils import EdistrCov, triu_matrix, corr2cov
+        query = "MF==35"
+        if listmat is not None:
+            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+            query += " & ({})".format(query_mats)
+        if listmt is not None:
+            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+            query += " & ({})".format(query_mts)
+        tape = self.query(query)
+        List = []; eg = set()
+        for ix,text in tape.TEXT.iteritems():
+            X = self.read_section(*ix)
+            mat = X['MAT']; mt = X['MT']
+            for sub in X["SUB"].values():
+                # Ek grid is one unit longer than covariance.
+                Ek = np.array(sub["EK"])
+                Fkk = np.array(sub["FKK"])
+                NE = sub["NE"]
+                cov = triu_matrix(Fkk, NE-1)
+                # Normalize covariance matrix dividing by the energy bin.
+                dE = 1./(Ek[1:]-Ek[:-1])
+                cov = corr2cov(cov, dE)
+                # Add zero row and column at the end of the matrix
+                cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                cov = pd.DataFrame(cov, index=Ek, columns=Ek)
+                eg |= set(cov.index.values)
+                List.append([mat, mt, sub["ELO"], sub["EHI"], cov])
+        if not List:
+            warn(UserWarning("no energy distribution covariance found"))
+            return pd.DataFrame()
+        frame = pd.DataFrame(List, columns=('MAT', 'MT', 'ELO', 'EHI', 'COV'))
+        eg = sorted(eg)
+        frame.COV = frame.COV.apply(lambda x:cov_interp(x, eg))
+        # From here, the method is identical to Errorr.get_cov()
+        # Except that the size of eg is equal to the size of each matrix (we include the value for 2e7)
+        # and that the indexes are different
+        MI = [(mat,mt,elo,ehi,e) for mat,mt,elo,ehi in sorted(set(zip(frame.MAT, frame.MT, frame.ELO, frame.EHI))) for e in eg]
+        index = pd.MultiIndex.from_tuples(MI, names=("MAT", "MT", 'ELO', 'EHI', "EOUT"))
+        # initialize union matrix
+        matrix = np.zeros((len(index),len(index)))
+        for i,row in frame.iterrows():
+            ix = index.get_loc((row.MAT,row.MT,row.ELO,row.EHI))
+            ix1 = index.get_loc((row.MAT,row.MT,row.ELO,row.EHI))
+            matrix[ix.start:ix.stop,ix1.start:ix1.stop] = row.COV
+        i_lower = np.tril_indices(len(index), -1)
+        matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
+        return EdistrCov(matrix, index=index, columns=index)
+
     def update_info(self):
         """
         Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
@@ -450,45 +507,6 @@ def cov_interp(df, interp_column, method='zero', axis='both'):
 
 
 
-
-
-
-
-
-def extract_chi(tape):
-    """
-    Extract chi cov for all MAT,MT,SUB found in tape.
-    Return a df with MAT,MT,SUB as index and COV as value
-    Each COV is a df with Ein on rows and Eout on columns.
-    """
-#    from sandy.functions import union_grid
-    DictDf = { "MAT" : [], "MT" : [], "K" : [], "CHI" : [] }
-    for chunk in tape.query('MF==5').DATA:
-        for k,sub in enumerate(chunk["SUB"]):
-            if sub["LF"] != 1:
-                continue
-            if list(filter(lambda x:x["INT"] != [2], sub["EIN"].values())):
-                print("WARNING: found non-linlin interpolation, skip energy distr. for MAT {}, MT {}, subsec {}".format(chunk["MAT"],chunk["MT"],k))
-                continue
-            chi_dict =  { ein : ssub["PDF"] for ein,ssub in sorted(sub["EIN"].items()) }
-            # merge chi_E(E') distributions on df[E,E'] with unique E' grid
-            # Interpolate row-by-row at missing datapoints
-            # When interpolation is not possible (edges) fill with 0
-            chi = pd.DataFrame.from_dict(chi_dict, orient='index')
-            chi = chi.interpolate(method="slinear", axis=1).fillna(0)
-#            # include default points in E grid and interpolate
-#            ein_new = list(union_grid(chi.index, np.logspace(-5, 7, 13)))
-#            chi = pandas_interpolate(chi, ein_new, method='slinear', axis='rows')
-            chi.index.name = "EIN"
-            chi.columns.name = "EOUT"
-            DictDf["MAT"].append(chunk["MAT"])
-            DictDf["MT"].append(chunk["MT"])
-            DictDf["K"].append(k)
-            DictDf["CHI"].append(chi)
-    DfChi = pd.DataFrame.from_dict(DictDf)
-    DfChi.set_index(["MAT", "MT", "K"], inplace=True)
-    return DfChi
-
 def extract_mu(tape):
 #    NLMAX = 0
     keys = []
@@ -509,89 +527,22 @@ def extract_mu(tape):
     # print warning if exceeded NLMAX
     return DfPc
 
-def extract_cov35(tape):
-    from sandy.sampling.cov import triu_matrix, corr2cov
-    # Get covariances (df) from each MAT, MT and Erange (these are the keys) in a dictionary.
-    DictCov = {}
-    for chunk in tape.query('MF==35').DATA:
-        for sub in chunk["SUB"]:
-            # Ek grid is one unit longer than covariance.
-            Ek = np.array(sub["Ek"])
-            Fkk = np.array(sub["Fkk"])
-            NE = sub["NE"]
-            cov = triu_matrix(Fkk, NE-1)
-            # Normalize covariance matrix dividing by the energy bin.
-            dE = 1./(Ek[1:]-Ek[:-1])
-            cov = corr2cov(cov, dE)
-            # Add zero row and column at the end of the matrix
-            cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-            cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-            cov = pd.DataFrame(cov, index=Ek, columns=Ek)
-            cov.index.name = "Ek"; cov.columns.name = "El"
-            DictCov.update({ (chunk["MAT"], chunk["MT"], sub["Elo"], sub["Ehi"]) :
-                cov })
-    if not DictCov:
-        # No MF35 found. Return empty dataframe
-        return pd.DataFrame()
-    # Collect covs in a list to pass to block_diag (endf6 allows only covs in diag)
-    # Recreate indexes with lists of mat, mt, elo, ehi and e.
-    from scipy.linalg import block_diag
-    covs = []; mat = []; mt = []; einlo = []; einhi = []; eoutlo= []; eouthi = []
-    for k,c in sorted(DictCov.items()):
-        covs.append(c)
-        mat.extend([k[0]]*len(c.index))
-        mt.extend([k[1]]*len(c.index))
-        einlo.extend([k[2]]*len(c.index))
-        einhi.extend([k[3]]*len(c.index))
-        eoutlo.extend(c.index)
-        eouthi.extend(c.index[1:].insert(-1, c.index[-1]))
-    DfCov = block_diag(*covs)
-    DfCov = pd.DataFrame(DfCov)
-    DfCov['MAT'] = pd.Series(mat)
-    DfCov['MT'] = pd.Series(mt)
-    DfCov['EINlo'] = pd.Series(einlo)
-    DfCov['EINhi'] = pd.Series(einhi)
-    DfCov['EOUTlo'] = pd.Series(eoutlo)
-    DfCov['EOUThi'] = pd.Series(eouthi)
-    DfCov.set_index(['MAT', 'MT', 'EINlo', 'EINhi', 'EOUTlo', 'EOUThi'], inplace=True)
-    DfCov.columns = DfCov.index
-    return DfCov
 
 
-
-def update_chi(tapein, DfChi):
-    tape = pd.DataFrame(index=tapein.index.copy(), columns=tapein.columns.copy())
-    for k,row in tapein.iterrows():
-        tape.loc[k].DATA = deepcopy(row.DATA)
-        tape.loc[k].TEXT = deepcopy(row.TEXT)
-    for (mat, mt, k),CHI in DfChi.CHI.items():
-        if (mat, 5, mt) not in tape.index:
-            continue
-        if len(tape.DATA.loc[mat,5,mt]["SUB"]) - 1 < k:
-            continue
-        # Assume that all given chi are linearly interpolated on Ein and Eout
-        D = { ein : {"PDF" : PdfSeries, "NBT" : [CHI.shape[1]], "INT" : [2]} for ein,PdfSeries in CHI.iterrows()}
-        tape.DATA.loc[mat,5,mt]["SUB"][k].update({'EIN' : D,
-                                                  'INT_EIN' : [2],
-                                                  'NBT_EIN' : [CHI.shape[0]]})
-    return tape
-
-
-
-def write_decay_data_csv(tape, filename):
-    df = tape.query("MF==8 & MT==457")
-    df['Z'] = df.DATA.apply(lambda x : int(x['ZA']//1000))
-    df['A'] = df.DATA.apply(lambda x : int(x['ZA'] - x['ZA']//1000*1000))
-    df['M'] = df.DATA.apply(lambda x : 'g' if x['LISO'] == 0 else 'm' if x['LISO'] == 1 else 'n')
-    df['HL'] = df.DATA.apply(lambda x : x['HL'])
-    df['DHL'] = df.DATA.apply(lambda x : x['DHL'])
-    df['ELP'] = df.DATA.apply(lambda x : x['E'][0])
-    df['DELP'] = df.DATA.apply(lambda x : x['DE'][0])
-    df['EEM'] = df.DATA.apply(lambda x : x['E'][1])
-    df['DEEM'] = df.DATA.apply(lambda x : x['DE'][2])
-    df['EHP'] = df.DATA.apply(lambda x : x['E'][2])
-    df['DEHP'] = df.DATA.apply(lambda x : x['DE'][2])
-    df[['Z','A','M','HL','DHL','ELP','DELP','EEM','DEEM','EHP','DEHP']].to_csv(filename, index=False)
+#def write_decay_data_csv(tape, filename):
+#    df = tape.query("MF==8 & MT==457")
+#    df['Z'] = df.DATA.apply(lambda x : int(x['ZA']//1000))
+#    df['A'] = df.DATA.apply(lambda x : int(x['ZA'] - x['ZA']//1000*1000))
+#    df['M'] = df.DATA.apply(lambda x : 'g' if x['LISO'] == 0 else 'm' if x['LISO'] == 1 else 'n')
+#    df['HL'] = df.DATA.apply(lambda x : x['HL'])
+#    df['DHL'] = df.DATA.apply(lambda x : x['DHL'])
+#    df['ELP'] = df.DATA.apply(lambda x : x['E'][0])
+#    df['DELP'] = df.DATA.apply(lambda x : x['DE'][0])
+#    df['EEM'] = df.DATA.apply(lambda x : x['E'][1])
+#    df['DEEM'] = df.DATA.apply(lambda x : x['DE'][2])
+#    df['EHP'] = df.DATA.apply(lambda x : x['E'][2])
+#    df['DEHP'] = df.DATA.apply(lambda x : x['DE'][2])
+#    df[['Z','A','M','HL','DHL','ELP','DELP','EEM','DEEM','EHP','DEHP']].to_csv(filename, index=False)
 
 
 @pytest.fixture(scope="module")
@@ -610,15 +561,6 @@ def testH1():
 
 @pytest.mark.formats
 @pytest.mark.endf6
-@pytest.mark.xs
-def test_read_xs(testPu9):
-    S = testPu9.read_section(9437, 3, 102)
-    from .MF3 import write
-    text = write(S)
-    assert testPu9.TEXT.loc[9437,3,102] == text
-
-@pytest.mark.formats
-@pytest.mark.endf6
 @pytest.mark.info
 def test_read_info(testPu9):
     S = testPu9.read_section(9437, 1, 451)
@@ -628,50 +570,26 @@ def test_read_info(testPu9):
 
 @pytest.mark.formats
 @pytest.mark.endf6
-@pytest.mark.nubar
-def test_read_nubar452(testPu9):
-    S = testPu9.read_section(9437, 1, 452)
-    from .MF1 import write
-    text = write(S)
-    assert testPu9.TEXT.loc[9437,1,452] == text
-
-@pytest.mark.formats
-@pytest.mark.endf6
-@pytest.mark.nubar
-def test_read_nubar455(testPu9):
-    S = testPu9.read_section(9437, 1, 455)
-    from .MF1 import write
-    text = write(S)
-    assert testPu9.TEXT.loc[9437,1,455] == text
-
-@pytest.mark.formats
-@pytest.mark.endf6
-@pytest.mark.nubar
-def test_read_nubar456(testPu9):
-    S = testPu9.read_section(9437, 1, 456)
-    from .MF1 import write
-    text = write(S)
-    assert testPu9.TEXT.loc[9437,1,456] == text
-
-@pytest.mark.formats
-@pytest.mark.endf6
-@pytest.mark.chi
-def test_read_chi(testPu9):
-    S = testPu9.read_section(9437, 5, 18)
-    from .MF5 import write
-    text = write(S)
-    assert testPu9.TEXT.loc[9437,5,18] == text
+@pytest.mark.info
+def test_update_info(testPu9):
+    testPu9.loc[9437,3,1].TEXT = "\n".join(testPu9.loc[9437,3,1].TEXT.splitlines()[:10]) + "\n"
+    testPu9 = Endf6(testPu9.drop([(9437,3,102)]))
+    new = testPu9.update_info()
+    recordsold = testPu9.read_section(9437,1,451)["RECORDS"]
+    recordsnew = new.read_section(9437,1,451)["RECORDS"]
+    assert (3,102,147,1) in recordsold
+    assert (3,102,147,1) not in recordsnew
+    assert (3,1,188,1) in recordsold
+    assert (3,1,10,1) in recordsnew
 
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.xs
-@pytest.mark.cov
-def test_read_xs_cov(testPu9):
-    testPu9.read_section(9437, 33, 1)
-    testPu9.read_section(9437, 33, 2)
-    testPu9.read_section(9437, 33, 18)
-    testPu9.read_section(9437, 31, 456)
-    testPu9.read_section(9437, 33, 102)
+def test_read_xs(testPu9):
+    S = testPu9.read_section(9437, 3, 102)
+    from .MF3 import write
+    text = write(S)
+    assert testPu9.TEXT.loc[9437,3,102] == text
 
 @pytest.mark.formats
 @pytest.mark.endf6
@@ -705,6 +623,51 @@ def test_update_xs(testH1):
 
 @pytest.mark.formats
 @pytest.mark.endf6
+@pytest.mark.xs
+@pytest.mark.cov
+def test_read_xs_cov(testPu9):
+    testPu9.read_section(9437, 33, 1)
+    testPu9.read_section(9437, 33, 2)
+    testPu9.read_section(9437, 33, 18)
+    testPu9.read_section(9437, 31, 456)
+    testPu9.read_section(9437, 33, 102)
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.xs
+@pytest.mark.cov
+def test_extract_xs_cov(testPu9):
+    testPu9.get_xs_cov()
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.nubar
+def test_read_nubar452(testPu9):
+    S = testPu9.read_section(9437, 1, 452)
+    from .MF1 import write
+    text = write(S)
+    assert testPu9.TEXT.loc[9437,1,452] == text
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.nubar
+def test_read_nubar455(testPu9):
+    S = testPu9.read_section(9437, 1, 455)
+    from .MF1 import write
+    text = write(S)
+    assert testPu9.TEXT.loc[9437,1,455] == text
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.nubar
+def test_read_nubar456(testPu9):
+    S = testPu9.read_section(9437, 1, 456)
+    from .MF1 import write
+    text = write(S)
+    assert testPu9.TEXT.loc[9437,1,456] == text
+
+@pytest.mark.formats
+@pytest.mark.endf6
 @pytest.mark.nubar
 def test_extract_nubar(testPu9):
     testPu9.get_nubar(listmt=[452,456])
@@ -729,56 +692,67 @@ def test_update_nubar(testPu9):
     assert (new.read_section(9437,1,452)["NUBAR"] == 1).all()
     assert (testPu9.read_section(9437,1,452)["NUBAR"] != new.read_section(9437,1,452)["NUBAR"]).all()
 
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.chi
+def test_read_chi(testPu9):
+    S = testPu9.read_section(9437, 5, 18)
+    from .MF5 import write
+    text = write(S)
+    assert testPu9.TEXT.loc[9437,5,18] == text
+
+@pytest.fixture(scope="module")
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.chi
+def testPu9chi(testPu9):
+    return testPu9.get_edistr()
 
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.chi
-def test_extract_chi(testPu9):
-    testPu9.get_edistr().add_points([1E-1, 1E0])
+def test_extract_chi(testPu9chi):
+    testPu9chi.add_points([1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1, 1e2, 1e3, 1e4, 1e5])
 
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.chi
-def test_normalize_chi(testPu9):
-    chi = testPu9.get_edistr().normalize()
+def test_normalize_chi(testPu9chi):
+    chi = testPu9chi.normalize()
     for i,v in chi.iterrows():
         dx = v.index.values[1:] - v.index.values[:-1]
         y = (v.values[1:]+v.values[:-1])/2
         assert np.isclose(y.dot(dx), 1, rtol=1e-10)
 
-#@pytest.mark.formats
-#@pytest.mark.endf6
-#@pytest.mark.chi
-#@pytest.mark.aaa
-#def test_update_chi(testPu9):
-#    chi = testPu9.get_edistr()
-#    chi[(9437,18,1,1e-5)] = 1
-#    pdb.set_trace()
-#    new = testPu9.update_nubar(nubar)
-#    assert (new.read_section(9437,1,452)["NUBAR"] == 1).all()
-#    assert (testPu9.read_section(9437,1,452)["NUBAR"] != new.read_section(9437,1,452)["NUBAR"]).all()
-
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.chi
+def test_update_chi(testPu9, testPu9chi):
+    testPu9chi.loc[(9437,18,1,1e-5)] = 1
+    new = testPu9.update_edistr(testPu9chi)
+    new_sec = new.read_section(9437,5,18)
+    assert (new_sec["PDISTR"][1]["EIN"][1e-5]["EDISTR"] == 1).all()
 
 @pytest.mark.formats
 @pytest.mark.endf6
-@pytest.mark.xs
+@pytest.mark.chi
 @pytest.mark.cov
-def test_extract_xs_cov(testPu9):
-    testPu9.get_xs_cov()
+def test_read_chi_cov(testPu9):
+    S = testPu9.read_section(9437, 35, 18)
+    assert len(S["SUB"]) == S["NK"] == 8
+    for k,v in S["SUB"].items():
+        assert v["LS"] == 1
+        assert v["LB"] == 7
 
 @pytest.mark.formats
 @pytest.mark.endf6
-@pytest.mark.info
-def test_update_info(testPu9):
-    testPu9.loc[9437,3,1].TEXT = "\n".join(testPu9.loc[9437,3,1].TEXT.splitlines()[:10]) + "\n"
-    testPu9 = Endf6(testPu9.drop([(9437,3,102)]))
-    new = testPu9.update_info()
-    recordsold = testPu9.read_section(9437,1,451)["RECORDS"]
-    recordsnew = new.read_section(9437,1,451)["RECORDS"]
-    assert (3,102,147,1) in recordsold
-    assert (3,102,147,1) not in recordsnew
-    assert (3,1,188,1) in recordsold
-    assert (3,1,10,1) in recordsnew
+@pytest.mark.chi
+@pytest.mark.cov
+def test_extract_chi_cov(testPu9):
+    C = testPu9.get_edistr_cov()
+    assert C.index.names == ['MAT', 'MT', 'ELO', 'EHI', 'EOUT']
+    assert C.columns.names == ['MAT', 'MT', 'ELO', 'EHI', 'EOUT']
+    assert (C.values == C.values.T).all()
 
 @pytest.mark.formats
 @pytest.mark.endf6
