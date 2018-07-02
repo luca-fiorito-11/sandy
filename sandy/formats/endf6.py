@@ -116,6 +116,8 @@ class Endf6(pd.DataFrame):
             from .MF3 import read
         elif mf == 5:
             from .MF5 import read
+        elif mf == 4:
+            from .MF4 import read
         elif mf == 33 or mf == 31:
             from .MF33 import read
         elif mf == 35:
@@ -691,6 +693,16 @@ def test_update_nubar(testPu9):
     new = testPu9.update_nubar(nubar)
     assert (new.read_section(9437,1,452)["NUBAR"] == 1).all()
     assert (testPu9.read_section(9437,1,452)["NUBAR"] != new.read_section(9437,1,452)["NUBAR"]).all()
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.mu
+def test_read_mu(testPu9):
+    S = testPu9.read_section(9437, 4, 2)
+    pdb.set_trace()
+    from .MF5 import write
+    text = write(S)
+    assert testPu9.TEXT.loc[9437,5,18] == text
 
 @pytest.mark.formats
 @pytest.mark.endf6
