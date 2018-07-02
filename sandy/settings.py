@@ -233,41 +233,42 @@ def init_njoy(iargs=None):
 
 def init_sampling(iargs=None):
     global args
-    parser = argparse.ArgumentParser(description='Run SANDY')
+    parser = argparse.ArgumentParser(description='Run sampling', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('file',
                         type=lambda x: is_valid_file(parser, x),
-                        help="ENDF-6 or PENDF format file.")
+                        help="ENDF-6 or PENDF format file")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--endf6-cov',
                        type=lambda x: is_valid_file(parser, x),
-                       help="ENDF-6 file containing covariances.")
+                       help="ENDF-6 file containing covariances")
     group.add_argument('--errorr-cov',
                        type=lambda x: is_valid_file(parser, x),
-                       help="ERRORR file containing covariances.")
+                       help="ERRORR file containing covariances")
     parser.add_argument('--samples',
                         type=int,
                         default=100,
-                        help="Number of samples.")
+                        help="number of samples (default = 100)")
     parser.add_argument('--outdir',
+                        metavar="DIR",
                         default=os.getcwd(),
                         type=lambda x: is_valid_dir(parser, x, mkdir=True),
-                        help="Target directory were outputs are stored (default = current working directory). If it does not exist it will be created.")
+                        help="target directory where outputs are stored (default = current working directory)\nif it does not exist it will be created")
     parser.add_argument('-np','--processes',
                         type=int,
                         default=1,
-                        help="Number of worker processes (default=1).")
+                        help="number of worker processes (default = 1)")
     parser.add_argument('--eig',
                         type=int,
                         default=0,
                         metavar="N",
-                        help="Print the first N eigenvalues of the evaluated covariance matrices (default = 0, do not print).")
-    parser.add_argument('--plotdir',
-                        default=os.path.join(os.getcwd(),"html_files"),
-                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
-                        help="Target directory where plots are stored (default = current working directory/html_files). If it does not exist it will be created.")
-    parser.add_argument('-p',
-                        action='store_true',
-                        help="Turn on xs plotting.")
+                        help="print the first N eigenvalues of the evaluated covariance matrices (default = do not print)")
+#    parser.add_argument('--plotdir',
+#                        default=os.path.join(os.getcwd(),"html_files"),
+#                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
+#                        help="Target directory where plots are stored (default = current working directory/html_files). If it does not exist it will be created.")
+#    parser.add_argument('-p',
+#                        action='store_true',
+#                        help="Turn on xs plotting.")
 #    parser.add_argument('-mat','--keep-mat',
 #                        type=int,
 #                        action='append',
@@ -283,10 +284,13 @@ def init_sampling(iargs=None):
 #                        action='append',
 #                        metavar="{1,..,999}",
 #                        help="Keep only the selected covariance MT sections (default = keep all). Allowed values range from 1 to 999. Provide each MT section as an individual optional argument, e.g. -mt 18 -mt 102")
-    parser.add_argument('-e','--energy-point',
+    parser.add_argument('-e','--energy-points',
                         type=float,
-                        action='append',
-                        help="Additional energy points (in eV) to include in the incoming-neutron energy grid (default = None). Provide each energy point as an individual optional argument, e.g. -e 100.0 -e 201.5")
+                        metavar="E",
+                        default=[],
+                        action="store",
+                        nargs='*',
+                        help="additional energy points (in eV) to include in the incoming-neutron energy grid (default = None)")
     parser.add_argument("-v",
                         '--version',
                         action='version',

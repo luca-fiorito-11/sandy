@@ -202,36 +202,41 @@ def run(iargs=None):
     print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
 
 def sampling_mp(ismp):
-    global tape, PertXs
+    global tape, PertXs, PertEdistr, init
     t0 = time.time()
     mat = tape.index.get_level_values("MAT")[0]
     info = tape.read_section(mat, 1, 451)
     lrp = info["LRP"]
     name = info["TAG"]
     if lrp == 2:
-        try:
-            xs = tape.get_xs().perturb(PertXs[ismp])
+        xs = tape.get_xs()
+        if not xs.empty:
+            xs = xs.perturb(PertXs[ismp])
             tape = tape.update_xs(xs)
-        except:
-            pass
     else:
-        try:
-            nubar = tape.get_nubar().perturb(PertXs[ismp])
+        nubar = tape.get_nubar()
+        if not nubar.empty and not PertXs.empty:
+            nubar = nubar.perturb(PertXs[ismp])
             tape = tape.update_nubar(nubar)
-        except:
-            pass
+
+    edistr = tape.get_edistr()
+    if not edistr.empty and not PertEdistr.empty:
+        edistr = edistr.add_points(init.energy_points).perturb(PertEdistr[ismp])
+        tape = tape.update_edistr(edistr)
+
     print("Created sample {} for {} in {:.2f} sec".format(ismp, name, time.time()-t0,))
     return tape.update_info().write_string()
 
 def sampling(iargs=None):
     from ..formats import Endf6, Errorr
     t0 = time.time()
+
+    global init
     init = settings.init_sampling(iargs)
 
     # LOAD DATA FILE
     ftape = Endf6.from_file(init.file)
     if ftape.empty: sys.exit("ERROR: tape is empty")
-    pdb.set_trace()
 
     # LOAD COVARIANCE FILE
     if init.errorr_cov:
@@ -240,15 +245,19 @@ def sampling(iargs=None):
         covtape = Endf6.from_file(init.endf6_cov)
     if covtape.empty: sys.exit("ERROR: covtape is empty")
 
-
     # EXTRACT PERTURBATIONS FROM XS/NUBAR COV FILE
     global PertXs
-    try:
-        PertXs = covtape.get_xs_cov().get_samples(init.samples, eig=init.eig)
-    except:
-        PertXs = pd.DataFrame()
-    if PertXs.empty: # Add checks for other data (MF35, MF34, ...)
-        sys.exit("ERROR: no covariance matrix was found")
+    PertXs = pd.DataFrame()
+    xscov = covtape.get_xs_cov()
+    if not xscov.empty:
+        PertXs = xscov.get_samples(init.samples, eig=init.eig)
+
+    # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
+    global PertEdistr
+    PertEdistr = pd.DataFrame()
+    edistrcov = covtape.get_edistr_cov()
+    if not edistrcov.empty:
+        PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
 
     # APPLY PERTURBATIONS BY MAT
     global tape
@@ -368,12 +377,13 @@ def test_U5_errorr(tmpdir):
 
 @pytest.mark.sampling
 @pytest.mark.chi
+@pytest.mark.aaa
 def test_U5_chi_errorr(tmpdir):
     from ..data_test import U5
     iargs = [os.path.join(U5.__path__[0], r"u235.endf"),
              "--endf6-cov", os.path.join(U5.__path__[0], r"u235.endf"),
              "--outdir", str(tmpdir),
-             "--processes", str(os.cpu_count()) if os.cpu_count() < 10 else str(10),
+             "--processes", str(os.cpu_count()),
              "--eig", "10",
              "--samples", "100",]
 #             "--plotdir", os.path.join(str(tmpdir), r"html_files"),

@@ -129,9 +129,9 @@ class Edistr(pd.DataFrame):
         for (mat,mt,k),df in frame.groupby(["MAT","MT","K"]):
             grid = sorted((set(df.loc[mat, mt, k].index) | set(extra_points)))
             df = df.reset_index().set_index("EIN").reindex(grid).interpolate(method='slinear').fillna(0).reset_index()
-            df["MAT"] = df["MAT"].astype(int)
-            df["MT"] = df["MT"].astype(int)
-            df["K"] = df["K"].astype(int)
+            df["MAT"] = np.round(df.MAT.values).astype(int)
+            df["MT"] = np.round(df.MT.values).astype(int)
+            df["K"] = np.round(df.K.values).astype(int)
             df = df.set_index(["MAT","MT","K","EIN"])
             List.append(df)
         return Edistr(pd.concat(List, axis=0))
@@ -149,6 +149,20 @@ class Edistr(pd.DataFrame):
         frame.index = pd.MultiIndex.from_tuples(frame.index)
         return Edistr(frame)
 
+    def perturb(self, pert, **kwargs):
+        frame = self.copy()
+        for (mat,mt,k),S in self.groupby(["MAT", "MT", "K"]):
+            if (mat,mt) not in pert.index: continue
+            for ein,edistr in S.loc[mat,mt,k].iterrows():
+                for (elo,ehi),P in pert.loc[mat,mt].groupby(["ELO","EHI"]):
+                    if ein >= elo and ein <= ehi:
+                        P = P[elo,ehi]
+                        eg = sorted(set(edistr.index) | set(P.index))
+                        if len(eg) != len(P):pdb.set_trace()
+                        P = P.reindex(eg).ffill().fillna(0).reindex(edistr.index)
+                        pedistr = edistr + P
+                        frame.loc[mat,mt,k,ein] = pd.Series(np.where(pedistr>0, pedistr, edistr), index=pedistr.index)
+        return Edistr(frame).normalize()
 
 
 class XsCov(pd.DataFrame):
@@ -202,6 +216,35 @@ class XsCov(pd.DataFrame):
             skipped = "{}/{}".format(sum(cond==False), len(dframe))
             records.append([mat, mt, rvar, rstd, D, Elo, Ehi, E0, skipped])
         return pd.DataFrame.from_records(records, columns=["MAT", "MT", "VAR", "STD", "FLUX", "Elo", "Ehi", "E0","SKIPPED"])
+
+
+class EdistrCov(pd.DataFrame):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = ["MAT", "MT", "ELO", "EHI", "EOUT"]
+        self.columns.names = ["MAT", "MT", "ELO", "EHI", "EOUT"]
+
+    def to_matrix(self):
+        return self.index, Cov(self.values)
+
+    def get_samples(self, nsmp, **kwargs):
+        from ..functions import div0
+        index, cov = self.to_matrix()
+        frame = pd.DataFrame(cov.sampling(nsmp), index=index, columns=range(1,nsmp+1))
+        frame.columns.name = 'SMP'
+        if "eig" in kwargs:
+            if kwargs["eig"] > 0:
+                eigs = cov.eig()[0]
+                idxs = np.abs(eigs).argsort()[::-1]
+                dim = min(len(eigs), kwargs["eig"])
+                eigs_smp = Cov(np.cov(frame.values)).eig()[0]
+                idxs_smp = np.abs(eigs_smp).argsort()[::-1]
+                print("MF35 eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
+                diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
+                E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
+                print("\n".join(E))
+        return frame
 
 
 
