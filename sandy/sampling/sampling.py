@@ -259,6 +259,13 @@ def sampling(iargs=None):
     if not edistrcov.empty:
         PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
 
+#    # EXTRACT PERTURBATIONS FROM LPC COV FILE
+#    global PertLpc
+#    PertLpc = pd.DataFrame()
+#    lpccov = covtape.get_lpc_cov()
+#    if not lpccov.empty:
+#        PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
+
     # APPLY PERTURBATIONS BY MAT
     global tape
     for mat, tape in ftape.groupby('MAT'):
@@ -377,8 +384,7 @@ def test_U5_errorr(tmpdir):
 
 @pytest.mark.sampling
 @pytest.mark.chi
-@pytest.mark.aaa
-def test_U5_chi_errorr(tmpdir):
+def test_U5_chi(tmpdir):
     from ..data_test import U5
     iargs = [os.path.join(U5.__path__[0], r"u235.endf"),
              "--endf6-cov", os.path.join(U5.__path__[0], r"u235.endf"),
@@ -388,4 +394,16 @@ def test_U5_chi_errorr(tmpdir):
              "--samples", "100",]
 #             "--plotdir", os.path.join(str(tmpdir), r"html_files"),
 #             "-p"]
+    sampling(iargs)
+
+@pytest.mark.sampling
+@pytest.mark.lpc
+def test_Fe56_lpc(tmpdir):
+    from ..data_test import Fe56
+    iargs = [os.path.join(Fe56.__path__[0], r"fe56.endf"),
+             "--endf6-cov", os.path.join(Fe56.__path__[0], r"fe56.endf"),
+             "--outdir", str(tmpdir),
+             "--processes", str(os.cpu_count()),
+             "--eig", "10",
+             "--samples", "100",]
     sampling(iargs)

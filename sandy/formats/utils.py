@@ -113,6 +113,47 @@ class Xs(pd.DataFrame):
         return pd.DataFrame(records, columns=["MAT", "MT", "MACS", "FLUX", "Elo", "Ehi", "E0","SKIPPED"])
 
 
+class Lpc(pd.DataFrame):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = ["MAT", "MT", "E"]
+        self.columns = range(self.shape[1])
+
+    def to_tab(self, mat, mt, e, mu=np.linspace(-1,1,201)):
+        """
+        Return tabulated angular distribution for given MAT, MT and energy point.
+        """
+        from numpy.polynomial import legendre
+        sec = self.loc[mat, mt]
+        if (e < min(sec.index)) | (e > max(sec.index)): raise NotImplementedError("Energy is out of range")
+        if e not in sec.index:
+            eg =sorted(set(sec.index) | {e})
+            sec = sec.reindex(eg).interpolate(method="slinear")
+        coeff = sec.loc[e].dropna()
+        c = (coeff.index.values*2+1)/2 * coeff.values
+        adistr = legendre.legval(mu, c)
+        return pd.Series(adistr, index=mu, name=(mat,mt,e))
+
+    def add_points(self, extra_points):
+        """
+        Add additional energy points.
+        """
+        points = np.array(sorted(extra_points))
+        frame = self.copy()
+        List = []
+        for (mat,mt),df in frame.groupby(["MAT","MT"]):
+            rdf = df.loc[mat,mt]
+            mask = (points >= min(rdf.index)) & (points <= max(rdf.index))
+            grid = sorted((set(rdf.index) | set(points[mask])))
+            rdf = rdf.reindex(grid).interpolate(method='slinear').reset_index()
+            rdf["MAT"] = mat
+            rdf["MT"] = mt
+            rdf = rdf.set_index(["MAT","MT","E"])
+            List.append(rdf)
+        return Lpc(pd.concat(List, axis=0))
+
+
 class Edistr(pd.DataFrame):
 
     def __init__(self, *args, **kwargs):

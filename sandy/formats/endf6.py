@@ -124,6 +124,8 @@ class Endf6(pd.DataFrame):
             from .MF35 import read
         else:
             sys.exit("ERROR: SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
+        if (mat,mf,mt) not in self.index:
+            raise NotImplementedError("section MAT{}/MF{}/MT{} is not in tape".format(mat,mf,mt))
         return read(self.loc[mat,mf,mt].TEXT)
 
 #    def process(self, keep_mf=None, keep_mt=None):
@@ -263,14 +265,13 @@ class Endf6(pd.DataFrame):
                         e1 = nisec["EK"]
                         e2 = nisec["EL"]
                     else:
-                        warn("skipped NI-type covariance with flag LB={} for MAT{}/MF{}/MT{}".fomat(nisec["LB"], *ix), category=Warning)
+                        warn("skipped NI-type covariance with flag LB={} for MAT{}/MF{}/MT{}".format(nisec["LB"], *ix), category=Warning)
                         continue
                     cov = pd.DataFrame(cov, index=e1, columns=e2)
                     covs.append(cov)
                 if len(covs) == 0:
                     continue
-                if len(covs) > 1:
-                    pdb.set_trace()
+                # covs > 1 for Fe56
                 cov = reduce(lambda x, y: x.add(y, fill_value=0).fillna(0), covs).fillna(0)
                 eg |= set(cov.index.values)
                 List.append([mat, mt, mat1, mt1, cov])
@@ -455,6 +456,55 @@ class Endf6(pd.DataFrame):
         matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
         return EdistrCov(matrix, index=index, columns=index)
 
+    def get_lpc(self, listmat=None, listmt=None, verbose=True):
+        from .utils import Lpc
+        query = "MF==4"
+        if listmat is not None:
+            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+            query += " & ({})".format(query_mats)
+        if listmt is not None:
+            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+            query += " & ({})".format(query_mts)
+        tape = self.query(query)
+        DictLpc =  {}
+        for ix,text in tape.TEXT.iteritems():
+            X = self.read_section(*ix)
+            if "LPC" not in X: continue
+            if X["LPC"]["INT"] != [2]:
+                if verbose: warn(UserWarning("found non-linlin interpolation, skip angular distr. for MAT{}/MF{}/MT{}".format(*ix)))
+                continue
+            for e,v in X["LPC"]["E"].items():
+                DictLpc.update({(X["MAT"], X["MT"],e) : pd.Series([1]+v["COEFF"])})
+        if not DictLpc:
+            warn(UserWarning("no angular distribution in Legendre expansion was found"))
+            return pd.DataFrame()
+        frame = pd.DataFrame.from_dict(DictLpc, orient="index")
+        return Lpc(frame)
+
+    def update_lpc(self, lpcFrame):
+        from .MF4 import write
+        mf = 4
+        tape = self.copy()
+        for (mat,mt),S in lpcFrame.groupby(["MAT","MT"]):
+            if (mat,mf,mt) not in self.index: continue
+            sec = self.read_section(mat,mf,mt)
+            if "LPC" not in sec: continue
+            for e in S.loc[mat,mt].index:
+                if e in sec["LPC"]["E"]:
+                    T = sec["LPC"]["E"][e]["T"]
+                    LT = sec["LPC"]["E"][e]["LT"]
+                else:
+                    T = LT = 0
+                coeff =  S.loc[mat,mt,e].dropna().values[1:]
+                if len(coeff) == 0: continue
+                dict_distr = {"COEFF" : coeff, "LT" : LT, "T" : T}
+                sec["LPC"]["E"].update({e : dict_distr})
+            sec["LPC"]["NBT"] = [len(sec["LPC"]["E"])]
+            sec["LPC"]["INT"] = [2]
+            text = write(sec)
+            tape.loc[mat,mf,mt].TEXT = text
+        return Endf6(tape)
+
     def update_info(self):
         """
         Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
@@ -561,6 +611,13 @@ def testH1():
     assert (tape.index.get_level_values("MAT").unique() == 125).all()
     return tape
 
+@pytest.fixture(scope="module")
+def testFe56():
+    from sandy.data_test import Fe56
+    tape = Endf6.from_text("\n".join(Fe56.endf6))
+    assert (tape.index.get_level_values("MAT").unique() == 2631).all()
+    return tape
+
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.info
@@ -644,29 +701,12 @@ def test_extract_xs_cov(testPu9):
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.nubar
-def test_read_nubar452(testPu9):
-    S = testPu9.read_section(9437, 1, 452)
+def test_read_nubar(testPu9):
     from .MF1 import write
-    text = write(S)
-    assert testPu9.TEXT.loc[9437,1,452] == text
-
-@pytest.mark.formats
-@pytest.mark.endf6
-@pytest.mark.nubar
-def test_read_nubar455(testPu9):
-    S = testPu9.read_section(9437, 1, 455)
-    from .MF1 import write
-    text = write(S)
-    assert testPu9.TEXT.loc[9437,1,455] == text
-
-@pytest.mark.formats
-@pytest.mark.endf6
-@pytest.mark.nubar
-def test_read_nubar456(testPu9):
-    S = testPu9.read_section(9437, 1, 456)
-    from .MF1 import write
-    text = write(S)
-    assert testPu9.TEXT.loc[9437,1,456] == text
+    for mt in (452,455,456):
+        S = testPu9.read_section(9437, 1, mt)
+        text = write(S)
+        assert testPu9.TEXT.loc[9437,1,mt] == text
 
 @pytest.mark.formats
 @pytest.mark.endf6
@@ -696,13 +736,69 @@ def test_update_nubar(testPu9):
 
 @pytest.mark.formats
 @pytest.mark.endf6
-@pytest.mark.mu
-def test_read_mu(testPu9):
-    S = testPu9.read_section(9437, 4, 2)
-    pdb.set_trace()
-    from .MF5 import write
+@pytest.mark.lpc
+def test_read_lpc(testFe56):
+    from .MF4 import write
+    S = testFe56.read_section(2631, 4, 2)
+    assert S["LTT"] == 3
+    assert "LPC" in S
+    assert S["LPC"]["NE"] == len(S["LPC"]["E"]) == 1782
+    assert "TAB" in S
+    assert S["TAB"]["NE"] == len(S["TAB"]["E"]) == 28
     text = write(S)
-    assert testPu9.TEXT.loc[9437,5,18] == text
+    assert testFe56.TEXT.loc[2631,4,2] == text
+    for mt in range(51,83):
+        S = testFe56.read_section(2631, 4, mt)
+        text = write(S)
+        assert testFe56.TEXT.loc[2631,4,mt] == text
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.lpc
+def test_extract_lpc(testFe56):
+    testFe56.get_lpc()
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.lpc
+def test_convert_lpc(testFe56):
+    Lpc = testFe56.get_lpc()
+    C = Lpc.to_tab(2631, 2, 1e-5)
+    assert (C == 0.5).all()
+    C = Lpc.to_tab(2631, 2, 1e4)
+    assert (C >= 0).all()
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.lpc
+def test_addpoints_lpc(testFe56):
+    lpcold = testFe56.get_lpc(listmt=[2])
+    lpcnew = lpcold.add_points([1e4, 1e5, 1e6])
+    assert 1e4 in lpcnew.loc[2631,2].index
+    assert 1e4 not in lpcold.loc[2631,2].index
+    assert 1e5 in lpcnew.loc[2631,2].index
+    assert 1e5 not in lpcold.loc[2631,2].index
+    assert 1e6 in lpcnew.loc[2631,2].index
+    assert 1e6 in lpcold.loc[2631,2].index
+    lpcnew = lpcold.add_points([])
+    assert (lpcnew.index == lpcold.index).all()
+    lpcold = testFe56.get_lpc(listmt=[810])
+    lpcnew = lpcold.add_points([1e4])
+    assert 1e4 not in lpcnew.loc[2631,810].index
+    assert 1e4 not in lpcold.loc[2631,810].index
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.lpc
+def test_update_lpc(testFe56):
+    lpc = testFe56.get_lpc()
+    new = testFe56.update_lpc(lpc)
+    assert new.TEXT[2631,4,2] == testFe56.TEXT[2631,4,2]
+    lpc.loc[2631,2,1e5:2e7] = 0
+    new = testFe56.update_lpc(lpc)
+    assert new.TEXT[2631,4,2] != testFe56.TEXT[2631,4,2]
+    new_sec = new.read_section(2631,4,2)
+    assert (np.array(new_sec["LPC"]["E"][2e7]["COEFF"]) == 0).all()
 
 @pytest.mark.formats
 @pytest.mark.endf6
