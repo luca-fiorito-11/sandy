@@ -115,6 +115,12 @@ class Errorr(pd.DataFrame):
         frame.columns = frame.columns.reorder_levels(["MAT","MT","DATA"])
         return frame
 
+    def get_edistr_cov(self):
+        return pd.DataFrame()
+
+    def get_lpc_cov(self):
+        return pd.DataFrame()
+
 
 @pytest.fixture(scope="module")
 def testH1():
