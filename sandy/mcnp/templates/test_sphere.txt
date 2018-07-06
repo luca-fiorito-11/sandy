@@ -1,0 +1,12 @@
+simple sphere test problem
+1 1 1 -1 imp:n=1
+2 0 1 imp:n=0
+
+1 so 10
+
+m1 ID 1
+awtab ZA AWR
+xs1 XS
+nps 100
+sdef erg ERG pos 0 0 0
+f1:n 1
