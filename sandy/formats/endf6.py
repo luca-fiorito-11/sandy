@@ -4,7 +4,7 @@ Created on Mon Jan 16 18:03:13 2017
 
 @author: lfiorito
 """
-import sys, pdb, os, pytest
+import sys, pdb, os, pytest, logging
 import numpy as np
 import pandas as pd
 from warnings import warn
@@ -30,29 +30,6 @@ from warnings import warn
 #    return frame.query("MAT>0 & MF>0 & MT>0")
 #
 #
-#def process_endf_section(text, keep_mf=None, keep_mt=None):
-#    mf = int(text[70:72])
-#    mt = int(text[72:75])
-#    if mf == 1 and mt == 451: # read always
-#        return read_mf1_mt451(text)
-#    if keep_mf:
-#        if mf not in keep_mf:
-#            return None
-#    if keep_mt:
-#        if mt not in keep_mt:
-#            return None
-#    if mf == 1 and mt in (452, 455, 456):
-#        return read_mf1_nubar(text)
-#    elif mf == 3:
-#        return read_mf3_mt(text)
-#    elif mf == 5:
-#        return read_mf5_mt(text)
-#    elif mf == 31 or mf == 33:
-#        return read_mf33_mt(text)
-#    elif mf == 35:
-#        return read_mf35_mt(text)
-#    else:
-#        return None
 
 
 class Endf6(pd.DataFrame):
@@ -86,9 +63,23 @@ class Endf6(pd.DataFrame):
                 usecols = ["MAT", "MF", "MT"]
                 )
         tape["TEXT"] = text.splitlines(True)
-        tape = tape.query("MAT>0 & MF>0 & MT>0")
-        tape = tape.groupby(["MAT","MF","MT"]).sum()
+        splitters = tape.query("MAT==0 & MF==0 & MT==0").index
+        dfs = []; ibeg = 0
+        for iend in splitters:
+            df = tape[ibeg:iend].query("MAT>0 & MF>0 & MT>0").groupby(["MAT","MF","MT"]).sum().reset_index()
+            dfs.append(df)
+            ibeg = iend
+        tape = pd.concat(dfs).set_index(["MAT","MF","MT"])
+        dupl = tape.index.duplicated()
+        if dupl.any():
+            logging.error("found duplicate MAT/MF/MT")
+            sys.exit()
         return cls(tape)
+
+    def __init__(self, *args, **kwargs):
+        kwargs.update({"columns" : ["TEXT"]})
+        super().__init__(*args, **kwargs)
+        self.index.names = ['MAT', 'MF', 'MT']
 
 #    def by_ZAM(self):
 #        """
@@ -129,14 +120,6 @@ class Endf6(pd.DataFrame):
         if (mat,mf,mt) not in self.index:
             raise NotImplementedError("section MAT{}/MF{}/MT{} is not in tape".format(mat,mf,mt))
         return read(self.loc[mat,mf,mt].TEXT)
-
-#    def process(self, keep_mf=None, keep_mt=None):
-#        """
-#        Parse TEXT column.
-#        """
-#        tape = self.copy()
-#        tape['DATA'] = tape['TEXT'].apply(process_endf_section, keep_mf=keep_mf, keep_mt=keep_mt)
-#        return Endf6(tape)
 
     def write_string(self, title=" "*66):
         """
@@ -636,25 +619,25 @@ def cov_interp(df, interp_column, method='zero', axis='both'):
 
 
 
-def extract_mu(tape):
-#    NLMAX = 0
-    keys = []
-    ListPc = []
-    for chunk in tape.query('MF==4').DATA:
-        if "LPC" in chunk:
-            # check interpolation
-            for e,sub in sorted(chunk["LPC"]["E"].items()):
-                keys.append((chunk["MAT"], chunk["MT"], e))
-#                NPL = len(sub["P"])
-#                P[i,:NPL] = sub["P"]
-#                NLMAX = max(NLMAX, NPL)
-                ListPc.append(sub["P"])
-    index = pd.MultiIndex.from_tuples(keys, names=("MAT", "MT", "E"))
-    DfPc = pd.DataFrame(ListPc, index=index).fillna(0)
-    DfPc.columns = range(1, DfPc.shape[1]+1)
-    DfPc.columns.name = "LegCoeff"
-    # print warning if exceeded NLMAX
-    return DfPc
+#def extract_mu(tape):
+##    NLMAX = 0
+#    keys = []
+#    ListPc = []
+#    for chunk in tape.query('MF==4').DATA:
+#        if "LPC" in chunk:
+#            # check interpolation
+#            for e,sub in sorted(chunk["LPC"]["E"].items()):
+#                keys.append((chunk["MAT"], chunk["MT"], e))
+##                NPL = len(sub["P"])
+##                P[i,:NPL] = sub["P"]
+##                NLMAX = max(NLMAX, NPL)
+#                ListPc.append(sub["P"])
+#    index = pd.MultiIndex.from_tuples(keys, names=("MAT", "MT", "E"))
+#    DfPc = pd.DataFrame(ListPc, index=index).fillna(0)
+#    DfPc.columns = range(1, DfPc.shape[1]+1)
+#    DfPc.columns.name = "LegCoeff"
+#    # print warning if exceeded NLMAX
+#    return DfPc
 
 
 
