@@ -389,7 +389,7 @@ class Njoy:
         kwargs["TEXTTEMPS"] = " ".join(["%E"%tmp for tmp in kwargs["TEMPS"]])
         if not isinstance(kwargs["IGN"], int):
             if kwargs["IGN"].lower() == "scale_238":
-                from ..spectra import scale_238 as grid
+                from ..energy_grids import scale_238 as grid
             else:
                 if not os.path.isfile(kwargs["IGN"]):
                     logging.error("file {} not found".format(kwargs["IGN"]))
@@ -435,8 +435,13 @@ class Njoy:
         kwargs = dict(dict(vars(self), TEMPS=self.TEMPS), **fileOptions)
         kwargs.update({"NENDF" : nendf, "NPENDF" : npendf, "NGOUT" : ngout, "NOUT" : nout})
         if not isinstance(kwargs["IGNE"], int):
-            if not os.path.isfile(kwargs["IGNE"]): raise NotImplementedError("file {} not found".format(kwargs["IGNE"]))
-            grid = np.genfromtxt(kwargs["IGNE"])
+            if kwargs["IGNE"].lower() == "scale_238":
+                from ..energy_grids import scale_238 as grid
+            else:
+                if not os.path.isfile(kwargs["IGNE"]):
+                    logging.error("file {} not found".format(kwargs["IGNE"]))
+                    sys.exit()
+                grid = np.genfromtxt(kwargs["IGNE"])
             ngroups = len(grid) - 1
             kwargs["IGNESTR"] = "{} /\n".format(ngroups) + "\n".join(map(str,grid)) + " /\n"
             kwargs["IGNE"] = 1
@@ -444,7 +449,9 @@ class Njoy:
             if kwargs["IWTE"].lower() == "jaea_fns_175":
                 from ..csv.spectra import jaea_fns_175 as spectrum
             else:
-                if not os.path.isfile(kwargs["IWTE"]): raise NotImplementedError("file {} not found".format(kwargs["IWTE"]))
+                if not os.path.isfile(kwargs["IWTE"]):
+                    logging.error("file {} not found".format(kwargs["IWTE"]))
+                    sys.exit()
                 spectrum = pd.read_csv(kwargs["IWTE"], header=None, names=["E", "F"])
             tab = spectrum.reset_index().values.flatten()
             x = tab[::2]; y = tab[1::2]
