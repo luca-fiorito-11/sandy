@@ -139,6 +139,9 @@ def init_njoy(iargs=None):
     parser.add_argument('-e','--errorr',
                         action="store_true",
                         help="produce ERRORR file")
+    parser.add_argument('-H','--hendf',
+                        action="store_true",
+                        help="produce HENDF file")
 #    parser.add_argument('--capsys',
 #                        action="store_true",
 #                        help="capture NJOY stderr and stdout (default=False)")

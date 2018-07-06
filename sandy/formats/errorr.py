@@ -7,21 +7,12 @@ Created on Fri May 11 15:08:25 2018
 import pandas as pd
 import sys, pytest
 import numpy as np
+from .utils import BaseFile
 
 
-class Errorr(pd.DataFrame):
+class Errorr(BaseFile):
 
     Format = "errorr"
-
-    @classmethod
-    def from_file(cls, file):
-        from .endf6 import Endf6
-        return cls(Endf6.from_file(file))
-
-    @classmethod
-    def from_text(cls, text):
-        from .endf6 import Endf6
-        return cls(Endf6.from_text(text))
 
     def read_section(self, mat, mf, mt):
         """

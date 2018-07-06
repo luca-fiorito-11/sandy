@@ -6,7 +6,7 @@ Created on Fri May 25 16:58:11 2018
 """
 import pandas as pd
 import numpy as np
-import os, sys, time, pdb, shutil, re, pytest
+import os, sys, time, pdb, shutil, re, pytest, logging
 from ..functions import run_process
 
 sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
@@ -90,13 +90,19 @@ class NjoyOutput(pd.DataFrame):
 
 def is_allocated(*keys):
     """
-    Check if keyword argumentsa are given
+    Check if keyword arguments are given
     """
     def check_allocated(f):
         def new_f(*args, **kwargs):
             for k in keys:
-                assert k in kwargs, "missing argument '{}' for '{}'".format(k, f.__name__)
-                assert kwargs[k], "empty argument '{}' for '{}'".format(k, f.__name__)
+                if k not in kwargs:
+                    logging.error("missing argument '{}'".format(k))
+                    sys.exit()
+                if kwargs[k] is None:
+                    logging.error("empty argument '{}'".format(k))
+                    sys.exit()
+#                assert k in kwargs, "missing argument '{}' for '{}'".format(k, f.__name__)
+#                assert kwargs[k], "empty argument '{}' for '{}'".format(k, f.__name__)
             return f(*args, **kwargs)
         return new_f
     return check_allocated
@@ -133,11 +139,6 @@ class Njoy:
         self.FOLDER = os.path.abspath("lib")
         self.IPRINT = 1  # by default set verbosity to max
         self.PLOT = False
-        # Run options
-        self.PENDF = False
-        self.GROUPR = False
-        self.ACE = False
-        self.ERRORR = False
         # modules
         self.RECONR = True
         self.BROADR = False
@@ -186,7 +187,9 @@ class Njoy:
 
     @property
     def TEMPS(self):
-        if not hasattr(self, "_temps"): raise AttributeError("'{}' object has no attribute '{}'".format(self.__class__.__name__, "TEMPS"))
+        if not hasattr(self, "_temps"):
+            logging.error("'{}' object has no attribute '{}'".format(self.__class__.__name__, "TEMPS"))
+            sys.exit()
         return self._temps
 
     @TEMPS.setter
@@ -212,68 +215,15 @@ class Njoy:
         if not isinstance(suffixes, list): raise TypeError("{} must be a list".format("SUFFIXES"))
         self._suffixes = suffixes
 
-#    def runNjoy(self, inputfile, cwd, timeout=.1):
-#        """
-#        Run ``NJOY``.
-#        Pass input file to process's stdin (it must be encoded first).
-#        ..Important::
-#            In ``Python 3`` you need to convert string to bytes with a
-#            ``encode()`` function
-#        """
-#        import subprocess as sp
-##        pdb.set_trace()
-##        if self.CAPSYS:
-##            stderr = stdout = sp.PIPE
-##        else:
-##            stderr = stdout = None
-#        process = sp.Popen(self.EXEC,
-#                           shell=False,
-#                           cwd=cwd,
-#                           stdin=open(inputfile),
-#                           stdout=sp.PIPE,
-#                           stderr=sp.PIPE,)
-##        inp = open(inputfile).read().encode()
-#        try:
-##            stdoutdata, stderrdata = process.communicate(inp, timeout=timeout)
-#            stdoutdata, stderrdata = process.communicate(timeout=timeout)
-#        except sp.TimeoutExpired as exc:
-#            process.kill()
-#            stdoutdata, stderrdata = process.communicate()
-#            pdb.set_trace()
-#            raise NotImplementedError("'{}' took longer than {} seconds to complete and it was killed".format(self.EXEC, timeout))
-#        if not self.CAPSYS:
-#            print(stdoutdata.decode('utf-8').rstrip())
-#        pdb.set_trace()
-#        if process.returncode not in [0, 24]:
-#            raise NotImplementedError("NJOY exit status {}, cannot run njoy executable".format(process.returncode))
-
-#    def runBash(self, inputfile, cwd):
-#        from subprocess import Popen, PIPE
-#        if self.CAPSYS:
-#            stderr = stdout = PIPE
-#        else:
-#            stderr = stdout = None
-#        command = "bash {}".format(inputfile)
-#        process = Popen(command,
-#                        shell=True,
-#                        cwd=cwd,
-#                        stdin=PIPE,
-#                        stdout=stdout,
-#                        stderr=stderr)
-#        stdoutdata, stderrdata = process.communicate()
-#        if process.returncode not in [0, 24]:
-#            raise NotImplementedError("exit status {} when running \"{}\"".format(process.returncode, command))
-
-    @staticmethod
-    def moder_input(tapein, tapeout, **kwargs):
+    def moder_input(self, tapein, tapeout, **fileOptions):
         text = """moder
 {} {}
 """.format(tapein, tapeout)
         return text
 
-    @staticmethod
-    @is_allocated("MAT", "ERR")
-    def reconr_input(endfin, pendfout, **kwargs):
+    @is_allocated("MAT")
+    def reconr_input(self, endfin, pendfout, **fileOptions):
+        kwargs = dict(vars(self), **fileOptions)
         kwargs.update({"ENDFIN" : endfin, "PENDFOUT" : pendfout})
         if not kwargs["ERRMAX"]: kwargs["ERRMAX"] = kwargs["ERR"]*10
         text = """reconr
@@ -485,7 +435,7 @@ class Njoy:
         return text
 
 
-
+#    @is_allocated("TAPE", "PENDFTAPE")
     def get_pendf(self, **fileOptions):
         from ..functions import force_symlink
         self.__dict__.update(**fileOptions)
@@ -504,7 +454,7 @@ class Njoy:
         else:
             text += self.reconr_input(-21, -22, **kwargs)
         e = -21; p = -22
-        if hasattr(self, "TEMPS"): self.BROADR = True
+        if hasattr(self, "_temps"): self.BROADR = True
         if self.BROADR:
             text += self.broadr_input(e, p, -23, **fileOptions)
             p = -23
@@ -552,6 +502,34 @@ class Njoy:
 
         for filename in os.listdir(mydir):
             if filename[:4] == 'tape': os.remove(os.path.join(mydir, filename))
+        return DfOutputs, DfMessages
+
+
+    @is_allocated("TAPE", "PENDFTAPE", "TAG")
+    def get_hendf(self, **fileOptions):
+        from ..formats import Endf6
+        mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
+        os.makedirs(mydir, exist_ok=True)
+
+        print(" --- run hendf for {} ---".format(fileOptions["TAG"]))
+        E = Endf6.from_file(fileOptions["TAPE"])
+        P = Endf6.from_file(fileOptions["PENDFTAPE"]).query("not ((MF==2 & MT == 151) | (MF==1 & MT==451))")
+        E.update(P)
+
+        string = E.write_string()
+        string = string[:103] + '{:>11}'.format(2) + string[114:]
+
+        newfile = os.path.join(mydir, "{}.hendf".format(fileOptions["TAG"]))
+        with open(newfile, 'w') as f: f.write(string)
+
+        DfOutputs = OutputFiles()
+        if os.path.isfile(newfile):
+            if os.path.getsize(newfile) > 0:
+                DfOutputs = DfOutputs.append({"id" : "hendf", "format" : "ENDF", "file" : newfile}, ignore_index=True)
+
+        DfOutputs = DfOutputs.append({"id" : "output_pendf", "format" : "TEXT", "file" : newfile}, ignore_index=True)
+        DfMessages = pd.DataFrame()
+
         return DfOutputs, DfMessages
 
 
@@ -796,30 +774,39 @@ def run(iargs=None):
     DfOutputs = OutputFiles()
     DfMessages = NjoyMessages()
 
-    if nj.PENDF:
+    if init.pendf:
         outs, msgs = nj.get_pendf(**tape.__dict__)
         DfOutputs = pd.concat([DfOutputs, outs]).reset_index(drop=True)
         DfMessages = pd.concat([DfMessages, msgs]).reset_index(drop=True)
     try:
-        nj.PENDFTAPE = DfOutputs.query("id==\"pendf\"").file.iloc[0]
+        tape.PENDFTAPE = DfOutputs.query("id==\"pendf\"").file.iloc[0]
     except:
         pass
 
-    if nj.ACE:
+    if init.hendf:
+        outs, msgs = nj.get_hendf(**tape.__dict__)
+        DfOutputs = pd.concat([DfOutputs, outs]).reset_index(drop=True)
+        DfMessages = pd.concat([DfMessages, msgs]).reset_index(drop=True)
+    try:
+        tape.PENDFTAPE = DfOutputs.query("id==\"pendf\"").file.iloc[0]
+    except:
+        pass
+
+    if init.ace:
         outs, msgs = nj.get_ace(**tape.__dict__)
         DfOutputs = pd.concat([DfOutputs, outs]).reset_index(drop=True)
         DfMessages = pd.concat([DfMessages, msgs]).reset_index(drop=True)
 
-    if nj.GENDF:
+    if init.gendf:
         outs, msgs = nj.get_gendf(**tape.__dict__)
         DfOutputs = pd.concat([DfOutputs, outs]).reset_index(drop=True)
         DfMessages = pd.concat([DfMessages, msgs]).reset_index(drop=True)
     try:
-        nj.GENDFTAPE = DfOutputs.query("id==\"gendf\"").file.iloc[0]
+        tape.GENDFTAPE = DfOutputs.query("id==\"gendf\"").file.iloc[0]
     except:
         pass
 
-    if nj.ERRORR:
+    if init.errorr:
         outs, msgs = nj.get_errorr(**tape.__dict__)
         DfOutputs = pd.concat([DfOutputs, outs]).reset_index(drop=True)
         DfMessages = pd.concat([DfMessages, msgs]).reset_index(drop=True)
