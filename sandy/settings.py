@@ -86,7 +86,17 @@ def init_njoy(iargs=None):
     parser = argparse.ArgumentParser(description='Run NJOY', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('tape',
                         type=lambda x: is_valid_file(parser, x),
-                        help="ENDF-6 format file.")
+                        help="ENDF-6 format file")
+    parser.add_argument('-P','--pendftape',
+                        type=lambda x: is_valid_file(parser, x),
+                        default=argparse.SUPPRESS,
+                        metavar="PENDF",
+                        help="processed PENDF format file")
+    parser.add_argument('-G','--gendftape',
+                        type=lambda x: is_valid_file(parser, x),
+                        default=argparse.SUPPRESS,
+                        metavar="GENDF",
+                        help="processed GENDF format file")
     parser.add_argument('--broadr',
                         type=str2bool,
                         default=argparse.SUPPRESS,
@@ -160,7 +170,7 @@ def init_njoy(iargs=None):
                         action=EmptyIsConst,
                         default = argparse.SUPPRESS,
                         nargs='*',
-                        help="partial kermas (default=None)")
+                        help="list of partial kermas (default=[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447])")
 #    parser.add_argument('--qa',
 #                        default=[],
 #                        nargs='+',
@@ -220,9 +230,14 @@ def init_njoy(iargs=None):
                         help="Activate plotting capabilities.")
     parser.add_argument('--suffixes',
                         type=str,
-                        default=[".03"],
+                        default=argparse.SUPPRESS,
                         nargs='+',
-                        help="Suffixes for ACE files, as many as temperature values (default=[\".03\"]]).")
+                        metavar="\".XX\"",
+                        help="Suffixes for ACE files, as many as temperature values (default = None).")
+    parser.add_argument("-V","--verbose",
+                        type=int,
+                        default=argparse.SUPPRESS,
+                        help="Set verbosity level (default = 1)")
     parser.add_argument("-v",
                         '--version',
                         action='version',
@@ -269,27 +284,35 @@ def init_sampling(iargs=None):
 #    parser.add_argument('-p',
 #                        action='store_true',
 #                        help="Turn on xs plotting.")
-#    parser.add_argument('-mat','--keep-mat',
-#                        type=int,
-#                        action='append',
-#                        help="Keep only the selected MAT sections (default = keep all). Allowed values range from 1 to 9999. Provide each MAT section as an individual optional argument, e.g. -mat 9228 -mat 125")
-#    parser.add_argument('-mf','--keep-cov-mf',
-#                        type=int,
-#                        action='append',
-#                        choices=range(31,36),
-#                        default=[],
-#                        help="Keep only the selected covariance MF sections (default = keep all). Allowed values are [31, 32, 33, 34, 35]. Provide each MF section as an individual optional argument, e.g. -mf 33 -mf 35")
-#    parser.add_argument('-mt','--keep-cov-mt',
-#                        type=int,
-#                        action='append',
-#                        metavar="{1,..,999}",
-#                        help="Keep only the selected covariance MT sections (default = keep all). Allowed values range from 1 to 999. Provide each MT section as an individual optional argument, e.g. -mt 18 -mt 102")
+    parser.add_argument('--mat',
+                        type=int,
+                        action='store',
+                        nargs="+",
+                        metavar="{1,..,9999}",
+                        help="draw samples only from the selected MAT sections (default = keep all)")
+    parser.add_argument('--mf',
+                        type=int,
+                        default=range(41),
+                        action='store',
+                        nargs="+",
+                        metavar="{1,..,40}",
+                        help="draw samples only from the selected MF sections (default = keep all)")
+    parser.add_argument('--mt',
+                        type=int,
+                        action='store',
+                        nargs="+",
+                        metavar="{1,..,999}",
+                        help="draw samples only from the selected MT sections (default = keep all)")
+    parser.add_argument('--verbose',
+                        default=False,
+                        action="store_true",
+                        help="turn on verbosity (default = quiet)")
     parser.add_argument('-e','--energy-points',
                         type=float,
                         metavar="E",
                         default=[],
                         action="store",
-                        nargs='*',
+                        nargs='+',
                         help="additional energy points (in eV) to include in the incoming-neutron energy grid (default = None)")
     parser.add_argument("-v",
                         '--version',
@@ -318,5 +341,20 @@ def init_macs(iargs=None):
                         default=[1,2,18,102],
                         nargs='+',
                         help="List of MT sections (default=[1,2,18,102]).")
+    args = parser.parse_known_args(args=iargs)[0]
+    return args
+
+def init_test_ace(iargs=None):
+    parser = argparse.ArgumentParser(description=None)
+    parser.add_argument('xsdir',
+                       type=lambda x: is_valid_file(parser, x),
+                       help="xsdir file")
+    parser.add_argument('-a','--ace-files',
+                       type=lambda x: is_valid_file(parser, x),
+                       metavar="ace",
+                       default=argparse.SUPPRESS,
+                       action="store",
+                       nargs='+',
+                       help="List of ACE files")
     args = parser.parse_known_args(args=iargs)[0]
     return args

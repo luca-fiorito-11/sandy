@@ -13,5 +13,4 @@ install:
   - python setup.py install
 # command to run tests
 script:
-  - test $TRAVIS_BRANCH = "master" && pytest -s  -v --basetemp=sandy_tests -m "not slow"
-  - test $TRAVIS_BRANCH = "devel" && pytest -s  -v --basetemp=sandy_tests -m "not slow"
+  - pytest
