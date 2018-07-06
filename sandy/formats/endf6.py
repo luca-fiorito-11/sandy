@@ -120,6 +120,8 @@ class Endf6(pd.DataFrame):
             from .MF4 import read
         elif mf == 33 or mf == 31:
             from .MF33 import read
+        elif mf == 34:
+            from .MF34 import read
         elif mf == 35:
             from .MF35 import read
         else:
@@ -505,6 +507,81 @@ class Endf6(pd.DataFrame):
             tape.loc[mat,mf,mt].TEXT = text
         return Endf6(tape)
 
+    def get_lpc_cov(self, listmat=None, listmt=None):
+        from .utils import triu_matrix, LpcCov
+        from functools import reduce
+        query = "MF==34"
+        if listmat is not None:
+            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+            query += " & ({})".format(query_mats)
+        if listmt is not None:
+            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+            query += " & ({})".format(query_mts)
+        tape = self.query(query)
+        List = []; eg = set()
+        for ix,text in tape.TEXT.iteritems():
+            X = self.read_section(*ix)
+            mat = X['MAT']; mt = X['MT']
+            for (mat1,mt1),rsec in X["REAC"].items():
+                if mat1 == 0: mat1 = mat;
+                for (l,l1),psec in rsec["P"].items():
+                    covs = []
+                    for nisec in psec["NI"].values():
+                        if nisec["LB"] == 5:
+                            Fkk = np.array(nisec["FKK"])
+                            if nisec["LS"] == 0: # to be tested
+                                cov = Fkk.reshape(nisec["NE"]-1, nisec["NE"]-1)
+                            else:
+                                cov = triu_matrix(Fkk, nisec["NE"]-1)
+                            # add zero row and column at the end of the matrix
+                            cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                            cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                            e1 = e2 = nisec["EK"]
+                        elif nisec["LB"] == 1:
+                            cov = np.diag(nisec["FK"])
+                            e1 = e2 = nisec["EK"]
+                        elif nisec["LB"] == 2:
+                            f = np.array(nisec["FK"])
+                            cov = f*f.reshape(-1,1)
+                            e1 = e2 = nisec["EK"]
+                        elif nisec["LB"] == 6:
+                            cov = np.array(nisec["FKL"]).reshape(nisec["NER"]-1, nisec["NEC"]-1)
+                            # add zero row and column at the end of the matrix
+                            cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                            cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                            e1 = nisec["EK"]
+                            e2 = nisec["EL"]
+                        else:
+                            warn("skipped NI-type covariance with flag LB={} for MAT{}/MF{}/MT{}".format(nisec["LB"], *ix), category=Warning)
+                            continue
+                        cov = pd.DataFrame(cov, index=e1, columns=e2)
+                        covs.append(cov)
+                    if len(covs) == 0:
+                        continue
+                    cov = reduce(lambda x, y: x.add(y, fill_value=0).fillna(0), covs).fillna(0)
+                    eg |= set(cov.index.values)
+                    List.append([mat, mt, l, mat1, mt1, l1, cov])
+        if not List:
+            warn("no MF34 covariance found", category=Warning)
+            return pd.DataFrame()
+        frame = pd.DataFrame(List, columns=('MAT', 'MT', 'L', 'MAT1', 'MT1', 'L1', 'COV'))
+        eg = sorted(eg)
+        frame.COV = frame.COV.apply(lambda x:cov_interp(x, eg))
+        # From here, the method is identical to Errorr.get_cov()
+        # Except that the size of eg is equal to the size of each matrix (we include the value for 2e7)
+        # and that the indexes are different
+        MI = [(mat,mt,l,e) for mat,mt,l in sorted(set(zip(frame.MAT, frame.MT, frame.L))) for e in eg]
+        index = pd.MultiIndex.from_tuples(MI, names=("MAT", "MT", "L", "E"))
+        # initialize union matrix
+        matrix = np.zeros((len(index),len(index)))
+        for i,row in frame.iterrows():
+            ix = index.get_loc((row.MAT,row.MT,row.L))
+            ix1 = index.get_loc((row.MAT1,row.MT1,row.L1))
+            matrix[ix.start:ix.stop,ix1.start:ix1.stop] = row.COV
+        i_lower = np.tril_indices(len(index), -1)
+        matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
+        return LpcCov(matrix, index=index, columns=index)
+
     def update_info(self):
         """
         Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
@@ -799,6 +876,25 @@ def test_update_lpc(testFe56):
     assert new.TEXT[2631,4,2] != testFe56.TEXT[2631,4,2]
     new_sec = new.read_section(2631,4,2)
     assert (np.array(new_sec["LPC"]["E"][2e7]["COEFF"]) == 0).all()
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.lpc
+@pytest.mark.cov
+def test_read_lpc_cov(testFe56):
+    S = testFe56.read_section(2631, 34, 2)
+    assert S["NMT1"] == len(S["REAC"]) == 1
+    assert len(S["REAC"][0,2]["P"]) == S["REAC"][0,2]["NL"]*(S["REAC"][0,2]["NL"]+1)//2
+    assert len(S["REAC"][0,2]["P"][1,1]["NI"]) == 3
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.lpc
+@pytest.mark.cov
+def test_extract_lpc_cov(testFe56):
+    C = testFe56.get_lpc_cov()
+    assert C.index.names == C.columns.names == ['MAT', 'MT', 'L', 'E']
+    assert (C.values == C.values.T).all()
 
 @pytest.mark.formats
 @pytest.mark.endf6

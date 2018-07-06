@@ -202,27 +202,36 @@ import multiprocessing as mp
 #    print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
 
 def sampling_mp(ismp):
-    global tape, PertXs, PertEdistr, init
+    global tape, PertXs, PertEdistr, PertLpc, init
     t0 = time.time()
     mat = tape.index.get_level_values("MAT")[0]
     info = tape.read_section(mat, 1, 451)
     lrp = info["LRP"]
     name = info["TAG"]
-    if lrp == 2:
-        xs = tape.get_xs()
-        if not xs.empty:
-            xs = xs.perturb(PertXs[ismp])
-            tape = tape.update_xs(xs)
-    else:
-        nubar = tape.get_nubar()
-        if not nubar.empty and not PertXs.empty:
-            nubar = nubar.perturb(PertXs[ismp])
-            tape = tape.update_nubar(nubar)
 
-    edistr = tape.get_edistr()
-    if not edistr.empty and not PertEdistr.empty:
-        edistr = edistr.add_points(init.energy_points).perturb(PertEdistr[ismp])
-        tape = tape.update_edistr(edistr)
+    if not PertXs.empty:
+        if lrp == 2:
+            xs = tape.get_xs()
+            if not xs.empty:
+                xs = xs.perturb(PertXs[ismp])
+                tape = tape.update_xs(xs)
+        else:
+            nubar = tape.get_nubar()
+            if not nubar.empty:
+                nubar = nubar.perturb(PertXs[ismp])
+                tape = tape.update_nubar(nubar)
+
+    if not PertEdistr.empty:
+        edistr = tape.get_edistr()
+        if not edistr.empty:
+            edistr = edistr.add_points(init.energy_points).perturb(PertEdistr[ismp])
+            tape = tape.update_edistr(edistr)
+
+    if not PertLpc.empty:
+        lpc = tape.get_lpc()
+        if not lpc.empty:
+            lpc = lpc.add_points(init.energy_points).perturb(PertLpc[ismp], verbose=init.verbose)
+            tape = tape.update_lpc(lpc)
 
     print("Created sample {} for {} in {:.2f} sec".format(ismp, name, time.time()-t0,))
     return tape.update_info().write_string()
@@ -237,6 +246,7 @@ def sampling(iargs=None):
     # LOAD DATA FILE
     ftape = Endf6.from_file(init.file)
     if ftape.empty: sys.exit("ERROR: tape is empty")
+    ftape.parse()
 
     # LOAD COVARIANCE FILE
     if init.errorr_cov:
@@ -248,23 +258,30 @@ def sampling(iargs=None):
     # EXTRACT PERTURBATIONS FROM XS/NUBAR COV FILE
     global PertXs
     PertXs = pd.DataFrame()
-    xscov = covtape.get_xs_cov()
-    if not xscov.empty:
-        PertXs = xscov.get_samples(init.samples, eig=init.eig)
+    if 33 in init.mf or 31 in init.mf:
+        xscov = covtape.get_xs_cov(listmt=init.mt, listmat=init.mat)
+        if not xscov.empty:
+            PertXs = xscov.get_samples(init.samples, eig=init.eig)
 
     # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
     global PertEdistr
     PertEdistr = pd.DataFrame()
-    edistrcov = covtape.get_edistr_cov()
-    if not edistrcov.empty:
-        PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
+    if 35 in init.mf:
+        edistrcov = covtape.get_edistr_cov()
+        if not edistrcov.empty:
+            PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
 
-#    # EXTRACT PERTURBATIONS FROM LPC COV FILE
-#    global PertLpc
-#    PertLpc = pd.DataFrame()
-#    lpccov = covtape.get_lpc_cov()
-#    if not lpccov.empty:
-#        PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
+    # EXTRACT PERTURBATIONS FROM LPC COV FILE
+    global PertLpc
+    PertLpc = pd.DataFrame()
+    if 34 in init.mf:
+        lpccov = covtape.get_lpc_cov()
+        if not lpccov.empty:
+            PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
+
+    if PertLpc.empty and PertEdistr.empty and PertXs.empty:
+        print("no covariance section was selected/found")
+        return
 
     # APPLY PERTURBATIONS BY MAT
     global tape
@@ -406,4 +423,19 @@ def test_Fe56_lpc(tmpdir):
              "--processes", str(os.cpu_count()),
              "--eig", "10",
              "--samples", "100",]
+    sampling(iargs)
+
+@pytest.mark.sampling
+@pytest.mark.lpc
+def test_U238_lpc(tmpdir):
+    from ..data_test import U8
+    iargs = [os.path.join(U8.__path__[0], r"u238.endf"),
+             "--endf6-cov", os.path.join(U8.__path__[0], r"u238.endf"),
+             "--outdir", str(tmpdir),
+             "-e", "1e-5", "1e-4", "1e-3", "1e-2", "1e-1", "1e0", "1e1", "1e2", "1e3", "1e4", "1e5",
+             "--verbose",
+             "--processes", "1",
+             "--eig", "10",
+             "--mf", "34",
+             "--samples", "10",]
     sampling(iargs)

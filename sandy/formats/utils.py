@@ -146,12 +146,54 @@ class Lpc(pd.DataFrame):
             rdf = df.loc[mat,mt]
             mask = (points >= min(rdf.index)) & (points <= max(rdf.index))
             grid = sorted((set(rdf.index) | set(points[mask])))
-            rdf = rdf.reindex(grid).interpolate(method='slinear').reset_index()
+            rdf = rdf.reindex(grid)
+            df_notnan = rdf.dropna(axis="columns", thresh=2).interpolate(method='slinear')
+            rdf.update(df_notnan)
+            rdf = rdf.reset_index()
             rdf["MAT"] = mat
             rdf["MT"] = mt
             rdf = rdf.set_index(["MAT","MT","E"])
             List.append(rdf)
         return Lpc(pd.concat(List, axis=0))
+
+    def perturb(self, pert, verbose=False, **kwargs):
+        frame = self.copy()
+        corrected = {}
+        for (mat,mt),_ in self.groupby(["MAT", "MT"]):
+            if (mat,mt) not in pert.index: continue
+            lpc = frame.loc[mat,mt]
+            prt = pert.loc[mat,mt]
+            eprt = prt.index.get_level_values("E").unique().values
+            elpc = lpc.index.get_level_values("E").unique().values
+            eg = sorted(set(eprt) | set(elpc))
+            lpc = lpc.reindex(eg)
+            df_notnan = lpc.dropna(axis="columns", thresh=2).interpolate(method='slinear')
+            lpc.update(df_notnan)
+            for l,_ in prt.groupby("L"):
+                P = prt.loc[l].reindex(eg).ffill()
+                lpc[l] *= P
+            lpc = lpc.reindex(elpc).reset_index()
+            lpc["MAT"] = mat
+            lpc["MT"] = mt
+            lpc = Lpc(lpc.set_index(["MAT","MT","E"]))
+            for e in elpc:
+                orig = lpc.loc[mat,mt,e].copy()
+                ks = np.linspace(1,0,101)
+                icount = 0
+                while not (lpc.to_tab(mat,mt,e) >= 0).all():
+                    icount += 1
+                    k = ks[icount]
+                    P = (orig/self.loc[mat,mt,e]-1)
+                    lpc.loc[mat,mt,e] = self.loc[mat,mt,e]*(k*P + 1)
+                    if icount == len(ks) - 1 : break
+                if icount != 0:
+                    corrected.update({(mat,mt,e) : (1-k)*100.})
+            frame.update(lpc)
+        corrected = pd.DataFrame.from_dict(corrected, orient="index", columns=["k (%)"])
+        if not corrected.empty:
+            corrected.index = pd.MultiIndex.from_tuples(corrected.index, names=["MAT", "MT", "E"])
+            if verbose: print("for sample {} the LPC perturbations were reduced by a factor k (%) for the following energies:\n".format(pert.name) + corrected.to_string())
+        return Lpc(frame)
 
 
 class Edistr(pd.DataFrame):
@@ -199,7 +241,6 @@ class Edistr(pd.DataFrame):
                     if ein >= elo and ein <= ehi:
                         P = P[elo,ehi]
                         eg = sorted(set(edistr.index) | set(P.index))
-                        if len(eg) != len(P):pdb.set_trace()
                         P = P.reindex(eg).ffill().fillna(0).reindex(edistr.index)
                         pedistr = edistr + P
                         frame.loc[mat,mt,k,ein] = pd.Series(np.where(pedistr>0, pedistr, edistr), index=pedistr.index)
@@ -287,6 +328,33 @@ class EdistrCov(pd.DataFrame):
                 print("\n".join(E))
         return frame
 
+class LpcCov(pd.DataFrame):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = ["MAT", "MT", "L", "E"]
+        self.columns.names = ["MAT", "MT", "L", "E"]
+
+    def to_matrix(self):
+        return self.index, Cov(self.values)
+
+    def get_samples(self, nsmp, **kwargs):
+        from ..functions import div0
+        index, cov = self.to_matrix()
+        frame = pd.DataFrame(cov.sampling(nsmp) + 1, index=index, columns=range(1,nsmp+1))
+        frame.columns.name = 'SMP'
+        if "eig" in kwargs:
+            if kwargs["eig"] > 0:
+                eigs = cov.eig()[0]
+                idxs = np.abs(eigs).argsort()[::-1]
+                dim = min(len(eigs), kwargs["eig"])
+                eigs_smp = Cov(np.cov(frame.values)).eig()[0]
+                idxs_smp = np.abs(eigs_smp).argsort()[::-1]
+                print("MF34 eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
+                diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
+                E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
+                print("\n".join(E))
+        return frame
 
 
 def triu_matrix(arr, size):
