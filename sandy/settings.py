@@ -83,7 +83,9 @@ def init_plotter(iargs=None):
     return vars(args)
 
 def init_njoy(iargs=None):
-    parser = argparse.ArgumentParser(description='Run NJOY', formatter_class=argparse.RawTextHelpFormatter)
+    parser = argparse.ArgumentParser(prog="sandy.njoy",
+                                     description='Run NJOY',
+                                     formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('tape',
                         type=lambda x: is_valid_file(parser, x),
                         help="ENDF-6 format file")
@@ -196,8 +198,8 @@ def init_njoy(iargs=None):
                         help="compute gas-production cross sections (GASPR)")
     parser.add_argument('--ign',
                         default=argparse.SUPPRESS,
-                        help='''Neutron group structure option for GROUPR
- file : read from file
+                        help='''neutron group structure option for GROUPR
+ - file : read from file
  - 2 : csewg 239-group structure [default]
  - 3 : lanl 30-group structure
  - 4 : anl 27-group structure
@@ -218,29 +220,45 @@ def init_njoy(iargs=None):
  - 20 : ecco 1968-group structure
  - 21 : tripoli 315-group structure
  - 22 : xmas lwpc 172-group structure
- - 23 : vit-j lwpc 175-group structure''')
+ - 23 : vit-j lwpc 175-group structure
+predefined group structures:
+ - scale_238''')
     parser.add_argument('--iwt',
                         default=argparse.SUPPRESS,
-                        help="Weight function option for GROUPR (default=6 : Maxwellian - 1/E - fission - fusion).")
+                        help='''Weight function option for GROUPR
+ - file : read from file
+ - 2 : constant
+ - 3 : 1/e
+ - 5 : epri-cell lwr
+ - 6 : (thermal) -- (1/e) -- (fission + fusion)
+ - 7 : same with t-dep thermal part
+ - 8 : thermal--1/e--fast reactor--fission + fusion
+ - 9 : claw weight function
+ - 10 : claw with t-dependent thermal part
+ - 11 : vitamin-e weight function (ornl-5505)
+ - 12 : vit-e with t-dep thermal part
+predefined functions:
+ - jaea_fns_175
+''')
     parser.add_argument('--igne',
                         default=argparse.SUPPRESS,
-                        help="Neutron group structure option for ERRORR (default=2 : csewg 239-group structure).")
+                        help="neutron group structure option for ERRORR (same as --ign)")
     parser.add_argument('--iwte',
                         default=argparse.SUPPRESS,
-                        help="Weight function option for ERRORR (default=6 : Maxwellian - 1/E - fission - fusion).")
-    parser.add_argument('--plot',
-                        action="store_true",
-                        help="Activate plotting capabilities.")
+                        help="weight function option for ERRORR (same as --iwt)")
+#    parser.add_argument('--plot',
+#                        action="store_true",
+#                        help="Activate plotting capabilities.")
     parser.add_argument('--suffixes',
                         type=str,
                         default=argparse.SUPPRESS,
                         nargs='+',
                         metavar="\".XX\"",
-                        help="Suffixes for ACE files, as many as temperature values (default = None).")
+                        help="suffixes for ACE files, as many as temperature values (default = None).")
     parser.add_argument("-V","--verbose",
                         type=int,
                         default=argparse.SUPPRESS,
-                        help="Set verbosity level (default = 1)")
+                        help="set verbosity level (default = 1)")
     parser.add_argument("-v",
                         '--version',
                         action='version',

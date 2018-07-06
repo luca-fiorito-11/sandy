@@ -195,11 +195,32 @@ class Njoy:
     @TEMPS.setter
     def TEMPS(self, temps):
         """
-        Ensures that the temperatures are less than 10 (maximum accepted by NJOY).
+        Ensures that the temperatures are given correctly.
         """
-        if not isinstance(temps, list): raise TypeError("{} must be a list".format("TEMPS"))
-        if len(temps)> 10: raise AttributeError("cannot have more than 10 temperatures")
+        if not isinstance(temps, list):
+            logging.error("{} must be a list".format("TEMPS"))
+            sys.exit()
+        if len(temps)> 10:
+            logging.error("cannot have more than 10 temperatures")
+            sys.exit()
         self._temps = temps
+
+    @property
+    def SIG0(self):
+        if not hasattr(self, "_sig0"):
+            logging.error("'{}' object has no attribute '{}'".format(self.__class__.__name__, "SIG0"))
+            sys.exit()
+        return self._sig0
+
+    @SIG0.setter
+    def SIG0(self, sig0):
+        """
+        Ensures that the dilutions are given correctly.
+        """
+        if not isinstance(sig0, list):
+            logging.error("{} must be a list".format("SIG0"))
+            sys.exit()
+        self._sig0 = sig0
 
     @property
     def SUFFIXES(self):
@@ -360,15 +381,20 @@ class Njoy:
     @is_allocated("MAT")
     def groupr_input(self, nendf, npendf, ngin, ngout, **fileOptions):
         from ..formats.records import write_tab1
-        kwargs = dict(dict(vars(self), TEMPS=self.TEMPS), **fileOptions)
+        kwargs = dict(dict(vars(self), TEMPS=self.TEMPS, SIG0=self.SIG0), **fileOptions)
         kwargs.update({"NENDF" : nendf, "NPENDF" : npendf, "NGIN" : ngin, "NGOUT" : ngout})
         kwargs["NSIG0"] = len(kwargs["SIG0"])
         kwargs["TEXTSIG0"] = " ".join(["%E"%dil for dil in kwargs["SIG0"]])
         kwargs["NTEMPS"] = len(kwargs["TEMPS"])
         kwargs["TEXTTEMPS"] = " ".join(["%E"%tmp for tmp in kwargs["TEMPS"]])
         if not isinstance(kwargs["IGN"], int):
-            if not os.path.isfile(kwargs["IGN"]): raise NotImplementedError("file {} not found".format(kwargs["IGN"]))
-            grid = np.genfromtxt(kwargs["IGN"])
+            if kwargs["IGN"].lower() == "scale_238":
+                from ..spectra import scale_238 as grid
+            else:
+                if not os.path.isfile(kwargs["IGN"]):
+                    logging.error("file {} not found".format(kwargs["IGN"]))
+                    sys.exit()
+                grid = np.genfromtxt(kwargs["IGN"])
             ngroups = len(grid) - 1
             kwargs["IGNSTR"] = "{} /\n".format(ngroups) + "\n".join(map(str,grid)) + " /\n"
             kwargs["IGN"] = 1
@@ -376,7 +402,9 @@ class Njoy:
             if kwargs["IWT"].lower() == "jaea_fns_175":
                 from ..spectra import jaea_fns_175 as spectrum
             else:
-                if not os.path.isfile(kwargs["IWT"]): raise NotImplementedError("file {} not found".format(kwargs["IWT"]))
+                if not os.path.isfile(kwargs["IWT"]):
+                    logging.error("file {} not found".format(kwargs["IWT"]))
+                    sys.exit()
                 spectrum = pd.read_csv(kwargs["IWT"], header=None, names=["E", "F"])
             tab = spectrum.reset_index().values.flatten()
             x = tab[::2]; y = tab[1::2]
@@ -534,18 +562,17 @@ class Njoy:
 
 
 
+    @is_allocated("FILENAME", "TAPE", "PENDFTAPE", "TAG")
     def get_gendf(self, **fileOptions):
         from ..functions import force_symlink
-        kwargs = dict(self.__dict__, **fileOptions)
 
-        mydir = os.path.join(kwargs["FOLDER"], kwargs["FILENAME"])
+        mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
         os.makedirs(mydir, exist_ok=True)
-        kwargs["TIME"] = time.ctime(time.time())
 
-        force_symlink(kwargs["TAPE"], os.path.join(mydir, "tape20"))
+        force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
         text = self.moder_input(20, -21, **fileOptions)
 
-        force_symlink(kwargs["PENDFTAPE"], os.path.join(mydir, "tape29"))
+        force_symlink(fileOptions["PENDFTAPE"], os.path.join(mydir, "tape29"))
         text += self.moder_input(29, -25, **fileOptions)
 
         text += self.groupr_input(-21, -25, 0, -26, **fileOptions)
@@ -553,21 +580,21 @@ class Njoy:
         text += "stop"
 
         DfOutputs = OutputFiles()
-        inputfile = os.path.join(mydir, "input_gendf.{}".format(kwargs["TAG"]))
+        inputfile = os.path.join(mydir, "input_gendf.{}".format(fileOptions["TAG"]))
         DfOutputs = DfOutputs.append({"id" : "input_gendf", "format" : "TEXT", "file" : inputfile}, ignore_index=True)
         with open(inputfile,'w') as f: f.write(text)
-        print(" --- run gendf for {} ---".format(kwargs["TAG"]))
-        returncode, stdout, stderr = run_process("{} < {}".format(kwargs["EXEC"], inputfile), cwd=mydir)
+        print(" --- run gendf for {} ---".format(fileOptions["TAG"]))
+        returncode, stdout, stderr = run_process("{} < {}".format(self.EXEC, inputfile), cwd=mydir)
 
         oldfile = os.path.join(mydir, "tape30")
-        newfile = os.path.join(mydir, "{}.gendf".format(kwargs["TAG"]))
+        newfile = os.path.join(mydir, "{}.gendf".format(fileOptions["TAG"]))
         if os.path.isfile(oldfile):
             if os.path.getsize(oldfile) > 0:
                 shutil.move(oldfile, newfile)
                 DfOutputs = DfOutputs.append({"id" : "gendf", "format" : "GENDF", "file" : newfile}, ignore_index=True)
 
         oldfile = os.path.join(mydir, "output")
-        newfile = os.path.join(mydir, "output_gendf.{}".format(kwargs["TAG"]))
+        newfile = os.path.join(mydir, "output_gendf.{}".format(fileOptions["TAG"]))
         shutil.move(oldfile, newfile)
         DfOutputs = DfOutputs.append({"id" : "output_gendf", "format" : "TEXT", "file" : newfile}, ignore_index=True)
         DfMessages = NjoyOutput.from_file(newfile).get_messages()
@@ -770,6 +797,8 @@ def run(iargs=None):
 
     tape = Endf6.from_file(nj.TAPE)
     tape.parse()
+    if "pendftape" in  init: tape.PENDFTAPE = init.pendftape
+    if "gendftape" in  init: tape.GENDFTAPE = init.gendftape
 
     DfOutputs = OutputFiles()
     DfMessages = NjoyMessages()
