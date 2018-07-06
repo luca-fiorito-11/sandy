@@ -8,6 +8,7 @@ import sys, pdb, os, pytest, logging
 import numpy as np
 import pandas as pd
 from warnings import warn
+from .utils import BaseFile
 
 
 #def split_endf(text):
@@ -32,70 +33,9 @@ from warnings import warn
 #
 
 
-class Endf6(pd.DataFrame):
+class Endf6(BaseFile):
 
     Format = "endf6"
-
-    @classmethod
-    def from_file(cls, file):
-        """
-        Read ENDF-6 formatted file and call from_text method.
-        """
-        with open(file) as f: text = f.read()
-        out = cls.from_text(text)
-        out.TAPE = os.path.abspath(os.path.realpath(os.path.expandvars(file)))
-        out.FILENAME = os.path.basename(out.TAPE)
-        return out
-
-    @classmethod
-    def from_text(cls, text):
-        """
-        Read ENDF-6 formatted file and split it into column based on field width:
-            TEXT MAT MF MT
-              66   4  2  3
-        Store list in dataframe with MultiIndex (MAT,MF,MT).
-        """
-        from io import StringIO
-        tape = pd.read_fwf(
-                StringIO(text),
-                widths = [66, 4, 2, 3],
-                names = ["TEXT", "MAT", "MF", "MT"],
-                usecols = ["MAT", "MF", "MT"]
-                )
-        tape["TEXT"] = text.splitlines(True)
-        splitters = tape.query("MAT==0 & MF==0 & MT==0").index
-        dfs = []; ibeg = 0
-        for iend in splitters:
-            df = tape[ibeg:iend].query("MAT>0 & MF>0 & MT>0").groupby(["MAT","MF","MT"]).sum().reset_index()
-            dfs.append(df)
-            ibeg = iend
-        tape = pd.concat(dfs).set_index(["MAT","MF","MT"])
-        dupl = tape.index.duplicated()
-        if dupl.any():
-            logging.error("found duplicate MAT/MF/MT")
-            sys.exit()
-        return cls(tape)
-
-    def __init__(self, *args, **kwargs):
-        kwargs.update({"columns" : ["TEXT"]})
-        super().__init__(*args, **kwargs)
-        self.index.names = ['MAT', 'MF', 'MT']
-
-#    def by_ZAM(self):
-#        """
-#        Change index from MAT,MF,MT to ZAM,MF,MT.
-#        Return a pd.DataFrame instance (not Endf6 instance, because most of the methods do not support ZAM).
-#        """
-#        tape = self.copy().reset_index()
-#        text = tape.query("MF==1 & MT==451").TEXT.iloc[0].splitlines()
-#        i = 0
-#        A, i = read_cont(text, i)
-#        B, i = read_cont(text, i)
-#        tape = int(A.C1)*10 + B.L1
-#        assert False
-#        iso["ZAM"] = iso.TEXT.apply(lambda x: int(float(read_float(x[:11]))*10+int(x[103:114]))).values
-#        tape =  tape.merge(iso[["MAT","ZAM"]], how="left", on="MAT").drop("MAT", axis=1).set_index(['ZAM','MF','MT']).sort_index()
-#        return tape
 
     def read_section(self, mat, mf, mt):
         """
@@ -139,14 +79,6 @@ class Endf6(pd.DataFrame):
             string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), 0, 0, 0, 0)
         string += "{:<66}{:4}{:2}{:3}{:5}".format(*write_cont(*[0]*6), -1, 0, 0, 0)
         return string
-
-    def to_file(self, file, title=" "*66):
-        """
-        Write TEXT column to file.
-        """
-        string = self.to_string(title=title)
-        with open(file, 'w', encoding="ascii") as f:
-            f.write(string)
 
     def get_xs(self, listmat=None, listmt=None):
         """

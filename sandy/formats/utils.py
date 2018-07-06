@@ -7,12 +7,59 @@ Created on Thu Jun 14 09:19:24 2018
 
 import pandas as pd
 import numpy as np
-import logging, pdb
+import logging, pdb, os, sys
 
 
 class Section(dict):
     pass
 
+
+class BaseFile(pd.DataFrame):
+
+    @classmethod
+    def from_file(cls, file):
+        """
+        Read formatted file and call from_text method.
+        """
+        with open(file) as f: text = f.read()
+        out = cls.from_text(text)
+        out.TAPE = os.path.abspath(os.path.realpath(os.path.expandvars(file)))
+        out.FILENAME = os.path.basename(out.TAPE)
+        return out
+
+    @classmethod
+    def from_text(cls, text):
+        """
+        Read ENDF-6 formatted file and split it into column based on field width:
+            TEXT MAT MF MT
+              66   4  2  3
+        Store list in dataframe with MultiIndex (MAT,MF,MT).
+        """
+        from io import StringIO
+        tape = pd.read_fwf(
+                StringIO(text),
+                widths = [66, 4, 2, 3],
+                names = ["TEXT", "MAT", "MF", "MT"],
+                usecols = ["MAT", "MF", "MT"]
+                )
+        tape["TEXT"] = text.splitlines(True)
+        splitters = tape.query("MAT==0 & MF==0 & MT==0").index
+        dfs = []; ibeg = 0
+        for iend in splitters:
+            df = tape[ibeg:iend].query("MAT>0 & MF>0 & MT>0").groupby(["MAT","MF","MT"]).sum().reset_index()
+            dfs.append(df)
+            ibeg = iend
+        tape = pd.concat(dfs, sort=False).set_index(["MAT","MF","MT"])
+        dupl = tape.index.duplicated()
+        if dupl.any():
+            logging.error("found duplicate MAT/MF/MT")
+            sys.exit()
+        return cls(tape)
+
+    def __init__(self, *args, **kwargs):
+        kwargs.update({"columns" : ["TEXT"]})
+        super().__init__(*args, **kwargs)
+        self.index.names = ['MAT', 'MF', 'MT']
 
 
 class Xs(pd.DataFrame):
