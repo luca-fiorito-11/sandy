@@ -6,7 +6,7 @@ Created on Thu Jun 14 09:23:33 2018
 """
 from ..records import read_cont, read_tab1, read_control, read_text, read_list, write_cont, write_tab1, write_list
 from ..utils import Section
-import re, sys
+import sys
 
 def read(text):
     str_list = text.splitlines()
