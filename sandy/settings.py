@@ -83,8 +83,8 @@ def init_plotter(iargs=None):
     return vars(args)
 
 def init_njoy(iargs=None):
-    parser = argparse.ArgumentParser(prog="sandy.njoy",
-                                     description='Run NJOY',
+    parser = argparse.ArgumentParser(prog="python -m sandy.njoy",
+#                                     description='Run NJOY',
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('tape',
                         type=lambda x: is_valid_file(parser, x),
@@ -253,7 +253,7 @@ predefined functions:
                         type=str,
                         default=argparse.SUPPRESS,
                         nargs='+',
-                        metavar="\".XX\"",
+                        metavar=".XX",
                         help="suffixes for ACE files, as many as temperature values (default = None).")
     parser.add_argument("-V","--verbose",
                         type=int,

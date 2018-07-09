@@ -7,7 +7,7 @@ Created on Thu Jan 12 11:10:49 2017
 import numpy as np
 import os, pdb
 
-def run_process(cmd, cwd=None, timeout=3600, verbose=True):
+def run_process(cmd, cwd=None, timeout=36000, verbose=True):
     import subprocess as sp
     process = sp.Popen("exec " + cmd,
                        shell=True,

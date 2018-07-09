@@ -224,8 +224,12 @@ class Njoy:
 
     @property
     def SUFFIXES(self):
-        if not hasattr(self, "_suffixes"): raise AttributeError("'{}' object has no attribute '{}'".format(self.__class__.__name__, "SUFFIXES"))
-        if len(self._suffixes) != len(self.TEMPS): raise AttributeError("SUFFIXES must have as many items as TEMPS")
+        if not hasattr(self, "_suffixes"):
+            logging.error("'{}' object has no attribute '{}'".format(self.__class__.__name__, "SUFFIXES"))
+            sys.exit()
+        if len(self._suffixes) != len(self.TEMPS):
+            logging.error("SUFFIXES must have as many items as TEMPS")
+            sys.exit()
         return self._suffixes
 
     @SUFFIXES.setter
@@ -252,7 +256,7 @@ class Njoy:
 'pendf tape from '/
 %(MAT)d 1 0/
 %(ERR)E  0.  %(ERRMAX)E/
-'%(TAG)s with NJOY on %(TIME)s' /
+'%(TAG)s with NJOY' /
 0/
 """ % kwargs
         return text
@@ -314,7 +318,7 @@ class Njoy:
 
     @is_allocated("MAT")
     def unresr_input(self, endfin, pendfin, pendfout, **fileOptions):
-        kwargs = dict(dict(vars(self), TEMPS=self.TEMPS), **fileOptions)
+        kwargs = dict(dict(vars(self), TEMPS=self.TEMPS, SIG0=self.SIG0), **fileOptions)
         kwargs.update({"ENDFIN" : endfin, "PENDFIN" : pendfin, "PENDFOUT" : pendfout})
         kwargs["NSIG0"] = len(kwargs["SIG0"])
         kwargs["TEXTSIG0"] = " ".join(["%E"%dil for dil in kwargs["SIG0"]])
@@ -429,11 +433,11 @@ class Njoy:
         text += "0/\n"
         return text
 
-    @is_allocated("MAT")
-    def errorr_input(self, nendf, npendf, ngout, nout, **fileOptions):
+    @is_allocated("MAT", "LFI", "SECTIONS")
+    def errorr_input(self, endfin, pendfin, gendfin, errorrout, **fileOptions):
         from ..formats.records import write_tab1
         kwargs = dict(dict(vars(self), TEMPS=self.TEMPS), **fileOptions)
-        kwargs.update({"NENDF" : nendf, "NPENDF" : npendf, "NGOUT" : ngout, "NOUT" : nout})
+        kwargs.update({"ENDFIN" : endfin, "PENDFIN" : pendfin, "GENDFIN" : gendfin, "ERRORROUT" : errorrout})
         if not isinstance(kwargs["IGNE"], int):
             if kwargs["IGNE"].lower() == "scale_238":
                 from ..energy_grids import scale_238 as grid
@@ -457,8 +461,26 @@ class Njoy:
             x = tab[::2]; y = tab[1::2]
             kwargs["IWTESTR"] = "\n".join(write_tab1(0, 0, 0, 0, [len(x)], [2], x, y)) + "/\n"
             kwargs["IWTE"] = 1
-        text = """errorr
-%(NENDF)d %(NPENDF)d %(NGOUT)d %(NOUT)d /
+        text = ""
+        if 32 in kwargs["SECTIONS"] and 33 not in kwargs["SECTIONS"]:
+            mts = [1, 2, 18, 102, 0] if kwargs["LFI"] == 1 else [1, 2, 102, 0]
+            kwargs["MTS"] = " /\n".join(map(str,mts)) + " /"
+            text += """moder
+%(ENDFIN)d 60
+errorr
+999 / option to insert dummy file 33 data
+60 61 /
+%(MTS)s
+""" % kwargs
+            if kwargs["ENDFIN"] < 0:
+                text += """moder
+61 -62
+"""
+                kwargs["ENDFIN"] = 61
+            else:
+                kwargs["ENDFIN"] = -62
+        text += """errorr
+%(ENDFIN)d %(PENDFIN)d %(GENDFIN)d %(ERRORROUT)d /
 %(MAT)d %(IGNE)d %(IWTE)d %(IPRINT)d %(IRELCO)d /
 %(IPRINT)d %(TMP)E /
 0 33 %(IRESPR)d %(LORD)d /
@@ -470,24 +492,21 @@ class Njoy:
         return text
 
 
-#    @is_allocated("TAPE", "PENDFTAPE")
+    @is_allocated("TAPE", "TAG")
     def get_pendf(self, **fileOptions):
         from ..functions import force_symlink
-        self.__dict__.update(**fileOptions)
-        kwargs = dict(self.__dict__, **fileOptions)
-        if not os.path.isfile(kwargs["TAPE"]): raise NotImplementedError("evaluation file {} not found".format(kwargs["TAPE"]))
-        mydir = os.path.join(kwargs["FOLDER"], kwargs["FILENAME"])
-        os.makedirs(mydir, exist_ok=True)
-        kwargs["TIME"] = time.ctime(time.time())
 
-        force_symlink(kwargs["TAPE"], os.path.join(mydir, "tape20"))
-        text = self.moder_input(20, -21, **kwargs)
-        if "PENDFIN" in kwargs:
-            if not os.path.isfile(kwargs["PENDFIN"]): raise NotImplementedError("file {} not found".format(kwargs["PENDFIN"]))
-            force_symlink(kwargs["PENDFIN"], os.path.join(mydir, "tape30"))
-            text += self.moder_input(30, -22, **kwargs)
+        mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
+        os.makedirs(mydir, exist_ok=True)
+
+        force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
+        text = self.moder_input(20, -21, **fileOptions)
+
+        if "PENDFIN" in fileOptions:
+            force_symlink(fileOptions["PENDFIN"], os.path.join(mydir, "tape30"))
+            text += self.moder_input(30, -22, **fileOptions)
         else:
-            text += self.reconr_input(-21, -22, **kwargs)
+            text += self.reconr_input(-21, -22, **fileOptions)
         e = -21; p = -22
         if hasattr(self, "_temps"): self.BROADR = True
         if self.BROADR:
@@ -497,7 +516,7 @@ class Njoy:
         if self.THERMR:
             text += self.thermr_input(0, p, -24, **fileOptions)
             p = -24
-        if hasattr(self, "SIG0"): self.UNRESR = True
+        if hasattr(self, "_sig0"): self.UNRESR = True
         if self.UNRESR:
             text += self.unresr_input(e, p, -25, **fileOptions)
             p = -25
@@ -516,21 +535,21 @@ class Njoy:
         text += "stop"
 
         DfOutputs = OutputFiles()
-        inputfile = os.path.join(mydir, "input_pendf.{}".format(kwargs["TAG"]))
+        inputfile = os.path.join(mydir, "input_pendf.{}".format(fileOptions["TAG"]))
         DfOutputs = DfOutputs.append({"id" : "input_pendf", "format" : "TEXT", "file" : inputfile}, ignore_index=True)
         with open(inputfile,'w') as f: f.write(text)
-        print(" --- run pendf for {} ---".format(kwargs["TAG"]))
-        returncode, stdout, stderr = run_process("{} < {}".format(kwargs["EXEC"], inputfile), cwd=mydir, verbose=True)
+        print(" --- run pendf for {} ---".format(fileOptions["TAG"]))
+        returncode, stdout, stderr = run_process("{} < {}".format(self.EXEC, inputfile), cwd=mydir, verbose=True)
 
         oldfile = os.path.join(mydir, "tape29")
-        newfile = os.path.join(mydir, "{}.pendf".format(kwargs["TAG"]))
+        newfile = os.path.join(mydir, "{}.pendf".format(fileOptions["TAG"]))
         if os.path.isfile(oldfile):
             if os.path.getsize(oldfile) > 0:
                 shutil.move(oldfile, newfile)
                 DfOutputs = DfOutputs.append({"id" : "pendf", "format" : "ENDF", "file" : newfile}, ignore_index=True)
 
         oldfile = os.path.join(mydir, "output")
-        newfile = os.path.join(mydir, "output_pendf.{}".format(kwargs["TAG"]))
+        newfile = os.path.join(mydir, "output_pendf.{}".format(fileOptions["TAG"]))
         shutil.move(oldfile, newfile)
         DfOutputs = DfOutputs.append({"id" : "output_pendf", "format" : "TEXT", "file" : newfile}, ignore_index=True)
         DfMessages = NjoyOutput.from_file(newfile).get_messages()
@@ -543,6 +562,7 @@ class Njoy:
     @is_allocated("TAPE", "PENDFTAPE", "TAG")
     def get_hendf(self, **fileOptions):
         from ..formats import Endf6
+
         mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
         os.makedirs(mydir, exist_ok=True)
 
@@ -564,7 +584,6 @@ class Njoy:
 
         DfOutputs = DfOutputs.append({"id" : "output_pendf", "format" : "TEXT", "file" : newfile}, ignore_index=True)
         DfMessages = pd.DataFrame()
-
         return DfOutputs, DfMessages
 
 
@@ -611,28 +630,24 @@ class Njoy:
         return DfOutputs, DfMessages
 
 
-
+    @is_allocated("FILENAME", "TAPE", "TAG")
     def get_errorr(self, **fileOptions):
         from ..functions import force_symlink
-        kwargs = dict(self.__dict__, **fileOptions)
-        mydir = os.path.join(kwargs["FOLDER"], kwargs["FILENAME"])
+
+        mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
         os.makedirs(mydir, exist_ok=True)
-        kwargs["TIME"] = time.ctime(time.time())
 
-        if not os.path.isfile(kwargs["TAPE"]): raise NotImplementedError("file {} not found".format(kwargs["TAPE"]))
-        force_symlink(kwargs["TAPE"], os.path.join(mydir, "tape20"))
-        text = self.moder_input(20, -21, **kwargs)
+        force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
+        text = self.moder_input(20, -21, **fileOptions)
 
-        if "GENDFTAPE" in kwargs:
-            if not os.path.isfile(kwargs["GENDFTAPE"]): raise NotImplementedError("file {} not found".format(kwargs["GENDFTAPE"]))
-            force_symlink(kwargs["GENDFTAPE"], os.path.join(mydir, "tape29"))
-            text += self.moder_input(29, 25, **kwargs)
-            p = 0; g = 25
-        elif "PENDFTAPE" in kwargs:
-            if not os.path.isfile(kwargs["PENDFTAPE"]): raise NotImplementedError("file {} not found".format(kwargs["PENDFTAPE"]))
-            force_symlink(kwargs["PENDFTAPE"], os.path.join(mydir, "tape29"))
-            text += self.moder_input(29, -25, **kwargs)
-            p = -25; g = 0
+#        if "GENDFTAPE" in fileOptions:
+#            force_symlink(fileOptions["GENDFTAPE"], os.path.join(mydir, "tape29"))
+#            text += self.moder_input(29, 25, **fileOptions)
+#            p = 0; g = 25
+#        elif "PENDFTAPE" in kwargs:
+        force_symlink(fileOptions["PENDFTAPE"], os.path.join(mydir, "tape29"))
+        text += self.moder_input(29, -25, **fileOptions)
+        p = -25; g = 0
 
         errorrs = []; er = 30
         for tmp in self.TEMPS:
@@ -642,55 +657,51 @@ class Njoy:
         text += "stop"
 
         DfOutputs = OutputFiles()
-        inputfile = os.path.join(mydir, "input_errorr.{}".format(kwargs["TAG"]))
+        inputfile = os.path.join(mydir, "input_errorr.{}".format(fileOptions["TAG"]))
         DfOutputs = DfOutputs.append({"id" : "input_errorr", "format" : "TEXT", "file" : inputfile}, ignore_index=True)
         with open(inputfile,'w') as f: f.write(text)
-        print(" --- run errorr for {} ---".format(kwargs["TAG"]))
-        returncode, stdout, stderr = run_process("{} < {}".format(kwargs["EXEC"], inputfile), cwd=mydir)
+        print(" --- run errorr for {} ---".format(fileOptions["TAG"]))
+        returncode, stdout, stderr = run_process("{} < {}".format(self.EXEC, inputfile), cwd=mydir)
 
-        newfile = os.path.join(mydir, "{}.errorr".format(kwargs["TAG"]))
+        newfile = os.path.join(mydir, "{}.errorr".format(fileOptions["TAG"]))
         if os.path.isfile(newfile): os.remove(newfile)
         with open(newfile, "a") as f:
             for er in errorrs:
                 oldfile = os.path.join(mydir, "tape{}".format(er))
+                if not os.path.isfile(oldfile): continue
                 with open(oldfile) as g:
-                    if not os.path.isfile(oldfile): continue
                     lines = g.readlines()
                     if er != errorrs[0]:
                         lines = lines[1:]
                     if er != errorrs[-1]:
                         lines = lines[:-1]
                     f.writelines(lines)
-        if os.path.isfile(newfile):
-            if os.path.getsize(newfile) > 0:
-                DfOutputs = DfOutputs.append({"id" : "errorr", "format" : "ERRORR", "file" : newfile}, ignore_index=True)
+        if os.path.getsize(newfile) == 0: os.remove(newfile)
+        if os.path.isfile(newfile): DfOutputs = DfOutputs.append({"id" : "errorr", "format" : "ERRORR", "file" : newfile}, ignore_index=True)
 
         oldfile = os.path.join(mydir, "output")
-        newfile = os.path.join(mydir, "output_errorr.{}".format(kwargs["TAG"]))
+        newfile = os.path.join(mydir, "output_errorr.{}".format(fileOptions["TAG"]))
         shutil.move(oldfile, newfile)
         DfOutputs = DfOutputs.append({"id" : "output_errorr", "format" : "TEXT", "file" : newfile}, ignore_index=True)
         DfMessages = NjoyOutput.from_file(newfile).get_messages()
 
         for filename in os.listdir(mydir):
             if filename[:4] == 'tape': os.remove(os.path.join(mydir, filename))
-
         return DfOutputs, DfMessages
 
 
-
+    @is_allocated("FILENAME", "TAPE", "PENDFTAPE", "TAG", "ZA", "LISO")
     def get_ace(self, **fileOptions):
         from ..functions import force_symlink
-        kwargs = dict(self.__dict__, **fileOptions)
-        mydir = os.path.join(kwargs["FOLDER"], kwargs["FILENAME"])
+
+        mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
         os.makedirs(mydir, exist_ok=True)
 
-        if not os.path.isfile(kwargs["TAPE"]): raise NotImplementedError("evaluation file {} not found".format(kwargs["TAPE"]))
-        force_symlink(kwargs["TAPE"], os.path.join(mydir, "tape20"))
-        text = self.moder_input(20, -21, **kwargs)
+        force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
+        text = self.moder_input(20, -21, **fileOptions)
 
-        if not os.path.isfile(kwargs["PENDFTAPE"]): raise NotImplementedError("file {} not found".format(kwargs["PENDFTAPE"]))
-        force_symlink(kwargs["PENDFTAPE"], os.path.join(mydir, "tape29"))
-        text += self.moder_input(29, -25, **kwargs)
+        force_symlink(fileOptions["PENDFTAPE"], os.path.join(mydir, "tape29"))
+        text += self.moder_input(29, -25, **fileOptions)
 
         aces = []; xsdirs = []
         e = -21; p = -25; a = 40; x = 50
@@ -701,13 +712,13 @@ class Njoy:
         text += "stop"
 
         DfOutputs = OutputFiles()
-        inputfile = os.path.join(mydir, "input_acer.{}".format(kwargs["TAG"]))
+        inputfile = os.path.join(mydir, "input_acer.{}".format(fileOptions["TAG"]))
         DfOutputs = DfOutputs.append({"id" : "input_acer", "format" : "TEXT", "file" : inputfile}, ignore_index=True)
         with open(inputfile,'w') as f: f.write(text)
-        print(" --- run acer for {} ---".format(kwargs["TAG"]))
-        returncode, stdout, stderr = run_process("{} < {}".format(kwargs["EXEC"], inputfile), cwd=mydir)
+        print(" --- run acer for {} ---".format(fileOptions["TAG"]))
+        returncode, stdout, stderr = run_process("{} < {}".format(self.EXEC, inputfile), cwd=mydir)
 
-        newfile = os.path.join(mydir, "{}.ace".format(kwargs["TAG"]))
+        newfile = os.path.join(mydir, "{}.ace".format(fileOptions["TAG"]))
         if os.path.isfile(newfile): os.remove(newfile)
         with open(newfile, "a") as f:
             for a in aces:
@@ -718,7 +729,7 @@ class Njoy:
             if os.path.getsize(newfile) > 0:
                 DfOutputs = DfOutputs.append({"id" : "ace", "format" : "ACE", "file" : newfile}, ignore_index=True)
 
-        newfile = os.path.join(mydir, "{}.xsdir".format(kwargs["TAG"]))
+        newfile = os.path.join(mydir, "{}.xsdir".format(fileOptions["TAG"]))
         if os.path.isfile(newfile): os.remove(newfile)
         with open(newfile, "a") as f:
             lines = []
@@ -727,8 +738,8 @@ class Njoy:
                 if not os.path.isfile(oldfile): continue
                 with open(oldfile) as g:
                     xargs = g.read().split()
-                    xargs[0] = ".".join([str(int(kwargs['ZA'] + 300*kwargs["LISO"])), xargs[0].split('.')[1]])
-                    xargs[2] = "{}.ace".format(kwargs["TAG"])
+                    xargs[0] = ".".join([str(int(fileOptions['ZA'] + 300*fileOptions["LISO"])), xargs[0].split('.')[1]])
+                    xargs[2] = "{}.ace".format(fileOptions["TAG"])
                     xargs[3] = "0"
                     lines.append(" ".join(xargs))
             f.write("\n".join(lines))
@@ -737,7 +748,7 @@ class Njoy:
                 DfOutputs = DfOutputs.append({"id" : "xsdir", "format" : "TEXT", "file" : newfile}, ignore_index=True)
 
         oldfile = os.path.join(mydir, "output")
-        newfile = os.path.join(mydir, "output_acer.{}".format(kwargs["TAG"]))
+        newfile = os.path.join(mydir, "output_acer.{}".format(fileOptions["TAG"]))
         shutil.move(oldfile, newfile)
         DfOutputs = DfOutputs.append({"id" : "output_acer", "format" : "TEXT", "file" : newfile}, ignore_index=True)
         DfMessages = NjoyOutput.from_file(newfile).get_messages()

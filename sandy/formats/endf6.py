@@ -533,6 +533,7 @@ class Endf6(BaseFile):
         INFO = self.read_section(mats[0], 1 ,451)
         del INFO["TEXT"], INFO["RECORDS"]
         self.__dict__.update(**INFO)
+        self.SECTIONS = self.loc[INFO["MAT"]].reset_index()["MF"].unique()
         self.EHRES = 0
         self.THNMAX = - self.EHRES if self.EHRES != 0 else 1.0E6
 
