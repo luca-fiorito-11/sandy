@@ -1,10 +1,10 @@
-#### <a name="description"></a>Description
+## <a name="description"></a>Description
 The ```sandy.njoy```module effectively generates and runs NJOY input files with only a minimal interaction from the user side, thus making the nuclear data processing accessible to a larger community.
 
 With only few entries provided in the command line, ```sandy.njoy``` automatically determines the best NJOY input options for a succesfull run.
 On top of that, several file-related parameters --- e.g. MAT number---  are read and imported from the desired evaluated file without having the user dig into the details of a very human-unfriendly format such as ENDF-6.
 
-- [Before starting](#before_staring)
+- [Before starting](#before-starting)
 - [NJOY versions](#versions)
 - [Usage](#usage)
 - [Producing PENDF files](#PENDF)
@@ -13,15 +13,15 @@ On top of that, several file-related parameters --- e.g. MAT number---  are read
 - [Producing ACE files](#ACE)
 
 
-#### <a name="before_starting"></a> Before starting
+## <a name="before-starting"></a> Before starting
 
 ```sandy.njoy``` looks  for the executable file `njoy2016` in the ```PATH``` environmetal variable. If you want to use a different NJOY executable, then you must specify the desired file using the dedicated command line argument.
 
-#### <a name="versions"></a> NJOY versions
+## <a name="versions"></a> NJOY versions
 
 Notice that ```sandy.njoy``` only supports [NJOY-2016](https://njoy.github.io/NJOY2016/).
 
-#### <a name="usage"></a> Usage
+## <a name="usage"></a> Usage
 
 ```sandy.njoy``` is run as a ```python```script using the ```-m``` command line option
 
@@ -116,7 +116,7 @@ optional arguments:
   -v, --version
 ```
 
-#### <a name="PENDF"></a> Producing PENDF files
+## <a name="PENDF"></a> Producing PENDF files
 Let's take a look at the various ```sandy.njoy``` options to produce a pointwise ENDF (PENDF) file.
 
 ##### CROSS SECTION RECONSTRUCTION
@@ -207,7 +207,7 @@ $ python -m sandy.njoy ${file} -p \
 --gaspr
 ```
 
-#### <a name="GENDF"></a> Producing GENDF files
+## <a name="GENDF"></a> Producing GENDF files
 GENDF or *groupwise-ENDF* files are processed files produced by the GROUPR module of NJOY. Such files are written according to a modified ENDF-6 format conceived for storing group average nuclear data.
 To produce GENDF files by running the ```sandy.njoy``` module, you can try and use instruction ```-g``` or ```--gendf```, like this:
 ```bash
@@ -322,7 +322,7 @@ For such a keyword the same rules as or ```--ign``` apply.
 ##### WEIGHTING FUNCTION
 You can also supply a weighting funcion using command ```--iwte```, for which the rules defined for ```--iwt``` apply.
 
-#### <a name="ACE"></a> Producing ACE files
+## <a name="ACE"></a> Producing ACE files
 
 ACE (A Compact ENDF) formatted files are used by many continous-energy Monte Carlo transport codes including MCNP.
 You can process ACE files running ```sandy.njoy```  with option ```-a``` or ```--ace```, as
