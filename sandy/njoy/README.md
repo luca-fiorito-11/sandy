@@ -297,7 +297,7 @@ Then, the requested format for the file is the following:
 
 Precompiled data also exist for weighting functions.
 
-#### <a name="ERRORR"></a> Producing ERRORR files
+## <a name="ERRORR"></a> Producing ERRORR files
 The ERRORR module of NJOY produces multigroup covariance matrices by convoluting the covariance information available in ENDF-6 evaluated files and the corresponding central values.
 To produce ERRORR files with ```sandy.njoy```, add option ```-e``` or ```--errorr``` to the PENDF or GENDF sequence:
 ```bash
