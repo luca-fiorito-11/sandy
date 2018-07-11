@@ -6,6 +6,7 @@ Created on Thu Jun 14 09:23:33 2018
 """
 from ..records import read_cont, read_tab1, read_list, read_control, write_cont, write_tab1
 from ..utils import Section
+import pdb
 
 def read(text):
     str_list = text.splitlines()
@@ -13,13 +14,13 @@ def read(text):
     out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
     i = 0
     C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2})
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "PFLAG" : C.L2})
     T, i = read_tab1(str_list, i)
     out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBT" : T.NBT, "INT" : T.INT, "E" : T.x, "XS" : T.y})
     return Section(out)
 
 def write(sec):
-    text = write_cont(sec["ZA"], sec["AWR"], 0, 0, 0, 0)
+    text = write_cont(sec["ZA"], sec["AWR"], 0, sec["PFLAG"], 0, 0)
     text += write_tab1(sec["QM"], sec["QI"], 0, sec["LR"], sec["NBT"], sec["INT"], sec["E"], sec["XS"])
     TextOut = []; iline = 1
     for line in text:

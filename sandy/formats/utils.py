@@ -100,7 +100,6 @@ class Xs(pd.DataFrame):
 
     def perturb(self, pert, **kwargs):
         frame = self.copy()
-#        indexName = Xs.index.name
         # Add extra energy points
 #        if "energy_point" in kwargs:
 #            Xs = Xs.reindex(Xs.index.union(kwargs["energy_point"])).interpolate(method="slinear").fillna(0)
@@ -119,9 +118,11 @@ class Xs(pd.DataFrame):
             if not mtPert: continue
             P = pert.loc[mat,mtPert]
             P = P.reindex(P.index.union(frame[mat,mt].index)).ffill().fillna(1).reindex(frame[mat,mt].index)
-            frame[mat,mt] = frame[mat,mt].multiply(P, axis="index")
+            xs = frame[mat,mt].multiply(P, axis="index")
             # Negative values are set to zero
-            frame[mat,mt][frame[mat,mt] <= 0] = 0
+#            frame[mat,mt][frame[mat,mt] <= 0] = 0
+            # Negative values are set to mean
+            frame[mat,mt][xs > 0] = xs[xs > 0]
         return Xs(frame).reconstruct_sums()
 
     def macs(self, E0=0.0253, Elo=1E-5, Ehi=1E1):

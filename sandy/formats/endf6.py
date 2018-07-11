@@ -122,16 +122,18 @@ class Endf6(BaseFile):
         from .MF3 import write
         tape = self.copy()
         mf = 3
-        for (mat,mt),S in xsFrame.iteritems():
+        for (mat,mt),xsSeries in xsFrame.iteritems():
             if (mat,mf,mt) not in self.index: continue
             sec = self.read_section(mat,mf,mt)
             # Cut threshold xs
-            iNotZero = next((i for i,x in enumerate(S) if x), None)
-            if iNotZero > 0: S = S.iloc[iNotZero-1:]
-            sec["E"] = S.index.values
-            sec["XS"] = S.values
+            ethresh = sec["E"][0]
+            xsSeries = xsSeries.where(xsSeries.index >= ethresh).dropna()
+#            iNotZero = next((i for i,x in enumerate(xsSeries) if x), None)
+#            if iNotZero > 0: xsSeries = xsSeries.iloc[iNotZero-1:]
+            sec["E"] = xsSeries.index.values
+            sec["XS"] = xsSeries.values
             # Assume all xs have only 1 interpolation region and it is linear
-            sec["NBT"] = [S.size]
+            sec["NBT"] = [xsSeries.size]
             sec["INT"] = [2]
             text = write(sec)
             tape.loc[mat,mf,mt].TEXT = text

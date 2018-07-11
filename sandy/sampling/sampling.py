@@ -7,8 +7,9 @@ Created on Mon Mar 19 22:51:03 2018
 
 import pandas as pd
 from .. import settings
+from ..formats import Endf6
 import numpy as np
-import sys, os, time, platform, pdb, pytest
+import sys, os, time, platform, pdb, pytest, logging
 import multiprocessing as mp
 
 
@@ -19,40 +20,42 @@ def sampling_mp(ismp):
     info = tape.read_section(mat, 1, 451)
     lrp = info["LRP"]
     name = info["TAG"]
+    newtape = Endf6(tape.copy())
 
     if not PertXs.empty:
         if lrp == 2:
-            xs = tape.get_xs()
+            xs = newtape.get_xs()
             if not xs.empty:
                 xs = xs.perturb(PertXs[ismp])
-                tape = tape.update_xs(xs)
+                newtape = newtape.update_xs(xs)
         else:
-            nubar = tape.get_nubar()
+            nubar = newtape.get_nubar()
             if not nubar.empty:
                 nubar = nubar.perturb(PertXs[ismp])
-                tape = tape.update_nubar(nubar)
+                newtape = newtape.update_nubar(nubar)
 
     if not PertEdistr.empty:
-        edistr = tape.get_edistr()
+        edistr = newtape.get_edistr()
         if not edistr.empty:
             edistr = edistr.add_points(init.energy_points).perturb(PertEdistr[ismp])
-            tape = tape.update_edistr(edistr)
+            newtape = newtape.update_edistr(edistr)
 
     if not PertLpc.empty:
-        lpc = tape.get_lpc()
+        lpc = newtape.get_lpc()
         if not lpc.empty:
             lpc = lpc.add_points(init.energy_points).perturb(PertLpc[ismp], verbose=init.verbose)
-            tape = tape.update_lpc(lpc)
+            newtape = newtape.update_lpc(lpc)
 
     print("Created sample {} for {} in {:.2f} sec".format(ismp, name, time.time()-t0,))
-    return tape.update_info().write_string()
+    return newtape.update_info().write_string()
 
 def sampling(iargs=None):
     from ..formats import Endf6, Errorr
+    from . import from_cli
     t0 = time.time()
 
     global init
-    init = settings.init_sampling(iargs)
+    init = from_cli(iargs)
 
     # LOAD DATA FILE
     ftape = Endf6.from_file(init.file)
@@ -98,7 +101,7 @@ def sampling(iargs=None):
     global tape
     for mat, tape in ftape.groupby('MAT'):
         tape = Endf6(tape)
-        name = tape.read_section(mat, 1, 451)["TAG"]
+#        name = tape.read_section(mat, 1, 451)["TAG"]
 
         if init.processes == 1:
             outs = {i : sampling_mp(i) for i in range(1,init.samples+1)}
@@ -116,7 +119,8 @@ def sampling(iargs=None):
 
         # DUMP TO FILES
         for ismp, string in outs.items():
-            output = os.path.join(init.outdir, '{}-{}-{}'.format(name, int(mat), ismp))
+            outname = init.outname if init.outname else os.path.split(init.file)[1]
+            output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
             with open(output, 'w') as f: f.write(string)
 
     # PLOTTING IS OPTIONAL
