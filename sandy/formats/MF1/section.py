@@ -34,7 +34,7 @@ def read_errorr(text):
     return out
 
 def read_info(text):
-    from sandy.csv import elements, metastates
+    from sandy.csvq import elements, metastates
     str_list = text.splitlines()
     MAT, MF, MT = read_control(str_list[0])[:3]
     out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
