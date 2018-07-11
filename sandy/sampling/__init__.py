@@ -1,6 +1,9 @@
+import argparse
+import os
+
+
 from .sampling import sampling
 from ..settings import is_valid_dir, is_valid_file
-import argparse, os
 
 def from_cli(iargs=None):
     """

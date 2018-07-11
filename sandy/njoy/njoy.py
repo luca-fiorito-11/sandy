@@ -6,8 +6,18 @@ Created on Fri May 25 16:58:11 2018
 """
 import pandas as pd
 import numpy as np
-import os, sys, time, pdb, shutil, re, pytest, logging
+import os
+import sys
+import shutil
+import re
+import logging
+import pytest
+import pdb
+
+from .. import utils
+from .. import interaction
 from ..functions import run_process
+from ..formats import Endf6
 
 sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [42,125,0,8,221,'tol'],
@@ -101,8 +111,6 @@ def is_allocated(*keys):
                 if kwargs[k] is None:
                     logging.error("empty argument '{}'".format(k))
                     sys.exit()
-#                assert k in kwargs, "missing argument '{}' for '{}'".format(k, f.__name__)
-#                assert kwargs[k], "empty argument '{}' for '{}'".format(k, f.__name__)
             return f(*args, **kwargs)
         return new_f
     return check_allocated
@@ -134,7 +142,6 @@ class Njoy:
         self.jp1 = 0
         self.iverw = 4
         # General options
-        self.EXEC = "njoy2016"
         self.WDIR = os.getcwd()
         self.FOLDER = os.path.abspath("lib")
         self.IPRINT = 1  # by default set verbosity to max
@@ -184,6 +191,18 @@ class Njoy:
         self.LOCAL = 0
         for k,v in kwargs.items():
             setattr(self, k.upper(), v)
+        if not hasattr(self, "exe"): self.exe = "njoy2016"
+    
+    @property
+    def exe(self):
+        return self._exe
+    
+    @exe.setter
+    def exe(self, exe):
+        _exe = utils.which(exe)
+        if _exe is None:
+            raise NotImplementedError("Not a valid NJOY-2016 executable: '{}'".format(_exe))
+        self._exe = _exe
 
     @property
     def TEMPS(self):
@@ -240,14 +259,14 @@ class Njoy:
         if not isinstance(suffixes, list): raise TypeError("{} must be a list".format("SUFFIXES"))
         self._suffixes = suffixes
 
-    def moder_input(self, tapein, tapeout, **fileOptions):
+    def _moder_input(self, tapein, tapeout, **fileOptions):
         text = """moder
 {} {}
 """.format(tapein, tapeout)
         return text
 
     @is_allocated("MAT")
-    def reconr_input(self, endfin, pendfout, **fileOptions):
+    def _reconr_input(self, endfin, pendfout, **fileOptions):
         kwargs = dict(vars(self), **fileOptions)
         kwargs.update({"ENDFIN" : endfin, "PENDFOUT" : pendfout})
         if not kwargs["ERRMAX"]: kwargs["ERRMAX"] = kwargs["ERR"]*10
@@ -262,7 +281,7 @@ class Njoy:
         return text
 
     @is_allocated("MAT")
-    def broadr_input(self, endfin, pendfin, pendfout, **fileOptions):
+    def _broadr_input(self, endfin, pendfin, pendfout, **fileOptions):
         kwargs = dict(dict(vars(self), TEMPS=self.TEMPS), **fileOptions)
         kwargs.update({"ENDFIN" : endfin, "PENDFIN" : pendfin, "PENDFOUT" : pendfout})
         kwargs["NTEMPS"] = len(kwargs["TEMPS"])
@@ -277,7 +296,7 @@ class Njoy:
         return text
 
     @is_allocated("MAT")
-    def thermr_input(self, endfin, pendfin, pendfout, **fileOptions):
+    def _thermr_input(self, endfin, pendfin, pendfout, **fileOptions):
         kwargs = dict(dict(vars(self), TEMPS=self.TEMPS), **fileOptions)
         kwargs.update({"ENDFIN" : endfin, "PENDFIN" : pendfin, "PENDFOUT" : pendfout})
         kwargs["NTEMPS"] = len(kwargs["TEMPS"])
@@ -291,7 +310,7 @@ class Njoy:
         return text
 
     @is_allocated("MAT")
-    def purr_input(self, endfin, pendfin, pendfout, **fileOptions):
+    def _purr_input(self, endfin, pendfin, pendfout, **fileOptions):
         kwargs = dict(dict(vars(self), TEMPS=self.TEMPS), **fileOptions)
         kwargs.update({"ENDFIN" : endfin, "PENDFIN" : pendfin, "PENDFOUT" : pendfout})
         if "SIG0" not in kwargs: kwargs["SIG0"] = [1E10]
@@ -308,7 +327,7 @@ class Njoy:
 """ % kwargs
         return text
 
-    def gaspr_input(self, endfin, pendfin, pendfout, **fileOptions):
+    def _gaspr_input(self, endfin, pendfin, pendfout, **fileOptions):
         kwargs = dict(vars(self), **fileOptions)
         kwargs.update({"ENDFIN" : endfin, "PENDFIN" : pendfin, "PENDFOUT" : pendfout})
         text = """gaspr
@@ -317,7 +336,7 @@ class Njoy:
         return text
 
     @is_allocated("MAT")
-    def unresr_input(self, endfin, pendfin, pendfout, **fileOptions):
+    def _unresr_input(self, endfin, pendfin, pendfout, **fileOptions):
         kwargs = dict(dict(vars(self), TEMPS=self.TEMPS, SIG0=self.SIG0), **fileOptions)
         kwargs.update({"ENDFIN" : endfin, "PENDFIN" : pendfin, "PENDFOUT" : pendfout})
         kwargs["NSIG0"] = len(kwargs["SIG0"])
@@ -334,7 +353,7 @@ class Njoy:
         return text
 
     @is_allocated("MAT", "TMP", "SUFF")
-    def acer_input(self, nendf, npendf, nace, ndir, **fileOptions):
+    def _acer_input(self, nendf, npendf, nace, ndir, **fileOptions):
         kwargs = dict(dict(vars(self), TEMPS=self.TEMPS, SUFFIXES=self.SUFFIXES), **fileOptions)
         kwargs.update({"NENDF" : nendf, "NPENDF" : npendf, "NACE" : nace, "NDIR" : ndir})
         text = """acer
@@ -354,7 +373,7 @@ class Njoy:
         return text
 
     @is_allocated("MAT")
-    def heatr_input(self, endfin, pendfin, pendfout, **fileOptions):
+    def _heatr_input(self, endfin, pendfin, pendfout, **fileOptions):
         kwargs = dict(dict(vars(self), TEMPS=self.TEMPS), **fileOptions)
         text = ""
         npks = len(kwargs["KERMA"])
@@ -383,7 +402,7 @@ class Njoy:
         return text
 
     @is_allocated("MAT")
-    def groupr_input(self, nendf, npendf, ngin, ngout, **fileOptions):
+    def _groupr_input(self, nendf, npendf, ngin, ngout, **fileOptions):
         from ..formats.records import write_tab1
         kwargs = dict(dict(vars(self), TEMPS=self.TEMPS, SIG0=self.SIG0), **fileOptions)
         kwargs.update({"NENDF" : nendf, "NPENDF" : npendf, "NGIN" : ngin, "NGOUT" : ngout})
@@ -391,6 +410,12 @@ class Njoy:
         kwargs["TEXTSIG0"] = " ".join(["%E"%dil for dil in kwargs["SIG0"]])
         kwargs["NTEMPS"] = len(kwargs["TEMPS"])
         kwargs["TEXTTEMPS"] = " ".join(["%E"%tmp for tmp in kwargs["TEMPS"]])
+        try:
+            ign = int(kwargs["IGN"])
+        except ValueError as exc:
+            ign = kwargs["IGN"]
+        finally:
+            kwargs["IGN"] = ign
         if not isinstance(kwargs["IGN"], int):
             if kwargs["IGN"].lower() == "scale_238":
                 from ..energy_grids import scale_238 as grid
@@ -402,6 +427,12 @@ class Njoy:
             ngroups = len(grid) - 1
             kwargs["IGNSTR"] = "{} /\n".format(ngroups) + "\n".join(map(str,grid)) + " /\n"
             kwargs["IGN"] = 1
+        try:
+            iwt = int(kwargs["IWT"])
+        except ValueError as exc:
+            iwt = kwargs["IWT"]
+        finally:
+            kwargs["IWT"] = iwt
         if not isinstance(kwargs["IWT"], int):
             if kwargs["IWT"].lower() == "jaea_fns_175":
                 from ..spectra import jaea_fns_175 as spectrum
@@ -434,10 +465,16 @@ class Njoy:
         return text
 
     @is_allocated("MAT", "LFI", "SECTIONS")
-    def errorr_input(self, endfin, pendfin, gendfin, errorrout, **fileOptions):
+    def _errorr_input(self, endfin, pendfin, gendfin, errorrout, **fileOptions):
         from ..formats.records import write_tab1
         kwargs = dict(dict(vars(self), TEMPS=self.TEMPS), **fileOptions)
         kwargs.update({"ENDFIN" : endfin, "PENDFIN" : pendfin, "GENDFIN" : gendfin, "ERRORROUT" : errorrout})
+        try:
+            igne = int(kwargs["IGNE"])
+        except ValueError as exc:
+            igne = kwargs["IGNE"]
+        finally:
+            kwargs["IGNE"] = igne
         if not isinstance(kwargs["IGNE"], int):
             if kwargs["IGNE"].lower() == "scale_238":
                 from ..energy_grids import scale_238 as grid
@@ -449,6 +486,12 @@ class Njoy:
             ngroups = len(grid) - 1
             kwargs["IGNESTR"] = "{} /\n".format(ngroups) + "\n".join(map(str,grid)) + " /\n"
             kwargs["IGNE"] = 1
+        try:
+            iwte = int(kwargs["IWTE"])
+        except ValueError as exc:
+            iwte = kwargs["IWTE"]
+        finally:
+            kwargs["IWTE"] = iwte
         if not isinstance(kwargs["IWTE"], int):
             if kwargs["IWTE"].lower() == "jaea_fns_175":
                 from ..csv.spectra import jaea_fns_175 as spectrum
@@ -494,52 +537,51 @@ errorr
 
     @is_allocated("TAPE", "TAG")
     def get_pendf(self, **fileOptions):
-        from ..functions import force_symlink
-
         mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
         os.makedirs(mydir, exist_ok=True)
 
-        force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
-        text = self.moder_input(20, -21, **fileOptions)
+        utils.force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
+        text = self._moder_input(20, -21, **fileOptions)
 
         if "PENDFIN" in fileOptions:
-            force_symlink(fileOptions["PENDFIN"], os.path.join(mydir, "tape30"))
-            text += self.moder_input(30, -22, **fileOptions)
+            utils.force_symlink(fileOptions["PENDFIN"], os.path.join(mydir, "tape30"))
+            text += self._moder_input(30, -22, **fileOptions)
         else:
-            text += self.reconr_input(-21, -22, **fileOptions)
+            text += self._reconr_input(-21, -22, **fileOptions)
         e = -21; p = -22
         if hasattr(self, "_temps"): self.BROADR = True
         if self.BROADR:
-            text += self.broadr_input(e, p, -23, **fileOptions)
+            text += self._broadr_input(e, p, -23, **fileOptions)
             p = -23
         if self.FREE_GAS: self.THERMR = True
         if self.THERMR:
-            text += self.thermr_input(0, p, -24, **fileOptions)
+            text += self._thermr_input(0, p, -24, **fileOptions)
             p = -24
         if hasattr(self, "_sig0"): self.UNRESR = True
         if self.UNRESR:
-            text += self.unresr_input(e, p, -25, **fileOptions)
+            text += self._unresr_input(e, p, -25, **fileOptions)
             p = -25
         if self.PTABLE > 0: self.PURR = True
         if self.PURR:
-            text += self.purr_input(e, p, -26, **fileOptions)
+            text += self._purr_input(e, p, -26, **fileOptions)
             p = -26
         if hasattr(self, "KERMA"): self.HEATR = True
         if self.HEATR:
-            text += self.heatr_input(e, p, -27, **fileOptions)
+            text += self._heatr_input(e, p, -27, **fileOptions)
             p = -27
         if self.GASPR:
-            text += self.gaspr_input(e, p, -28, **fileOptions)
+            text += self._gaspr_input(e, p, -28, **fileOptions)
             p = -28
-        text += self.moder_input(p, 29, **fileOptions)
+        text += self._moder_input(p, 29, **fileOptions)
         text += "stop"
 
+        pdb.set_trace()
         DfOutputs = OutputFiles()
         inputfile = os.path.join(mydir, "input_pendf.{}".format(fileOptions["TAG"]))
         DfOutputs = DfOutputs.append({"id" : "input_pendf", "format" : "TEXT", "file" : inputfile}, ignore_index=True)
         with open(inputfile,'w') as f: f.write(text)
         print(" --- run pendf for {} ---".format(fileOptions["TAG"]))
-        returncode, stdout, stderr = run_process("{} < {}".format(self.EXEC, inputfile), cwd=mydir, verbose=True)
+        returncode, stdout, stderr = run_process("{} < {}".format(self.exe, inputfile), cwd=mydir, verbose=True)
 
         oldfile = os.path.join(mydir, "tape29")
         newfile = os.path.join(mydir, "{}.pendf".format(fileOptions["TAG"]))
@@ -590,19 +632,17 @@ errorr
 
     @is_allocated("FILENAME", "TAPE", "PENDFTAPE", "TAG")
     def get_gendf(self, **fileOptions):
-        from ..functions import force_symlink
-
         mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
         os.makedirs(mydir, exist_ok=True)
 
-        force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
-        text = self.moder_input(20, -21, **fileOptions)
+        utils.force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
+        text = self._moder_input(20, -21, **fileOptions)
 
-        force_symlink(fileOptions["PENDFTAPE"], os.path.join(mydir, "tape29"))
-        text += self.moder_input(29, -25, **fileOptions)
+        utils.force_symlink(fileOptions["PENDFTAPE"], os.path.join(mydir, "tape29"))
+        text += self._moder_input(29, -25, **fileOptions)
 
-        text += self.groupr_input(-21, -25, 0, -26, **fileOptions)
-        text += self.moder_input(-26, 30, **fileOptions)
+        text += self._groupr_input(-21, -25, 0, -26, **fileOptions)
+        text += self._moder_input(-26, 30, **fileOptions)
         text += "stop"
 
         DfOutputs = OutputFiles()
@@ -610,7 +650,7 @@ errorr
         DfOutputs = DfOutputs.append({"id" : "input_gendf", "format" : "TEXT", "file" : inputfile}, ignore_index=True)
         with open(inputfile,'w') as f: f.write(text)
         print(" --- run gendf for {} ---".format(fileOptions["TAG"]))
-        returncode, stdout, stderr = run_process("{} < {}".format(self.EXEC, inputfile), cwd=mydir)
+        returncode, stdout, stderr = run_process("{} < {}".format(self.exe, inputfile), cwd=mydir)
 
         oldfile = os.path.join(mydir, "tape30")
         newfile = os.path.join(mydir, "{}.gendf".format(fileOptions["TAG"]))
@@ -632,26 +672,24 @@ errorr
 
     @is_allocated("FILENAME", "TAPE", "TAG")
     def get_errorr(self, **fileOptions):
-        from ..functions import force_symlink
-
         mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
         os.makedirs(mydir, exist_ok=True)
 
-        force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
-        text = self.moder_input(20, -21, **fileOptions)
+        utils.force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
+        text = self._moder_input(20, -21, **fileOptions)
 
 #        if "GENDFTAPE" in fileOptions:
 #            force_symlink(fileOptions["GENDFTAPE"], os.path.join(mydir, "tape29"))
 #            text += self.moder_input(29, 25, **fileOptions)
 #            p = 0; g = 25
 #        elif "PENDFTAPE" in kwargs:
-        force_symlink(fileOptions["PENDFTAPE"], os.path.join(mydir, "tape29"))
-        text += self.moder_input(29, -25, **fileOptions)
+        utils.force_symlink(fileOptions["PENDFTAPE"], os.path.join(mydir, "tape29"))
+        text += self._moder_input(29, -25, **fileOptions)
         p = -25; g = 0
 
         errorrs = []; er = 30
         for tmp in self.TEMPS:
-            text += self.errorr_input(-21, p, g, er, TMP=tmp, **fileOptions)
+            text += self._errorr_input(-21, p, g, er, TMP=tmp, **fileOptions)
             errorrs.append(er)
             er += 1
         text += "stop"
@@ -661,7 +699,7 @@ errorr
         DfOutputs = DfOutputs.append({"id" : "input_errorr", "format" : "TEXT", "file" : inputfile}, ignore_index=True)
         with open(inputfile,'w') as f: f.write(text)
         print(" --- run errorr for {} ---".format(fileOptions["TAG"]))
-        returncode, stdout, stderr = run_process("{} < {}".format(self.EXEC, inputfile), cwd=mydir)
+        returncode, stdout, stderr = run_process("{} < {}".format(self.exe, inputfile), cwd=mydir)
 
         newfile = os.path.join(mydir, "{}.errorr".format(fileOptions["TAG"]))
         if os.path.isfile(newfile): os.remove(newfile)
@@ -692,21 +730,19 @@ errorr
 
     @is_allocated("FILENAME", "TAPE", "PENDFTAPE", "TAG", "ZA", "LISO")
     def get_ace(self, **fileOptions):
-        from ..functions import force_symlink
-
         mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
         os.makedirs(mydir, exist_ok=True)
 
-        force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
-        text = self.moder_input(20, -21, **fileOptions)
+        utils.force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
+        text = self._moder_input(20, -21, **fileOptions)
 
-        force_symlink(fileOptions["PENDFTAPE"], os.path.join(mydir, "tape29"))
-        text += self.moder_input(29, -25, **fileOptions)
+        utils.force_symlink(fileOptions["PENDFTAPE"], os.path.join(mydir, "tape29"))
+        text += self._moder_input(29, -25, **fileOptions)
 
         aces = []; xsdirs = []
         e = -21; p = -25; a = 40; x = 50
         for tmp,suff in zip(self.TEMPS, self.SUFFIXES):
-            text += self.acer_input(e, p, a, x, TMP=tmp, SUFF=suff, **fileOptions)
+            text += self._acer_input(e, p, a, x, TMP=tmp, SUFF=suff, **fileOptions)
             aces.append(a); xsdirs.append(x)
             a += 1; x += 1
         text += "stop"
@@ -716,7 +752,7 @@ errorr
         DfOutputs = DfOutputs.append({"id" : "input_acer", "format" : "TEXT", "file" : inputfile}, ignore_index=True)
         with open(inputfile,'w') as f: f.write(text)
         print(" --- run acer for {} ---".format(fileOptions["TAG"]))
-        returncode, stdout, stderr = run_process("{} < {}".format(self.EXEC, inputfile), cwd=mydir)
+        returncode, stdout, stderr = run_process("{} < {}".format(self.exe, inputfile), cwd=mydir)
 
         newfile = os.path.join(mydir, "{}.ace".format(fileOptions["TAG"]))
         if os.path.isfile(newfile): os.remove(newfile)
@@ -807,10 +843,10 @@ def process_lib():
     inputs = settings.init_njoy()
     evalLib.from_file(inputs["inputfile"]).run_njoy(**inputs)
 
+
 def run(iargs=None):
-    from .. import settings
-    from ..formats import Endf6
-    init = settings.init_njoy(iargs)
+    from . import from_cli
+    init = from_cli(iargs)
     nj = Njoy(**vars(init))
 
     tape = Endf6.from_file(nj.TAPE)
@@ -857,31 +893,3 @@ def run(iargs=None):
         outs, msgs = nj.get_errorr(**tape.__dict__)
         DfOutputs = pd.concat([DfOutputs, outs]).reset_index(drop=True)
         DfMessages = pd.concat([DfMessages, msgs]).reset_index(drop=True)
-
-
-
-#if __name__ == "__main__":
-#    from ..formats import Endf6
-#    from ..data_test import H1
-#
-#    nj = Njoy(QA=[46, -1.6651e6, 47, -1.6651e6, 48, -1.6651e6, 49, -1.6651e6], THERMR=False, TEMPS=[300,600], SUFFIXES=[".03", ".06"])
-#    tape = Endf6.from_file(os.path.join(H1.__path__[0], r"h1.endf"))
-#    tape.parse()
-#    nj.PENDF = nj.get_pendf(**tape.__dict__)
-#    nj.ACE, nj.XSDIR = nj.get_ace(**tape.__dict__)
-#    evalLib.from_file(inputs["inputfile"]).run_njoy(inputs)
-
-#@pytest.mark.njoy
-#def test_njoy(tmpdir):
-#    from ..data_test import U5
-#    iargs = [os.path.join(U5.__path__[0], r"u235.pendf"),
-#             "--errorr-cov", os.path.join(U5.__path__[0], r"u235.errorr"),
-#             "--QA", "46", "-1.6651e6", "47", "-1.6651e6", "48", "-1.6651e6", "49", "-1.6651e6",
-#             "--PK", "301", "302", "303", "304", "318", "402", "442", "443", "444", "445", "446", "447",
-#             "--outdir", str(tmpdir),
-#             "--processes", str(os.cpu_count()) if os.cpu_count() < 10 else str(10),
-#             "--eig", "10",
-#             "--samples", "100",]
-##             "--plotdir", os.path.join(str(tmpdir), r"html_files"),
-##             "-p"]
-#    sampling(iargs)
