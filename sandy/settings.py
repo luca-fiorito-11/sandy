@@ -4,7 +4,7 @@ Created on Wed Mar 21 15:21:37 2018
 
 @author: fiorito_l
 """
-import os, argparse, pdb, textwrap
+import os, argparse, pdb
 
 class EmptyIsConst(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -266,83 +266,6 @@ predefined functions:
                         help="")
     args = parser.parse_args()
     return args
-
-def init_sampling(iargs=None):
-    global args
-    parser = argparse.ArgumentParser(description='Run sampling', formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('file',
-                        type=lambda x: is_valid_file(parser, x),
-                        help="ENDF-6 or PENDF format file")
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--endf6-cov',
-                       type=lambda x: is_valid_file(parser, x),
-                       help="ENDF-6 file containing covariances")
-    group.add_argument('--errorr-cov',
-                       type=lambda x: is_valid_file(parser, x),
-                       help="ERRORR file containing covariances")
-    parser.add_argument('--samples',
-                        type=int,
-                        default=100,
-                        help="number of samples (default = 100)")
-    parser.add_argument('--outdir',
-                        metavar="DIR",
-                        default=os.getcwd(),
-                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
-                        help="target directory where outputs are stored (default = current working directory)\nif it does not exist it will be created")
-    parser.add_argument('-np','--processes',
-                        type=int,
-                        default=1,
-                        help="number of worker processes (default = 1)")
-    parser.add_argument('--eig',
-                        type=int,
-                        default=0,
-                        metavar="N",
-                        help="print the first N eigenvalues of the evaluated covariance matrices (default = do not print)")
-#    parser.add_argument('--plotdir',
-#                        default=os.path.join(os.getcwd(),"html_files"),
-#                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
-#                        help="Target directory where plots are stored (default = current working directory/html_files). If it does not exist it will be created.")
-#    parser.add_argument('-p',
-#                        action='store_true',
-#                        help="Turn on xs plotting.")
-    parser.add_argument('--mat',
-                        type=int,
-                        action='store',
-                        nargs="+",
-                        metavar="{1,..,9999}",
-                        help="draw samples only from the selected MAT sections (default = keep all)")
-    parser.add_argument('--mf',
-                        type=int,
-                        default=range(41),
-                        action='store',
-                        nargs="+",
-                        metavar="{1,..,40}",
-                        help="draw samples only from the selected MF sections (default = keep all)")
-    parser.add_argument('--mt',
-                        type=int,
-                        action='store',
-                        nargs="+",
-                        metavar="{1,..,999}",
-                        help="draw samples only from the selected MT sections (default = keep all)")
-    parser.add_argument('--verbose',
-                        default=False,
-                        action="store_true",
-                        help="turn on verbosity (default = quiet)")
-    parser.add_argument('-e','--energy-points',
-                        type=float,
-                        metavar="E",
-                        default=[],
-                        action="store",
-                        nargs='+',
-                        help="additional energy points (in eV) to include in the incoming-neutron energy grid (default = None)")
-    parser.add_argument("-v",
-                        '--version',
-                        action='version',
-                        version='%(prog)s 1.0',
-                        help="SANDY's version.")
-    args = parser.parse_known_args(args=iargs)[0]
-    return args
-
 
 def init_macs(iargs=None):
     parser = argparse.ArgumentParser(description=None)
