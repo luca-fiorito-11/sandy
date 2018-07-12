@@ -5,6 +5,7 @@ Created on Wed Jul 11 15:36:30 2018
 @author: Fiorito_L
 """
 import os
+import time
 
 def which(program):
     """Mimic the behavior of the UNIX 'which' command.     
@@ -30,3 +31,14 @@ def force_symlink(file1, file2):
     except FileExistsError:
         os.remove(file2)
         os.symlink(file1, file2)
+
+def TimeDecorator(foo):
+    """Output the time a function takes to execute.
+    """
+    def wrapper(*args, **kwargs):
+        t1 = time.time()
+        out = foo(*args, **kwargs)
+        t2 = time.time()
+        print("Time to run function {}: {} sec".format(foo, t2-t1))
+        return out
+    return wrapper

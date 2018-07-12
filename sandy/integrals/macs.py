@@ -78,7 +78,7 @@ if __name__ == "__main__":
 @pytest.mark.macs
 @pytest.mark.xs
 def test_H1(tmpdir):
-    from ..data_test import H1
+    from ..data import H1
     iargs = ["--pendf", os.path.join(H1.__path__[0], r"h1.pendf"),
              "--errorr", os.path.join(H1.__path__[0], r"h1.errorr"),
              "--kT", "2.53E-2", "30000",
