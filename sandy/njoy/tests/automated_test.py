@@ -15,15 +15,15 @@ from .. import data
 def test_H1(tmpdir):
     iargs = [
             os.path.join(data.__path__[0], r"h1.endf"),
-            "-page",
+            "-p",
             "--temps", "300", "600",
-            *"--sig0 1E10 1E4 1E3 1E2 1E1 1E0".split(),
-            "--kerma",
-            "--free-gas",
-            "--ptable",
-            "--gaspr",
-            "--ign", "19",
-            "--iwt", "2",
-            *"--suffixes .03 .06".split(),
+#            *"--sig0 1E10 1E4 1E3 1E2 1E1 1E0".split(),
+#            "--kerma",
+#            "--free-gas",
+#            "--ptable",
+#            "--gaspr",
+#            "--ign", "19",
+#            "--iwt", "2",
+#            *"--suffixes .03 .06".split(),
             ]
     run(iargs)
