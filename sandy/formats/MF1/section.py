@@ -8,6 +8,9 @@ from ..records import read_cont, read_tab1, read_control, read_text, read_list, 
 from ..utils import Section
 import sys
 
+from ...data import elements
+from ...data import metastates
+
 def read(text):
     str_list = text.splitlines()
     MAT, MF, MT = read_control(str_list[0])[:3]
@@ -34,7 +37,6 @@ def read_errorr(text):
     return out
 
 def read_info(text):
-    from sandy.csvq import elements, metastates
     str_list = text.splitlines()
     MAT, MF, MT = read_control(str_list[0])[:3]
     out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
