@@ -11,3 +11,6 @@
 
 # shared objects
 *.so
+
+#  pytest default basetemp
+/sandy_tests/
