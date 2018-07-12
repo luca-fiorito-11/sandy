@@ -21,7 +21,7 @@ def from_cli(iargs=None):
     parser = argparse.ArgumentParser(prog="python -m sandy.njoy",
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('tape',
-#                        type=lambda x: is_valid_file(parser, x),
+                        type=lambda x: utils.is_valid_file(parser, x),
                         help="ENDF-6 format file")
     parser.add_argument('-P','--pendftape',
                         type=lambda x: utils.is_valid_file(parser, x),
@@ -81,23 +81,23 @@ def from_cli(iargs=None):
 #    parser.add_argument('--capsys',
 #                        action="store_true",
 #                        help="capture NJOY stderr and stdout (default=False)")
-#    parser.add_argument('--NjoyExec',
-#                        default='njoy2016',
-#                        help="NJOY executable (default=njoy2016).")
+    parser.add_argument('--exe',
+                        default=argparse.SUPPRESS,
+                        help="NJOY executable (default=njoy2016).")
     parser.add_argument('--temps',
                         type=float,
-                        default = argparse.SUPPRESS,
+                        default=argparse.SUPPRESS,
                         nargs='+',
                         help="list of temperature values")
     parser.add_argument('--sig0',
                         type=float,
-                        default = argparse.SUPPRESS,
+                        default=argparse.SUPPRESS,
                         nargs='+',
                         help="list of dilution values")
     parser.add_argument('--kerma',
                         type=int,
-                        action=utils.EmptyIsConst,
-                        default = argparse.SUPPRESS,
+                        action=EmptyIsConst,
+                        default=argparse.SUPPRESS,
                         nargs='*',
                         help="list of partial kermas (default=[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447])")
 #    parser.add_argument('--qa',

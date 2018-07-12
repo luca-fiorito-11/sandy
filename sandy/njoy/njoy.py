@@ -143,7 +143,7 @@ class Njoy:
         self.iverw = 4
         # General options
         self.WDIR = os.getcwd()
-        self.FOLDER = os.path.abspath("lib")
+        self.folder = os.path.abspath("lib")
         self.IPRINT = 1  # by default set verbosity to max
         self.PLOT = False
         # modules
@@ -156,8 +156,7 @@ class Njoy:
         self.PURR = False
         self.ACER = False
         # RECONR/BROADR default options
-        self.ERR = 0.001
-        self.ERRMAX = None
+        self.err = 0.001
         self.THNMAX = 1E6
         # PURR/UNRESR default options
         self.PTABLE = False
@@ -192,6 +191,17 @@ class Njoy:
         for k,v in kwargs.items():
             setattr(self, k.upper(), v)
         if not hasattr(self, "exe"): self.exe = "njoy2016"
+
+    @property
+    def errmax(self):
+        if hasattr(self, "_errmax"):
+            return self._errmax
+        else:
+            return self.err*10.
+    
+    @errmax.setter
+    def errmax(self, errmax):
+        self._errmax = errmax
     
     @property
     def exe(self):
@@ -259,26 +269,21 @@ class Njoy:
         if not isinstance(suffixes, list): raise TypeError("{} must be a list".format("SUFFIXES"))
         self._suffixes = suffixes
 
-    def _moder_input(self, tapein, tapeout, **fileOptions):
+    def _moder_input(self, tapein, tapeout, **kwargs):
         text = """moder
 {} {}
 """.format(tapein, tapeout)
         return text
 
-    @is_allocated("MAT")
-    def _reconr_input(self, endfin, pendfout, **fileOptions):
-        kwargs = dict(vars(self), **fileOptions)
-        kwargs.update({"ENDFIN" : endfin, "PENDFOUT" : pendfout})
-        if not kwargs["ERRMAX"]: kwargs["ERRMAX"] = kwargs["ERR"]*10
-        text = """reconr
-%(ENDFIN)d %(PENDFOUT)d
-'pendf tape from '/
-%(MAT)d 1 0/
-%(ERR)E  0.  %(ERRMAX)E/
-'%(TAG)s with NJOY' /
-0/
-""" % kwargs
-        return text
+    def _reconr_input(self, endfin, pendfout, mat):
+        text = ["reconr"]
+        text.append("{} {} /".format(endfin, pendfout))
+        text.append(" /")
+        text.append("{} 1 0 /".format(mat))
+        text.append("{} 0. {} /".format(self.err, self.errmax))
+        text.append(" /")
+        text.append("0/")
+        return "\n".join(text) + "\n"
 
     @is_allocated("MAT")
     def _broadr_input(self, endfin, pendfin, pendfout, **fileOptions):
@@ -535,20 +540,22 @@ errorr
         return text
 
 
-    @is_allocated("TAPE", "TAG")
-    def get_pendf(self, **fileOptions):
-        mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
+#    @is_allocated("TAPE", "TAG", "FILENAME")
+    def get_pendf(self, tape, mat, pendftape=None, **fileOptions):
+        fname = os.path.split(tape)[0]
+        mydir = os.path.join(self.folder, fname)
         os.makedirs(mydir, exist_ok=True)
 
-        utils.force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
+        utils.force_symlink(tape, os.path.join(mydir, "tape20"))
         text = self._moder_input(20, -21, **fileOptions)
 
-        if "PENDFIN" in fileOptions:
-            utils.force_symlink(fileOptions["PENDFIN"], os.path.join(mydir, "tape30"))
+        if pendftape:
+            utils.force_symlink(pendftape, os.path.join(mydir, "tape30"))
             text += self._moder_input(30, -22, **fileOptions)
         else:
-            text += self._reconr_input(-21, -22, **fileOptions)
+            text += self._reconr_input(-21, -22, mat)
         e = -21; p = -22
+        pdb.set_trace()
         if hasattr(self, "_temps"): self.BROADR = True
         if self.BROADR:
             text += self._broadr_input(e, p, -23, **fileOptions)
@@ -575,7 +582,7 @@ errorr
         text += self._moder_input(p, 29, **fileOptions)
         text += "stop"
 
-        pdb.set_trace()
+#        pdb.set_trace()
         DfOutputs = OutputFiles()
         inputfile = os.path.join(mydir, "input_pendf.{}".format(fileOptions["TAG"]))
         DfOutputs = DfOutputs.append({"id" : "input_pendf", "format" : "TEXT", "file" : inputfile}, ignore_index=True)
@@ -605,7 +612,7 @@ errorr
     def get_hendf(self, **fileOptions):
         from ..formats import Endf6
 
-        mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
+        mydir = os.path.join(self.folder, fileOptions["FILENAME"])
         os.makedirs(mydir, exist_ok=True)
 
         print(" --- run hendf for {} ---".format(fileOptions["TAG"]))
@@ -632,7 +639,7 @@ errorr
 
     @is_allocated("FILENAME", "TAPE", "PENDFTAPE", "TAG")
     def get_gendf(self, **fileOptions):
-        mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
+        mydir = os.path.join(self.folder, fileOptions["FILENAME"])
         os.makedirs(mydir, exist_ok=True)
 
         utils.force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
@@ -672,7 +679,7 @@ errorr
 
     @is_allocated("FILENAME", "TAPE", "TAG")
     def get_errorr(self, **fileOptions):
-        mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
+        mydir = os.path.join(self.folder, fileOptions["FILENAME"])
         os.makedirs(mydir, exist_ok=True)
 
         utils.force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
@@ -730,7 +737,7 @@ errorr
 
     @is_allocated("FILENAME", "TAPE", "PENDFTAPE", "TAG", "ZA", "LISO")
     def get_ace(self, **fileOptions):
-        mydir = os.path.join(self.FOLDER, fileOptions["FILENAME"])
+        mydir = os.path.join(self.folder, fileOptions["FILENAME"])
         os.makedirs(mydir, exist_ok=True)
 
         utils.force_symlink(fileOptions["TAPE"], os.path.join(mydir, "tape20"))
