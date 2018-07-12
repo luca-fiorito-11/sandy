@@ -3,14 +3,16 @@ import os
 
 
 from .sampling import sampling
-from ..settings import is_valid_dir, is_valid_file
+from ..utils import is_valid_dir, is_valid_file
 
 def from_cli(iargs=None):
     """
     Parse command line arguments and return ```argparse.Namespace``` instance
     holding attributes.
     """
-    parser = argparse.ArgumentParser(description='Run sampling', formatter_class=argparse.RawTextHelpFormatter)
+    parser = argparse.ArgumentParser(prog="python -m sandy.sampling",
+                                     description='Run sampling',
+                                     formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('file',
                         type=lambda x: is_valid_file(parser, x),
                         help="ENDF-6 or PENDF format file")
@@ -23,13 +25,13 @@ def from_cli(iargs=None):
                        help="ERRORR file containing covariances")
     parser.add_argument('--samples',
                         type=int,
-                        default=100,
-                        help="number of samples (default = 100)")
+                        required=True,
+                        help="number of samples")
     parser.add_argument('--outdir',
                         metavar="DIR",
                         default=os.getcwd(),
                         type=lambda x: is_valid_dir(parser, x, mkdir=True),
-                        help="target directory where outputs are stored (default = current working directory)\nif it does not exist it will be created")
+                        help="target directory where outputs are stored\n(default = current working directory)\nif it does not exist it will be created")
     parser.add_argument('-np','--processes',
                         type=int,
                         default=1,
@@ -38,14 +40,7 @@ def from_cli(iargs=None):
                         type=int,
                         default=0,
                         metavar="N",
-                        help="print the first N eigenvalues of the evaluated covariance matrices (default = do not print)")
-#    parser.add_argument('--plotdir',
-#                        default=os.path.join(os.getcwd(),"html_files"),
-#                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
-#                        help="Target directory where plots are stored (default = current working directory/html_files). If it does not exist it will be created.")
-#    parser.add_argument('-p',
-#                        action='store_true',
-#                        help="Turn on xs plotting.")
+                        help="print the first N eigenvalues of the evaluated covariance matrices\n(default = do not print)")
     parser.add_argument('--mat',
                         type=int,
                         action='store',
@@ -78,7 +73,7 @@ def from_cli(iargs=None):
                         default=[],
                         action="store",
                         nargs='+',
-                        help="additional energy points (in eV) to include in the incoming-neutron energy grid (default = None)")
+                        help="additional energy points (in eV) to include in the incoming-neutron energy grid\n(default = None)")
     parser.add_argument("-v",
                         '--version',
                         action='version',

@@ -15,7 +15,6 @@ import pytest
 import pdb
 
 from .. import utils
-from .. import interaction
 from ..functions import run_process
 from ..formats import Endf6
 
