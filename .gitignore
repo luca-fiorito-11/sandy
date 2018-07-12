@@ -18,3 +18,6 @@
 
 #  pytest default basetemp
 /sandy_tests/
+
+# virtual environments
+/virtualenvs/
