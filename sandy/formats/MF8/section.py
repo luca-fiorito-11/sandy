@@ -27,7 +27,7 @@ def read_fy(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2, "E" : {}})
     for j in range(C.L1):
         L, i = read_list(str_list, i)
-        FY = [{ "ZAFP" : ZAFP, "FPS" : FPS, "YI" : YI, "DYI" : DYI } for ZAFP, FPS, YI, DYI in  zip(*[iter(L.B)]*4) ]
+        FY = { int(ZAFP*10+FPS) : {"ZAFP" : ZAFP, "FPS" : FPS, "YI" : YI, "DYI" : DYI} for ZAFP,FPS,YI,DYI in  zip(*[iter(L.B)]*4)}
         out["E"].update({ L.C1 : { "FY" : FY } })
         if j > 0:
             out["E"][L.C1].update({ "I" : L.L1 })

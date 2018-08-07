@@ -49,6 +49,8 @@ class Endf6(BaseFile):
             from .MF5 import read
         elif mf == 4:
             from .MF4 import read
+        elif mf == 8:
+            from .MF8 import read
         elif mf == 33 or mf == 31:
             from .MF33 import read
         elif mf == 34:
