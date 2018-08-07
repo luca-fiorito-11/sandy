@@ -15,6 +15,7 @@ from ..MF5 import write as write_mf5
 from ...data import Pu9
 from ...data import H1
 from ...data import Fe56
+from ...data import U5
 
 @pytest.fixture(scope="module")
 def testPu9():
@@ -32,6 +33,12 @@ def testH1():
 def testFe56():
     tape = Endf6.from_text("\n".join(Fe56.endf6))
     assert (tape.index.get_level_values("MAT").unique() == 2631).all()
+    return tape
+
+@pytest.fixture(scope="module")
+def testU5():
+    tape = Endf6.from_text("\n".join(U5.nfy))
+    assert (tape.index.get_level_values("MAT").unique() == 9228).all()
     return tape
 
 @pytest.mark.formats
@@ -291,6 +298,15 @@ def test_extract_chi_cov(testPu9):
     assert C.index.names == ['MAT', 'MT', 'ELO', 'EHI', 'EOUT']
     assert C.columns.names == ['MAT', 'MT', 'ELO', 'EHI', 'EOUT']
     assert (C.values == C.values.T).all()
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.fy
+def test_read_fy(testU5):
+    S = testU5.read_section(9228, 8, 454)
+    pytest.set_trace()
+    text = write_mf3(S)
+    assert testPu9.TEXT.loc[9437,3,102] == text
 
 @pytest.mark.formats
 @pytest.mark.endf6
