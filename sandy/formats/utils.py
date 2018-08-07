@@ -4,15 +4,19 @@ Created on Thu Jun 14 09:19:24 2018
 
 @author: fiorito_l
 """
+import logging
+import pdb
+import os
+import sys
 
 import pandas as pd
 import numpy as np
-import logging, pdb, os, sys
 
+__author__ = "Luca Fiorito"
+__all__ = ["Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov", "Cov"]
 
 class Section(dict):
     pass
-
 
 class BaseFile(pd.DataFrame):
 
