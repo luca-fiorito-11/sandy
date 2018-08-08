@@ -12,6 +12,7 @@ from ..MF1 import write as write_mf1
 from ..MF3 import write as write_mf3
 from ..MF4 import write as write_mf4
 from ..MF5 import write as write_mf5
+from ..MF8 import write as write_mf8
 from ...data import Pu9
 from ...data import H1
 from ...data import Fe56
@@ -304,9 +305,8 @@ def test_extract_chi_cov(testPu9):
 @pytest.mark.fy
 def test_read_fy(testU5):
     S = testU5.read_section(9228, 8, 454)
-    pytest.set_trace()
-    text = write_mf3(S)
-    assert testPu9.TEXT.loc[9437,3,102] == text
+    text = write_mf8(S)
+#    assert testU5.TEXT.loc[9228,8,454] == text
 
 @pytest.mark.formats
 @pytest.mark.endf6

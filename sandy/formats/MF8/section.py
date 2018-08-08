@@ -4,11 +4,14 @@ Created on Thu Jun 14 09:23:33 2018
 
 @author: fiorito_l
 """
-from ..records import read_cont, read_list, read_control
+
+import numpy as np
+
+from ..records import read_cont, read_list, read_control, write_cont, write_list
 from ..utils import Section
 
 __author__ = "Luca Fiorito"
-__all__ = ["read"]
+__all__ = ["read", "write"]
 
 def read(text):
     str_list = text.splitlines()
@@ -17,6 +20,12 @@ def read(text):
         return read_fy(text)
     elif MT == 457:
         return read_rdd(text)
+
+def write(sec):
+    if sec["MT"] in (454, 459):
+        return write_fy(sec)
+    elif sec["MT"] == 457:
+        return write_rdd(sec)
 
 def read_fy(text):
     str_list = text.splitlines()
@@ -32,6 +41,22 @@ def read_fy(text):
         if j > 0:
             out["E"][L.C1].update({ "I" : L.L1 })
     return Section(out)
+
+def write_fy(sec):
+    LE = len(sec["E"])
+    text = write_cont(sec["ZA"], sec["AWR"], LE, 0, 0, 0)
+    for i,(e,esec) in enumerate(sorted(sec["E"].items())):
+        tab = [ksec[j] for k,ksec in sorted(esec["FY"].items()) for j in ("ZAFP","FPS","YI","DYI")]
+        NFP = len(esec["FY"])
+        I = LE-1 if i == 0 else esec["I"]
+        text += write_list(e, 0, I, 0, NFP, tab)
+    TextOut = []; iline = 1
+    for line in text:
+        if iline > 99999:
+            iline = 1
+        TextOut.append("{:<66}{:4}{:2}{:3}{:5}\n".format(line, sec["MAT"], sec["MF"], sec["MT"], iline))
+        iline += 1
+    return "".join(TextOut)
 
 #def read_rdd(text):
 #    str_list = split_endf(text)
