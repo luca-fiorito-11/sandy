@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 
 __author__ = "Luca Fiorito"
-__all__ = ["Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov", "Cov"]
+__all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov", "Cov", "Fy"]
 
 class Section(dict):
     pass
@@ -408,6 +408,15 @@ class LpcCov(pd.DataFrame):
                 print("\n".join(E))
         return frame
 
+class Fy(pd.DataFrame):
+    """Dataset of fission yields and uncertainties for a given fissioning 
+    system (energy).
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = ["MAT", "MT", "E", "ZA", "META"]
+#        self.columns.names = ["FY", "DFY"]
 
 def triu_matrix(arr, size):
     """
