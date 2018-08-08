@@ -4,11 +4,19 @@ Created on Mon Jan 16 18:03:13 2017
 
 @author: lfiorito
 """
-import sys, pdb, os, pytest, logging
+import sys
+import pdb
+import os
+import pytest
+import logging
+from collections import Counter
+from functools import reduce
+from warnings import warn
+
 import numpy as np
 import pandas as pd
-from warnings import warn
-from .utils import BaseFile
+
+from .utils import *
 
 
 #def split_endf(text):
@@ -92,9 +100,6 @@ class Endf6(BaseFile):
             - Interpolation law must be lin-lin
             - No duplicate points on energy grid
         """
-        from .utils import Xs
-        from collections import Counter
-        from functools import reduce
         query = "MF==3"
         if listmat is not None:
             query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
@@ -115,7 +120,7 @@ class Endf6(BaseFile):
                 sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(*ix))
             ListXs.append(xs)
         if not ListXs:
-            warn(UserWarning("no cross section was found"))
+            warn(UserWarning("requested cross sections were not found"))
             return pd.DataFrame()
         frame = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
         return Xs(frame)
@@ -226,9 +231,6 @@ class Endf6(BaseFile):
             - Interpolation law must be lin-lin
             - No duplicate points on energy grid
         """
-        from .utils import Xs
-        from collections import Counter
-        from functools import reduce
         query = "MF==1 & (MT==452 | MT==455 | MT==456)"
         if listmat is not None:
             query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
@@ -279,7 +281,6 @@ class Endf6(BaseFile):
         Return a df with MAT,MT,SUB as index and COV as value
         Each COV is a df with Ein on rows and Eout on columns.
         """
-        from .utils import Edistr
         query = "MF==5"
         if listmat is not None:
             query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
@@ -378,7 +379,6 @@ class Endf6(BaseFile):
         return EdistrCov(matrix, index=index, columns=index)
 
     def get_lpc(self, listmat=None, listmt=None, verbose=True):
-        from .utils import Lpc
         query = "MF==4"
         if listmat is not None:
             query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
@@ -500,6 +500,33 @@ class Endf6(BaseFile):
         i_lower = np.tril_indices(len(index), -1)
         matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
         return LpcCov(matrix, index=index, columns=index)
+
+    def get_fy(self, listenergy=None, listmat=None, listmt=None):
+        """Extract selected fission yields.
+        xs are linearized on unique grid.
+        """
+        query = "MF==8"
+        if listmat is not None:
+            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+            query += " & ({})".format(query_mats)
+        if listmt is not None:
+            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+            query += " & ({})".format(query_mts)
+        tape = self.query(query)
+        listfy = []
+        for ix,text in tape.TEXT.iteritems():
+            X = self.read_section(*ix)
+            for e,esec in X["E"].items():
+                if listenergy is not None:
+                    if e not in listenergy: continue
+                for fydict in esec["FY"].values():
+                    fydict.update({"MAT" : ix[0], "MT" : ix[2], "E" : e})
+                    listfy.append(fydict)
+        if not listfy:
+            warn(UserWarning("requested fission yields were found"))
+            return pd.DataFrame()
+        frame = pd.DataFrame.from_dict(listfy).set_index(["MAT","MT","E","ZAFP","FPS"])
+        return Fy(frame)
 
     def update_info(self):
         """

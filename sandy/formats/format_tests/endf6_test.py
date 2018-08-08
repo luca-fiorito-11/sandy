@@ -310,6 +310,13 @@ def test_read_fy(testU5):
 
 @pytest.mark.formats
 @pytest.mark.endf6
+@pytest.mark.fy
+@pytest.mark.aaa
+def test_extract_fy(testU5):
+    fy = testU5.get_fy(listmt=[454])
+
+@pytest.mark.formats
+@pytest.mark.endf6
 @pytest.mark.write
 def test_write_to_string(testH1):
     string = testH1.write_string()
