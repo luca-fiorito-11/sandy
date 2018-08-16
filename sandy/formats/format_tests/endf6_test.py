@@ -311,9 +311,15 @@ def test_read_fy(testU5):
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.fy
-@pytest.mark.aaa
 def test_extract_fy(testU5):
     fy = testU5.get_fy(listmt=[454])
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.fy
+@pytest.mark.gls
+def test_fy_gls(testU5):
+    fy = testU5.get_fy().get_system(9228, 454, 0.0253)
 
 @pytest.mark.formats
 @pytest.mark.endf6

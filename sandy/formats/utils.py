@@ -12,6 +12,8 @@ import sys
 import pandas as pd
 import numpy as np
 
+from ..functions import gls
+
 __author__ = "Luca Fiorito"
 __all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov", "Cov", "Fy"]
 
@@ -409,14 +411,63 @@ class LpcCov(pd.DataFrame):
         return frame
 
 class Fy(pd.DataFrame):
-    """Dataset of fission yields and uncertainties for a given fissioning 
-    system (energy).
+    """Dataset of independent and/or cumulative fission yields and 
+    uncertainties for one or more energies and fissioning isotope.
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.index.names = ["MAT", "MT", "E", "ZA", "META"]
-#        self.columns.names = ["FY", "DFY"]
+
+    def get_system(self, mat, mt, e):
+        frame = self.loc[mat, mt, e]
+        frame = frame.reset_index()
+        frame["Z"] = frame.ZA//1000
+        frame["A"] = frame.ZA - frame.Z*1000
+        frame["ZA"] = frame.ZA*10 + frame.META
+        frame = frame.set_index("ZA")
+        return FySystem(frame)
+
+class FySystem(pd.DataFrame):
+    """Dataset of fission yields and uncertainties for a single fissioning 
+    system.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.name = "IZAM"
+    
+    @property
+    def acn(self):
+        return self.A.values.dot(self.YI.values)
+
+    @property
+    def zcn(self):
+        return self.Z.values.dot(self.YI.values)
+
+    @property
+    def sum_yields(self):
+        return self.YI.sum()
+    
+    def _get_charge_sensitivity(self):
+        return self.Z.values
+
+    def _get_mass_sensitivity(self):
+        return self.A.values
+
+    def _get_sum_sensitivity(self):
+        return np.array([1]*len(self))
+    
+    def cov_generator(self, mass, charge):
+        """Run GLS adjustment to given fys and uncertainties.
+        """
+        _be = np.array(self.YI.values)
+        _cov = np.diag(self.DYI)
+        _be, _cov = gls(_be, _cov, self._get_charge_sensitivity(), charge, 1e-3)
+        _be, _cov = gls(_be, _cov, self._get_mass_sensitivity(), mass, 1e-3)
+        _be, _cov = gls(_be, _cov, self._get_sum_sensitivity(), 2, 1e-3)
+        _be, _cov = gls(_be, _cov, self._get_chain_sensitivity(), chain, cov_chain)
+        return _be, _cov
 
 def triu_matrix(arr, size):
     """
