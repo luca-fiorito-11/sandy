@@ -7,6 +7,21 @@ Created on Thu Jan 12 11:10:49 2017
 import numpy as np
 import os, pdb
 
+def gls(x, Cx, G, y, Cy):
+    """Run GLS adjustment.
+    """
+    _x = np.matrix(x.reshape(-1,1)) # column array
+    _Cx = np.matrix(Cx)
+    _G = np.matrix(G) # _y = _G * _x
+    _y = np.matrix(np.array(y).reshape(-1,1)) # column array
+    _Cy = np.matrix(Cy)
+    _V = np.linalg.inv(_G * _Cx * _G.T + _Cy)
+    _K = _Cx * _G.T * _V
+    delta = _y - _G * _x
+    xpost = np.array(_x + _K * delta).reshape(-1)
+    Cpost = np.array(_Cx - _K * _G * _Cx)
+    return xpost, Cpost
+
 def run_process(cmd, cwd=None, timeout=36000, verbose=True):
     import subprocess as sp
     process = sp.Popen("exec " + cmd,
