@@ -9,9 +9,8 @@ python:
   - "3.6"
 # command to install dependencies
 install:
-  - travis_wait 30 mvn install
   - pip install -r requirements.txt
   - python setup.py install
 # command to run tests
 script:
-  - pytest
+  - travis_wait pytest
