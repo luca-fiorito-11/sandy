@@ -8,4 +8,5 @@ class ShutdownHandler(logging.Handler):
 
 FORMAT = '%(levelname)s:  %(message)s'
 logging.basicConfig(format=FORMAT)
+logging.getLogger().setLevel(logging.INFO)
 logging.getLogger().addHandler(ShutdownHandler(level=40))
