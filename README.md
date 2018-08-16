@@ -60,13 +60,13 @@ python setup.py install
 
 Make sure that `python` points to a correct `Python 3` executable for which you have administration rights.
 
-To quickly check if SANDY was installed correctly, type
+To quickly check if SANDY was installed correctly, type the following from any directory
 
 ```bash
 sandy --version
 ```
 
-## <a name="running-the-tests"></a>Running the tests
+## Running the tests
 
 Type the following from the source code directory to automatically run SANDY's tests
 
@@ -84,11 +84,11 @@ For an overview of SANDY's usage type
 sandy --help
 ```
 
-#### Contacts
+## Contacts
 
 * [**Luca Fiorito**](https://github.com/luca-fiorito-11) - lucafiorito.11@gmail.com
 
-#### Acknowledgments
+## Acknowledgments
 
 SANDY was conceived and developed as a part of the PhD thesis on *Nuclear data uncertainty propagation and uncertainty quantification in nuclear codes* in th framework of a collaboration between [SCK-CEN](https://www.sckcen.be) and [ULB](http://www.ulb.ac.be).
 
