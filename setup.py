@@ -29,12 +29,12 @@ setup(
     tests_require=["pytest",],
     include_package_data = True,
     ext_modules = extensions,
-#    entry_points={
-#    'console_scripts': [
-#        'sandy=sandy.sampling.sampling:run',
+    entry_points={
+    'console_scripts': [
+        'sandy=sandy.sampling.sampling:run',
 #        'sandy_tests=sandy.sampling.tests:runtests',
 #        'sandy_xs_plotter=sandy.sampling.plotter2:main',
 #        'sandy_njoy=sandy.njoy.njoy:process_lib'
-#        ],
-#    },
+        ],
+    },
 )

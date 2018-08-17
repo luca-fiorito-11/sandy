@@ -5,15 +5,27 @@ Created on Mon Mar 19 22:51:03 2018
 @author: lucaf
 """
 
-import pandas as pd
-from .. import settings
-from ..formats import Endf6
-import numpy as np
-import sys, os, time, platform, pdb, pytest, logging
+import sys
+import os
+import time
+import platform
+import pdb
+import argparse
+import logging
+
 import multiprocessing as mp
 
+import pandas as pd
 
-def sampling_mp(ismp):
+from ..settings import SandyError
+from ..formats import Endf6, Errorr
+from ..utils import is_valid_dir, is_valid_file
+
+
+__author__ = "Luca Fiorito"
+__all__ = ["sampling"]
+
+def _sampling_mp(ismp):
     global tape, PertXs, PertEdistr, PertLpc, init
     t0 = time.time()
     mat = tape.index.get_level_values("MAT")[0]
@@ -49,81 +61,146 @@ def sampling_mp(ismp):
     print("Created sample {} for {} in {:.2f} sec".format(ismp, name, time.time()-t0,))
     return newtape.update_info().write_string()
 
+def _parse(iargs=None):
+    """Parse command line arguments for sampling option.
+    """
+    parser = argparse.ArgumentParser(prog="python -m sandy.sampling",
+                                     description='Run sampling',
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('file',
+                        type=lambda x: is_valid_file(parser, x),
+                        help="ENDF-6 or PENDF format file")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--endf6-cov',
+                       type=lambda x: is_valid_file(parser, x),
+                       help="ENDF-6 file containing covariances")
+    group.add_argument('--errorr-cov',
+                       type=lambda x: is_valid_file(parser, x),
+                       help="ERRORR file containing covariances")
+    parser.add_argument('--samples',
+                        type=int,
+                        required=True,
+                        help="number of samples")
+    parser.add_argument('--outdir',
+                        metavar="DIR",
+                        default=os.getcwd(),
+                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
+                        help="target directory where outputs are stored\n(default = current working directory)\nif it does not exist it will be created")
+    parser.add_argument('-np','--processes',
+                        type=int,
+                        default=1,
+                        help="number of worker processes (default = 1)")
+    parser.add_argument('--eig',
+                        type=int,
+                        default=0,
+                        metavar="N",
+                        help="print the first N eigenvalues of the evaluated covariance matrices\n(default = do not print)")
+    parser.add_argument('--mat',
+                        type=int,
+                        action='store',
+                        nargs="+",
+                        metavar="{1,..,9999}",
+                        help="draw samples only from the selected MAT sections (default = keep all)")
+    parser.add_argument('--mf',
+                        type=int,
+                        default=range(41),
+                        action='store',
+                        nargs="+",
+                        metavar="{1,..,40}",
+                        help="draw samples only from the selected MF sections (default = keep all)")
+    parser.add_argument('--mt',
+                        type=int,
+                        action='store',
+                        nargs="+",
+                        metavar="{1,..,999}",
+                        help="draw samples only from the selected MT sections (default = keep all)")
+    parser.add_argument('--outname',
+                        type=str,
+                        help="basename for the output files (default is the the basename of <file>.)")
+    parser.add_argument('--verbose',
+                        default=False,
+                        action="store_true",
+                        help="turn on verbosity (default = quiet)")
+    parser.add_argument('-e','--energy-points',
+                        type=float,
+                        metavar="E",
+                        default=[],
+                        action="store",
+                        nargs='+',
+                        help="additional energy points (in eV) to include in the incoming-neutron energy grid\n(default = None)")
+    parser.add_argument("-v",
+                        '--version',
+                        action='version',
+                        version='%(prog)s 1.0',
+                        help="SANDY's version.")
+    return parser.parse_known_args(args=iargs)[0]
+
+
 def sampling(iargs=None):
-    from ..formats import Endf6, Errorr
-    from . import from_cli
-    t0 = time.time()
-
-    global init
-    init = from_cli(iargs)
-
-    # LOAD DATA FILE
-    ftape = Endf6.from_file(init.file)
-    if ftape.empty: sys.exit("ERROR: tape is empty")
-    ftape.parse()
-
+    """Construct multivariate normal distributions with a unit vector for 
+    mean and with relative covariances taken from the evaluated files.
+    Perturbation factors are sampled with the same multigroup structure of 
+    the covariance matrix, and are applied to the pointwise data to produce 
+    the perturbed files.
+    """
+    global init, PertXs, PertEdistr, PertLpc, tape
+    init = _parse(iargs)
     # LOAD COVARIANCE FILE
     if init.errorr_cov:
         covtape = Errorr.from_file(init.errorr_cov)
     elif init.endf6_cov:
         covtape = Endf6.from_file(init.endf6_cov)
-    if covtape.empty: sys.exit("ERROR: covtape is empty")
-
     # EXTRACT PERTURBATIONS FROM XS/NUBAR COV FILE
-    global PertXs
     PertXs = pd.DataFrame()
     if 33 in init.mf or 31 in init.mf:
         xscov = covtape.get_xs_cov(listmt=init.mt, listmat=init.mat)
         if not xscov.empty:
             PertXs = xscov.get_samples(init.samples, eig=init.eig)
-
     # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
-    global PertEdistr
     PertEdistr = pd.DataFrame()
     if 35 in init.mf:
         edistrcov = covtape.get_edistr_cov()
         if not edistrcov.empty:
             PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
-
     # EXTRACT PERTURBATIONS FROM LPC COV FILE
-    global PertLpc
     PertLpc = pd.DataFrame()
     if 34 in init.mf:
         lpccov = covtape.get_lpc_cov()
         if not lpccov.empty:
             PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
-
     if PertLpc.empty and PertEdistr.empty and PertXs.empty:
-        print("no covariance section was selected/found")
+        logging.warn("no covariance section was selected/found")
         return
-
     # APPLY PERTURBATIONS BY MAT
-    global tape
+    ftape = Endf6.from_file(init.file)
     for mat, tape in ftape.groupby('MAT'):
         tape = Endf6(tape)
-#        name = tape.read_section(mat, 1, 451)["TAG"]
-
         if init.processes == 1:
-            outs = {i : sampling_mp(i) for i in range(1,init.samples+1)}
+            outs = {i : _sampling_mp(i) for i in range(1,init.samples+1)}
         else:
             if platform.system() == "Windows":
                 def init_pool(the_tape):
                     global tape
                     tape = the_tape
-                pool = mp.Pool(processes=settings.args.processes,
+                pool = mp.Pool(processes=init.processes,
                                initializer=init_pool(tape))
             else:
                 pool = mp.Pool(processes=init.processes)
-            outs = {i : pool.apply_async(sampling_mp, args=(i,)) for i in range(1,init.samples+1)}
+            outs = {i : pool.apply_async(_sampling_mp, args=(i,)) for i in range(1,init.samples+1)}
             outs = {i : out.get() for i,out in outs.items()}
-
         # DUMP TO FILES
         for ismp, string in outs.items():
             outname = init.outname if init.outname else os.path.split(init.file)[1]
             output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
             with open(output, 'w') as f: f.write(string)
 
-    # PLOTTING IS OPTIONAL
-#    if kwargs["p"]:
-#        plotter.run(iargs)
+def run():
+    t0 = time.time()
+    try:
+        sampling()
+    except SandyError as exc:
+        logging.error(exc.args[0])
     print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
+
+if __name__ == "__main__":
+    run()

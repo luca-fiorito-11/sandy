@@ -4,7 +4,14 @@ Created on Wed Mar 21 15:21:37 2018
 
 @author: fiorito_l
 """
-import os, argparse, pdb
+import os
+import argparse
+import pdb
+
+__author__ = "Luca Fiorito"
+
+class SandyError(Exception):
+    pass
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
