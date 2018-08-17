@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 
 from ..functions import gls
+from ..settings import SandyError
 
 __author__ = "Luca Fiorito"
 __all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov", "Cov", "Fy"]
@@ -34,7 +35,7 @@ class BaseFile(pd.DataFrame):
         return out
 
     @classmethod
-    def from_text(cls, text):
+    def from_text(cls, text, empty_err=True):
         """
         Read ENDF-6 formatted file and split it into column based on field width:
             TEXT MAT MF MT
@@ -52,15 +53,22 @@ class BaseFile(pd.DataFrame):
         splitters = tape.query("MAT==0 & MF==0 & MT==0").index
         dfs = []; ibeg = 0
         for iend in splitters:
-            df = tape[ibeg:iend].query("MAT>0 & MF>0 & MT>0").groupby(["MAT","MF","MT"]).sum().reset_index()
-            dfs.append(df)
+            for (mat,mf,mt),group in tape[ibeg:iend].query("MAT>0 & MF>0 & MT>0").groupby(["MAT","MF","MT"]):
+                dfs.append({"MAT" : mat, "MF" : mf, "MT" : mt, "TEXT" : "".join(group.TEXT.values)})
             ibeg = iend
-        tape = pd.concat(dfs, sort=False).set_index(["MAT","MF","MT"])
-        dupl = tape.index.duplicated()
-        if dupl.any():
-            logging.error("found duplicate MAT/MF/MT")
-            sys.exit()
-        return cls(tape)
+        tape = pd.DataFrame.from_dict(dfs).set_index(["MAT","MF","MT"])
+        # This method is much slower for very large files as U238 PENDF
+#        for iend in splitters:
+#            df = tape[ibeg:iend].query("MAT>0 & MF>0 & MT>0").groupby(["MAT","MF","MT"]).sum().reset_index()
+#            dfs.append(df)
+#            ibeg = iend
+#        tape = pd.concat(dfs, sort=False).set_index(["MAT","MF","MT"])
+        if tape.index.duplicated().any():
+            raise SandyError("found duplicate MAT/MF/MT")
+        frame = cls(tape)
+        if frame.empty and empty_err:
+            raise SandyError("tape is empty")
+        return frame
 
     def __init__(self, *args, **kwargs):
         kwargs.update({"columns" : ["TEXT"]})

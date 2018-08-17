@@ -1,6 +1,8 @@
 import logging
 import sys
 
+from sandy.formats import *
+
 class ShutdownHandler(logging.Handler):
     def emit(self, record):
         logging.shutdown()

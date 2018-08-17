@@ -16,8 +16,11 @@ from warnings import warn
 import numpy as np
 import pandas as pd
 
-from .utils import *
+from .utils import BaseFile, Xs, Edistr, Lpc, Fy
+from ..settings import SandyError
 
+__author__ = "Luca Fiorito"
+__all__ = ["Endf6"]
 
 #def split_endf(text):
 #    """
@@ -46,8 +49,7 @@ class Endf6(BaseFile):
     Format = "endf6"
 
     def read_section(self, mat, mf, mt):
-        """
-        Parse MAT/MF/MT section
+        """ Parse MAT/MF/MT section.
         """
         if mf == 1:
             from .MF1 import read
@@ -66,14 +68,13 @@ class Endf6(BaseFile):
         elif mf == 35:
             from .MF35 import read
         else:
-            sys.exit("ERROR: SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
+            raise SandyError("SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
         if (mat,mf,mt) not in self.index:
-            raise NotImplementedError("section MAT{}/MF{}/MT{} is not in tape".format(mat,mf,mt))
+            raise SandyError("section MAT{}/MF{}/MT{} is not in tape".format(mat,mf,mt))
         return read(self.loc[mat,mf,mt].TEXT)
 
     def write_string(self, title=" "*66):
-        """
-        First update MF1/MT451 dictionary.
+        """ First update MF1/MT451 dictionary.
         Then, Write TEXT column to string.
         """
         from .records import write_cont
@@ -91,8 +92,7 @@ class Endf6(BaseFile):
         return string
 
     def get_xs(self, listmat=None, listmt=None):
-        """
-        Extract selected cross sections (xs).
+        """ Extract selected cross sections (xs).
         xs are linearized on unique grid.
         Missing points are linearly interpolated (use zero when out of domain).
 
@@ -114,10 +114,10 @@ class Endf6(BaseFile):
             xs = pd.Series(X["XS"], index=X["E"], name=(X["MAT"],X["MT"])).rename_axis("E").to_frame()
             duplicates = [x for x, count in Counter(xs.index).items() if count > 1]
             if duplicates:
-                sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(*ix) +
+                raise SandyError('duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(*ix) +
                          '\n'.join(map(str,duplicates)))
             if X['INT'] != [2]:
-                sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(*ix))
+                raise SandyError('MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(*ix))
             ListXs.append(xs)
         if not ListXs:
             warn(UserWarning("requested cross sections were not found"))
@@ -191,7 +191,7 @@ class Endf6(BaseFile):
                         e1 = nisec["EK"]
                         e2 = nisec["EL"]
                     else:
-                        warn("skipped NI-type covariance with flag LB={} for MAT{}/MF{}/MT{}".format(nisec["LB"], *ix), category=Warning)
+                        warn(UserWarning("skipped NI-type covariance with flag LB={} for MAT{}/MF{}/MT{}".format(nisec["LB"], *ix)))
                         continue
                     cov = pd.DataFrame(cov, index=e1, columns=e2)
                     covs.append(cov)
@@ -202,7 +202,7 @@ class Endf6(BaseFile):
                 eg |= set(cov.index.values)
                 List.append([mat, mt, mat1, mt1, cov])
         if not List:
-            warn("no MF[31,33] covariance found", category=Warning)
+            warn(UserWarning("no MF[31,33] covariance found"))
             return pd.DataFrame()
         frame = pd.DataFrame(List, columns=('MAT', 'MT','MAT1', 'MT1', 'COV'))
         eg = sorted(eg)
@@ -245,10 +245,10 @@ class Endf6(BaseFile):
             xs = pd.Series(X["NUBAR"], index=X["E"], name=(X["MAT"],X["MT"])).rename_axis("E").to_frame()
             duplicates = [x for x, count in Counter(xs.index).items() if count > 1]
             if duplicates:
-                sys.exit('ERROR: duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(*ix) +
+                raise SandyError('duplicate energy points found for MAT{}/MF{}/MT{}\n'.format(*ix) +
                          '\n'.join(map(str,duplicates)))
             if X['INT'] != [2]:
-                sys.exit('ERROR: MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(*ix))
+                raise SandyError('MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(*ix))
             ListXs.append(xs)
         if not ListXs:
             warn(UserWarning("no fission neutron multiplicity was found"))
@@ -471,7 +471,7 @@ class Endf6(BaseFile):
                             e1 = nisec["EK"]
                             e2 = nisec["EL"]
                         else:
-                            warn("skipped NI-type covariance with flag LB={} for MAT{}/MF{}/MT{}".format(nisec["LB"], *ix), category=Warning)
+                            warn(UserWarning("skipped NI-type covariance with flag LB={} for MAT{}/MF{}/MT{}".format(nisec["LB"], *ix)))
                             continue
                         cov = pd.DataFrame(cov, index=e1, columns=e2)
                         covs.append(cov)
@@ -481,7 +481,7 @@ class Endf6(BaseFile):
                     eg |= set(cov.index.values)
                     List.append([mat, mt, l, mat1, mt1, l1, cov])
         if not List:
-            warn("no MF34 covariance found", category=Warning)
+            warn(UserWarning("no MF34 covariance found"))
             return pd.DataFrame()
         frame = pd.DataFrame(List, columns=('MAT', 'MT', 'L', 'MAT1', 'MT1', 'L1', 'COV'))
         eg = sorted(eg)

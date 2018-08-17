@@ -13,7 +13,7 @@ import numpy as np
 
 from ...formats import Errorr
 from ...formats import Endf6
-from .. import sampling
+from ..sampling import sampling
 from ...data import H1
 from ...data import Cm242
 from ...data import U5
