@@ -13,4 +13,4 @@ install:
   - python setup.py install
 # command to run tests
 script:
-  - travis_wait pytest
+  - pytest
