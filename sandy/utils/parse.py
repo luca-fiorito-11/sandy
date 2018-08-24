@@ -7,7 +7,9 @@ Created on Wed Jul 11 17:32:12 2018
 
 import os
 import argparse
-import pdb
+
+__author__ = "Luca Fiorito"
+__all__ = ["str2bool", "is_valid_file", "is_valid_dir"]
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):

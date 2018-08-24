@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 
 from .utils import BaseFile, Xs, XsCov
+from ..settings import SandyError
 
 __author__ = "Luca Fiorito"
 __all__ = ["Errorr"]
@@ -30,7 +31,9 @@ class Errorr(BaseFile):
         elif mf == 33 or mf == 31:
             from .MF33 import read_errorr as read
         else:
-            sys.exit("ERROR: SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
+            raise SandyError("SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
+        if (mat,mf,mt) not in self.index:
+            raise SandyError("section MAT{}/MF{}/MT{} is not in tape".format(mat,mf,mt))
         return read(self.loc[mat,mf,mt].TEXT)
 
     def get_xs(self, listmat=None, listmt=None):

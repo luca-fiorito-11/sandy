@@ -51,12 +51,12 @@ def write(sec):
     if sec["LTT"] in (1,3):
         lpc = sec["LPC"]
         text += write_tab2(0, 0, 0, 0, len(lpc["E"]), lpc["NBT"], lpc["INT"])
-        for e,sub in lpc["E"].items():
+        for e,sub in sorted(lpc["E"].items()):
             text += write_list(sub["T"], e, sub["LT"], 0, 0, sub["COEFF"])
     if sec["LTT"] in (2,3):
         tab = sec["TAB"]
         text += write_tab2(0, 0, 0, 0, len(tab["E"]), tab["NBT"], tab["INT"])
-        for e,sub in tab["E"].items():
+        for e,sub in sorted(tab["E"].items()):
             text += write_tab1(sub["T"], e, sub["LT"], 0, sub["NBT"], sub["INT"], sub["MU"], sub["ADISTR"])
     TextOut = []; iline = 1
     for line in text:

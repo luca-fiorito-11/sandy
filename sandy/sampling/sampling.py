@@ -12,15 +12,14 @@ import platform
 import pdb
 import argparse
 import logging
-
 import multiprocessing as mp
+import numpy as np
 
 import pandas as pd
 
 from ..settings import SandyError
 from ..formats import Endf6, Errorr
 from ..utils import is_valid_dir, is_valid_file
-
 
 __author__ = "Luca Fiorito"
 __all__ = ["sampling"]
@@ -52,7 +51,8 @@ def _sampling_mp(ismp):
     if not PertLpc.empty:
         lpc = newtape.get_lpc()
         if not lpc.empty:
-            lpc = lpc.add_points(init.energy_points).perturb(PertLpc[ismp], verbose=init.verbose)
+            extra_points = np.logspace(-5, 7, init.energy_sequence)
+            lpc = lpc.add_points(extra_points).perturb(PertLpc[ismp], verbose=init.verbose)
             newtape = newtape.update_lpc(lpc)
     print("Created sample {} for {} in {:.2f} sec".format(ismp, name, time.time()-t0,))
     return newtape.update_info().write_string()
@@ -117,6 +117,10 @@ def _parse(iargs=None):
                         default=False,
                         action="store_true",
                         help="turn on verbosity (default = quiet)")
+    parser.add_argument('--debug',
+                        default=False,
+                        action="store_true",
+                        help="turn on debug mode")
     parser.add_argument('-e','--energy-points',
                         type=float,
                         metavar="E",
@@ -124,6 +128,11 @@ def _parse(iargs=None):
                         action="store",
                         nargs='+',
                         help="additional energy points (in eV) to include in the incoming-neutron energy grid\n(default = None)")
+    parser.add_argument('-E','--energy-sequence',
+                        type=int,
+                        metavar="EL",
+                        default=10,
+                        help=argparse.SUPPRESS)
     parser.add_argument("-v",
                         '--version',
                         action='version',
@@ -151,18 +160,21 @@ def sampling(iargs=None):
         xscov = covtape.get_xs_cov(listmt=init.mt, listmat=init.mat)
         if not xscov.empty:
             PertXs = xscov.get_samples(init.samples, eig=init.eig)
+            if init.debug: PertLpc.to_csv("perts_mf33.csv")
     # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
     PertEdistr = pd.DataFrame()
     if 35 in init.mf:
         edistrcov = covtape.get_edistr_cov()
         if not edistrcov.empty:
             PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
+            if init.debug: PertEdistr.to_csv("perts_mf35.csv")
     # EXTRACT PERTURBATIONS FROM LPC COV FILE
     PertLpc = pd.DataFrame()
     if 34 in init.mf:
         lpccov = covtape.get_lpc_cov()
         if not lpccov.empty:
             PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
+            if init.debug: PertLpc.to_csv("perts_mf34.csv")
     if PertLpc.empty and PertEdistr.empty and PertXs.empty:
         logging.warn("no covariance section was selected/found")
         return
