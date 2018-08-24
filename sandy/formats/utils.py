@@ -220,7 +220,7 @@ class Lpc(pd.DataFrame):
 
     def perturb(self, pert, verbose=False, **kwargs):
         frame = self.copy()
-        corrected = {}
+#        corrected = {}
         for (mat,mt),_ in self.groupby(["MAT", "MT"]):
             if (mat,mt) not in pert.index: continue
             lpc = frame.loc[mat,mt]
@@ -238,23 +238,23 @@ class Lpc(pd.DataFrame):
             lpc["MAT"] = mat
             lpc["MT"] = mt
             lpc = Lpc(lpc.set_index(["MAT","MT","E"]))
-            for e in elpc:
-                orig = lpc.loc[mat,mt,e].copy()
-                ks = np.linspace(1,0,101)
-                icount = 0
-                while not (lpc.to_tab(mat,mt,e) >= 0).all():
-                    icount += 1
-                    k = ks[icount]
-                    P = (orig/self.loc[mat,mt,e]-1)
-                    lpc.loc[mat,mt,e] = self.loc[mat,mt,e]*(k*P + 1)
-                    if icount == len(ks) - 1 : break
-                if icount != 0:
-                    corrected.update({(mat,mt,e) : (1-k)*100.})
+#            for e in elpc:
+#                orig = lpc.loc[mat,mt,e].copy()
+#                ks = np.linspace(1,0,101)
+#                icount = 0
+#                while not (lpc.to_tab(mat,mt,e) >= 0).all():
+#                    icount += 1
+#                    k = ks[icount]
+#                    P = (orig/self.loc[mat,mt,e]-1)
+#                    lpc.loc[mat,mt,e] = self.loc[mat,mt,e]*(k*P + 1)
+#                    if icount == len(ks) - 1 : break
+#                if icount != 0:
+#                    corrected.update({(mat,mt,e) : (1-k)*100.})
             frame.update(lpc)
-        corrected = pd.DataFrame.from_dict(corrected, orient="index", columns=["k (%)"])
-        if not corrected.empty:
-            corrected.index = pd.MultiIndex.from_tuples(corrected.index, names=["MAT", "MT", "E"])
-            if verbose: print("for sample {} the LPC perturbations were reduced by a factor k (%) for the following energies:\n".format(pert.name) + corrected.to_string())
+#        corrected = pd.DataFrame.from_dict(corrected, orient="index", columns=["k (%)"])
+#        if not corrected.empty:
+#            corrected.index = pd.MultiIndex.from_tuples(corrected.index, names=["MAT", "MT", "E"])
+#            print("for sample {} the LPC perturbations were reduced by a factor k (%) for the following energies:\n".format(pert.name) + corrected.to_string())
         return Lpc(frame)
 
 
