@@ -33,7 +33,6 @@ def _sampling_mp(ismp):
     lrp = info["LRP"]
     name = info["TAG"]
     newtape = Endf6(tape.copy())
-
     if not PertXs.empty:
         if lrp == 2:
             xs = newtape.get_xs()
@@ -45,19 +44,16 @@ def _sampling_mp(ismp):
             if not nubar.empty:
                 nubar = nubar.perturb(PertXs[ismp])
                 newtape = newtape.update_nubar(nubar)
-
     if not PertEdistr.empty:
         edistr = newtape.get_edistr()
         if not edistr.empty:
             edistr = edistr.add_points(init.energy_points).perturb(PertEdistr[ismp])
             newtape = newtape.update_edistr(edistr)
-
     if not PertLpc.empty:
         lpc = newtape.get_lpc()
         if not lpc.empty:
             lpc = lpc.add_points(init.energy_points).perturb(PertLpc[ismp], verbose=init.verbose)
             newtape = newtape.update_lpc(lpc)
-
     print("Created sample {} for {} in {:.2f} sec".format(ismp, name, time.time()-t0,))
     return newtape.update_info().write_string()
 
@@ -135,7 +131,6 @@ def _parse(iargs=None):
                         help="SANDY's version.")
     return parser.parse_known_args(args=iargs)[0]
 
-
 def sampling(iargs=None):
     """Construct multivariate normal distributions with a unit vector for 
     mean and with relative covariances taken from the evaluated files.
@@ -202,5 +197,5 @@ def run():
         logging.error(exc.args[0])
     print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
 
-if __name__ == "__main__":
-    run()
+#if __name__ == "__main__":
+#    run()

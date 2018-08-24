@@ -4,11 +4,16 @@ Created on Fri May 11 15:08:25 2018
 
 @author: fiorito_l
 """
-import pandas as pd
-import sys, pytest
-import numpy as np
-from .utils import BaseFile
+import sys
+import logging
 
+import pandas as pd
+import numpy as np
+
+from .utils import BaseFile, Xs, XsCov
+
+__author__ = "Luca Fiorito"
+__all__ = ["Errorr"]
 
 class Errorr(BaseFile):
 
@@ -32,7 +37,6 @@ class Errorr(BaseFile):
         """
         Extract xs from errorr file into Xs instance.
         """
-        from .utils import Xs
         query = "MF==3"
         if listmat is not None:
             query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
@@ -50,6 +54,7 @@ class Errorr(BaseFile):
             xs = pd.Series(X["XS"], index=eg[:-1], name=(X["MAT"],X["MT"])).rename_axis("E").to_frame()
             ListXs.append(xs)
         if not ListXs:
+            logging.warn("requested cross sections were not found")
             return pd.DataFrame()
         # Use concat instead of merge because indexes are the same
         frame = pd.concat(ListXs, axis=1).reindex(eg, method="ffill")
@@ -59,7 +64,6 @@ class Errorr(BaseFile):
         """
         Extract xs covariances from errorr file into XsCov instance.
         """
-        from .utils import XsCov
         query = "(MF==33 | MF==31)"
         if listmat is not None:
             query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
