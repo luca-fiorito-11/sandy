@@ -4,12 +4,15 @@ Created on Thu Jun 14 09:23:33 2018
 
 @author: fiorito_l
 """
-from ..records import read_cont, read_tab1, read_control, read_text, read_list, write_cont, write_tab1, write_list
-from ..utils import Section
+
 import sys
 
-from ...data import elements
-from ...data import metastates
+from ..records import read_cont, read_tab1, read_control, read_text, read_list, write_cont, write_tab1, write_list
+from ..utils import Section
+from ...data import elements, metastates
+
+__author__ = "Luca Fiorito"
+__all__ = ["read", "write", "read_errorr", "read_groupr"]
 
 def read(text):
     str_list = text.splitlines()
@@ -34,6 +37,21 @@ def read_errorr(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2, "ERRFLAG" :C.N1})
     L, i = read_list(str_list, i)
     out.update({"EG" : L.B})
+    return out
+
+def read_groupr(text):
+    str_list = text.splitlines()
+    MAT, MF, MT = read_control(str_list[0])[:3]
+    out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
+    i = 0
+    C, i = read_cont(str_list, i)
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "NZ" : C.L2, "GROUPRFLAG" : C.N1, "NTW" : C.N2})
+    L, i = read_list(str_list, i)
+    out.update({"TEMPIN" : L.C1, "NGN" : L.L1, "NGG" : L.L2})
+    out["TITLE"] = L.B[:out["NTW"]]; del L.B[:out["NTW"]]
+    out["SIGZ"] = L.B[:out["NZ"]]; del L.B[:out["NZ"]]
+    out["EGN"] = L.B[:out["NGN"]+1]; del L.B[:out["NGN"]+1]
+    out["EGG"] = L.B[:out["NGG"]+1]; del L.B[:out["NGG"]+1]
     return out
 
 def read_info(text):

@@ -225,19 +225,23 @@ class Lpc(pd.DataFrame):
             if (mat,mt) not in pert.index: continue
             lpc = frame.loc[mat,mt]
             prt = pert.loc[mat,mt]
-            eprt = prt.index.get_level_values("E").unique().values
-            elpc = lpc.index.get_level_values("E").unique().values
-            eg = sorted(set(eprt) | set(elpc))
-            lpc = lpc.reindex(eg)
-            df_notnan = lpc.dropna(axis="columns", thresh=2).interpolate(method='slinear')
-            lpc.update(df_notnan)
+            eprt = prt.index.get_level_values("E").unique().values # get cov energies
+            elpc = lpc.index.get_level_values("E").unique().values # get lpc energies
+            eg = np.array(sorted(set(eprt) | set(elpc)))
+            eg = eg[(eg <= max(elpc)) & (eg >= min(elpc))] # limit to lpc range
+            lpc_copy = lpc.reindex(eg)
+            df_notnan = lpc_copy.dropna(axis="columns", thresh=2) # cut P columns with less than 2 not-NaN
+            df_notnan = df_notnan.interpolate(method='slinear')
+            lpc_copy.update(df_notnan)
             for l,_ in prt.groupby("L"):
                 P = prt.loc[l].reindex(eg).ffill()
-                lpc[l] *= P
-            lpc = lpc.reindex(elpc).reset_index()
-            lpc["MAT"] = mat
-            lpc["MT"] = mt
-            lpc = Lpc(lpc.set_index(["MAT","MT","E"]))
+                lpc_copy[l] *= P
+#            lpc_copy = lpc_copy.reindex(elpc)
+#            pdb.set_trace()
+            lpc_copy = lpc_copy.reset_index()
+            lpc_copy["MAT"] = mat
+            lpc_copy["MT"] = mt
+            lpc_copy = Lpc(lpc_copy.set_index(["MAT","MT","E"]))
 #            for e in elpc:
 #                orig = lpc.loc[mat,mt,e].copy()
 #                ks = np.linspace(1,0,101)
@@ -250,7 +254,7 @@ class Lpc(pd.DataFrame):
 #                    if icount == len(ks) - 1 : break
 #                if icount != 0:
 #                    corrected.update({(mat,mt,e) : (1-k)*100.})
-            frame.update(lpc)
+            frame.update(lpc_copy)
 #        corrected = pd.DataFrame.from_dict(corrected, orient="index", columns=["k (%)"])
 #        if not corrected.empty:
 #            corrected.index = pd.MultiIndex.from_tuples(corrected.index, names=["MAT", "MT", "E"])

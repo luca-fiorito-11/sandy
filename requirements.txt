@@ -2,3 +2,4 @@ numpy
 scipy
 pytest >= 3.3
 pandas >= 0.20
+matplotlib

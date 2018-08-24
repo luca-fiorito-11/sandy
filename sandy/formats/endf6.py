@@ -7,7 +7,6 @@ Created on Mon Jan 16 18:03:13 2017
 import sys
 import pdb
 import os
-import pytest
 import logging
 from collections import Counter
 from functools import reduce
