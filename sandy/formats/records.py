@@ -4,9 +4,16 @@ Created on Thu Jun 14 10:22:58 2018
 
 @author: fiorito_l
 """
-import sys, pytest, rwf, pdb
+import sys
 import numpy as np
 from collections import namedtuple
+
+import rwf
+from ..settings import SandyError
+
+__author__ = "Luca Fiorito"
+__all__ = ["read_control", "read_cont", "write_cont", "read_text", "read_list", 
+           "write_list", "read_tab2", "write_tab2", "read_tab1", "write_tab1"]
 
 def read_control(string):
     mat = np.array(0, dtype=int)
@@ -16,7 +23,7 @@ def read_control(string):
     io_status = np.array(0, dtype=int)
     rwf.rcontrol(string[66:], io_status, mat, mf, mt, ns)
     if io_status != 0:
-        sys.exit("ERROR : line '{}' is not in CONTROL format".format(string))
+        raise SandyError("line '{}' is not in CONTROL format".format(string))
     return int(mat), int(mf), int(mt), int(ns)
 
 def read_cont(text, ipos):
@@ -52,7 +59,7 @@ def read_cont(text, ipos):
     io_status = np.array(0, dtype=int)
     rwf.rcont(string, io_status, c1, c2, l1, l2, n1, n2)
     if io_status != 0:
-        sys.exit("ERROR : line '{}' is not in CONT format".format(string))
+        raise SandyError("line '{}' is not in CONT format".format(string))
     ipos += 1
     return CONT(float(c1), float(c2), int(l1), int(l2), int(n1), int(n2)), ipos
 
@@ -87,7 +94,7 @@ def read_ilist(string):
     io_status = np.array(0, dtype=int)
     rwf.rilist(string, io_status, array, 6)
     if io_status != 0:
-        sys.exit("ERROR : line '{}' is not in ILIST format".format(string))
+        raise SandyError("line '{}' is not in ILIST format".format(string))
     return array.tolist()
 
 def write_ilist(b):
@@ -102,7 +109,7 @@ def read_dlist(string):
     io_status = np.array(0, dtype=int)
     rwf.rlist(string, io_status, array, 6)
     if io_status != 0:
-        sys.exit("ERROR : line '{}' is not in DLIST format".format(string))
+        raise SandyError("line '{}' is not in DLIST format".format(string))
     return array.tolist()
 
 def write_dlist(b):

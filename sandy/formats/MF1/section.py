@@ -5,11 +5,10 @@ Created on Thu Jun 14 09:23:33 2018
 @author: fiorito_l
 """
 
-import sys
-
-from ..records import read_cont, read_tab1, read_control, read_text, read_list, write_cont, write_tab1, write_list
+from ..records import *
 from ..utils import Section
 from ...data import elements, metastates
+from ...settings import SandyError
 
 __author__ = "Luca Fiorito"
 __all__ = ["read", "write", "read_errorr", "read_groupr"]
@@ -135,8 +134,7 @@ def read_nubar(text):
             out.update({ "NNF" : L.NPL, "LAMBDAS" : L.B })
         elif out["LDG"] == 1:
             # None found in JEFF33 and ENDFB8, hence not implemented
-            sys.exit("ERROR: Not implemented format")
-            pass
+            raise SandyError("Not implemented format")
     if out["LNU"] == 1:
         # None found in JEFF33 and ENDFB8 neither for MT455 nor for MT456
         L, i = read_list(str_list, i)
@@ -154,7 +152,7 @@ def write_nubar(sec):
         if sec["LDG"] == 0:
             text += write_list(0, 0, 0, 0, 0, sec["LAMBDAS"])
         elif sec["LDG"] == 1:
-            sys.exit("ERROR: Not found in JEFF33 and ENDFB8, hence not implemented")
+            raise SandyError("not found in JEFF33 and ENDFB8, hence not implemented")
     if sec["LNU"] == 1:
         text += write_list(0, 0, 0, 0, 0, sec["C"])
     else:
