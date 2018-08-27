@@ -119,7 +119,7 @@ class Endf6(BaseFile):
                 raise SandyError('MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(*ix))
             ListXs.append(xs)
         if not ListXs:
-            warn(UserWarning("requested cross sections were not found"))
+            logging.warn("requested cross sections were not found")
             return pd.DataFrame()
         frame = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
         return Xs(frame)
@@ -190,7 +190,7 @@ class Endf6(BaseFile):
                         e1 = nisec["EK"]
                         e2 = nisec["EL"]
                     else:
-                        warn(UserWarning("skipped NI-type covariance with flag LB={} for MAT{}/MF{}/MT{}".format(nisec["LB"], *ix)))
+                        logging.warn("skipped NI-type covariance with flag LB={} for MAT{}/MF{}/MT{}".format(nisec["LB"], *ix))
                         continue
                     cov = pd.DataFrame(cov, index=e1, columns=e2)
                     covs.append(cov)
@@ -201,7 +201,7 @@ class Endf6(BaseFile):
                 eg |= set(cov.index.values)
                 List.append([mat, mt, mat1, mt1, cov])
         if not List:
-            warn(UserWarning("no MF[31,33] covariance found"))
+            logging.warn("no MF[31,33] covariance found")
             return pd.DataFrame()
         frame = pd.DataFrame(List, columns=('MAT', 'MT','MAT1', 'MT1', 'COV'))
         eg = sorted(eg)
@@ -250,7 +250,7 @@ class Endf6(BaseFile):
                 raise SandyError('MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(*ix))
             ListXs.append(xs)
         if not ListXs:
-            warn(UserWarning("no fission neutron multiplicity was found"))
+            logging.warn("no fission neutron multiplicity was found")
             return pd.DataFrame()
         frame = reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), ListXs).sort_index().interpolate(method='slinear', axis=0).fillna(0)
         return Xs(frame)
@@ -293,15 +293,15 @@ class Endf6(BaseFile):
             X = self.read_section(*ix)
             for k,pdistr in X["PDISTR"].items():
                 if pdistr["LF"] != 1:
-                    if verbose: warn(UserWarning("WARNING: non-tabulated distribution for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k)))
+                    if verbose: logging.warn("non-tabulated distribution for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
                     continue
                 if list(filter(lambda x:x["INT"] != [2], pdistr["EIN"].values())):
-                    if verbose: warn(UserWarning("WARNING: found non-linlin interpolation, skip energy distr. for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k)))
+                    if verbose: logging.warn("found non-linlin interpolation, skip energy distr. for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
                     continue
                 for ein,v in sorted(pdistr["EIN"].items()):
                     DictEdistr.update({(X["MAT"], X["MT"], k, ein) : pd.Series(v["EDISTR"], index=v["EOUT"])})
         if not DictEdistr:
-            warn(UserWarning("no tabulated energy distribution was found"))
+            logging.warn("no tabulated energy distribution was found")
             return pd.DataFrame()
         frame = pd.DataFrame.from_dict(DictEdistr, orient='index').interpolate(method="slinear", axis=1).fillna(0)
         return Edistr(frame)
@@ -357,7 +357,7 @@ class Endf6(BaseFile):
                 eg |= set(cov.index.values)
                 List.append([mat, mt, sub["ELO"], sub["EHI"], cov])
         if not List:
-            warn(UserWarning("no energy distribution covariance found"))
+            logging.warn("no energy distribution covariance found")
             return pd.DataFrame()
         frame = pd.DataFrame(List, columns=('MAT', 'MT', 'ELO', 'EHI', 'COV'))
         eg = sorted(eg)
@@ -391,12 +391,13 @@ class Endf6(BaseFile):
             X = self.read_section(*ix)
             if "LPC" not in X: continue
             if X["LPC"]["INT"] != [2]:
-                if verbose: warn(UserWarning("found non-linlin interpolation, skip angular distr. for MAT{}/MF{}/MT{}".format(*ix)))
+                if verbose:
+                    logging.warn("found non-linlin interpolation, skip angular distr. for MAT{}/MF{}/MT{}".format(*ix))
                 continue
             for e,v in X["LPC"]["E"].items():
                 DictLpc.update({(X["MAT"], X["MT"],e) : pd.Series([1]+v["COEFF"])})
         if not DictLpc:
-            warn(UserWarning("no angular distribution in Legendre expansion was found"))
+            logging.warn("no angular distribution in Legendre expansion was found")
             return pd.DataFrame()
         frame = pd.DataFrame.from_dict(DictLpc, orient="index")
         return Lpc(frame)
@@ -470,7 +471,7 @@ class Endf6(BaseFile):
                             e1 = nisec["EK"]
                             e2 = nisec["EL"]
                         else:
-                            warn(UserWarning("skipped NI-type covariance with flag LB={} for MAT{}/MF{}/MT{}".format(nisec["LB"], *ix)))
+                            logging.warn("skipped NI-type covariance with flag LB={} for MAT{}/MF{}/MT{}".format(nisec["LB"], *ix))
                             continue
                         cov = pd.DataFrame(cov, index=e1, columns=e2)
                         covs.append(cov)
@@ -480,7 +481,7 @@ class Endf6(BaseFile):
                     eg |= set(cov.index.values)
                     List.append([mat, mt, l, mat1, mt1, l1, cov])
         if not List:
-            warn(UserWarning("no MF34 covariance found"))
+            logging.warn("no MF34 covariance found")
             return pd.DataFrame()
         frame = pd.DataFrame(List, columns=('MAT', 'MT', 'L', 'MAT1', 'MT1', 'L1', 'COV'))
         eg = sorted(eg)
@@ -522,7 +523,7 @@ class Endf6(BaseFile):
                     fydict.update({"MAT" : ix[0], "MT" : ix[2], "E" : e})
                     listfy.append(fydict)
         if not listfy:
-            warn(UserWarning("requested fission yields were found"))
+            logging.warn("requested fission yields were not found")
             return pd.DataFrame()
         frame = pd.DataFrame.from_dict(listfy).set_index(["MAT","MT","E","ZAFP","FPS"])
         return Fy(frame)
