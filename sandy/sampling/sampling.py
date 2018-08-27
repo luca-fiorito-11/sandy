@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 from ..settings import SandyError
-from ..formats import Endf6, Errorr
+from ..formats import Endf6, Errorr, read_formatted_file
 from ..utils import is_valid_dir, is_valid_file
 
 __author__ = "Luca Fiorito"
@@ -66,18 +66,21 @@ def _parse(iargs=None):
     parser.add_argument('file',
                         type=lambda x: is_valid_file(parser, x),
                         help="ENDF-6 or PENDF format file")
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--endf6-cov',
+    parser.add_argument('--cov', '-C',
                        type=lambda x: is_valid_file(parser, x),
-                       help="ENDF-6 file containing covariances")
-    group.add_argument('--errorr-cov',
-                       type=lambda x: is_valid_file(parser, x),
-                       help="ERRORR file containing covariances")
-    parser.add_argument('--samples',
+                       help="file containing covariances")
+#    group = parser.add_mutually_exclusive_group(required=True)
+#    group.add_argument('--endf6-cov',
+#                       type=lambda x: is_valid_file(parser, x),
+#                       help="ENDF-6 file containing covariances")
+#    group.add_argument('--errorr-cov',
+#                       type=lambda x: is_valid_file(parser, x),
+#                       help="ERRORR file containing covariances")
+    parser.add_argument('--samples', '-S',
                         type=int,
-                        required=True,
-                        help="number of samples")
-    parser.add_argument('--outdir',
+                        default=200,
+                        help="number of samples (default = 200)")
+    parser.add_argument('--outdir', '-D',
                         metavar="DIR",
                         default=os.getcwd(),
                         type=lambda x: is_valid_dir(parser, x, mkdir=True),
@@ -88,7 +91,7 @@ def _parse(iargs=None):
                         help="number of worker processes (default = 1)")
     parser.add_argument('--eig',
                         type=int,
-                        default=0,
+                        default=10,
                         metavar="N",
                         help="print the first N eigenvalues of the evaluated covariance matrices\n(default = do not print)")
     parser.add_argument('--mat',
@@ -110,7 +113,7 @@ def _parse(iargs=None):
                         nargs="+",
                         metavar="{1,..,999}",
                         help="draw samples only from the selected MT sections (default = keep all)")
-    parser.add_argument('--outname',
+    parser.add_argument('--outname','-O',
                         type=str,
                         help="basename for the output files (default is the the basename of <file>.)")
     parser.add_argument('--verbose',
@@ -128,10 +131,10 @@ def _parse(iargs=None):
                         action="store",
                         nargs='+',
                         help="additional energy points (in eV) to include in the incoming-neutron energy grid\n(default = None)")
-    parser.add_argument('-E','--energy-sequence',
+    parser.add_argument('--energy-sequence','-E',
                         type=int,
                         metavar="EL",
-                        default=10,
+                        default=100,
                         help=argparse.SUPPRESS)
     parser.add_argument("-v",
                         '--version',
@@ -150,10 +153,11 @@ def sampling(iargs=None):
     global init, PertXs, PertEdistr, PertLpc, tape
     init = _parse(iargs)
     # LOAD COVARIANCE FILE
-    if init.errorr_cov:
-        covtape = Errorr.from_file(init.errorr_cov)
-    elif init.endf6_cov:
-        covtape = Endf6.from_file(init.endf6_cov)
+    covtape = read_formatted_file(init.cov)
+#    if init.errorr_cov:
+#        covtape = Errorr.from_file(init.errorr_cov)
+#    elif init.endf6_cov:
+#        covtape = Endf6.from_file(init.endf6_cov)
     # EXTRACT PERTURBATIONS FROM XS/NUBAR COV FILE
     PertXs = pd.DataFrame()
     if 33 in init.mf or 31 in init.mf:
@@ -178,6 +182,9 @@ def sampling(iargs=None):
     if PertLpc.empty and PertEdistr.empty and PertXs.empty:
         logging.warn("no covariance section was selected/found")
         return
+    # DELETE LOCAL VARIABLES
+    for k in locals().keys():
+        del locals()[k]
     # APPLY PERTURBATIONS BY MAT
     ftape = Endf6.from_file(init.file)
     for mat, tape in ftape.groupby('MAT'):
