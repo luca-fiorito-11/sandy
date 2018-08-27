@@ -12,8 +12,8 @@ import platform
 import pdb
 import argparse
 import logging
-import multiprocessing as mp
 import numpy as np
+import multiprocessing as mp
 
 import pandas as pd
 
@@ -85,7 +85,7 @@ def _parse(iargs=None):
                         default=os.getcwd(),
                         type=lambda x: is_valid_dir(parser, x, mkdir=True),
                         help="target directory where outputs are stored\n(default = current working directory)\nif it does not exist it will be created")
-    parser.add_argument('-np','--processes',
+    parser.add_argument('--processes','-np',
                         type=int,
                         default=1,
                         help="number of worker processes (default = 1)")
@@ -214,7 +214,7 @@ def run():
         sampling()
     except SandyError as exc:
         logging.error(exc.args[0])
-    print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
+    print("Total running time: {:.2f} sec".format(time.time() - t0))
 
 #if __name__ == "__main__":
 #    run()
