@@ -7,7 +7,6 @@ Created on Thu Jun 14 09:19:24 2018
 import logging
 import pdb
 import os
-import sys
 
 import pandas as pd
 import numpy as np
@@ -50,10 +49,13 @@ class BaseFile(pd.DataFrame):
                 usecols = ["MAT", "MF", "MT"]
                 )
         tape["TEXT"] = text.splitlines(True)
-        splitters = tape.query("MAT==0 & MF==0 & MT==0").index
+        splitters = tape.loc[(tape.MAT==0) & (tape.MF==0) & (tape.MT==0)].index
+#        splitters = tape.query("MAT==0 & MF==0 & MT==0").index
         dfs = []; ibeg = 0
         for iend in splitters:
-            for (mat,mf,mt),group in tape[ibeg:iend].query("MAT>0 & MF>0 & MT>0").groupby(["MAT","MF","MT"]):
+            df = tape[ibeg:iend]
+            for (mat,mf,mt),group in df.loc[(tape.MAT>0) & (tape.MF>0) & (tape.MT>0)].groupby(["MAT","MF","MT"]):
+#            for (mat,mf,mt),group in df.query("MAT>0 & MF>0 & MT>0").groupby(["MAT","MF","MT"]):
                 dfs.append({"MAT" : mat, "MF" : mf, "MT" : mt, "TEXT" : "".join(group.TEXT.values)})
             ibeg = iend
         tape = pd.DataFrame.from_dict(dfs).set_index(["MAT","MF","MT"])
@@ -132,10 +134,10 @@ class Xs(pd.DataFrame):
             if not mtPert: continue
             P = pert.loc[mat,mtPert]
             P = P.reindex(P.index.union(frame[mat,mt].index)).ffill().fillna(1).reindex(frame[mat,mt].index)
-            xs = frame[mat,mt].multiply(P, axis="index")
-            # Negative values are set to zero
-#            frame[mat,mt][frame[mat,mt] <= 0] = 0
             # Negative values are set to mean
+            P = P.where(P >= 0.0, 1.0)
+            P = P.where(P <= 2.0, 1.0)
+            xs = frame[mat,mt].multiply(P, axis="index")
             frame[mat,mt][xs > 0] = xs[xs > 0]
         return Xs(frame).reconstruct_sums()
 
@@ -237,7 +239,6 @@ class Lpc(pd.DataFrame):
                 P = prt.loc[l].reindex(eg).ffill()
                 lpc_copy[l] *= P
 #            lpc_copy = lpc_copy.reindex(elpc)
-#            pdb.set_trace()
             lpc_copy = lpc_copy.reset_index()
             lpc_copy["MAT"] = mat
             lpc_copy["MT"] = mt
@@ -732,19 +733,22 @@ class Cov(np.ndarray):
         """
         from scipy.linalg import qr
         E, V = self.eig()
-        negative_eig = np.extract(E < 0, E)    # extract negative eigenvalues
-        if len(negative_eig) != 0:
-            largest_negative = max(abs(negative_eig))
-            logging.debug(self.prefix + '{} negative eigenvalues were found and replaced with zero'.format(negative_eig.size))
-            pos = sorted(abs(E),reverse=True).index(largest_negative) + 1
-            logging.debug(self.prefix + 'Largest negative eigenvalue ranks {}/{}'.format(pos, E.size))
-            logging.debug(self.prefix + 'eig(-)/eig_max = {}%'.format(largest_negative/max(abs(E))*100.))
+        NE = np.extract(E < 0, E)    # extract negative eigenvalues
+        if len(NE) != 0:
+            neig_max = max(abs(NE))
+            eig_max = max(abs(E))
+            if neig_max/eig_max >= 0.01:
+                logging.warn("found large negative eigenvalues")
+#            logging.debug(self.prefix + '{} negative eigenvalues were found and replaced with zero'.format(negative_eig.size))
+#            pos = sorted(abs(E),reverse=True).index(largest_negative) + 1
+#            logging.debug(self.prefix + 'Largest negative eigenvalue ranks {}/{}'.format(pos, E.size))
+#            logging.debug(self.prefix + 'eig(-)/eig_max = {}%'.format(largest_negative/max(abs(E))*100.))
         E[E<=0] = 0
         Esqrt = np.diag(np.sqrt(E))
         M = V.dot(Esqrt)
         Q,R = qr(M.T)
         L = R.T
-        logging.debug(self.prefix + "Eigenvalue decomposition was successful")
+#        logging.debug(self.prefix + "Eigenvalue decomposition was successful")
         return L
 
     def plot(self):
