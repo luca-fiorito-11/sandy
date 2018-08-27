@@ -46,7 +46,7 @@ def test_sample_xs():
 @pytest.mark.xs
 def test_H1(tmpdir):
     iargs = [os.path.join(H1.__path__[0], r"h1.pendf"),
-             "--errorr-cov", os.path.join(H1.__path__[0], r"h1.errorr"),
+             "--cov", os.path.join(H1.__path__[0], r"h1.errorr"),
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
@@ -58,7 +58,7 @@ def test_H1(tmpdir):
 @pytest.mark.nubar
 def test_Cm242(tmpdir):
     iargs = [os.path.join(Cm242.__path__[0], r"cm242.endf"),
-             "--endf6-cov", os.path.join(Cm242.__path__[0], r"cm242.endf"),
+             "--cov", os.path.join(Cm242.__path__[0], r"cm242.endf"),
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
@@ -70,7 +70,7 @@ def test_Cm242(tmpdir):
 @pytest.mark.xs
 def test_Fe56_errorr(tmpdir):
     iargs = [os.path.join(Fe56.__path__[0], r"fe56.pendf"),
-             "--errorr-cov", os.path.join(Fe56.__path__[0], r"fe56.errorr"),
+             "--cov", os.path.join(Fe56.__path__[0], r"fe56.errorr"),
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
@@ -83,7 +83,7 @@ def test_Fe56_errorr(tmpdir):
 @pytest.mark.slow
 def test_U5_errorr(tmpdir):
     iargs = [os.path.join(U5.__path__[0], r"u235.pendf"),
-             "--errorr-cov", os.path.join(U5.__path__[0], r"u235.errorr"),
+             "--cov", os.path.join(U5.__path__[0], r"u235.errorr"),
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()) if os.cpu_count() < 10 else str(10),
              "--eig", "10",
@@ -94,34 +94,34 @@ def test_U5_errorr(tmpdir):
 @pytest.mark.chi
 def test_U5_chi(tmpdir):
     iargs = [os.path.join(U5.__path__[0], r"u235.endf"),
-             "--endf6-cov", os.path.join(U5.__path__[0], r"u235.endf"),
+             "--cov", os.path.join(U5.__path__[0], r"u235.endf"),
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
-             "--eig", "10",
-             "--samples", "100",]
+             "--samples", "50",
+             "--mf", "35"]
     sampling(iargs)
 
 @pytest.mark.sampling
 @pytest.mark.lpc
 def test_Fe56_lpc(tmpdir):
     iargs = [os.path.join(Fe56.__path__[0], r"fe56.endf"),
-             "--endf6-cov", os.path.join(Fe56.__path__[0], r"fe56.endf"),
+             "--cov", os.path.join(Fe56.__path__[0], r"fe56.endf"),
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
-             "--eig", "10",
-             "--samples", "100",]
+             "--samples", "50",
+             "--mf", "34"]
     sampling(iargs)
 
 @pytest.mark.sampling
 @pytest.mark.lpc
 def test_U238_lpc(tmpdir):
     iargs = [os.path.join(U8.__path__[0], r"u238.endf"),
-             "--endf6-cov", os.path.join(U8.__path__[0], r"u238.endf"),
+             "--cov", os.path.join(U8.__path__[0], r"u238.endf"),
              "--outdir", str(tmpdir),
-             "-e", "1e-5", "1e-4", "1e-3", "1e-2", "1e-1", "1e0", "1e1", "1e2", "1e3", "1e4", "1e5",
              "--verbose",
              "--processes", "1",
-             "--eig", "10",
+             "--eig", "15",
              "--mf", "34",
-             "--samples", "10",]
+             "--samples", "10",
+             "--mf", "34"]
     sampling(iargs)
