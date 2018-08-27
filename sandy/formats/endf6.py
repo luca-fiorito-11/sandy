@@ -15,7 +15,7 @@ from warnings import warn
 import numpy as np
 import pandas as pd
 
-from .utils import BaseFile, Xs, Edistr, Lpc, Fy
+from .utils import BaseFile, Xs, Edistr, Lpc, Fy, XsCov, triu_matrix, EdistrCov, corr2cov, LpcCov
 from ..settings import SandyError
 
 __author__ = "Luca Fiorito"
@@ -99,14 +99,24 @@ class Endf6(BaseFile):
             - Interpolation law must be lin-lin
             - No duplicate points on energy grid
         """
-        query = "MF==3"
+        condition = self.index.get_level_values("MF") == 3
+        tape = self[condition]
         if listmat is not None:
-            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-            query += " & ({})".format(query_mats)
+            conditions = [tape.index.get_level_values("MAT") == x for x in listmat]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
         if listmt is not None:
-            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-            query += " & ({})".format(query_mts)
-        tape = self.query(query)
+            conditions = [tape.index.get_level_values("MT") == x for x in listmt]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
+#        query = "MF==3"
+#        if listmat is not None:
+#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+#            query += " & ({})".format(query_mats)
+#        if listmt is not None:
+#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+#            query += " & ({})".format(query_mts)
+#        tape = self.query(query)
         ListXs = []
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)
@@ -146,16 +156,25 @@ class Endf6(BaseFile):
         return Endf6(tape)
 
     def get_xs_cov(self, listmat=None, listmt=None):
-        from .utils import XsCov, triu_matrix
-        from functools import reduce
-        query = "(MF==33 | MF==31)"
+        conditions = [self.index.get_level_values("MF") == x for x in [31, 33]]
+        condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+        tape = self[condition]
         if listmat is not None:
-            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-            query += " & ({})".format(query_mats)
+            conditions = [tape.index.get_level_values("MAT") == x for x in listmat]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
         if listmt is not None:
-            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-            query += " & ({})".format(query_mts)
-        tape = self.query(query)
+            conditions = [tape.index.get_level_values("MT") == x for x in listmt]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
+#        query = "(MF==33 | MF==31)"
+#        if listmat is not None:
+#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+#            query += " & ({})".format(query_mats)
+#        if listmt is not None:
+#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+#            query += " & ({})".format(query_mts)
+#        tape = self.query(query)
         List = []; eg = set()
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)
@@ -230,14 +249,27 @@ class Endf6(BaseFile):
             - Interpolation law must be lin-lin
             - No duplicate points on energy grid
         """
-        query = "MF==1 & (MT==452 | MT==455 | MT==456)"
+        condition = self.index.get_level_values("MF") == 1
+        tape = self[condition]
+        conditions = [tape.index.get_level_values("MT") == x for x in [452, 455, 456]]
+        condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+        tape = tape[condition]
         if listmat is not None:
-            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-            query += " & ({})".format(query_mats)
+            conditions = [tape.index.get_level_values("MAT") == x for x in listmat]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
         if listmt is not None:
-            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-            query += " & ({})".format(query_mts)
-        tape = self.query(query)
+            conditions = [tape.index.get_level_values("MT") == x for x in listmt]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
+#        query = "MF==1 & (MT==452 | MT==455 | MT==456)"
+#        if listmat is not None:
+#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+#            query += " & ({})".format(query_mats)
+#        if listmt is not None:
+#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+#            query += " & ({})".format(query_mts)
+#        tape = self.query(query)
         ListXs = []
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)
@@ -280,14 +312,24 @@ class Endf6(BaseFile):
         Return a df with MAT,MT,SUB as index and COV as value
         Each COV is a df with Ein on rows and Eout on columns.
         """
-        query = "MF==5"
+        condition = self.index.get_level_values("MF") == 5
+        tape = self[condition]
         if listmat is not None:
-            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-            query += " & ({})".format(query_mats)
+            conditions = [tape.index.get_level_values("MAT") == x for x in listmat]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
         if listmt is not None:
-            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-            query += " & ({})".format(query_mts)
-        tape = self.query(query)
+            conditions = [tape.index.get_level_values("MT") == x for x in listmt]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
+#        query = "MF==5"
+#        if listmat is not None:
+#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+#            query += " & ({})".format(query_mats)
+#        if listmt is not None:
+#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+#            query += " & ({})".format(query_mts)
+#        tape = self.query(query)
         DictEdistr =  {}
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)
@@ -328,15 +370,24 @@ class Endf6(BaseFile):
         return Endf6(tape)
 
     def get_edistr_cov(self, listmat=None, listmt=None):
-        from .utils import EdistrCov, triu_matrix, corr2cov
-        query = "MF==35"
+        condition = self.index.get_level_values("MF") == 35
+        tape = self[condition]
         if listmat is not None:
-            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-            query += " & ({})".format(query_mats)
+            conditions = [tape.index.get_level_values("MAT") == x for x in listmat]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
         if listmt is not None:
-            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-            query += " & ({})".format(query_mts)
-        tape = self.query(query)
+            conditions = [tape.index.get_level_values("MT") == x for x in listmt]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
+#        query = "MF==35"
+#        if listmat is not None:
+#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+#            query += " & ({})".format(query_mats)
+#        if listmt is not None:
+#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+#            query += " & ({})".format(query_mts)
+#        tape = self.query(query)
         List = []; eg = set()
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)
@@ -378,14 +429,24 @@ class Endf6(BaseFile):
         return EdistrCov(matrix, index=index, columns=index)
 
     def get_lpc(self, listmat=None, listmt=None, verbose=True):
-        query = "MF==4"
+        condition = self.index.get_level_values("MF") == 4
+        tape = self[condition]
         if listmat is not None:
-            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-            query += " & ({})".format(query_mats)
+            conditions = [tape.index.get_level_values("MAT") == x for x in listmat]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
         if listmt is not None:
-            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-            query += " & ({})".format(query_mts)
-        tape = self.query(query)
+            conditions = [tape.index.get_level_values("MT") == x for x in listmt]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
+#        query = "MF==4"
+#        if listmat is not None:
+#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+#            query += " & ({})".format(query_mats)
+#        if listmt is not None:
+#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+#            query += " & ({})".format(query_mts)
+#        tape = self.query(query)
         DictLpc =  {}
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)
@@ -427,16 +488,24 @@ class Endf6(BaseFile):
         return Endf6(tape)
 
     def get_lpc_cov(self, listmat=None, listmt=None):
-        from .utils import triu_matrix, LpcCov
-        from functools import reduce
-        query = "MF==34"
+        condition = self.index.get_level_values("MF") == 34
+        tape = self[condition]
         if listmat is not None:
-            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-            query += " & ({})".format(query_mats)
+            conditions = [tape.index.get_level_values("MAT") == x for x in listmat]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
         if listmt is not None:
-            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-            query += " & ({})".format(query_mts)
-        tape = self.query(query)
+            conditions = [tape.index.get_level_values("MT") == x for x in listmt]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
+#        query = "MF==34"
+#        if listmat is not None:
+#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+#            query += " & ({})".format(query_mats)
+#        if listmt is not None:
+#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+#            query += " & ({})".format(query_mts)
+#        tape = self.query(query)
         List = []; eg = set()
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)
@@ -505,14 +574,24 @@ class Endf6(BaseFile):
         """Extract selected fission yields.
         xs are linearized on unique grid.
         """
-        query = "MF==8"
+        condition = self.index.get_level_values("MF") == 8
+        tape = self[condition]
         if listmat is not None:
-            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-            query += " & ({})".format(query_mats)
+            conditions = [tape.index.get_level_values("MAT") == x for x in listmat]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
         if listmt is not None:
-            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-            query += " & ({})".format(query_mts)
-        tape = self.query(query)
+            conditions = [tape.index.get_level_values("MT") == x for x in listmt]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
+#        query = "MF==8"
+#        if listmat is not None:
+#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+#            query += " & ({})".format(query_mats)
+#        if listmt is not None:
+#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+#            query += " & ({})".format(query_mts)
+#        tape = self.query(query)
         listfy = []
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)
@@ -538,7 +617,9 @@ class Endf6(BaseFile):
             sec = self.read_section(mat,1,451)
             records = pd.DataFrame(sec["RECORDS"], columns=["MF","MT","NC","MOD"]).set_index(["MF","MT"])
             new_records = []
-            for (mf,mt),text in sorted(tape.loc[mat].query('MT!=451'.format(mat)).TEXT.items()):
+            dfmat=tape.loc[mat]
+#            for (mf,mt),text in sorted(tape.loc[mat].query('MT!=451'.format(mat)).TEXT.items()):
+            for (mf,mt),text in sorted(dfmat[dfmat.index.get_level_values("MT")!=451].TEXT.items()):
                 nc = len(text.splitlines())
                 # when copying PENDF sections (MF2/MT152) mod is not present in the dictionary
                 try:

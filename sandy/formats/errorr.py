@@ -4,8 +4,8 @@ Created on Fri May 11 15:08:25 2018
 
 @author: fiorito_l
 """
-import sys
 import logging
+from functools import reduce
 
 import pandas as pd
 import numpy as np
@@ -40,14 +40,24 @@ class Errorr(BaseFile):
         """
         Extract xs from errorr file into Xs instance.
         """
-        query = "MF==3"
+        condition = self.index.get_level_values("MF") == 3
+        tape = self[condition]
         if listmat is not None:
-            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-            query += " & ({})".format(query_mats)
+            conditions = [tape.index.get_level_values("MAT") == x for x in listmat]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
         if listmt is not None:
-            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-            query += " & ({})".format(query_mts)
-        tape = self.query(query)
+            conditions = [tape.index.get_level_values("MT") == x for x in listmt]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
+#        query = "MF==3"
+#        if listmat is not None:
+#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+#            query += " & ({})".format(query_mats)
+#        if listmt is not None:
+#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+#            query += " & ({})".format(query_mts)
+#        tape = self.query(query)
         mat = self.index.get_level_values("MAT")[0]
         eg = self.read_section(mat,1,451)["EG"]
         ListXs = []
@@ -67,14 +77,25 @@ class Errorr(BaseFile):
         """
         Extract xs covariances from errorr file into XsCov instance.
         """
-        query = "(MF==33 | MF==31)"
+        conditions = [self.index.get_level_values("MF") == x for x in [31, 33]]
+        condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+        tape = self[condition]
         if listmat is not None:
-            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-            query += " & ({})".format(query_mats)
+            conditions = [tape.index.get_level_values("MAT") == x for x in listmat]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
         if listmt is not None:
-            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-            query += " & ({})".format(query_mts)
-        tape = self.query(query)
+            conditions = [tape.index.get_level_values("MT") == x for x in listmt]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]        
+#        query = "(MF==33 | MF==31)"
+#        if listmat is not None:
+#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
+#            query += " & ({})".format(query_mats)
+#        if listmt is not None:
+#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
+#            query += " & ({})".format(query_mts)
+#        tape = self.query(query)
         mat = self.index.get_level_values("MAT")[0]
         eg = self.read_section(mat,1,451)["EG"]
         List = []
