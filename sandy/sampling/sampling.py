@@ -18,7 +18,7 @@ import multiprocessing as mp
 import pandas as pd
 
 from ..settings import SandyError
-from ..formats import Endf6, Errorr, read_formatted_file
+from ..formats import Endf6, read_formatted_file
 from ..utils import is_valid_dir, is_valid_file
 
 __author__ = "Luca Fiorito"
