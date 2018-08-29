@@ -50,7 +50,7 @@ def test_H1(tmpdir):
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
-             "--samples", "100",]
+             "--samples", "10",]
     sampling(iargs)
 
 @pytest.mark.sampling
@@ -62,7 +62,7 @@ def test_Cm242(tmpdir):
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
-             "--samples", "100",]
+             "--samples", "10",]
     sampling(iargs)
 
 @pytest.mark.sampling
@@ -74,7 +74,8 @@ def test_Fe56_errorr(tmpdir):
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
-             "--samples", "10",]
+             "--samples", "10",
+             "--mt", "2", "102"]
     sampling(iargs)
 
 @pytest.mark.sampling
@@ -87,7 +88,7 @@ def test_U5_errorr(tmpdir):
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()) if os.cpu_count() < 10 else str(10),
              "--eig", "10",
-             "--samples", "100",]
+             "--samples", "10",]
     sampling(iargs)
 
 @pytest.mark.sampling
@@ -97,7 +98,7 @@ def test_U5_chi(tmpdir):
              "--cov", os.path.join(U5.__path__[0], r"u235.endf"),
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
-             "--samples", "50",
+             "--samples", "10",
              "--mf", "35"]
     sampling(iargs)
 
@@ -108,7 +109,7 @@ def test_Fe56_lpc(tmpdir):
              "--cov", os.path.join(Fe56.__path__[0], r"fe56.endf"),
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
-             "--samples", "50",
+             "--samples", "10",
              "--mf", "34"]
     sampling(iargs)
 
