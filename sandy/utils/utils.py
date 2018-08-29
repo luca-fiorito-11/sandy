@@ -6,6 +6,12 @@ Created on Wed Jul 11 15:36:30 2018
 """
 import os
 import time
+import ctypes
+
+__author__ = "Luca Fiorito"
+__all__ = ["which", "force_symlink", "TimeDecorator", "mkl_get_max_threads", "mkl_set_num_threads"]
+
+mkl_rt = ctypes.CDLL('libmkl_rt.so')
 
 def which(program):
     """Mimic the behavior of the UNIX 'which' command.     
@@ -42,3 +48,9 @@ def TimeDecorator(foo):
         print("Time to run function {}: {} sec".format(foo, t2-t1))
         return out
     return wrapper
+
+def mkl_get_max_threads():
+    return mkl_rt.mkl_get_max_threads()
+
+def mkl_set_num_threads(cores):
+    return mkl_rt.mkl_set_num_threads(ctypes.byref(ctypes.c_int(cores)))
