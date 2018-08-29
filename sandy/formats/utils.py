@@ -10,8 +10,9 @@ import os
 
 import pandas as pd
 import numpy as np
+import scipy as sp
 
-from ..functions import gls
+from ..functions import gls, div0
 from ..settings import SandyError
 
 __author__ = "Luca Fiorito"
@@ -324,7 +325,6 @@ class XsCov(pd.DataFrame):
         return self.index, Cov(self.values)
 
     def get_samples(self, nsmp, **kwargs):
-        from ..functions import div0
         index, cov = self.to_matrix()
         frame = pd.DataFrame(cov.sampling(nsmp) + 1, index=index, columns=range(1,nsmp+1))
         frame.columns.name = 'SMP'
@@ -378,7 +378,6 @@ class EdistrCov(pd.DataFrame):
         return self.index, Cov(self.values)
 
     def get_samples(self, nsmp, **kwargs):
-        from ..functions import div0
         index, cov = self.to_matrix()
         frame = pd.DataFrame(cov.sampling(nsmp), index=index, columns=range(1,nsmp+1))
         frame.columns.name = 'SMP'
@@ -406,7 +405,6 @@ class LpcCov(pd.DataFrame):
         return self.index, Cov(self.values)
 
     def get_samples(self, nsmp, **kwargs):
-        from ..functions import div0
         index, cov = self.to_matrix()
         frame = pd.DataFrame(cov.sampling(nsmp) + 1, index=index, columns=range(1,nsmp+1))
         frame.columns.name = 'SMP'
@@ -668,17 +666,17 @@ class Cov(np.ndarray):
             - :``samples``: :
                 (array) random samples
         """
-        logging.debug(self.prefix + "Covariance matrix dimension is {} X {}".format(*self.shape))
+        logging.debug("covariance matrix dimension is {} X {}".format(*self.shape))
         y = np.random.randn(self.dim, int(nsmp))
         nonzero_idxs, cov_reduced = self.reduce_size()
         nzeros = self.shape[0] - len(nonzero_idxs)
         if nzeros > 0:
-            logging.debug(self.prefix + "Found {} zeros on the diagonal, reduce matrix dimension to {} X {}".format(nzeros, *cov_reduced.shape))
+            logging.debug("found {} zeros on the diagonal, reduce matrix dimension to {} X {}".format(nzeros, *cov_reduced.shape))
         try:
             L_reduced = cov_reduced.cholesky()
-            logging.debug(self.prefix + "Cholesky decomposition was successful")
+            logging.debug("cholesky decomposition was successful")
         except np.linalg.linalg.LinAlgError as exc:
-            logging.debug(self.prefix + "Cholesky decomposition was not successful, proceed with eigenvalue decomposition")
+            logging.debug("cholesky decomposition was not successful, proceed with eigenvalue decomposition")
             L_reduced = cov_reduced.eigendecomp()
         L = self.restore_size(nonzero_idxs, L_reduced)
         samples = np.array(L.dot(y), dtype=float)
@@ -718,8 +716,7 @@ class Cov(np.ndarray):
             - :``V``: :
                 (2d-array) eigenvectors
         """
-        from scipy.linalg import eig
-        E, V = eig(self)
+        E, V = sp.linalg.eig(self)
         E, V = E.real, V.real
         return E, V
 
