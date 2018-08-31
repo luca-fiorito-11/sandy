@@ -11,8 +11,6 @@ import ctypes
 __author__ = "Luca Fiorito"
 __all__ = ["which", "force_symlink", "TimeDecorator", "mkl_get_max_threads", "mkl_set_num_threads"]
 
-mkl_rt = ctypes.CDLL('libmkl_rt.so')
-
 def which(program):
     """Mimic the behavior of the UNIX 'which' command.     
     """
@@ -50,7 +48,9 @@ def TimeDecorator(foo):
     return wrapper
 
 def mkl_get_max_threads():
+    mkl_rt = ctypes.CDLL('libmkl_rt.so')
     return mkl_rt.mkl_get_max_threads()
 
 def mkl_set_num_threads(cores):
+    mkl_rt = ctypes.CDLL('libmkl_rt.so')
     return mkl_rt.mkl_set_num_threads(ctypes.byref(ctypes.c_int(cores)))
