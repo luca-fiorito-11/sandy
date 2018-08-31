@@ -238,6 +238,7 @@ class Lpc(pd.DataFrame):
             lpc_copy.update(df_notnan)
             for l,_ in prt.groupby("L"):
                 P = prt.loc[l].reindex(eg).ffill()
+                P = np.where(P.abs() <= 1.0, P, 1.0)
                 lpc_copy[l] *= P
 #            lpc_copy = lpc_copy.reindex(elpc)
             lpc_copy = lpc_copy.reset_index()
@@ -310,8 +311,10 @@ class Edistr(pd.DataFrame):
                         P = P[elo,ehi]
                         eg = sorted(set(edistr.index) | set(P.index))
                         P = P.reindex(eg).ffill().fillna(0).reindex(edistr.index)
-                        pedistr = edistr + P
-                        frame.loc[mat,mt,k,ein] = pd.Series(np.where(pedistr>0, pedistr, edistr), index=pedistr.index)
+                        P = np.where(P.abs() <= edistr, P, 0)
+#                        pedistr = edistr + P
+#                        frame.loc[mat,mt,k,ein] = pd.Series(np.where(pedistr>0, pedistr, edistr), index=edistr.index)
+                        frame.loc[mat,mt,k,ein] = edistr + P
         return Edistr(frame).normalize()
 
 
