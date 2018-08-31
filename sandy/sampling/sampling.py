@@ -32,6 +32,7 @@ def _sampling_mp(ismp):
     lrp = info["LRP"]
     name = info["TAG"]
     newtape = Endf6(tape.copy())
+    extra_points = np.logspace(-5, 7, init.energy_sequence)
     if not PertXs.empty:
         if lrp == 2:
             xs = newtape.get_xs()
@@ -46,12 +47,11 @@ def _sampling_mp(ismp):
     if not PertEdistr.empty:
         edistr = newtape.get_edistr()
         if not edistr.empty:
-            edistr = edistr.add_points(init.energy_points).perturb(PertEdistr[ismp])
+            edistr = edistr.add_points(extra_points).perturb(PertEdistr[ismp])
             newtape = newtape.update_edistr(edistr)
     if not PertLpc.empty:
         lpc = newtape.get_lpc()
         if not lpc.empty:
-            extra_points = np.logspace(-5, 7, init.energy_sequence)
             lpc = lpc.add_points(extra_points).perturb(PertLpc[ismp], verbose=init.verbose)
             newtape = newtape.update_lpc(lpc)
     print("Created sample {} for {} in {:.2f} sec".format(ismp, name, time.time()-t0,))
@@ -69,13 +69,6 @@ def _parse(iargs=None):
     parser.add_argument('--cov', '-C',
                        type=lambda x: is_valid_file(parser, x),
                        help="file containing covariances")
-#    group = parser.add_mutually_exclusive_group(required=True)
-#    group.add_argument('--endf6-cov',
-#                       type=lambda x: is_valid_file(parser, x),
-#                       help="ENDF-6 file containing covariances")
-#    group.add_argument('--errorr-cov',
-#                       type=lambda x: is_valid_file(parser, x),
-#                       help="ERRORR file containing covariances")
     parser.add_argument('--samples', '-S',
                         type=int,
                         default=200,
@@ -85,7 +78,7 @@ def _parse(iargs=None):
                         default=os.getcwd(),
                         type=lambda x: is_valid_dir(parser, x, mkdir=True),
                         help="target directory where outputs are stored\n(default = current working directory)\nif it does not exist it will be created")
-    parser.add_argument('--processes','-np',
+    parser.add_argument('--processes','-N',
                         type=int,
                         default=1,
                         help="number of worker processes (default = 1)")
@@ -134,7 +127,7 @@ def _parse(iargs=None):
     parser.add_argument('--energy-sequence','-E',
                         type=int,
                         metavar="EL",
-                        default=100,
+                        default=97,
                         help=argparse.SUPPRESS)
     parser.add_argument("-v",
                         '--version',
