@@ -74,8 +74,8 @@ def test_Fe56_errorr(tmpdir):
              "--outdir", str(tmpdir),
              "--processes", str(os.cpu_count()),
              "--eig", "10",
-             "--samples", "10",
-             "--mt", "2", "102"]
+             "--samples", "10",]
+#             "--mt", "2", "102"]
     sampling(iargs)
 
 @pytest.mark.sampling
