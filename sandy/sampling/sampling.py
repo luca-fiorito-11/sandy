@@ -55,7 +55,8 @@ def _sampling_mp(ismp):
             lpc = lpc.add_points(extra_points).perturb(PertLpc[ismp], verbose=init.verbose)
             newtape = newtape.update_lpc(lpc)
     print("Created sample {} for {} in {:.2f} sec".format(ismp, name, time.time()-t0,))
-    return newtape.update_info().write_string()
+    descr = ["perturbed file #{} created by SANDY".format(ismp)]
+    return newtape.delete_cov().update_info(descr=descr).write_string()
 
 def _parse(iargs=None):
     """Parse command line arguments for sampling option.

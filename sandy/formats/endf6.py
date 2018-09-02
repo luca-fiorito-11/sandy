@@ -4,13 +4,11 @@ Created on Mon Jan 16 18:03:13 2017
 
 @author: lfiorito
 """
-import sys
 import pdb
 import os
 import logging
 from collections import Counter
 from functools import reduce
-from warnings import warn
 
 import numpy as np
 import pandas as pd
@@ -607,9 +605,8 @@ class Endf6(BaseFile):
         frame = pd.DataFrame.from_dict(listfy).set_index(["MAT","MT","E","ZAFP","FPS"])
         return Fy(frame)
 
-    def update_info(self):
-        """
-        Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
+    def update_info(self, descr=None):
+        """Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
         """
         from .MF1 import write
         tape = self.copy()
@@ -627,12 +624,20 @@ class Endf6(BaseFile):
                 except:
                     mod = 0
                 new_records.append((mf,mt,nc,mod))
+            if descr is not None:
+                sec["TEXT"] = descr
             nc = 4 + len(sec["TEXT"]) + len(new_records) + 1
             mod = records.MOD.loc[1,451]
             new_records = [(1,451,nc,mod)] + new_records
             sec["RECORDS"] = new_records
             text = write(sec)
             tape.loc[mat,1,451].TEXT = text
+        return Endf6(tape)
+
+    def delete_cov(self):
+        """Delete covariance sections (MF>=30) from Endf6 dataframe.
+        """
+        tape = self.query("MF<30")
         return Endf6(tape)
 
     def parse(self):
