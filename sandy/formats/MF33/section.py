@@ -47,7 +47,7 @@ def read(text):
                 if subsub["LT"] == 0:
                     subsub.update({"EK" : L.B[::2], "FK" : L.B[1::2]})
                 else:
-                    pdb.set_trace()
+                    raise NotImplementedError("FOUND LB=5 LT=1")
                     Nk = subsub["NP"] - subsub["LT"]
                     ARRk = L.B[:Nk]
                     ARRl = L.B[Nk:]
