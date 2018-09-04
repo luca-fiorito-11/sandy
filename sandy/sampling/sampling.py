@@ -55,7 +55,7 @@ def _sampling_mp(ismp):
             lpc = lpc.add_points(extra_points).perturb(PertLpc[ismp], verbose=init.verbose)
             newtape = newtape.update_lpc(lpc)
     print("Created sample {} for {} in {:.2f} sec".format(ismp, name, time.time()-t0,))
-    descr = ["perturbed file #{} created by SANDY".format(ismp)]
+    descr = ["perturbed file No.{} created by SANDY".format(ismp)]
     return newtape.delete_cov().update_info(descr=descr).write_string()
 
 def _parse(iargs=None):
@@ -128,7 +128,7 @@ def _parse(iargs=None):
     parser.add_argument('--energy-sequence','-E',
                         type=int,
                         metavar="EL",
-                        default=97,
+                        default=49,
                         help=argparse.SUPPRESS)
     parser.add_argument("-v",
                         '--version',
