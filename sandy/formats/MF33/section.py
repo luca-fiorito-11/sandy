@@ -45,14 +45,16 @@ def read(text):
             if subsub["LB"] in range(5):
                 subsub.update({"LT" : L.L1, "NT" : L.NPL, "NP" : L.N2})
                 if subsub["LT"] == 0:
-                    subsub.update({"EK" : L.B[::2], "FK" : L.B[1::2]})
-                else:
-                    raise NotImplementedError("FOUND LB=5 LT=1")
-                    Nk = subsub["NP"] - subsub["LT"]
-                    ARRk = L.B[:Nk]
-                    ARRl = L.B[Nk:]
-                    subsub.update({"EK" : ARRk[:Nk/2], "FK" : ARRk[Nk/2:],
-                                   "EL" : ARRl[:subsub["LT"]], "FL" : ARRl[subsub["LT"]:]})
+                    subsub["EK"] = L.B[::2]
+                    subsub["FK"] = L.B[1::2]
+                else: # found in 26-Fe-54g.jeff33, MAT2625/MF33/MT103, LB=4 LT=1
+                    nk = subsub["NP"] - subsub["LT"]
+                    arrk = L.B[:nk*2]
+                    subsub["EK"] = arrk[::2]
+                    subsub["FK"] = arrk[1::2]
+                    arrl = L.B[nk*2:]
+                    subsub["EL"] = arrl[::2]
+                    subsub["FL"] = arrl[1::2]
             elif subsub["LB"] == 5:
                 subsub.update({"LS" : L.L1, "NT" : L.NPL, "NE" : L.N2,
                                "EK" : L.B[:L.N2], "FKK" : L.B[L.N2:]})
