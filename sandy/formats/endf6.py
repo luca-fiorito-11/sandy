@@ -362,9 +362,17 @@ class Endf6(BaseFile):
             for k,S in S.groupby(["K"]):
                 if sec["PDISTR"][k]["LF"] != 1: continue
                 for ein in S.index.get_level_values("EIN"):
-                    dict_distr = {"EDISTR" : S.loc[mat,mt,k,ein].values,
-                                  "EOUT" : S.loc[mat,mt,k,ein].index.values,
-                                  "NBT" : [S.loc[mat,mt,k,ein].values.size],
+                    edistr = S.loc[mat,mt,k,ein].values
+                    eout = S.loc[mat,mt,k,ein].index.values
+                    if ein in sec["PDISTR"][k]["EIN"]:
+                        mask = np.in1d(eout, sec["PDISTR"][k]["EIN"][ein]["EOUT"])
+                        edistr = edistr[mask]
+                        eout = eout[mask]
+#                    else:
+#                        logging.warn("added point {}".format(ein))
+                    dict_distr = {"EDISTR" : edistr,
+                                  "EOUT" : eout,
+                                  "NBT" : [len(eout)],
                                   "INT" : [2]}
                     sec["PDISTR"][k]["EIN"].update({ein : dict_distr})
                 sec["PDISTR"][k]["NBT_EIN"] = [len(sec["PDISTR"][k]["EIN"])]
