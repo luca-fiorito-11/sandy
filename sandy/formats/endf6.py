@@ -154,6 +154,13 @@ class Endf6(BaseFile):
         return Endf6(tape)
 
     def get_xs_cov(self, listmat=None, listmt=None):
+        """List of JEFF-33 files with cross-isotopes covariances:
+        * 3-Li-6g.jeff33
+        * 4-Be-9g.jeff33
+        * 5-B-10g.jeff33
+        * 79-Au-197g.jeff33
+        * 94-Pu-241g.jeff33
+        """
         conditions = [self.index.get_level_values("MF") == x for x in [31, 33]]
         condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
         tape = self[condition]
@@ -165,14 +172,6 @@ class Endf6(BaseFile):
             conditions = [tape.index.get_level_values("MT") == x for x in listmt]
             condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
             tape = tape[condition]
-#        query = "(MF==33 | MF==31)"
-#        if listmat is not None:
-#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-#            query += " & ({})".format(query_mats)
-#        if listmt is not None:
-#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-#            query += " & ({})".format(query_mts)
-#        tape = self.query(query)
         List = []; eg = set()
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)
@@ -222,7 +221,10 @@ class Endf6(BaseFile):
             return pd.DataFrame()
         frame = pd.DataFrame(List, columns=('MAT', 'MT','MAT1', 'MT1', 'COV'))
         eg = sorted(eg)
-        frame.COV = frame.COV.apply(lambda x:cov_interp(x, eg))
+        try:
+            frame.COV = frame.COV.apply(lambda x:cov_interp(x, eg))
+        except:
+            pdb.set_trace()
         # From here, the method is identical to Errorr.get_cov()
         # Except that the size of eg is equal to the size of each matrix (we include the value for 2e7)
         MI = [(mat,mt,e) for mat,mt in sorted(set(zip(frame.MAT, frame.MT))) for e in eg]
@@ -230,8 +232,12 @@ class Endf6(BaseFile):
         # initialize union matrix
         matrix = np.zeros((len(index),len(index)))
         for i,row in frame.iterrows():
-            ix = index.get_loc((row.MAT,row.MT))
-            ix1 = index.get_loc((row.MAT1,row.MT1))
+            try:
+                ix = index.get_loc((row.MAT,row.MT))
+                ix1 = index.get_loc((row.MAT1,row.MT1))
+            except KeyError:
+                logging.warn("skip covariance for [({0.MAT}/{0.MT}), ({0.MAT1}/{0.MT1})]".format(row))
+                continue
             matrix[ix.start:ix.stop,ix1.start:ix1.stop] = row.COV
         i_lower = np.tril_indices(len(index), -1)
         matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
@@ -658,7 +664,8 @@ class Endf6(BaseFile):
 
 def cov_interp(df, interp_column, method='zero', axis='both'):
     # interp_column is a list
-    frame = pd.DataFrame(df.copy(), index=df.index.copy(), columns=df.columns.copy())
+    frame = df[~df.index.duplicated(keep='first')].T
+    frame = frame[~frame.index.duplicated(keep='first')].T
     index = np.unique(list(frame.index) + interp_column)
     columns = np.unique(list(frame.columns) + interp_column)
     if axis in ['rows', 'both']:
@@ -720,6 +727,3 @@ def cov_interp(df, interp_column, method='zero', axis='both'):
 #    df["message"] = df.message.replace({True: "OK", False: "WARNING"})
 #    df.to_csv("jeff33_masses.csv")
 #
-#
-##A=get_masses(r"X:\aaa\78-Pt-192g.jeff33")
-#check_masses_jeff33(r"X:\aaa")
