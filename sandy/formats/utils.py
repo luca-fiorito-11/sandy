@@ -77,6 +77,29 @@ class BaseFile(pd.DataFrame):
         kwargs.update({"columns" : ["TEXT"]})
         super().__init__(*args, **kwargs)
         self.index.names = ['MAT', 'MF', 'MT']
+        self.sort_index(level=["MAT","MF","MT"], inplace=True)
+    
+    def add_sections(self, file, sect):
+        """Add MF/MT section from one file to an existing dataframe.
+        If they already exist, replace them
+        """
+        queries = []
+        for mf,mtlist in sect.items():
+            if mtlist == "all":
+                queries.append("(MF=={})".format(mf))
+            else:
+                for mt in mtlist:
+                    queries.append("(MF=={} & MT=={})".format(mf,mt))
+        query = " | ".join(queries)
+        newdf = BaseFile.from_file(file).query(query)
+        if newdf.empty:
+            logging.warn("'{}' does not contain requested sections".format(file))
+            return self
+        outdf = pd.concat([self, newdf])
+        outdf = outdf.reset_index()
+        outdf = outdf.drop_duplicates(["MAT","MF","MT"], keep="last")
+        outdf = outdf.set_index(["MAT","MF","MT"])
+        return self.__class__(outdf)
 
 
 class Xs(pd.DataFrame):
