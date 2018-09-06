@@ -12,6 +12,7 @@
 
 /.spyproject/
 /.cache/
+/scripts/
 
 # shared objects
 *.so
