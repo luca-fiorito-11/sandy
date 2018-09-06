@@ -15,6 +15,7 @@ import pandas as pd
 
 from .utils import BaseFile, Xs, Edistr, Lpc, Fy, XsCov, triu_matrix, EdistrCov, corr2cov, LpcCov
 from ..settings import SandyError
+from ..functions import find_nearest
 
 __author__ = "Luca Fiorito"
 __all__ = ["Endf6"]
@@ -326,15 +327,7 @@ class Endf6(BaseFile):
             conditions = [tape.index.get_level_values("MT") == x for x in listmt]
             condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
             tape = tape[condition]
-#        query = "MF==5"
-#        if listmat is not None:
-#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-#            query += " & ({})".format(query_mats)
-#        if listmt is not None:
-#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-#            query += " & ({})".format(query_mts)
-#        tape = self.query(query)
-        DictEdistr =  {}
+        edistr_list = []
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)
             for k,pdistr in X["PDISTR"].items():
@@ -345,12 +338,33 @@ class Endf6(BaseFile):
                     if verbose: logging.warn("found non-linlin interpolation, skip energy distr. for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
                     continue
                 for ein,v in sorted(pdistr["EIN"].items()):
-                    DictEdistr.update({(X["MAT"], X["MT"], k, ein) : pd.Series(v["EDISTR"], index=v["EOUT"])})
-        if not DictEdistr:
+                    columns = pd.MultiIndex.from_tuples([(X["MAT"], X["MT"], k, ein)], names=("MAT", "MT", "K", "EIN"))
+                    df = pd.DataFrame(v["EDISTR"], index=v["EOUT"], columns=columns)
+                    df.index.name = "EOUT"
+                    edistr_list.append(df)
+        if not edistr_list:
             logging.warn("no tabulated energy distribution was found")
             return pd.DataFrame()
-        frame = pd.DataFrame.from_dict(DictEdistr, orient='index').interpolate(method="slinear", axis=1).fillna(0)
-        return Edistr(frame)
+        frame = reduce(lambda x,y : pd.merge_ordered(x, y, on="EOUT"), edistr_list).set_index("EOUT")
+        frame = frame.sort_index().interpolate(method="slinear").fillna(0)
+        return Edistr(frame.T)
+#        for ix,text in tape.TEXT.iteritems():
+#            X = self.read_section(*ix)
+#            for k,pdistr in X["PDISTR"].items():
+#                if pdistr["LF"] != 1:
+#                    if verbose: logging.warn("non-tabulated distribution for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
+#                    continue
+#                if list(filter(lambda x:x["INT"] != [2], pdistr["EIN"].values())):
+#                    if verbose: logging.warn("found non-linlin interpolation, skip energy distr. for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
+#                    continue
+#                for ein,v in sorted(pdistr["EIN"].items()):
+#                    DictEdistr.update({(X["MAT"], X["MT"], k, ein) : pd.Series(v["EDISTR"], index=v["EOUT"])})
+#        if not DictEdistr:
+#            logging.warn("no tabulated energy distribution was found")
+#            return pd.DataFrame()
+#        pdb.set_trace()
+#        frame = pd.DataFrame.from_dict(DictEdistr, orient='index').interpolate(method="slinear", axis=1).fillna(0)
+#        return Edistr(frame)
 
     def update_edistr(self, edistrFrame):
         from .MF5 import write
@@ -361,15 +375,14 @@ class Endf6(BaseFile):
             sec = self.read_section(mat,mf,mt)
             for k,S in S.groupby(["K"]):
                 if sec["PDISTR"][k]["LF"] != 1: continue
+                ein_orig = sorted(sec["PDISTR"][k]["EIN"].keys())
                 for ein in S.index.get_level_values("EIN"):
                     edistr = S.loc[mat,mt,k,ein].values
                     eout = S.loc[mat,mt,k,ein].index.values
-                    if ein in sec["PDISTR"][k]["EIN"]:
-                        mask = np.in1d(eout, sec["PDISTR"][k]["EIN"][ein]["EOUT"])
-                        edistr = edistr[mask]
-                        eout = eout[mask]
-#                    else:
-#                        logging.warn("added point {}".format(ein))
+                    ein_found = find_nearest(ein_orig, ein)[1]
+                    mask = np.in1d(eout, sec["PDISTR"][k]["EIN"][ein_found]["EOUT"])
+                    edistr = edistr[mask]
+                    eout = eout[mask]
                     dict_distr = {"EDISTR" : edistr,
                                   "EOUT" : eout,
                                   "NBT" : [len(eout)],

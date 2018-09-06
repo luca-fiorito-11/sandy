@@ -267,6 +267,8 @@ def union_grid(*xgrids):
 
 
 def find_nearest(my_array, my_value, opt='below'):
+    """Find the nearest value in an array.
+    """
     array = np.array(my_array)
     value = float(my_value)
     idx = (np.abs(array-value)).argmin()
