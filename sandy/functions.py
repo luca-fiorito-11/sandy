@@ -5,7 +5,12 @@ Created on Thu Jan 12 11:10:49 2017
 @author: lfiorito
 """
 import numpy as np
-import os, pdb
+import os
+import pdb
+
+from .data import elements
+
+__author__ = "Luca Fiorito"
 
 def gls(x, Cx, G, y, Cy):
     """Run GLS adjustment.
@@ -305,3 +310,18 @@ def contains(item, xmin, xmax):
             raise ValueError("item must be a number or a list of numbers")
     mask = (item >= xmin) & (item <= xmax)
     return mask
+
+def convert_za(za):
+    _za = int(za)
+    z = int(_za // 1000)
+    a = int(_za - z*1000)
+    sym = elements.loc[z].SYM
+    return z, sym, a
+
+#import pytest
+#@pytest.mark.sampling
+#@pytest.mark.errorr
+#@pytest.mark.xs
+#@pytest.mark.aaa
+#def test_aaa():
+#    convert_za(92235.0)
