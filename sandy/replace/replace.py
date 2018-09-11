@@ -54,7 +54,7 @@ def replace(iargs=None):
     """
     init = _parse(iargs)
     if init.ptable:
-        sections = {2 : [152]}
+        sections = {2 : [153]}
     else:
         sections = json.loads(init.sections)
     target = read_formatted_file(init.target)
