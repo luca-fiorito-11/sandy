@@ -28,7 +28,7 @@ class Errorr(BaseFile):
             from .MF1 import read_errorr as read
         elif mf == 3:
             from .MF3 import read_errorr as read
-        elif mf == 33 or mf == 31:
+        elif mf == 33 or mf == 31 or mf == 35:
             from .MF33 import read_errorr as read
         else:
             raise SandyError("SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
@@ -77,7 +77,7 @@ class Errorr(BaseFile):
         """
         Extract xs covariances from errorr file into XsCov instance.
         """
-        conditions = [self.index.get_level_values("MF") == x for x in [31, 33]]
+        conditions = [self.index.get_level_values("MF") == x for x in [31, 33, 35]]
         condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
         tape = self[condition]
         if listmat is not None:
