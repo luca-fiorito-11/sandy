@@ -20,9 +20,9 @@ def read_formatted_file(file):
                 break
     if flag is None:
         raise SandyError("file '{}' not in a known format".format(file))
-    if flag == -11:
+    if flag == -11 or flag == -12:
         return Errorr.from_file(file)
-    elif flag == -11:
+    elif flag == -1:
         return Gendf.from_file(file)
     else:
         return Endf6.from_file(file)
