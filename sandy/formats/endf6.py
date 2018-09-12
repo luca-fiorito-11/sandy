@@ -108,14 +108,6 @@ class Endf6(BaseFile):
             conditions = [tape.index.get_level_values("MT") == x for x in listmt]
             condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
             tape = tape[condition]
-#        query = "MF==3"
-#        if listmat is not None:
-#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-#            query += " & ({})".format(query_mats)
-#        if listmt is not None:
-#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-#            query += " & ({})".format(query_mts)
-#        tape = self.query(query)
         ListXs = []
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)

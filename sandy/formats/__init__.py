@@ -5,7 +5,7 @@ from .utils import *
 from .records import *
 from ..settings import SandyError
 
-def read_formatted_file(file):
+def read_formatted_file(file, listmat=None, listmf=None, listmt=None):
     """Read formatted file and return either Errorr, Gendf or Endf6 instance
     according to flag.
     """
@@ -21,8 +21,8 @@ def read_formatted_file(file):
     if flag is None:
         raise SandyError("file '{}' not in a known format".format(file))
     if flag == -11 or flag == -12:
-        return Errorr.from_file(file)
+        return Errorr.from_file(file, listmat=listmat, listmf=listmf, listmt=listmt)
     elif flag == -1:
-        return Gendf.from_file(file)
+        return Gendf.from_file(file, listmat=listmat, listmf=listmf, listmt=listmt)
     else:
-        return Endf6.from_file(file)
+        return Endf6.from_file(file, listmat=listmat, listmf=listmf, listmt=listmt)

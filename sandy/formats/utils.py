@@ -24,18 +24,18 @@ class Section(dict):
 class BaseFile(pd.DataFrame):
 
     @classmethod
-    def from_file(cls, file):
+    def from_file(cls, file, listmat=None, listmf=None, listmt=None):
         """
         Read formatted file and call from_text method.
         """
         with open(file) as f: text = f.read()
-        out = cls.from_text(text)
+        out = cls.from_text(text, listmat=listmat, listmf=listmf, listmt=listmt)
         out.TAPE = os.path.abspath(os.path.realpath(os.path.expandvars(file)))
         out.FILENAME = os.path.basename(out.TAPE)
         return out
 
     @classmethod
-    def from_text(cls, text, empty_err=True):
+    def from_text(cls, text, empty_err=True, listmat=None, listmf=None, listmt=None):
         """
         Read ENDF-6 formatted file and split it into column based on field width:
             TEXT MAT MF MT
@@ -51,21 +51,22 @@ class BaseFile(pd.DataFrame):
                 )
         tape["TEXT"] = text.splitlines(True)
         splitters = tape.loc[(tape.MAT==0) & (tape.MF==0) & (tape.MT==0)].index
-#        splitters = tape.query("MAT==0 & MF==0 & MT==0").index
         dfs = []; ibeg = 0
         for iend in splitters:
             df = tape[ibeg:iend]
             for (mat,mf,mt),group in df.loc[(tape.MAT>0) & (tape.MF>0) & (tape.MT>0)].groupby(["MAT","MF","MT"]):
-#            for (mat,mf,mt),group in df.query("MAT>0 & MF>0 & MT>0").groupby(["MAT","MF","MT"]):
+                # Select only desired sections
+                if listmt is not None and mt not in listmt:
+                    continue
+                if listmat is not None and mat not in listmat:
+                    continue
+                if listmf is not None and mf not in listmf:
+                    continue
                 dfs.append({"MAT" : mat, "MF" : mf, "MT" : mt, "TEXT" : "".join(group.TEXT.values)})
             ibeg = iend
+        if not dfs:
+            raise SandyError("tape is empty")
         tape = pd.DataFrame.from_dict(dfs).set_index(["MAT","MF","MT"])
-        # This method is much slower for very large files as U238 PENDF
-#        for iend in splitters:
-#            df = tape[ibeg:iend].query("MAT>0 & MF>0 & MT>0").groupby(["MAT","MF","MT"]).sum().reset_index()
-#            dfs.append(df)
-#            ibeg = iend
-#        tape = pd.concat(dfs, sort=False).set_index(["MAT","MF","MT"])
         if tape.index.duplicated().any():
             raise SandyError("found duplicate MAT/MF/MT")
         frame = cls(tape)
