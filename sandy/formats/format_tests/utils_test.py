@@ -7,7 +7,7 @@ Created on Thu Sep  6 10:08:49 2018
 import pytest
 import os
 
-from .. import Endf6
+from .. import Endf6, BaseFile
 from ...data import Pu9
 
 __author__ = "Luca Fiorito"
@@ -29,3 +29,19 @@ def test_replace_endf6(Pu9endf):
     assert (df.loc[9437,2,152] == Pu9pendf.loc[9437,2,152]).all()
     assert not (df.loc[9437,3,2] == Pu9pendf.loc[9437,3,2]).all()
     assert (df.loc[9437,3,2] == Pu9endf.loc[9437,3,2]).all()
+    
+@pytest.mark.formats
+@pytest.mark.basefile
+def test_grep_mt(Pu9endf):
+    text = "\n".join(Pu9.pendf)
+    A = BaseFile.from_text(text, listmt=[45651])
+    pytest.set_trace()
+    df = Pu9endf.add_sections(file, {2: [152], 10: "all"})
+    assert (df.loc[9437,10,42] == Pu9pendf.loc[9437,10,42]).all()
+    assert not (df.loc[9437,10,42] == Pu9endf.loc[9437,10,42]).all()
+    assert (9437,2,152) in df.index
+    assert (9437,2,152) not in Pu9endf.index
+    assert (df.loc[9437,2,152] == Pu9pendf.loc[9437,2,152]).all()
+    assert not (df.loc[9437,3,2] == Pu9pendf.loc[9437,3,2]).all()
+    assert (df.loc[9437,3,2] == Pu9endf.loc[9437,3,2]).all()
+    
