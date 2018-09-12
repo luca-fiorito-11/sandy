@@ -48,8 +48,8 @@ def test_read_list():
     (C1, C2, L1, L2, NPL, N2, B), ipos = read_list(Pu9.endf6, 1809)
     assert len(B) == NPL
     text = write_list(C1, C2, L1, L2, N2, B)
-    original_text = [x[:66] for x in Pu9.endf6[1809:ipos]]
-    assert text == original_text
+    assert text[0] == ' 0.00000000 0.00000000          0          0          8          0'
+    assert text[-1] == ' 1.63478100 3.55460000                                            '
 
 @pytest.mark.records
 @pytest.mark.read
@@ -76,15 +76,15 @@ def test_read_tab1():
     assert mt == 0
     assert ns == 99999
     text = write_tab1(C1, C2, L1, L2, NBT, INT, x, y)
-    original_text = [x[:66] for x in Pu9.endf6[738:ipos]]
-    assert text == original_text
+    assert text[0] == ' 0.00000000 0.00000000          0          0          1       3201'
+    assert text[-1] == ' 29000000.0 6.49123000 29500000.0 6.53911000 30000000.0 6.62055000'
 
 @pytest.mark.records
 @pytest.mark.read
 @pytest.mark.text
 def test_read_text():
     string, ipos = read_text(Pu9.endf6, 6)
-    assert ipos == 7
+    assert ipos ==  7
     assert string == " JEFF33T3             DIST-DEC17 REV3-DEC17            20171231   "
 
 @pytest.mark.records
@@ -93,7 +93,7 @@ def test_read_text():
 def test_write_cont():
     text = write_cont(94239, 236.9986, 1, 1, 2, 1)
     assert len(text) == 1
-    assert text[0] == ' 9.423900+4 2.369986+2          1          1          2          1'
+    assert text[0] == ' 94239.0000 236.998600          1          1          2          1'
 
 @pytest.mark.records
 @pytest.mark.write
@@ -109,5 +109,5 @@ def test_write_ilist():
 def test_write_dlist():
     text = write_dlist([94239, 236.9986, 1, 1, 2, 1, 94239, 236.9986, 1, 1, 2])
     assert len(text) == 2
-    assert text[0] == ' 9.423900+4 2.369986+2 1.000000+0 1.000000+0 2.000000+0 1.000000+0'
-    assert text[1] == ' 9.423900+4 2.369986+2 1.000000+0 1.000000+0 2.000000+0           '
+    assert text[0] == ' 94239.0000 236.998600 1.00000000 1.00000000 2.00000000 1.00000000'
+    assert text[1] == ' 94239.0000 236.998600 1.00000000 1.00000000 2.00000000           '
