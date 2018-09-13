@@ -25,7 +25,7 @@ __author__ = "Luca Fiorito"
 __all__ = ["sampling"]
 
 def _sampling_mp(ismp):
-    global tape, PertXs, PertEdistr, PertLpc, init
+    global tape, PertXs, PertNubar, PertEdistr, PertLpc, init
     t0 = time.time()
     mat = tape.index.get_level_values("MAT")[0]
     info = tape.read_section(mat, 1, 451)
@@ -33,17 +33,16 @@ def _sampling_mp(ismp):
     name = info["TAG"]
     newtape = Endf6(tape.copy())
     extra_points = np.logspace(-5, 7, init.energy_sequence)
-    if not PertXs.empty:
-        if lrp == 2:
-            xs = newtape.get_xs()
-            if not xs.empty:
-                xs = xs.perturb(PertXs[ismp])
-                newtape = newtape.update_xs(xs)
-        else:
-            nubar = newtape.get_nubar()
-            if not nubar.empty:
-                nubar = nubar.perturb(PertXs[ismp])
-                newtape = newtape.update_nubar(nubar)
+    if not PertXs.empty and lrp == 2:
+        xs = newtape.get_xs()
+        if not xs.empty:
+            xs = xs.perturb(PertXs[ismp])
+            newtape = newtape.update_xs(xs)
+    if not PertNubar.empty:
+        nubar = newtape.get_nubar()
+        if not nubar.empty:
+            nubar = nubar.perturb(PertNubar[ismp])
+            newtape = newtape.update_nubar(nubar)
     if not PertEdistr.empty:
         edistr = newtape.get_edistr()
         if not edistr.empty:
@@ -96,10 +95,10 @@ def _parse(iargs=None):
                         help="draw samples only from the selected MAT sections (default = keep all)")
     parser.add_argument('--mf',
                         type=int,
-                        default=range(41),
+                        default=[31,33,34,35],
                         action='store',
                         nargs="+",
-                        metavar="{1,..,40}",
+                        metavar="{31,33,34,35}",
                         help="draw samples only from the selected MF sections (default = keep all)")
     parser.add_argument('--mt',
                         type=int,
@@ -144,45 +143,55 @@ def sampling(iargs=None):
     the covariance matrix, and are applied to the pointwise data to produce 
     the perturbed files.
     """
-    global init, PertXs, PertEdistr, PertLpc, tape
+    global init, PertXs, PertNubar, PertEdistr, PertLpc, tape
     init = _parse(iargs)
-    # LOAD COVARIANCE FILE
-    covtape = read_formatted_file(init.cov)
-#    if init.errorr_cov:
-#        covtape = Errorr.from_file(init.errorr_cov)
-#    elif init.endf6_cov:
-#        covtape = Endf6.from_file(init.endf6_cov)
-    # EXTRACT PERTURBATIONS FROM XS/NUBAR COV FILE
+    # LOAD ENDF6 AND COVARIANCE FILE
+    if init.cov:
+        covtape = read_formatted_file(init.cov)
+        ftape = read_formatted_file(init.file)
+    else:
+        ftape = covtape = read_formatted_file(init.file)
+    # EXTRACT XS PERTURBATIONS FROM COV FILE
     PertXs = pd.DataFrame()
-    if 33 in init.mf or 31 in init.mf:
-        xscov = covtape.get_xs_cov(listmt=init.mt, listmat=init.mat)
+    if 33 in init.mf:
+        xscov = covtape.get_xs_cov(listmt=init.mt, listmat=init.mat, data='xs')
         if not xscov.empty:
             PertXs = xscov.get_samples(init.samples, eig=init.eig)
             if init.debug: PertLpc.to_csv("perts_mf33.csv")
+    # EXTRACT NUBAR PERTURBATIONS FROM ENDF6 FILE
+    PertNubar = pd.DataFrame()
+    if 31 in init.mf:
+        nubarcov = ftape.get_xs_cov(listmt=init.mt, listmat=init.mat, data='nubar')
+        if not nubarcov.empty:
+            PertNubar = nubarcov.get_samples(init.samples, eig=init.eig)
+            if init.debug: PertNubar.to_csv("perts_mf31.csv")
     # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
     PertEdistr = pd.DataFrame()
     if 35 in init.mf:
-        edistrcov = covtape.get_edistr_cov()
+        edistrcov = ftape.get_edistr_cov()
         if not edistrcov.empty:
             PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
             if init.debug: PertEdistr.to_csv("perts_mf35.csv")
     # EXTRACT PERTURBATIONS FROM LPC COV FILE
     PertLpc = pd.DataFrame()
     if 34 in init.mf:
-        lpccov = covtape.get_lpc_cov()
+        lpccov = ftape.get_lpc_cov()
         if not lpccov.empty:
             PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
             if init.debug: PertLpc.to_csv("perts_mf34.csv")
-    if PertLpc.empty and PertEdistr.empty and PertXs.empty:
+    if PertLpc.empty and PertEdistr.empty and PertXs.empty and PertNubar.empty:
         logging.warn("no covariance section was selected/found")
         return
     # DELETE LOCAL VARIABLES
     for k in locals().keys():
         del locals()[k]
     # APPLY PERTURBATIONS BY MAT
-    ftape = Endf6.from_file(init.file)
     for mat, tape in ftape.groupby('MAT'):
         tape = Endf6(tape)
+        mat = tape.index.get_level_values("MAT")[0]
+        info = tape.read_section(mat, 1, 451)
+        if info["LRP"] != 2:
+            logging.warn("not a PENDF tape, cross sections will not be perturbed")
         if init.processes == 1:
             outs = {i : _sampling_mp(i) for i in range(1,init.samples+1)}
         else:

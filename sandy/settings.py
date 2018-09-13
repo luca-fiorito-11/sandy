@@ -9,6 +9,7 @@ import argparse
 import pdb
 
 __author__ = "Luca Fiorito"
+__all__ = ["SandyError"]
 
 class SandyError(Exception):
     pass

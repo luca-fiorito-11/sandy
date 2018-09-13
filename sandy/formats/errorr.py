@@ -36,7 +36,7 @@ class Errorr(BaseFile):
             raise SandyError("section MAT{}/MF{}/MT{} is not in tape".format(mat,mf,mt))
         return read(self.loc[mat,mf,mt].TEXT)
 
-    def get_xs(self, listmat=None, listmt=None):
+    def get_xs(self, listmat=None, listmt=None, **kwargs):
         """
         Extract xs from errorr file into Xs instance.
         """
@@ -73,7 +73,7 @@ class Errorr(BaseFile):
         frame = pd.concat(ListXs, axis=1).reindex(eg, method="ffill")
         return Xs(frame)
 
-    def get_xs_cov(self, listmat=None, listmt=None):
+    def get_xs_cov(self, listmat=None, listmt=None, **kwargs):
         """
         Extract xs covariances from errorr file into XsCov instance.
         """
