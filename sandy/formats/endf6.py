@@ -146,7 +146,7 @@ class Endf6(BaseFile):
             tape.loc[mat,mf,mt].TEXT = text
         return Endf6(tape)
 
-    def get_xs_cov(self, listmat=None, listmt=None):
+    def get_xs_cov(self, listmat=None, listmt=None, data='both'):
         """List of JEFF-33 files with cross-isotopes covariances:
         * 3-Li-6g.jeff33
         * 4-Be-9g.jeff33
@@ -154,7 +154,13 @@ class Endf6(BaseFile):
         * 79-Au-197g.jeff33
         * 94-Pu-241g.jeff33
         """
-        conditions = [self.index.get_level_values("MF") == x for x in [31, 33]]
+        if data == 'both':
+            listmf = [31, 33]
+        elif data == 'xs':
+            listmf = [33]
+        elif data == 'nubar':
+            listmf = [31]
+        conditions = [self.index.get_level_values("MF") == x for x in listmf]
         condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
         tape = self[condition]
         if listmat is not None:

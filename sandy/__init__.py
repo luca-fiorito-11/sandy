@@ -2,6 +2,7 @@ import logging
 import sys
 
 from sandy.formats import *
+from sandy.settings import *
 
 class ShutdownHandler(logging.Handler):
     """Trigger exit on errors.

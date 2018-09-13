@@ -80,10 +80,12 @@ class BaseFile(pd.DataFrame):
         self.index.names = ['MAT', 'MF', 'MT']
         self.sort_index(level=["MAT","MF","MT"], inplace=True)
     
-    def add_sections(self, file, sect):
+    def add_sections(self, file, sect, kind='replace'):
         """Add MF/MT section from one file to an existing dataframe.
-        If they already exist, replace them
+        If they already exist, replace them or keep them according to parameter 
+        `kind`.
         """
+        keep = "first" if kind is "keep" else "last"
         queries = []
         for mf,mtlist in sect.items():
             if mtlist == "all":
@@ -98,9 +100,25 @@ class BaseFile(pd.DataFrame):
             return self
         outdf = pd.concat([self, newdf])
         outdf = outdf.reset_index()
-        outdf = outdf.drop_duplicates(["MAT","MF","MT"], keep="last")
+        outdf = outdf.drop_duplicates(["MAT","MF","MT"], keep=keep)
         outdf = outdf.set_index(["MAT","MF","MT"])
         return self.__class__(outdf)
+
+    def delete_sections(self, sect):
+        """Add MF/MT section from one file to an existing dataframe.
+        """
+        queries = []
+        for mf,mtlist in sect.items():
+            if mtlist == "all":
+                queries.append("(MF!={})".format(mf))
+            else:
+                for mt in mtlist:
+                    queries.append("(MF!={} & MT!={})".format(mf,mt))
+        query = " & ".join(queries)
+        newdf = self.query(query)
+        if newdf.empty:
+            raise SandyError("all sections were deleted")
+        return self.__class__(newdf)
 
 
 class Xs(pd.DataFrame):
@@ -761,7 +779,7 @@ class Cov(np.ndarray):
         if len(NE) != 0:
             neig_max = max(abs(NE))
             eig_max = max(abs(E))
-            if neig_max/eig_max >= 0.01:
+            if neig_max/eig_max >= 0.1:
                 logging.warn("found large negative eigenvalues")
 #            logging.debug(self.prefix + '{} negative eigenvalues were found and replaced with zero'.format(negative_eig.size))
 #            pos = sorted(abs(E),reverse=True).index(largest_negative) + 1
