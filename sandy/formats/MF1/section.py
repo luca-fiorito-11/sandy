@@ -65,7 +65,7 @@ def read_info(text):
     C, i = read_cont(str_list, i)
     out.update({"AWI" : C.C1, "EMAX" : C.C2, "LREL" : C.L1, "NSUB" : C.N1, "NVER" : C.N2})
     C, i = read_cont(str_list, i)
-    out.update({"TEMP" : C.C2, "LDRV" : C.L1, "NWD" : C.N1, "NXC" : C.N2})
+    out.update({"TEMP" : C.C1, "ERR" : C.C2, "LDRV" : C.L1, "NWD" : C.N1, "NXC" : C.N2})
     out["Z"] = int(out["ZA"]//1000)
     out["A"] = int(out["ZA"]-out["Z"]*1000)
     out["SYM"] = elements["SYM"].to_dict()[out["Z"]]
@@ -110,7 +110,7 @@ def write_info(sec):
     text = write_cont(sec["ZA"], sec["AWR"], sec["LRP"], sec["LFI"], sec["NLIB"], sec["NMOD"])
     text += write_cont(sec["ELIS"], sec["STA"], sec["LIS"], sec["LISO"], 0, sec["NFOR"])
     text += write_cont(sec["AWI"], sec["EMAX"], sec["LREL"], 0, sec["NSUB"], sec["NVER"])
-    text += write_cont(0, sec["TEMP"], sec["LDRV"], 0, len(sec["TEXT"]), len(sec["RECORDS"]))
+    text += write_cont(sec["TEMP"], sec["ERR"], sec["LDRV"], 0, len(sec["TEXT"]), len(sec["RECORDS"]))
     text += sec["TEXT"]
     text += [ " "*22 + "{:>11}{:>11}{:>11}{:>11}".format(*x) for x in sec["RECORDS"]]
     TextOut = []; iline = 1
