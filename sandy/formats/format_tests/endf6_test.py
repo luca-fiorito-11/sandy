@@ -282,6 +282,17 @@ def test_update_chi(testPu9, testPu9chi):
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.chi
+def test_add_points_chi(testPu9, testPu9chi):
+    extra_points = [1e-5, 1e-4, 1e-3]
+    edistr = testPu9chi.add_points(extra_points)
+    new = testPu9.update_edistr(edistr)
+    new_sec = new.read_section(9437,5,18)
+    for e in extra_points:
+        assert e in new_sec["PDISTR"][1]["EIN"]
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.chi
 @pytest.mark.cov
 def test_read_chi_cov(testPu9):
     S = testPu9.read_section(9437, 35, 18)

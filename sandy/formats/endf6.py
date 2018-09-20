@@ -343,7 +343,7 @@ class Endf6(BaseFile):
         if not edistr_list:
             logging.warn("no tabulated energy distribution was found")
             return pd.DataFrame()
-        frame = reduce(lambda x,y : pd.merge_ordered(x, y, on="EOUT"), edistr_list).set_index("EOUT")
+        frame = reduce(lambda x,y : pd.merge(x, y, left_index=True, right_index=True), edistr_list)
         frame = frame.sort_index().interpolate(method="slinear").fillna(0)
         return Edistr(frame.T)
 #        for ix,text in tape.TEXT.iteritems():

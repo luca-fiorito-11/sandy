@@ -312,7 +312,7 @@ class Edistr(pd.DataFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.index.names = ["MAT", "MT", "K", "EIN"]
-        self.columns.name = "EOUT"
+        self.sort_index(inplace=True)
 
     def add_points(self, extra_points):
         """
@@ -326,7 +326,7 @@ class Edistr(pd.DataFrame):
             df["MAT"] = np.round(df.MAT.values).astype(int)
             df["MT"] = np.round(df.MT.values).astype(int)
             df["K"] = np.round(df.K.values).astype(int)
-            df = df.set_index(["MAT","MT","K","EIN"])
+            df = df.set_index(["MAT","MT","K","EIN"]).sort_index()
             List.append(df)
         return Edistr(pd.concat(List, axis=0))
 
