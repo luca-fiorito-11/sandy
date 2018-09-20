@@ -34,7 +34,9 @@ c
       real*8   :: x
       character*11 :: a
       character*13 :: tmp
-      if (abs(x) < 1E1) then
+Cf2py intent(inout) a
+Cf2py intent(in) x
+      if (abs(x) > 1e-1 .and. abs(x) < 1E1) then
          write(a,'(F11.8)') x
       elseif (abs(x) >= 1E1 .and. abs(x) < 1E2) then
          write(a,'(F11.7)') x
