@@ -1,5 +1,6 @@
 numpy
 scipy
 pytest >= 3.3
-pandas >= 0.20
+pandas >= 0.23
 matplotlib
+seaborn >= 0.9
