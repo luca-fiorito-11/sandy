@@ -49,7 +49,7 @@ def test_read_list():
     (C1, C2, L1, L2, NPL, N2, B), ipos = read_list(Pu9.endf6, 1809)
     assert len(B) == NPL
     text = write_list(C1, C2, L1, L2, N2, B)
-    assert text[0] == ' 0.00000000 0.00000000          0          0          8          0'
+    assert text[0] == ' 0.000000+0 0.000000+0          0          0          8          0'
     assert text[-1] == ' 1.63478100 3.55460000                                            '
 
 @pytest.mark.records
@@ -77,7 +77,7 @@ def test_read_tab1():
     assert mt == 0
     assert ns == 99999
     text = write_tab1(C1, C2, L1, L2, NBT, INT, x, y)
-    assert text[0] == ' 0.00000000 0.00000000          0          0          1       3201'
+    assert text[0] == ' 0.000000+0 0.000000+0          0          0          1       3201'
     assert text[-1] == ' 29000000.0 6.49123000 29500000.0 6.53911000 30000000.0 6.62055000'
 
 @pytest.mark.records
