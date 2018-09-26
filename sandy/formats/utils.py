@@ -161,6 +161,20 @@ class Xs(pd.DataFrame):
         return Xs(frame)
 
     def perturb(self, pert, method=2, **kwargs):
+        """Perturb cross sections/nubar given a set of perturbations.
+        
+        Parameters
+        ----------
+        pert : pandas.Series
+            multigroup perturbations from sandy.XsSamples
+        method : int
+            * 1 : samples outside the range [0, 2*_mean_] are set to _mean_. 
+            * 2 : samples outside the range [0, 2*_mean_] are set to 0 or 2*_mean_ respectively if they fall below or above the defined range.
+        
+        Returns
+        -------
+        sandy.Xs
+        """
         frame = self.copy()
         for mat, mt in frame:
             if mat not in pert.index.get_level_values("MAT").unique(): continue
@@ -289,6 +303,20 @@ class Lpc(pd.DataFrame):
         return Lpc(pd.concat(List, axis=0))
 
     def perturb(self, pert, method=2, **kwargs):
+        """Perturb Legendre polynomials coefficients given a set of perturbations.
+        
+        Parameters
+        ----------
+        pert : pandas.Series
+            multigroup perturbations from sandy.LpcSamples
+        method : int
+            * 1 : samples outside the range [0, 2*_mean_] are set to _mean_. 
+            * 2 : samples outside the range [0, 2*_mean_] are set to 0 or 2*_mean_ respectively if they fall below or above the defined range.
+        
+        Returns
+        -------
+        sandy.Lpc
+        """
         frame = self.copy()
         for (mat,mt),_ in self.groupby(["MAT", "MT"]):
             if (mat,mt) not in pert.index: continue
@@ -405,10 +433,9 @@ class Edistr(pd.DataFrame):
         return Edistr(pd.concat(List, axis=0))
 
     def normalize(self):
+        """Normalize each outgoing energy distribution to 1.
         """
-        Normalize each outgoing energy distribution to 1.
-        """
-        List = []#pd.DataFrame([v/v.sum() for i,v in self.iterrows()])
+        List = []
         for i,v in self.iterrows():
             dx = v.index.values[1:] - v.index.values[:-1]
             y = (v.values[1:]+v.values[:-1])/2
@@ -418,6 +445,22 @@ class Edistr(pd.DataFrame):
         return Edistr(frame)
 
     def perturb(self, pert, method=2, normalize=True, **kwargs):
+        """Perturb energy distributions given a set of perturbations.
+        
+        Parameters
+        ----------
+        pert : pandas.Series
+            multigroup perturbations from sandy.EdistrSamples
+        method : int
+            * 1 : samples outside the range [0, 2*_mean_] are set to _mean_. 
+            * 2 : samples outside the range [0, 2*_mean_] are set to 0 or 2*_mean_ respectively if they fall below or above the defined range.
+        normalize : bool
+            apply normalization
+        
+        Returns
+        -------
+        sandy.Edistr
+        """
         frame = self.copy()
         for (mat,mt,k),S in self.groupby(["MAT", "MT", "K"]):
             if (mat,mt) not in pert.index: continue
@@ -436,6 +479,8 @@ class Edistr(pd.DataFrame):
         if normalize:
             return Edistr(frame).normalize()
         return Edistr(frame)
+
+
 
 class XsCov(pd.DataFrame):
     """
