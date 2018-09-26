@@ -7,16 +7,20 @@ Created on Thu Jul 12 09:17:18 2018
 import pytest
 import numpy as np
 
-from .. import Endf6
+import pandas as pd
+import scipy as sp
+import seaborn as sns
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+
+import sandy
+from sandy import Endf6
 from ..MF1 import write as write_mf1
 from ..MF3 import write as write_mf3
 from ..MF4 import write as write_mf4
 from ..MF5 import write as write_mf5
 from ..MF8 import write as write_mf8
-from ...data import Pu9
-from ...data import H1
-from ...data import Fe56
-from ...data import U5
+from sandy.data import U5, U8, Fe56, Pu9, H1
 
 @pytest.fixture(scope="module")
 def testPu9():
@@ -40,6 +44,12 @@ def testFe56():
 def testU5():
     tape = Endf6.from_text("\n".join(U5.nfy))
     assert (tape.index.get_level_values("MAT").unique() == 9228).all()
+    return tape
+
+@pytest.fixture(scope="module")
+def testU8():
+    tape = Endf6.from_text("\n".join(U8.endf6))
+    assert (tape.index.get_level_values("MAT").unique() == 9237).all()
     return tape
 
 @pytest.mark.formats
@@ -238,6 +248,44 @@ def test_extract_lpc_cov(testFe56):
     C = testFe56.get_lpc_cov()
     assert C.index.names == C.columns.names == ['MAT', 'MT', 'L', 'E']
     assert (C.values == C.values.T).all()
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.lpc
+def test_perturb_lpc(testU8):
+    energies =  [1e-05, 0.0253, 2e2, 1e3, 1e4, 6e4, 4e5, 7e5, 1.2e6,  1.8e6, 2.6e6, 3.2e6, 4e6, 4.6e6, 5.4e6, 6e6, 3e7]
+    le = len(energies)
+    lpc = testU8.get_lpc()
+    smp = np.random.normal(1.0, 0.5, le*6)
+    ls = [1]*le + [2]*le + [3]*le + [4]*le + [5]*le + [6]*le
+    perts = pd.DataFrame.from_dict(dict(E=energies*6, SMP=smp.tolist(), L=ls, MT=2, MAT=9237)).set_index(["MAT","MT","L","E"]).SMP
+    out = lpc.perturb(perts)
+    assert ((out/lpc).stack() >= 0).all()
+    assert ((out/lpc).stack() <= 2).all()
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.lpc
+@pytest.mark.cov
+@pytest.mark.plot
+def test_plot_std_lpc(testU8):
+    lpccov = testU8.get_lpc_cov()
+    ax = lpccov.plot_std(display=False)    
+    assert ax is not None
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.lpc
+@pytest.mark.tpd
+def test_lpc_to_tpd(testU8):
+    lpc = testU8.get_lpc()
+    tpd = lpc.to_tpd()
+    assert (tpd.index == lpc.index).all()
+    assert (tpd.loc[9237,2,1e-5] == 0.5).all()
+    assert np.isclose(tpd.loc[9237,51,1e7][-0.94], 0.210904)
+    assert np.isclose(tpd.loc[9237,51,5e4][0.99], 0.412180)
+#    A=testU8.update_tpd(tpd)
+#    pytest.set_trace()
 
 @pytest.mark.formats
 @pytest.mark.endf6
