@@ -11,12 +11,15 @@ import os
 import pandas as pd
 import numpy as np
 import scipy as sp
+import seaborn as sns
+import matplotlib.pyplot as plt
 
+from ..sampling import LpcSamples
 from ..functions import gls, div0
-from ..settings import SandyError
+from ..settings import SandyError, colors
 
 __author__ = "Luca Fiorito"
-__all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov", "Cov", "Fy"]
+__all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov", "Cov", "Fy", "Tpd"]
 
 class Section(dict):
     pass
@@ -178,8 +181,7 @@ class Xs(pd.DataFrame):
             P = pert.loc[mat,mtPert]
             P = P.reindex(P.index.union(frame[mat,mt].index)).ffill().fillna(1).reindex(frame[mat,mt].index)
             # Negative values are set to mean
-            P = P.where(P >= 0.0, 1.0)
-            P = P.where(P <= 2.0, 1.0)
+            P = P.where((P>0) & (P<2), 1.0)
             xs = frame[mat,mt].multiply(P, axis="index")
             frame[mat,mt][xs > 0] = xs[xs > 0]
         return Xs(frame).reconstruct_sums()
@@ -220,16 +222,41 @@ class Xs(pd.DataFrame):
         return pd.DataFrame(records, columns=["MAT", "MT", "MACS", "FLUX", "Elo", "Ehi", "E0","SKIPPED"])
 
 
+
 class Lpc(pd.DataFrame):
+    """Legendre polynomial coefficients for angular distribution of outgoing particles.
+    
+    Dataframe components
+    --------------------
+    index :
+        - MAT number
+        - MT number
+        - incoming neutron energy
+    
+    columns :
+        - Legendre coefficients starting from P0
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.index.names = ["MAT", "MT", "E"]
         self.columns = range(self.shape[1])
+        self.columns.name = "L"
+        self.sort_index(inplace=True)
+    
+    def to_stack(self):
+        """Convert Lpc instance to stack series.
+
+        Returns
+        -------
+        pandas.Series
+        """
+        series = self.stack()
+        series.name = "VALUE"
+        return series
 
     def to_tab(self, mat, mt, e, mu=np.linspace(-1,1,201)):
-        """
-        Return tabulated angular distribution for given MAT, MT and energy point.
+        """Return tabulated angular distribution for given MAT, MT and energy point.
         """
         from numpy.polynomial import legendre
         sec = self.loc[mat, mt]
@@ -243,8 +270,7 @@ class Lpc(pd.DataFrame):
         return pd.Series(adistr, index=mu, name=(mat,mt,e))
 
     def add_points(self, extra_points):
-        """
-        Add additional energy points.
+        """Add additional entries to Lpc incoming energies.
         """
         points = np.array(sorted(extra_points))
         frame = self.copy()
@@ -265,7 +291,6 @@ class Lpc(pd.DataFrame):
 
     def perturb(self, pert, verbose=False, **kwargs):
         frame = self.copy()
-#        corrected = {}
         for (mat,mt),_ in self.groupby(["MAT", "MT"]):
             if (mat,mt) not in pert.index: continue
             lpc = frame.loc[mat,mt]
@@ -280,43 +305,89 @@ class Lpc(pd.DataFrame):
             lpc_copy.update(df_notnan)
             for l,_ in prt.groupby("L"):
                 P = prt.loc[l].reindex(eg).ffill()
-                P = np.where(P.abs() <= 1.0, P, 1.0)
+                P = P.where((P>0) & (P<2), 1.0)
                 lpc_copy[l] *= P
-#            lpc_copy = lpc_copy.reindex(elpc)
             lpc_copy = lpc_copy.reset_index()
             lpc_copy["MAT"] = mat
             lpc_copy["MT"] = mt
             lpc_copy = Lpc(lpc_copy.set_index(["MAT","MT","E"]))
-#            for e in elpc:
-#                orig = lpc.loc[mat,mt,e].copy()
-#                ks = np.linspace(1,0,101)
-#                icount = 0
-#                while not (lpc.to_tab(mat,mt,e) >= 0).all():
-#                    icount += 1
-#                    k = ks[icount]
-#                    P = (orig/self.loc[mat,mt,e]-1)
-#                    lpc.loc[mat,mt,e] = self.loc[mat,mt,e]*(k*P + 1)
-#                    if icount == len(ks) - 1 : break
-#                if icount != 0:
-#                    corrected.update({(mat,mt,e) : (1-k)*100.})
             frame.update(lpc_copy)
-#        corrected = pd.DataFrame.from_dict(corrected, orient="index", columns=["k (%)"])
-#        if not corrected.empty:
-#            corrected.index = pd.MultiIndex.from_tuples(corrected.index, names=["MAT", "MT", "E"])
-#            print("for sample {} the LPC perturbations were reduced by a factor k (%) for the following energies:\n".format(pert.name) + corrected.to_string())
         return Lpc(frame)
+    
+    def to_tpd(self):
+        """Convert Lpc instance to Tpd instance.
+        Keep indexes.
+        """
+        out = pd.DataFrame([self.to_tab(*ix) for ix in self.index], index=self.index)
+        return Tpd(out)
+        
+
+
+class Tpd(pd.DataFrame):
+    """Tabulated probability distribution for angular distribution of outgoing particles.
+    
+    Dataframe components
+    --------------------
+    index :
+        - MAT number
+        - MT number
+        - incoming neutron energy
+    
+    columns :
+        - cosines
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = ["MAT", "MT", "E"]
+        self.columns.name = "COS"
+        self.sort_index(inplace=True)
+
 
 
 class Edistr(pd.DataFrame):
+    """Energy distribution outgoing particles.
+    
+    Dataframe components
+    --------------------
+    index :
+        - MAT number
+        - MT number
+        - number of partial energy distribution (k)
+        - incoming neutron energy
+    
+    columns :
+        - outgoing neutron energies
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.index.names = ["MAT", "MT", "K", "EIN"]
         self.sort_index(inplace=True)
+        self.columns.name = "EOUT"
+
+    def to_stack(self):
+        """Convert Edistr instance to stack series.
+        
+        Returns
+        -------
+        pandas.Series
+        """
+        series = self.stack()
+        series.name = "VALUE"
+        return series
 
     def add_points(self, extra_points):
-        """
-        Add additional incoming energy points.
+        """Add additional entries to Edistr incoming energies.
+        
+        Parameters
+        ----------
+        extra_points : iterable
+            energy points in eV
+        
+        Returns
+        -------
+        sandy.Edistr
         """
         frame = self.copy()
         List = []
@@ -439,6 +510,8 @@ class EdistrCov(pd.DataFrame):
                 print("\n".join(E))
         return frame
 
+
+
 class LpcCov(pd.DataFrame):
 
     def __init__(self, *args, **kwargs):
@@ -446,13 +519,76 @@ class LpcCov(pd.DataFrame):
         self.index.names = ["MAT", "MT", "L", "E"]
         self.columns.names = ["MAT", "MT", "L", "E"]
 
+    def get_var(self):
+        """Extract variances in pandas Series.
+
+        Returns
+        -------
+        pandas.Series
+        """
+        return pd.Series(np.diag(self.values), index=self.index, name="VAR")
+
+    def get_std(self):
+        """Extract standard deviations in pandas Series.
+        
+        Returns
+        -------
+        pandas.Series
+        """
+        return self.get_var().apply(np.sqrt).rename("STD")
+
+    def plot_std(self, display=True, **kwargs):
+        """Plot standard deviations with seaborn.
+        
+        Parameters
+        ----------
+        display : bool
+            flag to display figure to screen
+        
+        kwargs : keyword arguments
+            extra arguments to pass to ```seaborn.lineplot```
+        
+        Returns
+        -------
+        matplotlib.pyplot.Axes
+        """
+        std = self.get_std()*100
+        df = std.to_frame().reset_index()
+        df["L"] = df["L"].astype("category")
+        palette = list(colors.keys())[:len(df.L.unique())]
+        ax = sns.lineplot(data=df, drawstyle="steps-post", x="E", y="STD", hue="L", palette=palette, style="MT", **kwargs)
+        ax.set_xscale("log")
+        if (df.STD > 200).any():
+            ax.set_yscale("log")
+        ax.set(xlabel='energy (eV)', ylabel='stdev (%)')
+        if display:
+            plt.grid()
+            plt.show()
+            plt.close()
+        return ax
+
     def to_matrix(self):
         return self.index, Cov(self.values)
-
+    
+    def filter_p(self, p):
+        """Delete covariances for Legendre polynomial coefficients with order higher than `p`.
+        
+        Parameters
+        ----------
+        p : int
+            maximum order of Legendre polynomial coefficients
+        
+        Returns
+        -------
+        sandy.Lpc
+        """
+        mask = self.index.get_level_values("L") <= p
+        lpc = self.iloc[mask, mask]
+        return self.__class__(lpc)
+    
     def get_samples(self, nsmp, **kwargs):
         index, cov = self.to_matrix()
         frame = pd.DataFrame(cov.sampling(nsmp) + 1, index=index, columns=range(1,nsmp+1))
-        frame.columns.name = 'SMP'
         if "eig" in kwargs:
             if kwargs["eig"] > 0:
                 eigs = cov.eig()[0]
@@ -464,7 +600,9 @@ class LpcCov(pd.DataFrame):
                 diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
                 E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
                 print("\n".join(E))
-        return frame
+        return LpcSamples(frame)
+
+
 
 class Fy(pd.DataFrame):
     """Dataset of independent and/or cumulative fission yields and 
