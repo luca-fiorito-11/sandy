@@ -14,7 +14,7 @@ import scipy as sp
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from ..sampling import LpcSamples
+from ..sampling import LpcSamples, EdistrSamples
 from ..functions import gls, div0
 from ..settings import SandyError, colors
 
@@ -160,12 +160,8 @@ class Xs(pd.DataFrame):
                 frame.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
         return Xs(frame)
 
-    def perturb(self, pert, **kwargs):
+    def perturb(self, pert, method=2, **kwargs):
         frame = self.copy()
-        # Add extra energy points
-#        if "energy_point" in kwargs:
-#            Xs = Xs.reindex(Xs.index.union(kwargs["energy_point"])).interpolate(method="slinear").fillna(0)
-#        Xs.index.name = indexName
         for mat, mt in frame:
             if mat not in pert.index.get_level_values("MAT").unique(): continue
             lmtp = pert.loc[mat].index.get_level_values("MT").unique()
@@ -180,8 +176,11 @@ class Xs(pd.DataFrame):
             if not mtPert: continue
             P = pert.loc[mat,mtPert]
             P = P.reindex(P.index.union(frame[mat,mt].index)).ffill().fillna(1).reindex(frame[mat,mt].index)
-            # Negative values are set to mean
-            P = P.where((P>0) & (P<2), 1.0)
+            if method == 2:
+                P = P.where(P>0, 0.0)
+                P = P.where(P<2, 2.0)
+            elif method == 1:
+                P = P.where((P>0) & (P<2), 1.0)
             xs = frame[mat,mt].multiply(P, axis="index")
             frame[mat,mt][xs > 0] = xs[xs > 0]
         return Xs(frame).reconstruct_sums()
@@ -289,7 +288,7 @@ class Lpc(pd.DataFrame):
             List.append(rdf)
         return Lpc(pd.concat(List, axis=0))
 
-    def perturb(self, pert, verbose=False, **kwargs):
+    def perturb(self, pert, method=2, **kwargs):
         frame = self.copy()
         for (mat,mt),_ in self.groupby(["MAT", "MT"]):
             if (mat,mt) not in pert.index: continue
@@ -305,7 +304,11 @@ class Lpc(pd.DataFrame):
             lpc_copy.update(df_notnan)
             for l,_ in prt.groupby("L"):
                 P = prt.loc[l].reindex(eg).ffill()
-                P = P.where((P>0) & (P<2), 1.0)
+                if method == 2:
+                    P = P.where(P>0, 0.0)
+                    P = P.where(P<2, 2.0)
+                elif method == 1:
+                    P = P.where((P>0) & (P<2), 1.0)
                 lpc_copy[l] *= P
             lpc_copy = lpc_copy.reset_index()
             lpc_copy["MAT"] = mat
@@ -414,7 +417,7 @@ class Edistr(pd.DataFrame):
         frame.index = pd.MultiIndex.from_tuples(frame.index)
         return Edistr(frame)
 
-    def perturb(self, pert, **kwargs):
+    def perturb(self, pert, method=2, normalize=True, **kwargs):
         frame = self.copy()
         for (mat,mt,k),S in self.groupby(["MAT", "MT", "K"]):
             if (mat,mt) not in pert.index: continue
@@ -424,12 +427,15 @@ class Edistr(pd.DataFrame):
                         P = P[elo,ehi]
                         eg = sorted(set(edistr.index) | set(P.index))
                         P = P.reindex(eg).ffill().fillna(0).reindex(edistr.index)
-                        P = np.where(P.abs() <= edistr, P, 0)
-#                        pedistr = edistr + P
-#                        frame.loc[mat,mt,k,ein] = pd.Series(np.where(pedistr>0, pedistr, edistr), index=edistr.index)
+                        if method == 2:
+                            P = P.where(P>=-edistr, -edistr)
+                            P = P.where(P<=edistr, edistr)
+                        elif method == 1:
+                            P = np.where(P.abs() <= edistr, P, 0)
                         frame.loc[mat,mt,k,ein] = edistr + P
-        return Edistr(frame).normalize()
-
+        if normalize:
+            return Edistr(frame).normalize()
+        return Edistr(frame)
 
 class XsCov(pd.DataFrame):
     """
@@ -494,6 +500,18 @@ class EdistrCov(pd.DataFrame):
         return self.index, Cov(self.values)
 
     def get_samples(self, nsmp, **kwargs):
+        """Draw samples from probability distribution centered in 0 and with
+        absolute covariance in EdistrCov instance.
+        
+        Parameters
+        ----------
+        nsmp : int
+            number of samples
+        
+        Returns
+        -------
+        sandy.EdistrSamples
+        """
         index, cov = self.to_matrix()
         frame = pd.DataFrame(cov.sampling(nsmp), index=index, columns=range(1,nsmp+1))
         frame.columns.name = 'SMP'
@@ -508,7 +526,7 @@ class EdistrCov(pd.DataFrame):
                 diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
                 E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
                 print("\n".join(E))
-        return frame
+        return EdistrSamples(frame)
 
 
 
@@ -587,6 +605,18 @@ class LpcCov(pd.DataFrame):
         return self.__class__(lpc)
     
     def get_samples(self, nsmp, **kwargs):
+        """Draw samples from probability distribution centered in 1 and with
+        relative covariance in LpcCov instance.
+        
+        Parameters
+        ----------
+        nsmp : int
+            number of samples
+        
+        Returns
+        -------
+        sandy.LpcSamples
+        """
         index, cov = self.to_matrix()
         frame = pd.DataFrame(cov.sampling(nsmp) + 1, index=index, columns=range(1,nsmp+1))
         if "eig" in kwargs:
