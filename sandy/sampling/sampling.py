@@ -82,6 +82,9 @@ def _parse(iargs=None):
                         type=int,
                         default=1,
                         help="number of worker processes (default = 1)")
+    parser.add_argument('--max-polynomial','-P',
+                        type=int,
+                        help="Maximum order of Legendre polynomial coefficients considered for sampling (default = all)")
     parser.add_argument('--eig',
                         type=int,
                         default=10,
@@ -176,6 +179,8 @@ def sampling(iargs=None):
     PertLpc = pd.DataFrame()
     if 34 in init.mf:
         lpccov = ftape.get_lpc_cov()
+        if init.max_polynomial:
+            lpccov = lpccov.filter_p(init.max_polynomial)
         if not lpccov.empty:
             PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
             if init.debug: PertLpc.to_csv("perts_mf34.csv")
