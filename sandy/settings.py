@@ -7,9 +7,12 @@ Created on Wed Mar 21 15:21:37 2018
 import os
 import argparse
 import pdb
+from matplotlib import colors as mcolors
 
 __author__ = "Luca Fiorito"
-__all__ = ["SandyError"]
+__all__ = ["SandyError", "colors"]
+
+colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 
 class SandyError(Exception):
     pass
