@@ -11,6 +11,7 @@ from random import randint
 
 import numpy as np
 
+import sandy
 from ...formats import Errorr
 from ...formats import Endf6
 from ..sampling import sampling
