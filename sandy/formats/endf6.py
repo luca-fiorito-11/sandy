@@ -462,14 +462,6 @@ class Endf6(BaseFile):
             conditions = [tape.index.get_level_values("MT") == x for x in listmt]
             condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
             tape = tape[condition]
-#        query = "MF==4"
-#        if listmat is not None:
-#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-#            query += " & ({})".format(query_mats)
-#        if listmt is not None:
-#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-#            query += " & ({})".format(query_mts)
-#        tape = self.query(query)
         DictLpc =  {}
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)
@@ -521,14 +513,6 @@ class Endf6(BaseFile):
             conditions = [tape.index.get_level_values("MT") == x for x in listmt]
             condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
             tape = tape[condition]
-#        query = "MF==34"
-#        if listmat is not None:
-#            query_mats = " | ".join(["MAT=={}".format(x) for x in listmat])
-#            query += " & ({})".format(query_mats)
-#        if listmt is not None:
-#            query_mts = " | ".join(["MT=={}".format(x) for x in listmt])
-#            query += " & ({})".format(query_mts)
-#        tape = self.query(query)
         List = []; eg = set()
         for ix,text in tape.TEXT.iteritems():
             X = self.read_section(*ix)
@@ -592,6 +576,31 @@ class Endf6(BaseFile):
         i_lower = np.tril_indices(len(index), -1)
         matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
         return LpcCov(matrix, index=index, columns=index)
+
+    def update_tpd(self, tpdFrame):
+        from .MF4 import write
+        mf = 4
+        tape = self.copy()
+        for (mat,mt),S in tpdFrame.groupby(["MAT","MT"]):
+            if (mat,mf,mt) not in self.index: continue
+            sec = self.read_section(mat,mf,mt)
+            pdb.set_trace()
+            if "TAB" in sec: del sec["TAB"]
+            if "LPC" in sec: del sec["LPC"]
+            sec["TAB"] = {}
+            sub = {}
+            for e in S.loc[mat,mt].index:
+                tab = S.loc[mat,mt,e]
+                T = LT = 0 # do not deal with this
+                pdb.set_trace()
+                distr = {"T" : T, "LT" : LT, "NBT" : [len(tab)], "INT" : [2], "MU" : tab.index, "ADISTR" : tab.values}
+                sub.update({e : distr})
+            sec["TAB"].update({"E" : sub})
+            sec["TAB"].update({"NBT" : [len(sec["TAB"]["E"])]})   
+            sec["TAB"].update({"INT" : [2]})   
+            text = write(sec)
+            tape.loc[mat,mf,mt].TEXT = text
+        return Endf6(tape)
 
     def get_fy(self, listenergy=None, listmat=None, listmt=None):
         """Extract selected fission yields.
