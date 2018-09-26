@@ -4,8 +4,12 @@ Created on Thu Jun 14 09:23:33 2018
 
 @author: fiorito_l
 """
+
 from ..records import read_cont, read_tab1, read_tab2, read_list, read_control, write_cont, write_tab1, write_tab2, write_list
 from ..utils import Section
+
+__author__ = "Luca Fiorito"
+__all__ = ["read", "write"]
 
 def read(text):
     str_list = text.splitlines()
