@@ -361,6 +361,30 @@ def test_extract_chi_cov(testPu9):
 
 @pytest.mark.formats
 @pytest.mark.endf6
+@pytest.mark.chi
+def test_perturb_chi(testPu9):
+    edistr = sandy.Edistr(testPu9.get_edistr().query("EIN==1e5 | EIN==2e6"))
+    mat = 9437
+    mt = 18
+    std = edistr.loc[mat,mt,1,2e6]*0.6
+    cov = np.diag(std**2)
+    smp = np.random.multivariate_normal([0]*len(std), cov, 1).flatten()
+    perts = pd.DataFrame.from_dict(dict(EOUT=std.index, SMP=smp.tolist(), ELO=1e-5, EHI=3e7, MT=mt, MAT=mat)).set_index(["MAT","MT","ELO","EHI", "EOUT"]).SMP
+    out = edistr.perturb(perts, normalize=False)
+    assert (out>=0).all().all()
+    assert (out.iloc[0] <= out.iloc[0]*2).all()
+    assert (out.iloc[-1] <= out.iloc[-1]*2).all()
+#    N0 = (out.iloc[0] == 0).sum()
+#    N2 = (out.iloc[0] == 2*edistr.iloc[0]).sum()
+#    assert N0 > 0
+#    assert N0 in range(N2-10, N2+11)
+#    N0 = (out.iloc[1] == 0).sum()
+#    N2 = (out.iloc[1] == 2*edistr.iloc[1]).sum()
+#    assert N0 > 0
+#    assert N0 in range(N2-10, N2+11)
+
+@pytest.mark.formats
+@pytest.mark.endf6
 @pytest.mark.fy
 def test_read_fy(testU5):
     S = testU5.read_section(9228, 8, 454)
