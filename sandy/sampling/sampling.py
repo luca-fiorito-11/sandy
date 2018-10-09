@@ -159,31 +159,47 @@ def sampling(iargs=None):
     if 33 in init.mf:
         xscov = covtape.get_xs_cov(listmt=init.mt, listmat=init.mat, data='xs')
         if not xscov.empty:
-            PertXs = xscov.get_samples(init.samples, eig=init.eig)
-            if init.debug: PertLpc.to_csv("perts_mf33.csv")
+            count = xscov.check_diagonal()
+            if count != 0:
+                logging.warn("MF33 covariances will not be sampled")
+            else:
+                PertXs = xscov.get_samples(init.samples, eig=init.eig)
+                if init.debug: PertLpc.to_csv("perts_mf33.csv")
     # EXTRACT NUBAR PERTURBATIONS FROM ENDF6 FILE
     PertNubar = pd.DataFrame()
     if 31 in init.mf:
         nubarcov = ftape.get_xs_cov(listmt=init.mt, listmat=init.mat, data='nubar')
         if not nubarcov.empty:
-            PertNubar = nubarcov.get_samples(init.samples, eig=init.eig)
-            if init.debug: PertNubar.to_csv("perts_mf31.csv")
+            count = nubarcov.check_diagonal()
+            if count != 0:
+                logging.warn("MF31 covariances will not be sampled")
+            else:
+                PertNubar = nubarcov.get_samples(init.samples, eig=init.eig)
+                if init.debug: PertNubar.to_csv("perts_mf31.csv")
     # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
     PertEdistr = pd.DataFrame()
     if 35 in init.mf:
         edistrcov = ftape.get_edistr_cov()
         if not edistrcov.empty:
-            PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
-            if init.debug: PertEdistr.to_csv("perts_mf35.csv")
+            count = edistrcov.check_diagonal()
+            if count != 0:
+                logging.warn("MF35 covariances will not be sampled")
+            else:
+                PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
+                if init.debug: PertEdistr.to_csv("perts_mf35.csv")
     # EXTRACT PERTURBATIONS FROM LPC COV FILE
     PertLpc = pd.DataFrame()
     if 34 in init.mf:
         lpccov = ftape.get_lpc_cov()
-        if init.max_polynomial:
-            lpccov = lpccov.filter_p(init.max_polynomial)
         if not lpccov.empty:
-            PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
-            if init.debug: PertLpc.to_csv("perts_mf34.csv")
+            if init.max_polynomial:
+                lpccov = lpccov.filter_p(init.max_polynomial)
+            count = lpccov.check_diagonal()
+            if count != 0:
+                logging.warn("MF34 covariances will not be sampled")
+            else:
+                PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
+                if init.debug: PertLpc.to_csv("perts_mf34.csv")
     if PertLpc.empty and PertEdistr.empty and PertXs.empty and PertNubar.empty:
         logging.warn("no covariance section was selected/found")
         return
