@@ -482,7 +482,74 @@ class Edistr(pd.DataFrame):
 
 
 
-class XsCov(pd.DataFrame):
+class BaseCov(pd.DataFrame):
+    """Base covariance class inheriting from `pandas.DataFrame`.
+    Must be used as superclass by all other covariances.
+    """
+    
+    def to_matrix(self):
+        return self.index, Cov(self.values)
+
+    def check_diagonal(self, verbose=True):
+        """Check if any of the diagonal elements is negative.
+        Return count of negative variances.
+        
+        Parameters
+        ----------
+        verbose : `bool`
+            If `True` print list of negative variances
+
+        Returns
+        -------
+        `int`
+        """
+        var = self.get_var()
+        mask = var < 0
+        count = mask.sum()
+        if verbose and count > 0:
+            string = var[mask].to_string()
+            logging.warn("found {} negative variances\n{}".format(count, string))
+        return count
+
+    def get_var(self):
+        """Extract variances in pandas Series.
+
+        Returns
+        -------
+        `pandas.Series`
+        """
+        return pd.Series(np.diag(self.values), index=self.index, name="VAR")
+
+    def get_std(self):
+        """Extract standard deviations in pandas Series.
+        
+        Returns
+        -------
+        `pandas.Series`
+        """
+        return self.get_var().apply(np.sqrt).rename("STD")
+
+    def filter_by(self, index, value):
+        """Delete covariances for indices not equal to given value.
+        
+        Parameters
+        ----------
+        index : `str`
+            index on which to apply the filter, e.g. "MAT", "MT"
+        value : `int`
+            corresponding value
+        
+        Returns
+        -------
+        `sandy.LpcCov`, `sandy.EdistrCov`, `sandy.XsCov`
+        """
+        mask = self.index.get_level_values(index) == value
+        cov = self.iloc[mask, mask]
+        return self.__class__(cov)
+
+
+
+class XsCov(BaseCov):
     """
     columns =  (MATi,MTj) ... (MATm,MTn)
     index = E1, E2, ..., El
@@ -534,15 +601,19 @@ class XsCov(pd.DataFrame):
         return pd.DataFrame.from_records(records, columns=["MAT", "MT", "VAR", "STD", "FLUX", "Elo", "Ehi", "E0","SKIPPED"])
 
 
-class EdistrCov(pd.DataFrame):
+
+class EdistrCov(BaseCov):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.index.names = ["MAT", "MT", "ELO", "EHI", "EOUT"]
         self.columns.names = ["MAT", "MT", "ELO", "EHI", "EOUT"]
-
-    def to_matrix(self):
-        return self.index, Cov(self.values)
+    
+    @property
+    def nblocks(self):
+        """Number of covariance blocks.
+        """
+        return self.index.get_level_values("EHI").unique().size
 
     def get_samples(self, nsmp, **kwargs):
         """Draw samples from probability distribution centered in 0 and with
@@ -550,12 +621,12 @@ class EdistrCov(pd.DataFrame):
         
         Parameters
         ----------
-        nsmp : int
+        nsmp : `int`
             number of samples
         
         Returns
         -------
-        sandy.EdistrSamples
+        `sandy.EdistrSamples`
         """
         index, cov = self.to_matrix()
         frame = pd.DataFrame(cov.sampling(nsmp), index=index, columns=range(1,nsmp+1))
@@ -572,40 +643,104 @@ class EdistrCov(pd.DataFrame):
                 E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
                 print("\n".join(E))
         return EdistrSamples(frame)
+    
+    def plot_block_corr(self, mat, mt, block, display=True, **kwargs):
+        """Plot block correlation matrix.
+        
+        Parameters
+        ----------
+        mat : `int`
+            MAT number
+            
+        mt : `int`
+            MT number
+
+        block : `int`
+            covarianceblock number (starting from 0)
+
+        display : `bool`
+            flag to display figure to screen
+        
+        kwargs : keyword arguments
+            extra arguments to pass to ```pcolor```
+        
+        Returns
+        -------
+        `matplotlib.pyplot.Axes`
+        """
+        cov = self.filter_by("MAT", mat).filter_by("MT", mt)
+        ehi = cov.index.get_level_values("EHI").unique()[block]
+        cov = cov.filter_by("EHI", ehi)
+        index = cov.index.get_level_values("EOUT")
+        corr = cov.to_matrix()[1].corr
+        fig, ax = plt.subplots()
+        ax.set_yscale('log')
+        ax.set_xscale('log')
+        ax.set(xlabel='energy (eV)', ylabel='energy (eV)')
+        c = ax.pcolor(index, index, corr, vmin=-1, vmax=1, cmap="bwr", **kwargs)
+        fig.colorbar(c, ax=ax)
+        if display:
+            plt.tight_layout()
+            plt.grid()
+            plt.show()
+            plt.close()
+        return ax
+
+    def plot_block_cov(self, mat, mt, block, display=True, **kwargs):
+        """Plot block covariance matrix.
+        
+        Parameters
+        ----------
+        mat : `int`
+            MAT number
+            
+        mt : `int`
+            MT number
+
+        block : `int`
+            covarianceblock number (starting from 0)
+
+        display : `bool`
+            flag to display figure to screen
+        
+        kwargs : keyword arguments
+            extra arguments to pass to ```pcolor```
+        
+        Returns
+        -------
+        `matplotlib.pyplot.Axes`
+        """
+        cov = self.filter_by("MAT", mat).filter_by("MT", mt)
+        ehi = cov.index.get_level_values("EHI").unique()[block]
+        cov = cov.filter_by("EHI", ehi)
+        index = cov.index.get_level_values("EOUT")
+        fig, ax = plt.subplots()
+        ax.set_yscale('log')
+        ax.set_xscale('log')
+        ax.set(xlabel='energy (eV)', ylabel='energy (eV)')
+        c = ax.pcolor(index, index, cov, **kwargs)
+        fig.colorbar(c, ax=ax)
+        if display:
+            plt.tight_layout()
+            plt.grid()
+            plt.show()
+            plt.close()
+        return ax
 
 
-
-class LpcCov(pd.DataFrame):
+class LpcCov(BaseCov):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.index.names = ["MAT", "MT", "L", "E"]
         self.columns.names = ["MAT", "MT", "L", "E"]
 
-    def get_var(self):
-        """Extract variances in pandas Series.
-
-        Returns
-        -------
-        pandas.Series
-        """
-        return pd.Series(np.diag(self.values), index=self.index, name="VAR")
-
-    def get_std(self):
-        """Extract standard deviations in pandas Series.
-        
-        Returns
-        -------
-        pandas.Series
-        """
-        return self.get_var().apply(np.sqrt).rename("STD")
-
     def plot_std(self, display=True, **kwargs):
         """Plot standard deviations with seaborn.
         
         Parameters
         ----------
-        display : bool
+        display : `bool`
             flag to display figure to screen
         
         kwargs : keyword arguments
@@ -613,7 +748,7 @@ class LpcCov(pd.DataFrame):
         
         Returns
         -------
-        matplotlib.pyplot.Axes
+        `matplotlib.pyplot.Axes`
         """
         std = self.get_std()*100
         df = std.to_frame().reset_index()
@@ -630,37 +765,34 @@ class LpcCov(pd.DataFrame):
             plt.close()
         return ax
 
-    def to_matrix(self):
-        return self.index, Cov(self.values)
-    
     def filter_p(self, p):
         """Delete covariances for Legendre polynomial coefficients with order higher than `p`.
         
         Parameters
         ----------
-        p : int
+        p : `int`
             maximum order of Legendre polynomial coefficients
         
         Returns
         -------
-        sandy.Lpc
+        `sandy.LpcCov`
         """
         mask = self.index.get_level_values("L") <= p
-        lpc = self.iloc[mask, mask]
-        return self.__class__(lpc)
-    
+        lpccov = self.iloc[mask, mask]
+        return LpcCov(lpccov)
+
     def get_samples(self, nsmp, **kwargs):
         """Draw samples from probability distribution centered in 1 and with
         relative covariance in LpcCov instance.
         
         Parameters
         ----------
-        nsmp : int
+        nsmp : `int`
             number of samples
         
         Returns
         -------
-        sandy.LpcSamples
+        `sandy.LpcSamples`
         """
         index, cov = self.to_matrix()
         frame = pd.DataFrame(cov.sampling(nsmp) + 1, index=index, columns=range(1,nsmp+1))
