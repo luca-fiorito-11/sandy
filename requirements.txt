@@ -2,5 +2,5 @@ numpy
 scipy
 pytest >= 3.3
 pandas >= 0.23
-matplotlib
+matplotlib >=2.2.23
 seaborn >= 0.9

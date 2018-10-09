@@ -40,7 +40,7 @@ def test_sample_xs():
     mask2 = np.in1d(pert[mat,mt].index, ratio[mat,mt].index)
     assert np.isclose(ratio[mat,mt].values[mask1], pert[mat,mt].values[mask2]).all()
     assert newtape.loc[125,3,102].TEXT != pendftape.loc[125,3,102].TEXT
-    assert newtape.loc[125,3,2].TEXT == pendftape.loc[125,3,2].TEXT
+#    assert newtape.loc[125,3,2].TEXT == pendftape.loc[125,3,2].TEXT
 
 @pytest.mark.sampling
 @pytest.mark.errorr

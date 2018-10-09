@@ -14,7 +14,7 @@ import scipy as sp
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from ..sampling import LpcSamples, EdistrSamples
+from ..sampling.utils import LpcSamples, EdistrSamples
 from ..functions import gls, div0
 from ..settings import SandyError, colors
 
