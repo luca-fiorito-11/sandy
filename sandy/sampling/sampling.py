@@ -239,6 +239,3 @@ def run():
     except SandyError as exc:
         logging.error(exc.args[0])
     print("Total running time: {:.2f} sec".format(time.time() - t0))
-
-#if __name__ == "__main__":
-#    run()
