@@ -35,6 +35,8 @@ data to produce the perturbed files.
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
+> __Important__: SANDY works with files in ENDF-6 format. If you are not familiar with the format, have a look at the documentation [here](https://www.oecd-nea.org/dbdata/data/manual-endf/endf102.pdf).
+
 ### Prerequisites
 
 SANDY is developed in `python3` and does not support `python2`.
@@ -146,7 +148,7 @@ SANDY was conceived and developed as a part of the PhD thesis on *Nuclear data u
 
 
 ## <a name="refrence"></a>Reference
-Among the many publications about SANDY, please use the following as a reference for citation.
+Among the publications about SANDY, please use the following as a reference for citation.
 
 L. Fiorito, G. Žerovnik, A. Stankovskiy, G. Van den Eynde, P.E. Labeau, [*Nuclear data uncertainty propagation to integral responses using SANDY*](http://www.sciencedirect.com/science/article/pii/S0306454916305278), Annals of Nuclear Energy, Volume 101, 2017, Pages 359-366, ISSN 0306-4549.
 
