@@ -28,7 +28,7 @@ data to produce the perturbed files.
 - [Usage](#usage)
 - [Contacts](#contacts)
 - [Acknowledgments](#acknowledgments)
-- [Publications](#publications)
+- [Reference](#reference)
 
 
 ## Getting Started
@@ -108,7 +108,7 @@ Below are reported the ENDF-6 data sections that will be perturbed and the respe
 #### Perturb only one or few data types
 
 Add keyword option `--mf` to perturb only few data type.
-For example, to produce 1000 perturbed copies of a file `<tape>` where only angular and enrgy distributions are perturbed, type
+For example, to produce 1000 perturbed copies of a file `<tape>` where only angular and energy distributions are perturbed, type
 ```
 sandy  <tape>  --samples 1000  --mf 34 35
 ```
@@ -145,7 +145,9 @@ where `<covtape>` is a `ERRORR` output file.
 SANDY was conceived and developed as a part of the PhD thesis on *Nuclear data uncertainty propagation and uncertainty quantification in nuclear codes* in the framework of a collaboration between [SCK-CEN](https://www.sckcen.be) and [ULB](http://www.ulb.ac.be).
 
 
-#### <a name="publications"></a>Publications
+## <a name="refrence"></a>Reference
+Among the many publications about SANDY, please use the following as a reference for citation.
+
 L. Fiorito, G. Žerovnik, A. Stankovskiy, G. Van den Eynde, P.E. Labeau, [*Nuclear data uncertainty propagation to integral responses using SANDY*](http://www.sciencedirect.com/science/article/pii/S0306454916305278), Annals of Nuclear Energy, Volume 101, 2017, Pages 359-366, ISSN 0306-4549.
 
 
