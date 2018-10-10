@@ -1,1 +1,0 @@
-from sandy.njoy import *

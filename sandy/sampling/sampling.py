@@ -5,362 +5,237 @@ Created on Mon Mar 19 22:51:03 2018
 @author: lucaf
 """
 
-import pandas as pd
-from .. import settings
+import sys
+import os
+import time
+import platform
+import pdb
+import argparse
+import logging
 import numpy as np
-import sys, os, time, platform, pdb, pytest
 import multiprocessing as mp
 
+import pandas as pd
 
-def sample_chi(tape, NSMP, **kwargs):
-    # perturbations are in absolute values
-    DfCov = e6.extract_cov35(tape)
-    if DfCov.empty:
-        return pd.DataFrame()
-    cov = Cov(DfCov.values)
-    DfPert = pd.DataFrame(cov.sampling(NSMP),
-                          index = DfCov.index,
-                          columns = range(1,NSMP+1))
-    DfPert.columns.name = 'SMP'
-    if "eig" in kwargs:
-        if kwargs["eig"] > 0:
-            from sandy.functions import div0
-            eigs = cov.eig()[0]
-            idxs = np.abs(eigs).argsort()[::-1]
-            dim = min(len(eigs), kwargs["eig"])
-            eigs_smp = Cov(np.cov(DfPert.values)).eig()[0]
-            idxs_smp = np.abs(eigs_smp).argsort()[::-1]
-            print("MF35 eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
-            diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
-            E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
-            print("\n".join(E))
-    return DfPert
+from ..settings import SandyError
+from ..formats import Endf6, read_formatted_file
+from ..utils import is_valid_dir, is_valid_file
 
+__author__ = "Luca Fiorito"
+__all__ = ["sampling"]
 
-def sample_xs(tape, NSMP, **kwargs):
-    # perturbations are in relative values
-    DfCov = tape.get_cov()
-    if DfCov.empty:
-        return pd.DataFrame()
-    cov = Cov(DfCov.values)
-    DfPert = pd.DataFrame( cov.sampling(NSMP) + 1, index=DfCov.index, columns=range(1,NSMP+1))
-    DfPert.columns.name = 'SMP'
-    if "eig" in kwargs:
-        if kwargs["eig"] > 0:
-            from sandy.functions import div0
-            eigs = cov.eig()[0]
-            idxs = np.abs(eigs).argsort()[::-1]
-            dim = min(len(eigs), kwargs["eig"])
-            eigs_smp = Cov(np.cov(DfPert.values)).eig()[0]
-            idxs_smp = np.abs(eigs_smp).argsort()[::-1]
-            print("MF[31,33] eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
-            diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
-            E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
-            print("\n".join(E))
-    return DfPert
-
-
-def perturb_chi(tape, PertSeriesChi, **kwargs):
-    PertSeriesChi.name = 'SMP'
-    Chi = e6.extract_chi(tape)
-    matListPert = PertSeriesChi.index.get_level_values("MAT")
-    for mat in set(Chi.index.get_level_values("MAT")):
-        if mat not in matListPert:
-            continue
-        mtListPert = PertSeriesChi.loc[mat].index.get_level_values("MT")
-        for mt in set(Chi.index.get_level_values("MT")):
-            if mt not in mtListPert:
-                continue
-            Pert = pd.DataFrame(PertSeriesChi).query('MAT=={} & MT=={}'.format(mat, mt)).reset_index()
-            try:
-                Pert = Pert.pivot(index='EINlo', columns='EOUTlo', values='SMP').ffill(axis='columns')
-            except:
-                aaa=1
-            for k,chi in Chi.loc[mat,mt]['CHI'].iteritems():
-                # Add extra energy points
-                if "energy_point" in kwargs:
-                    chi = chi.reindex(chi.index.union(kwargs["energy_point"])).interpolate(method="slinear").fillna(0)
-                P = e6.pandas_interpolate(Pert,
-                                          np.unique(chi.index).tolist(),
-                                          method='zero',
-                                          axis='rows')
-                P = e6.pandas_interpolate(P,
-                                          np.unique(chi.columns).tolist(),
-                                          method='zero',
-                                          axis='columns')
-                P.index.name = "EIN"
-                P.columns.name = "EOUT"
-                PertChi = chi.add(P, fill_value=0).applymap(lambda x: x if x >= 0 else 0)
-                E = PertChi.columns
-                M = PertChi.values
-                intergral_array = ((M[:,1:]+M[:,:-1])/2).dot(E[1:]-E[:-1])
-                SmpChi = pd.DataFrame( M/intergral_array.reshape(-1,1),
-                                       index=PertChi.index,
-                                       columns=PertChi.columns)
-                Chi.loc[mat,mt,k]['CHI'] = SmpChi
-    return e6.write_mf5_mt( e6.update_chi(tape, Chi) )
-
-def samplingold(tape, ismp, PertSeriesNubar=None, PertSeriesRes=None, PertSeriesXs=None, PertSeriesChi=None, **kwargs):
-    t0 = time.time()
-    if PertSeriesXs is not None:
-        ptape = kwargs["pendf"].query("MF==3 | (MF==2 & MT==152)")
-    if PertSeriesNubar is not None:
-        tape = perturb_xs(tape, PertSeriesNubar, **kwargs)
-    if PertSeriesChi is not None:
-        tape = perturb_chi(tape, PertSeriesChi, **kwargs)
-    if PertSeriesRes is not None:
-        tape = perturb_res(tape, PertSeriesRes, **kwargs)
-        if PertSeriesXs is not None:
-            tmpdir = os.path.join(kwargs["outdir"], "tmp-{}".format(ismp))
-            os.makedirs(tmpdir, exist_ok=True)
-            output = os.path.join(tmpdir, kwargs["endf6"])
-            e6.write_tape(tape, output)
-            mat = tape.index.get_level_values("MAT")[0]
-            pendf = get_pendf(output, kwargs['njoy'], mat=mat, wd=tmpdir)
-            ptape = e6.endf2df(pendf).query("MF==3 | (MF==2 & MT==152)")
-    if PertSeriesXs is not None:
-        tape = tape.query("MF!=3").append(ptape)
-        tape = perturb_xs(tape, PertSeriesXs, **kwargs)
-    output = os.path.join(kwargs["outdir"], os.path.basename(kwargs["endf6"]) + '-{}'.format(ismp))
-    e6.write_tape(tape, output)
-    print("Created file '{}' in {:.2f} sec".format(output, time.time()-t0,))
-#    if 33 in kwargs['keep_cov_mf']:
-#        if kwargs['pendf'] is not None:
-#            ptape = kwargs['pendf'].query("MF==3 | (MF==2 & MT==152)")
-#        else:
-#            mat = tape.index.get_level_values("MAT")[0]
-#            pendf = get_pendf(kwargs['endf6'], kwargs['njoy'], mat=mat, wd=kwargs['outdir'])
-#            ptape = e6.endf2df(pendf).query("MF==3 | (MF==2 & MT==152)")
-#        tape = tape.query("MF!=3").append(ptape)
-#        for mat in tape.index.get_level_values('MAT').unique():
-#            tape.DATA.loc[mat,1,451]['LRP'] == 2
-#    tape = perturb_xs(tape, PertSeriesXs, **kwargs)
-
-def sampling_sp(ismp, PertSeriesXs, **kwargs):
-    global tape
-    t0 = time.time()
-    tapeout = tape.get_xs().perturb(PertSeriesXs).update_tape(tape).write_mf1_nubar().write_mf3_mt()
-    output = os.path.join(kwargs["outdir"], os.path.basename(kwargs["file"]) + '-{}'.format(ismp))
-    string = tapeout.to_string()
-    print("Created file '{}' in {:.2f} sec".format(output, time.time()-t0,))
-    return string, output
-
-
-def run(iargs=None):
-    from sandy.sampling import plotter
-    t0 = time.time()
-
-    # SETUP OF SETTINGS
-    settings.init_sampling(iargs)
-    kwargs = vars(settings.args)
-
-    # LOAD DATA FILE
-    global tape
-    tape = e6.Endf6.from_file(kwargs["file"]).process()
-    if tape.empty:
-        sys.exit("ERROR: tape is empty")
-
-    # LOAD COVARIANCE FILE
-    if kwargs["errorr_cov"]:
-        covtape = Errorr.from_file(settings.args.errorr_cov).process()
-    elif kwargs["endf6_cov"]:
-        covtape = e6.Endf6.from_file(settings.args.endf6_cov).process()
-    if covtape.empty:
-        sys.exit("ERROR: covtape is empty")
-
-
-    # EXTRACT PERTURBATIONS FROM COV FILE
-    PertXs = sample_xs(covtape, settings.args.samples, **kwargs)
-    PertChi = sample_chi(covtape, settings.args.samples, **kwargs)
-
-    # APPLY PERTURBATIONS
-    if settings.args.processes == 1:
-        outs = [sampling_sp(i, PertXs[i], **kwargs) for i in range(1,settings.args.samples+1)]
-    else:
-        if platform.system() == "Windows":
-            def init_pool(the_tape):
-                global tape
-                tape = the_tape
-            pool = mp.Pool(processes=settings.args.processes,
-                           initializer=init_pool(tape))
-        else:
-            pool = mp.Pool(processes=settings.args.processes)
-        outs = [pool.apply_async(sampling_sp,
-                                 args = (i, PertXs[i]),
-                                 kwds = {**kwargs}
-                                 ) for i in range(1,settings.args.samples+1) ]
-        outs = list(map(lambda x:x.get(), outs))
-
-    # DUMP TO FILES
-    for string, output in outs:
-        with open(output, 'w') as f:
-            f.write(string)
-
-    # PLOTTING IS OPTIONAL
-    if kwargs["p"]:
-        plotter.run(iargs)
-    print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
-
-def sampling_mp(ismp):
-    global tape, PertXs
+def _sampling_mp(ismp):
+    global tape, PertXs, PertNubar, PertEdistr, PertLpc, init
     t0 = time.time()
     mat = tape.index.get_level_values("MAT")[0]
     info = tape.read_section(mat, 1, 451)
     lrp = info["LRP"]
-    name = info["NAME"]
-    if lrp == 2:
-        try:
-            xs = tape.get_xs().perturb(PertXs[ismp])
-            tape = tape.update_xs(xs)
-        except:
-            pass
-    else:
-        try:
-            nubar = tape.get_nubar().perturb(PertXs[ismp])
-            tape = tape.update_nubar(nubar)
-        except:
-            pass
+    name = info["TAG"]
+    newtape = Endf6(tape.copy())
+    extra_points = np.logspace(-5, 7, init.energy_sequence)
+    if not PertXs.empty and lrp == 2:
+        xs = newtape.get_xs()
+        if not xs.empty:
+            xs = xs.perturb(PertXs[ismp])
+            newtape = newtape.update_xs(xs)
+    if not PertNubar.empty:
+        nubar = newtape.get_nubar()
+        if not nubar.empty:
+            nubar = nubar.perturb(PertNubar[ismp])
+            newtape = newtape.update_nubar(nubar)
+    if not PertEdistr.empty:
+        edistr = newtape.get_edistr()
+        if not edistr.empty:
+            edistr = edistr.add_points(extra_points).perturb(PertEdistr[ismp])
+            newtape = newtape.update_edistr(edistr)
+    if not PertLpc.empty:
+        lpc = newtape.get_lpc()
+        if not lpc.empty:
+            lpc = lpc.add_points(extra_points).perturb(PertLpc[ismp], verbose=init.verbose)
+            newtape = newtape.update_lpc(lpc)
     print("Created sample {} for {} in {:.2f} sec".format(ismp, name, time.time()-t0,))
-    return tape.update_info().write_string()
+    descr = ["perturbed file No.{} created by SANDY".format(ismp)]
+    return newtape.delete_cov().update_info(descr=descr).write_string()
+
+def _parse(iargs=None):
+    """Parse command line arguments for sampling option.
+    """
+    parser = argparse.ArgumentParser(prog="python -m sandy.sampling",
+                                     description='Run sampling',
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('file',
+                        type=lambda x: is_valid_file(parser, x),
+                        help="ENDF-6 or PENDF format file")
+    parser.add_argument('--cov', '-C',
+                       type=lambda x: is_valid_file(parser, x),
+                       help="file containing covariances")
+    parser.add_argument('--samples', '-S',
+                        type=int,
+                        default=200,
+                        help="number of samples (default = 200)")
+    parser.add_argument('--outdir', '-D',
+                        metavar="DIR",
+                        default=os.getcwd(),
+                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
+                        help="target directory where outputs are stored\n(default = current working directory)\nif it does not exist it will be created")
+    parser.add_argument('--processes','-N',
+                        type=int,
+                        default=1,
+                        help="number of worker processes (default = 1)")
+    parser.add_argument('--max-polynomial','-P',
+                        type=int,
+                        help="Maximum order of Legendre polynomial coefficients considered for sampling (default = all)")
+    parser.add_argument('--eig',
+                        type=int,
+                        default=10,
+                        metavar="N",
+                        help="print the first N eigenvalues of the evaluated covariance matrices\n(default = do not print)")
+    parser.add_argument('--mat',
+                        type=int,
+                        action='store',
+                        nargs="+",
+                        metavar="{1,..,9999}",
+                        help="draw samples only from the selected MAT sections (default = keep all)")
+    parser.add_argument('--mf',
+                        type=int,
+                        default=[31,33,34,35],
+                        action='store',
+                        nargs="+",
+                        metavar="{31,33,34,35}",
+                        help="draw samples only from the selected MF sections (default = keep all)")
+    parser.add_argument('--mt',
+                        type=int,
+                        action='store',
+                        nargs="+",
+                        metavar="{1,..,999}",
+                        help="draw samples only from the selected MT sections (default = keep all)")
+    parser.add_argument('--outname','-O',
+                        type=str,
+                        help="basename for the output files (default is the the basename of <file>.)")
+    parser.add_argument('--verbose',
+                        default=False,
+                        action="store_true",
+                        help="turn on verbosity (default = quiet)")
+    parser.add_argument('--debug',
+                        default=False,
+                        action="store_true",
+                        help="turn on debug mode")
+    parser.add_argument('-e','--energy-points',
+                        type=float,
+                        metavar="E",
+                        default=[],
+                        action="store",
+                        nargs='+',
+                        help="additional energy points (in eV) to include in the incoming-neutron energy grid\n(default = None)")
+    parser.add_argument('--energy-sequence','-E',
+                        type=int,
+                        metavar="EL",
+                        default=49,
+                        help=argparse.SUPPRESS)
+    parser.add_argument("-v",
+                        '--version',
+                        action='version',
+                        version='%(prog)s 1.0',
+                        help="SANDY's version.")
+    return parser.parse_known_args(args=iargs)[0]
 
 def sampling(iargs=None):
-    from ..formats import Endf6, Errorr
-    t0 = time.time()
-    init = settings.init_sampling(iargs)
-
-    # LOAD DATA FILE
-    ftape = Endf6.from_file(init.file)
-    if ftape.empty: sys.exit("ERROR: tape is empty")
-
-    # LOAD COVARIANCE FILE
-    if init.errorr_cov:
-        covtape = Errorr.from_file(init.errorr_cov)
-    elif init.endf6_cov:
-        covtape = Endf6.from_file(init.endf6_cov)
-    if covtape.empty: sys.exit("ERROR: covtape is empty")
-
-
-    # EXTRACT PERTURBATIONS FROM XS/NUBAR COV FILE
-    global PertXs
-    try:
-        PertXs = covtape.get_xs_cov().get_samples(init.samples, eig=init.eig)
-    except:
-        PertXs = pd.DataFrame()
-    if PertXs.empty: # Add checks for other data (MF35, MF34, ...)
-        sys.exit("ERROR: no covariance matrix was found")
-
+    """Construct multivariate normal distributions with a unit vector for 
+    mean and with relative covariances taken from the evaluated files.
+    Perturbation factors are sampled with the same multigroup structure of 
+    the covariance matrix, and are applied to the pointwise data to produce 
+    the perturbed files.
+    """
+    global init, PertXs, PertNubar, PertEdistr, PertLpc, tape
+    init = _parse(iargs)
+    # LOAD ENDF6 AND COVARIANCE FILE
+    if init.cov:
+        covtape = read_formatted_file(init.cov)
+        ftape = read_formatted_file(init.file)
+    else:
+        ftape = covtape = read_formatted_file(init.file)
+    # EXTRACT XS PERTURBATIONS FROM COV FILE
+    PertXs = pd.DataFrame()
+    if 33 in init.mf:
+        xscov = covtape.get_xs_cov(listmt=init.mt, listmat=init.mat, data='xs')
+        if not xscov.empty:
+            count = xscov.check_diagonal()
+            if count != 0:
+                logging.warn("MF33 covariances will not be sampled")
+            else:
+                PertXs = xscov.get_samples(init.samples, eig=init.eig)
+                if init.debug: PertLpc.to_csv("perts_mf33.csv")
+    # EXTRACT NUBAR PERTURBATIONS FROM ENDF6 FILE
+    PertNubar = pd.DataFrame()
+    if 31 in init.mf:
+        nubarcov = ftape.get_xs_cov(listmt=init.mt, listmat=init.mat, data='nubar')
+        if not nubarcov.empty:
+            count = nubarcov.check_diagonal()
+            if count != 0:
+                logging.warn("MF31 covariances will not be sampled")
+            else:
+                PertNubar = nubarcov.get_samples(init.samples, eig=init.eig)
+                if init.debug: PertNubar.to_csv("perts_mf31.csv")
+    # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
+    PertEdistr = pd.DataFrame()
+    if 35 in init.mf:
+        edistrcov = ftape.get_edistr_cov()
+        if not edistrcov.empty:
+            count = edistrcov.check_diagonal()
+            if count != 0:
+                logging.warn("MF35 covariances will not be sampled")
+            else:
+                PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
+                if init.debug: PertEdistr.to_csv("perts_mf35.csv")
+    # EXTRACT PERTURBATIONS FROM LPC COV FILE
+    PertLpc = pd.DataFrame()
+    if 34 in init.mf:
+        lpccov = ftape.get_lpc_cov()
+        if not lpccov.empty:
+            if init.max_polynomial:
+                lpccov = lpccov.filter_p(init.max_polynomial)
+            count = lpccov.check_diagonal()
+            if count != 0:
+                logging.warn("MF34 covariances will not be sampled")
+            else:
+                PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
+                if init.debug: PertLpc.to_csv("perts_mf34.csv")
+    if PertLpc.empty and PertEdistr.empty and PertXs.empty and PertNubar.empty:
+        logging.warn("no covariance section was selected/found")
+        return
+    # DELETE LOCAL VARIABLES
+    for k in locals().keys():
+        del locals()[k]
     # APPLY PERTURBATIONS BY MAT
-    global tape
     for mat, tape in ftape.groupby('MAT'):
         tape = Endf6(tape)
-        name = tape.read_section(mat, 1, 451)["NAME"]
-
+        mat = tape.index.get_level_values("MAT")[0]
+        info = tape.read_section(mat, 1, 451)
+        if info["LRP"] != 2:
+            logging.warn("not a PENDF tape, cross sections will not be perturbed")
         if init.processes == 1:
-            outs = {i : sampling_mp(i) for i in range(1,init.samples+1)}
+            outs = {i : _sampling_mp(i) for i in range(1,init.samples+1)}
         else:
             if platform.system() == "Windows":
                 def init_pool(the_tape):
                     global tape
                     tape = the_tape
-                pool = mp.Pool(processes=settings.args.processes,
+                pool = mp.Pool(processes=init.processes,
                                initializer=init_pool(tape))
             else:
                 pool = mp.Pool(processes=init.processes)
-            outs = {i : pool.apply_async(sampling_mp, args=(i,)) for i in range(1,init.samples+1)}
+            outs = {i : pool.apply_async(_sampling_mp, args=(i,)) for i in range(1,init.samples+1)}
             outs = {i : out.get() for i,out in outs.items()}
-
         # DUMP TO FILES
         for ismp, string in outs.items():
-            output = os.path.join(init.outdir, '{}-{}-{}'.format(name, int(mat), ismp))
+            outname = init.outname if init.outname else os.path.split(init.file)[1]
+            output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
             with open(output, 'w') as f: f.write(string)
 
-    # PLOTTING IS OPTIONAL
-#    if kwargs["p"]:
-#        plotter.run(iargs)
-    print("Total running time 'sampling': {:.2f} sec".format(time.time() - t0))
-
-
-
-@pytest.mark.sampling
-@pytest.mark.xs
-def test_sample_xs():
-    # Test utils.Xs methods "get_samples", "perturb" and "update"
-    from ..data_test import H1
-    from ..formats import Errorr, Endf6
-    from random import randint
-    errtape = Errorr.from_text("\n".join(H1.errorr))
-    nsmp = 1000
-    perts = errtape.get_xs_cov(listmt=[102]).get_samples(nsmp, eig=10)
-    pendftape = Endf6.from_text("\n".join(H1.pendf))
-    xs = pendftape.get_xs()
-    ismp = randint(1, nsmp);
-    pert = perts[ismp]
-    pxs = xs.perturb(pert)
-    newtape = pendftape.update_xs(pxs)
-    assert perts.shape[1] == nsmp
-    mat = 125; mt = 102
-    ratio = pxs/xs.values
-    mask1 = np.in1d(ratio[mat,mt].index, pert[mat,mt].index)
-    mask2 = np.in1d(pert[mat,mt].index, ratio[mat,mt].index)
-    assert np.isclose(ratio[mat,mt].values[mask1], pert[mat,mt].values[mask2]).all()
-    assert newtape.loc[125,3,102].TEXT != pendftape.loc[125,3,102].TEXT
-    assert newtape.loc[125,3,2].TEXT == pendftape.loc[125,3,2].TEXT
-
-@pytest.mark.sampling
-@pytest.mark.errorr
-@pytest.mark.xs
-def test_H1(tmpdir):
-    from ..data_test import H1
-    iargs = [os.path.join(H1.__path__[0], r"h1.pendf"),
-             "--errorr-cov", os.path.join(H1.__path__[0], r"h1.errorr"),
-             "--outdir", str(tmpdir),
-             "--processes", str(os.cpu_count()),
-             "--eig", "10",
-             "--samples", "100",]
-#             "--plotdir", os.path.join(str(tmpdir), r"html_files"),
-#             "-p"]
-    sampling(iargs)
-
-@pytest.mark.sampling
-@pytest.mark.endf6
-@pytest.mark.nubar
-def test_Cm242(tmpdir):
-    from ..data_test import Cm242
-    iargs = [os.path.join(Cm242.__path__[0], r"cm242.endf"),
-             "--endf6-cov", os.path.join(Cm242.__path__[0], r"cm242.endf"),
-             "--outdir", str(tmpdir),
-             "--processes", str(os.cpu_count()),
-             "--eig", "10",
-             "--samples", "100",]
-#             "--plotdir", os.path.join(str(tmpdir), r"html_files"),
-#             "-p"]
-    sampling(iargs)
-
-@pytest.mark.sampling
-@pytest.mark.errorr
-@pytest.mark.xs
-def test_Fe56_errorr(tmpdir):
-    from ..data_test import Fe56
-    iargs = [os.path.join(Fe56.__path__[0], r"fe56.pendf"),
-             "--errorr-cov", os.path.join(Fe56.__path__[0], r"fe56.errorr"),
-             "--outdir", str(tmpdir),
-             "--processes", str(os.cpu_count()),
-             "--eig", "10",
-             "--samples", "10",]
-    sampling(iargs)
-
-@pytest.mark.sampling
-@pytest.mark.errorr
-@pytest.mark.xs
-@pytest.mark.slow
-def test_U5_errorr(tmpdir):
-    from ..data_test import U5
-    iargs = [os.path.join(U5.__path__[0], r"u235.pendf"),
-             "--errorr-cov", os.path.join(U5.__path__[0], r"u235.errorr"),
-             "--outdir", str(tmpdir),
-             "--processes", str(os.cpu_count()) if os.cpu_count() < 10 else str(10),
-             "--eig", "10",
-             "--samples", "100",]
-#             "--plotdir", os.path.join(str(tmpdir), r"html_files"),
-#             "-p"]
-    sampling(iargs)
+def run():
+    t0 = time.time()
+    try:
+        sampling()
+    except SandyError as exc:
+        logging.error(exc.args[0])
+    print("Total running time: {:.2f} sec".format(time.time() - t0))

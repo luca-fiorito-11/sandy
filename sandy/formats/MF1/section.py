@@ -4,9 +4,14 @@ Created on Thu Jun 14 09:23:33 2018
 
 @author: fiorito_l
 """
-from ..records import read_cont, read_tab1, read_control, read_text, read_list, write_cont, write_tab1, write_list
+
+from ..records import *
 from ..utils import Section
-import re, sys
+from ...data import elements, metastates
+from ...settings import SandyError
+
+__author__ = "Luca Fiorito"
+__all__ = ["read", "write", "read_errorr", "read_groupr"]
 
 def read(text):
     str_list = text.splitlines()
@@ -33,8 +38,22 @@ def read_errorr(text):
     out.update({"EG" : L.B})
     return out
 
+def read_groupr(text):
+    str_list = text.splitlines()
+    MAT, MF, MT = read_control(str_list[0])[:3]
+    out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
+    i = 0
+    C, i = read_cont(str_list, i)
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "NZ" : C.L2, "GROUPRFLAG" : C.N1, "NTW" : C.N2})
+    L, i = read_list(str_list, i)
+    out.update({"TEMPIN" : L.C1, "NGN" : L.L1, "NGG" : L.L2})
+    out["TITLE"] = L.B[:out["NTW"]]; del L.B[:out["NTW"]]
+    out["SIGZ"] = L.B[:out["NZ"]]; del L.B[:out["NZ"]]
+    out["EGN"] = L.B[:out["NGN"]+1]; del L.B[:out["NGN"]+1]
+    out["EGG"] = L.B[:out["NGG"]+1]; del L.B[:out["NGG"]+1]
+    return out
+
 def read_info(text):
-    from sandy.csv import elements, metastates
     str_list = text.splitlines()
     MAT, MF, MT = read_control(str_list[0])[:3]
     out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
@@ -46,12 +65,12 @@ def read_info(text):
     C, i = read_cont(str_list, i)
     out.update({"AWI" : C.C1, "EMAX" : C.C2, "LREL" : C.L1, "NSUB" : C.N1, "NVER" : C.N2})
     C, i = read_cont(str_list, i)
-    out.update({"TEMP" : C.C2, "LDRV" : C.L1, "NWD" : C.N1, "NXC" : C.N2})
+    out.update({"TEMP" : C.C1, "ERR" : C.C2, "LDRV" : C.L1, "NWD" : C.N1, "NXC" : C.N2})
     out["Z"] = int(out["ZA"]//1000)
     out["A"] = int(out["ZA"]-out["Z"]*1000)
     out["SYM"] = elements["SYM"].to_dict()[out["Z"]]
     out["M"] = metastates["META"].to_dict()[out["LISO"]]
-    out["NAME"] = "{}-{}-{}{}".format(out["Z"], out["SYM"], out["A"], out["M"])
+    out["TAG"] = "{}-{}-{}{}".format(out["Z"], out["SYM"], out["A"], out["M"])
     TEXT = []
     for j in range(out["NWD"]):
         T, i = read_text(str_list, i)
@@ -91,7 +110,7 @@ def write_info(sec):
     text = write_cont(sec["ZA"], sec["AWR"], sec["LRP"], sec["LFI"], sec["NLIB"], sec["NMOD"])
     text += write_cont(sec["ELIS"], sec["STA"], sec["LIS"], sec["LISO"], 0, sec["NFOR"])
     text += write_cont(sec["AWI"], sec["EMAX"], sec["LREL"], 0, sec["NSUB"], sec["NVER"])
-    text += write_cont(0, sec["TEMP"], sec["LDRV"], 0, len(sec["TEXT"]), len(sec["RECORDS"]))
+    text += write_cont(sec["TEMP"], sec["ERR"], sec["LDRV"], 0, len(sec["TEXT"]), len(sec["RECORDS"]))
     text += sec["TEXT"]
     text += [ " "*22 + "{:>11}{:>11}{:>11}{:>11}".format(*x) for x in sec["RECORDS"]]
     TextOut = []; iline = 1
@@ -115,8 +134,7 @@ def read_nubar(text):
             out.update({ "NNF" : L.NPL, "LAMBDAS" : L.B })
         elif out["LDG"] == 1:
             # None found in JEFF33 and ENDFB8, hence not implemented
-            sys.exit("ERROR: Not implemented format")
-            pass
+            raise SandyError("Not implemented format")
     if out["LNU"] == 1:
         # None found in JEFF33 and ENDFB8 neither for MT455 nor for MT456
         L, i = read_list(str_list, i)
@@ -134,7 +152,7 @@ def write_nubar(sec):
         if sec["LDG"] == 0:
             text += write_list(0, 0, 0, 0, 0, sec["LAMBDAS"])
         elif sec["LDG"] == 1:
-            sys.exit("ERROR: Not found in JEFF33 and ENDFB8, hence not implemented")
+            raise SandyError("not found in JEFF33 and ENDFB8, hence not implemented")
     if sec["LNU"] == 1:
         text += write_list(0, 0, 0, 0, 0, sec["C"])
     else:

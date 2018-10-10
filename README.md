@@ -42,6 +42,12 @@ SANDY is developed in python3 and does not support python2.
 In order to run SANDY, make sure that you have a version of python3 installed.
 
 [Here](requirements.txt) you can find the python dependencies required to ensure the correct functioning of SANDY.
+```
+* pandas >= 0.20
+* numpy
+* scipy
+* pytest >= 3.3
+```
 
 ### Installation
 
@@ -63,12 +69,12 @@ Make sure that `python` points to a correct `Python 3` executable for which you 
 To quickly check if SANDY was installed correctly, type the following from any directory
 
 ```bash
-sandy --version
+python -m sandy.sampling --version
 ```
 
 ## Running the tests
 
-Type the following from the source code directory to automatically run SANDY's tests
+Once the installation is completed, run ```pytest``` to automatically start SANDY's automated tests
 
 ```bash
 pytest
@@ -81,16 +87,17 @@ More [pytest](https://docs.pytest.org/en/latest/) command line option can be add
 For an overview of SANDY's usage type
 
 ```bash
-sandy --help
+python -m sandy.sampling --help
 ```
 
-## Contacts
+
+## <a name="contacts"></a>Contacts
 
 * [**Luca Fiorito**](https://github.com/luca-fiorito-11) - lucafiorito.11@gmail.com
 
 ## Acknowledgments
 
-SANDY was conceived and developed as a part of the PhD thesis on *Nuclear data uncertainty propagation and uncertainty quantification in nuclear codes* in th framework of a collaboration between [SCK-CEN](https://www.sckcen.be) and [ULB](http://www.ulb.ac.be).
+SANDY was conceived and developed as a part of the PhD thesis on *Nuclear data uncertainty propagation and uncertainty quantification in nuclear codes* in the framework of a collaboration between [SCK-CEN](https://www.sckcen.be) and [ULB](http://www.ulb.ac.be).
 
 
 #### <a name="publications"></a>Publications
