@@ -112,31 +112,24 @@ def _parse(iargs=None):
     parser.add_argument('--outname','-O',
                         type=str,
                         help="basename for the output files (default is the the basename of <file>.)")
-    parser.add_argument('--verbose',
-                        default=False,
-                        action="store_true",
-                        help="turn on verbosity (default = quiet)")
+#    parser.add_argument('--verbose',
+#                        default=False,
+#                        action="store_true",
+#                        help="turn on verbosity (default = quiet)")
     parser.add_argument('--debug',
                         default=False,
                         action="store_true",
                         help="turn on debug mode")
-    parser.add_argument('-e','--energy-points',
-                        type=float,
-                        metavar="E",
-                        default=[],
-                        action="store",
-                        nargs='+',
-                        help="additional energy points (in eV) to include in the incoming-neutron energy grid\n(default = None)")
     parser.add_argument('--energy-sequence','-E',
                         type=int,
                         metavar="EL",
                         default=49,
                         help=argparse.SUPPRESS)
-    parser.add_argument("-v",
-                        '--version',
-                        action='version',
-                        version='%(prog)s 1.0',
-                        help="SANDY's version.")
+#    parser.add_argument("-v",
+#                        '--version',
+#                        action='version',
+#                        version='%(prog)s 1.0',
+#                        help="SANDY's version.")
     return parser.parse_known_args(args=iargs)[0]
 
 def sampling(iargs=None):
