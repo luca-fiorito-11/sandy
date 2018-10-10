@@ -34,11 +34,33 @@ c
       real*8   :: x
       character*11 :: a
       character*13 :: tmp
-      write(tmp,'(1PE13.6)') x
-      if (tmp(12:12) == '0') then
-         write(a,'(A11)') tmp(1:9)//tmp(11:11)//tmp(13:13)
+Cf2py intent(inout) a
+Cf2py intent(in) x
+      if (abs(x) > 1e-1 .and. abs(x) < 1E1) then
+         write(a,'(F11.8)') x
+      elseif (abs(x) >= 1E1 .and. abs(x) < 1E2) then
+         write(a,'(F11.7)') x
+      elseif (abs(x) >= 1E2 .and. abs(x) < 1E3) then
+         write(a,'(F11.6)') x
+      elseif (abs(x) >= 1E3 .and. abs(x) < 1E4) then
+         write(a,'(F11.5)') x
+      elseif (abs(x) >= 1E4 .and. abs(x) < 1E5) then
+         write(a,'(F11.4)') x
+      elseif (abs(x) >= 1E5 .and. abs(x) < 1E6) then
+         write(a,'(F11.3)') x
+      elseif (abs(x) >= 1E6 .and. abs(x) < 1E7) then
+         write(a,'(F11.2)') x
+      elseif (abs(x) >= 1E7 .and. abs(x) < 1E8) then
+         write(a,'(F11.1)') x
+      elseif (abs(x) >= 1E8 .and. abs(x) < 1E9) then
+         write(a,'(F11.0)') x
       else
-         write(a,'(A11)') tmp(1:8)//tmp(11:13)
+         write(tmp,'(1PE13.6)') x
+         if (tmp(12:12) == '0') then
+            write(a,'(A11)') tmp(1:9)//tmp(11:11)//tmp(13:13)
+         else
+            write(a,'(A11)') tmp(1:8)//tmp(11:13)
+         endif      
       endif
       end subroutine wreal
 c

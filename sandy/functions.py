@@ -5,21 +5,69 @@ Created on Thu Jan 12 11:10:49 2017
 @author: lfiorito
 """
 import numpy as np
-import logging
+import os
+import pdb
 
+from .data import elements
+
+__author__ = "Luca Fiorito"
+
+def gls(x, Cx, G, y, Cy):
+    """Run GLS adjustment.
+    """
+    _x = np.matrix(x.reshape(-1,1)) # column array
+    _Cx = np.matrix(Cx)
+    _G = np.matrix(G) # _y = _G * _x
+    _y = np.matrix(np.array(y).reshape(-1,1)) # column array
+    _Cy = np.matrix(Cy)
+    _V = np.linalg.inv(_G * _Cx * _G.T + _Cy)
+    _K = _Cx * _G.T * _V
+    delta = _y - _G * _x
+    xpost = np.array(_x + _K * delta).reshape(-1)
+    Cpost = np.array(_Cx - _K * _G * _Cx)
+    return xpost, Cpost
+
+def run_process(cmd, cwd=None, timeout=36000, verbose=True):
+    import subprocess as sp
+    process = sp.Popen("exec " + cmd,
+                       shell=True,
+                       cwd=cwd,
+                       stdin=None,
+                       stdout=sp.PIPE,
+                       stderr=sp.PIPE,)
+    try:
+        stdoutdata, stderrdata = process.communicate(timeout=timeout)
+    except sp.TimeoutExpired as exc:
+        process.kill()
+        stdoutdata, stderrdata = process.communicate()
+        stderrdata += (r"'{}' took longer than {} seconds to complete and it was killed".format(cmd, timeout)).encode()
+    stdout = stdoutdata.decode('utf-8', errors='ignore').rstrip()
+    stderr = stderrdata.decode('utf-8', errors='ignore').rstrip()
+    if verbose:
+        print(stdout)
+    returncode = process.returncode
+    if returncode: print("process failed to run\n".format(returncode) + stderr)
+    return process.returncode, stdout, stderr
+
+def force_symlink(file1, file2):
+    try:
+        os.symlink(file1, file2)
+    except FileExistsError:
+        os.remove(file2)
+        os.symlink(file1, file2)
 
 def zero_interp(xx_old, arr, xx_new):
     """
     Reshape array on its first dimension by using zero interpolation.
-    If some x-values of the new grid exceed the bounds of the old grid, set 
+    If some x-values of the new grid exceed the bounds of the old grid, set
     the corresponing interpolated array to zero in those positions.
-    
+
     Inputs:
         - xx_old :
             old array of tabulated x-values.
         - xx_new :
             new array of tabulated x-values.
-    
+
     Outputs:
         - arr_new :
             array reshaped according to xx_new.
@@ -34,15 +82,15 @@ def zero_interp(xx_old, arr, xx_new):
 def zero_interp_1d(xx_old, arr, xx_new):
     """
     Reshape array on its first dimension by using zero interpolation.
-    If some x-values of the new grid exceed the bounds of the old grid, set 
+    If some x-values of the new grid exceed the bounds of the old grid, set
     the corresponing interpolated array to zero in those positions.
-    
+
     Inputs:
         - xx_old :
             old array of tabulated x-values.
         - xx_new :
             new array of tabulated x-values.
-    
+
     Outputs:
         - arr_new :
             array reshaped according to xx_new.
@@ -65,15 +113,15 @@ def zero_interp_1d(xx_old, arr, xx_new):
 def zero_interp_2d(xx_old, arr, xx_new):
     """
     Reshape array on its first dimension by using zero interpolation.
-    If some x-values of the new grid exceed the bounds of the old grid, set 
+    If some x-values of the new grid exceed the bounds of the old grid, set
     the corresponing interpolated array to zero in those positions.
-    
+
     Inputs:
         - xx_old :
             old array of tabulated x-values.
         - xx_new :
             new array of tabulated x-values.
-    
+
     Outputs:
         - arr_new :
             array reshaped according to xx_new.
@@ -98,7 +146,7 @@ def zero_interp_2d(xx_old, arr, xx_new):
 def div0( a, b , value=0):
     """
     Ignore division by zero.
-    
+
     Inputs:
         - a :
             (array or scalar) numerator
@@ -106,13 +154,13 @@ def div0( a, b , value=0):
             (array or scalar) denominator
         - value :
             (scalar) standard replacer when division by zero is found (default is zero)
-    
+
     Outputs:
         - c :
             (array or scalar) a/b
-    
+
     ..Example::
-        
+
         div0( [-1, 0, 1], 0 ) -> [0, 0, 0]
     """
     with np.errstate(divide='ignore', invalid='ignore'):
@@ -127,7 +175,7 @@ def div0( a, b , value=0):
 def log10( x, value=0):
     """
     Ignore division by zero.
-    
+
     Inputs:
         - a :
             numerator
@@ -135,12 +183,12 @@ def log10( x, value=0):
             denominator
         - value :
             standard replacer when division by zero is found
-    
+
     Outputs:
         - c: a/b
-    
+
     ..Example::
-        
+
         div0( [-1, 0, 1], 0 ) -> [0, 0, 0]
     """
     with np.errstate(divide='ignore', invalid='ignore'):
@@ -153,7 +201,7 @@ def split_by_n( seq, n ):
     Description
     ===========
     A generator to divide a sequence into chunks of n units.
-    
+
     Inputs
     ======
      - *seq*: sequence to be divided;
@@ -162,7 +210,7 @@ def split_by_n( seq, n ):
     while seq:
         yield seq[:n]
         seq = seq[n:]
-    
+
 
 def isnum(item, rais=True):
     """
@@ -178,7 +226,7 @@ def isnum(item, rais=True):
         else:
             return False
 
-def printProgress (iteration, total, prefix = '', suffix = '', 
+def printProgress (iteration, total, prefix = '', suffix = '',
                    decimals = 1, barLength = 100):
     """
     Call in a loop to create terminal progress bar
@@ -206,7 +254,7 @@ def printProgress (iteration, total, prefix = '', suffix = '',
 def union_grid(*xgrids):
     """
     Return union grid from a list of grids.
-    
+
     Inputs:
         - :``xgrids``: :
             (list) input grids
@@ -224,6 +272,8 @@ def union_grid(*xgrids):
 
 
 def find_nearest(my_array, my_value, opt='below'):
+    """Find the nearest value in an array.
+    """
     array = np.array(my_array)
     value = float(my_value)
     idx = (np.abs(array-value)).argmin()
@@ -236,7 +286,7 @@ def find_nearest(my_array, my_value, opt='below'):
 def contains(item, xmin, xmax):
     r"""
     Check if item is included in a given domain.
-    
+
     Inputs:
         - item :
             (scalar or iterable) x-value(s) to check
@@ -244,10 +294,10 @@ def contains(item, xmin, xmax):
             (scalar) lower bound of the domain
         - xmax :
             (scalar) upper bound of the domain
-    
+
     Outputs:
         - mask:
-            (boolean array/scalar) True if item is included, otherwise False 
+            (boolean array/scalar) True if item is included, otherwise False
     """
     if xmin > xmax:
         raise ValueError("Lower bound 'xmin' must be smaller than upper bound 'xmax'")
@@ -260,3 +310,18 @@ def contains(item, xmin, xmax):
             raise ValueError("item must be a number or a list of numbers")
     mask = (item >= xmin) & (item <= xmax)
     return mask
+
+def convert_za(za):
+    _za = int(za)
+    z = int(_za // 1000)
+    a = int(_za - z*1000)
+    sym = elements.loc[z].SYM
+    return z, sym, a
+
+#import pytest
+#@pytest.mark.sampling
+#@pytest.mark.errorr
+#@pytest.mark.xs
+#@pytest.mark.aaa
+#def test_aaa():
+#    convert_za(92235.0)

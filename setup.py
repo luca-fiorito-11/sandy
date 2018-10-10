@@ -8,7 +8,7 @@ extensions = [
                   sources=[os.path.join(*['fortran', 'rwfortran.f'])]
                   ),
         ]
-
+requirements = "requirements.txt"
 setup(
     name = 'sandy',
     version = '0.1',
@@ -23,21 +23,18 @@ setup(
         ],
     keywords = 'uncertainty, nuclear data, covariance, sampling, sensitivity',
     packages = find_packages(),
-    install_requires = ['numpy',
-                        'scipy',
-                        'matplotlib',
-                        'pytest>=3.3',
-                        'fortranformat>=0.2.5',
-                        'bokeh>=0.12.10'
-                        'pandas>=0.20'],
+    install_requires = open(requirements).read().splitlines(),
+    zip_safe = False,
+#    setup_requires=["pytest-runner",],
+    tests_require=["pytest",],
     include_package_data = True,
     ext_modules = extensions,
     entry_points={
     'console_scripts': [
         'sandy=sandy.sampling.sampling:run',
-        'sandy_tests=sandy.sampling.tests:runtests',
-        'sandy_xs_plotter=sandy.sampling.plotter2:main',
-        'sandy_njoy=sandy.njoy.njoy:process_lib'
+#        'sandy_tests=sandy.sampling.tests:runtests',
+#        'sandy_xs_plotter=sandy.sampling.plotter2:main',
+#        'sandy_njoy=sandy.njoy.njoy:process_lib'
         ],
     },
 )
