@@ -51,7 +51,7 @@ def _sampling_mp(ismp):
     if not PertLpc.empty:
         lpc = newtape.get_lpc()
         if not lpc.empty:
-            lpc = lpc.add_points(extra_points).perturb(PertLpc[ismp], verbose=init.verbose)
+            lpc = lpc.add_points(extra_points).perturb(PertLpc[ismp])
             newtape = newtape.update_lpc(lpc)
     print("Created sample {} for {} in {:.2f} sec".format(ismp, name, time.time()-t0,))
     descr = ["perturbed file No.{} created by SANDY".format(ismp)]
