@@ -90,7 +90,7 @@ sandy --help
 
 Produce 1000 perturbed copies of a ENDF-6 file `<tape>` that contains both evaluated data and covariances.
 ```
-sandy  <tape>  -samples 1000
+sandy  <tape>  --samples 1000
 ```
 
 Below are reported the ENDF-6 data sections that will be perturbed and the respective covariance sections.
@@ -110,14 +110,14 @@ Below are reported the ENDF-6 data sections that will be perturbed and the respe
 Add keyword option `--mf` to perturb only few data type.
 For example, to produce 1000 perturbed copies of a file `<tape>` where only angular and enrgy distributions are sampled, type
 ```
-sandy  <tape>  -C <covtape>  -samples 1000  --mf 34 35
+sandy  <tape>  -C <covtape>  --samples 1000  --mf 34 35
 ```
 
 #### Data and covariances are in different files
 
 Produce 1000 perturbed copies of a file `<tape>` that contains evaluated data using covariances from file `<covtape>`.
 ```
-sandy  <tape>  -C <covtape>  -samples 1000
+sandy  <tape>  -C <covtape>  --samples 1000
 ```
 
 > __Important__: this command is often used for perturbing cross sections, where the linearized data are in a PENDF file `<tape>` that might not contain covariances and the covariance data are in the original ENDF-6 file `<covtape>`.
@@ -130,7 +130,7 @@ Not only does `ERRORR` process cross section covariances in MF33, but it can als
 
 To produce 1000 perturbed copies of a PENDF file `<tape>` including the MF32 covariances for resonance parameters, type
 ```
-sandy  <tape>  -C <covtape>  -samples 1000
+sandy  <tape>  -C <covtape>  --samples 1000
 ```
 where `<covtape>` is a `ERRORR` output file.
 
