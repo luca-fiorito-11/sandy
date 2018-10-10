@@ -12,8 +12,7 @@ Currently, SANDY can draw samples for:
  - cross sections;
  - angular distrbutions of outgoing particles;
  - energy distrbutions of outgoing particles;
- - fission neutron multiplicities;
- - fission yields.
+ - fission neutron multiplicities.
  
 The sampling algorithm constructs multivariate normal distributions with a unit vector for mean and with relative 
 covariances taken from the evaluated files.
@@ -38,16 +37,10 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-SANDY is developed in python3 and does not support python2.
+SANDY is developed in `python3` and does not support `python2`.
 In order to run SANDY, make sure that you have a version of python3 installed.
 
 [Here](requirements.txt) you can find the python dependencies required to ensure the correct functioning of SANDY.
-```
-* pandas >= 0.20
-* numpy
-* scipy
-* pytest >= 3.3
-```
 
 ### Installation
 
@@ -64,12 +57,12 @@ cd sandy
 python setup.py install
 ```
 
-Make sure that `python` points to a correct `Python 3` executable for which you have administration rights.
+Make sure that `python` points to a correct `python3` executable for which you have administration rights.
 
 To quickly check if SANDY was installed correctly, type the following from any directory
 
 ```bash
-python -m sandy.sampling --version
+sandy --version
 ```
 
 ## Running the tests
@@ -87,7 +80,7 @@ More [pytest](https://docs.pytest.org/en/latest/) command line option can be add
 For an overview of SANDY's usage type
 
 ```bash
-python -m sandy.sampling --help
+sandy --help
 ```
 
 
@@ -101,8 +94,7 @@ SANDY was conceived and developed as a part of the PhD thesis on *Nuclear data u
 
 
 #### <a name="publications"></a>Publications
-
-
+L. Fiorito, G. Žerovnik, A. Stankovskiy, G. Van den Eynde, P.E. Labeau, [*Nuclear data uncertainty propagation to integral responses using SANDY*](http://www.sciencedirect.com/science/article/pii/S0306454916305278), Annals of Nuclear Energy, Volume 101, 2017, Pages 359-366, ISSN 0306-4549.
 
 
 
