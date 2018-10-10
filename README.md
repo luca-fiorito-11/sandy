@@ -67,7 +67,7 @@ sandy --version
 
 ## Running the tests
 
-Once the installation is completed, run ```pytest``` to automatically start SANDY's automated tests
+Once the installation is completed, run ```pytest``` to automatically start SANDY's tests
 
 ```bash
 pytest
@@ -82,6 +82,58 @@ For an overview of SANDY's usage type
 ```bash
 sandy --help
 ```
+
+## Examples
+
+
+#### Data and covariances are in the same file
+
+Produce 1000 perturbed copies of a ENDF-6 file `<tape>` that contains both evaluated data and covariances.
+```
+sandy  <tape>  -samples 1000
+```
+
+Below are reported the ENDF-6 data sections that will be perturbed and the respective covariance sections.
+
+| Data type | Data section | Covariance section |
+|----|:----:|:----:|
+| fission multiplitcities | MF1 | MF31 |
+| cross sections | MF3 | MF33 |
+| angular ditributions | MF4 | MF34 |
+| energy distributions | MF5 | MF35 |
+
+> __Important__: cross sections will be perturbed __only__ if they are linearized and given in PENDF (pointwise-ENDF) format.
+> To convert a ENDF-6 file into PENDF format, you can use nuclear data processing codes such as [NJOY](http://www.njoy21.io/NJOY2016/) or [PREPRO](https://www-nds.iaea.org/public/endf/prepro/).
+
+#### Perturb only one or few data types
+
+Add keyword option `--mf` to perturb only few data type.
+For example, to produce 1000 perturbed copies of a file `<tape>` where only angular and enrgy distributions are sampled, type
+```
+sandy  <tape>  -C <covtape>  -samples 1000  --mf 34 35
+```
+
+#### Data and covariances are in different files
+
+Produce 1000 perturbed copies of a file `<tape>` that contains evaluated data using covariances from file `<covtape>`.
+```
+sandy  <tape>  -C <covtape>  -samples 1000
+```
+
+> __Important__: this command is often used for perturbing cross sections, where the linearized data are in a PENDF file `<tape>` that might not contain covariances and the covariance data are in the original ENDF-6 file `<covtape>`.
+
+
+#### Covariance data in ERRORR format
+
+`ERRORR` is a [NJOY](http://www.njoy21.io/NJOY2016/) module that processes the covariance information present in a ENDF-6 file into a given multigroup structure. The resulting tabulated covariance is tabulated into an output file with a specific `ERRORR` format.
+Not only does `ERRORR` process cross section covariances in MF33, but it can also handle the resonance-resonance covariances in ENDF-6 covariance section MF32.
+
+To produce 1000 perturbed copies of a PENDF file `<tape>` including the MF32 covariances for resonance parameters, type
+```
+sandy  <tape>  -C <covtape>  -samples 1000
+```
+where `<covtape>` is a `ERRORR` output file.
+
 
 
 ## <a name="contacts"></a>Contacts
