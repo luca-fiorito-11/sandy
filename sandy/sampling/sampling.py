@@ -53,7 +53,7 @@ def _sampling_mp(ismp):
         if not lpc.empty:
             lpc = lpc.add_points(extra_points).perturb(PertLpc[ismp])
             newtape = newtape.update_lpc(lpc)
-    print("Created sample {} for {} in {:.2f} sec".format(ismp, name, time.time()-t0,))
+    print("Created sample {} for MAT {} in {:.2f} sec".format(ismp, mat, time.time()-t0,))
     descr = ["perturbed file No.{} created by SANDY".format(ismp)]
     return newtape.delete_cov().update_info(descr=descr).write_string()
 
@@ -200,6 +200,7 @@ def sampling(iargs=None):
     for k in locals().keys():
         del locals()[k]
     # APPLY PERTURBATIONS BY MAT
+    df = {}
     for mat, tape in ftape.groupby('MAT'):
         tape = Endf6(tape)
         mat = tape.index.get_level_values("MAT")[0]
@@ -219,11 +220,19 @@ def sampling(iargs=None):
                 pool = mp.Pool(processes=init.processes)
             outs = {i : pool.apply_async(_sampling_mp, args=(i,)) for i in range(1,init.samples+1)}
             outs = {i : out.get() for i,out in outs.items()}
-        # DUMP TO FILES
-        for ismp, string in outs.items():
-            outname = init.outname if init.outname else os.path.split(init.file)[1]
-            output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
-            with open(output, 'w') as f: f.write(string)
+        df.update({ mat : outs })
+    # DUMP TO FILES
+    frame = pd.DataFrame(df)
+    frame.index.name = "SMP"
+    frame.columns.name = "MAT"
+    frame = frame.stack()
+    outname = init.outname if init.outname else os.path.split(init.file)[1]
+    for ismp,dfsmp in frame.groupby("SMP"):
+        output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
+        with open(output, 'w') as f:
+            for mat,dfmat in dfsmp.groupby("MAT"):
+                f.write(frame[ismp,mat])
+
 
 def run():
     t0 = time.time()
