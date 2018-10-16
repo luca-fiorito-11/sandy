@@ -15,11 +15,7 @@ import sandy
 from ...formats import Errorr
 from ...formats import Endf6
 from ..sampling import sampling
-from ...data import H1
-from ...data import Cm242
-from ...data import U5
-from ...data import U8
-from ...data import Fe56
+from ...data import H1, Cm242, U5, U8, Fe56, FY
 
 @pytest.mark.sampling
 @pytest.mark.xs
@@ -41,6 +37,24 @@ def test_sample_xs():
     assert np.isclose(ratio[mat,mt].values[mask1], pert[mat,mt].values[mask2]).all()
     assert newtape.loc[125,3,102].TEXT != pendftape.loc[125,3,102].TEXT
 #    assert newtape.loc[125,3,2].TEXT == pendftape.loc[125,3,2].TEXT
+
+@pytest.mark.sampling
+@pytest.mark.fy
+def test_sample_fy():
+    tape = Endf6.from_text("\n".join(FY.endf6))
+    nsmp = 1000
+    ismp = randint(1, nsmp);
+    fyu5 = tape.get_fy(listenergy=[4e5]).filter_by("MAT", 9228)
+    fyall = tape.get_fy()
+    cov = fyu5.get_cov()
+    perts = cov.get_samples(nsmp)
+    pert = perts[ismp]
+    fynew = fyall.perturb(pert)
+    assert (fyall.query("MAT!=9228 & MT!=454 & E!=4e5") == fynew.query("MAT!=9228 & MT!=454 & E!=4e5")).all().all()
+    fy = fynew.query("MAT==9228 & MT==454 & E==4e5")
+    assert not (fyall.query("MAT==9228 & MT==454 & E==4e5") == fy).all().all()
+    assert (fy.YI >= 0).all()
+    assert (fy.YI <= fy.YI*2).all()
 
 @pytest.mark.sampling
 @pytest.mark.errorr

@@ -14,12 +14,13 @@ import scipy as sp
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from ..sampling.utils import LpcSamples, EdistrSamples
+from ..sampling.utils import LpcSamples, EdistrSamples, FySamples
 from ..functions import gls, div0
 from ..settings import SandyError, colors
 
 __author__ = "Luca Fiorito"
-__all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov", "Cov", "Fy", "Tpd"]
+__all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov", 
+           "Cov", "Fy", "FyCov", "Tpd"]
 
 class Section(dict):
     pass
@@ -482,6 +483,109 @@ class Edistr(pd.DataFrame):
 
 
 
+class Fy(pd.DataFrame):
+    """Dataset of independent and/or cumulative fission yields and 
+    uncertainties for one or more energies and fissioning isotope.
+    
+    Index
+    -----
+    MAT : `int`
+        MAT number
+    MT : `int`
+        MT number
+    E : `float`
+        incoming neutron energy
+    ZAM : `int`
+        ZZZ * 10000 + AAA * 10 + META
+    
+    Columns
+    -------
+    YI : `float`
+        fission yields
+    DFY : `float`
+        fission yield uncertainties
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = ["MAT", "MT", "E", "ZAM"]
+        self.columns = ["YI", "DYI"]
+        self.sort_index(inplace=True)
+    
+    def filter_by(self, index, value):
+        """Delete covariances for indices not equal to given value.
+        
+        Parameters
+        ----------
+        index : `str`
+            index on which to apply the filter, i.e. MAT, MT, E, ZAM
+        value :
+            corresponding value
+        
+        Returns
+        -------
+        `sandy.Fy`
+        """
+        mask = self.index.get_level_values(index) == value
+        df = self.iloc[mask]
+        return self.__class__(df)
+
+    def get_cov(self, mt=454):
+        """Extract absolute covariance matrix.
+        
+        Returns
+        -------
+        `sandy.FyCov`
+        """
+        df = self.filter_by("MT", mt)
+        cov = np.diag(df.DYI**2)
+        return FyCov(cov, index=df.index, columns=df.index)
+    
+    def perturb(self, pert, method=2, **kwargs):
+        """Perturb fission yields given a set of perturbations.
+        
+        Parameters
+        ----------
+        pert : pandas.Series
+            perturbations from sandy.FySamples
+        method : int
+            * 1 : samples outside the range [0, 2*_mean_] are set to _mean_. 
+            * 2 : samples outside the range [0, 2*_mean_] are set to 0 or 2*_mean_ respectively if they fall below or above the defined range.
+        
+        Returns
+        -------
+        sandy.Fy
+        """
+        frame = self.copy()
+        for mat, dfmat in frame.groupby("MAT"):
+            if mat not in pert.index.get_level_values("MAT").unique():
+                continue
+            for mt, dfmt in dfmat.groupby("MT"):
+                if mt not in pert.loc[mat].index.get_level_values("MT").unique():
+                    continue
+                for e, dfe in dfmt.groupby("E"):
+                    if e not in pert.loc[mat, mt].index.get_level_values("E").unique():
+                        continue
+                    for zam, dfzam in dfe.groupby("ZAM"):
+                        if zam not in pert.loc[mat, mt, e].index.get_level_values("ZAM").unique():
+                            continue
+                        X = dfzam.YI.values
+                        P = pert.loc[mat,mt,e,zam]
+                        if method == 2:
+                            if P < -X:
+                                X = 0
+                            elif P > X:
+                                X = 2*X
+                            else:
+                                X += P
+                        elif method == 1:
+                            if P >= -X and P <= X:
+                                X += P
+                        frame.loc[mat,mt,e,zam]["YI"] = X
+        return Fy(frame)
+    
+
+
 class BaseCov(pd.DataFrame):
     """Base covariance class inheriting from `pandas.DataFrame`.
     Must be used as superclass by all other covariances.
@@ -811,32 +915,78 @@ class LpcCov(BaseCov):
 
 
 
-class Fy(pd.DataFrame):
-    """Dataset of independent and/or cumulative fission yields and 
-    uncertainties for one or more energies and fissioning isotope.
+class FyCov(BaseCov):
+    """Absolute covariance matrix for independent/cumulative fission yields.
+    
+    Index / Columns
+    ---------------
+    MAT : `int`
+        MAT number
+    MT : `int`
+        MT number
+    E : `float`
+        incoming neutron energy
+    ZAM : `int`
+        ZZZ * 10000 + AAA * 10 + META
     """
-
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.index.names = ["MAT", "MT", "E", "ZA", "META"]
+        self.index.names = ["MAT", "MT", "E", "ZAM"]
+        self.columns.names = ["MAT", "MT", "E", "ZAM"]
 
-    def get_system(self, mat, mt, e):
-        frame = self.loc[mat, mt, e]
-        frame = frame.reset_index()
-        frame["Z"] = frame.ZA//1000
-        frame["A"] = frame.ZA - frame.Z*1000
-        frame["ZA"] = frame.ZA*10 + frame.META
-        frame = frame.set_index("ZA")
-        return FySystem(frame)
+    def get_samples(self, nsmp, eig=0):
+        """Draw samples from probability distribution centered in 0 and with
+        absolute covariance in FyCov instance.
+        
+        Parameters
+        ----------
+        nsmp : `int`
+            number of samples
+        eig : `int`
+            number of eigenvalues to display
+        
+        Returns
+        -------
+        `sandy.FySamples`
+        """
+        index, cov = self.to_matrix()
+        frame = pd.DataFrame(cov.sampling(nsmp), index=index, columns=range(1,nsmp+1))
+        if eig > 0:
+            eigs = cov.eig()[0]
+            idxs = np.abs(eigs).argsort()[::-1]
+            dim = min(len(eigs), eig)
+            eigs_smp = Cov(np.cov(frame.values)).eig()[0]
+            idxs_smp = np.abs(eigs_smp).argsort()[::-1]
+            print("MF8 eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
+            diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
+            E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
+            print("\n".join(E))
+        return FySamples(frame)
+
 
 class FySystem(pd.DataFrame):
     """Dataset of fission yields and uncertainties for a single fissioning 
     system.
+
+    Index
+    -----
+    ZAM : `int`
+        ZZZ * 10000 + AAA * 10 + META
+    
+    Columns
+    -------
+    YI : `float`
+        fission yields
+    DFY : `float`
+        fission yield uncertainties
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.index.name = "IZAM"
+        self.index.name = "ZAM"
+        self.columns.name = ["YI", "DYI"]
+        self.sort_index(inplace=True)
     
     @property
     def acn(self):
