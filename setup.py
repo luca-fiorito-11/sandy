@@ -22,7 +22,7 @@ setup(
         'Development Status :: 4 - Beta',
         'Programming Language :: Python :: 3',
         ],
-    keywords = ", ".join(keywords)
+    keywords = ", ".join(keywords),
     packages = find_packages(),
     install_requires = open(requirements).read().splitlines(),
     zip_safe = False,
