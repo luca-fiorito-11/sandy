@@ -8,6 +8,7 @@ extensions = [
                   sources=[os.path.join(*['fortran', 'rwfortran.f'])]
                   ),
         ]
+keywords = ['uncertainty', 'nuclear data', 'covariance', 'sampling', 'ENDF-6']
 requirements = "requirements.txt"
 setup(
     name = 'sandy',
@@ -21,7 +22,7 @@ setup(
         'Development Status :: 4 - Beta',
         'Programming Language :: Python :: 3',
         ],
-    keywords = 'uncertainty, nuclear data, covariance, sampling, sensitivity',
+    keywords = ", ".join(keywords)
     packages = find_packages(),
     install_requires = open(requirements).read().splitlines(),
     zip_safe = False,
@@ -32,9 +33,6 @@ setup(
     entry_points={
     'console_scripts': [
         'sandy=sandy.sampling.sampling:run',
-#        'sandy_tests=sandy.sampling.tests:runtests',
-#        'sandy_xs_plotter=sandy.sampling.plotter2:main',
-#        'sandy_njoy=sandy.njoy.njoy:process_lib'
         ],
     },
 )
