@@ -71,13 +71,27 @@ class Endf6(BaseFile):
             raise SandyError("section MAT{}/MF{}/MT{} is not in tape".format(mat,mf,mt))
         return read(self.loc[mat,mf,mt].TEXT)
 
-    def write_string(self, title=" "*66):
-        """ First update MF1/MT451 dictionary.
-        Then, Write TEXT column to string.
+    def write_string(self, title=" "*66, skip_title=False, skip_fend=False):
+        """Collect all rows in `Endf6` and write them into string.
+        
+        Parameters
+        ----------
+        title : `str`
+            title of the file
+        skip_title : `bool`
+            do not write the title
+        skip_fend : `bool`
+            do not write the last FEND line
+
+        Returns
+        -------
+        `str`
         """
         from .records import write_cont
         tape = self.copy()
-        string = "{:<66}{:4}{:2}{:3}{:5}\n".format(title, 1, 0, 0, 0)
+        string = ""
+        if not skip_title:
+            string += "{:<66}{:4}{:2}{:3}{:5}\n".format(title, 1, 0, 0, 0)
         for mat,dfmat in tape.groupby('MAT', sort=True):
             for mf,dfmf in dfmat.groupby('MF', sort=True):
                 for mt,dfmt in dfmf.groupby('MT', sort=True):
@@ -86,7 +100,8 @@ class Endf6(BaseFile):
                     string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), int(mat), int(mf), 0, 99999)
                 string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), int(mat), 0, 0, 0)
             string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), 0, 0, 0, 0)
-        string += "{:<66}{:4}{:2}{:3}{:5}".format(*write_cont(*[0]*6), -1, 0, 0, 0)
+        if not skip_fend:
+            string += "{:<66}{:4}{:2}{:3}{:5}".format(*write_cont(*[0]*6), -1, 0, 0, 0)
         return string
 
     def get_xs(self, listmat=None, listmt=None):
@@ -632,6 +647,37 @@ class Endf6(BaseFile):
             return pd.DataFrame()
         frame = pd.DataFrame.from_dict(listfy).set_index(["MAT","MT","E","ZAM"])
         return Fy(frame)
+
+    def update_fy(self, fyFrame):
+        """Update fy sections of `Endf6` instance with new data coming from 
+        a `Fy` instance.
+        
+        Parameters
+        ----------
+        fyFrame : `sandy.Fy`
+            tabulated fission yields
+        
+        Returns
+        -------
+        `sandy.Endf6`
+        """
+        from .MF8 import write
+        tape = self.copy()
+        mf = 8
+        for (mat,mt),df in fyFrame.groupby(["MAT","MT"]):
+            if (mat,mf,mt) not in self.index:
+                continue
+            sec = self.read_section(mat,mf,mt)
+            for e,esec in sec["E"].items():
+                if (mat, mt, e) not in fyFrame.index:
+                    continue
+                newfy = fyFrame.loc[mat,mt,e]
+                for zam, row in newfy.iterrows():
+                    if zam in esec["FY"]:
+                        sec["E"][e]["FY"][zam]["YI"] = row.YI
+            text = write(sec)
+            tape.loc[mat,mf,mt].TEXT = text
+        return Endf6(tape)
 
     def update_info(self, descr=None):
         """Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.

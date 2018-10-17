@@ -46,7 +46,7 @@ def test_sample_fy():
     ismp = randint(1, nsmp);
     fyu5 = tape.get_fy(listenergy=[4e5]).filter_by("MAT", 9228)
     fyall = tape.get_fy()
-    cov = fyu5.get_cov()
+    cov = fyu5.get_cov(mat=9228, mt=454, energy=4e5)
     perts = cov.get_samples(nsmp)
     pert = perts[ismp]
     fynew = fyall.perturb(pert)
@@ -135,9 +135,19 @@ def test_U238_lpc(tmpdir):
              "--cov", os.path.join(U8.__path__[0], r"u238.endf"),
              "--outdir", str(tmpdir),
              "--verbose",
-             "--processes", "1",
+             "--processes", str(os.cpu_count()),
              "--eig", "15",
-             "--mf", "34",
              "--samples", "10",
              "--mf", "34"]
+    sampling(iargs)
+
+@pytest.mark.sampling
+@pytest.mark.fy
+def test_jeff33_fy(tmpdir):
+    iargs = [os.path.join(FY.__path__[0], r"FY.jeff33"),
+             "--outdir", str(tmpdir),
+             "--mat", "9228",
+             "--processes", str(os.cpu_count()),
+             "--samples", "10",
+             "--fission-yields"]
     sampling(iargs)
