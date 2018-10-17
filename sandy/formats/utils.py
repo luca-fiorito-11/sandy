@@ -509,7 +509,6 @@ class Fy(pd.DataFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.index.names = ["MAT", "MT", "E", "ZAM"]
-        self.columns = ["YI", "DYI"]
         self.sort_index(inplace=True)
     
     def filter_by(self, index, value):
@@ -530,14 +529,14 @@ class Fy(pd.DataFrame):
         df = self.iloc[mask]
         return self.__class__(df)
 
-    def get_cov(self, mt=454):
+    def get_cov(self, mat, mt, energy):
         """Extract absolute covariance matrix.
         
         Returns
         -------
         `sandy.FyCov`
         """
-        df = self.filter_by("MT", mt)
+        df = self.filter_by("MAT", mat).filter_by("MT", mt).filter_by("E", energy)
         cov = np.diag(df.DYI**2)
         return FyCov(cov, index=df.index, columns=df.index)
     

@@ -92,4 +92,4 @@ class FySamples(pd.DataFrame):
         self.index.names = ["MAT", "MT", "E", "ZAM"]
         ncols = len(self.columns)
         self.columns = range(1, ncols+1)
-        self.columns.name = "SMP"
+        self.columns.name = "SMP"        
