@@ -5,12 +5,13 @@ language: python
 #      - gfortran
 python:
   - "3.6"
+install:
+  - pip install sphinx sphinx_rtd_theme
 job:
   include:
     - stage: test
       on:
         branch: master
       name: "Deploy dev-docs"
-      install: pip install sphinx sphinx_rtd_theme
       script: pwd
 # sphinx-apidoc -F -E -f -o html sandy -A "Luca Fiorito" -H "SANDY" -V 1 -R 0 --ext-githubpages --ext-mathjax
