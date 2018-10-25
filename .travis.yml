@@ -18,11 +18,10 @@ job:
       on:
         branch: master
       name: "Deploy dev-docs"
-      install: pip install -r requirements.txt sphinx sphinx_rtd_theme
-      script:
-        - sphinx-apidoc -F -E -f -o html sandy -A "Luca Fiorito" -H "SANDY" -V 1 -R 0 --ext-githubpages --ext-mathjax
-        - sed -i "s/alabaster/sphinx_rtd_theme/" html/conf.py
-        - cd html && make html
+      install: pip install sphinx sphinx_rtd_theme
+      script: sphinx-apidoc -F -E -f -o html sandy -A "Luca Fiorito" -H "SANDY" -V 1 -R 0 --ext-githubpages --ext-mathjax
+#        - sed -i "s/alabaster/sphinx_rtd_theme/" html/conf.py
+#        - cd html && make html
 #      deploy:
 #        provider: pages
 #        skip-cleanup: true
