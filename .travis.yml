@@ -8,26 +8,27 @@ script:
 python:
   - "3.6"
 # command to install dependencies
-before_install:
-  - pip install -r requirements.txt sphinx sphinx_rtd_theme 
+#before_install:
+#  - pip install -r requirements.txt sphinx sphinx_rtd_theme 
 #  - python setup.py install
 # command to run tests
 #script:
 #  - pytest
 job:
   include:
-    - stage: deploy
+    - stage: test
       on:
         branch: master
       name: "Deploy dev-docs"
+      install: pip install -r requirements.txt sphinx sphinx_rtd_theme
       script:
         - sphinx-apidoc -F -E -f -o html sandy -A "Luca Fiorito" -H "SANDY" -V 1 -R 0 --ext-githubpages --ext-mathjax
         - sed -i "s/alabaster/sphinx_rtd_theme/" html/conf.py
         - cd html && make html
-      deploy:
-        provider: pages
-        skip-cleanup: true
-        github-token: $GITHUB_TOKEN
-        local-dir: "html/_build/html"
-        keep-history: true
-        overwrite: true
+#      deploy:
+#        provider: pages
+#        skip-cleanup: true
+#        github-token: $GITHUB_TOKEN
+#        local-dir: "html/_build/html"
+#        keep-history: true
+#        overwrite: true
