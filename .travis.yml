@@ -1,17 +1,23 @@
 language: python
-#addons:
-#  apt:
-#    packages:
-#      - gfortran
+addons:
+  apt:
+    packages:
+      - gfortran
 python:
   - "3.6"
-install:
+before_install:
   - pip install sphinx sphinx_rtd_theme
-job:
-  include:
-    - stage: test
-      on:
-        branch: master
-      name: "Deploy dev-docs"
-      script: pwd
+install:
+  - python setup.py install
+  - sphinx-apidoc -F -E -f -o html sandy -A "Luca Fiorito" -H "SANDY" -V 1 -R 0 --ext-githubpages --ext-mathjax
+  - cd html && make html
+deploy:
+  provider: pages
+  skip-cleanup: true
+  github-token: $GITHUB_TOKEN
+  local-dir: "html/_build/html"
+  keep-history: true
+  overwrite: true
+  on:
+    branch: master
 # sphinx-apidoc -F -E -f -o html sandy -A "Luca Fiorito" -H "SANDY" -V 1 -R 0 --ext-githubpages --ext-mathjax
