@@ -1,10 +1,8 @@
 language: python
-addons:
-  apt:
-    packages:
-      - gfortran
-script:
-  - make
+#addons:
+#  apt:
+#    packages:
+#      - gfortran
 python:
   - "3.6"
 # command to install dependencies
