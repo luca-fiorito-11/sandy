@@ -9,6 +9,9 @@ before_install:
   - pip install sphinx sphinx_rtd_theme
 install:
   - python setup.py install
+script:
+  - pytest
+before_deploy:
   - sphinx-apidoc -F -E -f -o html sandy -A "Luca Fiorito" -H "SANDY" -V 1 -R 0 --ext-githubpages --ext-mathjax
   - cd html && make html
 deploy:
