@@ -13,6 +13,7 @@ script:
   - pytest
 before_deploy:
   - sphinx-apidoc -F -E -f -o html sandy -A "Luca Fiorito" -H "SANDY" -V 1 -R 0 --ext-githubpages --ext-mathjax
+  - sed -i "s/alabaster/sphinx_rtd_theme/" html/conf.py
   - cd html && make html
 deploy:
   provider: pages
@@ -23,4 +24,3 @@ deploy:
   overwrite: true
   on:
     branch: master
-# sphinx-apidoc -F -E -f -o html sandy -A "Luca Fiorito" -H "SANDY" -V 1 -R 0 --ext-githubpages --ext-mathjax
