@@ -7,6 +7,8 @@ python:
   - "3.6"
 before_install:
   - pip install sphinx sphinx_rtd_theme
+branches:
+  except: gh-pages
 install:
   - python setup.py install
 script:
@@ -20,7 +22,7 @@ deploy:
   skip-cleanup: true
   github-token: $GITHUB_TOKEN
   local-dir: "html/_build/html"
-  keep-history: true
+  keep-history: false
   overwrite: true
   on:
     branch: master
