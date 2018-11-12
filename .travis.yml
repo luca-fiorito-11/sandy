@@ -3,27 +3,26 @@ addons:
   apt:
     packages:
       - gfortran
-script:
-  - make
 python:
   - "3.6"
+branches:
+  except: gh-pages
 before_install:
   - pip install sphinx sphinx_rtd_theme
+install:
   - python setup.py install
-job:
-  include:
-    - stage: test
-      name: "Run pytest"
-      script: pytest
-    - stage: deploy
-      name: "Deploy docs to gh-pages"
-      script: sphinx-build docs docs/html -b html
-      deploy:
-        provider: pages
-        skip-cleanup: true
-        github-token: $GITHUB_TOKEN
-        local-dir: "docs/html"
-        keep-history: true
-        overwrite: true
-        on:
-          branch: master
+script:
+  - pytest
+before_deploy:
+  - sphinx-apidoc -F -e -f -o html sandy -A "Luca Fiorito" -H "SANDY" -V 1 -R 0 --ext-githubpages --ext-mathjax
+  - sed -i "s/alabaster/sphinx_rtd_theme/" html/conf.py
+  - cd html && make html
+deploy:
+  provider: pages
+  skip-cleanup: true
+  github-token: $GITHUB_TOKEN
+  local-dir: "html/_build/html"
+  keep-history: false
+  overwrite: true
+  on:
+    branch: master
