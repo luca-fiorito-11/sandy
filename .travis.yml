@@ -7,10 +7,23 @@ script:
   - make
 python:
   - "3.6"
-# command to install dependencies
-install:
-  - pip install -r requirements.txt
+before_install:
+  - pip install sphinx sphinx_rtd_theme
   - python setup.py install
-# command to run tests
-script:
-  - pytest
+job:
+  include:
+    - stage: test
+      name: "Run pytest"
+      script: pytest
+    - stage: deploy
+      name: "Deploy docs to gh-pages"
+      script: sphinx-build docs docs/html -b html
+      deploy:
+        provider: pages
+        skip-cleanup: true
+        github-token: $GITHUB_TOKEN
+        local-dir: "docs/html"
+        keep-history: true
+        overwrite: true
+        on:
+          branch: master
