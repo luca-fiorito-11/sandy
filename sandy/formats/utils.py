@@ -196,7 +196,7 @@ class Xs(pd.DataFrame):
             elif method == 1:
                 P = P.where((P>0) & (P<2), 1.0)
             xs = frame[mat,mt].multiply(P, axis="index")
-            frame[mat,mt][xs > 0] = xs[xs > 0]
+            frame[mat,mt] = xs
         return Xs(frame).reconstruct_sums()
 
     def macs(self, E0=0.0253, Elo=1E-5, Ehi=1E1):
