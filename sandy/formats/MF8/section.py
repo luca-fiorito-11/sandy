@@ -14,20 +14,42 @@ __author__ = "Luca Fiorito"
 __all__ = ["read", "write"]
 
 def read(text):
+    """Read MT section for MF8
+    
+    Parameters
+    ----------
+    text: `str`
+        one string containing the whole section
+    
+    Returns
+    -------
+    `sandy.utils.Section`
+    """
     str_list = text.splitlines()
     MAT, MF, MT = read_control(str_list[0])[:3]
     if MT in (454, 459):
-        return read_fy(text)
+        return _read_fy(text)
     elif MT == 457:
-        return read_rdd(text)
+        return _read_rdd(text)
 
 def write(sec):
+    """Write MT section for MF8
+    
+    Parameters
+    ----------
+    sec: `sandy.utils.Section`
+        dictionary with MT section for MF8
+    
+    Returns
+    -------
+    `str`
+    """
     if sec["MT"] in (454, 459):
-        return write_fy(sec)
+        return _write_fy(sec)
     elif sec["MT"] == 457:
-        return write_rdd(sec)
+        return _write_rdd(sec)
 
-def read_fy(text):
+def _read_fy(text):
     str_list = text.splitlines()
     MAT, MF, MT = read_control(str_list[0])[:3]
     out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
@@ -42,7 +64,7 @@ def read_fy(text):
             out["E"][L.C1].update({ "I" : L.L1 })
     return Section(out)
 
-def write_fy(sec):
+def _write_fy(sec):
     LE = len(sec["E"])
     text = write_cont(sec["ZA"], sec["AWR"], LE, 0, 0, 0)
     for i,(e,esec) in enumerate(sorted(sec["E"].items())):
