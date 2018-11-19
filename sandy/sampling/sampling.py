@@ -107,6 +107,7 @@ def _parse(iargs=None):
                         help="print the first N eigenvalues of the evaluated covariance matrices\n(default = do not print)")
     parser.add_argument('--mat',
                         type=int,
+                        default=range(0,10000),
                         action='store',
                         nargs="+",
                         metavar="{1,..,9999}",
