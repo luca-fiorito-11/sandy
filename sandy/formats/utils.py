@@ -20,7 +20,7 @@ from ..settings import SandyError, colors
 
 __author__ = "Luca Fiorito"
 __all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov", 
-           "Cov", "Fy", "FyCov", "Tpd"]
+           "Cov", "Fy", "FyCov", "Tpd", "DecayChains", "BMatrix"]
 
 class Section(dict):
     pass
@@ -583,6 +583,94 @@ class Fy(pd.DataFrame):
                         frame.loc[mat,mt,e,zam]["YI"] = X
         return Fy(frame)
     
+
+
+class DecayChains(pd.DataFrame):
+    """`pandas.DataFrame` of decay chains for several isotopes.
+    
+    Columns
+    -------
+    parent : `int`
+        ID = ZZZ * 10000 + AAA * 10 + META of parent nuclide
+    daughter : `int`
+        ID = ZZZ * 10000 + AAA * 10 + META of daughter nuclide
+    yield : `float`
+        branching ratio
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    
+    def get_bmatrix(self):
+        B = self.pivot_table(index="daughter", columns="parent", values="yield", aggfunc=np.sum, fill_value=0.0).astype(float)
+        np.fill_diagonal(B.values, 0)
+        return BMatrix(B)
+
+
+
+class BMatrix(pd.DataFrame):
+    """`pandas.DataFrame` containing the B-matrix, that is, the production yields 
+    of all decay chains (sum of branching ratios).
+
+    Index
+    -----
+    daughter : array of `int`
+        ID = ZZZ * 10000 + AAA * 10 + META of daughter nuclides
+        
+    Columns
+    -------
+    parent : array of `int`
+        ID = ZZZ * 10000 + AAA * 10 + META of parent nuclides
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.name = "daughter"
+        self.columns.name = "parent"
+
+    def to_qmatrix(self, neutrons=False):
+        """Convert dataframe B-matrix into dataframe Q-matrix.
+        
+        Parameters
+        ----------
+        neutrons : `bool`
+            if `False` (default) remove neutrons from the matrix
+        
+        Returns
+        -------
+        `sandy.QMatrix`
+        """
+        B = self.copy()
+        if not neutrons:
+            if 10 in B.index:
+                B.drop(index=10, inplace=True)
+            if 10 in B.columns:
+                B.drop(columns=10, inplace=True)
+        C = np.identity(len(B)) - B.values
+        Q = np.linalg.pinv(C)
+        return QMatrix(Q, index=B.index, columns=B.columns)
+
+
+
+class QMatrix(pd.DataFrame):
+    """`pandas.DataFrame` containing the Q-matrix.
+    
+    Index
+    -----
+    daughter : array of `int`
+        ID = ZZZ * 10000 + AAA * 10 + META of daughter nuclides
+        
+    Columns
+    -------
+    parent : array of `int`
+        ID = ZZZ * 10000 + AAA * 10 + META of parent nuclides
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.name = "daughter"
+        self.columns.name = "parent"
+
 
 
 class BaseCov(pd.DataFrame):
