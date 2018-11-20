@@ -58,6 +58,11 @@ def testRDD():
     assert tape.index.get_level_values("MAT").unique().size == 3852
     return tape
 
+@pytest.fixture(scope="module")
+def testRDD_small():
+    tape = Endf6.from_text("\n".join(RDD.endf6), listmat=[471, 498, 528])
+    return tape
+
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.info
@@ -419,6 +424,39 @@ def test_read_rdd(testRDD):
     assert len(U5["DK"]) == 2
     assert U5["DK"][0]["RTYP"] == 4.0
     assert U5["DK"][1]["RTYP"] == 6.0
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.rdd
+def test_decay_chains(testRDD_small):
+    DC = testRDD_small.get_decay_chains(verbose=False)
+    assert DC.loc[(DC.daughter == 250560) & (DC.parent == 240560)]["yield"].iloc[0].sum() == 1
+    assert DC.loc[(DC.daughter == 240560) & (DC.parent == 240560)]["yield"].iloc[0].sum() == -1
+    assert DC.loc[(DC.daughter == 260560) & (DC.parent == 250560)]["yield"].iloc[0].sum() == 1
+    assert DC.loc[(DC.daughter == 250560) & (DC.parent == 250560)]["yield"].iloc[0].sum() == -1
+    assert DC.loc[(DC.daughter == 260560) & (DC.parent == 260560)]["yield"].iloc[0].sum() == 0
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.rdd
+def test_qmatrix(testRDD_small):
+    Q = testRDD_small.get_qmatrix(verbose=False)
+    assert np.isclose(Q.loc[240560,240560], 1)
+    assert np.isclose(Q.loc[250560,250560], 1)
+    assert np.isclose(Q.loc[260560,260560], 1)
+    assert np.isclose(Q.loc[250560,240560], 1)
+    assert np.isclose(Q.loc[260560,240560], 1)
+    assert np.isclose(Q.loc[260560,250560], 1)
+    assert np.isclose(Q.loc[240560,250560], 0)
+    assert np.isclose(Q.loc[240560,260560], 0)
+    assert np.isclose(Q.loc[250560,260560], 0)
+
+@pytest.mark.formats
+@pytest.mark.endf6
+@pytest.mark.rdd
+def test_bmatrix(testRDD_small):
+    B = testRDD_small.get_bmatrix(verbose=False)
+    assert (B.values == np.array([[0,0,0],[1,0,0],[0,1,0]])).all()
 
 @pytest.mark.formats
 @pytest.mark.endf6

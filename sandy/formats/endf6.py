@@ -13,7 +13,19 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 
-from .utils import BaseFile, Xs, Edistr, Lpc, Fy, XsCov, triu_matrix, EdistrCov, corr2cov, LpcCov
+from .utils import (
+        BaseFile,
+        Xs,
+        Edistr,
+        Lpc,
+        Fy,
+        XsCov,
+        EdistrCov,
+        LpcCov,
+        DecayChains,
+        triu_matrix,
+        corr2cov,
+        )
 from ..settings import SandyError
 from ..functions import find_nearest
 
@@ -707,6 +719,106 @@ class Endf6(BaseFile):
             text = write(sec)
             tape.loc[mat,1,451].TEXT = text
         return Endf6(tape)
+
+    def get_decay_chains(self, verbose=True):
+        """Extract dataframe of decay chains.
+        
+        Parameters
+        ----------
+        verbose: `bool`
+            Turn on/off verbosity (default is on)
+        
+        Returns
+        -------
+        `sandy.DecayChains`
+        """
+        condition = self.index.get_level_values("MF") == 8
+        tape = self[condition]
+        condition = tape.index.get_level_values("MT") == 457
+        tape = tape[condition]
+        listrdd = []
+        keys = ("parent", "daughter", "yield")
+        for ix,text in tape.TEXT.iteritems():
+            X = self.read_section(*ix)
+            zam = int(X["ZA"]*10 + X["LISO"])
+            for dk in X["DK"].values():
+                rtyp = str(dk["RTYP"]).replace(".", "").replace("0", "")
+                parent = zam
+                daughter = zam//10
+                neutrons = 0; protons = 0; alphas = 0
+                for dtype in rtyp:
+                    if int(dtype) == 1: # Beta decay
+                        daughter += 1001 - 1
+                    elif int(dtype) == 2: # Electron capture and/or positron emission
+                        daughter += 1 - 1001
+                    elif int(dtype) == 3: # Isomeric transition
+                        pass
+                    elif int(dtype) == 4: # Alpha decay
+                        daughter -= 2004
+                        alphas += 1
+                    elif int(dtype) == 5: # Neutron emission
+                        daughter -= 1
+                        neutrons += 1
+                    elif int(dtype) == 6: # Spontaneous fission
+                        if verbose:
+                            print("skip spontaneous fission for {}...".format(parent))
+                    elif int(dtype) == 7: # Proton emission
+                        daughter -= 1001
+                        protons += 1
+                    else: # Unknown decay mode
+                        if verbose:
+                            print("skip unknown decay mode for {}...".format(parent))
+                daughter = int(daughter*10 + dk["RFS"])
+                if daughter == parent:
+                    continue
+                # Add products to the list of decay chains
+                d = dict(zip(keys, (parent, daughter, dk["BR"])))
+                listrdd.append(d)
+                d = dict(zip(keys, (parent, parent, -dk["BR"])))
+                listrdd.append(d)
+                if neutrons > 0: # add neutrons produced by decay
+                    d = dict(zip(keys, (parent, 10, neutrons*dk["BR"])))
+                    listrdd.append(d)
+                if protons > 0: # add protons produced by decay
+                    d = dict(zip(keys, (parent, 10010, protons*dk["BR"])))
+                    listrdd.append(d)
+                if alphas > 0: # add alphas produced by decay
+                    d = dict(zip(keys, (parent, 20040, alphas*dk["BR"])))
+                    listrdd.append(d)
+            d = dict(zip(keys, (zam, zam, 0)))
+            listrdd.append(d)
+        if not listrdd:
+            logging.warn("no decay path found in file")
+            return pd.DataFrame()
+        return DecayChains(listrdd)
+
+    def get_bmatrix(self, verbose=True):
+        """Extract B-matrix dataframe.
+        
+        Parameters
+        ----------
+        verbose: `bool`
+            Turn on/off verbosity (default is on)
+        
+        Returns
+        -------
+        `sandy.BMatrix`
+        """
+        return self.get_decay_chains(verbose=verbose).get_bmatrix()
+        
+    def get_qmatrix(self, verbose=True):
+        """Extract Q-matrix dataframe.
+        
+        Parameters
+        ----------
+        verbose: `bool`
+            Turn on/off verbosity (default is on)
+        
+        Returns
+        -------
+        `sandy.QMatrix`
+        """
+        return self.get_bmatrix(verbose=verbose).to_qmatrix()
 
     def delete_cov(self):
         """Delete covariance sections (MF>=30) from Endf6 dataframe.
