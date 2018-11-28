@@ -48,7 +48,7 @@ In order to run SANDY, make sure that you have a version of python3 installed.
 
 To download SANDY, move to the folder where you want the source code and type
 
-```git
+```bash
 git clone https://github.com/luca-fiorito-11/sandy.git
 ```
 
