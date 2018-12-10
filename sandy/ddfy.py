@@ -5,7 +5,7 @@ Created on Tue Nov 20 13:44:51 2018
 @author: Fiorito_L
 """
 
-from sandy import Endf6
+from sandy.formats.endf6 import Endf6
 from sandy.data import RDD
 
 __author__ = "Luca Fiorito"

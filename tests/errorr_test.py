@@ -7,8 +7,8 @@ Created on Thu Jul 12 10:00:32 2018
 
 import pytest
 
-from .. import Errorr
-from ...data import H1
+from sandy.formats.errorr import Errorr
+from sandy.data import H1
 
 @pytest.fixture(scope="module")
 def testH1():

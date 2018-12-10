@@ -13,17 +13,19 @@ import numpy as np
 import scipy as sp
 import seaborn as sns
 import matplotlib.pyplot as plt
-
-from ..sampling.utils import LpcSamples, EdistrSamples, FySamples
+from sandy.utils.utils import TimeDecorator
 from ..functions import gls, div0
 from ..settings import SandyError, colors
 
 __author__ = "Luca Fiorito"
 __all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov", 
-           "Cov", "Fy", "FyCov", "Tpd", "DecayChains", "BMatrix"]
+           "Cov", "Fy", "FyCov", "Tpd", "DecayChains", "BMatrix",
+           "LpcSamples", "EdistrSamples", "FySamples"]
 
 class Section(dict):
     pass
+
+
 
 class BaseFile(pd.DataFrame):
 
@@ -39,6 +41,7 @@ class BaseFile(pd.DataFrame):
         return out
 
     @classmethod
+    @TimeDecorator
     def from_text(cls, text, empty_err=True, listmat=None, listmf=None, listmt=None):
         """
         Read ENDF-6 formatted file and split it into column based on field width:
@@ -54,25 +57,32 @@ class BaseFile(pd.DataFrame):
                 usecols = ["MAT", "MF", "MT"]
                 )
         tape["TEXT"] = text.splitlines(True)
-        splitters = tape.loc[(tape.MAT==0) & (tape.MF==0) & (tape.MT==0)].index
-        dfs = []; ibeg = 0
-        for iend in splitters:
-            df = tape[ibeg:iend]
-            for (mat,mf,mt),group in df.loc[(tape.MAT>0) & (tape.MF>0) & (tape.MT>0)].groupby(["MAT","MF","MT"]):
-                # Select only desired sections
-                if listmt is not None and mt not in listmt:
-                    continue
-                if listmat is not None and mat not in listmat:
-                    continue
-                if listmf is not None and mf not in listmf:
-                    continue
-                dfs.append({"MAT" : mat, "MF" : mf, "MT" : mt, "TEXT" : "".join(group.TEXT.values)})
-            ibeg = iend
-        if not dfs:
-            raise SandyError("tape is empty")
-        tape = pd.DataFrame.from_dict(dfs).set_index(["MAT","MF","MT"])
-        if tape.index.duplicated().any():
-            raise SandyError("found duplicate MAT/MF/MT")
+
+        tape = tape.loc[(tape.MAT>0) & (tape.MF>0) & (tape.MT>0)]. \
+               groupby(["MAT","MF","MT"]). \
+               apply(lambda x: "".join(x.TEXT.values)). \
+               rename("TEXT"). \
+               to_frame()
+        pdb.set_trace()
+       
+#        splitters = tape.loc[(tape.MAT==0) & (tape.MF==0) & (tape.MT==0)].index
+#        dfs = []; ibeg = 0
+#        for iend in splitters:
+#            df = tape[ibeg:iend]
+#            for (mat,mf,mt),group in df.loc[(tape.MAT>0) & (tape.MF>0) & (tape.MT>0)].groupby(["MAT","MF","MT"]):
+#                # Select only desired sections
+#                if listmt is not None and mt not in listmt:
+#                    continue
+#                if listmat is not None and mat not in listmat:
+#                    continue
+#                if listmf is not None and mf not in listmf:
+#                    continue
+#                dfs.append({"MAT" : mat, "MF" : mf, "MT" : mt, "TEXT" : "".join(group.TEXT.values)})
+#            ibeg = iend
+#        if not dfs:
+#            raise SandyError("tape is empty")
+#        tape = pd.DataFrame.from_dict(dfs).set_index(["MAT","MF","MT"])
+
         frame = cls(tape)
         if frame.empty and empty_err:
             raise SandyError("tape is empty")
@@ -83,6 +93,8 @@ class BaseFile(pd.DataFrame):
         super().__init__(*args, **kwargs)
         self.index.names = ['MAT', 'MF', 'MT']
         self.sort_index(level=["MAT","MF","MT"], inplace=True)
+        if self.index.duplicated().any():
+            raise SandyError("found duplicate MAT/MF/MT")
     
     def add_sections(self, file, sect, kind='replace'):
         """Add MF/MT section from one file to an existing dataframe.
@@ -1051,6 +1063,91 @@ class FyCov(BaseCov):
             print("\n".join(E))
         return FySamples(frame)
 
+
+
+class LpcSamples(pd.DataFrame):
+    """samples for Legendre Polynomial coefficients.
+    
+    Index
+    -----
+    MAT : `int`
+        MAT number
+    MT : `int`
+        MT number
+    L : `int`
+        order of Legendre polynomial
+    E : `float`
+        incoming energy
+    
+    Columns
+    -------
+    sample indices
+    """    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = ["MAT", "MT", "L", "E"]
+        ncols = len(self.columns)
+        self.columns = range(1, ncols+1)
+        self.columns.name = "SMP"
+
+
+
+class EdistrSamples(pd.DataFrame):
+    """samples for Tabulated energy distributions.
+    
+    Index
+    -----
+    MAT : `int`
+        MAT number
+    MT : `int`
+        MT number
+    ELO : `float`
+        lower bound for incoming energy
+    EHI : `float`
+        upper bound for incoming energy
+    EOUT : `float`
+        outgoing neutron energy
+    
+    Columns
+    -------
+    sample indices
+    """    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = ["MAT", "MT", "ELO", "EHI", "EOUT"]
+        ncols = len(self.columns)
+        self.columns = range(1, ncols+1)
+        self.columns.name = "SMP"
+
+
+
+class FySamples(pd.DataFrame):
+    """Samples for fission yields.
+    
+    Index
+    -----
+    MAT : `int`
+        MAT number
+    MT : `int`
+        MT number
+    E : `float`
+        incoming neutron energy
+    ZAM : `int`
+        ZZZ * 10000 + A * 10 + M
+    
+    Columns
+    -------
+    sample indices
+    """    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = ["MAT", "MT", "E", "ZAM"]
+        ncols = len(self.columns)
+        self.columns = range(1, ncols+1)
+        self.columns.name = "SMP"
 
 class FySystem(pd.DataFrame):
     """Dataset of fission yields and uncertainties for a single fissioning 
