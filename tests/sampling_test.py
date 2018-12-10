@@ -11,11 +11,10 @@ from random import randint
 
 import numpy as np
 
-import sandy
-from ...formats import Errorr
-from ...formats import Endf6
-from ..sampling import sampling
-from ...data import H1, Cm242, U5, U8, Fe56, FY
+from sandy.formats.endf6 import Endf6
+from sandy.formats.errorr import Errorr
+from sandy.sampling import sampling
+from sandy.data import H1, Cm242, U5, U8, Fe56, FY
 
 @pytest.mark.sampling
 @pytest.mark.xs

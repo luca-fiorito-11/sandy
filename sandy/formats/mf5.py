@@ -4,8 +4,8 @@ Created on Thu Jun 14 09:23:33 2018
 
 @author: fiorito_l
 """
-from ..records import read_cont, read_tab1, read_control, read_tab2, write_cont, write_tab1, write_tab2
-from ..utils import Section
+from .records import *
+from .utils import Section
 
 __author = "Luca Fiorito"
 __all__ = ["read", "write"]

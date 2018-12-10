@@ -13,7 +13,7 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 
-from .utils import (
+from sandy.formats.utils import (
         BaseFile,
         Xs,
         Edistr,
@@ -26,8 +26,8 @@ from .utils import (
         triu_matrix,
         corr2cov,
         )
-from ..settings import SandyError
-from ..functions import find_nearest
+from sandy.settings import SandyError
+from sandy.functions import find_nearest
 
 __author__ = "Luca Fiorito"
 __all__ = ["Endf6"]
@@ -62,21 +62,21 @@ class Endf6(BaseFile):
         """ Parse MAT/MF/MT section.
         """
         if mf == 1:
-            from .MF1 import read
+            from .mf1 import read
         elif mf == 3:
-            from .MF3 import read
+            from .mf3 import read
         elif mf == 5:
-            from .MF5 import read
+            from .mf5 import read
         elif mf == 4:
-            from .MF4 import read
+            from .mf4 import read
         elif mf == 8:
-            from .MF8 import read
+            from .mf8 import read
         elif mf == 33 or mf == 31:
-            from .MF33 import read
+            from .mf33 import read
         elif mf == 34:
-            from .MF34 import read
+            from .mf34 import read
         elif mf == 35:
-            from .MF35 import read
+            from .mf35 import read
         else:
             raise SandyError("SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
         if (mat,mf,mt) not in self.index:
@@ -153,7 +153,7 @@ class Endf6(BaseFile):
         return Xs(frame)
 
     def update_xs(self, xsFrame):
-        from .MF3 import write
+        from .mf3 import write
         tape = self.copy()
         mf = 3
         for (mat,mt),xsSeries in xsFrame.iteritems():
@@ -318,7 +318,7 @@ class Endf6(BaseFile):
         return Xs(frame)
 
     def update_nubar(self, xsFrame):
-        from .MF1 import write
+        from .mf1 import write
         tape = self.copy()
         mf = 1
         for (mat,mt),S in xsFrame.iteritems():
@@ -392,7 +392,7 @@ class Endf6(BaseFile):
 #        return Edistr(frame)
 
     def update_edistr(self, edistrFrame):
-        from .MF5 import write
+        from .mf5 import write
         mf = 5
         tape = self.copy()
         for (mat,mt),S in edistrFrame.groupby(["MAT","MT"]):
@@ -506,7 +506,7 @@ class Endf6(BaseFile):
         return Lpc(frame)
 
     def update_lpc(self, lpcFrame):
-        from .MF4 import write
+        from .mf4 import write
         mf = 4
         tape = self.copy()
         for (mat,mt),S in lpcFrame.groupby(["MAT","MT"]):
@@ -605,7 +605,7 @@ class Endf6(BaseFile):
         return LpcCov(matrix, index=index, columns=index)
 
     def update_tpd(self, tpdFrame):
-        from .MF4 import write
+        from .mf4 import write
         mf = 4
         tape = self.copy()
         for (mat,mt),S in tpdFrame.groupby(["MAT","MT"]):
@@ -673,7 +673,7 @@ class Endf6(BaseFile):
         -------
         `sandy.Endf6`
         """
-        from .MF8 import write
+        from .mf8 import write
         tape = self.copy()
         mf = 8
         for (mat,mt),df in fyFrame.groupby(["MAT","MT"]):
@@ -694,7 +694,7 @@ class Endf6(BaseFile):
     def update_info(self, descr=None):
         """Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
         """
-        from .MF1 import write
+        from .mf1 import write
         tape = self.copy()
         for mat in sorted(tape.index.get_level_values('MAT').unique()):
             sec = self.read_section(mat,1,451)

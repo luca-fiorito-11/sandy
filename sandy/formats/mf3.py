@@ -6,8 +6,8 @@ Created on Thu Jun 14 09:23:33 2018
 """
 import pdb
 
-from ..records import read_cont, read_tab1, read_list, read_control, write_cont, write_tab1
-from ..utils import Section
+from .records import *
+from .utils import Section
 
 __author__ = "Luca Fiorito"
 __all__ = ["read", "write", "read_errorr", "read_groupr"]

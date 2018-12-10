@@ -8,18 +8,14 @@ import pytest
 import numpy as np
 
 import pandas as pd
-import scipy as sp
-import seaborn as sns
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 
 import sandy
-from sandy import Endf6
-from ..MF1 import write as write_mf1
-from ..MF3 import write as write_mf3
-from ..MF4 import write as write_mf4
-from ..MF5 import write as write_mf5
-from ..MF8 import write as write_mf8
+from sandy.formats.endf6 import Endf6
+from sandy.formats.mf1 import write as write_mf1
+from sandy.formats.mf3 import write as write_mf3
+from sandy.formats.mf4 import write as write_mf4
+from sandy.formats.mf5 import write as write_mf5
+from sandy.formats.mf8 import write as write_mf8
 from sandy.data import U5, U8, Fe56, Pu9, H1, RDD
 
 @pytest.fixture(scope="module")

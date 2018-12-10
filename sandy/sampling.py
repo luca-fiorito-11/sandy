@@ -2,7 +2,7 @@
 """
 Created on Mon Mar 19 22:51:03 2018
 
-@author: lucaf
+@author: Luca Fiorito
 """
 
 import os
@@ -15,13 +15,15 @@ import multiprocessing as mp
 
 import pandas as pd
 
-from .utils import FySamples
-from ..settings import SandyError
-from ..formats import Endf6, read_formatted_file
-from ..utils import is_valid_dir, is_valid_file
+from sandy.settings import SandyError
+from sandy.formats import read_formatted_file
+from sandy.formats.endf6 import Endf6
+from sandy.formats.utils import FySamples
+from sandy.utils import is_valid_dir, is_valid_file
 
 __author__ = "Luca Fiorito"
 __all__ = ["sampling"]
+
 
 def _sampling_mp(ismp, skip_title=False, skip_fend=False):
     global tape, PertXs, PertNubar, PertEdistr, PertLpc, init
@@ -299,3 +301,7 @@ def run():
     except SandyError as exc:
         logging.error(exc.args[0])
     print("Total running time: {:.2f} sec".format(time.time() - t0))
+
+
+if __name__ == "__main__":
+    run()

@@ -25,11 +25,11 @@ class Errorr(BaseFile):
         Parse MAT/MF/MT section
         """
         if mf == 1:
-            from .MF1 import read_errorr as read
+            from .mf1 import read_errorr as read
         elif mf == 3:
-            from .MF3 import read_errorr as read
+            from .mf3 import read_errorr as read
         elif mf == 33 or mf == 31 or mf == 35:
-            from .MF33 import read_errorr as read
+            from .mf33 import read_errorr as read
         else:
             raise SandyError("SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
         if (mat,mf,mt) not in self.index:
