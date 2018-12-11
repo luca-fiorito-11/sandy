@@ -5,6 +5,8 @@ Created on Thu Jun 14 09:23:33 2018
 @author: fiorito_l
 """
 
+import numpy as np
+
 from .records import *
 from .utils import Section
 
@@ -87,6 +89,10 @@ def _read_rdd(text):
     out.update({"ZA" : C.C1, "AWR" : C.C2, "LIS" : C.L1, "LISO" : C.L2, "NST" :C.N1, "NSP" : C.N2})
     L, i = read_list(str_list, i)
     out.update({"HL" : L.C1, "DHL" : L.C2, "E" : L.B[::2], "DE" : L.B[1::2]})
+    if out["HL"] != 0:
+        out.update({"LAMBDA" : np.log(2)/out["HL"]})
+    else:
+        out.update({"LAMBDA" : 0})
     L, i = read_list(str_list, i)
     out.update({"SPI" : L.C1, "PAR" : L.C2, "DK" : {}})
     if out["NST"] == 0:

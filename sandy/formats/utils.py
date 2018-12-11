@@ -13,7 +13,7 @@ import numpy as np
 import scipy as sp
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sandy.utils.utils import TimeDecorator
+
 from ..functions import gls, div0
 from ..settings import SandyError, colors
 
@@ -30,7 +30,7 @@ class Section(dict):
 class BaseFile(pd.DataFrame):
 
     @classmethod
-    def from_file(cls, file, listmat=None, listmf=None, listmt=None):
+    def from_file(cls, file, listmat=range(1,10000), listmf=range(1,100), listmt=range(1,1000)):
         """
         Read formatted file and call from_text method.
         """
@@ -41,7 +41,6 @@ class BaseFile(pd.DataFrame):
         return out
 
     @classmethod
-    @TimeDecorator
     def from_text(cls, text, empty_err=True, listmat=None, listmf=None, listmt=None):
         """
         Read ENDF-6 formatted file and split it into column based on field width:
@@ -63,7 +62,6 @@ class BaseFile(pd.DataFrame):
                apply(lambda x: "".join(x.TEXT.values)). \
                rename("TEXT"). \
                to_frame()
-        pdb.set_trace()
        
 #        splitters = tape.loc[(tape.MAT==0) & (tape.MF==0) & (tape.MT==0)].index
 #        dfs = []; ibeg = 0
@@ -83,7 +81,7 @@ class BaseFile(pd.DataFrame):
 #            raise SandyError("tape is empty")
 #        tape = pd.DataFrame.from_dict(dfs).set_index(["MAT","MF","MT"])
 
-        frame = cls(tape)
+        frame = cls(tape).filter_by(listmat=listmat, listmf=listmf, listmt=listmt)
         if frame.empty and empty_err:
             raise SandyError("tape is empty")
         return frame
@@ -135,6 +133,19 @@ class BaseFile(pd.DataFrame):
         if newdf.empty:
             raise SandyError("all sections were deleted")
         return self.__class__(newdf)
+
+    def filter_by(self, listmat=None, listmf=None, listmt=None):
+        """Filter dataframe based on MAT, MF, MT values.
+        """
+        _listmat = range(1,10000) if listmat is None else listmat
+        _listmf = range(1,10000) if listmf is None else listmf
+        _listmt = range(1,10000) if listmt is None else listmt
+        cond_mat = self.index.get_level_values("MAT").isin(_listmat)
+        cond_mf = self.index.get_level_values("MF").isin(_listmf)
+        cond_mt = self.index.get_level_values("MT").isin(_listmt)
+        df = self.loc[cond_mat & cond_mf & cond_mt]
+        return self.__class__(df)
+
 
 
 class Xs(pd.DataFrame):
@@ -617,6 +628,12 @@ class DecayChains(pd.DataFrame):
         B = self.pivot_table(index="daughter", columns="parent", values="yield", aggfunc=np.sum, fill_value=0.0).astype(float)
         np.fill_diagonal(B.values, 0)
         return BMatrix(B)
+
+    def get_transition_matrix(self):
+        df = self.copy()
+        df["yield"] *= df["constant"]
+        T = df.pivot_table(index="daughter", columns="parent", values="yield", aggfunc=np.sum, fill_value=0.0).astype(float)
+        return T
 
 
 
