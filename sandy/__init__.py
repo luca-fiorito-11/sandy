@@ -3,7 +3,7 @@ import sys
 
 from sandy.formats import *
 from sandy.settings import *
-from sandy.ddfy import *
+from sandy.decay import *
 
 class ShutdownHandler(logging.Handler):
     """Trigger exit on errors.
