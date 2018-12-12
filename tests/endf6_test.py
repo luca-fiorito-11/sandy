@@ -50,6 +50,21 @@ def testU8():
 
 @pytest.mark.formats
 @pytest.mark.endf6
+def test_mat_property(testH1):
+    sorted(testH1.mat) == [125]
+
+@pytest.mark.formats
+@pytest.mark.endf6
+def test_mf_property(testH1):
+    sorted(testH1.mf) == [1,2,3]
+
+@pytest.mark.formats
+@pytest.mark.endf6
+def test_mt_property(testH1):
+    sorted(testH1.mt) == [1, 2, 102, 151, 451]
+
+@pytest.mark.formats
+@pytest.mark.endf6
 @pytest.mark.info
 def test_read_info(testPu9):
     S = testPu9.read_section(9437, 1, 451)

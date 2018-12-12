@@ -17,6 +17,21 @@ def testH1():
     return tape
 
 @pytest.mark.formats
+@pytest.mark.endf6
+def test_mat_property(testH1):
+    sorted(testH1.mat) == [125]
+
+@pytest.mark.formats
+@pytest.mark.endf6
+def test_mf_property(testH1):
+    sorted(testH1.mf) == [1,2,3]
+
+@pytest.mark.formats
+@pytest.mark.endf6
+def test_mt_property(testH1):
+    sorted(testH1.mt) == [1, 2, 102, 151, 451]
+
+@pytest.mark.formats
 @pytest.mark.errorr
 @pytest.mark.info
 def test_read_info(testH1):
