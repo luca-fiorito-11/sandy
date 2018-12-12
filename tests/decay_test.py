@@ -78,6 +78,17 @@ def test_bmatrix(DecayChains_small):
     assert (B.values == np.array([[0,0,0],[1,0,0],[0,1,0]])).all()
 
 @pytest.mark.rdd
+def test_transition_matrix(DecayChains_small):
+    """Test on a toy problem that the transition matrix contains 
+    the correct values.
+    """
+    T = DecayChains_small.get_transition_matrix()
+    assert np.isclose(T.loc[240560,240560], -0.0019448574089785222)
+    assert np.isclose(T.loc[250560,240560], 0.0019448574089785222)
+    assert np.isclose(T.loc[250560,250560], -7.46635393516041e-05)
+    assert np.isclose(T.loc[260560,250560], 7.46635393516041e-05)
+
+@pytest.mark.rdd
 def test_bmatrix_methods():
     """Test that all accessible methods to bmatrix are working and are equivalent.
     """

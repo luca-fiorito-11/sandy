@@ -22,7 +22,6 @@ from sandy.formats.utils import (
         XsCov,
         EdistrCov,
         LpcCov,
-        DecayChains,
         triu_matrix,
         corr2cov,
         )

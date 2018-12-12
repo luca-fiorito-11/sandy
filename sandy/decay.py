@@ -7,6 +7,7 @@ Created on Tue Nov 20 13:44:51 2018
 
 import logging
 import os
+import pdb
 
 import numpy as np
 import pandas as pd
@@ -63,10 +64,10 @@ def get_transition_matrix(file="jeff"):
 
     Returns
     -------
-    `sandy.QMatrix`
+    `TMatrix`
     """
-    tape = Endf6.from_text("\n".join(RDD.endf6))
-    return tape.get_decay_chains(verbose=False).get_transition_matrix()
+    if file is "jeff":   
+        return QMatrix.from_file(os.path.join(RDD.__path__, "RDD.jeff33"))
 
 
 
@@ -109,9 +110,17 @@ class DecayChains(pd.DataFrame):
         return self.get_bmatrix().to_qmatrix()
 
     def get_transition_matrix(self):
+        """Extract transition matrix into dataframe.
+        
+        Returns
+        -------
+        `TMatrix`
+        """
         df = self.copy()
         df["yield"] *= df["constant"]
-        T = df.pivot_table(index="daughter", columns="parent", values="yield", aggfunc=np.sum, fill_value=0.0).astype(float)
+        T = df.pivot_table(index="daughter", columns="parent", values="yield", aggfunc=np.sum). \
+                astype(float). \
+                fillna(0)
         return T
 
     @classmethod
@@ -305,3 +314,42 @@ class QMatrix(pd.DataFrame):
         """
         Q = DecayChains.from_file(file, verbose=verbose).get_qmatrix()
         return cls(Q)
+
+
+
+class TMatrix(pd.DataFrame):
+    """`pandas.DataFrame` containing a transition matrix.
+
+    Index
+    -----
+    daughter : array of `int`
+        ID = ZZZ * 10000 + AAA * 10 + META of daughter nuclides
+        
+    Columns
+    -------
+    parent : array of `int`
+        ID = ZZZ * 10000 + AAA * 10 + META of parent nuclides
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.name = "daughter"
+        self.columns.name = "parent"
+
+    @classmethod
+    def from_file(cls, file, verbose=False):
+        """Extract transition matrix from file.
+        
+        Parameters
+        ----------
+        file : `str`
+            ENDF-6 file containing decay data
+        verbose : `bool`
+            Turn on/off verbosity
+        
+        Returns
+        -------
+        `Tmatrix`
+        """
+        T = DecayChains.from_file(file, verbose=verbose).get_transition_matrix()
+        return cls(T)
