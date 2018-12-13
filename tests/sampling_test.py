@@ -13,6 +13,7 @@ import numpy as np
 
 from sandy.formats.endf6 import Endf6
 from sandy.formats.errorr import Errorr
+from sandy.formats.utils import XsCov
 from sandy.sampling import sampling
 from sandy.data import H1, Cm242, U5, U8, Fe56, FY
 
@@ -21,7 +22,7 @@ from sandy.data import H1, Cm242, U5, U8, Fe56, FY
 def test_sample_xs():
     errtape = Errorr.from_text("\n".join(H1.errorr))
     nsmp = 1000
-    perts = errtape.get_xs_cov(listmt=[102]).get_samples(nsmp, eig=10)
+    perts = XsCov.from_errorr(errtape.filter_by(listmt=[102,451])).get_samples(nsmp, eig=10)
     pendftape = Endf6.from_text("\n".join(H1.pendf))
     xs = pendftape.get_xs()
     ismp = randint(1, nsmp);

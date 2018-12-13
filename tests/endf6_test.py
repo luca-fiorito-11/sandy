@@ -11,12 +11,13 @@ import pandas as pd
 
 import sandy
 from sandy.formats.endf6 import Endf6
+from sandy.formats.utils import XsCov
 from sandy.formats.mf1 import write as write_mf1
 from sandy.formats.mf3 import write as write_mf3
 from sandy.formats.mf4 import write as write_mf4
 from sandy.formats.mf5 import write as write_mf5
 from sandy.formats.mf8 import write as write_mf8
-from sandy.data import U5, U8, Fe56, Pu9, H1, RDD
+from sandy.data import U5, U8, Fe56, Pu9, H1
 
 @pytest.fixture(scope="module")
 def testPu9():
@@ -139,7 +140,7 @@ def test_read_xs_cov(testPu9):
 @pytest.mark.xs
 @pytest.mark.cov
 def test_extract_xs_cov(testPu9):
-    testPu9.get_xs_cov()
+    XsCov.from_endf6(testPu9)
 
 @pytest.mark.formats
 @pytest.mark.endf6
