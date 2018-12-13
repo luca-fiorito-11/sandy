@@ -33,7 +33,7 @@ def get_bmatrix(file="jeff"):
     `BMatrix`
     """
     if file is "jeff":   
-        return BMatrix.from_file(os.path.join(RDD.__path__, "RDD.jeff33"))
+        return BMatrix.from_file(os.path.join(RDD.__path__[0], "RDD.jeff33"))
 
 
 
@@ -50,7 +50,7 @@ def get_qmatrix(file="jeff"):
     `QMatrix`
     """
     if file is "jeff":   
-        return QMatrix.from_file(os.path.join(RDD.__path__, "RDD.jeff33"))
+        return QMatrix.from_file(os.path.join(RDD.__path__[0], "RDD.jeff33"))
 
 
 
@@ -66,8 +66,8 @@ def get_transition_matrix(file="jeff"):
     -------
     `TMatrix`
     """
-    if file is "jeff":   
-        return QMatrix.from_file(os.path.join(RDD.__path__, "RDD.jeff33"))
+    if file is "jeff":
+        return TMatrix.from_file(os.path.join(RDD.__path__[0], "RDD.jeff33"))
 
 
 

@@ -11,6 +11,7 @@ import os
 import numpy as np
 
 from sandy.data import RDD
+import sandy.decay
 from sandy.decay import DecayChains, BMatrix, QMatrix
 from sandy.formats.endf6 import Endf6
 
@@ -96,7 +97,9 @@ def test_bmatrix_methods():
     DC = DecayChains.from_endf6(tape)
     B1 = DC.get_bmatrix()
     B2 = BMatrix.from_file(os.path.join(RDD.__path__[0], "RDD.jeff33"))
+    B3 = sandy.decay.get_bmatrix()
     assert B1.equals(B2)
+    assert B1.equals(B3)
     
 @pytest.mark.rdd
 def test_qmatrix_methods():
