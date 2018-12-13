@@ -8,6 +8,7 @@ Created on Thu Jul 12 10:00:32 2018
 import pytest
 
 from sandy.formats.errorr import Errorr
+from sandy.formats.utils import XsCov
 from sandy.data import H1
 
 @pytest.fixture(scope="module")
@@ -61,4 +62,4 @@ def test_extract_xs(testH1):
 @pytest.mark.cov
 @pytest.mark.xs
 def test_extract_xs_cov(testH1):
-    testH1.get_xs_cov()
+    XsCov.from_errorr(testH1)
