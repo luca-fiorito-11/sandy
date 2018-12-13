@@ -2,7 +2,7 @@
 """
 Created on Mon Mar 19 22:51:03 2018
 
-@author: lucaf
+@author: Luca Fiorito
 """
 
 import os
@@ -15,13 +15,15 @@ import multiprocessing as mp
 
 import pandas as pd
 
-from .utils import FySamples
-from ..settings import SandyError
-from ..formats import Endf6, read_formatted_file
-from ..utils import is_valid_dir, is_valid_file
+from sandy.settings import SandyError
+from sandy.formats import read_formatted_file, get_file_format
+from sandy.formats.endf6 import Endf6
+from sandy.formats.utils import FySamples, XsCov
+from sandy.utils import is_valid_dir, is_valid_file
 
 __author__ = "Luca Fiorito"
 __all__ = ["sampling"]
+
 
 def _sampling_mp(ismp, skip_title=False, skip_fend=False):
     global tape, PertXs, PertNubar, PertEdistr, PertLpc, init
@@ -164,11 +166,13 @@ def sampling(iargs=None):
     global init, PertXs, PertNubar, PertEdistr, PertLpc, PertFy, tape
     init = _parse(iargs)
     # LOAD ENDF6 AND COVARIANCE FILE
+    ftape = read_formatted_file(init.file)
     if init.cov:
         covtape = read_formatted_file(init.cov)
-        ftape = read_formatted_file(init.file)
+        covtype = get_file_format(init.cov)
     else:
-        ftape = covtape = read_formatted_file(init.file)
+        covtape = ftape
+        covtype = get_file_format(init.file)
     df = {}
     if init.fission_yields:
         # EXTRACT FY PERTURBATIONS FROM COV FILE
@@ -211,8 +215,10 @@ def sampling(iargs=None):
     else:
         # EXTRACT XS PERTURBATIONS FROM COV FILE
         PertXs = pd.DataFrame()
-        if 33 in init.mf:
-            xscov = covtape.get_xs_cov(listmt=init.mt, listmat=init.mat, data='xs')
+        if 33 in init.mf and 33 in covtape.mf:
+            listmt = init.mt if init.mt is None else [451].extend(init.mt) # ERRORR needs MF1/MT451 to get the energy grid
+            method = XsCov.from_errorr if covtype is "errorr" else XsCov.from_endf6
+            xscov = method(covtape.filter_by(listmt=listmt, listmf=[1,33], listmat=init.mat))
             if not xscov.empty:
                 count = xscov.check_diagonal()
                 if count != 0:
@@ -222,8 +228,10 @@ def sampling(iargs=None):
                     if init.debug: PertLpc.to_csv("perts_mf33.csv")
         # EXTRACT NUBAR PERTURBATIONS FROM ENDF6 FILE
         PertNubar = pd.DataFrame()
-        if 31 in init.mf:
-            nubarcov = ftape.get_xs_cov(listmt=init.mt, listmat=init.mat, data='nubar')
+        if 31 in init.mf and 31 in covtape.mf:
+            listmt = init.mt if init.mt is None else [451].extend(init.mt) # ERRORR needs MF1/MT451 to get the energy grid
+            method = XsCov.from_errorr if covtype is "errorr" else XsCov.from_endf6
+            nubarcov = method(covtape.filter_by(listmt=listmt, listmf=[1,31], listmat=init.mat))
             if not nubarcov.empty:
                 count = nubarcov.check_diagonal()
                 if count != 0:
@@ -233,7 +241,7 @@ def sampling(iargs=None):
                     if init.debug: PertNubar.to_csv("perts_mf31.csv")
         # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
         PertEdistr = pd.DataFrame()
-        if 35 in init.mf:
+        if 35 in init.mf and 35 in covtape.mf:
             edistrcov = ftape.get_edistr_cov()
             if not edistrcov.empty:
                 count = edistrcov.check_diagonal()
@@ -244,7 +252,7 @@ def sampling(iargs=None):
                     if init.debug: PertEdistr.to_csv("perts_mf35.csv")
         # EXTRACT PERTURBATIONS FROM LPC COV FILE
         PertLpc = pd.DataFrame()
-        if 34 in init.mf:
+        if 34 in init.mf and 34 in covtape.mf:
             lpccov = ftape.get_lpc_cov()
             if not lpccov.empty:
                 if init.max_polynomial:
@@ -299,3 +307,7 @@ def run():
     except SandyError as exc:
         logging.error(exc.args[0])
     print("Total running time: {:.2f} sec".format(time.time() - t0))
+
+
+if __name__ == "__main__":
+    run()

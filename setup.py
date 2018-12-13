@@ -32,7 +32,7 @@ setup(
     ext_modules = extensions,
     entry_points={
     'console_scripts': [
-        'sandy=sandy.sampling.sampling:run',
+        'sandy=sandy.sampling:run',
         ],
     },
 )
