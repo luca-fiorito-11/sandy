@@ -23,6 +23,8 @@ __all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov",
            "Cov", "Fy", "FyCov", "Tpd",
            "LpcSamples", "EdistrSamples", "FySamples"]
 
+
+
 class Section(dict):
     pass
 
@@ -719,16 +721,19 @@ class XsCov(BaseCov):
 
     @classmethod
     def from_endf6(cls, endf6):
-        """List of JEFF-33 files with cross-isotopes covariances:
-        * 3-Li-6g.jeff33
-        * 4-Be-9g.jeff33
-        * 5-B-10g.jeff33
-        * 79-Au-197g.jeff33
-        * 94-Pu-241g.jeff33
+        """Extract cross section/nubar covariance from `Endf6` instance.
+        
+        Parameters
+        ----------
+        endf6 : `Endf6`
+            `Endf6` instance containing covariance sections
+        
+        Returns
+        -------
+        `XsCov`
         """
         tape = endf6.filter_by(listmf=[31,33])
         data = []
-        eg = set()
         def reindex(x, ex, ey):
             return x.reindex(index=ex, method="ffill").reindex(columns=ey, method="ffill").fillna(0)
         # Loop for MF/MT
@@ -781,7 +786,6 @@ class XsCov(BaseCov):
                 if cov.all().all():
                     logging.warn("empty covariance for [({0}/{1}), ({2}/{3})]".format(mat, mt, mat1, mt1))
                     continue
-                eg |= set.union(set(ex), set(ey))
                 data.append([mat, mt, mat1, mt1, cov])
         if not data:
             logging.warn("no xs covariance was found")
@@ -820,11 +824,12 @@ class XsCov(BaseCov):
 
     @classmethod
     def from_errorr(cls, errorr):
-        """Extract xs covariances from `Errorr` instance.
+        """Extract cross section/nubar covariance from `Errorr` instance.
         
         Parameters
         ----------
         errorr : `Errorr`
+            `Errorr` instance containing covariance sections
         
         Returns
         -------
@@ -834,14 +839,14 @@ class XsCov(BaseCov):
         eg = errorr.read_section(mat,1,451)["EG"]
         List = []
         for (mat,mf,mt),text in errorr.TEXT.iteritems():
-            if mf not in [31, 33, 35]:
+            if mf not in [31, 33]:
                 continue
             X = errorr.read_section(mat,mf,mt)
             for mt1,y in X["RP"].items():
                 List.append([mat, X["MT"], mat, mt1, y])
         frame = pd.DataFrame(List, columns=('MAT', 'MT','MAT1', 'MT1', 'COV'))
-        MI = [(mat,mt,e) for mat,mt in sorted(set(zip(frame.MAT, frame.MT))) for e in eg]
-        index = pd.MultiIndex.from_tuples(MI, names=("MAT", "MT", "E"))
+        mi = [(mat,mt,e) for mat,mt in sorted(set(zip(frame.MAT, frame.MT))) for e in eg]
+        index = pd.MultiIndex.from_tuples(mi, names=("MAT", "MT", "E"))
         # initialize union matrix
         matrix = np.zeros((len(index),len(index)))
         for i,row in frame.iterrows():
