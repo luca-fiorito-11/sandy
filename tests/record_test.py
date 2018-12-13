@@ -10,19 +10,21 @@ import pytest
 import numpy as np
 import rwf
 
-from ...data import Pu9
-from ..records import read_ilist
-from ..records import read_dlist
-from ..records import read_list
-from ..records import read_cont
-from ..records import read_tab1
-from ..records import write_list
-from ..records import write_ilist
-from ..records import write_dlist
-from ..records import write_cont
-from ..records import write_tab1
-from ..records import read_control
-from ..records import read_text
+from sandy.data import Pu9
+from sandy.formats.records import (
+        read_ilist,
+        read_dlist,
+        read_list,
+        read_cont,
+        read_tab1,
+        write_list,
+        write_ilist,
+        write_dlist,
+        write_cont,
+        write_tab1,
+        read_control,
+        read_text
+        )
 
 @pytest.mark.records
 @pytest.mark.read

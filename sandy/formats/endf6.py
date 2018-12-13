@@ -13,7 +13,7 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 
-from .utils import (
+from sandy.formats.utils import (
         BaseFile,
         Xs,
         Edistr,
@@ -22,12 +22,13 @@ from .utils import (
         XsCov,
         EdistrCov,
         LpcCov,
-        DecayChains,
         triu_matrix,
         corr2cov,
         )
-from ..settings import SandyError
-from ..functions import find_nearest
+from sandy.settings import SandyError
+from sandy.functions import find_nearest
+from sandy.utils.utils import TimeDecorator
+
 
 __author__ = "Luca Fiorito"
 __all__ = ["Endf6"]
@@ -62,21 +63,21 @@ class Endf6(BaseFile):
         """ Parse MAT/MF/MT section.
         """
         if mf == 1:
-            from .MF1 import read
+            from .mf1 import read
         elif mf == 3:
-            from .MF3 import read
+            from .mf3 import read
         elif mf == 5:
-            from .MF5 import read
+            from .mf5 import read
         elif mf == 4:
-            from .MF4 import read
+            from .mf4 import read
         elif mf == 8:
-            from .MF8 import read
+            from .mf8 import read
         elif mf == 33 or mf == 31:
-            from .MF33 import read
+            from .mf33 import read
         elif mf == 34:
-            from .MF34 import read
+            from .mf34 import read
         elif mf == 35:
-            from .MF35 import read
+            from .mf35 import read
         else:
             raise SandyError("SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
         if (mat,mf,mt) not in self.index:
@@ -153,7 +154,7 @@ class Endf6(BaseFile):
         return Xs(frame)
 
     def update_xs(self, xsFrame):
-        from .MF3 import write
+        from .mf3 import write
         tape = self.copy()
         mf = 3
         for (mat,mt),xsSeries in xsFrame.iteritems():
@@ -172,102 +173,6 @@ class Endf6(BaseFile):
             text = write(sec)
             tape.loc[mat,mf,mt].TEXT = text
         return Endf6(tape)
-
-    def get_xs_cov(self, listmat=None, listmt=None, data='both'):
-        """List of JEFF-33 files with cross-isotopes covariances:
-        * 3-Li-6g.jeff33
-        * 4-Be-9g.jeff33
-        * 5-B-10g.jeff33
-        * 79-Au-197g.jeff33
-        * 94-Pu-241g.jeff33
-        """
-        if data == 'both':
-            listmf = [31, 33]
-        elif data == 'xs':
-            listmf = [33]
-        elif data == 'nubar':
-            listmf = [31]
-        conditions = [self.index.get_level_values("MF") == x for x in listmf]
-        condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
-        tape = self[condition]
-        if listmat is not None:
-            conditions = [tape.index.get_level_values("MAT") == x for x in listmat]
-            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
-            tape = tape[condition]
-        if listmt is not None:
-            conditions = [tape.index.get_level_values("MT") == x for x in listmt]
-            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
-            tape = tape[condition]
-        List = []; eg = set()
-        for ix,text in tape.TEXT.iteritems():
-            X = self.read_section(*ix)
-            mat = X['MAT']; mt = X['MT']
-            for sub in X["SUB"].values():
-                mat1 = sub['MAT1'] if sub['MAT1'] != 0 else mat;
-                mt1 = sub['MT1']
-                covs = []
-                for i,nisec in sub["NI"].items():
-                    if nisec["LB"] == 5:
-                        Fkk = np.array(nisec["FKK"])
-                        if nisec["LS"] == 0: # to be tested
-                            cov = Fkk.reshape(nisec["NE"]-1, nisec["NE"]-1)
-                        else:
-                            cov = triu_matrix(Fkk, nisec["NE"]-1)
-                        # add zero row and column at the end of the matrix
-                        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-                        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-                        e1 = e2 = nisec["EK"]
-                    elif nisec["LB"] == 1:
-                        cov = np.diag(nisec["FK"])
-                        e1 = e2 = nisec["EK"]
-                    elif nisec["LB"] == 2:
-                        f = np.array(nisec["FK"])
-                        cov = f*f.reshape(-1,1)
-                        e1 = e2 = nisec["EK"]
-                    elif nisec["LB"] == 6:
-                        cov = np.array(nisec["FKL"]).reshape(nisec["NER"]-1, nisec["NEC"]-1)
-                        # add zero row and column at the end of the matrix
-                        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-                        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-                        e1 = nisec["EK"]
-                        e2 = nisec["EL"]
-                    else:
-                        logging.warn("skipped NI-type covariance with flag LB={} for MAT{}/MF{}/MT{}".format(nisec["LB"], *ix))
-                        continue
-                    cov = pd.DataFrame(cov, index=e1, columns=e2)
-                    covs.append(cov)
-                if len(covs) == 0:
-                    continue
-                # covs > 1 for Fe56
-                cov = reduce(lambda x, y: x.add(y, fill_value=0).fillna(0), covs).fillna(0)
-                eg |= set(cov.index.values)
-                List.append([mat, mt, mat1, mt1, cov])
-        if not List:
-            logging.warn("no MF[31,33] covariance found")
-            return pd.DataFrame()
-        frame = pd.DataFrame(List, columns=('MAT', 'MT','MAT1', 'MT1', 'COV'))
-        eg = sorted(eg)
-        try:
-            frame.COV = frame.COV.apply(lambda x:cov_interp(x, eg))
-        except:
-            pdb.set_trace()
-        # From here, the method is identical to Errorr.get_cov()
-        # Except that the size of eg is equal to the size of each matrix (we include the value for 2e7)
-        MI = [(mat,mt,e) for mat,mt in sorted(set(zip(frame.MAT, frame.MT))) for e in eg]
-        index = pd.MultiIndex.from_tuples(MI, names=("MAT", "MT", "E"))
-        # initialize union matrix
-        matrix = np.zeros((len(index),len(index)))
-        for i,row in frame.iterrows():
-            try:
-                ix = index.get_loc((row.MAT,row.MT))
-                ix1 = index.get_loc((row.MAT1,row.MT1))
-            except KeyError:
-                logging.warn("skip covariance for [({0.MAT}/{0.MT}), ({0.MAT1}/{0.MT1})]".format(row))
-                continue
-            matrix[ix.start:ix.stop,ix1.start:ix1.stop] = row.COV
-        i_lower = np.tril_indices(len(index), -1)
-        matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
-        return XsCov(matrix, index=index, columns=index)
 
     def get_nubar(self, listmat=None, listmt=None):
         """
@@ -318,7 +223,7 @@ class Endf6(BaseFile):
         return Xs(frame)
 
     def update_nubar(self, xsFrame):
-        from .MF1 import write
+        from .mf1 import write
         tape = self.copy()
         mf = 1
         for (mat,mt),S in xsFrame.iteritems():
@@ -392,7 +297,7 @@ class Endf6(BaseFile):
 #        return Edistr(frame)
 
     def update_edistr(self, edistrFrame):
-        from .MF5 import write
+        from .mf5 import write
         mf = 5
         tape = self.copy()
         for (mat,mt),S in edistrFrame.groupby(["MAT","MT"]):
@@ -506,7 +411,7 @@ class Endf6(BaseFile):
         return Lpc(frame)
 
     def update_lpc(self, lpcFrame):
-        from .MF4 import write
+        from .mf4 import write
         mf = 4
         tape = self.copy()
         for (mat,mt),S in lpcFrame.groupby(["MAT","MT"]):
@@ -605,7 +510,7 @@ class Endf6(BaseFile):
         return LpcCov(matrix, index=index, columns=index)
 
     def update_tpd(self, tpdFrame):
-        from .MF4 import write
+        from .mf4 import write
         mf = 4
         tape = self.copy()
         for (mat,mt),S in tpdFrame.groupby(["MAT","MT"]):
@@ -673,7 +578,7 @@ class Endf6(BaseFile):
         -------
         `sandy.Endf6`
         """
-        from .MF8 import write
+        from .mf8 import write
         tape = self.copy()
         mf = 8
         for (mat,mt),df in fyFrame.groupby(["MAT","MT"]):
@@ -694,7 +599,7 @@ class Endf6(BaseFile):
     def update_info(self, descr=None):
         """Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
         """
-        from .MF1 import write
+        from .mf1 import write
         tape = self.copy()
         for mat in sorted(tape.index.get_level_values('MAT').unique()):
             sec = self.read_section(mat,1,451)
@@ -719,106 +624,6 @@ class Endf6(BaseFile):
             text = write(sec)
             tape.loc[mat,1,451].TEXT = text
         return Endf6(tape)
-
-    def get_decay_chains(self, verbose=True):
-        """Extract dataframe of decay chains.
-        
-        Parameters
-        ----------
-        verbose: `bool`
-            Turn on/off verbosity (default is on)
-        
-        Returns
-        -------
-        `sandy.DecayChains`
-        """
-        condition = self.index.get_level_values("MF") == 8
-        tape = self[condition]
-        condition = tape.index.get_level_values("MT") == 457
-        tape = tape[condition]
-        listrdd = []
-        keys = ("parent", "daughter", "yield")
-        for ix,text in tape.TEXT.iteritems():
-            X = self.read_section(*ix)
-            zam = int(X["ZA"]*10 + X["LISO"])
-            for dk in X["DK"].values():
-                rtyp = str(dk["RTYP"]).replace(".", "").replace("0", "")
-                parent = zam
-                daughter = zam//10
-                neutrons = 0; protons = 0; alphas = 0
-                for dtype in rtyp:
-                    if int(dtype) == 1: # Beta decay
-                        daughter += 1001 - 1
-                    elif int(dtype) == 2: # Electron capture and/or positron emission
-                        daughter += 1 - 1001
-                    elif int(dtype) == 3: # Isomeric transition
-                        pass
-                    elif int(dtype) == 4: # Alpha decay
-                        daughter -= 2004
-                        alphas += 1
-                    elif int(dtype) == 5: # Neutron emission
-                        daughter -= 1
-                        neutrons += 1
-                    elif int(dtype) == 6: # Spontaneous fission
-                        if verbose:
-                            print("skip spontaneous fission for {}...".format(parent))
-                    elif int(dtype) == 7: # Proton emission
-                        daughter -= 1001
-                        protons += 1
-                    else: # Unknown decay mode
-                        if verbose:
-                            print("skip unknown decay mode for {}...".format(parent))
-                daughter = int(daughter*10 + dk["RFS"])
-                if daughter == parent:
-                    continue
-                # Add products to the list of decay chains
-                d = dict(zip(keys, (parent, daughter, dk["BR"])))
-                listrdd.append(d)
-                d = dict(zip(keys, (parent, parent, -dk["BR"])))
-                listrdd.append(d)
-                if neutrons > 0: # add neutrons produced by decay
-                    d = dict(zip(keys, (parent, 10, neutrons*dk["BR"])))
-                    listrdd.append(d)
-                if protons > 0: # add protons produced by decay
-                    d = dict(zip(keys, (parent, 10010, protons*dk["BR"])))
-                    listrdd.append(d)
-                if alphas > 0: # add alphas produced by decay
-                    d = dict(zip(keys, (parent, 20040, alphas*dk["BR"])))
-                    listrdd.append(d)
-            d = dict(zip(keys, (zam, zam, 0)))
-            listrdd.append(d)
-        if not listrdd:
-            logging.warn("no decay path found in file")
-            return pd.DataFrame()
-        return DecayChains(listrdd)
-
-    def get_bmatrix(self, verbose=True):
-        """Extract B-matrix dataframe.
-        
-        Parameters
-        ----------
-        verbose: `bool`
-            Turn on/off verbosity (default is on)
-        
-        Returns
-        -------
-        `sandy.BMatrix`
-        """
-        return self.get_decay_chains(verbose=verbose).get_bmatrix()
-        
-    def get_qmatrix(self, verbose=True):
-        """Extract Q-matrix dataframe.
-        
-        Parameters
-        ----------
-        verbose: `bool`
-            Turn on/off verbosity (default is on)
-        
-        Returns
-        -------
-        `sandy.QMatrix`
-        """
-        return self.get_bmatrix(verbose=verbose).to_qmatrix()
 
     def delete_cov(self):
         """Delete covariance sections (MF>=30) from Endf6 dataframe.

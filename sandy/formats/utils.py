@@ -7,6 +7,7 @@ Created on Thu Jun 14 09:19:24 2018
 import logging
 import pdb
 import os
+from functools import reduce
 
 import pandas as pd
 import numpy as np
@@ -14,21 +15,25 @@ import scipy as sp
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from ..sampling.utils import LpcSamples, EdistrSamples, FySamples
 from ..functions import gls, div0
 from ..settings import SandyError, colors
 
 __author__ = "Luca Fiorito"
 __all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov", 
-           "Cov", "Fy", "FyCov", "Tpd", "DecayChains", "BMatrix"]
+           "Cov", "Fy", "FyCov", "Tpd",
+           "LpcSamples", "EdistrSamples", "FySamples"]
+
+
 
 class Section(dict):
     pass
 
+
+
 class BaseFile(pd.DataFrame):
 
     @classmethod
-    def from_file(cls, file, listmat=None, listmf=None, listmt=None):
+    def from_file(cls, file, listmat=range(1,10000), listmf=range(1,100), listmt=range(1,1000)):
         """
         Read formatted file and call from_text method.
         """
@@ -54,26 +59,32 @@ class BaseFile(pd.DataFrame):
                 usecols = ["MAT", "MF", "MT"]
                 )
         tape["TEXT"] = text.splitlines(True)
-        splitters = tape.loc[(tape.MAT==0) & (tape.MF==0) & (tape.MT==0)].index
-        dfs = []; ibeg = 0
-        for iend in splitters:
-            df = tape[ibeg:iend]
-            for (mat,mf,mt),group in df.loc[(tape.MAT>0) & (tape.MF>0) & (tape.MT>0)].groupby(["MAT","MF","MT"]):
-                # Select only desired sections
-                if listmt is not None and mt not in listmt:
-                    continue
-                if listmat is not None and mat not in listmat:
-                    continue
-                if listmf is not None and mf not in listmf:
-                    continue
-                dfs.append({"MAT" : mat, "MF" : mf, "MT" : mt, "TEXT" : "".join(group.TEXT.values)})
-            ibeg = iend
-        if not dfs:
-            raise SandyError("tape is empty")
-        tape = pd.DataFrame.from_dict(dfs).set_index(["MAT","MF","MT"])
-        if tape.index.duplicated().any():
-            raise SandyError("found duplicate MAT/MF/MT")
-        frame = cls(tape)
+
+        tape = tape.loc[(tape.MAT>0) & (tape.MF>0) & (tape.MT>0)]. \
+               groupby(["MAT","MF","MT"]). \
+               apply(lambda x: "".join(x.TEXT.values)). \
+               rename("TEXT"). \
+               to_frame()
+       
+#        splitters = tape.loc[(tape.MAT==0) & (tape.MF==0) & (tape.MT==0)].index
+#        dfs = []; ibeg = 0
+#        for iend in splitters:
+#            df = tape[ibeg:iend]
+#            for (mat,mf,mt),group in df.loc[(tape.MAT>0) & (tape.MF>0) & (tape.MT>0)].groupby(["MAT","MF","MT"]):
+#                # Select only desired sections
+#                if listmt is not None and mt not in listmt:
+#                    continue
+#                if listmat is not None and mat not in listmat:
+#                    continue
+#                if listmf is not None and mf not in listmf:
+#                    continue
+#                dfs.append({"MAT" : mat, "MF" : mf, "MT" : mt, "TEXT" : "".join(group.TEXT.values)})
+#            ibeg = iend
+#        if not dfs:
+#            raise SandyError("tape is empty")
+#        tape = pd.DataFrame.from_dict(dfs).set_index(["MAT","MF","MT"])
+
+        frame = cls(tape).filter_by(listmat=listmat, listmf=listmf, listmt=listmt)
         if frame.empty and empty_err:
             raise SandyError("tape is empty")
         return frame
@@ -83,6 +94,8 @@ class BaseFile(pd.DataFrame):
         super().__init__(*args, **kwargs)
         self.index.names = ['MAT', 'MF', 'MT']
         self.sort_index(level=["MAT","MF","MT"], inplace=True)
+        if self.index.duplicated().any():
+            raise SandyError("found duplicate MAT/MF/MT")
     
     def add_sections(self, file, sect, kind='replace'):
         """Add MF/MT section from one file to an existing dataframe.
@@ -123,6 +136,31 @@ class BaseFile(pd.DataFrame):
         if newdf.empty:
             raise SandyError("all sections were deleted")
         return self.__class__(newdf)
+
+    def filter_by(self, listmat=None, listmf=None, listmt=None):
+        """Filter dataframe based on MAT, MF, MT values.
+        """
+        _listmat = range(1,10000) if listmat is None else listmat
+        _listmf = range(1,10000) if listmf is None else listmf
+        _listmt = range(1,10000) if listmt is None else listmt
+        cond_mat = self.index.get_level_values("MAT").isin(_listmat)
+        cond_mf = self.index.get_level_values("MF").isin(_listmf)
+        cond_mt = self.index.get_level_values("MT").isin(_listmt)
+        df = self.loc[cond_mat & cond_mf & cond_mt]
+        return self.__class__(df)
+    
+    @property
+    def mat(self):
+        return self.index.get_level_values("MAT").unique()
+
+    @property
+    def mf(self):
+        return self.index.get_level_values("MF").unique()
+
+    @property
+    def mt(self):
+        return self.index.get_level_values("MT").unique()
+
 
 
 class Xs(pd.DataFrame):
@@ -585,101 +623,13 @@ class Fy(pd.DataFrame):
     
 
 
-class DecayChains(pd.DataFrame):
-    """`pandas.DataFrame` of decay chains for several isotopes.
-    
-    Columns
-    -------
-    parent : `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of parent nuclide
-    daughter : `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of daughter nuclide
-    yield : `float`
-        branching ratio
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-    
-    def get_bmatrix(self):
-        B = self.pivot_table(index="daughter", columns="parent", values="yield", aggfunc=np.sum, fill_value=0.0).astype(float)
-        np.fill_diagonal(B.values, 0)
-        return BMatrix(B)
-
-
-
-class BMatrix(pd.DataFrame):
-    """`pandas.DataFrame` containing the B-matrix, that is, the production yields 
-    of all decay chains (sum of branching ratios).
-
-    Index
-    -----
-    daughter : array of `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of daughter nuclides
-        
-    Columns
-    -------
-    parent : array of `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of parent nuclides
-    """
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.index.name = "daughter"
-        self.columns.name = "parent"
-
-    def to_qmatrix(self, neutrons=False):
-        """Convert dataframe B-matrix into dataframe Q-matrix.
-        
-        Parameters
-        ----------
-        neutrons : `bool`
-            if `False` (default) remove neutrons from the matrix
-        
-        Returns
-        -------
-        `sandy.QMatrix`
-        """
-        B = self.copy()
-        if not neutrons:
-            if 10 in B.index:
-                B.drop(index=10, inplace=True)
-            if 10 in B.columns:
-                B.drop(columns=10, inplace=True)
-        C = np.identity(len(B)) - B.values
-        Q = np.linalg.pinv(C)
-        return QMatrix(Q, index=B.index, columns=B.columns)
-
-
-
-class QMatrix(pd.DataFrame):
-    """`pandas.DataFrame` containing the Q-matrix.
-    
-    Index
-    -----
-    daughter : array of `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of daughter nuclides
-        
-    Columns
-    -------
-    parent : array of `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of parent nuclides
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.index.name = "daughter"
-        self.columns.name = "parent"
-
-
-
 class BaseCov(pd.DataFrame):
     """Base covariance class inheriting from `pandas.DataFrame`.
     Must be used as superclass by all other covariances.
     """
     
     def to_matrix(self):
-        return self.index, Cov(self.values)
+        return Cov(self.values)
 
     def check_diagonal(self, verbose=True):
         """Check if any of the diagonal elements is negative.
@@ -732,7 +682,7 @@ class BaseCov(pd.DataFrame):
         
         Returns
         -------
-        `sandy.LpcCov`, `sandy.EdistrCov`, `sandy.XsCov`
+        `LpcCov` or `EdistrCov` or `XsCov`
         """
         mask = self.index.get_level_values(index) == value
         cov = self.iloc[mask, mask]
@@ -746,59 +696,176 @@ class XsCov(BaseCov):
     index = E1, E2, ..., El
     """
 
-    def to_matrix(self):
-        return self.index, Cov(self.values)
+    labels = ["MAT", "MT", "E"]
 
-    def get_samples(self, nsmp, **kwargs):
-        index, cov = self.to_matrix()
-        frame = pd.DataFrame(cov.sampling(nsmp) + 1, index=index, columns=range(1,nsmp+1))
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = self.labels
+        self.columns.names = self.labels
+
+    def get_samples(self, nsmp, eig=0):
+        cov = self.to_matrix()
+        frame = pd.DataFrame(cov.sampling(nsmp) + 1, index=self.index, columns=range(1,nsmp+1))
         frame.columns.name = 'SMP'
-        if "eig" in kwargs:
-            if kwargs["eig"] > 0:
-                eigs = cov.eig()[0]
-                idxs = np.abs(eigs).argsort()[::-1]
-                dim = min(len(eigs), kwargs["eig"])
-                eigs_smp = Cov(np.cov(frame.values)).eig()[0]
-                idxs_smp = np.abs(eigs_smp).argsort()[::-1]
-                print("MF[31,33] eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
-                diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
-                E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
-                print("\n".join(E))
+        if eig > 0:
+            eigs = cov.eig()[0]
+            idxs = np.abs(eigs).argsort()[::-1]
+            dim = min(len(eigs), eig)
+            eigs_smp = Cov(np.cov(frame.values)).eig()[0]
+            idxs_smp = np.abs(eigs_smp).argsort()[::-1]
+            print("MF[31,33] eigenvalues:\n{:^10}{:^10}{:^10}".format("EVAL", "SAMPLES","DIFF %"))
+            diff = div0(eigs[idxs]-eigs_smp[idxs_smp], eigs[idxs], value=np.NaN)*100.
+            E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
+            print("\n".join(E))
         return frame
 
-    def macs(self, E0=0.0253, Elo=1E-5, Ehi=1E1):
-        from ..integrals.macs import maxw_int
-        records = []
-        for (mat,mt),sec in self.groupby(["MAT","MT"]):
-            C = sec[mat,mt].loc[mat,mt]
-            E = set(C.index.values)
-            E.update([Elo, Ehi])
-            E = np.array(sorted(E))
-            E = E[(E >= Elo) & (E <= Ehi)]
-            C = C.reindex(E).ffill().fillna(0).T.reindex(E).ffill().fillna(0)
-            data = [[E0,
-                     E[i],
-                     E[i+1],
-                     maxw_int(E0, E[i], E[i+1])
-                     ] for i in range(len(E)-1)]
-            dframe = pd.DataFrame(data, columns=["E0", "E1", "E2", "INT"])
-            cond = dframe.E1/E0 >= 1e-5
-            D = dframe[cond].INT.sum()
-            S = dframe[cond].INT / D
-            rvar = S.dot(C.values[:-1,:-1][cond][:,cond].dot(S))
-            rstd = np.sqrt(rvar)
-            skipped = "{}/{}".format(sum(cond==False), len(dframe))
-            records.append([mat, mt, rvar, rstd, D, Elo, Ehi, E0, skipped])
-        return pd.DataFrame.from_records(records, columns=["MAT", "MT", "VAR", "STD", "FLUX", "Elo", "Ehi", "E0","SKIPPED"])
+    @classmethod
+    def from_endf6(cls, endf6):
+        """Extract cross section/nubar covariance from `Endf6` instance.
+        
+        Parameters
+        ----------
+        endf6 : `Endf6`
+            `Endf6` instance containing covariance sections
+        
+        Returns
+        -------
+        `XsCov`
+        """
+        tape = endf6.filter_by(listmf=[31,33])
+        data = []
+        def reindex(x, ex, ey):
+            return x.reindex(index=ex, method="ffill").reindex(columns=ey, method="ffill").fillna(0)
+        # Loop for MF/MT
+        for ix,text in tape.TEXT.iteritems():
+            X = tape.read_section(*ix)
+            mat = X['MAT']; mt = X['MT']
+            # Loop for subsections
+            for sub in X["SUB"].values():
+                mat1 = sub['MAT1'] if sub['MAT1'] != 0 else mat
+                mt1 = sub['MT1']
+                covs = []
+                # Loop for NI-type covariances
+                for i,nisec in sub["NI"].items():
+                    if nisec["LB"] == 5:
+                        Fkk = np.array(nisec["FKK"])
+                        if nisec["LS"] == 0: # to be tested
+                            cov = Fkk.reshape(nisec["NE"]-1, nisec["NE"]-1) # asymmetrix matrix
+                        else:
+                            cov = triu_matrix(Fkk, nisec["NE"]-1) # symmetric matrix
+                        # add zero row and column at the end of the matrix
+                        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                        e1 = e2 = nisec["EK"]
+                    elif nisec["LB"] == 1:
+                        cov = np.diag(nisec["FK"])
+                        e1 = e2 = nisec["EK"]
+                    elif nisec["LB"] == 2:
+                        f = np.array(nisec["FK"])
+                        cov = f*f.reshape(-1,1)
+                        e1 = e2 = nisec["EK"]
+                    elif nisec["LB"] == 6:
+                        cov = np.array(nisec["FKL"]).reshape(nisec["NER"]-1, nisec["NEC"]-1)
+                        # add zero row and column at the end of the matrix
+                        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                        e1 = nisec["EK"]
+                        e2 = nisec["EL"]
+                    else:
+                        logging.warn("skip LB={0} covariance for [({1}/{2}), ({3}/{4})]".format(nisec["LB"], mat, mt, mat1, mt1))
+                        continue
+                    cov = pd.DataFrame(cov, index=e1, columns=e2)
+                    covs.append(cov)
+                if len(covs) == 0:
+                    continue
+                # covs > 1 for Fe56
+                ex = sorted(set.union(*[set(cov.index) for cov in covs]))
+                ey = sorted(set.union(*[set(cov.columns) for cov in covs]))
+                covs = list(map(lambda x: reindex(x, ex, ey), covs))
+                cov = reduce(pd.DataFrame.add, covs)
+                if cov.all().all():
+                    logging.warn("empty covariance for [({0}/{1}), ({2}/{3})]".format(mat, mt, mat1, mt1))
+                    continue
+                data.append([mat, mt, mat1, mt1, cov])
+        if not data:
+            logging.warn("no xs covariance was found")
+            return pd.DataFrame()
+        series = pd.DataFrame.from_records(data, columns=["MAT", "MT", "MAT1", "MT1", "COV"]).set_index(["MAT","MT","MAT1","MT1"]).COV
+        # Reindex the cross-reaction matrices
+        for (mat,mt,mat1,mt1),cov in series.iteritems():
+            if mat != mat1 or mt != mt1:
+                try:
+                    ex = series[mat,mt,mat,mt].index.values
+                except KeyError:
+                    series[mat,mt,mat1,mt1] = np.nan
+                    logging.warn("skip covariance for [({0}/{1}), ({2}/{3})]".format(mat,mt,mat1,mt1))
+                    continue
+                try:
+                    ey = series[mat1,mt1,mat1,mt1].index.values
+                except KeyError:
+                    series[mat,mt,mat1,mt1] = np.nan
+                    logging.warn("skip covariance for [({0}/{1}), ({2}/{3})]".format(mat,mt,mat1,mt1))
+                    continue
+                series[mat,mt,mat1,mt1] = reindex(cov, ex, ey)
+        series.dropna(inplace=True)
+        # Create global matrix
+        pairs = sorted(set(list(zip(series.index.get_level_values("MAT"),series.index.get_level_values("MT")))))
+        indexlist = [(mat,mt,e) for mat,mt in pairs for e in series[mat,mt,mat,mt].index.values]
+        index = pd.MultiIndex.from_tuples(indexlist, names=("MAT", "MT", "E"))
+        matrix = np.zeros((len(index),len(index)))
+        for (mat,mt,mat1,mt1),cov in series.iteritems():
+            ix = index.get_loc((mat,mt))
+            ix1 = index.get_loc((mat1,mt1))
+            matrix[ix.start:ix.stop,ix1.start:ix1.stop] = cov
+        # Make the matrix symmetric
+        i_lower = np.tril_indices(len(index), -1)
+        matrix[i_lower] = matrix.T[i_lower]
+        return cls(matrix, index=index, columns=index)
 
+    @classmethod
+    def from_errorr(cls, errorr):
+        """Extract cross section/nubar covariance from `Errorr` instance.
+        
+        Parameters
+        ----------
+        errorr : `Errorr`
+            `Errorr` instance containing covariance sections
+        
+        Returns
+        -------
+        `XsCov`
+        """
+        mat = errorr.mat[0]
+        eg = errorr.read_section(mat,1,451)["EG"]
+        List = []
+        for (mat,mf,mt),text in errorr.TEXT.iteritems():
+            if mf not in [31, 33]:
+                continue
+            X = errorr.read_section(mat,mf,mt)
+            for mt1,y in X["RP"].items():
+                List.append([mat, X["MT"], mat, mt1, y])
+        frame = pd.DataFrame(List, columns=('MAT', 'MT','MAT1', 'MT1', 'COV'))
+        mi = [(mat,mt,e) for mat,mt in sorted(set(zip(frame.MAT, frame.MT))) for e in eg]
+        index = pd.MultiIndex.from_tuples(mi, names=("MAT", "MT", "E"))
+        # initialize union matrix
+        matrix = np.zeros((len(index),len(index)))
+        for i,row in frame.iterrows():
+            ix = index.get_loc((row.MAT,row.MT))
+            ix1 = index.get_loc((row.MAT1,row.MT1))
+            matrix[ix.start:ix.stop-1,ix1.start:ix1.stop-1] = row.COV
+        i_lower = np.tril_indices(len(index), -1)
+        matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
+        return XsCov(matrix, index=index, columns=index)
 
 
 class EdistrCov(BaseCov):
 
+    labels = ["MAT", "MT", "ELO", "EHI", "EOUT"]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.index.names = ["MAT", "MT", "ELO", "EHI", "EOUT"]
-        self.columns.names = ["MAT", "MT", "ELO", "EHI", "EOUT"]
+        self.index.names = self.labels
+        self.columns.names = self.labels
     
     @property
     def nblocks(self):
@@ -819,8 +886,8 @@ class EdistrCov(BaseCov):
         -------
         `sandy.EdistrSamples`
         """
-        index, cov = self.to_matrix()
-        frame = pd.DataFrame(cov.sampling(nsmp), index=index, columns=range(1,nsmp+1))
+        cov = self.to_matrix()
+        frame = pd.DataFrame(cov.sampling(nsmp), index=self.index, columns=range(1,nsmp+1))
         frame.columns.name = 'SMP'
         if "eig" in kwargs:
             if kwargs["eig"] > 0:
@@ -920,11 +987,13 @@ class EdistrCov(BaseCov):
 
 
 class LpcCov(BaseCov):
+    
+    labels = ["MAT", "MT", "L", "E"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.index.names = ["MAT", "MT", "L", "E"]
-        self.columns.names = ["MAT", "MT", "L", "E"]
+        self.index.names = self.labels
+        self.columns.names = self.labels
 
     def plot_std(self, display=True, **kwargs):
         """Plot standard deviations with seaborn.
@@ -985,8 +1054,8 @@ class LpcCov(BaseCov):
         -------
         `sandy.LpcSamples`
         """
-        index, cov = self.to_matrix()
-        frame = pd.DataFrame(cov.sampling(nsmp) + 1, index=index, columns=range(1,nsmp+1))
+        cov = self.to_matrix()
+        frame = pd.DataFrame(cov.sampling(nsmp) + 1, index=self.index, columns=range(1,nsmp+1))
         if "eig" in kwargs:
             if kwargs["eig"] > 0:
                 eigs = cov.eig()[0]
@@ -1017,10 +1086,12 @@ class FyCov(BaseCov):
         ZZZ * 10000 + AAA * 10 + META
     """
     
+    labels = ["MAT", "MT", "E", "ZAM"]
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.index.names = ["MAT", "MT", "E", "ZAM"]
-        self.columns.names = ["MAT", "MT", "E", "ZAM"]
+        self.index.names = self.labels
+        self.columns.names = self.labels
 
     def get_samples(self, nsmp, eig=0):
         """Draw samples from probability distribution centered in 0 and with
@@ -1037,8 +1108,8 @@ class FyCov(BaseCov):
         -------
         `sandy.FySamples`
         """
-        index, cov = self.to_matrix()
-        frame = pd.DataFrame(cov.sampling(nsmp), index=index, columns=range(1,nsmp+1))
+        cov = self.to_matrix()
+        frame = pd.DataFrame(cov.sampling(nsmp), index=self.index, columns=range(1,nsmp+1))
         if eig > 0:
             eigs = cov.eig()[0]
             idxs = np.abs(eigs).argsort()[::-1]
@@ -1051,6 +1122,91 @@ class FyCov(BaseCov):
             print("\n".join(E))
         return FySamples(frame)
 
+
+
+class LpcSamples(pd.DataFrame):
+    """samples for Legendre Polynomial coefficients.
+    
+    Index
+    -----
+    MAT : `int`
+        MAT number
+    MT : `int`
+        MT number
+    L : `int`
+        order of Legendre polynomial
+    E : `float`
+        incoming energy
+    
+    Columns
+    -------
+    sample indices
+    """    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = ["MAT", "MT", "L", "E"]
+        ncols = len(self.columns)
+        self.columns = range(1, ncols+1)
+        self.columns.name = "SMP"
+
+
+
+class EdistrSamples(pd.DataFrame):
+    """samples for Tabulated energy distributions.
+    
+    Index
+    -----
+    MAT : `int`
+        MAT number
+    MT : `int`
+        MT number
+    ELO : `float`
+        lower bound for incoming energy
+    EHI : `float`
+        upper bound for incoming energy
+    EOUT : `float`
+        outgoing neutron energy
+    
+    Columns
+    -------
+    sample indices
+    """    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = ["MAT", "MT", "ELO", "EHI", "EOUT"]
+        ncols = len(self.columns)
+        self.columns = range(1, ncols+1)
+        self.columns.name = "SMP"
+
+
+
+class FySamples(pd.DataFrame):
+    """Samples for fission yields.
+    
+    Index
+    -----
+    MAT : `int`
+        MAT number
+    MT : `int`
+        MT number
+    E : `float`
+        incoming neutron energy
+    ZAM : `int`
+        ZZZ * 10000 + A * 10 + M
+    
+    Columns
+    -------
+    sample indices
+    """    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.names = ["MAT", "MT", "E", "ZAM"]
+        ncols = len(self.columns)
+        self.columns = range(1, ncols+1)
+        self.columns.name = "SMP"
 
 class FySystem(pd.DataFrame):
     """Dataset of fission yields and uncertainties for a single fissioning 
@@ -1301,9 +1457,7 @@ class Cov(np.ndarray):
             logging.debug("found {} zeros on the diagonal, reduce matrix dimension to {} X {}".format(nzeros, *cov_reduced.shape))
         try:
             L_reduced = cov_reduced.cholesky()
-            logging.debug("cholesky decomposition was successful")
         except np.linalg.linalg.LinAlgError as exc:
-            logging.debug("cholesky decomposition was not successful, proceed with eigenvalue decomposition")
             L_reduced = cov_reduced.eigendecomp()
         L = self.restore_size(nonzero_idxs, L_reduced)
         samples = np.array(L.dot(y), dtype=float)
@@ -1334,18 +1488,15 @@ class Cov(np.ndarray):
         return L
 
     def eig(self):
-        r"""
-        Extract eigenvalues and eigenvectors of the covariance matrix.
-
-        Outputs:
-            - :``E``: :
-                (1d-array) eigenvalues
-            - :``V``: :
-                (2d-array) eigenvectors
+        """Extract eigenvalues into `pandas.Series`.
+        
+        Returns
+        -------
+        `Pandas.Series`
         """
         E, V = sp.linalg.eig(self)
         E, V = E.real, V.real
-        return E, V
+        return pd.Series(sorted(E, reverse=True), name='eigenvalues'), V
 
     def eigendecomp(self):
         r"""

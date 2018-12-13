@@ -5,10 +5,10 @@ Created on Thu Jun 14 09:23:33 2018
 @author: fiorito_l
 """
 
-from ..records import *
-from ..utils import Section
-from ...data import elements, metastates
-from ...settings import SandyError
+from .records import *
+from .utils import Section
+from ..data import elements, metastates
+from ..settings import SandyError
 
 __author__ = "Luca Fiorito"
 __all__ = ["read", "write", "read_errorr", "read_groupr"]
