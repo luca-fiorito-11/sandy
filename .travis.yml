@@ -8,7 +8,10 @@ python:
 branches:
   except: gh-pages
 before_install:
+  - pip install --user codecov
   - pip install sphinx sphinx_rtd_theme
+after_success:
+  - codecov --file coverage/lcov.info --disable search
 install:
   - python setup.py install
 script:
