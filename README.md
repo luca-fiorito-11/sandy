@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/luca-fiorito-11/sandy.svg?branch=devel)](https://travis-ci.org/luca-fiorito-11/sandy)
+[![Build Status](https://travis-ci.org/luca-fiorito-11/sandy.svg?branch=master)](https://travis-ci.org/luca-fiorito-11/sandy)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # SANDY
 
