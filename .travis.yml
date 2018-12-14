@@ -1,24 +1,36 @@
 language: python
+
 addons:
   apt:
     packages:
       - gfortran
+
 python:
   - "3.6"
+
 branches:
   except: gh-pages
+
 before_install:
   - pip install sphinx sphinx_rtd_theme codecov
-after_success:
-  - codecov --file coverage/lcov.info --disable search
+
 install:
   - python setup.py install
+
 script:
+  - git clone https://gist.github.com/luca-fiorito-11/ad352e80b01f81fe12599c079f7cb9d7 && cd ad352e80b01f81fe12599c079f7cb9d7 && python  sandy_get_eigenvalues.py sandy/data/U5/u235.endf
   - pytest
+
+after_success:
+  - codecov --file coverage/lcov.info --disable search
+
+# Set up sphinx configuration file and produce SANDY documentation in html.
 before_deploy:
   - sphinx-apidoc -F -e -f -o html sandy -A "Luca Fiorito" -H "SANDY" -V 1 -R 0 --ext-githubpages --ext-mathjax
   - sed -i "s/alabaster/sphinx_rtd_theme/" html/conf.py
   - cd html && make html
+
+# Deploy SANDY docs to gihub pages
 deploy:
   provider: pages
   skip-cleanup: true
