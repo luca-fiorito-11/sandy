@@ -2,7 +2,10 @@
 """
 Created on Thu Jun 14 09:19:24 2018
 
-@author: fiorito_l
+@author: Luca FIorito
+
+This module contains a selection of classes and functions to organize and 
+process different nuclear data types.
 """
 import logging
 import pdb
@@ -31,11 +34,38 @@ class Section(dict):
 
 
 class BaseFile(pd.DataFrame):
+    """This class is to be inherited by  all classes that parse and analyze 
+    nuclear data evaluated files in ENDF-6 or derived (ERRORR) formats.
+    
+    Index
+    -----
+    MAT : `int`
+        MAT number to identify the isotope
+    MF : `int`
+        MF number to identify the data type
+    MT : `int`
+        MT number to identify the reaction
+
+    Columns
+    -------
+    TEXT : `string`
+        MAT/MF/MT section reported as a single string
+    """
 
     @classmethod
     def from_file(cls, file, listmat=range(1,10000), listmf=range(1,100), listmt=range(1,1000)):
-        """
-        Read formatted file and call from_text method.
+        """Create instance by reading a file.
+        
+        Parameters
+        ----------
+        file : `str`
+            file name
+        listmat : `iterable`
+            list of MAT number (default all)
+        listmf : `iterable`
+            list of MF number (default all)
+        listmt : `iterable`
+            list of MT number (default all)
         """
         with open(file) as f: text = f.read()
         out = cls.from_text(text, listmat=listmat, listmf=listmf, listmt=listmt)
@@ -44,12 +74,19 @@ class BaseFile(pd.DataFrame):
         return out
 
     @classmethod
-    def from_text(cls, text, empty_err=True, listmat=None, listmf=None, listmt=None):
-        """
-        Read ENDF-6 formatted file and split it into column based on field width:
-            TEXT MAT MF MT
-              66   4  2  3
-        Store list in dataframe with MultiIndex (MAT,MF,MT).
+    def from_text(cls, text, listmat=None, listmf=None, listmt=None, empty_err=True):
+        """Create instance from string.
+        
+        Parameters
+        ----------
+        text : `str`
+            string containing the evaluated data
+        listmat : `iterable`
+            list of MAT number (default all)
+        listmf : `iterable`
+            list of MF number (default all)
+        listmt : `iterable`
+            list of MT number (default all)
         """
         from io import StringIO
         tape = pd.read_fwf(
@@ -629,7 +666,32 @@ class BaseCov(pd.DataFrame):
     """
     
     def to_matrix(self):
+        """Extract dataframe values as a `Cov` instance
+        
+        Returns
+        -------
+        `Cov`
+        """
         return Cov(self.values)
+    
+    def eig(self):
+        """Extract eigenvalues in descending order.
+        
+        Returns
+        -------
+        `pandas.Series`
+        """
+        return self.to_matrix().eig()[0]
+
+    def corr(self):
+        """Extract correlation matrix.
+        
+        Returns
+        -------
+        `BaseCov` or daughter instance
+        """
+        corr = self.to_matrix().corr
+        return self.__class__(corr, index=self.index, columns=self.columns)
 
     def check_diagonal(self, verbose=True):
         """Check if any of the diagonal elements is negative.
@@ -673,6 +735,9 @@ class BaseCov(pd.DataFrame):
     def filter_by(self, index, value):
         """Delete covariances for indices not equal to given value.
         
+        .. hint:: use this method to filter the dataframe other than `.loc` as 
+                  it returns a `BaseCov` (or daughter) instance.
+        
         Parameters
         ----------
         index : `str`
@@ -682,7 +747,7 @@ class BaseCov(pd.DataFrame):
         
         Returns
         -------
-        `LpcCov` or `EdistrCov` or `XsCov`
+        `BaseCov` or daughter instance
         """
         mask = self.index.get_level_values(index) == value
         cov = self.iloc[mask, mask]
@@ -691,9 +756,31 @@ class BaseCov(pd.DataFrame):
 
 
 class XsCov(BaseCov):
-    """
-    columns =  (MATi,MTj) ... (MATm,MTn)
-    index = E1, E2, ..., El
+    """`pandas.DataFrame` to contain cross section/nubar covariance matrices.
+    Covariances can be stored for:
+        
+        - individual reactions,
+        - cross reactions,
+        - cross isotopes,
+        - cross sections vs nubar
+
+    Index
+    -----
+    MAT : `int`
+        MAT number to identify the isotope
+    MT : `int`
+        MT number to identify the reaction
+    E : `float`
+        energy of the incident particle
+
+    Columns
+    -------
+    MAT : `int`
+        MAT number to identify the isotope
+    MT : `int`
+        MT number to identify the reaction
+    E : `float`
+        energy of the incident particle
     """
 
     labels = ["MAT", "MT", "E"]
@@ -856,6 +943,7 @@ class XsCov(BaseCov):
         i_lower = np.tril_indices(len(index), -1)
         matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
         return XsCov(matrix, index=index, columns=index)
+
 
 
 class EdistrCov(BaseCov):
