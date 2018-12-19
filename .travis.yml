@@ -12,7 +12,7 @@ branches:
   except: gh-pages
 
 before_install:
-  - pip install sphinx sphinx_rtd_theme codecov numpydoc
+  - pip install sphinx sphinx_rtd_theme numpydoc coveralls
 
 install:
   - python setup.py install
@@ -22,7 +22,7 @@ script:
   - (git clone https://gist.github.com/luca-fiorito-11/ad352e80b01f81fe12599c079f7cb9d7 && cd ad352e80b01f81fe12599c079f7cb9d7 && python  sandy_get_eigenvalues.py ../sandy/data/U5/u235.endf)
 
 after_success:
-  - codecov --file coverage/lcov.info --disable search
+  - coveralls
 
 # Set up sphinx configuration file and produce SANDY documentation in html.
 before_deploy:
