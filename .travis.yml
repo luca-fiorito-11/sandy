@@ -26,9 +26,14 @@ after_success:
 
 # Set up sphinx configuration file and produce SANDY documentation in html.
 before_deploy:
-  - sphinx-apidoc -F -e -f -o html sandy -A "Luca Fiorito" -H "SANDY" -V 1 -R 0 --ext-githubpages --ext-mathjax
-  - sed -i "s/alabaster/sphinx_rtd_theme/" html/conf.py
-  - cd html && make html
+  - sphinx-quickstart --sep --dot _ -l en --suffix .rst --master index --makefile --batchfile --use-make-mode \
+    -a "Luca Fiorito" -p "SANDY API" -v 1 -r 0 \ 
+    --ext-autodoc --ext-doctest --ext-githubpages --ext-mathjax --extensions numpydoc \
+    api_docs
+  - sed -i '13i\   sandy' api_docs/source/index.rst
+  - sed -i "s/alabaster/sphinx_rtd_theme/" api_docs/source/conf.py
+  - sphinx-apidoc --separate --force --module-first -o api_docs/source sandy
+  - cd api_docs && make html
 
 # Deploy SANDY docs to gihub pages
 deploy:
