@@ -12,7 +12,7 @@ branches:
   except: gh-pages
 
 before_install:
-  - pip install sphinx sphinx_rtd_theme codecov
+  - pip install sphinx sphinx_rtd_theme codecov numpydoc
 
 install:
   - python setup.py install
