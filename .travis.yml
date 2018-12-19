@@ -29,7 +29,7 @@ before_deploy:
   - sphinx-quickstart --sep --dot _ --language en --suffix .rst --master index --makefile --batchfile --use-make-mode --author "Luca Fiorito" --project "SANDY API" -v 1 --release 0 --ext-autodoc --ext-doctest --ext-githubpages --ext-mathjax --extensions numpydoc api_docs
   - sed -i '13i\   sandy' api_docs/source/index.rst 
   - sed -i "s/alabaster/sphinx_rtd_theme/" api_docs/source/conf.py
-  - sphinx-apidoc --separate --force --module-first -o api_docs/source sandy
+  - sphinx-apidoc --separate --force --module-first -o api_docs/source sandy >/dev/null 2>&1
   - cd api_docs && make html
 
 # Deploy SANDY docs to gihub pages
