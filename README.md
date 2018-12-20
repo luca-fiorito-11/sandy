@@ -22,6 +22,16 @@ covariances taken from the evaluated files.
 Perturbation factors are sampled with the same multigroup structure of the covariance matrix, and are applied to the pointwise 
 data to produce the perturbed files. 
 
+## Installation
+
+To install SANDY, run the following commands
+
+.. code:: bash
+
+    git clone https://github.com/luca-fiorito-11/sandy.git
+    cd sandy
+    python setup.py
+
 ## Documentation
 
 The official SANDY documentation can be found [here](https://luca-fiorito-11.github.io/sandy-docs/index.html).
