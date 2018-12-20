@@ -26,7 +26,7 @@ To install SANDY, run the following commands:
 ```
 git clone https://github.com/luca-fiorito-11/sandy.git
 cd sandy
-python setup.py
+python setup.py install
 ```
 
 ## Documentation
