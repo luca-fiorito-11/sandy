@@ -1,6 +1,5 @@
 ![Alt text](./badges/python.svg)
 [![Build Status](https://travis-ci.org/luca-fiorito-11/sandy.svg?branch=master)](https://travis-ci.org/luca-fiorito-11/sandy)
-[![](https://img.shields.io/readthedocs/:packageName.svg)](https://luca-fiorito-11.github.io/sandy-docs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![HitCount](http://hits.dwyl.io/luca-fiorito-11/sandy.svg)](http://hits.dwyl.io/luca-fiorito-11/sandy)
 [![Coverage Status](https://coveralls.io/repos/github/luca-fiorito-11/sandy/badge.svg)](https://coveralls.io/github/luca-fiorito-11/sandy)
