@@ -1,8 +1,19 @@
-![Alt text](./badges/python.svg)
-[![Build Status](https://travis-ci.org/luca-fiorito-11/sandy.svg?branch=master)](https://travis-ci.org/luca-fiorito-11/sandy)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![HitCount](http://hits.dwyl.io/luca-fiorito-11/sandy.svg)](http://hits.dwyl.io/luca-fiorito-11/sandy)
-[![Coverage Status](https://coveralls.io/repos/github/luca-fiorito-11/sandy/badge.svg)](https://coveralls.io/github/luca-fiorito-11/sandy)
+<p align="center">
+  <img src="./badges/python.svg" alt="Python version">
+  <a href="https://travis-ci.org/luca-fiorito-11/sandy">
+    <img src="https://travis-ci.org/luca-fiorito-11/sandy.svg?branch=master" alt="Build status">
+  </a>
+  <a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
+  </a>
+  <a href="http://hits.dwyl.io/luca-fiorito-11/sandy">
+    <img src="http://hits.dwyl.io/luca-fiorito-11/sandy.svg" alt="HitCount">
+  </a>
+  <a href="https://coveralls.io/github/luca-fiorito-11/sandy">
+    <img src="https://coveralls.io/repos/github/luca-fiorito-11/sandy/badge.svg" alt="Coverage Status">
+  </a>
+</p>
+
 
 <h1 align="center" style="font-family:simplifica">SANDY</h1>
 
