@@ -4,7 +4,13 @@
 [![HitCount](http://hits.dwyl.io/luca-fiorito-11/sandy.svg)](http://hits.dwyl.io/luca-fiorito-11/sandy)
 [![Coverage Status](https://coveralls.io/repos/github/luca-fiorito-11/sandy/badge.svg)](https://coveralls.io/github/luca-fiorito-11/sandy)
 
-# SANDY
+<h1 align="center" style="font-family:simplifica">SANDY</h1>
+
+
+<h5 align="center">Sampling tool for nuclear data files</h5>
+
+<br>
+ 
 
 SANDY is a python package that can read, write and perform a set of operations on nuclear data file in 
 [ENDF-6 format](https://www.oecd-nea.org/dbdata/data/manual-endf/endf102.pdf).
@@ -19,6 +25,7 @@ Currently, SANDY can draw samples for:
  - fission neutron multiplicities;
  - fission yields.
  
+ ***
 
 ## Installation
 
