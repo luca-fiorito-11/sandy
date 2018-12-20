@@ -27,7 +27,7 @@ Currently, SANDY can draw samples for:
  
  ***
 
-## Installation
+## :wrench: Installation
 
 To install SANDY, run the following commands:
 
@@ -37,20 +37,21 @@ cd sandy
 python setup.py install
 ```
 
-## Documentation
+## :notebook_with_decorative_cover: Documentation
 
 The official SANDY documentation can be found [here](https://luca-fiorito-11.github.io/sandy-docs/index.html).
 
-## <a name="contacts"></a>Contacts
+## :telephone_receiver: Contacts
 
 * [**Luca Fiorito**](https://github.com/luca-fiorito-11) - lucafiorito.11@gmail.com
 
-## Acknowledgments
+## :bookmark: Acknowledgments
 
 SANDY was conceived and developed as a part of the PhD thesis on *Nuclear data uncertainty propagation and uncertainty quantification in nuclear codes* in the framework of a collaboration between [SCK-CEN](https://www.sckcen.be) and [ULB](http://www.ulb.ac.be).
 
 
-## <a name="refrence"></a>Reference
+## :clipboard: Reference
+
 Among the publications about SANDY, please use the following as a reference for citation.
 
 L. Fiorito, G. Žerovnik, A. Stankovskiy, G. Van den Eynde, P.E. Labeau, [*Nuclear data uncertainty propagation to integral responses using SANDY*](http://www.sciencedirect.com/science/article/pii/S0306454916305278), Annals of Nuclear Energy, Volume 101, 2017, Pages 359-366, ISSN 0306-4549.
