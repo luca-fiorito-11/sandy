@@ -26,11 +26,11 @@ data to produce the perturbed files.
 
 To install SANDY, run the following commands
 
-.. code:: bash
-    
-    git clone https://github.com/luca-fiorito-11/sandy.git
-    cd sandy
-    python setup.py
+```
+git clone https://github.com/luca-fiorito-11/sandy.git
+cd sandy
+python setup.py
+```
 
 ## Documentation
 
