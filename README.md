@@ -21,7 +21,7 @@ Currently, SANDY can draw samples for:
 
 ## Installation
 
-To install SANDY, run the following commands
+To install SANDY, run the following commands:
 
 ```
 git clone https://github.com/luca-fiorito-11/sandy.git
