@@ -7,7 +7,7 @@
 <h1 align="center" style="font-family:simplifica">SANDY</h1>
 
 
-<h5 align="center">Sampling tool for nuclear data files</h5>
+<h5 align="center">Sampling tool for nuclear data</h5>
 
 <br>
  
