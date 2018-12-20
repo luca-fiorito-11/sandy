@@ -36,19 +36,25 @@ git clone https://github.com/luca-fiorito-11/sandy.git
 cd sandy
 python setup.py install
 ```
+<br>
 
 ## :notebook_with_decorative_cover: Documentation
 
 The official SANDY documentation can be found [here](https://luca-fiorito-11.github.io/sandy-docs/index.html).
 
+<br>
+
 ## :telephone_receiver: Contacts
 
 * [**Luca Fiorito**](https://github.com/luca-fiorito-11) - lucafiorito.11@gmail.com
+
+<br>
 
 ## :bookmark: Acknowledgments
 
 SANDY was conceived and developed as a part of the PhD thesis on *Nuclear data uncertainty propagation and uncertainty quantification in nuclear codes* in the framework of a collaboration between [SCK-CEN](https://www.sckcen.be) and [ULB](http://www.ulb.ac.be).
 
+<br>
 
 ## :clipboard: Reference
 
