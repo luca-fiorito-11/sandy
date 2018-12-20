@@ -15,12 +15,9 @@ Currently, SANDY can draw samples for:
  - cross sections;
  - angular distrbutions of outgoing particles;
  - energy distrbutions of outgoing particles;
- - fission neutron multiplicities.
+ - fission neutron multiplicities;
+ - fission yields.
  
-The sampling algorithm constructs multivariate normal distributions with a unit vector for mean and with relative 
-covariances taken from the evaluated files.
-Perturbation factors are sampled with the same multigroup structure of the covariance matrix, and are applied to the pointwise 
-data to produce the perturbed files. 
 
 ## Installation
 
