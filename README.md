@@ -1,3 +1,4 @@
+![Alt text](./badges/python.svg)
 [![Build Status](https://travis-ci.org/luca-fiorito-11/sandy.svg?branch=master)](https://travis-ci.org/luca-fiorito-11/sandy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![HitCount](http://hits.dwyl.io/luca-fiorito-11/sandy.svg)](http://hits.dwyl.io/luca-fiorito-11/sandy)
