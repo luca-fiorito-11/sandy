@@ -1,12 +1,41 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 14 09:19:24 2018
+This module contains all classes needed to organize and structure different 
+nuclear data types into python objects.
 
-@author: Luca FIorito
+Nuclear Data Objects (NDO)
+==========================
 
-This module contains a selection of classes and functions to organize and 
-process different nuclear data types.
+The following objects are considered:
+
+    - `Xs` : dataframe of energy dependent cross section dataframe
+    - `Lpc` : dataframe of energy dependent Legendre Polynomial Coefficients
+    - `Edistr` : dataframe of outgoing energy distributions for multiple incoming energy
+
+Nuclear Data Covariance Objects (NDCO)
+======================================
+
+The following covariance objects are considered:
+    
+    - `BaseCov` : base covariance object to be inherithed by specific covariance objects
+    - `XsCov` : dataframe of multigroup cross section covariances
+    - `LpcCov` : dataframe of multigroup Legendre Polynomial Coefficients covariances
+    - `EdistrCov` : dataframe of outgoing energy distributions covariances
+
+**Assumptions**:
+
+ * All NDCO must inherit from `pandas.DataFrame`
+ * All NCDO must reproduce square covariance matrices
+ * All NCDO must have the following methods/attributes:
+
+  - `labels` : list of index/columns names
+  - `get_samples` : method to draw random samples
+  - `from_endf` : classmethod to retrieve data from an `endf6` instance
+  - `from_errorr` : classmethod to retrieve data from a `errorr` instance
+
+.. important:: This module must not import module `endf6`.
 """
+
 import logging
 import pdb
 import os
@@ -22,7 +51,7 @@ from ..functions import gls, div0
 from ..settings import SandyError, colors
 
 __author__ = "Luca Fiorito"
-__all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "XsCov", "EdistrCov", "LpcCov", 
+__all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "EnergyCov", "XsCov", "EdistrCov", "LpcCov", 
            "Cov", "Fy", "FyCov", "Tpd",
            "LpcSamples", "EdistrSamples", "FySamples"]
 
@@ -732,9 +761,30 @@ class BaseCov(pd.DataFrame):
         """
         return self.get_var().apply(np.sqrt).rename("STD")
 
-    def filter_by(self, index, value):
-        """Delete covariances for indices not equal to given value.
-        
+#    def filter_by(self, index, value):
+#        """Delete covariances for indices not equal to given value.
+#        
+#        .. hint:: use this method to filter the dataframe other than `.loc` as 
+#                  it returns a `BaseCov` (or daughter) instance.
+#        
+#        Parameters
+#        ----------
+#        index : `str`
+#            index on which to apply the filter, e.g. "MAT", "MT"
+#        value : `int`
+#            corresponding value
+#        
+#        Returns
+#        -------
+#        `BaseCov` or daughter instance
+#        """
+#        mask = self.index.get_level_values(index) == value
+#        cov = self.iloc[mask, mask]
+#        return self.__class__(cov)
+
+    def filter_by(self, index_key, index_values, columns_key, columns_values):
+        """Filter dataframe based on given index and allowed values.
+
         .. hint:: use this method to filter the dataframe other than `.loc` as 
                   it returns a `BaseCov` (or daughter) instance.
         
@@ -742,16 +792,42 @@ class BaseCov(pd.DataFrame):
         ----------
         index : `str`
             index on which to apply the filter, e.g. "MAT", "MT"
-        value : `int`
-            corresponding value
+        values : `iter`
+            list of accepted corresponding value
         
         Returns
         -------
         `BaseCov` or daughter instance
         """
-        mask = self.index.get_level_values(index) == value
-        cov = self.iloc[mask, mask]
-        return self.__class__(cov)
+        index_cond = self.index.get_level_values(index_key).isin(index_values)
+        columns_cond = self.index.get_level_values(columns_key).isin(columns_values)
+        df = self.loc[index_cond, columns_cond]
+        return self.__class__(df)
+
+
+
+class EnergyCov(BaseCov):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.name = "E"
+        self.columns.name = "E"
+    
+    def change_grid(self, ex, ey):
+        df = self.reindex(index=ex, method="ffill"). \
+             reindex(columns=ey, method="ffill"). \
+             fillna(0)
+        return self.__class__(df)
+    
+    def get_mesh(self):
+        X, Y = np.meshgrid(self.index.values, self.columns.values)
+        return X.T, Y.T
+    
+    def plot_matrix(self, xscale='log', yscale='log', cmap='bwr', vmin=-1, vmax=1, **kwargs):
+        ax = plt.pcolormesh(*self.get_mesh(), self.values, cmap=cmap, vmin=vmin, vmax=vmax, **kwargs)
+        plt.colorbar(ax)
+        plt.gca().set_xscale(xscale)
+        plt.gca().set_yscale(yscale)
 
 
 
@@ -805,6 +881,40 @@ class XsCov(BaseCov):
             E = ["{:^10.2E}{:^10.2E}{:^10.1F}".format(a,b,c) for a,b,c in zip(eigs[idxs][:dim], eigs_smp[idxs_smp][:dim], diff[:dim])]
             print("\n".join(E))
         return frame
+    
+    def get_section(self, mat, mt, mat1, mt1):
+        """Extract section of the global covariance/correlation matrix.
+        A section is defined by a uniquecombination of MAT/MT and MAT1/MT1 numbers.
+        
+        Parameters
+        ----------
+        mat : `int`
+            MAT number for index
+        mt : `int`
+            MAT number for index
+        mat1 : `int`
+            MAT number for columns
+        mt1 : `int`
+            MT number for columns
+        
+        Returns
+        -------
+        `EnergyCov`
+        """
+        df = self.loc[(mat,mt), (mat1,mt1)]
+        return EnergyCov(df)
+    
+    def change_energy_grid(self, mat, mt, new_grid):
+        df = self.index.to_frame(index=False)
+        listdf = []
+        for (mat_,mt_),edf in df.groupby(["MAT","MT"]):
+            if mat_ == mat and mt_ == mt:
+                edf = pd.MultiIndex.from_product([[mat],[mt],new_grid], names=["MAT","MT","E"]).to_frame(index=False)
+            listdf.append(edf)
+        df = pd.concat(listdf, ignore_index=True)
+        index = df.set_index(['MAT', 'MT', "E"]).index
+        cov = self.reindex(index=index, method="ffill").reindex(columns=index, method="ffill").fillna(0)
+        return self.__class__(cov)
 
     @classmethod
     def from_endf6(cls, endf6):
@@ -861,7 +971,7 @@ class XsCov(BaseCov):
                     else:
                         logging.warn("skip LB={0} covariance for [({1}/{2}), ({3}/{4})]".format(nisec["LB"], mat, mt, mat1, mt1))
                         continue
-                    cov = pd.DataFrame(cov, index=e1, columns=e2)
+                    cov = EnergyCov(cov, index=e1, columns=e2)
                     covs.append(cov)
                 if len(covs) == 0:
                     continue
@@ -869,7 +979,7 @@ class XsCov(BaseCov):
                 ex = sorted(set.union(*[set(cov.index) for cov in covs]))
                 ey = sorted(set.union(*[set(cov.columns) for cov in covs]))
                 covs = list(map(lambda x: reindex(x, ex, ey), covs))
-                cov = reduce(pd.DataFrame.add, covs)
+                cov = EnergyCov(reduce(pd.DataFrame.add, covs))
                 if cov.all().all():
                     logging.warn("empty covariance for [({0}/{1}), ({2}/{3})]".format(mat, mt, mat1, mt1))
                     continue
@@ -877,7 +987,8 @@ class XsCov(BaseCov):
         if not data:
             logging.warn("no xs covariance was found")
             return pd.DataFrame()
-        series = pd.DataFrame.from_records(data, columns=["MAT", "MT", "MAT1", "MT1", "COV"]).set_index(["MAT","MT","MAT1","MT1"]).COV
+        series = pd.DataFrame.from_records(data, columns=["MAT", "MT", "MAT1", "MT1", "COV"]). \
+                 set_index(["MAT","MT","MAT1","MT1"]).COV
         # Reindex the cross-reaction matrices
         for (mat,mt,mat1,mt1),cov in series.iteritems():
             if mat != mat1 or mt != mt1:
@@ -904,6 +1015,8 @@ class XsCov(BaseCov):
             ix = index.get_loc((mat,mt))
             ix1 = index.get_loc((mat1,mt1))
             matrix[ix.start:ix.stop,ix1.start:ix1.stop] = cov
+            if mt != mt1 or mat != mat1:
+                matrix[ix1.start:ix1.stop,ix.start:ix.stop] = cov.T
         # Make the matrix symmetric
         i_lower = np.tril_indices(len(index), -1)
         matrix[i_lower] = matrix.T[i_lower]
