@@ -12,7 +12,9 @@ import pytest
 import pandas as pd
 import numpy as np
 
+import sandy
 from sandy.formats.utils import *
+
 
 @pytest.fixture(scope="module")
 def cov4():
@@ -41,4 +43,3 @@ def test_basecov_corr(cov4):
     assert corr.index.names == cov4.index.names
     assert corr.columns.names == cov4.columns.names
     assert np.isclose(corr.values,np.eye(4)).all()
-

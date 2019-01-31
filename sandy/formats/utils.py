@@ -48,7 +48,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 from ..functions import gls, div0
-from ..settings import SandyError, colors
+from sandy.settings import SandyError, colors
 
 __author__ = "Luca Fiorito"
 __all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "EnergyCov", "XsCov", "EdistrCov", "LpcCov", 
@@ -686,8 +686,12 @@ class Fy(pd.DataFrame):
                                 X += P
                         frame.loc[mat,mt,e,zam]["YI"] = X
         return Fy(frame)
-    
 
+
+
+###############################################################################
+# Nuclear Data Covariance Objects (NDCO)
+###############################################################################
 
 class BaseCov(pd.DataFrame):
     """Base covariance class inheriting from `pandas.DataFrame`.
@@ -744,7 +748,7 @@ class BaseCov(pd.DataFrame):
         return count
 
     def get_var(self):
-        """Extract variances in pandas Series.
+        """Extract diagonal.
 
         Returns
         -------
@@ -753,7 +757,7 @@ class BaseCov(pd.DataFrame):
         return pd.Series(np.diag(self.values), index=self.index, name="VAR")
 
     def get_std(self):
-        """Extract standard deviations in pandas Series.
+        """Extract square root of diagonal.
         
         Returns
         -------
@@ -806,33 +810,8 @@ class BaseCov(pd.DataFrame):
 
 
 
-class EnergyCov(BaseCov):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.index.name = "E"
-        self.columns.name = "E"
-    
-    def change_grid(self, ex, ey):
-        df = self.reindex(index=ex, method="ffill"). \
-             reindex(columns=ey, method="ffill"). \
-             fillna(0)
-        return self.__class__(df)
-    
-    def get_mesh(self):
-        X, Y = np.meshgrid(self.index.values, self.columns.values)
-        return X.T, Y.T
-    
-    def plot_matrix(self, xscale='log', yscale='log', cmap='bwr', vmin=-1, vmax=1, **kwargs):
-        ax = plt.pcolormesh(*self.get_mesh(), self.values, cmap=cmap, vmin=vmin, vmax=vmax, **kwargs)
-        plt.colorbar(ax)
-        plt.gca().set_xscale(xscale)
-        plt.gca().set_yscale(yscale)
-
-
-
 class XsCov(BaseCov):
-    """`pandas.DataFrame` to contain cross section/nubar covariance matrices.
+    """Dataframe to contain cross section/nubar covariance matrices.
     Covariances can be stored for:
         
         - individual reactions,
@@ -884,7 +863,7 @@ class XsCov(BaseCov):
     
     def get_section(self, mat, mt, mat1, mt1):
         """Extract section of the global covariance/correlation matrix.
-        A section is defined by a uniquecombination of MAT/MT and MAT1/MT1 numbers.
+        A section is defined by a unique combination of MAT/MT and MAT1/MT1 numbers.
         
         Parameters
         ----------
@@ -900,11 +879,12 @@ class XsCov(BaseCov):
         Returns
         -------
         `EnergyCov`
+            section of the global covariance matrix
         """
         df = self.loc[(mat,mt), (mat1,mt1)]
         return EnergyCov(df)
     
-    def change_energy_grid(self, mat, mt, new_grid):
+    def _change_energy_grid(self, mat, mt, new_grid):
         df = self.index.to_frame(index=False)
         listdf = []
         for (mat_,mt_),edf in df.groupby(["MAT","MT"]):
@@ -917,8 +897,59 @@ class XsCov(BaseCov):
         return self.__class__(cov)
 
     @classmethod
+    def from_list(cls, iterable):
+        """Extract global cross section/nubar covariance matrix from iterables 
+        of `EnergyCovs`.
+        
+        Parameters
+        ----------
+        iterable : iterable
+            list of tuples/lists/iterables with content `[mat, mt, mat1, mt1, EnergyCov]`
+        
+        Returns
+        -------
+        `XsCov`
+            global cross section/nubar covariance matrix
+        """
+        columns = ["MAT", "MT", "MAT1", "MT1", "COV"]
+        # Reindex the cross-reaction matrices
+        covs = pd.DataFrame.from_records(iterable, columns=columns).set_index(columns[:-1]).COV
+        for (mat,mt,mat1,mt1), cov in covs.iteritems():
+            if mat == mat1 and mt == mt1: # diagonal terms
+                if cov.shape[0] != cov.shape[1]:
+                    raise SandyError("non-symmetric covariance matrix for [({}/{}), ({}/{})]".format(mat, mt, mat1, mt1))
+                if not np.allclose(cov, cov.T):
+                    raise SandyError("non-symmetric covariance matrix for [({}/{}), ({}/{})]".format(mat, mt, mat1, mt1))
+            else: # off-diagonal terms
+                condition1 = (mat,mt,mat,mt) in covs.index
+                condition2 = (mat1,mt1,mat1,mt1) in covs.index
+                if not (condition1 and condition2):
+                    covs[mat,mt,mat1,mt1] = np.nan
+                    logging.warn("skip covariance matrix for [({}/{}), ({}/{})]".format(mat, mt, mat1, mt1))
+                    continue
+                ex = covs[mat,mt,mat,mt].index.values
+                ey = covs[mat1,mt1,mat1,mt1].columns.values
+                covs[mat,mt,mat1,mt1] = cov.change_grid(ex, ey)
+        covs.dropna(inplace=True)
+        # Create index for global matrix
+        mats = covs.index.get_level_values("MAT")
+        mts = covs.index.get_level_values("MT")
+        pairs = sorted(set(zip(mats, mts)))
+        indexlist = [(mat,mt,e) for mat,mt in pairs for e in covs[mat,mt,mat,mt].index.values]
+        index = pd.MultiIndex.from_tuples(indexlist, names=("MAT", "MT", "E"))
+        # Create global matrix
+        matrix = np.zeros((len(index),len(index)))
+        for (mat,mt,mat1,mt1), cov in covs.iteritems():
+            ix = index.get_loc((mat,mt))
+            ix1 = index.get_loc((mat1,mt1))
+            matrix[ix.start:ix.stop,ix1.start:ix1.stop] = cov
+            if mt != mt1 or mat != mat1:
+                matrix[ix1.start:ix1.stop,ix.start:ix.stop] = cov.T
+        return cls(matrix, index=index, columns=index)
+    
+    @classmethod
     def from_endf6(cls, endf6):
-        """Extract cross section/nubar covariance from `Endf6` instance.
+        """Extract cross section/nubar covariance from ```Endf6``` instance.
         
         Parameters
         ----------
@@ -931,96 +962,50 @@ class XsCov(BaseCov):
         """
         tape = endf6.filter_by(listmf=[31,33])
         data = []
-        def reindex(x, ex, ey):
-            return x.reindex(index=ex, method="ffill").reindex(columns=ey, method="ffill").fillna(0)
-        # Loop for MF/MT
-        for ix,text in tape.TEXT.iteritems():
-            X = tape.read_section(*ix)
-            mat = X['MAT']; mt = X['MT']
-            # Loop for subsections
+        # Loop MF/MT
+        logging.debug("found {} covariance sections".format(len(tape)))
+        for (mat,mf,mt), text in tape.TEXT.iteritems():
+            X = tape.read_section(mat, mf, mt)
+            # Loop subsections
+            logging.debug("reading section MAT={}/MF={}/MT={}".format(mat, mf, mt))
+            logging.debug("found {} subsections".format(len(X["SUB"])))
             for sub in X["SUB"].values():
                 mat1 = sub['MAT1'] if sub['MAT1'] != 0 else mat
                 mt1 = sub['MT1']
+                logging.debug("\treading subsection MAT1={}/MT1={}".format(mat1, mt1))
+                logging.debug("\tfound {} NI-type sub-subsection".format(len(sub["NI"])))
                 covs = []
-                # Loop for NI-type covariances
+                # Loop NI-type covariances
                 for i,nisec in sub["NI"].items():
+                    logging.debug("\t\treconstruct covariance from NI-type section LB={}".format(nisec["LB"]))
                     if nisec["LB"] == 5:
-                        Fkk = np.array(nisec["FKK"])
-                        if nisec["LS"] == 0: # to be tested
-                            cov = Fkk.reshape(nisec["NE"]-1, nisec["NE"]-1) # asymmetrix matrix
-                        else:
-                            cov = triu_matrix(Fkk, nisec["NE"]-1) # symmetric matrix
-                        # add zero row and column at the end of the matrix
-                        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-                        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-                        e1 = e2 = nisec["EK"]
+                        foo = EnergyCov.from_lb5_asym if nisec["LS"] == 0 else EnergyCov.from_lb5_sym
+                        cov = foo(nisec["EK"], nisec["FKK"])
+                        covs.append(cov)
                     elif nisec["LB"] == 1:
-                        cov = np.diag(nisec["FK"])
-                        e1 = e2 = nisec["EK"]
+                        cov = EnergyCov.from_lb1(nisec["EK"], nisec["FK"])
+                        covs.append(cov)
                     elif nisec["LB"] == 2:
-                        f = np.array(nisec["FK"])
-                        cov = f*f.reshape(-1,1)
-                        e1 = e2 = nisec["EK"]
+                        cov = EnergyCov.from_lb2(nisec["EK"], nisec["FK"])
+                        covs.append(cov)
                     elif nisec["LB"] == 6:
-                        cov = np.array(nisec["FKL"]).reshape(nisec["NER"]-1, nisec["NEC"]-1)
-                        # add zero row and column at the end of the matrix
-                        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-                        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-                        e1 = nisec["EK"]
-                        e2 = nisec["EL"]
+                        cov = EnergyCov.from_lb6(nisec["EK"], nisec["EL"], nisec["FKL"])
+                        covs.append(cov)
                     else:
-                        logging.warn("skip LB={0} covariance for [({1}/{2}), ({3}/{4})]".format(nisec["LB"], mat, mt, mat1, mt1))
+                        logging.warn("skip LB={} covariance for [({}/{}), ({}/{})]".format(nisec["LB"], mat, mt, mat1, mt1))
                         continue
-                    cov = EnergyCov(cov, index=e1, columns=e2)
-                    covs.append(cov)
                 if len(covs) == 0:
+                    logging.debug("\tsubsection MAT1={}/MT1={} did not provide accetable covariances".format(mat1, mt1))
                     continue
-                # covs > 1 for Fe56
-                ex = sorted(set.union(*[set(cov.index) for cov in covs]))
-                ey = sorted(set.union(*[set(cov.columns) for cov in covs]))
-                covs = list(map(lambda x: reindex(x, ex, ey), covs))
-                cov = EnergyCov(reduce(pd.DataFrame.add, covs))
+                cov = EnergyCov.sum_covs(*covs)
                 if cov.all().all():
-                    logging.warn("empty covariance for [({0}/{1}), ({2}/{3})]".format(mat, mt, mat1, mt1))
+                    logging.warn("\tempty covariance for [({}/{}), ({}/{})]".format(mat, mt, mat1, mt1))
                     continue
                 data.append([mat, mt, mat1, mt1, cov])
         if not data:
             logging.warn("no xs covariance was found")
             return pd.DataFrame()
-        series = pd.DataFrame.from_records(data, columns=["MAT", "MT", "MAT1", "MT1", "COV"]). \
-                 set_index(["MAT","MT","MAT1","MT1"]).COV
-        # Reindex the cross-reaction matrices
-        for (mat,mt,mat1,mt1),cov in series.iteritems():
-            if mat != mat1 or mt != mt1:
-                try:
-                    ex = series[mat,mt,mat,mt].index.values
-                except KeyError:
-                    series[mat,mt,mat1,mt1] = np.nan
-                    logging.warn("skip covariance for [({0}/{1}), ({2}/{3})]".format(mat,mt,mat1,mt1))
-                    continue
-                try:
-                    ey = series[mat1,mt1,mat1,mt1].index.values
-                except KeyError:
-                    series[mat,mt,mat1,mt1] = np.nan
-                    logging.warn("skip covariance for [({0}/{1}), ({2}/{3})]".format(mat,mt,mat1,mt1))
-                    continue
-                series[mat,mt,mat1,mt1] = reindex(cov, ex, ey)
-        series.dropna(inplace=True)
-        # Create global matrix
-        pairs = sorted(set(list(zip(series.index.get_level_values("MAT"),series.index.get_level_values("MT")))))
-        indexlist = [(mat,mt,e) for mat,mt in pairs for e in series[mat,mt,mat,mt].index.values]
-        index = pd.MultiIndex.from_tuples(indexlist, names=("MAT", "MT", "E"))
-        matrix = np.zeros((len(index),len(index)))
-        for (mat,mt,mat1,mt1),cov in series.iteritems():
-            ix = index.get_loc((mat,mt))
-            ix1 = index.get_loc((mat1,mt1))
-            matrix[ix.start:ix.stop,ix1.start:ix1.stop] = cov
-            if mt != mt1 or mat != mat1:
-                matrix[ix1.start:ix1.stop,ix.start:ix.stop] = cov.T
-        # Make the matrix symmetric
-        i_lower = np.tril_indices(len(index), -1)
-        matrix[i_lower] = matrix.T[i_lower]
-        return cls(matrix, index=index, columns=index)
+        return cls.from_list(data)
 
     @classmethod
     def from_errorr(cls, errorr):
@@ -1324,6 +1309,212 @@ class FyCov(BaseCov):
         return FySamples(frame)
 
 
+
+class EnergyCov(BaseCov):
+    """Dataframe for a multigroup covariance matrix.
+    
+    **Index**:
+        
+        - E : (`float`) energy grid for the 1st reaction
+
+    **Columns**:
+        
+        - E : (`float`) energy grid for the 2nd reaction
+    
+    **Values**: matrix coefficients
+    
+    .. note:: It is assumed that the covariance matrix is defined over 
+              multi-group energy grids.
+
+              Only 'zero' interpolation is supported.
+       
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.index.name = "E"
+        self.columns.name = "E"
+    
+    def change_grid(self, ex, ey):
+        """Given one energy grid for the x-axis and one energy grid for the 
+        y-axis, interpolate/extrapolate the covariance matrix over the new 
+        points using the *forward-filling* method.
+        
+        .. important::
+            
+            * backward extrapolated values (e.g. below threshold) are replaced by 0
+            * forward extrapolated values (e.g. above 20 MeV) are replaced by 
+              the covariance coefficient that refers to the last point in the 
+              original grid
+        
+        Parameters
+        ----------
+        ex : `iterable`
+            covariance energy grid for the x-axis (first reaction)
+        ey : `iterable`
+            covariance energy grid for the y-axis (second reaction)
+        
+        Returns
+        -------
+        `sandy.formats.utils.EnergyCov`
+            Covariance matrix interpolated over the new axes.
+        """
+        df = self.reindex(index=ex, method="ffill"). \
+                  reindex(columns=ey, method="ffill"). \
+                  fillna(0)
+        return self.__class__(df)
+    
+    def _get_mesh(self):
+        X, Y = np.meshgrid(self.index.values, self.columns.values)
+        return X.T, Y.T
+    
+    def _plot_matrix(self, xscale='log', yscale='log', cmap='bwr', vmin=-1, vmax=1, **kwargs):
+        ax = plt.pcolormesh(*self._get_mesh(), self.values, cmap=cmap, vmin=vmin, vmax=vmax, **kwargs)
+        plt.colorbar(ax)
+        plt.gca().set_xscale(xscale)
+        plt.gca().set_yscale(yscale)
+
+    @classmethod
+    def sum_covs(cls, *covs):
+        """Sum mutligroup covariance matrices into a single one.
+        
+        Parameters
+        ----------
+        covs : `iterable` of `sandy.formats.utils.EnergyCov`
+            list of multigroup covariance matrices (axes can be different)
+        
+        Returns
+        -------
+        `sandy.formats.utils.EnergyCov`
+            Multi-group covariance matrix.
+        """
+        def foo(x, y):
+            ex = sorted(set(x.index.tolist() + y.index.tolist()))
+            ey = sorted(set(x.columns.tolist() + y.columns.tolist()))
+            x_ = x.change_grid(ex, ey)
+            y_ = y.change_grid(ex, ey)
+            return x_.add(y_)
+        df = reduce(lambda x,y: foo(x,y), covs)
+        return cls(df)
+
+    @classmethod
+    def from_lb1(cls, evalues, fvalues):
+        """Extract square covariance matrix from NI-type sub-subsection data 
+        with flag `lb=1`.
+        
+        Parameters
+        ----------
+        evalues : `iterable`
+            covariance energy grid for both axis
+        fvalues : `iterable`
+            array of F-values (covriance matrix diagonal)
+        
+        Returns
+        -------
+        `sandy.formats.utils.EnergyCov`
+            Multi-group covariance matrix.
+        """
+        cov = np.diag(fvalues)
+        return cls(cov, index=evalues, columns=evalues)
+
+    @classmethod
+    def from_lb2(cls, evalues, fvalues):
+        """Extract square covariance matrix from NI-type sub-subsection data 
+        with flag `lb=2`.
+        
+        Parameters
+        ----------
+        evalues : `iterable`
+            covariance energy grid for both axis
+        fvalues : `iterable`
+            array of F-values
+        
+        Returns
+        -------
+        `sandy.formats.utils.EnergyCov`
+            Multi-group covariance matrix.
+        """
+        f = np.array(fvalues)
+        cov = f*f.reshape(-1,1)
+        return cls(cov, index=evalues, columns=evalues)
+
+    @classmethod
+    def from_lb5_sym(cls, evalues, fvalues):
+        """Extract square symmetric covariance matrix from NI-type sub-subsection data 
+        with flag `lb=5`.
+        
+        Parameters
+        ----------
+        evalues : `iterable`
+            covariance energy grid for both axis
+        fvalues : `iterable`
+            array of F-values (flattened upper triangular matrix coefficients)
+        
+        Returns
+        -------
+        `sandy.formats.utils.EnergyCov`
+            Multi-group covariance matrix.
+        """
+        ne = len(evalues)
+        cov = np.zeros([ne - 1, ne - 1])
+        indices = np.triu_indices(ne - 1)
+        cov[indices] = np.array(fvalues)
+        cov += np.triu(cov, 1).T
+        # add zero row and column at the end of the matrix
+        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+        return cls(cov, index=evalues, columns=evalues)
+
+    @classmethod
+    def from_lb5_asym(cls, evalues, fvalues):
+        """Extract square asymmetric covariance matrix from NI-type sub-subsection data 
+        with flag `lb=5`.
+        
+        Parameters
+        ----------
+        evalues : `iterable`
+            covariance energy grid for both axis
+        fvalues : `iterable`
+            array of F-values (flattened full matrix)
+        
+        Returns
+        -------
+        `sandy.formats.utils.EnergyCov`
+            Multi-group covariance matrix.
+        """
+        ne = len(evalues)
+        cov = np.array(fvalues).reshape(ne - 1, ne - 1)
+        # add zero row and column at the end of the matrix
+        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+        return cls(cov, index=evalues, columns=evalues)
+
+    @classmethod
+    def from_lb6(cls, evalues_r, evalues_c, fvalues):
+        """Extract covariance matrix from NI-type sub-subsection data 
+        with flag `lb6`.
+        
+        Parameters
+        ----------
+        evalues_r : `iterable`
+            covariance energy grid for row axis
+        evalues_c : `iterable`
+            covariance energy grid for column axis
+        fvalues : `iterable`
+            array of F-values (flattened full matrix)
+        
+        Returns
+        -------
+        `sandy.formats.utils.EnergyCov`
+            Multi-group covariance matrix.
+        """
+        ner = len(evalues_r)
+        nec = len(evalues_c)
+        cov = np.array(fvalues).reshape(ner-1, nec-1)
+        # add zero row and column at the end of the matrix
+        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+        return cls(cov, index=evalues_r, columns=evalues_c)
 
 class LpcSamples(pd.DataFrame):
     """samples for Legendre Polynomial coefficients.

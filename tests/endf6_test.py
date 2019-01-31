@@ -141,7 +141,7 @@ def test_read_xs_cov(testPu9):
 @pytest.mark.cov
 def test_extract_xs_cov(testPu9):
     XsCov.from_endf6(testPu9)
-
+    
 @pytest.mark.formats
 @pytest.mark.endf6
 @pytest.mark.nubar
