@@ -33,6 +33,9 @@ def test_BaseCov_eig(cov4):
     assert len(eigs) == 4
     assert eigs.index.tolist() == [0,1,2,3]
     assert (eigs == 3).all()
+    assert isinstance(eigs, pd.Series) 
+    assert eigs.name == "eigenvalues"
+    assert eigs.to_list() == sorted(eigs.values, reverse=True)
 
 @pytest.mark.formats
 @pytest.mark.utils
@@ -63,7 +66,7 @@ def test_BaseCov_get_var(cov4):
 @pytest.mark.utils
 @pytest.mark.cov
 def test_BaseCov_get_std(cov4):
-    """Test get_std method of BaseCov"""
+    """Test get_std method of BaseCov."""
     std = cov4.get_std()
     assert isinstance(std, pd.Series)
     assert (std.values == np.sqrt(3)).all()
@@ -74,7 +77,36 @@ def test_BaseCov_get_std(cov4):
 @pytest.mark.utils
 @pytest.mark.cov
 def test_BaseCov_to_matrix(cov4):
-    """Test to_matrix method of BaseCov"""
+    """Test to_matrix method of BaseCov."""
     cov = cov4.to_matrix()
     assert (cov == cov4.values).all()
     assert isinstance(cov, sandy.formats.utils.Cov)
+
+@pytest.mark.formats
+@pytest.mark.utils
+@pytest.mark.cov
+def test_BaseCov_filter_by(cov4):
+    """Test filter_by method of BaseCov."""
+    C = cov4.filter_by("A", [9228], "C", [1.0, 1e2, 1e3])
+    assert C.index.names == cov4.index.names
+    assert C.columns.names == C.columns.names
+    assert (C.index.values == cov4.index.values).all()
+    assert (C.columns.values == cov4.columns.values[1:3]).all()
+    assert (C.values == cov4.values[:,1:3]).all()
+    assert isinstance(C, cov4.__class__)
+
+@pytest.mark.formats
+@pytest.mark.utils
+@pytest.mark.cov
+def test_BaseCov_filter_by_empty(cov4):
+    """Test filter_by method of BaseCov when filter returns empty matrix."""
+    with pytest.raises(Exception):
+        cov4.filter_by("A", [9228], "C", [1e-8, 1e9])
+
+@pytest.mark.formats
+@pytest.mark.utils
+@pytest.mark.cov
+def test_BaseCov_filter_wrong_index(cov4):
+    """Test filter_by method of BaseCov when filtering index does not exist."""
+    with pytest.raises(Exception):
+        cov4.filter_by("A", [9228], "D", [1.0, 1e2, 1e3])
