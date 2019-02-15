@@ -72,22 +72,37 @@ def get_transition_matrix(file="jeff"):
 
 
 class DecayChains(pd.DataFrame):
-    """`pandas.DataFrame` of decay chains for several isotopes.
+    """Dataframe of decay chains for several isotopes.
+    Each row contain a different decay chain.
     
-    Columns
+
+    **Columns**:
+        
+        - PARENT : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of parent nuclide
+        - DAUGHTER : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of daughter nuclide
+        - YIELD : (`float`) branching ratio (between 0 and 1)
+        - CONSTANT : (`float`) decay constant
+    
+    Methods
     -------
-    parent : `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of parent nuclide
-    daughter : `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of daughter nuclide
-    yield : `float`
-        branching ratio
-    constant : `float`
-        decay constant
+    from_endf6
+        Extract dataframe of decay chains from endf6 instance
+    from_file
+        Extract dataframe of decay chains from file
+    get_bmatrix
+        extract B-matrix inro dataframe
+    get_qmatrix
+        extract Q-matrix into dataframe
+    get_transition_matrix
+        extract transition matrix into dataframe
     """
+
+    labels = ["PARENT", "DAUGHTER", "YIELD", "CONSTANT"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.index.names = self.labels
+        self.columns.names = self.labels
     
     def get_bmatrix(self):
         """Extract B-matrix dataframe.
@@ -95,8 +110,11 @@ class DecayChains(pd.DataFrame):
         Returns
         -------
         `BMatrix`
+            B-matrix associated to the given decay chains
         """
-        B = self.pivot_table(index="daughter", columns="parent", values="yield", aggfunc=np.sum, fill_value=0.0).astype(float)
+        B = self.pivot_table(index="DAUGHTER", columns="PARENT", values="YIELD", aggfunc=np.sum, fill_value=0.0). \
+                 astype(float). \
+                 fillna(0)
         np.fill_diagonal(B.values, 0)
         return BMatrix(B)
 
@@ -106,6 +124,7 @@ class DecayChains(pd.DataFrame):
         Returns
         -------
         `QMatrix`
+            Q-matrix associated to the given decay chains
         """
         return self.get_bmatrix().to_qmatrix()
 
@@ -115,51 +134,49 @@ class DecayChains(pd.DataFrame):
         Returns
         -------
         `TMatrix`
+            transition matrix associated to the given decay chains
         """
         df = self.copy()
-        df["yield"] *= df["constant"]
-        T = df.pivot_table(index="daughter", columns="parent", values="yield", aggfunc=np.sum). \
-                astype(float). \
-                fillna(0)
+        df["YIELD"] *= df["CONSTANT"]
+        T = df.pivot_table(index="DAUGHTER", columns="PARENT", values="YIELD", aggfunc=np.sum). \
+               astype(float). \
+               fillna(0)
         return T
 
     @classmethod
-    def from_file(cls, file, verbose=False):
+    def from_file(cls, file):
         """Extract dataframe of decay chains from file.
         
         Parameters
         ----------
         file : `str`
             ENDF-6 file containing decay data
-        verbose : `bool`
-            Turn on/off verbosity
         
         Returns
         -------
         `DecayChains`
+            dataframe of decay chains
         """
         tape = Endf6.from_file(file, listmf=[8], listmt=[457])
-        return cls.from_endf6(tape, verbose=verbose)
+        return cls.from_endf6(tape)
         
 
     @classmethod
-    def from_endf6(cls, endf6, verbose=False):
+    def from_endf6(cls, endf6):
         """Extract dataframe of decay chains from Endf6 instance.
         
         Parameters
         ----------
         tape : `Endf6`
             Endf6 instance containing decay data
-        verbose : `bool`
-            Turn on/off verbosity
         
         Returns
         -------
         `DecayChains`
+            dataframe of decay chains
         """
         tape = endf6.filter_by(listmf=[8], listmt=[457])
         listrdd = []
-        keys = ("parent", "daughter", "yield", "constant")
         for ix,text in tape.TEXT.iteritems():
             X = endf6.read_section(*ix)
             zam = int(X["ZA"]*10 + X["LISO"])
@@ -182,32 +199,30 @@ class DecayChains(pd.DataFrame):
                         daughter -= 1
                         neutrons += 1
                     elif dtype == 6: # Spontaneous fission
-                        if verbose:
-                            print("skip spontaneous fission for {}...".format(parent))
+                        logging.debug("skip spontaneous fission for {}...".format(parent))
                     elif dtype == 7: # Proton emission
                         daughter -= 1001
                         protons += 1
                     else: # Unknown decay mode
-                        if verbose:
-                            print("skip unknown decay mode for {}...".format(parent))
+                        logging.debug("skip unknown decay mode for {}...".format(parent))
                 daughter = int(daughter*10 + dk["RFS"])
                 if daughter == parent:
                     continue
                 # Add products to the list of decay chains
-                d = dict(zip(keys, (parent, daughter, dk["BR"], X["LAMBDA"])))
+                d = dict(zip(cls.labels, (parent, daughter, dk["BR"], X["LAMBDA"])))
                 listrdd.append(d)
-                d = dict(zip(keys, (parent, parent, -dk["BR"], X["LAMBDA"])))
+                d = dict(zip(cls.labels, (parent, parent, -dk["BR"], X["LAMBDA"])))
                 listrdd.append(d)
                 if neutrons > 0: # add neutrons produced by decay
-                    d = dict(zip(keys, (parent, 10, neutrons*dk["BR"], X["LAMBDA"])))
+                    d = dict(zip(cls.labels, (parent, 10, neutrons*dk["BR"], X["LAMBDA"])))
                     listrdd.append(d)
                 if protons > 0: # add protons produced by decay
-                    d = dict(zip(keys, (parent, 10010, protons*dk["BR"], X["LAMBDA"])))
+                    d = dict(zip(cls.labels, (parent, 10010, protons*dk["BR"], X["LAMBDA"])))
                     listrdd.append(d)
                 if alphas > 0: # add alphas produced by decay
-                    d = dict(zip(keys, (parent, 20040, alphas*dk["BR"], X["LAMBDA"])))
+                    d = dict(zip(cls.labels, (parent, 20040, alphas*dk["BR"], X["LAMBDA"])))
                     listrdd.append(d)
-            d = dict(zip(keys, (zam, zam, 0, 0)))
+            d = dict(zip(cls.labels, (zam, zam, 0, 0)))
             listrdd.append(d)
         if not listrdd:
             logging.warn("no decay path found in file")
