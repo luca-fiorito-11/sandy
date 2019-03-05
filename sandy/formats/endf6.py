@@ -14,7 +14,6 @@ import numpy as np
 import pandas as pd
 
 from sandy.formats.utils import (
-        BaseFile,
         Xs,
         Edistr,
         Lpc,
@@ -53,9 +52,170 @@ __all__ = ["Endf6"]
 #    return frame.query("MAT>0 & MF>0 & MT>0")
 #
 #
+class _BaseFile(pd.DataFrame):
+    """This class is to be inherited by  all classes that parse and analyze 
+    nuclear data evaluated files in ENDF-6 or derived (ERRORR) formats.
+    
+    **Index**:
+        
+        - MAT : (`int`) MAT number to identify the isotope
+        - MF : (`int`) MF number to identify the data type
+        - MT : (`int`) MT number to identify the reaction
 
+    **Columns**:
 
-class Endf6(BaseFile):
+        - TEXT : (`string`) MAT/MF/MT section reported as a single string
+    
+    Methods
+    -------
+    filter_by
+        Filter dataframe based on MAT, MF, MT lists
+    from_file
+        Create dataframe by reading a endf6 file
+    from_text
+        Create dataframe from endf6 text in string
+    """
+    
+    labels = ['MAT', 'MF', 'MT']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.empty:
+            raise SandyError("tape is empty")
+        self.index.names = self.labels
+        self.columns = ["TEXT"]
+        self.sort_index(level=self.labels, inplace=True)
+        if self.index.duplicated().any():
+            raise SandyError("found duplicate MAT/MF/MT")
+    
+    @classmethod
+    def from_file(cls, file):
+        """Create dataframe by reading a file.
+        
+        Parameters
+        ----------
+        file : `str`
+            file name
+
+        Returns
+        -------
+        `sandy.formats.endf6.BaseFile` or derived instance
+            Dataframe containing ENDF6 data grouped by MAT/MF/MT
+        """
+        with open(file) as f:
+            text = f.read()
+        return cls.from_text(text)
+
+    @classmethod
+    def from_text(cls, text):
+        """Create dataframe from endf6 text in string.
+        
+        Parameters
+        ----------
+        text : `str`
+            string containing the evaluated data
+
+        Returns
+        -------
+        `sandy.formats.endf6.BaseFile` or derived instance
+            Dataframe containing ENDF6 data grouped by MAT/MF/MT
+        """
+        from io import StringIO
+        tape = pd.read_fwf(
+                StringIO(text),
+                widths = [66, 4, 2, 3],
+                names = ["TEXT", "MAT", "MF", "MT"],
+                converters = {"MAT" : np.int, "MF" : np.int, "MT" : np.int},
+                usecols = cls.labels
+                )
+        tape["TEXT"] = text.splitlines(True)
+        tape = tape.loc[(tape.MAT>0) & (tape.MF>0) & (tape.MT>0)]. \
+               groupby(cls.labels). \
+               apply(lambda x: "".join(x.TEXT.values)). \
+               to_frame()
+        return cls(tape)
+    
+    def add_sections(self, file, sect, kind='replace'):
+        """Add MF/MT section from one file to an existing dataframe.
+        If they already exist, replace them or keep them according to parameter 
+        `kind`.
+        """
+        keep = "first" if kind is "keep" else "last"
+        queries = []
+        for mf,mtlist in sect.items():
+            if mtlist == "all":
+                queries.append("(MF=={})".format(mf))
+            else:
+                for mt in mtlist:
+                    queries.append("(MF=={} & MT=={})".format(mf,mt))
+        query = " | ".join(queries)
+        newdf = BaseFile.from_file(file).query(query)
+        if newdf.empty:
+            logging.warn("'{}' does not contain requested sections".format(file))
+            return self
+        outdf = pd.concat([self, newdf])
+        outdf = outdf.reset_index()
+        outdf = outdf.drop_duplicates(["MAT","MF","MT"], keep=keep)
+        outdf = outdf.set_index(["MAT","MF","MT"])
+        return self.__class__(outdf)
+
+    def delete_sections(self, sect):
+        """Add MF/MT section from one file to an existing dataframe.
+        """
+        queries = []
+        for mf,mtlist in sect.items():
+            if mtlist == "all":
+                queries.append("(MF!={})".format(mf))
+            else:
+                for mt in mtlist:
+                    queries.append("(MF!={} & MT!={})".format(mf,mt))
+        query = " & ".join(queries)
+        newdf = self.query(query)
+        if newdf.empty:
+            raise SandyError("all sections were deleted")
+        return self.__class__(newdf)
+
+    def filter_by(self, listmat=None, listmf=None, listmt=None):
+        """Filter dataframe based on MAT, MF, MT lists.
+        
+        Parameters
+        ----------
+        listmat : `list` or `None`
+            list of requested MAT values
+        listmf : `list` or `None`
+            list of requested MF values
+        listmt : `list` or `None`
+            list of requested MT values
+        
+        Returns
+        -------
+        `sandy.formats.endf6.BaseFile` or derived instance
+            Copy of the original instance with filtered MAT, MF and MT sections
+        """
+        _listmat = range(1,10000) if listmat is None else listmat
+        _listmf = range(1,10000) if listmf is None else listmf
+        _listmt = range(1,10000) if listmt is None else listmt
+        cond_mat = self.index.get_level_values("MAT").isin(_listmat)
+        cond_mf = self.index.get_level_values("MF").isin(_listmf)
+        cond_mt = self.index.get_level_values("MT").isin(_listmt)
+        df = self.loc[cond_mat & cond_mf & cond_mt]
+        return self.__class__(df)
+    
+    @property
+    def mat(self):
+        return sorted(self.index.get_level_values("MAT").unique())
+
+    @property
+    def mf(self):
+        return sorted(self.index.get_level_values("MF").unique())
+
+    @property
+    def mt(self):
+        return sorted(self.index.get_level_values("MT").unique())
+
+        
+        
+class Endf6(_BaseFile):
 
     Format = "endf6"
 

@@ -54,11 +54,11 @@ def test_read_rdd(testRDD):
 @pytest.mark.rdd
 def test_decay_chains(DecayChains_small):
     DC = DecayChains_small.copy()
-    assert DC.loc[(DC.daughter == 250560) & (DC.parent == 240560)]["yield"].iloc[0].sum() == 1
-    assert DC.loc[(DC.daughter == 240560) & (DC.parent == 240560)]["yield"].iloc[0].sum() == -1
-    assert DC.loc[(DC.daughter == 260560) & (DC.parent == 250560)]["yield"].iloc[0].sum() == 1
-    assert DC.loc[(DC.daughter == 250560) & (DC.parent == 250560)]["yield"].iloc[0].sum() == -1
-    assert DC.loc[(DC.daughter == 260560) & (DC.parent == 260560)]["yield"].iloc[0].sum() == 0
+    assert DC.loc[(DC.DAUGHTER == 250560) & (DC.PARENT == 240560)]["YIELD"].iloc[0].sum() == 1
+    assert DC.loc[(DC.DAUGHTER == 240560) & (DC.PARENT == 240560)]["YIELD"].iloc[0].sum() == -1
+    assert DC.loc[(DC.DAUGHTER == 260560) & (DC.PARENT == 250560)]["YIELD"].iloc[0].sum() == 1
+    assert DC.loc[(DC.DAUGHTER == 250560) & (DC.PARENT == 250560)]["YIELD"].iloc[0].sum() == -1
+    assert DC.loc[(DC.DAUGHTER == 260560) & (DC.PARENT == 260560)]["YIELD"].iloc[0].sum() == 0
 
 @pytest.mark.rdd
 def test_qmatrix(DecayChains_small):
