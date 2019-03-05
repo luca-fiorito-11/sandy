@@ -35,7 +35,7 @@ def test_BaseCov_eig(cov4):
     assert (eigs == 3).all()
     assert isinstance(eigs, pd.Series) 
     assert eigs.name == "eigenvalues"
-    assert eigs.to_list() == sorted(eigs.values, reverse=True)
+    assert eigs.tolist() == sorted(eigs.values, reverse=True)
 
 @pytest.mark.formats
 @pytest.mark.utils

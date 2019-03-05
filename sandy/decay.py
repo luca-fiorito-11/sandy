@@ -98,18 +98,13 @@ class DecayChains(pd.DataFrame):
     """
 
     labels = ["PARENT", "DAUGHTER", "YIELD", "CONSTANT"]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.index.names = self.labels
-        self.columns.names = self.labels
     
     def get_bmatrix(self):
         """Extract B-matrix dataframe.
         
         Returns
         -------
-        `BMatrix`
+        `sandy.decay.BMatrix`
             B-matrix associated to the given decay chains
         """
         B = self.pivot_table(index="DAUGHTER", columns="PARENT", values="YIELD", aggfunc=np.sum, fill_value=0.0). \
@@ -123,7 +118,7 @@ class DecayChains(pd.DataFrame):
         
         Returns
         -------
-        `QMatrix`
+        `sandy.decay.QMatrix`
             Q-matrix associated to the given decay chains
         """
         return self.get_bmatrix().to_qmatrix()
@@ -133,7 +128,7 @@ class DecayChains(pd.DataFrame):
         
         Returns
         -------
-        `TMatrix`
+        `sandy.decay.TMatrix`
             transition matrix associated to the given decay chains
         """
         df = self.copy()
@@ -154,7 +149,7 @@ class DecayChains(pd.DataFrame):
         
         Returns
         -------
-        `DecayChains`
+        `sandy.decay.DecayChains`
             dataframe of decay chains
         """
         tape = Endf6.from_file(file, listmf=[8], listmt=[457])
@@ -172,7 +167,7 @@ class DecayChains(pd.DataFrame):
         
         Returns
         -------
-        `DecayChains`
+        `sandy.decay.DecayChains`
             dataframe of decay chains
         """
         tape = endf6.filter_by(listmf=[8], listmt=[457])
@@ -208,9 +203,10 @@ class DecayChains(pd.DataFrame):
                 daughter = int(daughter*10 + dk["RFS"])
                 if daughter == parent:
                     continue
-                # Add products to the list of decay chains
+                # Add production of daughter to the list of decay chains
                 d = dict(zip(cls.labels, (parent, daughter, dk["BR"], X["LAMBDA"])))
                 listrdd.append(d)
+                # Add decay of parent to the list of decay chains
                 d = dict(zip(cls.labels, (parent, parent, -dk["BR"], X["LAMBDA"])))
                 listrdd.append(d)
                 if neutrons > 0: # add neutrons produced by decay
@@ -232,39 +228,46 @@ class DecayChains(pd.DataFrame):
 
 
 class BMatrix(pd.DataFrame):
-    """`pandas.DataFrame` containing the B-matrix, that is, the production yields 
+    """Dataframe for a B-matrix, that is, the production yields 
     of all decay chains (sum of branching ratios).
 
-    Index
-    -----
-    daughter : array of `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of daughter nuclides
+    **Index**:
+    
+        - DAUGHTER : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of daughter nuclide
+    
+
+    **Columns**:
         
-    Columns
+        - PARENT : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of parent nuclide
+    
+    Methods
     -------
-    parent : array of `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of parent nuclides
+    to_qmatrix
+        Convert B-matrix into Q-matrix
+    from_file
+        Extract B-matrix from file
     """
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.index.name = "daughter"
-        self.columns.name = "parent"
+        self.index.name = "DAUGHTER"
+        self.columns.name = "PARENT"
 
-    def to_qmatrix(self, neutrons=False):
-        """Convert dataframe B-matrix into dataframe Q-matrix.
+    def to_qmatrix(self, keep_neutrons=False):
+        """Convert B-matrix into Q-matrix.
         
         Parameters
         ----------
-        neutrons : `bool`
+        keep_neutrons : `bool`
             if `False` (default) remove neutrons from the matrix
         
         Returns
         -------
-        `sandy.QMatrix`
+        `sandy.decay.BMatrix`
+            Q-matrix associated to B-matrix instance
         """
         B = self.copy()
-        if not neutrons:
+        if not keep_neutrons:
             if 10 in B.index:
                 B.drop(index=10, inplace=True)
             if 10 in B.columns:
@@ -274,97 +277,102 @@ class BMatrix(pd.DataFrame):
         return QMatrix(Q, index=B.index, columns=B.columns)
 
     @classmethod
-    def from_file(cls, file, verbose=False):
+    def from_file(cls, file):
         """Extract B-matrix from file.
         
         Parameters
         ----------
         file : `str`
             ENDF-6 file containing decay data
-        verbose : `bool`
-            Turn on/off verbosity
         
         Returns
         -------
-        `Bmatrix`
+        `sandy.decay.BMatrix`
+            B-matrix extracted from given file
         """
-        B = DecayChains.from_file(file, verbose=verbose).get_bmatrix()
+        B = DecayChains.from_file(file).get_bmatrix()
         return cls(B)
 
 
 
 class QMatrix(pd.DataFrame):
-    """`pandas.DataFrame` containing the Q-matrix.
+    """Dataframe for a Q-matrix.
+
+    **Index**:
     
-    Index
-    -----
-    daughter : array of `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of daughter nuclides
+        - DAUGHTER : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of daughter nuclide
+    
+
+    **Columns**:
         
-    Columns
+        - PARENT : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of parent nuclide
+    
+    Methods
     -------
-    parent : array of `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of parent nuclides
+    from_file
+        Extract Q-matrix from file
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.index.name = "daughter"
-        self.columns.name = "parent"
+        self.index.name = "DAUGHTER"
+        self.columns.name = "PARENT"
     
     @classmethod
-    def from_file(cls, file, verbose=False):
+    def from_file(cls, file):
         """Extract Q-matrix from file.
         
         Parameters
         ----------
         file : `str`
             ENDF-6 file containing decay data
-        verbose : `bool`
-            Turn on/off verbosity
         
         Returns
         -------
-        `Qmatrix`
+        `sandy.decay.QMatrix`
+            Q-matrix extracted from given file
         """
-        Q = DecayChains.from_file(file, verbose=verbose).get_qmatrix()
+        Q = DecayChains.from_file(file).get_qmatrix()
         return cls(Q)
 
 
 
 class TMatrix(pd.DataFrame):
-    """`pandas.DataFrame` containing a transition matrix.
+    """Dataframe for a transition matrix.
 
-    Index
-    -----
-    daughter : array of `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of daughter nuclides
+    **Index**:
+    
+        - DAUGHTER : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of daughter nuclide
+    
+
+    **Columns**:
         
-    Columns
+        - PARENT : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of parent nuclide
+    
+    Methods
     -------
-    parent : array of `int`
-        ID = ZZZ * 10000 + AAA * 10 + META of parent nuclides
+    from_file
+        Extract transition matrix from file
     """
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.index.name = "daughter"
-        self.columns.name = "parent"
+        self.index.name = "DAUGHTER"
+        self.columns.name = "PARENT"
 
     @classmethod
-    def from_file(cls, file, verbose=False):
+    def from_file(cls, file):
         """Extract transition matrix from file.
         
         Parameters
         ----------
         file : `str`
             ENDF-6 file containing decay data
-        verbose : `bool`
-            Turn on/off verbosity
         
         Returns
         -------
-        `Tmatrix`
+        `sandy.decay.TMatrix`
+            transition matrix extracted from given file
         """
-        T = DecayChains.from_file(file, verbose=verbose).get_transition_matrix()
+        T = DecayChains.from_file(file).get_transition_matrix()
         return cls(T)
