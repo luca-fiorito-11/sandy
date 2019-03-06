@@ -68,6 +68,10 @@ class _BaseFile(pd.DataFrame):
     
     Methods
     -------
+    add_sections
+        Collapse two tapes into a single one
+    delete_sections
+        Delete sections from the dataframe
     filter_by
         Filter dataframe based on MAT, MF, MT lists
     from_file
@@ -134,45 +138,61 @@ class _BaseFile(pd.DataFrame):
                apply(lambda x: "".join(x.TEXT.values)). \
                to_frame()
         return cls(tape)
-    
-    def add_sections(self, file, sect, kind='replace'):
-        """Add MF/MT section from one file to an existing dataframe.
-        If they already exist, replace them or keep them according to parameter 
-        `kind`.
+
+    def add_sections(self, tape):
+        """Collapse two tapes into a single one.
+        If MAT/MF/MT index is present in both tapes, take it from the second.
+        
+        Parameters
+        ----------
+        tape : `sandy.formats.endf6.BaseFile` or derived instance
+            dataframe for ENDF-6 formatted file
+        
+        Returns
+        -------
+        `sandy.formats.endf6.BaseFile` or derived instance
+            dataframe with merged content
         """
-        keep = "first" if kind is "keep" else "last"
-        queries = []
-        for mf,mtlist in sect.items():
-            if mtlist == "all":
-                queries.append("(MF=={})".format(mf))
-            else:
-                for mt in mtlist:
-                    queries.append("(MF=={} & MT=={})".format(mf,mt))
-        query = " | ".join(queries)
-        newdf = BaseFile.from_file(file).query(query)
-        if newdf.empty:
-            logging.warn("'{}' does not contain requested sections".format(file))
-            return self
-        outdf = pd.concat([self, newdf])
-        outdf = outdf.reset_index()
-        outdf = outdf.drop_duplicates(["MAT","MF","MT"], keep=keep)
-        outdf = outdf.set_index(["MAT","MF","MT"])
+        outdf = pd.concat([pd.DataFrame(self), tape]). \
+                reset_index(). \
+                drop_duplicates(self.labels, keep='last'). \
+                set_index(self.labels)
         return self.__class__(outdf)
 
-    def delete_sections(self, sect):
-        """Add MF/MT section from one file to an existing dataframe.
+    def delete_sections(self, *tuples):
+        """Given a sequence of tuples (MAT,MF,MT), delete the corresponding sections
+        from the dataframe.
+        
+        Parameters
+        ----------
+        tuples : sequence of `tuple`
+            each tuple should have the format (MAT, MF, MT)
+            To delete, say a given MF, independentently from the MAT and MT, assign `None` 
+            to the MAT and MT position in the tuple.
+
+        Returns
+        -------
+        `sandy.formats.endf6.BaseFile` or derived instance
+            dataframe without given sections
         """
         queries = []
-        for mf,mtlist in sect.items():
-            if mtlist == "all":
-                queries.append("(MF!={})".format(mf))
-            else:
-                for mt in mtlist:
-                    queries.append("(MF!={} & MT!={})".format(mf,mt))
-        query = " & ".join(queries)
+        for mat,mf,mt in tuples:
+            conditions = []
+            if mat is not None:
+                conditions.append("MAT == {}".format(mat))
+            if mf is not None:
+                conditions.append("MF == {}".format(mf))
+            if mt is not None:
+                conditions.append("MT == {}".format(mt))
+            if not conditions:
+                continue
+            queries.append("not (" + " & ".join(conditions) + ")")
+        if not queries:
+            logging.warn("given MAT/MF/MT sections were not found")
+            return self
+        else:
+            query = " & ".join(queries)
         newdf = self.query(query)
-        if newdf.empty:
-            raise SandyError("all sections were deleted")
         return self.__class__(newdf)
 
     def filter_by(self, listmat=None, listmf=None, listmt=None):

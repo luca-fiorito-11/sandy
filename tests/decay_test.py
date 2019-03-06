@@ -25,7 +25,7 @@ def testRDD():
 
 @pytest.fixture(scope="module")
 def DecayChains_small():
-    tape = Endf6.from_text("\n".join(RDD.endf6), listmat=[471, 498, 528])
+    tape = Endf6.from_text("\n".join(RDD.endf6)).filter_by(listmat=[471, 498, 528])
     return DecayChains.from_endf6(tape)
 
 #@pytest.mark.rdd

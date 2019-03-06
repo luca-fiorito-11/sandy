@@ -152,7 +152,7 @@ class DecayChains(pd.DataFrame):
         `sandy.decay.DecayChains`
             dataframe of decay chains
         """
-        tape = Endf6.from_file(file, listmf=[8], listmt=[457])
+        tape = Endf6.from_file(file)
         return cls.from_endf6(tape)
         
 

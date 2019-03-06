@@ -48,10 +48,10 @@ def read_formatted_file(file, listmat=None, listmf=None, listmt=None):
     """
     ftype = get_file_format(file)
     if ftype is "errorr":
-        return Errorr.from_file(file, listmat=listmat, listmf=listmf, listmt=listmt)
+        return Errorr.from_file(file).filter_by(listmat=listmat, listmf=listmf, listmt=listmt)
     elif ftype is "gendf":
-        return Gendf.from_file(file, listmat=listmat, listmf=listmf, listmt=listmt)
+        return Gendf.from_file(file).filter_by(listmat=listmat, listmf=listmf, listmt=listmt)
     elif ftype is "endf6":
-        return Endf6.from_file(file, listmat=listmat, listmf=listmf, listmt=listmt)
+        return Endf6.from_file(file).filter_by(listmat=listmat, listmf=listmf, listmt=listmt)
     else:
         raise SandyError("file '{}' not in a known format".format(file))

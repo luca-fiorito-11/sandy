@@ -39,8 +39,36 @@ JEFF-3.3 Incident Neutron File                                       1 0  0    0
     return text
 
 @pytest.fixture(scope="module")
+def basetext2():
+    """Random lines taken from the ENDF/B-VII.1 evaluation for He-4.
+    MAT number was changed.
+    """
+    text = """
+ 0.000000+0 0.000000+0          0          0          0          02631 1  099999
+ 0.000000+0 0.000000+0          0          0          0          02631 0  0    0
+ 2.004000+3 3.968219+0          0          0          1          02631 2151    1
+ 2.004000+3 1.000000+0          0          0          1          02631 2151    2
+ 1.000000-5 1.000000+5          0          0          0          02631 2151    3
+ 0.000000+0 2.457900-1          0          0          0          02631 2151    4
+ 0.000000+0 0.000000+0          0          0          0          02631 2  099999
+ 0.000000+0 0.000000+0          0          0          0          02631 0  0    0
+ 2.004000+3 3.968219+0          0          0          0          0 228 3  1    1
+ 0.000000+0 0.000000+0          0          0          1        152 228 3  1    2
+ 2.004000+3 3.968219+0          0          0          0          0 228 3  2    1
+ 0.000000+0 0.000000+0          0          0          1        152 228 3  2    2
+        152          2                                             228 3  2    3
+ 1.000000-5 7.669738-1 2.530000-2 7.669738-1 1.000000+0 7.669738-1 228 3  2    4
+"""
+    return text
+
+@pytest.fixture(scope="module")
 def basefile1(basetext1):
     return sandy.formats.endf6._BaseFile.from_text(basetext1)
+
+    
+@pytest.fixture(scope="module")
+def basefile2(basetext2):
+    return sandy.formats.endf6._BaseFile.from_text(basetext2)
 
 @pytest.mark.formats
 @pytest.mark.endf6
@@ -86,6 +114,50 @@ def test_BaseFile_columns(basefile1):
 @pytest.mark.formats
 @pytest.mark.endf6
 def test_BaseFile_empty():
-    """Test that BaseFile returns error when empty dataframe is given."""
+    """Test that BaseFile returns error when empty dataframe is given"""
     with pytest.raises(Exception):
         sandy.formats.endf6.BaseFile(pd.DataFrame())
+
+@pytest.mark.formats
+@pytest.mark.endf6
+def test_BaseFile_add_sections(basefile1, basefile2):
+    """Test BaseFile method add_sections"""
+    tape = basefile1.add_sections(basefile2)
+    assert tape.TEXT.loc[228,3,1] == basefile2.TEXT.loc[228,3,1]
+    assert tape.TEXT.loc[228,3,2] == basefile2.TEXT.loc[228,3,2]
+    assert tape.TEXT.loc[2631,1,451] == basefile1.TEXT.loc[2631,1,451]
+    assert tape.TEXT.loc[2631,2,151] == basefile2.TEXT.loc[2631,2,151]
+    assert tape.TEXT.loc[2631,2,151] != basefile1.TEXT.loc[2631,2,151]
+    assert tape.TEXT.loc[2631,3,1] == basefile1.TEXT.loc[2631,3,1]
+    assert tape.TEXT.loc[2631,34,2] == basefile1.TEXT.loc[2631,34,2]
+    tape1 = basefile2.add_sections(basefile1)
+    assert tape1.TEXT.loc[228,3,1] == tape.TEXT.loc[228,3,1]
+    assert tape1.TEXT.loc[228,3,2] == tape.TEXT.loc[228,3,2]
+    assert tape1.TEXT.loc[2631,1,451] == tape.TEXT.loc[2631,1,451]
+    assert tape1.TEXT.loc[2631,2,151] != tape.TEXT.loc[2631,2,151]
+    assert tape1.TEXT.loc[2631,2,151] == basefile1.TEXT.loc[2631,2,151]
+    assert tape1.TEXT.loc[2631,3,1] == tape.TEXT.loc[2631,3,1]
+    assert tape1.TEXT.loc[2631,34,2] == tape.TEXT.loc[2631,34,2]
+
+@pytest.mark.formats
+@pytest.mark.endf6
+def test_BaseFile_delete_sections(basefile2):
+    """Test BaseFile method add_sections"""
+    tape = basefile2.delete_sections((None, 3, None))
+    assert tape.mat == [2631]
+    assert tape.mf == [2]
+    assert tape.mt == [151]
+    tape1 = basefile2.delete_sections((228, 3, 1))
+    assert tape1.mat == [228, 2631]
+    assert tape1.mf == [2, 3]
+    assert tape1.mt == [2, 151]
+    tape2 = basefile2.delete_sections((None, None, 1))
+    assert tape2.equals(tape1)
+    tape3 = basefile2.delete_sections((228, 3, 1), (2631, None, None))
+    assert tape3.mat == [228]
+    assert tape3.mf == [3]
+    assert tape3.mt == [2]
+    tape4 = basefile2.delete_sections((228, 3, 1), (2631, None, None), (None, None, 15))
+    assert tape4.equals(tape3)
+    with pytest.raises(Exception):
+        basefile2.delete_sections((228, None, None), (2631, None, None))
