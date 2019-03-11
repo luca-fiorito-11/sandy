@@ -261,8 +261,6 @@ class Endf6(_BaseFile):
     -------
     """
 
-    Format = "endf6"
-
     def read_section(self, mat, mf, mt):
         """Parse MAT/MF/MT section.
         """
@@ -275,7 +273,7 @@ class Endf6(_BaseFile):
         elif mf == 5:
             foo = mf5.read
         elif mf == 8:
-            foo = mf.read
+            foo = mf8.read
         elif mf == 33 or mf == 31:
             foo = mf33.read
         elif mf == 34:
@@ -286,7 +284,7 @@ class Endf6(_BaseFile):
             raise SandyError("SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
         if (mat,mf,mt) not in self.index:
             raise SandyError("section MAT{}/MF{}/MT{} is not in tape".format(mat,mf,mt))
-        return read(self.loc[mat,mf,mt].TEXT)
+        return foo(self.loc[mat,mf,mt].TEXT)
 
     def write_string(self, title=" "*66, skip_title=False, skip_fend=False):
         """Collect all rows in `Endf6` and write them into string.
@@ -852,29 +850,70 @@ class Endf6(_BaseFile):
 
 
 class Errorr(_BaseFile):
+    """Class to contain the content of ENDF-6 files, grouped by MAT/MF/MT.
+    
+    **Index**:
+        
+        - MAT : (`int`) MAT number to identify the isotope
+        - MF : (`int`) MF number to identify the data type
+        - MT : (`int`) MT number to identify the reaction
 
-    Format = "errorr"
+    **Columns**:
 
+        - TEXT : (`string`) MAT/MF/MT section reported as a single string
+    
+    Methods
+    -------
+    energy_grid
+        
+    read_section
+        
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if len(self.mat) != 1:
+            raise SandyError("only 1 MAT number is allowed in ERRORR file")
+
+    @property
+    def energy_grid(self):
+        return np.array(self.read_section(self.mat[0], 1, 451)["EG"])
+    
     def read_section(self, mat, mf, mt):
         """
-        Parse MAT/MF/MT section
+        Parse MAT/MF/MT section.
+        
+        Parameters
+        ----------
+        mat : `int`
+            MAT number
+        mf : `int`
+            MF number
+        mt : `int`
+            MT number
+            
+        Returns
+        -------
+        `dict`
+            content of MAT/MF/MT section structured as a dictionary
         """
         if mf == 1:
-            from .mf1 import read_errorr as read
+            foo = mf1.read_errorr
         elif mf == 3:
-            from .mf3 import read_errorr as read
+            foo = mf3.read_errorr
         elif mf == 33 or mf == 31 or mf == 35:
-            from .mf33 import read_errorr as read
+            foo = mf33.read_errorr
         else:
             raise SandyError("SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
         if (mat,mf,mt) not in self.index:
             raise SandyError("section MAT{}/MF{}/MT{} is not in tape".format(mat,mf,mt))
-        return read(self.loc[mat,mf,mt].TEXT)
+        return foo(self.loc[mat,mf,mt].TEXT)
 
     def get_xs(self, listmat=None, listmt=None, **kwargs):
         """
         Extract xs from errorr file into Xs instance.
         """
+        pdb.set_trace()
         condition = self.index.get_level_values("MF") == 3
         tape = self[condition]
         if listmat is not None:

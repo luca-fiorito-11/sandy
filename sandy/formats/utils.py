@@ -278,7 +278,7 @@ class Xs(pd.DataFrame):
         
         Returns
         -------
-        sandy.Xs
+        `sandy.formats.utils.Xs`
         """
         frame = self.copy()
         for mat, mt in frame:
@@ -304,7 +304,7 @@ class Xs(pd.DataFrame):
             frame[mat,mt] = xs
         return Xs(frame).reconstruct_sums()
 
-    def macs(self, E0=0.0253, Elo=1E-5, Ehi=1E1):
+    def _macs(self, E0=0.0253, Elo=1E-5, Ehi=1E1):
         """
         Calculate Maxwellian averaged cross sections.
         """
@@ -339,7 +339,38 @@ class Xs(pd.DataFrame):
             records.append([mat, mt, I, D, Elo, Ehi, E0, skipped])
         return pd.DataFrame(records, columns=["MAT", "MT", "MACS", "FLUX", "Elo", "Ehi", "E0","SKIPPED"])
 
-
+    @classmethod
+    def from_errorr(cls, errorr):
+        """Extract cross sections/nubar from ERRORR instance.
+        
+        Parameters
+        ----------
+        errorr : `sandy.formats.endf6.Errorr`
+            ERRORR instance
+        
+        Returns
+        -------
+        `sandy.formats.utils.Xs`
+            dataframe of cross sections in ERRORR file
+        """
+        mat = errorr.mat[0]
+        eg = errorr.energy_grid
+        tape = errorr.filter_by(listmf=[3])
+        listxs = []
+        for (mat,mf,mt),text in tape.TEXT.iteritems():
+            X = tape.read_section(mat, mf, mt)
+            xs = pd.Series(
+                      X["XS"],
+                      index=errorr.energy_grid[:-1],
+                      name=(mat,mt)
+                      ).rename_axis("E").to_frame()
+            listxs.append(xs)
+        if not listxs:
+            logging.warn("no xs/nubar data was found")
+            return pd.DataFrame()
+        # Use concat instead of merge because indexes are the same
+        frame = pd.concat(listxs, axis=1).reindex(eg, method="ffill")
+        return Xs(frame)
 
 class Lpc(pd.DataFrame):
     """Legendre polynomial coefficients for angular distribution of outgoing particles.
@@ -703,6 +734,8 @@ class BaseCov(pd.DataFrame):
         get correlation matrix instance with inherited class type
     eig
         get covariance matrix eigenvalues as a `pandas.Series` instance
+    from_list
+        extract global cross section/nubar covariance matrix from iterables 
     get_var
         get covariance matrix variances as a `pandas.Series` instance
     get_std
@@ -899,19 +932,17 @@ class XsCov(BaseCov):
     
     Methods
     -------
-    from_endf
-        Extract global cross section/nubar covariance matrix from 
+    from_endf6
+        extract global cross section/nubar covariance matrix from 
         `sandy.formats.endf6.Endf6` instance
     from_errorr
-        Extract global cross section/nubar covariance matrix from 
+        extract global cross section/nubar covariance matrix from 
         `sandy.formats.errorr.Errorr` instance  
-    from_list
-        Extract global cross section/nubar covariance matrix from iterables 
         of `sandy.formats.utils.EnergyCov` instances
     get_samples
-        Extract perturbations from global cross section/nubar covariance matrix
+        extract perturbations from global cross section/nubar covariance matrix
     get_section
-        Extract section of global cross section/nubar covariance matrix as a 
+        extract section of global cross section/nubar covariance matrix as a 
         `sandy.formats.utils.EnergyCov` instance
     """
 
@@ -985,6 +1016,7 @@ class XsCov(BaseCov):
         Returns
         -------
         `XsCov`
+            global xs/nubar covariance matrix from ENDF6 file
         """
         tape = endf6.filter_by(listmf=[31,33])
         data = []
@@ -1045,6 +1077,7 @@ class XsCov(BaseCov):
         Returns
         -------
         `XsCov`
+            global xs/nubar covariance matrix from ERRORR file
         """
         mat = errorr.mat[0]
         eg = errorr.read_section(mat,1,451)["EG"]
