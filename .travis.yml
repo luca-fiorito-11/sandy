@@ -3,7 +3,7 @@ language: python
 addons:
   apt:
     packages:
-      - gfortran-5.1
+      - gfortran-5
 
 python:
   - "3.6"
