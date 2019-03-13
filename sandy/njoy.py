@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri May 25 16:58:11 2018
+
 @author: fiorito_l
 """
 
@@ -23,206 +24,62 @@ import numpy as np
 
 from sandy.settings import SandyError
 from sandy.utils import which
+from sandy.formats.endf6 import Endf6
 
-
-class EmptyIsConst(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        if len(values) == 0:
-            string = option_string.lower()
-            if string == "--temps":
-                values = [293.6]
-            elif string == "--kerma":
-                values = [302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447]
-            elif string == "--sig0":
-                values = [1E10]
-        setattr(namespace, self.dest, values)
-
-
-def parser(iargs:"list of command line options as string"=None):
-    """Parse command line options.
-    """
-    parser = argparse.ArgumentParser(prog="python -m sandy.njoy",
-                                     formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('tape',
-                        type=lambda x: utils.is_valid_file(parser, x),
-                        help="ENDF-6 format file")
-    parser.add_argument('-P','--pendftape',
-                        type=lambda x: utils.is_valid_file(parser, x),
-                        default=argparse.SUPPRESS,
-                        metavar="PENDF",
-                        help="processed PENDF format file")
-    parser.add_argument('-G','--gendftape',
-                        type=lambda x: utils.is_valid_file(parser, x),
-                        default=argparse.SUPPRESS,
-                        metavar="GENDF",
-                        help="processed GENDF format file")
-    parser.add_argument('--broadr',
-                        type=utils.str2bool,
-                        default=argparse.SUPPRESS,
-                        metavar=True,
-                        help=argparse.SUPPRESS)
-    parser.add_argument('--purr',
-                        type=utils.str2bool,
-                        default=argparse.SUPPRESS,
-                        metavar=True,
-                        help=argparse.SUPPRESS)
-    parser.add_argument('--unresr',
-                        type=utils.str2bool,
-                        default=argparse.SUPPRESS,
-                        metavar=False,
-                        help=argparse.SUPPRESS)
-    parser.add_argument('--thermr',
-                        type=utils.str2bool,
-                        default=argparse.SUPPRESS,
-                        metavar=True,
-                        help=argparse.SUPPRESS)
-    parser.add_argument('--heatr',
-                        type=utils.str2bool,
-                        default=argparse.SUPPRESS,
-                        metavar=False,
-                        help=argparse.SUPPRESS)
-    parser.add_argument('--acer',
-                        type=utils.str2bool,
-                        default=argparse.SUPPRESS,
-                        metavar=False,
-                        help=argparse.SUPPRESS)
-    parser.add_argument('-p','--pendf',
-                        action="store_true",
-                        help="produce PENDF file")
-    parser.add_argument('-a','--ace',
-                        action="store_true",
-                        help="produce ACE file")
-    parser.add_argument('-g','--gendf',
-                        action="store_true",
-                        help="produce GENDF file")
-    parser.add_argument('-e','--errorr',
-                        action="store_true",
-                        help="produce ERRORR file")
-    parser.add_argument('-H','--hendf',
-                        action="store_true",
-                        help="produce HENDF file")
-#    parser.add_argument('--capsys',
-#                        action="store_true",
-#                        help="capture NJOY stderr and stdout (default=False)")
-    parser.add_argument('--exe',
-                        default=argparse.SUPPRESS,
-                        help="NJOY executable (default=njoy2016).")
-    parser.add_argument('--temps',
-                        type=float,
-                        default=argparse.SUPPRESS,
-                        nargs='+',
-                        help="list of temperature values")
-    parser.add_argument('--sig0',
-                        type=float,
-                        default=argparse.SUPPRESS,
-                        nargs='+',
-                        help="list of dilution values")
-    parser.add_argument('--kerma',
-                        type=int,
-                        action=EmptyIsConst,
-                        default=argparse.SUPPRESS,
-                        nargs='*',
-                        help="list of partial kermas (default=[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447])")
-#    parser.add_argument('--qa',
-#                        default=[],
-#                        nargs='+',
-#                        help="MT number and associated user Q-value (default=None).")
-    parser.add_argument('--err',
-                        type=float,
-                        default=argparse.SUPPRESS,
-                        help="fractional tolerance for RECONR and BROADR (default=0.001)")
-    parser.add_argument('--free-gas',
-                        default=argparse.SUPPRESS,
-                        action="store_true",
-                        help="compute thermal cross section for free-gas scatterer (THERMR)")
-    parser.add_argument('--ptable',
-                        default=argparse.SUPPRESS,
-                        action="store_true",
-                        help="compute probability tables (PURR)")
-    parser.add_argument('--gaspr',
-                        default=argparse.SUPPRESS,
-                        action="store_true",
-                        help="compute gas-production cross sections (GASPR)")
-    parser.add_argument('--ign',
-                        default=argparse.SUPPRESS,
-                        help='''neutron group structure option for GROUPR
- - file : read from file
- - 2 : csewg 239-group structure [default]
- - 3 : lanl 30-group structure
- - 4 : anl 27-group structure
- - 5 : rrd 50-group structure
- - 6 : gam-i 68-group structure
- - 7 : gam-ii 100-group structure
- - 8 : laser-thermos 35-group structure
- - 9 : epri-cpm 69-group structure
- - 10 : lanl 187-group structure
- - 11 : lanl 70-group structure
- - 12 : sand-ii 620-group structure
- - 13 : lanl 80-group structure
- - 14 : eurlib 100-group structure
- - 15 : sand-iia 640-group structure
- - 16 : vitamin-e 174-group structure
- - 17 : vitamin-j 175-group structure
- - 19 : ecco 33-group structure
- - 20 : ecco 1968-group structure
- - 21 : tripoli 315-group structure
- - 22 : xmas lwpc 172-group structure
- - 23 : vit-j lwpc 175-group structure
-predefined group structures:
- - scale_238''')
-    parser.add_argument('--iwt',
-                        default=argparse.SUPPRESS,
-                        help='''Weight function option for GROUPR
- - file : read from file
- - 2 : constant
- - 3 : 1/e
- - 5 : epri-cell lwr
- - 6 : (thermal) -- (1/e) -- (fission + fusion)
- - 7 : same with t-dep thermal part
- - 8 : thermal--1/e--fast reactor--fission + fusion
- - 9 : claw weight function
- - 10 : claw with t-dependent thermal part
- - 11 : vitamin-e weight function (ornl-5505)
- - 12 : vit-e with t-dep thermal part
-predefined functions:
- - jaea_fns_175
-''')
-    parser.add_argument('--igne',
-                        default=argparse.SUPPRESS,
-                        help="neutron group structure option for ERRORR (same as --ign)")
-    parser.add_argument('--iwte',
-                        default=argparse.SUPPRESS,
-                        help="weight function option for ERRORR (same as --iwt)")
-    parser.add_argument('--suffixes',
-                        type=str,
-                        default=argparse.SUPPRESS,
-                        nargs='+',
-                        metavar=".XX",
-                        help="suffixes for ACE files, as many as temperature values (default = None).")
-    parser.add_argument("-V","--verbose",
-                        type=int,
-                        default=argparse.SUPPRESS,
-                        help="set verbosity level (default = 1)")
-    parser.add_argument("-v",
-                        '--version',
-                        action='version',
-                        version='%(prog)s 1.0',
-                        help="")
-    return parser.parse_args(iargs)
-
-def mat_from_endf(tape):
+def mat_from_endf(file):
     """Extract MAT number from file.
     Take it from section MF1/MT451.
+    
+    Parameters
+    ----------
+    file : `str`
+        ENDF-6 file
+    
+    Returns
+    -------
+    `int`
+        first MAT number occurrance in the file
     """
-    line = open(tape).readlines()[1]
-    return int(line[66:70])
+    line = open(file).readlines()[1]
+    mat = read_control(line)[0]
+    return mat
 
-def meta_from_endf(tape):
+def meta_from_endf(file):
     """Extract metastate from file.
     Take it from section MF1/MT451.
+    
+    Parameters
+    ----------
+    file : `str`
+        ENDF-6 file
+    
+    Returns
+    -------
+    `int`
+        flag to define metastate: 0 = ground, 1 - 1st metastate, ...
     """
-    line = open(tape).readlines()[2]
-    return int(line[33:44])
+    lines = open(file).readlines()
+    meta = read_cont(lines, 2)[0].L2
+    return meta
+
+def za_from_endf(file):
+    """Extract ZA number from file. Take the first occurence for MF1/MT451.
+    
+    Parameters
+    ----------
+    file : `str`
+        ENDF-6 file
+    
+    Returns
+    -------
+    `int`
+        ZA number `Z*1000 + A` 
+    """
+    for line in open(file).readlines():
+        if line[70:72].strip() == "1" and line[72:75].strip() == "451":
+            za = int(read_cont([line], 0)[0].C1)
+            return za
+    raise SandyError("ZA number not found")
 
 sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [42,125,0,8,221,'tol'],
@@ -249,25 +106,7 @@ sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [26,425,2,1,231,'be'],
                                   [60,1325,0,2,221,'asap']],
 columns = ['matde','matdp','icoh','natom','mtref','ext'])
-
-
-def _set_njoyexe(self, njoyexe):
-    """Mimic the behavior of the UNIX 'which' command to find the njoy executable.
-    """
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return exe_file
-    raise NotImplementedError("Not a valid NJOY-2016 executable: '{}'".format(_exe))
-
-    
+   
 def _moder_input(nin, nout, **kwargs):
     text = ["moder"]
     text.append("{} {} /".format(nin, nout))
@@ -275,7 +114,7 @@ def _moder_input(nin, nout, **kwargs):
 
 
 def _reconr_input(endfin, pendfout, mat,
-                  header="sandy runs reconr",
+                  header="sandy runs njoy",
                   err=0.001,
                   **kwargs):
     text = ["reconr"]
@@ -342,13 +181,13 @@ def _heatr_input(endfin, pendfin, pendfout, mat, pks,
     return "\n".join(text) + "\n"
 
 def _acer_input(endfin, pendfin, aceout, dirout, mat, temp=293.6,
-                iopt=1, iprint=0, itype=1, suff=0,
+                iopt=1, iprint=0, itype=1, suff=".00",
                 header="sandy runs acer",
                 newfor=1, iopp=1, check=False,
                 **kwargs):
     text = ["acer"]
     text += ["{:d} {:d} 0 {:d} {:d} /".format(endfin, pendfin, aceout, dirout)]
-    text += ["{:d} {:d} {:d} .{:02d} 0 /".format(iopt, iprint, itype, suff)]
+    text += ["{:d} {:d} {:d} {} 0 /".format(iopt, iprint, itype, suff)]
     text += ["'{}'/".format(header)]
     text += ["{:d} {:.1f} /".format(mat, temp)]
     text += ["{:d} {:d} /".format(newfor, iopp)]
@@ -405,18 +244,16 @@ def run_njoy(text, inputs, outputs, exe=None):
             stdoutdata, stderrdata = process.communicate(input=stdin)
             if process.returncode != 0:
                 raise SandyError("process status={}, cannot run njoy executable".format(process.returncode))
-            for tape,dst in inputs.items():
+            for tape,dst in outputs.items():
                 path = os.path.split(dst)[0]
                 if path:
                     os.makedirs(path, exist_ok=True)
-                    
-                pdb.set_trace()
                 shutil.move(os.path.join(tmpdir, tape), dst)
 
 def process(endftape, pendftape=None,
             kermas=[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447],
             temperatures=[293.6],
-            sig0=[1e10],
+            suffixes=None,
             broadr=True,
             thermr=True,
             unresr=False,
@@ -424,8 +261,7 @@ def process(endftape, pendftape=None,
             gaspr=True,
             purr=True,
             acer=True,
-            ext_pendf="pendf", ext_ace="ace", ext_xsd="xsd",
-            wdir="", dryrun=False, tag=None, exe=None, keep_pendf=True, route="0",
+            wdir="", dryrun=False, tag="", exe=None, keep_pendf=True, route="0",
             **kwargs):
     """Run sequence to process file with njoy.
     
@@ -437,17 +273,16 @@ def process(endftape, pendftape=None,
     `str`
         njoy input text
     """
+    tape = Endf6.from_file(endftape)
+    mat = tape.mat[0]
+    info = tape.read_section(mat, 1, 451)
+    meta = info["LISO"]
+    za = int(info["ZA"])
+    za_new = za + meta*100 + 300 if meta else za
     inputs = {}
     outputs = {}
-    kwargs.update({"temperatures" : temperatures})
-    kwargs.update({"sig0" : sig0})
-    if "mat" not in kwargs:
-        kwargs.update({"mat" : mat_from_endf(endftape)})
-    if "suffixes" not in kwargs:
-        kwargs.update({"suffixes" : range(len(kwargs["temperatures"]))})
-    else:
-        if len(kwargs["suffixes"]) != len(kwargs["temperatures"]):
-            raise SandyError('suffixes and temperatures must have the same size')
+    # Only kwargs are passed to NJOY inputs, therefore add temperatures and mat
+    kwargs.update({"temperatures" : temperatures, "mat" : mat})
     inputs["tape20"] = endftape
     e = 21
     p = e + 1
@@ -486,43 +321,41 @@ def process(endftape, pendftape=None,
     if keep_pendf:
         o = p + 1
         text += _moder_input(-p, o)
-        outputs["tape{}".format(o)] = os.path.join(wdir, "{}.{}".format(tag, ext_pendf))
+        outputs["tape{}".format(o)] = os.path.join(wdir, "{}{}.pendf".format(za_new, tag))
     if acer:
-        for i,(temp,suff) in enumerate(zip(kwargs["temperatures"], kwargs["suffixes"])):
+        if not suffixes:
+            suffixes = range(len(temperatures))
+        for i,(temp,suff) in enumerate(zip(temperatures, suffixes)):
             a = 50 + i
             x = 70 + i
             kwargs["temp"] = temp
-            kwargs["suff"] = suff
+            kwargs["suff"] = suff = ".{:02d}".format(suff)
             text += _acer_input(-e, -p, a, x, **kwargs)
-            outputs["tape{}".format(a)] = os.path.join(wdir, "{}.{}".format(tag, ext_ace))
-            outputs["tape{}".format(x)] = os.path.join(wdir, "{}.{}".format(tag, ext_xsd))
+            outputs["tape{}".format(a)] = os.path.join(wdir, "{}{}{}c".format(za_new, tag, suff))
+            outputs["tape{}".format(x)] = os.path.join(wdir, "{}{}{}c.xsd".format(za_new, tag, suff))
     text += "stop"
     if dryrun:
         return text
     run_njoy(text, inputs, outputs, exe=exe)
-    # If isotope is metatable rewrite ID in xsdir and ace as ID = Z*1000 + 300 + A + META*100.
-    # Also change route and filename in xsdir file.
-    return text
     if acer:
-        meta = meta_from_endf(endftape)
-        for i,(temp,suff) in enumerate(zip(kwargs["temperatures"], kwargs["suffixes"])):
+        # Change route and filename in xsdir file.
+        for i,(temp,suff) in enumerate(zip(temperatures, suffixes)):
             a = 50 + i
             x = 70 + i
             acefile = outputs["tape{}".format(a)]
             xsdfile = outputs["tape{}".format(x)]
-            text_xsd = open(xsdfile).read()
-            text_xsd = re.sub("route", route, text_xsd)
-            text_xsd = re.sub("filename", acefile, text_xsd)
+            text_xsd = open(xsdfile).read(). \
+                                     replace("route", route). \
+                                     replace("filename", acefile)
             text_xsd = " ".join(text_xsd.split())
+            # If isotope is metatable rewrite ZA in xsdir and ace as ZA = Z*1000 + 300 + A + META*100.
             if meta:
-                pattern = '(?P<za>\d{4,6})\.(?P<ext>\d{2}[ct])'
+                pattern = '{:d}'.format(za) + '\.(?P<ext>\d{2}[ct])'
                 found = re.search(pattern, text_xsd)
-                za = int(found.group("za"))
                 ext = found.group("ext")
-                za_new = za + meta*100 + 300
-                text_xsd = text_xsd.replace("{}.{}".format(za, ext), "{}.{}".format(za_new, ext), 1)
+                text_xsd = text_xsd.replace("{:d}.{}".format(za, ext), "{:d}.{}".format(za_new, ext), 1)
                 text_ace = open(acefile).read()
-                text_ace = text_ace.replace("{}.{}".format(za, ext), "{}.{}".format(za_new, ext), 1)
+                text_ace = text_ace.replace("{:d}.{}".format(za, ext), "{:d}.{}".format(za_new, ext), 1)
                 with open(acefile, 'w') as f:
                     f.write(text_ace)
             with open(xsdfile, 'w') as f:
