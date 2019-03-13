@@ -6,7 +6,7 @@ git:
 addons:
   apt:
     packages:
-      - gfortran
+      - gfortran-6
 
 python:
   - "3.6"
