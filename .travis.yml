@@ -5,11 +5,8 @@ git:
 
 addons:
   apt:
-    sources:
-      - ubuntu-toolchain-r-test
     packages:
-      - gcc-6
-      - gfortran-6
+      - gfortran
 
 python:
   - "3.6"
@@ -19,7 +16,6 @@ branches:
 
 before_install:
   - pip install sphinx sphinx_rtd_theme codecov numpydoc
-  - git clone --quiet https://github.com/njoy/NJOY2016.git && mkdir NJOY2016/bin && (cd NJOY2016/bin && cmake .. && make)
 
 install:
   - python setup.py install

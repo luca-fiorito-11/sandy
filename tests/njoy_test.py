@@ -13,6 +13,7 @@ import sandy
 __author__ = "Luca Fiorito"
 
 
+@pytest.mark.njoy
 def test_njoy_process_dryrun():
     """Test default options for njoy.process"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
@@ -64,6 +65,7 @@ acer
 stop"""
     assert input == text
 
+@pytest.mark.njoy
 def test_njoy_process_no_broadr():
     """Test njoy.process without broadr"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
@@ -109,6 +111,7 @@ acer
 stop"""
     assert input == text
 
+@pytest.mark.njoy
 def test_njoy_process_no_gaspr():
     """Test njoy.process without gaspr"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
@@ -152,6 +155,7 @@ acer
 stop"""
     assert input == text
 
+@pytest.mark.njoy
 def test_njoy_process_no_thermr():
     """Test njoy.process without thermr"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
@@ -191,6 +195,7 @@ acer
 stop"""
     assert input == text
 
+@pytest.mark.njoy
 def test_njoy_process_no_acer():
     """Test njoy.process without acer"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
@@ -223,6 +228,7 @@ moder
 stop"""
     assert input == text
 
+@pytest.mark.njoy
 def test_njoy_process_no_purr():
     """Test njoy.process without acer"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
@@ -249,6 +255,7 @@ moder
 stop"""
     assert input == text
 
+@pytest.mark.njoy
 def test_njoy_process_no_heatr():
     """Test njoy.process without heatr"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
@@ -267,6 +274,7 @@ moder
 stop"""
     assert input == text
 
+@pytest.mark.njoy
 def test_njoy_process_no_keep_pendf():
     """Test njoy.process and do not keep pendf"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
@@ -283,6 +291,7 @@ reconr
 stop"""
     assert input == text
 
+@pytest.mark.njoy
 def test_njoy_process_pendftape():
     """Test njoy.process using argument pendftape (skip reconr)"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
@@ -294,6 +303,7 @@ moder
 99 -22 /
 stop"""
 
+@pytest.mark.njoy
 def test_njoy_process_temperatures():
     """Test njoy.process for different temperatures"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
@@ -313,6 +323,7 @@ broadr
 stop"""
     assert input == text
 
+@pytest.mark.njoy
 def test_njoy_process_acer():
     """Test njoy.process for acer at different temperatures"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
@@ -347,6 +358,7 @@ acer
 stop"""
     assert input == text
 
+@pytest.mark.njoy
 def test_njoy_process_suffixes():
     """Test njoy.process for acer at different temperatures"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
@@ -381,6 +393,7 @@ acer
 stop"""
     assert input == text
 
+@pytest.mark.njoy
 def test_njoy_process_sig0():
     """Test njoy.process for different sig0"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
@@ -400,6 +413,8 @@ purr
 stop"""
     assert input == text
 
+@pytest.mark.njoy
+@pytest.mark.njoy_exe
 def test_njoy_process(tmpdir):
     """Test njoy.process for ENDF/B-VIII.0 He-3.
     Check that desired outputs are produced and that xsdir files are correctly updated.
@@ -418,6 +433,8 @@ def test_njoy_process(tmpdir):
         assert xsdargs[2] == os.path.join(str(tmpdir), ace)
         assert xsdargs[3] == "0"
 
+@pytest.mark.njoy
+@pytest.mark.njoy_exe
 def test_njoy_process_1(tmpdir):
     """Test njoy.process for ENDF/B-VIII.0 He-3.
     Check that desired outputs are produced and that xsdir files are correctly updated.
