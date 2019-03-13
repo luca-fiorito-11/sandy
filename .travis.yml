@@ -13,9 +13,7 @@ branches:
 
 before_install:
   - pip install sphinx sphinx_rtd_theme codecov numpydoc
-  - git clone https://github.com/njoy/NJOY2016.git && \
-    mkdir NJOY2016/bin && \
-    (cd NJOY2016/bin && cmake .. && make)
+  - git https://github.com/njoy/NJOY2016.git && mkdir NJOY2016/bin && (cd NJOY2016/bin && cmake .. && make)
 
 install:
   - python setup.py install
