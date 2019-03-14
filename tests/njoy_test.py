@@ -17,7 +17,7 @@ __author__ = "Luca Fiorito"
 def test_njoy_process_dryrun():
     """Test default options for njoy.process"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, dryrun=True)
+    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True)
     text = """moder
 20 -21 /
 reconr
@@ -49,7 +49,7 @@ gaspr
 -21 -26 -27 /
 purr
 -21 -27 -28 /
-225 1 1 20 32 /
+225 1 1 20 32 0 /
 293.6 /
 1.00E+10 /
 0 /
@@ -69,7 +69,7 @@ stop"""
 def test_njoy_process_no_broadr():
     """Test njoy.process without broadr"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, dryrun=True, broadr=False)
+    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False)
     text = """moder
 20 -21 /
 reconr
@@ -95,7 +95,7 @@ gaspr
 -21 -25 -26 /
 purr
 -21 -26 -27 /
-225 1 1 20 32 /
+225 1 1 20 32 0 /
 293.6 /
 1.00E+10 /
 0 /
@@ -115,7 +115,7 @@ stop"""
 def test_njoy_process_no_gaspr():
     """Test njoy.process without gaspr"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False)
+    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False)
     text = """moder
 20 -21 /
 reconr
@@ -139,7 +139,7 @@ heatr
 444 445 446 447 /
 purr
 -21 -25 -26 /
-225 1 1 20 32 /
+225 1 1 20 32 0 /
 293.6 /
 1.00E+10 /
 0 /
@@ -159,7 +159,7 @@ stop"""
 def test_njoy_process_no_thermr():
     """Test njoy.process without thermr"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
+    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
                                thermr=False)
     text = """moder
 20 -21 /
@@ -179,7 +179,7 @@ heatr
 444 445 446 447 /
 purr
 -21 -24 -25 /
-225 1 1 20 32 /
+225 1 1 20 32 0 /
 293.6 /
 1.00E+10 /
 0 /
@@ -199,7 +199,7 @@ stop"""
 def test_njoy_process_no_acer():
     """Test njoy.process without acer"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
+    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
                                thermr=False, acer=False)
     text = """moder
 20 -21 /
@@ -219,7 +219,7 @@ heatr
 444 445 446 447 /
 purr
 -21 -24 -25 /
-225 1 1 20 32 /
+225 1 1 20 32 0 /
 293.6 /
 1.00E+10 /
 0 /
@@ -232,7 +232,7 @@ stop"""
 def test_njoy_process_no_purr():
     """Test njoy.process without acer"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False, 
+    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False, 
                                thermr=False, acer=False, purr=False)
     text = """moder
 20 -21 /
@@ -259,7 +259,7 @@ stop"""
 def test_njoy_process_no_heatr():
     """Test njoy.process without heatr"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
+    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
                                thermr=False, acer=False, purr=False, heatr=False)
     text = """moder
 20 -21 /
@@ -278,7 +278,7 @@ stop"""
 def test_njoy_process_no_keep_pendf():
     """Test njoy.process and do not keep pendf"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
+    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
                                thermr=False, acer=False, purr=False, heatr=False, keep_pendf=False)
     text = """moder
 20 -21 /
@@ -295,19 +295,20 @@ stop"""
 def test_njoy_process_pendftape():
     """Test njoy.process using argument pendftape (skip reconr)"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, broadr=False, gaspr=False,
+    input, inputs, outputs = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, broadr=False, gaspr=False,
                                thermr=False, acer=False, purr=False, heatr=False, keep_pendf=False)
     text = """moder
 20 -21 /
 moder
 99 -22 /
 stop"""
+    assert input == text
 
 @pytest.mark.njoy
 def test_njoy_process_temperatures():
     """Test njoy.process for different temperatures"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, gaspr=False,
+    input, inputs, outputs = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, gaspr=False,
                                thermr=False, acer=False, purr=False, heatr=False, keep_pendf=False,
                                temperatures=[300, 600.0000, 900.001])
     text = """moder
@@ -327,7 +328,7 @@ stop"""
 def test_njoy_process_acer():
     """Test njoy.process for acer at different temperatures"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, broadr=False, gaspr=False,
+    input, inputs, outputs = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, broadr=False, gaspr=False,
                                thermr=False, acer=True, purr=False, heatr=False, keep_pendf=False,
                                temperatures=[300, 600.0000, 900.001])
     text = """moder
@@ -362,7 +363,7 @@ stop"""
 def test_njoy_process_suffixes():
     """Test njoy.process for acer at different temperatures"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, broadr=False, gaspr=False,
+    input, inputs, outputs = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, broadr=False, gaspr=False,
                                thermr=False, acer=True, purr=False, heatr=False, keep_pendf=False,
                                temperatures=[300, 600.0000, 900.001], suffixes=[3, 6, 9])
     text = """moder
@@ -397,7 +398,7 @@ stop"""
 def test_njoy_process_sig0():
     """Test njoy.process for different sig0"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, broadr=False, gaspr=False,
+    input, inputs, outputs = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, broadr=False, gaspr=False,
                                thermr=False, acer=False, purr=True, heatr=False, keep_pendf=False,
                                sig0=[1e10, 1E9, 100000000])
     text = """moder
@@ -406,7 +407,7 @@ moder
 99 -22 /
 purr
 -21 -22 -23 /
-225 1 3 20 32 /
+225 1 3 20 32 0 /
 293.6 /
 1.00E+10 1.00E+09 1.00E+08 /
 0 /
@@ -420,7 +421,7 @@ def test_njoy_process(tmpdir):
     Check that desired outputs are produced and that xsdir files are correctly updated.
     """
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, temperatures=[300, 600, 900], suffixes=[3, 6, 15], tag="_b71", wdir=str(tmpdir),
+    input, inputs, outputs = sandy.njoy.process(endftape, temperatures=[300, 600, 900], suffixes=[3, 6, 15], tag="_b71", wdir=str(tmpdir),
                                thermr=False)
     outputs = os.listdir(str(tmpdir))
     assert '2003_b71.pendf' in outputs
@@ -440,5 +441,15 @@ def test_njoy_process_1(tmpdir):
     Check that desired outputs are produced and that xsdir files are correctly updated.
     """
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input = sandy.njoy.process(endftape, wdir=str(tmpdir), thermr=False, acer=False, keep_pendf=False)
+    input, inputs, outputs = sandy.njoy.process(endftape, wdir=str(tmpdir), thermr=False, acer=False, keep_pendf=False)
+    assert not os.listdir(str(tmpdir))
+
+@pytest.mark.njoy
+@pytest.mark.njoy_exe
+def test_njoy_process_2(tmpdir):
+    """Test njoy.process for ENDF/B-VIII.0 He-3.
+    Check that desired outputs are produced and that xsdir files are correctly updated.
+    """
+    endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
+    input, inputs, outputs = sandy.njoy.process(endftape, wdir=str(tmpdir), thermr=False, acer=False, keep_pendf=False)
     assert not os.listdir(str(tmpdir))
