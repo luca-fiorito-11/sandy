@@ -1,23 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri May 25 16:58:11 2018
-
-@author: fiorito_l
+This module contains template inputs for NJOY modules and functions to run them. 
 """
 
 __author__ = "Luca Fiorito"
 
 import os
-import sys
 import shutil
 import re
 import logging
 import pdb
-import argparse
 import tempfile
 import subprocess as sp
-import re
-
 
 import pandas as pd
 import numpy as np
@@ -50,7 +44,7 @@ sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [27,425,3,1,233,'bbeo'],
                                   [26,425,2,1,231,'be'],
                                   [60,1325,0,2,221,'asap']],
-columns = ['matde','matdp','icoh','natom','mtref','ext'])
+            columns = ['matde','matdp','icoh','natom','mtref','ext'])
    
 def _moder_input(nin, nout, **kwargs):
     """Write moder input.
