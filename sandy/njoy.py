@@ -3,8 +3,6 @@
 This module contains template inputs for NJOY modules and functions to run them. 
 """
 
-__author__ = "Luca Fiorito"
-
 import os
 import shutil
 import re
@@ -19,6 +17,9 @@ import numpy as np
 from sandy.settings import SandyError
 from sandy.utils import which
 from sandy.formats.endf6 import Endf6
+
+__author__ = "Luca Fiorito"
+__all__ = ["process", "process_proton"]
 
 sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [42,125,0,8,221,'tol'],
@@ -348,52 +349,52 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
     return "\n".join(text) + "\n"
 
 def _run_njoy(text, inputs, outputs, exe=None):
-        """
-        Run njoy executable.
-        
-        .. Important::
+    """
+    Run njoy executable.
+    
+    .. Important::
 
-            In `Python 3` you need to convert input string to bytes with a 
-            `encode()` function
-        
-        Parameters
-        ----------
-        exe : `str` or `None`
-            njoy executable: if `None` (default) search in `PATH`
-        inputs : `map`
-            map of `{tape : file)` 
-        outputs : `map`
-            map of `{tape : file)` 
-        text : `str`
-            njoy input file passed to `Popen` as `stdin` (it must be encoded first)
-        """
-        if not exe:
-            for try_exe in ["njoy2016", "njoy", "njoy2012", "xnjoy"]:
-                exe = which(try_exe)
-                if exe:
-                    break
-        if not exe:
-            raise SandyError("could not find njoy executable")
-        stdout = stderr = None
-        stdin = text.encode()
-        with tempfile.TemporaryDirectory() as tmpdir:
-            logging.debug("Create temprary directory '{}'".format(tmpdir))
-            for tape,src in inputs.items():
-                shutil.copy(src, os.path.join(tmpdir, tape))
-            process = sp.Popen(exe,
-                               shell=True,
-                               cwd=tmpdir,
-                               stdin=sp.PIPE, 
-                               stdout=stdout, 
-                               stderr=stderr)
-            stdoutdata, stderrdata = process.communicate(input=stdin)
-            if process.returncode != 0:
-                raise SandyError("process status={}, cannot run njoy executable".format(process.returncode))
-            for tape,dst in outputs.items():
-                path = os.path.split(dst)[0]
-                if path:
-                    os.makedirs(path, exist_ok=True)
-                shutil.move(os.path.join(tmpdir, tape), dst)
+        In `Python 3` you need to convert input string to bytes with a 
+        `encode()` function
+    
+    Parameters
+    ----------
+    exe : `str` or `None`
+        njoy executable: if `None` (default) search in `PATH`
+    inputs : `map`
+        map of {`tape` : `file`) for input files
+    outputs : `map`
+        map of {`tape` : `file`) for ouptut files
+    text : `str`
+        njoy input file passed to `Popen` as `stdin` (it must be encoded first)
+    """
+    if not exe:
+        for try_exe in ["njoy2016", "njoy", "njoy2012", "xnjoy"]:
+            exe = which(try_exe)
+            if exe:
+                break
+    if not exe:
+        raise SandyError("could not find njoy executable")
+    stdout = stderr = None
+    stdin = text.encode()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        logging.debug("Create temprary directory '{}'".format(tmpdir))
+        for tape,src in inputs.items():
+            shutil.copy(src, os.path.join(tmpdir, tape))
+        process = sp.Popen(exe,
+                           shell=True,
+                           cwd=tmpdir,
+                           stdin=sp.PIPE, 
+                           stdout=stdout, 
+                           stderr=stderr)
+        stdoutdata, stderrdata = process.communicate(input=stdin)
+        if process.returncode != 0:
+            raise SandyError("process status={}, cannot run njoy executable".format(process.returncode))
+        for tape,dst in outputs.items():
+            path = os.path.split(dst)[0]
+            if path:
+                os.makedirs(path, exist_ok=True)
+            shutil.move(os.path.join(tmpdir, tape), dst)
 
 def process(endftape, pendftape=None,
             kermas=[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447],
@@ -451,7 +452,6 @@ def process(endftape, pendftape=None,
     wdir : `str`
         working directory (absolute or relative) where all output files are
         saved
-        
         .. note:
             
             `wdir` will appear as part of the `filename` in 
@@ -460,12 +460,10 @@ def process(endftape, pendftape=None,
         option to produce the njoy input file without running njoy
     tag : `str`
         tag to append to each output filename beofre the extension (default is `None`)
-        
         .. hint:
             to process JEFF-3.3 files you could set `tag = "_j33"`
     exe : `str`
         njoy executable (with path)
-        
         .. note:
             If no executable is given, SANDY looks for a default executable in `PATH`
     keep_pendf : `str`
@@ -475,8 +473,12 @@ def process(endftape, pendftape=None,
     
     Returns
     -------
-    `str`
+    input : `str`
         njoy input text
+    inputs : `map`
+        map of {`tape` : `file`) for input files
+    outputs : `map`
+        map of {`tape` : `file`) for ouptut files
     """
     tape = Endf6.from_file(endftape)
     mat = tape.mat[0]
@@ -564,4 +566,77 @@ def process(endftape, pendftape=None,
                         f.write(text_ace)
                 with open(xsdfile, 'w') as f:
                     f.write(text_xsd)
+    return text, inputs, outputs
+
+def process_proton(endftape, wdir="", dryrun=False, tag="", exe=None, route="0", **kwargs):
+    """Run sequence to process proton file with njoy.
+    
+    Parameters
+    ----------
+    wdir : `str`
+        working directory (absolute or relative) where all output files are
+        saved
+        .. note:
+            
+            `wdir` will appear as part of the `filename` in 
+            any `xsdir` file
+    dryrun : `bool`
+        option to produce the njoy input file without running njoy
+    tag : `str`
+        tag to append to each output filename beofre the extension (default is `None`)
+        .. hint:
+            to process JEFF-3.3 files you could set `tag = "_j33"`
+    exe : `str`
+        njoy executable (with path)
+        .. note:
+            If no executable is given, SANDY looks for a default executable in `PATH`
+    route : `str`
+        xsdir "route" parameter (default is "0")
+    
+    Returns
+    -------
+    input : `str`
+        njoy input text
+    inputs : `map`
+        map of {`tape` : `file`) for input files
+    outputs : `map`
+        map of {`tape` : `file`) for ouptut files
+    """
+    tape = Endf6.from_file(endftape)
+    mat = tape.mat[0]
+    info = tape.read_section(mat, 1, 451)
+    meta = info["LISO"]
+    za = int(info["ZA"])
+    za_new = za + meta*100 + 300 if meta else za
+    inputs = {}
+    outputs = {}
+    kwargs["mat"] = mat
+    inputs["tape20"] = endftape
+    kwargs["temp"] = 0
+    kwargs["suff"] = suff = ".00"
+    text = _acer_input(20, 20, 50, 70, **kwargs)
+    outputs["tape50"] = os.path.join(wdir, "{}{}{}h".format(za_new, tag, suff))
+    outputs["tape70"] = os.path.join(wdir, "{}{}{}h.xsd".format(za_new, tag, suff))
+    text += "stop"
+    if not dryrun:
+        _run_njoy(text, inputs, outputs, exe=exe)
+        # Change route and filename in xsdir file.
+        acefile = outputs["tape50"]
+        xsdfile = outputs["tape70"]
+        text_xsd = open(xsdfile).read(). \
+                                 replace("route", route). \
+                                 replace("filename", acefile)
+        text_xsd = " ".join(text_xsd.split())
+        # If isotope is metatable rewrite ZA in xsdir and ace as ZA = Z*1000 + 300 + A + META*100.
+        if meta:
+            pattern = '{:d}'.format(za) + '\.(?P<ext>\d{2}[ct])'
+            found = re.search(pattern, text_xsd)
+            ext = found.group("ext")
+            text_xsd = text_xsd.replace("{:d}.{}".format(za, ext), "{:d}.{}".format(za_new, ext), 1)
+            text_ace = open(acefile).read()
+            text_ace = text_ace.replace("{:d}.{}".format(za, ext), "{:d}.{}".format(za_new, ext), 1)
+            with open(acefile, 'w') as f:
+                f.write(text_ace)
+        with open(xsdfile, 'w') as f:
+            f.write(text_xsd)
     return text, inputs, outputs

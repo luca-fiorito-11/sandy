@@ -780,3 +780,34 @@ def test_acer_7():
     assert text == "acer\n-20 -21 0 -60 80 /\n1 0 1 .00 0 /\n'sandy runs acer'/\n200 293.6 /\n1 0 /\n/\n"
     with pytest.raises(Exception):
         sandy.njoy._acer_input(-20, -21, -60, 80, 200, photons="aa")
+
+@pytest.mark.njoy
+def test_process_proton():
+    """Test default options for njoy.process_proton"""
+    endftape = os.path.join(os.path.dirname(__file__), "data", "O016-p.tendl")
+    input, inputs, outputs = sandy.njoy.process_proton(endftape, dryrun=True)
+    assert input == "acer\n20 20 0 50 70 /\n1 0 1 .00 0 /\n'sandy runs acer'/\n825 0.0 /\n1 1 /\n/\nstop"
+    assert outputs['tape50'] == '8016_p.00c'
+    assert outputs['tape70'] == '8016_p.00c.xsd'
+    assert inputs["tape20"] == endftape
+
+@pytest.mark.njoy
+@pytest.mark.njoy_exe
+def test_process_proton_2(tmpdir):
+    """Test njoy.process for TENDL-2015 O-16.
+    Check that desired outputs are produced and that xsdir files are correctly updated.
+    """
+    endftape = os.path.join(os.path.dirname(__file__), "data", "O016-p.tendl")
+    wdir = str(tmpdir)
+    input, inputs, outputs = sandy.njoy.process_proton(endftape, wdir=wdir)
+    assert input == "acer\n20 20 0 50 70 /\n1 0 1 .00 0 /\n'sandy runs acer'/\n825 0.0 /\n1 1 /\n/\nstop"
+    assert outputs['tape50'] == os.path.join(wdir, '8016.00h')
+    assert os.path.isfile(outputs['tape50'])
+    assert outputs['tape70'] == os.path.join(wdir, '8016.00h.xsd')
+    assert os.path.isfile(outputs['tape70'])
+    assert inputs["tape20"] == endftape
+    xsdargs = open(outputs['tape70']).read().split()
+    assert len(xsdargs) == 10
+    assert xsdargs[0] == "8016.00h"
+    assert xsdargs[2] == outputs['tape50']
+    assert xsdargs[3] == "0"
