@@ -787,8 +787,8 @@ def test_process_proton():
     endftape = os.path.join(os.path.dirname(__file__), "data", "O016-p.tendl")
     input, inputs, outputs = sandy.njoy.process_proton(endftape, dryrun=True)
     assert input == "acer\n20 20 0 50 70 /\n1 0 1 .00 0 /\n'sandy runs acer'/\n825 0.0 /\n1 1 /\n/\nstop"
-    assert outputs['tape50'] == '8016_p.00c'
-    assert outputs['tape70'] == '8016_p.00c.xsd'
+    assert outputs['tape50'] == '8016.00h'
+    assert outputs['tape70'] == '8016.00h.xsd'
     assert inputs["tape20"] == endftape
 
 @pytest.mark.njoy
