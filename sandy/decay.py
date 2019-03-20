@@ -175,8 +175,10 @@ class DecayChains(pd.DataFrame):
         for ix,text in tape.TEXT.iteritems():
             X = endf6.read_section(*ix)
             zam = int(X["ZA"]*10 + X["LISO"])
-            for dk in X["DK"].values():
-                rtyp = str(dk["RTYP"]).replace(".", "").replace("0", "")
+            listrdd += [dict(zip(cls.labels, (zam, zam, 0, 0)))]
+            if "DK" not in X: # Stable isotope
+                continue
+            for rtyp,dk in X["DK"].items():
                 parent = zam
                 daughter = zam//10
                 neutrons = 0; protons = 0; alphas = 0
@@ -198,6 +200,8 @@ class DecayChains(pd.DataFrame):
                     elif dtype == 7: # Proton emission
                         daughter -= 1001
                         protons += 1
+                    elif dtype == 0: # Gamma emission (not used in MT457)
+                        pass
                     else: # Unknown decay mode
                         logging.debug("skip unknown decay mode for {}...".format(parent))
                 daughter = int(daughter*10 + dk["RFS"])
@@ -218,8 +222,6 @@ class DecayChains(pd.DataFrame):
                 if alphas > 0: # add alphas produced by decay
                     d = dict(zip(cls.labels, (parent, 20040, alphas*dk["BR"], X["LAMBDA"])))
                     listrdd.append(d)
-            d = dict(zip(cls.labels, (zam, zam, 0, 0)))
-            listrdd.append(d)
         if not listrdd:
             logging.warn("no decay path found in file")
             return pd.DataFrame()

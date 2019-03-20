@@ -34,31 +34,14 @@ def DecayChains_small():
 #    Q = sandy.get_jeff_qmatrix()
 #    assert (np.isclose(np.diag(Q.values), 1)).all()
 
-@pytest.mark.formats
-@pytest.mark.endf6
-@pytest.mark.rdd
-def test_read_rdd(testRDD):
-    H1 = testRDD.read_section(2, 8, 457)
-    assert H1["ZA"] == 1001
-    assert H1["LIS"] == 0
-    assert H1["LISO"] == 0
-    assert not H1["DK"]
-    U5 = testRDD.read_section(3542, 8, 457)
-    assert U5["ZA"] == 92235
-    assert U5["LIS"] == 0
-    assert U5["LISO"] == 0
-    assert len(U5["DK"]) == 2
-    assert U5["DK"][0]["RTYP"] == 4.0
-    assert U5["DK"][1]["RTYP"] == 6.0
-
 @pytest.mark.rdd
 def test_decay_chains(DecayChains_small):
     DC = DecayChains_small.copy()
-    assert DC.loc[(DC.DAUGHTER == 250560) & (DC.PARENT == 240560)]["YIELD"].iloc[0].sum() == 1
-    assert DC.loc[(DC.DAUGHTER == 240560) & (DC.PARENT == 240560)]["YIELD"].iloc[0].sum() == -1
-    assert DC.loc[(DC.DAUGHTER == 260560) & (DC.PARENT == 250560)]["YIELD"].iloc[0].sum() == 1
-    assert DC.loc[(DC.DAUGHTER == 250560) & (DC.PARENT == 250560)]["YIELD"].iloc[0].sum() == -1
-    assert DC.loc[(DC.DAUGHTER == 260560) & (DC.PARENT == 260560)]["YIELD"].iloc[0].sum() == 0
+    assert DC.loc[(DC.DAUGHTER == 250560) & (DC.PARENT == 240560)]["YIELD"].sum() == 1
+    assert DC.loc[(DC.DAUGHTER == 240560) & (DC.PARENT == 240560)]["YIELD"].sum() == -1
+    assert DC.loc[(DC.DAUGHTER == 260560) & (DC.PARENT == 250560)]["YIELD"].sum() == 1
+    assert DC.loc[(DC.DAUGHTER == 250560) & (DC.PARENT == 250560)]["YIELD"].sum() == -1
+    assert DC.loc[(DC.DAUGHTER == 260560) & (DC.PARENT == 260560)]["YIELD"].sum() == 0
 
 @pytest.mark.rdd
 def test_qmatrix(DecayChains_small):
