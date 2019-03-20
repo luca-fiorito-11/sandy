@@ -101,10 +101,7 @@ def _read_rdd(text):
     out["DHL"] = DHL = L.C2     # uncertainty on half-life
     out["E"] = E = L.B[::2]     # list of average decay energies (eV) for different radiation types.
     out["DE"] = DE = L.B[1::2]  # list of uncertainties on average decay energy (eV) for different radiation types.
-    if out["HL"] != 0:
-        out.update({"LAMBDA" : np.log(2)/HL})
-    else:
-        out.update({"LAMBDA" : 0})
+    out["LAMBDA"] = np.log(2)/HL if HL else 0
     L, i = read_list(str_list, i)
     out["SPI"] = SPI = L.C1 # Spin of the nuclide in its LIS state
     out["PAR"] = PAR = L.C2 # Parity of the nuclide in its LIS state
@@ -129,7 +126,7 @@ def _read_rdd(text):
         STYP = int(L.C2)  # Decay spectrum type
         spectra[STYP] = {}
         spectra[STYP]["LCON"] = LCON = L.L1 # Continuum spectrum flag (0=no continuous spectrum, 1=only continuous spectrum, 2=both discrete and continuum spectra)
-        spectra[STYP]["NER"] = NER = L.N2   # Total number of tabulated discrete energies for a given spectral type (STYP)
+        NER = L.N2   # Total number of tabulated discrete energies for a given spectral type (STYP)
         spectra[STYP]["FD"] = FD = L.B[0]   # Discrete spectrum normalization factor
         spectra[STYP]["DFD"] = L.B[1]
         spectra[STYP]["ERAV"] = L.B[2]      # Average decay energy of radiation produced
@@ -137,7 +134,7 @@ def _read_rdd(text):
         spectra[STYP]["FC"] = L.B[4]        # Continuum spectrum normalization factor
         spectra[STYP]["DFC"] = L.B[5]
         if LCON != 1:
-            spectra[STYP]["ER"] = {}
+            discrete_spectrum = {}
             for ier in range(NER):
                 discr = {}
                 L, i = read_list(str_list, i)
@@ -157,7 +154,9 @@ def _read_rdd(text):
                     discr["DRICK"] = L.B[9]  # Uncertainty on RICC1
                     discr["RICL"] = L.B[10]  # L-shell internal conversion coefficient (STYP=0.0 only)
                     discr["DRICL"] = L.B[11] # Uncertainty on RICL1
-                spectra[STYP]["ER"][ER] = discr
+                discrete_spectrum[ER] = discr
+            if discrete_spectrum:
+                spectra[STYP]["ER"] = discrete_spectrum
         if LCON != 0:
             spectra[STYP]["CONT"] = {}
             cont = {}
