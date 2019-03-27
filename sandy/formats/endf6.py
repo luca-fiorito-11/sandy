@@ -13,8 +13,16 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 
+from sandy.formats import (mf1,
+        mf3,
+        mf4,
+        mf5,
+        mf8,
+        mf33,
+        mf34,
+        mf35,
+        )
 from sandy.formats.utils import (
-        BaseFile,
         Xs,
         Edistr,
         Lpc,
@@ -31,7 +39,7 @@ from sandy.utils import TimeDecorator
 
 
 __author__ = "Luca Fiorito"
-__all__ = ["Endf6"]
+__all__ = ["Endf6", "Errorr", "Gendf"]
 
 #def split_endf(text):
 #    """
@@ -53,36 +61,230 @@ __all__ = ["Endf6"]
 #    return frame.query("MAT>0 & MF>0 & MT>0")
 #
 #
+class _BaseFile(pd.DataFrame):
+    """This class is to be inherited by  all classes that parse and analyze 
+    nuclear data evaluated files in ENDF-6 or derived (ERRORR) formats.
+    
+    **Index**:
+        
+        - MAT : (`int`) MAT number to identify the isotope
+        - MF : (`int`) MF number to identify the data type
+        - MT : (`int`) MT number to identify the reaction
 
+    **Columns**:
 
-class Endf6(BaseFile):
+        - TEXT : (`string`) MAT/MF/MT section reported as a single string
+    
+    Methods
+    -------
+    add_sections
+        Collapse two tapes into a single one
+    delete_sections
+        Delete sections from the dataframe
+    filter_by
+        Filter dataframe based on MAT, MF, MT lists
+    from_file
+        Create dataframe by reading a endf6 file
+    from_text
+        Create dataframe from endf6 text in string
+    """
+    
+    labels = ['MAT', 'MF', 'MT']
 
-    Format = "endf6"
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.empty:
+            raise SandyError("tape is empty")
+        self.index.names = self.labels
+        self.columns = ["TEXT"]
+        self.sort_index(level=self.labels, inplace=True)
+        if self.index.duplicated().any():
+            raise SandyError("found duplicate MAT/MF/MT")
+    
+    @classmethod
+    def from_file(cls, file):
+        """Create dataframe by reading a file.
+        
+        Parameters
+        ----------
+        file : `str`
+            file name
+
+        Returns
+        -------
+        `sandy.formats.endf6.BaseFile` or derived instance
+            Dataframe containing ENDF6 data grouped by MAT/MF/MT
+        """
+        with open(file) as f:
+            text = f.read()
+        return cls.from_text(text)
+
+    @classmethod
+    def from_text(cls, text):
+        """Create dataframe from endf6 text in string.
+        
+        Parameters
+        ----------
+        text : `str`
+            string containing the evaluated data
+
+        Returns
+        -------
+        `sandy.formats.endf6.BaseFile` or derived instance
+            Dataframe containing ENDF6 data grouped by MAT/MF/MT
+        """
+        from io import StringIO
+        tape = pd.read_fwf(
+                StringIO(text),
+                widths = [66, 4, 2, 3],
+                names = ["TEXT", "MAT", "MF", "MT"],
+                converters = {"MAT" : np.int, "MF" : np.int, "MT" : np.int},
+                usecols = cls.labels
+                )
+        tape["TEXT"] = text.splitlines(True)
+        tape = tape.loc[(tape.MAT>0) & (tape.MF>0) & (tape.MT>0)]. \
+               groupby(cls.labels). \
+               apply(lambda x: "".join(x.TEXT.values)). \
+               to_frame()
+        return cls(tape)
+
+    def add_sections(self, tape):
+        """Collapse two tapes into a single one.
+        If MAT/MF/MT index is present in both tapes, take it from the second.
+        
+        Parameters
+        ----------
+        tape : `sandy.formats.endf6.BaseFile` or derived instance
+            dataframe for ENDF-6 formatted file
+        
+        Returns
+        -------
+        `sandy.formats.endf6.BaseFile` or derived instance
+            dataframe with merged content
+        """
+        outdf = pd.concat([pd.DataFrame(self), tape]). \
+                reset_index(). \
+                drop_duplicates(self.labels, keep='last'). \
+                set_index(self.labels)
+        return self.__class__(outdf)
+
+    def delete_sections(self, *tuples):
+        """Given a sequence of tuples (MAT,MF,MT), delete the corresponding sections
+        from the dataframe.
+        
+        Parameters
+        ----------
+        tuples : sequence of `tuple`
+            each tuple should have the format (MAT, MF, MT)
+            To delete, say a given MF, independentently from the MAT and MT, assign `None` 
+            to the MAT and MT position in the tuple.
+
+        Returns
+        -------
+        `sandy.formats.endf6.BaseFile` or derived instance
+            dataframe without given sections
+        """
+        queries = []
+        for mat,mf,mt in tuples:
+            conditions = []
+            if mat is not None:
+                conditions.append("MAT == {}".format(mat))
+            if mf is not None:
+                conditions.append("MF == {}".format(mf))
+            if mt is not None:
+                conditions.append("MT == {}".format(mt))
+            if not conditions:
+                continue
+            queries.append("not (" + " & ".join(conditions) + ")")
+        if not queries:
+            logging.warn("given MAT/MF/MT sections were not found")
+            return self
+        else:
+            query = " & ".join(queries)
+        newdf = self.query(query)
+        return self.__class__(newdf)
+
+    def filter_by(self, listmat=None, listmf=None, listmt=None):
+        """Filter dataframe based on MAT, MF, MT lists.
+        
+        Parameters
+        ----------
+        listmat : `list` or `None`
+            list of requested MAT values
+        listmf : `list` or `None`
+            list of requested MF values
+        listmt : `list` or `None`
+            list of requested MT values
+        
+        Returns
+        -------
+        `sandy.formats.endf6.BaseFile` or derived instance
+            Copy of the original instance with filtered MAT, MF and MT sections
+        """
+        _listmat = range(1,10000) if listmat is None else listmat
+        _listmf = range(1,10000) if listmf is None else listmf
+        _listmt = range(1,10000) if listmt is None else listmt
+        cond_mat = self.index.get_level_values("MAT").isin(_listmat)
+        cond_mf = self.index.get_level_values("MF").isin(_listmf)
+        cond_mt = self.index.get_level_values("MT").isin(_listmt)
+        df = self.loc[cond_mat & cond_mf & cond_mt]
+        return self.__class__(df)
+    
+    @property
+    def mat(self):
+        return sorted(self.index.get_level_values("MAT").unique())
+
+    @property
+    def mf(self):
+        return sorted(self.index.get_level_values("MF").unique())
+
+    @property
+    def mt(self):
+        return sorted(self.index.get_level_values("MT").unique())
+
+        
+        
+class Endf6(_BaseFile):
+    """Class to contain the content of ENDF-6 files, grouped by MAT/MF/MT.
+    
+    **Index**:
+        
+        - MAT : (`int`) MAT number to identify the isotope
+        - MF : (`int`) MF number to identify the data type
+        - MT : (`int`) MT number to identify the reaction
+
+    **Columns**:
+
+        - TEXT : (`string`) MAT/MF/MT section reported as a single string
+    
+    Methods
+    -------
+    """
 
     def read_section(self, mat, mf, mt):
-        """ Parse MAT/MF/MT section.
+        """Parse MAT/MF/MT section.
         """
         if mf == 1:
-            from .mf1 import read
+            foo = mf1.read
         elif mf == 3:
-            from .mf3 import read
-        elif mf == 5:
-            from .mf5 import read
+            foo = mf3.read
         elif mf == 4:
-            from .mf4 import read
+            foo = mf4.read
+        elif mf == 5:
+            foo = mf5.read
         elif mf == 8:
-            from .mf8 import read
+            foo = mf8.read
         elif mf == 33 or mf == 31:
-            from .mf33 import read
+            foo = mf33.read
         elif mf == 34:
-            from .mf34 import read
+            foo = mf34.read
         elif mf == 35:
-            from .mf35 import read
+            foo = mf35.read
         else:
             raise SandyError("SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
         if (mat,mf,mt) not in self.index:
             raise SandyError("section MAT{}/MF{}/MT{} is not in tape".format(mat,mf,mt))
-        return read(self.loc[mat,mf,mt].TEXT)
+        return foo(self.loc[mat,mf,mt].TEXT)
 
     def write_string(self, title=" "*66, skip_title=False, skip_fend=False):
         """Collect all rows in `Endf6` and write them into string.
@@ -647,6 +849,135 @@ class Endf6(BaseFile):
 
 
 
+class Errorr(_BaseFile):
+    """Class to contain the content of ENDF-6 files, grouped by MAT/MF/MT.
+    
+    **Index**:
+        
+        - MAT : (`int`) MAT number to identify the isotope
+        - MF : (`int`) MF number to identify the data type
+        - MT : (`int`) MT number to identify the reaction
+
+    **Columns**:
+
+        - TEXT : (`string`) MAT/MF/MT section reported as a single string
+    
+    Methods
+    -------
+    energy_grid
+        
+    read_section
+        
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if len(self.mat) != 1:
+            raise SandyError("only 1 MAT number is allowed in ERRORR file")
+
+    @property
+    def energy_grid(self):
+        return np.array(self.read_section(self.mat[0], 1, 451)["EG"])
+    
+    def read_section(self, mat, mf, mt):
+        """
+        Parse MAT/MF/MT section.
+        
+        Parameters
+        ----------
+        mat : `int`
+            MAT number
+        mf : `int`
+            MF number
+        mt : `int`
+            MT number
+            
+        Returns
+        -------
+        `dict`
+            content of MAT/MF/MT section structured as a dictionary
+        """
+        if mf == 1:
+            foo = mf1.read_errorr
+        elif mf == 3:
+            foo = mf3.read_errorr
+        elif mf == 33 or mf == 31 or mf == 35:
+            foo = mf33.read_errorr
+        else:
+            raise SandyError("SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
+        if (mat,mf,mt) not in self.index:
+            raise SandyError("section MAT{}/MF{}/MT{} is not in tape".format(mat,mf,mt))
+        return foo(self.loc[mat,mf,mt].TEXT)
+
+    def get_xs(self, listmat=None, listmt=None, **kwargs):
+        """
+        Extract xs from errorr file into Xs instance.
+        """
+        pdb.set_trace()
+        condition = self.index.get_level_values("MF") == 3
+        tape = self[condition]
+        if listmat is not None:
+            conditions = [tape.index.get_level_values("MAT") == x for x in listmat]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
+        if listmt is not None:
+            conditions = [tape.index.get_level_values("MT") == x for x in listmt]
+            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
+            tape = tape[condition]
+        mat = self.index.get_level_values("MAT")[0]
+        eg = self.read_section(mat,1,451)["EG"]
+        ListXs = []
+        for ix,text in tape.TEXT.iteritems():
+            mat,mf,mt = ix
+            X = self.read_section(*ix)
+            xs = pd.Series(X["XS"], index=eg[:-1], name=(X["MAT"],X["MT"])).rename_axis("E").to_frame()
+            ListXs.append(xs)
+        if not ListXs:
+            logging.warn("requested cross sections were not found")
+            return pd.DataFrame()
+        # Use concat instead of merge because indexes are the same
+        frame = pd.concat(ListXs, axis=1).reindex(eg, method="ffill")
+        return Xs(frame)
+
+    def get_std(self):
+        """
+        Extract xs and std from errorr file into dataframe:
+            index = energy
+            columns = (MAT, MT, DATA)
+        """
+        xs = self.get_xs()
+        cov = self.get_cov()
+        stdvals = np.sqrt(np.diag(cov.values))
+        xsvals =  xs.values.T.flatten()
+        frame = pd.DataFrame.from_dict({"XS" : xsvals, "STD" : stdvals})
+        frame.columns.name = "DATA"
+        frame.index = cov.index
+        frame = frame.unstack(level=["MAT","MT"])
+        frame.columns = frame.columns.reorder_levels(["MAT","MT","DATA"])
+        return frame
+
+
+
+class Gendf(_BaseFile):
+
+    Format = "gendf"
+
+    def read_section(self, mat, mf, mt):
+        """
+        Parse MAT/MF/MT section
+        """
+        if mf == 1:
+            from .MF1 import read_groupr as read
+        elif mf == 3:
+            from .MF3 import read_groupr as read
+        else:
+            raise SandyError("SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
+        if (mat,mf,mt) not in self.index:
+            raise SandyError("section MAT{}/MF{}/MT{} is not in tape".format(mat,mf,mt))
+        return read(self.loc[mat,mf,mt].TEXT)
+
+
+
 def cov_interp(df, interp_column, method='zero', axis='both'):
     # interp_column is a list
     frame = df[~df.index.duplicated(keep='first')].T
@@ -658,57 +989,3 @@ def cov_interp(df, interp_column, method='zero', axis='both'):
     if axis in ['columns', 'both']:
         frame = frame.transpose().reindex(columns).interpolate(method=method).reindex(interp_column).transpose()
     return frame.fillna(0)
-
-
-
-#def write_decay_data_csv(tape, filename):
-#    df = tape.query("MF==8 & MT==457")
-#    df['Z'] = df.DATA.apply(lambda x : int(x['ZA']//1000))
-#    df['A'] = df.DATA.apply(lambda x : int(x['ZA'] - x['ZA']//1000*1000))
-#    df['M'] = df.DATA.apply(lambda x : 'g' if x['LISO'] == 0 else 'm' if x['LISO'] == 1 else 'n')
-#    df['HL'] = df.DATA.apply(lambda x : x['HL'])
-#    df['DHL'] = df.DATA.apply(lambda x : x['DHL'])
-#    df['ELP'] = df.DATA.apply(lambda x : x['E'][0])
-#    df['DELP'] = df.DATA.apply(lambda x : x['DE'][0])
-#    df['EEM'] = df.DATA.apply(lambda x : x['E'][1])
-#    df['DEEM'] = df.DATA.apply(lambda x : x['DE'][2])
-#    df['EHP'] = df.DATA.apply(lambda x : x['E'][2])
-#    df['DEHP'] = df.DATA.apply(lambda x : x['DE'][2])
-#    df[['Z','A','M','HL','DHL','ELP','DELP','EEM','DEEM','EHP','DEHP']].to_csv(filename, index=False)
-    
-#def get_masses(file):
-#    print(file)
-#    tape = e6.split2df_byZAM(file)
-#    tape["AWR"] = tape["TEXT"].apply(lambda x: float(read_float(x[11:22])))
-#    return tape.drop("TEXT", axis=1)
-#
-#def check_masses(files):
-#    return [ get_masses(file) for file in files ]
-#
-#def check_masses_jeff33(path):
-#    """
-#    Given a path with ENDF-6 files, compare the masses in each section of each file
-#    with those given in the RDD JEFF3.3 file.
-#    Produce a csv summary output.
-#    """
-#    from sandy.data_test import __file__ as td
-#    RDD = join(dirname(realpath(td)), r"RDD.jeff33")
-#    DfRDD = check_masses([RDD])[0].query("MF==1 & MT==451")#.rename(columns={"AWR": "AWR_RDD"})
-#    DfN = pd.concat(check_masses(map(lambda x : join(path, x), listdir(path))))
-#    C = DfN.merge(DfRDD.drop(["MF","MT"], axis=1), how="left", on=["ZAM"], suffixes=("_N","_RDD"))
-#    C["RATIO"] = (C.AWR_N/C.AWR_RDD).values
-#    C["MATCH"] = np.isclose(C["RATIO"], 1, rtol=1e-6)
-#    grouped = C[["ZAM","AWR_N"]].set_index("ZAM").groupby("ZAM")
-#    df = grouped.agg(['count', 'min', 'max', lambda x:x.value_counts().index[0]])
-#    df.columns = df.columns.droplevel(0)
-#    df = df.merge(DfRDD[['ZAM','AWR']], how='left', left_index=True, right_on=['ZAM'])
-#    df["Z"] = np.floor(df.ZAM/10000)
-#    df["A"] = np.floor((df.ZAM - df.Z*10000)/10)
-#    df["M"] = np.floor(df.ZAM - df.Z*10000 - df.A*10)
-#    df.rename(columns={"<lambda>" : "most freq", "AWR" : "ref"}, inplace=True)
-#    df.set_index(['Z','A','M'], inplace=True)
-#    df.drop("ZAM", axis=1, inplace=True)
-#    df["message"] = (np.isclose(df["min"], df["ref"], rtol=1e-6) & (np.isclose(df["min"], df["ref"], rtol=1e-6)))
-#    df["message"] = df.message.replace({True: "OK", False: "WARNING"})
-#    df.to_csv("jeff33_masses.csv")
-#
