@@ -10,9 +10,10 @@ import time
 import pdb
 import argparse
 import logging
-import numpy as np
+import tempfile
 import multiprocessing as mp
 
+import numpy as np
 import pandas as pd
 
 from sandy.settings import SandyError
@@ -20,6 +21,7 @@ from sandy.formats import read_formatted_file, get_file_format
 from sandy.formats.endf6 import Endf6
 from sandy.formats.utils import FySamples, XsCov
 from sandy.utils import is_valid_dir, is_valid_file
+from sandy.njoy import process
 
 __author__ = "Luca Fiorito"
 __all__ = ["sampling"]
@@ -28,32 +30,31 @@ __all__ = ["sampling"]
 def _sampling_mp(ismp, skip_title=False, skip_fend=False):
     global tape, PertXs, PertNubar, PertEdistr, PertLpc, init
     t0 = time.time()
-    mat = tape.index.get_level_values("MAT")[0]
+    mat = tape.mat[0]
     info = tape.read_section(mat, 1, 451)
     lrp = info["LRP"]
-    name = info["TAG"]
     newtape = Endf6(tape.copy())
     extra_points = np.logspace(-5, 7, init.energy_sequence)
-    if not PertXs.empty and lrp == 2:
+    if not PertXs.empty:
         xs = newtape.get_xs()
         if not xs.empty:
-            xs = xs.perturb(PertXs[ismp])
-            newtape = newtape.update_xs(xs)
+            xspert = xs.perturb(PertXs[ismp])
+            newtape = newtape.update_xs(xspert)
     if not PertNubar.empty:
         nubar = newtape.get_nubar()
         if not nubar.empty:
-            nubar = nubar.perturb(PertNubar[ismp])
-            newtape = newtape.update_nubar(nubar)
+            nubarpert = nubar.perturb(PertNubar[ismp])
+            newtape = newtape.update_nubar(nubarpert)
     if not PertEdistr.empty:
-        edistr = newtape.get_edistr()
+        edistr = newtape.get_edistr().add_points(extra_points)
         if not edistr.empty:
-            edistr = edistr.add_points(extra_points).perturb(PertEdistr[ismp])
-            newtape = newtape.update_edistr(edistr)
+            edistrpert = edistr.perturb(PertEdistr[ismp])
+            newtape = newtape.update_edistr(edistrpert)
     if not PertLpc.empty:
-        lpc = newtape.get_lpc()
+        lpc = newtape.get_lpc().add_points(extra_points)
         if not lpc.empty:
-            lpc = lpc.add_points(extra_points).perturb(PertLpc[ismp])
-            newtape = newtape.update_lpc(lpc)
+            lpcpert = lpc.perturb(PertLpc[ismp])
+            newtape = newtape.update_lpc(lpcpert)
     print("Created sample {} for MAT {} in {:.2f} sec".format(ismp, mat, time.time()-t0,))
     descr = ["perturbed file No.{} created by SANDY".format(ismp)]
     return newtape.delete_cov().update_info(descr=descr).write_string(skip_title=skip_title, skip_fend=skip_fend)
@@ -74,7 +75,7 @@ def _sampling_fy_mp(ismp, skip_title=False, skip_fend=False):
 
 
 
-def _parse(iargs=None):
+def parse(iargs=None):
     """Parse command line arguments for sampling option.
     """
     parser = argparse.ArgumentParser(prog="python -m sandy.sampling",
@@ -130,10 +131,6 @@ def _parse(iargs=None):
     parser.add_argument('--outname','-O',
                         type=str,
                         help="basename for the output files (default is the the basename of <file>.)")
-#    parser.add_argument('--verbose',
-#                        default=False,
-#                        action="store_true",
-#                        help="turn on verbosity (default = quiet)")
     parser.add_argument('--debug',
                         default=False,
                         action="store_true",
@@ -164,7 +161,7 @@ def sampling(iargs=None):
     the perturbed files.
     """
     global init, PertXs, PertNubar, PertEdistr, PertLpc, PertFy, tape
-    init = _parse(iargs)
+    init = parse(iargs)
     # LOAD ENDF6 AND COVARIANCE FILE
     ftape = read_formatted_file(init.file)
     if init.cov:
@@ -213,43 +210,44 @@ def sampling(iargs=None):
                     pool.join()
             df.update({ mat : outs })
     else:
+        if len(ftape.mat) > 1: # Limit imposed by running ERRORR to get covariance matrices
+            raise SandyError("More than one MAT number was found")
         # EXTRACT XS PERTURBATIONS FROM COV FILE
         PertXs = pd.DataFrame()
-        if 33 in init.mf and 33 in covtape.mf:
-            listmt = init.mt if init.mt is None else [451].extend(init.mt) # ERRORR needs MF1/MT451 to get the energy grid
-            method = XsCov.from_errorr if covtype is "errorr" else XsCov.from_endf6
-            xscov = method(covtape.filter_by(listmt=listmt, listmf=[1,33], listmat=init.mat))
+        if 33 in init.mf and 33 in ftape.mf:
+            ftape = ftape.delete_sections((None, 3, None))
+            with tempfile.TemporaryDirectory() as td:
+                outputs = process(init.file, broadr=False, thermr=False, 
+                                  unresr=False, heatr=False, gaspr=False, 
+                                  purr=False, errorr=True, acer=False,
+                                  wdir=td, keep_pendf=True,
+                                  temperatures=[0], suffixes=[0], err=0.005)[2]
+                pendf = read_formatted_file(outputs["tape30"])
+                ftape = ftape.add_sections(pendf.filter_by(listmf=[3])). \
+                              add_sections(pendf.filter_by(listmf=[1], listmt=[451]))
+                errorr = read_formatted_file(outputs["tape33"])
+                listmt = init.mt if init.mt is None else [451].extend(init.mt) # ERRORR needs MF1/MT451 to get the energy grid
+                xscov = XsCov.from_errorr(errorr.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmt))
             if not xscov.empty:
-                count = xscov.check_diagonal()
-                if count != 0:
-                    logging.warn("MF33 covariances will not be sampled")
-                else:
-                    PertXs = xscov.get_samples(init.samples, eig=init.eig)
-                    if init.debug: PertLpc.to_csv("perts_mf33.csv")
+                PertXs = xscov.get_samples(init.samples, eig=init.eig)
+                if init.debug:
+                    PertNubar.to_csv("perts_mf33.csv")
         # EXTRACT NUBAR PERTURBATIONS FROM ENDF6 FILE
         PertNubar = pd.DataFrame()
-        if 31 in init.mf and 31 in covtape.mf:
-            listmt = init.mt if init.mt is None else [451].extend(init.mt) # ERRORR needs MF1/MT451 to get the energy grid
-            method = XsCov.from_errorr if covtype is "errorr" else XsCov.from_endf6
-            nubarcov = method(covtape.filter_by(listmt=listmt, listmf=[1,31], listmat=init.mat))
+        if 31 in init.mf and 31 in ftape.mf:
+            nubarcov = XsCov.from_endf6(covtape.filter_by(listmat=init.mat, listmf=[31], listmt=listmt))
             if not nubarcov.empty:
-                count = nubarcov.check_diagonal()
-                if count != 0:
-                    logging.warn("MF31 covariances will not be sampled")
-                else:
-                    PertNubar = nubarcov.get_samples(init.samples, eig=init.eig)
-                    if init.debug: PertNubar.to_csv("perts_mf31.csv")
+                PertNubar = nubarcov.get_samples(init.samples, eig=init.eig)
+                if init.debug:
+                    PertNubar.to_csv("perts_mf31.csv")
         # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
         PertEdistr = pd.DataFrame()
-        if 35 in init.mf and 35 in covtape.mf:
+        if 35 in init.mf and 35 in ftape.mf:
             edistrcov = ftape.get_edistr_cov()
             if not edistrcov.empty:
-                count = edistrcov.check_diagonal()
-                if count != 0:
-                    logging.warn("MF35 covariances will not be sampled")
-                else:
-                    PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
-                    if init.debug: PertEdistr.to_csv("perts_mf35.csv")
+                PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
+                if init.debug:
+                    PertEdistr.to_csv("perts_mf35.csv")
         # EXTRACT PERTURBATIONS FROM LPC COV FILE
         PertLpc = pd.DataFrame()
         if 34 in init.mf and 34 in covtape.mf:
@@ -257,12 +255,9 @@ def sampling(iargs=None):
             if not lpccov.empty:
                 if init.max_polynomial:
                     lpccov = lpccov.filter_p(init.max_polynomial)
-                count = lpccov.check_diagonal()
-                if count != 0:
-                    logging.warn("MF34 covariances will not be sampled")
-                else:
-                    PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
-                    if init.debug: PertLpc.to_csv("perts_mf34.csv")
+                PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
+                if init.debug:
+                    PertLpc.to_csv("perts_mf34.csv")
         if PertLpc.empty and PertEdistr.empty and PertXs.empty and PertNubar.empty:
             logging.warn("no covariance section was selected/found")
             return
@@ -276,8 +271,6 @@ def sampling(iargs=None):
             tape = Endf6(tape)
             kw = dict(skip_title=skip_title, skip_fend=skip_fend)
             info = tape.read_section(mat, 1, 451)
-            if info["LRP"] != 2 and 33 in init.mf:
-                logging.warn("not a PENDF tape, cross sections will not be perturbed")
             if init.processes == 1:
                 outs = {i : _sampling_mp(i, **kw) for i in range(1,init.samples+1)}
             else:

@@ -176,7 +176,7 @@ class _BaseFile(pd.DataFrame):
         ----------
         tuples : sequence of `tuple`
             each tuple should have the format (MAT, MF, MT)
-            To delete, say a given MF, independentently from the MAT and MT, assign `None` 
+            To delete, say, a given MF independentently from the MAT and MT, assign `None` 
             to the MAT and MT position in the tuple.
 
         Returns
@@ -210,11 +210,11 @@ class _BaseFile(pd.DataFrame):
         Parameters
         ----------
         listmat : `list` or `None`
-            list of requested MAT values
+            list of requested MAT values (default is `None`: use all MAT)
         listmf : `list` or `None`
-            list of requested MF values
+            list of requested MF values (default is `None`: use all MF)
         listmt : `list` or `None`
-            list of requested MT values
+            list of requested MT values (default is `None`: use all MT)
         
         Returns
         -------

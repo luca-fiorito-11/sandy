@@ -348,6 +348,42 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
     text += ["/"]
     return "\n".join(text) + "\n"
 
+def _errorr_input(endfin, pendfin, errorrout, mat,
+                  ign=2, iwt=2, temp=293.6, iprint=False,
+                  **kwargs):
+    """Write acer input for fast data.
+    
+    Parameters
+    ----------
+    endfin : `int`
+        tape number for input ENDF-6 file
+    pendfin : `int`
+        tape number for input PENDF file
+    errorrout : `int`
+        tape number for output ERRORR file
+    mat : `int`
+        MAT number
+    ign : `int`
+        neutron group option (default is 2, csewg 239-group structure)
+    iwt : `int`
+        weight function option (default is 2, constant)
+    temp : `float`
+        temperature in K (default is 293.6 K)
+    iprint : `bool`
+        print option (default is `False`)
+
+    Returns
+    -------
+    `str`
+        acer input text
+    """
+    text = ["errorr"]
+    text += ["{:d} {:d} 0 {:d} 0 /".format(endfin, pendfin, errorrout)]
+    text += ["{:d} {:d} {:d} {:d} 1 /".format(mat, ign, iwt, int(iprint))]
+    text += ["{:d} {:.1f} /".format(int(iprint), temp)]
+    text += ["0 33 /"]
+    return "\n".join(text) + "\n"
+
 def _run_njoy(text, inputs, outputs, exe=None):
     """
     Run njoy executable.
@@ -378,7 +414,7 @@ def _run_njoy(text, inputs, outputs, exe=None):
     stdout = stderr = None
     stdin = text.encode()
     with tempfile.TemporaryDirectory() as tmpdir:
-        logging.debug("Create temprary directory '{}'".format(tmpdir))
+        logging.debug("Create temporary directory '{}'".format(tmpdir))
         for tape,src in inputs.items():
             shutil.copy(src, os.path.join(tmpdir, tape))
         process = sp.Popen(exe,
@@ -406,6 +442,7 @@ def process(endftape, pendftape=None,
             heatr=True,
             gaspr=True,
             purr=True,
+            errorr=False,
             acer=True,
             wdir="", dryrun=False, tag="", exe=None, keep_pendf=True, route="0",
             **kwargs):
@@ -413,6 +450,8 @@ def process(endftape, pendftape=None,
     
     Parameters
     ----------
+    pendftape : `str`
+        use this PENDF file and skip module reconr (defult is `None`: run reconr) 
     kermas : iterable of `int`
         MT numbers for partial kermas to pass to heatr.
         Default is:
@@ -447,6 +486,8 @@ def process(endftape, pendftape=None,
         option to run module gapr (default is `True`)
     purr : `bool`
         option to run module purr (default is `True`)
+    errorr : `bool`
+        option to run module errorr (default is `False`)
     acer : `bool`
         option to run module acer (default is `True`)
     wdir : `str`
@@ -526,9 +567,16 @@ def process(endftape, pendftape=None,
         text += _purr_input(-e, -p, -o, **kwargs)
         p = o
     if keep_pendf:
-        o = p + 1
+        o = 30
         text += _moder_input(-p, o)
         outputs["tape{}".format(o)] = os.path.join(wdir, "{}{}.pendf".format(za_new, tag))
+    if errorr:
+        for i,(temp,suff) in enumerate(zip(temperatures, suffixes)):
+            o = 33 + i
+            kwargs["temp"] = temp
+            kwargs["suff"] = suff = ".{:02d}".format(suff)
+            text += _errorr_input(-e, -p, o, **kwargs)
+            outputs["tape{}".format(o)] = os.path.join(wdir, "{}{}{}.errorr".format(za_new, tag, suff))
     if acer:
         if not suffixes:
             suffixes = range(len(temperatures))

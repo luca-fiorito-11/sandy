@@ -720,10 +720,6 @@ class Fy(pd.DataFrame):
 
 
 
-###############################################################################
-# Nuclear Data Covariance Objects (NDCO)
-###############################################################################
-
 class BaseCov(pd.DataFrame):
     """Base covariance class inheriting from `pandas.DataFrame`.
     Must be used as superclass by all other Nuclear Data Covariance Objects.
@@ -753,7 +749,7 @@ class BaseCov(pd.DataFrame):
             covariance matrix as a `numpy` array
         """
         return Cov(self.values)
-    
+
     def eig(self):
         """Extract eigenvalues in descending order.
         
@@ -953,9 +949,9 @@ class XsCov(BaseCov):
         self.index.names = self.labels
         self.columns.names = self.labels
 
-    def get_samples(self, nsmp, eig=0):
+    def get_samples(self, nsmp, eig=0, seed=None):
         cov = self.to_matrix()
-        frame = pd.DataFrame(cov.sampling(nsmp) + 1, index=self.index, columns=range(1,nsmp+1))
+        frame = pd.DataFrame(cov.sampling(nsmp, seed=seed) + 1, index=self.index, columns=range(1,nsmp+1))
         frame.columns.name = 'SMP'
         if eig > 0:
             eigs = cov.eig()[0]
