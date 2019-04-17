@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 14 09:23:33 2018
+This module contains only two public functions:
 
-@author: fiorito_l
+    * `read`
+    * `write`
+
+Function `read` reads a MF8/MT section from a string and produces a content object with a dictionary-like 
+structure.
+The content object can be accessed using most of the keywords specified in the ENDF6 manual for this specific 
+MF section.
+
+Function `write` writes a content object for a MF8/MT section into a string.
+MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
 """
 
 import numpy as np
@@ -19,12 +28,13 @@ def read(text):
     
     Parameters
     ----------
-    text: `str`
+    text : `str`
         one string containing the whole section
     
     Returns
     -------
-    `sandy.utils.Section`
+    `sandy.formats.utils.Section`
+        MF8 content sructured as a collection of dictionaries 
     """
     str_list = text.splitlines()
     MAT, MF, MT = read_control(str_list[0])[:3]
@@ -33,12 +43,14 @@ def read(text):
     elif MT == 457:
         return _read_rdd(text)
 
+
+
 def write(sec):
     """Write MT section for MF8
     
     Parameters
     ----------
-    sec: `sandy.utils.Section`
+    sec : `sandy.utils.Section`
         dictionary with MT section for MF8
     
     Returns
@@ -49,6 +61,8 @@ def write(sec):
         return _write_fy(sec)
     elif sec["MT"] == 457:
         return _write_rdd(sec)
+
+
 
 def _read_fy(text):
     str_list = text.splitlines()
@@ -64,6 +78,8 @@ def _read_fy(text):
         if j > 0:
             out["E"][L.C1].update({ "I" : L.L1 })
     return Section(out)
+
+
 
 def _write_fy(sec):
     LE = len(sec["E"])
@@ -81,16 +97,15 @@ def _write_fy(sec):
         iline += 1
     return "".join(TextOut)
 
+
+
 def _read_rdd(text):
-    """
-    
-    """
     str_list = text.splitlines()
     MAT, MF, MT = read_control(str_list[0])[:3]
     out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
     i = 0
     C, i = read_cont(str_list, i)
-    out["ZA"] = ZA = C.C1       # Designation of the original (radioactive) nuclide (ZA=1000Z + A)
+    out["ZA"] = ZA = C.C1       # Designation of the original (radioactive) nuclide (ZA = Z*1000 + A)
     out["AWR"] = AWR = C.C2     # Ratio of the LIS state nuclide mass to that of neutron
     out["LIS"] = LIS = C.L1     # State of the original nuclide (LIS=0, ground state, LIS=1, first excited state, etc.)
     out["LISO"] = LISO = C.L2   # Isomeric state number for the original nuclide (LISO=0, ground state; LISO=1, first isomeric state; etc.)
