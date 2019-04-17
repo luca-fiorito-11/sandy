@@ -19,6 +19,7 @@ from sandy.settings import SandyError
 from sandy.formats import read_formatted_file, get_file_format
 from sandy.formats.endf6 import Endf6
 from sandy.formats.utils import FySamples, XsCov
+from sandy.core import pfns
 from sandy.utils import is_valid_dir, is_valid_file
 
 __author__ = "Luca Fiorito"
@@ -45,7 +46,7 @@ def _sampling_mp(ismp, skip_title=False, skip_fend=False):
             nubar = nubar.perturb(PertNubar[ismp])
             newtape = newtape.update_nubar(nubar)
     if not PertEdistr.empty:
-        edistr = newtape.get_edistr()
+        edistr = pfns.from_endf6(newtape)
         if not edistr.empty:
             edistr = edistr.add_points(extra_points).perturb(PertEdistr[ismp])
             newtape = newtape.update_edistr(edistr)

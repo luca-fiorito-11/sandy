@@ -24,7 +24,6 @@ from sandy.formats import (mf1,
         )
 from sandy.formats.utils import (
         Xs,
-        Edistr,
         Lpc,
         Fy,
         XsCov,
@@ -442,61 +441,6 @@ class Endf6(_BaseFile):
             text = write(sec)
             tape.loc[mat,mf,mt].TEXT = text
         return Endf6(tape)
-
-    def get_edistr(self, listmat=None, listmt=None, verbose=True):
-        """
-        Extract chi cov for all MAT,MT,SUB found in tape.
-        Return a df with MAT,MT,SUB as index and COV as value
-        Each COV is a df with Ein on rows and Eout on columns.
-        """
-        condition = self.index.get_level_values("MF") == 5
-        tape = self[condition]
-        if listmat is not None:
-            conditions = [tape.index.get_level_values("MAT") == x for x in listmat]
-            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
-            tape = tape[condition]
-        if listmt is not None:
-            conditions = [tape.index.get_level_values("MT") == x for x in listmt]
-            condition = reduce(lambda x,y: np.logical_or(x, y), conditions)
-            tape = tape[condition]
-        edistr_list = []
-        for ix,text in tape.TEXT.iteritems():
-            X = self.read_section(*ix)
-            for k,pdistr in X["PDISTR"].items():
-                if pdistr["LF"] != 1:
-                    if verbose: logging.warn("non-tabulated distribution for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
-                    continue
-                if list(filter(lambda x:x["INT"] != [2], pdistr["EIN"].values())):
-                    if verbose: logging.warn("found non-linlin interpolation, skip energy distr. for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
-                    continue
-                for ein,v in sorted(pdistr["EIN"].items()):
-                    columns = pd.MultiIndex.from_tuples([(X["MAT"], X["MT"], k, ein)], names=("MAT", "MT", "K", "EIN"))
-                    df = pd.DataFrame(v["EDISTR"], index=v["EOUT"], columns=columns)
-                    df.index.name = "EOUT"
-                    edistr_list.append(df)
-        if not edistr_list:
-            logging.warn("no tabulated energy distribution was found")
-            return pd.DataFrame()
-        frame = reduce(lambda x,y : pd.merge(x, y, left_index=True, right_index=True), edistr_list)
-        frame = frame.sort_index().interpolate(method="slinear").fillna(0)
-        return Edistr(frame.T)
-#        for ix,text in tape.TEXT.iteritems():
-#            X = self.read_section(*ix)
-#            for k,pdistr in X["PDISTR"].items():
-#                if pdistr["LF"] != 1:
-#                    if verbose: logging.warn("non-tabulated distribution for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
-#                    continue
-#                if list(filter(lambda x:x["INT"] != [2], pdistr["EIN"].values())):
-#                    if verbose: logging.warn("found non-linlin interpolation, skip energy distr. for MAT{}/MF{}/MT{}, subsec {}".format(*ix,k))
-#                    continue
-#                for ein,v in sorted(pdistr["EIN"].items()):
-#                    DictEdistr.update({(X["MAT"], X["MT"], k, ein) : pd.Series(v["EDISTR"], index=v["EOUT"])})
-#        if not DictEdistr:
-#            logging.warn("no tabulated energy distribution was found")
-#            return pd.DataFrame()
-#        pdb.set_trace()
-#        frame = pd.DataFrame.from_dict(DictEdistr, orient='index').interpolate(method="slinear", axis=1).fillna(0)
-#        return Edistr(frame)
 
     def update_edistr(self, edistrFrame):
         from .mf5 import write
