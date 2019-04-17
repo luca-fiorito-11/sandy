@@ -953,7 +953,7 @@ class XsCov(BaseCov):
         cov = self.to_matrix()
         frame = pd.DataFrame(cov.sampling(nsmp, seed=seed) + 1, index=self.index, columns=range(1,nsmp+1))
         frame.columns.name = 'SMP'
-        if eig > 0:
+        if eig > 0 and nsmp > 1:
             eigs = cov.eig()[0]
             idxs = np.abs(eigs).argsort()[::-1]
             dim = min(len(eigs), eig)

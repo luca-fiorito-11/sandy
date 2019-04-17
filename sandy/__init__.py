@@ -30,3 +30,5 @@ logging.basicConfig(format=FORMAT)
 logging.getLogger().setLevel(logging.INFO)
 logging.getLogger().addHandler(ShutdownHandler(level=40))
 #logging.getLogger().addFilter(DuplicateFilter())
+
+__version__ = '0.9.0'

@@ -241,6 +241,30 @@ class _BaseFile(pd.DataFrame):
     @property
     def mt(self):
         return sorted(self.index.get_level_values("MT").unique())
+    
+    def get_type(self):
+        """Determine ENDF-6 format type by reading flag "LRP" of first MAT in file:
+            
+            * `LRP = 1` : endf6
+            * `LRP = 2` : pendf
+            * `LRP = -11 | LRP = -12` : errorr
+            * `LRP = -1` : gendf
+        
+        Returns
+        -------
+        `str`
+            type of ENDF-6 format
+        """
+        lrp = self.read_section(self.mat[0], 1, 451)["LRP"]
+        if lrp == 2:
+            ftype = "pendf"
+        elif lrp == -11 or lrp == -12:
+            ftype = "errorr"
+        elif lrp == -1:
+            ftype = "gendf"
+        else:
+            ftype = "endf6"
+        return ftype
 
         
         
@@ -260,6 +284,19 @@ class Endf6(_BaseFile):
     Methods
     -------
     """
+
+    def get_nsub(self):
+        """Determine ENDF-6 sub-library type by reading flag "NSUB" of first MAT in file:
+            
+            * `NSUB = 10` : Incident-Neutron Data
+            * `NSUB = 11` : Neutron-Induced Fission Product Yields
+        
+        Returns
+        -------
+        `int`
+            NSUB value
+        """
+        return self.read_section(self.mat[0], 1, 451)["NSUB"]
 
     def read_section(self, mat, mf, mt):
         """Parse MAT/MF/MT section.
