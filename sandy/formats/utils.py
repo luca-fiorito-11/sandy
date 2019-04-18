@@ -256,7 +256,7 @@ class Xs(pd.DataFrame):
         frame = self.copy()
         for mat in frame.columns.get_level_values("MAT").unique():
             for parent, daughters in sorted(Xs.redundant_xs.items(), reverse=True):
-                daughters = [ x for x in daughters if x in frame[mat].columns]
+                daughters = [ x for x in daughters if x in frame[mat]]
                 if daughters:
                     frame[mat,parent] = frame[mat][daughters].sum(axis=1)
             # keep only mts present in the original file
@@ -281,27 +281,32 @@ class Xs(pd.DataFrame):
         `sandy.formats.utils.Xs`
         """
         frame = self.copy()
-        for mat, mt in frame:
-            if mat not in pert.index.get_level_values("MAT").unique(): continue
-            lmtp = pert.loc[mat].index.get_level_values("MT").unique()
-            mtPert = None
-            if mt in lmtp:
-                mtPert = mt
-            else:
-                for parent, daughters in sorted(self.__class__.redundant_xs.items(), reverse=True):
-                    if mt in daughters and not list(filter(lambda x: x in lmtp, daughters)) and parent in lmtp:
-                        mtPert = parent
-                        break
-            if not mtPert: continue
-            P = pert.loc[mat,mtPert]
-            P = P.reindex(P.index.union(frame[mat,mt].index)).ffill().fillna(1).reindex(frame[mat,mt].index)
-            if method == 2:
-                P = P.where(P>0, 0.0)
-                P = P.where(P<2, 2.0)
-            elif method == 1:
-                P = P.where((P>0) & (P<2), 1.0)
-            xs = frame[mat,mt].multiply(P, axis="index")
-            frame[mat,mt] = xs
+        for mat in frame.columns.get_level_values("MAT").unique():
+            if mat not in pert.index.get_level_values("MAT"):
+                continue
+            for mt in frame[mat].columns.get_level_values("MT").unique():
+                lmtp = pert.loc[mat].index.get_level_values("MT").unique()
+                mtPert = None
+                if lmtp.max() == 3 and mt >= 3:
+                    mtPert = 3
+                elif mt in lmtp:
+                    mtPert = mt
+                else:
+                    for parent, daughters in sorted(self.__class__.redundant_xs.items(), reverse=True):
+                        if mt in daughters and not list(filter(lambda x: x in lmtp, daughters)) and parent in lmtp:
+                            mtPert = parent
+                            break
+                if not mtPert:
+                    continue
+                P = pert.loc[mat,mtPert]
+                P = P.reindex(P.index.union(frame[mat,mt].index)).ffill().fillna(1).reindex(frame[mat,mt].index)
+                if method == 2:
+                    P = P.where(P>0, 0.0)
+                    P = P.where(P<2, 2.0)
+                elif method == 1:
+                    P = P.where((P>0) & (P<2), 1.0)
+                xs = frame[mat,mt].multiply(P, axis="index")
+                frame[mat,mt] = xs
         return Xs(frame).reconstruct_sums()
 
     def _macs(self, E0=0.0253, Elo=1E-5, Ehi=1E1):

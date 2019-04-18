@@ -110,7 +110,7 @@ def _parse(iargs=None):
                         help="print the first N eigenvalues of the evaluated covariance matrices\n(default = do not print)")
     parser.add_argument('--mat',
                         type=int,
-                        default=range(0,10000),
+                        default=list(range(1,10000)),
                         action='store',
                         nargs="+",
                         metavar="{1,..,9999}",
@@ -124,6 +124,7 @@ def _parse(iargs=None):
                         help="draw samples only from the selected MF sections (default = keep all)")
     parser.add_argument('--mt',
                         type=int,
+                        default=list(range(1,1000)),
                         action='store',
                         nargs="+",
                         metavar="{1,..,999}",
@@ -217,7 +218,7 @@ def sampling(iargs=None):
         # EXTRACT XS PERTURBATIONS FROM COV FILE
         PertXs = pd.DataFrame()
         if 33 in init.mf and 33 in covtape.mf:
-            listmt = init.mt if init.mt is None else [451].extend(init.mt) # ERRORR needs MF1/MT451 to get the energy grid
+            listmt = sorted(set(init.mt + [451])) # ERRORR needs MF1/MT451 to get the energy grid
             method = XsCov.from_errorr if covtype is "errorr" else XsCov.from_endf6
             xscov = method(covtape.filter_by(listmt=listmt, listmf=[1,33], listmat=init.mat))
             if not xscov.empty:
