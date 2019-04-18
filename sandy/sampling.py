@@ -223,7 +223,7 @@ def sampling_nsub10(init, ftape, covtape):
     if 33 in init.mf and 33 in covtape.mf:
         if init.errorr and len(ftape.mat) > 1: # Limit imposed by running ERRORR to get covariance matrices
             raise SandyError("More than one MAT number was found")
-        if ftape.get_type() == "endf6":
+        if ftape.get_file_format() == "endf6":
             with tempfile.TemporaryDirectory() as td:
                 outputs = njoy.process(init.file, broadr=False, thermr=False, 
                                        unresr=False, heatr=False, gaspr=False, 
@@ -240,7 +240,7 @@ def sampling_nsub10(init, ftape, covtape):
                           add_sections(ptape.filter_by(listmf=[1], listmt=[451]))
         listmterr = init.mt if init.mt is None else [451].extend(init.mt) # ERRORR needs MF1/MT451 to get the energy grid
         covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmterr)
-        covtype = covtape.get_type()
+        covtype = covtape.get_file_format()
         xscov = XsCov.from_errorr(covtape) if covtype == "errorr" else XsCov.from_endf6(covtape)
         if not xscov.empty:
             PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
@@ -374,7 +374,7 @@ def sampling(iargs=None):
         if 33 in init.mf and 33 in covtape.mf:
             if init.errorr and len(ftape.mat) > 1: # Limit imposed by running ERRORR to get covariance matrices
                 raise SandyError("More than one MAT number was found")
-            if ftape.get_type() == "endf6":
+            if ftape.get_file_format() == "endf6":
                 with tempfile.TemporaryDirectory() as td:
                     outputs = njoy.process(init.file, broadr=False, thermr=False, 
                                            unresr=False, heatr=False, gaspr=False, 
@@ -389,7 +389,7 @@ def sampling(iargs=None):
                               add_sections(ptape.filter_by(listmf=[1], listmt=[451]))
             listmterr = init.mt if init.mt is None else [451].extend(init.mt) # ERRORR needs MF1/MT451 to get the energy grid
             covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmterr)
-            covtype = covtape.get_type()
+            covtype = covtape.get_file_format()
             xscov = XsCov.from_errorr(covtape) if covtype == "errorr" else XsCov.from_endf6(covtape)
             if not xscov.empty:
                 PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)

@@ -33,7 +33,10 @@ def get_file_format(file):
     elif flag == -1:
         ftype = "gendf"
     else:
-        ftype = "endf6"
+        if C.L1 == 2:
+            ftype == "pendf"
+        else:
+            ftype == "endf6"
     return ftype
 
 
