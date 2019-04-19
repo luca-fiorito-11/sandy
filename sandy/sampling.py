@@ -256,10 +256,9 @@ def extract_samples(init, ftape, covtape):
             ftape = ftape.delete_sections((None, 3, None)). \
                           add_sections(ptape.filter_by(listmf=[3])). \
                           add_sections(ptape.filter_by(listmf=[1], listmt=[451]))
-        listmterr = init.mt if init.mt is None else [451].extend(init.mt) # ERRORR needs MF1/MT451 to get the energy grid
-        covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmterr)
+        listmt = sorted(set(init.mt + [451])) # ERRORR needs MF1/MT451 to get the energy grid
+        covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmt)
         covtype = covtape.get_file_format()
-        pdb.set_trace()
         xscov = XsCov.from_errorr(covtape) if covtype == "errorr" else XsCov.from_endf6(covtape)
         if not xscov.empty:
             PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)

@@ -418,6 +418,7 @@ def test_h1_pendf_cov_errorr_only_mt102(tmpdir):
         xs1 = tape.get_xs()
         check_xs(xs, xs1, perts, 125, 102, i+1)
         # MT2 is not perturbed
-        assert np.allclose((xs1/xs)[125,2], 1, rtol=1e-3)
-        # MT1 is the sum
+        assert ((xs1/xs)[125,2] == 1).all()
+        # MT1 is perturbed and it is the sum
+        assert ((xs1/xs)[125,1] != 1).all()
         assert np.allclose(xs1[(125,2)]+xs1[(125,102)], xs1[(125,1)], rtol=1e-6)
