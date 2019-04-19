@@ -23,6 +23,7 @@ from sandy.settings import SandyError
 from sandy.formats import read_formatted_file, get_file_format
 from sandy.formats.endf6 import Endf6
 from sandy.formats.utils import FySamples, XsCov
+from sandy.core import pfns
 from sandy.utils import is_valid_dir, is_valid_file
 from sandy import njoy
 
@@ -47,7 +48,7 @@ def _sampling_mp(ismp, skip_title=False, skip_fend=False):
             nubarpert = nubar.perturb(pnu[ismp])
             newtape = newtape.update_nubar(nubarpert)
     if not pchi.empty:
-        edistr = newtape.get_edistr().add_points(extra_points)
+        edistr = pfns.from_endf6(newtape).add_points(extra_points)
         if not edistr.empty:
             edistrpert = edistr.perturb(pchi[ismp])
             newtape = newtape.update_edistr(edistrpert)
@@ -126,7 +127,7 @@ def parse(iargs=None):
                         help="print the first N eigenvalues of the evaluated covariance matrices\n(default = do not print)")
     parser.add_argument('--mat',
                         type=int,
-                        default=range(1,10000),
+                        default=list(range(1,10000)),
                         action='store',
                         nargs="+",
                         metavar="{1,..,9999}",
@@ -140,7 +141,7 @@ def parse(iargs=None):
                         help="draw samples only from the selected MF sections (default = keep all)")
     parser.add_argument('--mt',
                         type=int,
-                        default=range(1,1000),
+                        default=list(range(1,1000)),
                         action='store',
                         nargs="+",
                         metavar="{1,..,999}",

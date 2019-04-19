@@ -47,11 +47,11 @@ def test_sample_xs():
     assert perts.shape[1] == nsmp
     mat = 125; mt = 102
     ratio = pxs/xs.values
-    mask1 = np.in1d(ratio[mat,mt].index, pert[mat,mt].index)
-    mask2 = np.in1d(pert[mat,mt].index, ratio[mat,mt].index)
-    assert np.allclose(ratio[mat,mt].values[mask1], pert[mat,mt].values[mask2])
+    pert = pert.loc[125, 102]
+    ugrid = pert.index
+    pert = pert.reindex(pert.index.union(ratio.index)).ffill().fillna(1).reindex(ratio.index)
+    assert np.allclose(ratio[mat,mt], pert)
     assert newtape.loc[125,3,102].TEXT != pendftape.loc[125,3,102].TEXT
-#    assert newtape.loc[125,3,2].TEXT == pendftape.loc[125,3,2].TEXT
 
 @pytest.mark.sampling
 @pytest.mark.fy

@@ -51,7 +51,7 @@ from ..functions import gls, div0
 from sandy.settings import SandyError, colors
 
 __author__ = "Luca Fiorito"
-__all__ = ["BaseFile", "Xs", "Lpc", "Edistr", "EnergyCov", "XsCov", "EdistrCov", "LpcCov", 
+__all__ = ["BaseFile", "Xs", "Lpc", "EnergyCov", "XsCov", "EdistrCov", "LpcCov", 
            "Cov", "Fy", "FyCov", "Tpd",
            "LpcSamples", "EdistrSamples", "FySamples"]
 
@@ -256,7 +256,7 @@ class Xs(pd.DataFrame):
         frame = self.copy()
         for mat in frame.columns.get_level_values("MAT").unique():
             for parent, daughters in sorted(Xs.redundant_xs.items(), reverse=True):
-                daughters = [ x for x in daughters if x in frame[mat].columns]
+                daughters = [ x for x in daughters if x in frame[mat]]
                 if daughters:
                     frame[mat,parent] = frame[mat][daughters].sum(axis=1)
             # keep only mts present in the original file
@@ -281,27 +281,32 @@ class Xs(pd.DataFrame):
         `sandy.formats.utils.Xs`
         """
         frame = self.copy()
-        for mat, mt in frame:
-            if mat not in pert.index.get_level_values("MAT").unique(): continue
-            lmtp = pert.loc[mat].index.get_level_values("MT").unique()
-            mtPert = None
-            if mt in lmtp:
-                mtPert = mt
-            else:
-                for parent, daughters in sorted(self.__class__.redundant_xs.items(), reverse=True):
-                    if mt in daughters and not list(filter(lambda x: x in lmtp, daughters)) and parent in lmtp:
-                        mtPert = parent
-                        break
-            if not mtPert: continue
-            P = pert.loc[mat,mtPert]
-            P = P.reindex(P.index.union(frame[mat,mt].index)).ffill().fillna(1).reindex(frame[mat,mt].index)
-            if method == 2:
-                P = P.where(P>0, 0.0)
-                P = P.where(P<2, 2.0)
-            elif method == 1:
-                P = P.where((P>0) & (P<2), 1.0)
-            xs = frame[mat,mt].multiply(P, axis="index")
-            frame[mat,mt] = xs
+        for mat in frame.columns.get_level_values("MAT").unique():
+            if mat not in pert.index.get_level_values("MAT"):
+                continue
+            for mt in frame[mat].columns.get_level_values("MT").unique():
+                lmtp = pert.loc[mat].index.get_level_values("MT").unique()
+                mtPert = None
+                if lmtp.max() == 3 and mt >= 3:
+                    mtPert = 3
+                elif mt in lmtp:
+                    mtPert = mt
+                else:
+                    for parent, daughters in sorted(self.__class__.redundant_xs.items(), reverse=True):
+                        if mt in daughters and not list(filter(lambda x: x in lmtp, daughters)) and parent in lmtp:
+                            mtPert = parent
+                            break
+                if not mtPert:
+                    continue
+                P = pert.loc[mat,mtPert]
+                P = P.reindex(P.index.union(frame[mat,mt].index)).ffill().fillna(1).reindex(frame[mat,mt].index)
+                if method == 2:
+                    P = P.where(P>0, 0.0)
+                    P = P.where(P<2, 2.0)
+                elif method == 1:
+                    P = P.where((P>0) & (P<2), 1.0)
+                xs = frame[mat,mt].multiply(P, axis="index")
+                frame[mat,mt] = xs
         return Xs(frame).reconstruct_sums()
 
     def _macs(self, E0=0.0253, Elo=1E-5, Ehi=1E1):
@@ -512,112 +517,6 @@ class Tpd(pd.DataFrame):
 
 
 
-class Edistr(pd.DataFrame):
-    """Energy distribution outgoing particles.
-    
-    Dataframe components
-    --------------------
-    index :
-        - MAT number
-        - MT number
-        - number of partial energy distribution (k)
-        - incoming neutron energy
-    
-    columns :
-        - outgoing neutron energies
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.index.names = ["MAT", "MT", "K", "EIN"]
-        self.sort_index(inplace=True)
-        self.columns.name = "EOUT"
-
-    def to_stack(self):
-        """Convert Edistr instance to stack series.
-        
-        Returns
-        -------
-        pandas.Series
-        """
-        series = self.stack()
-        series.name = "VALUE"
-        return series
-
-    def add_points(self, extra_points):
-        """Add additional entries to Edistr incoming energies.
-        
-        Parameters
-        ----------
-        extra_points : iterable
-            energy points in eV
-        
-        Returns
-        -------
-        sandy.Edistr
-        """
-        frame = self.copy()
-        List = []
-        for (mat,mt,k),df in frame.groupby(["MAT","MT","K"]):
-            grid = sorted((set(df.loc[mat, mt, k].index) | set(extra_points)))
-            df = df.reset_index().set_index("EIN").reindex(grid).interpolate(method='slinear').fillna(0).reset_index()
-            df["MAT"] = np.round(df.MAT.values).astype(int)
-            df["MT"] = np.round(df.MT.values).astype(int)
-            df["K"] = np.round(df.K.values).astype(int)
-            df = df.set_index(["MAT","MT","K","EIN"]).sort_index()
-            List.append(df)
-        return Edistr(pd.concat(List, axis=0))
-
-    def normalize(self):
-        """Normalize each outgoing energy distribution to 1.
-        """
-        List = []
-        for i,v in self.iterrows():
-            dx = v.index.values[1:] - v.index.values[:-1]
-            y = (v.values[1:]+v.values[:-1])/2
-            List.append(v/y.dot(dx))
-        frame = pd.DataFrame(List)
-        frame.index = pd.MultiIndex.from_tuples(frame.index)
-        return Edistr(frame)
-
-    def perturb(self, pert, method=2, normalize=True, **kwargs):
-        """Perturb energy distributions given a set of perturbations.
-        
-        Parameters
-        ----------
-        pert : pandas.Series
-            multigroup perturbations from sandy.EdistrSamples
-        method : int
-            * 1 : samples outside the range [0, 2*_mean_] are set to _mean_. 
-            * 2 : samples outside the range [0, 2*_mean_] are set to 0 or 2*_mean_ respectively if they fall below or above the defined range.
-        normalize : bool
-            apply normalization
-        
-        Returns
-        -------
-        sandy.Edistr
-        """
-        frame = self.copy()
-        for (mat,mt,k),S in self.groupby(["MAT", "MT", "K"]):
-            if (mat,mt) not in pert.index: continue
-            for ein,edistr in S.loc[mat,mt,k].iterrows():
-                for (elo,ehi),P in pert.loc[mat,mt].groupby(["ELO","EHI"]):
-                    if ein >= elo and ein <= ehi:
-                        P = P[elo,ehi]
-                        eg = sorted(set(edistr.index) | set(P.index))
-                        P = P.reindex(eg).ffill().fillna(0).reindex(edistr.index)
-                        if method == 2:
-                            P = P.where(P>=-edistr, -edistr)
-                            P = P.where(P<=edistr, edistr)
-                        elif method == 1:
-                            P = np.where(P.abs() <= edistr, P, 0)
-                        frame.loc[mat,mt,k,ein] = edistr + P
-        if normalize:
-            return Edistr(frame).normalize()
-        return Edistr(frame)
-
-
-
 class Fy(pd.DataFrame):
     """Dataset of independent and/or cumulative fission yields and 
     uncertainties for one or more energies and fissioning isotope.
@@ -724,6 +623,13 @@ class BaseCov(pd.DataFrame):
     """Base covariance class inheriting from `pandas.DataFrame`.
     Must be used as superclass by all other Nuclear Data Covariance Objects.
     
+    Attributes
+    ----------
+    mat : `numpy.array`
+        array of unique MAT number found in index
+    mt : `numpy.array`
+        array of unique MT number found in index
+    
     Methods
     -------
     corr
@@ -739,6 +645,14 @@ class BaseCov(pd.DataFrame):
     to_matrix
         get covariance matrix as a `sandy.formats.utils.Cov` instance
     """
+
+    @property
+    def mat(self):
+        return self.index.get_level_values("MAT").unique()
+
+    @property
+    def mt(self):
+        return self.index.get_level_values("MT").unique()
     
     def to_matrix(self):
         """Extract dataframe values as a `Cov` instance
@@ -1107,12 +1021,70 @@ class EdistrCov(BaseCov):
         super().__init__(*args, **kwargs)
         self.index.names = self.labels
         self.columns.names = self.labels
-    
-    @property
-    def nblocks(self):
-        """Number of covariance blocks.
+
+    def get_blocks(self, mat, mt):
+        """Given MAT and MT number extract the number of block covariance that are present with their lower and upper 
+        limits for incoming neutron energy.
+        
+        .. note:: blcoks are extracted form the covariance index, not columns
+        
+        Parameters
+        ----------
+        mat : `int`
+            MAT number
+        mt : `int`
+            MT number
+        
+        Returns
+        -------
+        `pandas.DataFrame`
+            DataFrame of covariance blocks with given lower and higher limit
         """
-        return self.index.get_level_values("EHI").unique().size
+        df = self.index.to_frame(index=False)
+        return df[(df.MAT==mat) & (df.MT==mt)][["ELO","EHI"]].drop_duplicates().reset_index(drop=True).rename_axis("BLOCK")
+
+    def get_section(self, mat, mt, e, mat1, mt1, e1):
+        """Extract section of the global covariance/correlation matrix.
+        A section is defined by a unique combination of MAT/MT/E and MAT1/MT1/E1 numbers.
+        
+        .. note:: arguments `e` and `e1` can be any two energy points comprised within the limits 
+                  of the covariance blocks
+        
+        Parameters
+        ----------
+        mat : `int`
+            MAT number for index
+        mt : `int`
+            MAT number for index
+        e : `float`
+            incoming neutron energy for index, it must be comprised in a covariance block
+        mat1 : `int`
+            MAT number for columns
+        mt1 : `int`
+            MT number for columns
+        e1 : `float`
+            incoming neutron energy for columns, it must be comprised in a covariance block
+        
+        Returns
+        -------
+        `EnergyCov`
+            section of the global covariance matrix
+        """
+        blocks = self.get_blocks(mat, mt)
+        groups = blocks[(blocks.ELO <= e) & (blocks.EHI >= e)]
+        if groups.empty:
+            raise SandyError("energy value '{:.5e}' exceeds the limits of the covariance blocks".format(e))
+        group = groups.iloc[-1]
+        elo = group.ELO
+        ehi = group.EHI
+        groups = blocks[(blocks.ELO <= e1) & (blocks.EHI >= e1)]
+        if groups.empty:
+            raise SandyError("energy value '{:.5e}' exceeds the limits of the covariance blocks".format(e1))
+        group1 = groups.iloc[-1]
+        elo1 = group1.ELO
+        ehi1 = group1.EHI
+        df = self.loc[(mat, mt ,elo, ehi), (mat1, mt1, elo1, ehi1)]
+        return EnergyCov(df)    
 
     def get_samples(self, nsmp, **kwargs):
         """Draw samples from probability distribution centered in 0 and with
