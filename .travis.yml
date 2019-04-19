@@ -1,5 +1,7 @@
 language: python
 
+dist: xenial
+
 git:
   depth: 3
 
