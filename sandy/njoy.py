@@ -396,7 +396,8 @@ def _run_njoy(text, inputs, outputs, exe=None):
     Parameters
     ----------
     exe : `str` or `None`
-        njoy executable: if `None` (default) search in `PATH`
+        njoy executable: if `None` (default) search firts `NJOY` env variable and then 
+        in `PATH`
     inputs : `map`
         map of {`tape` : `file`) for input files
     outputs : `map`
@@ -404,6 +405,9 @@ def _run_njoy(text, inputs, outputs, exe=None):
     text : `str`
         njoy input file passed to `Popen` as `stdin` (it must be encoded first)
     """
+    if not exe:
+        if "NJOY" in os.environ:
+            exe = os.environ["NJOY"]
     if not exe:
         for try_exe in ["njoy2016", "njoy", "njoy2012", "xnjoy"]:
             exe = which(try_exe)

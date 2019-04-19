@@ -22,16 +22,15 @@ branches:
   except: gh-pages
 
 before_install:
-  - python setup.py install
-  - git clone https://github.com/njoy/NJOY2016.git && cd NJOY2016 && mkdir build && (cd build && cmake .. && make) # install NJOY
+  - git clone https://github.com/njoy/NJOY2016.git && (cd NJOY2016 && mkdir build && cd build && cmake .. && make) # install NJOY
   - pip install sphinx sphinx_rtd_theme codecov numpydoc
 
-#install:
-#  - python setup.py install
+install:
+  - python setup.py install
 
 script:
   - pytest
-  - (git clone https://gist.github.com/luca-fiorito-11/ad352e80b01f81fe12599c079f7cb9d7 && cd ad352e80b01f81fe12599c079f7cb9d7 && python  sandy_get_eigenvalues.py ../sandy/data/U5/u235.endf)
+#  - (git clone https://gist.github.com/luca-fiorito-11/ad352e80b01f81fe12599c079f7cb9d7 && cd ad352e80b01f81fe12599c079f7cb9d7 && python  sandy_get_eigenvalues.py ../sandy/data/U5/u235.endf)
 
 after_success:
   - codecov --file coverage/lcov.info --disable search
