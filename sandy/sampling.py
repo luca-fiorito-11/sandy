@@ -191,7 +191,25 @@ def parse(iargs=None):
                         help="SANDY's version.")
     return parser.parse_known_args(args=iargs)[0]
 
-def sampling_nsub10(init, ftape, covtape):
+
+
+def extract_samples(init, ftape, covtape):
+    # EXTRACT FY PERTURBATIONS FROM COV FILE
+    PertFy = pd.DataFrame()
+    if 8 in covtape.mf and 454 in ftape.mt:
+        fy = ftape.get_fy(listmat=init.mat, listmt=init.mt)
+        if not fy.empty:
+            index = fy.index.to_frame(index=False)
+            dfperts = []
+            for mat,dfmat in index.groupby("MAT"):
+                for mt,dfmt in dfmat.groupby("MT"):
+                    for e,dfe in dfmt.groupby("E"):
+                        fycov = fy.get_cov(mat, mt, e)
+                        pert = fycov.get_samples(init.samples, eig=0)
+                        dfperts.append(pert)
+            PertFy = FySamples(pd.concat(dfperts))
+            if init.debug:
+                PertFy.to_csv("perts_mf8.csv")
     # EXTRACT NUBAR PERTURBATIONS FROM ENDF6 FILE
     PertNubar = pd.DataFrame()
     if 31 in init.mf and 31 in ftape.mf:
@@ -241,12 +259,13 @@ def sampling_nsub10(init, ftape, covtape):
         listmterr = init.mt if init.mt is None else [451].extend(init.mt) # ERRORR needs MF1/MT451 to get the energy grid
         covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmterr)
         covtype = covtape.get_file_format()
+        pdb.set_trace()
         xscov = XsCov.from_errorr(covtape) if covtype == "errorr" else XsCov.from_endf6(covtape)
         if not xscov.empty:
             PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
             if init.debug:
                 PertXs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
-    return ftape, PertNubar, PertXs, PertLpc, PertEdistr
+    return ftape, covtape, PertNubar, PertXs, PertLpc, PertEdistr, PertFy
 
 
 def sampling(iargs=None):
@@ -260,17 +279,14 @@ def sampling(iargs=None):
     init = parse(iargs)
     ftape = read_formatted_file(init.file)
     covtape = read_formatted_file(init.cov) if init.cov else ftape
-    nsub = ftape.get_nsub()
+    # nsub = ftape.get_nsub()
     # INITIALIZE PERT DF
     pnu = pd.DataFrame()
     pxs = pd.DataFrame()
     plpc = pd.DataFrame()
     pchi = pd.DataFrame()
     pfy = pd.DataFrame()
-    if nsub == 10:
-        ftape, pnu, pxs, plpc, pchi = sampling_nsub10(init, ftape, covtape)
-    elif nsub == 11:
-        ftape, pfy = sampling_nsub11(init, ftape, covtape)
+    ftape, covtape, pnu, pxs, plpc, pchi, pfy = extract_samples(init, ftape, covtape)
     if pnu.empty and pxs.empty and plpc.empty and pchi.empty and pfy.empty:
         logging.warn("no covariance section was selected/found")
         return
@@ -301,7 +317,7 @@ def sampling(iargs=None):
         with open(output, 'w') as f:
             for mat,dfmat in dfsmp.groupby("MAT"):
                 f.write(frame[ismp,mat])
-    return
+    return ftape, covtape, df 
     pdb.set_trace()
     df = {}
     if init.fission_yields:
