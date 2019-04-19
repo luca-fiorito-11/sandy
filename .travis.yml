@@ -13,7 +13,7 @@ addons:
       - git
 
 env:
-  - ${TRAVIS_BUILD_DIR}/NJOY2016/bin/njoy
+  - NJOY=${TRAVIS_BUILD_DIR}/NJOY2016/bin/njoy
 
 python:
   - "3.6"
