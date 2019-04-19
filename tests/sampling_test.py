@@ -9,12 +9,12 @@ import pytest
 import os
 from random import randint
 from io import StringIO
+
 import numpy as np
 import pandas as pd
 
 import sandy
-from sandy.formats.endf6 import Endf6
-from sandy.formats.errorr import Errorr
+from sandy.formats.endf6 import Endf6, Errorr
 from sandy.formats.utils import XsCov
 from sandy.sampling import sampling
 from sandy.data import H1, Cm242, U5, U8, Fe56, FY
@@ -22,12 +22,16 @@ from sandy.data import H1, Cm242, U5, U8, Fe56, FY
 
 def check_xs(xs, xspert, perts, mat, mt, ismp):
     pert = perts[perts.MT == mt][str(ismp)]
-    ratio = xspert[(mat,mt)]/xs[(mat,mt)]
+    nonzero = xs[(mat,mt)] != 0
+    ratio = (xspert[(mat,mt)]/xs[(mat,mt)])[nonzero]
     egrid = ratio.index.get_level_values("E")
     for j in range(len(pert)-1):
         emin = perts[perts.MT == mt].E.values[j]
         emax = perts[perts.MT == mt].E.values[j+1]
-        assert np.allclose(ratio[(egrid < emax) & (egrid >= emin)], pert.values[j], rtol=1e-6)
+        rr = ratio[(egrid < emax) & (egrid >= emin)]
+        if rr.empty:
+            continue
+        assert np.allclose(rr, pert.values[j], rtol=1e-5)
     j = len(pert) - 1
     emin = perts[perts.MT == mt].E.values[j]
     assert np.allclose(ratio[(egrid >= emin)], pert.values[j], rtol=1e-6)
@@ -93,19 +97,6 @@ def test_Cm242(tmpdir):
              "--processes", str(os.cpu_count()),
              "--eig", "10",
              "--samples", "10",]
-    sampling(iargs)
-
-@pytest.mark.sampling
-@pytest.mark.errorr
-@pytest.mark.xs
-def test_Fe56_errorr(tmpdir):
-    iargs = [os.path.join(Fe56.__path__[0], r"fe56.pendf"),
-             "--cov", os.path.join(Fe56.__path__[0], r"fe56.errorr"),
-             "--outdir", str(tmpdir),
-             "--processes", str(os.cpu_count()),
-             "--eig", "10",
-             "--samples", "10",]
-#             "--mt", "2", "102"]
     sampling(iargs)
 
 @pytest.mark.sampling
@@ -211,6 +202,8 @@ def test_h1(tmpdir):
     # Check that perturbed files exist
     assert "{}-1".format(name) in os.listdir(str(tmpdir))
     tape = sandy.read_formatted_file(os.path.join(str(tmpdir),"{}-1".format(name)))
+    # Check that pendf file tape30 exist (debug option)
+    assert "tape30" in os.listdir(str(tmpdir))
     # Check that covariances were removed
     assert tape.index.equals(pd.MultiIndex(levels=[[125], [1, 2, 3, 4, 6], [1, 2, 102, 151, 451]],
            codes=[[0, 0, 0, 0, 0, 0, 0], [0, 1, 2, 2, 2, 3, 4], [4, 3, 0, 1, 2, 1, 2]],
@@ -268,7 +261,6 @@ def test_h1_run_errorr(tmpdir):
     """
     name = "1-H-1g.jeff33"
     file = os.path.join(os.path.dirname(__file__), "data", name)
-    endftape = sandy.read_formatted_file(file)
     iargs = [file,
              "--outdir", str(tmpdir),
              "--error",
@@ -295,6 +287,7 @@ def test_h1_run_errorr(tmpdir):
 
 @pytest.mark.sampling
 @pytest.mark.njoy_exe
+@pytest.mark.errorr
 def test_h1_cov_errorr(tmpdir):
     """Sampling test to check the following:
     
@@ -314,7 +307,6 @@ def test_h1_cov_errorr(tmpdir):
     """
     name = "1-H-1g.jeff33"
     file = os.path.join(os.path.dirname(__file__), "data", name)
-    endftape = sandy.read_formatted_file(file)
     covname = "1-H-1g.jeff33.errorr"
     filecov = os.path.join(os.path.dirname(__file__), "data", covname)
     iargs = [file,
@@ -339,6 +331,7 @@ def test_h1_cov_errorr(tmpdir):
         assert np.allclose(xs1[(125,2)]+xs1[(125,102)], xs1[(125,1)], rtol=1e-6)
 
 @pytest.mark.sampling
+@pytest.mark.errorr
 def test_h1_pendf_cov_errorr(tmpdir):
     """Sampling test to check the following:
     
@@ -357,7 +350,6 @@ def test_h1_pendf_cov_errorr(tmpdir):
     """
     name = "1-H-1g.jeff33.pendf"
     file = os.path.join(os.path.dirname(__file__), "data", name)
-    endftape = sandy.read_formatted_file(file)
     covname = "1-H-1g.jeff33.errorr"
     filecov = os.path.join(os.path.dirname(__file__), "data", covname)
     iargs = [file,
@@ -381,6 +373,7 @@ def test_h1_pendf_cov_errorr(tmpdir):
         assert np.allclose(xs1[(125,2)]+xs1[(125,102)], xs1[(125,1)], rtol=1e-6)
 
 @pytest.mark.sampling
+@pytest.mark.errorr
 def test_h1_pendf_cov_errorr_only_mt102(tmpdir):
     """Sampling test to check the following:
     
@@ -399,7 +392,6 @@ def test_h1_pendf_cov_errorr_only_mt102(tmpdir):
     """
     name = "1-H-1g.jeff33.pendf"
     file = os.path.join(os.path.dirname(__file__), "data", name)
-    endftape = sandy.read_formatted_file(file)
     covname = "1-H-1g.jeff33.errorr"
     filecov = os.path.join(os.path.dirname(__file__), "data", covname)
     iargs = [file,
@@ -414,11 +406,151 @@ def test_h1_pendf_cov_errorr_only_mt102(tmpdir):
     perts = pd.read_csv(os.path.join(str(tmpdir), 'perts_mf33.csv'))
     for i in range(2):
         tape = sandy.read_formatted_file(os.path.join(str(tmpdir),"{}-{}".format(name, i+1)))
-        # MT102 is perturbed
         xs1 = tape.get_xs()
+        # MT102 is perturbed
         check_xs(xs, xs1, perts, 125, 102, i+1)
         # MT2 is not perturbed
         assert ((xs1/xs)[125,2] == 1).all()
         # MT1 is perturbed and it is the sum
-        assert ((xs1/xs)[125,1] != 1).all()
         assert np.allclose(xs1[(125,2)]+xs1[(125,102)], xs1[(125,1)], rtol=1e-6)
+
+@pytest.mark.sampling
+@pytest.mark.errorr
+def test_Fe56_pendf_cov_errorr_only_mt3(tmpdir):
+    """Sampling test to check the following:
+    
+    - sampling runs correctly with keywords:
+        
+        * `outdir`
+        * `debug`
+        * `cov`
+        * `samples`
+        * `mt`
+        * `mf`
+        * `mat`
+    
+    - sandy `mt` option works as expected
+    - sandy `mf` option works as expected
+    - sandy `mat` option works as expected
+    - ratio between perturbed files and original pendf are equal to perturbations
+    - daughter reactions are perturbed according to parent reaction perturbations
+    - redundant cross sections are correclty summed up
+    """
+    name = "26056.pendf"
+    file = os.path.join(os.path.dirname(__file__), "data", name)
+    endftape = sandy.read_formatted_file(file)
+    covname = "26056.errorr"
+    filecov = os.path.join(os.path.dirname(__file__), "data", covname)
+    iargs = [file,
+             "--cov", filecov,
+             "--outdir", str(tmpdir),
+             "--debug",
+             "--samples", "1",
+             "--mt", "3",
+             "--mf", "33",
+             "--mat", "2631",
+             ]
+    ftape, covtape, outs = sampling(iargs)
+    # Check that ratio between perturbed files and original pendf are equal to perturbations
+    xs = ftape.get_xs()
+    perts = pd.read_csv(os.path.join(str(tmpdir), 'perts_mf33.csv'))
+    for i in range(1):
+        tape = sandy.read_formatted_file(os.path.join(str(tmpdir),"{}-{}".format(name, i+1)))
+        xs1 = tape.get_xs()
+        mts = xs1.columns.get_level_values("MT").unique()
+        for mt in mts[mts > 3]:
+            perts.MT = mt
+            check_xs(xs, xs1, perts, 2631, mt, i+1)
+        assert np.allclose(xs1[2631][[2,   4,   5,  16,  22,  28, 102, 103, 104, 105, 106, 107]].sum(axis=1), xs1[2631,1])
+
+@pytest.mark.sampling
+@pytest.mark.errorr
+def test_Fe56_pendf_cov_errorr_no_mf(tmpdir):
+    """Sampling test to check the following:
+       
+    - sandy `mf` option works as expected
+    """
+    name = "26056.pendf"
+    file = os.path.join(os.path.dirname(__file__), "data", name)
+    endftape = sandy.read_formatted_file(file)
+    covname = "26056.endf"
+    filecov = os.path.join(os.path.dirname(__file__), "data", covname)
+    iargs = [file,
+             "--mf", "511",
+             ]
+    ftape, covtape, outs = sampling(iargs)
+    assert not outs
+
+@pytest.mark.sampling
+@pytest.mark.errorr
+def test_Fe56_pendf_cov_errorr_no_mat(tmpdir):
+    """Sampling test to check the following:
+       
+    - sandy `mat` option works as expected
+    """
+    name = "26056.pendf"
+    file = os.path.join(os.path.dirname(__file__), "data", name)
+    endftape = sandy.read_formatted_file(file)
+    covname = "26056.endf"
+    filecov = os.path.join(os.path.dirname(__file__), "data", covname)
+    iargs = [file,
+             "--mat", "511",
+             ]
+    ftape, covtape, outs = sampling(iargs)
+    assert not outs
+
+@pytest.mark.sampling
+@pytest.mark.errorr
+def test_Fe56_pendf_cov_errorr_no_mt(tmpdir):
+    """Sampling test to check the following:
+       
+    - sandy `mt` option works as expected
+    """
+    name = "26056.pendf"
+    file = os.path.join(os.path.dirname(__file__), "data", name)
+    endftape = sandy.read_formatted_file(file)
+    covname = "26056.endf"
+    filecov = os.path.join(os.path.dirname(__file__), "data", covname)
+    iargs = [file,
+             "--mt", "511",
+             ]
+    ftape, covtape, outs = sampling(iargs)
+    assert not outs
+
+@pytest.mark.sampling
+@pytest.mark.njoy_exe
+def test_Fe56_MF2MT151(tmpdir):
+    """Sampling test to check the following:
+    
+    - sampling runs correctly with keywords:
+        
+        * `outdir`
+        * `cov`
+        * `debug`
+        * `seed33`
+        * `samples`
+    
+    - `outdir` directory was created
+    - only 1 sample was produced for MAT 125
+    - pertubed files exist and are named correctly
+    - perturbed files do not contain covariance MF sections
+    - NJOY ran RECONR
+    - NJOY did not run RECONR
+    - perturbed files are actual PENDF 
+    - perturbation do not change (seed33 option)
+    - only cross sections were perturbed, other data remain unchanged
+    - perturbations are dump to file (debug option)
+    - ratio between perturbed files and original pendf are equal to perturbations
+    - redundant cross sections are correclty summed up
+    """
+    name = "26056.endf"
+    file = os.path.join(os.path.dirname(__file__), "data", name)
+    iargs = [file,
+             "--mf", "33",
+             "--outdir", str(tmpdir),
+             "--debug",
+             "--samples", "1",]
+    ftape, covtape, outs = sampling(iargs)
+    # Check if pendf file tape30 exist (debug option)
+    assert "tape30" not in os.listdir(str(tmpdir))
+    # pytest.set_trace()

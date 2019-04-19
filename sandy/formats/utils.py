@@ -777,8 +777,8 @@ class BaseCov(pd.DataFrame):
         
         Returns
         -------
-        `XsCov`
-            global cross section/nubar covariance matrix
+        `XsCov` or `pandas.DataFrame`
+            global cross section/nubar covariance matrix (empty dataframe if no covariance matrix was found)
         """
         columns = ["KEYS_ROWS", "KEYS_COLS", "COV"]
         # Reindex the cross-reaction matrices
@@ -800,6 +800,9 @@ class BaseCov(pd.DataFrame):
                 ey = covs[keys_cols,keys_cols].columns.values
                 covs[keys_rows,keys_cols] = cov.change_grid(ex, ey)
         covs.dropna(inplace=True)
+        if covs.empty:
+            logging.warn("covariance matrix is empty")
+            return pd.DataFrame()
         # Create index for global matrix
         rows_levels = covs.index.levels[0]
         indexlist = [(*keys,e) for keys in rows_levels for e in covs[(keys,keys)].index.values]
@@ -812,7 +815,6 @@ class BaseCov(pd.DataFrame):
             matrix[ix.start:ix.stop,ix1.start:ix1.stop] = cov
             if keys_rows != keys_cols:
                 matrix[ix1.start:ix1.stop,ix.start:ix.stop] = cov.T
-#        pdb.set_trace()
         return cls(matrix, index=index, columns=index)
 
 
@@ -916,11 +918,11 @@ class XsCov(BaseCov):
 
     @classmethod
     def from_endf6(cls, endf6):
-        """Extract cross section/nubar covariance from ```Endf6``` instance.
+        """Extract cross section/nubar covariance from `Endf6` instance.
         
         Parameters
         ----------
-        endf6 : `Endf6`
+        endf6 : `sandy.formats.endf6.Endf6`
             `Endf6` instance containing covariance sections
         
         Returns
@@ -981,7 +983,7 @@ class XsCov(BaseCov):
         
         Parameters
         ----------
-        errorr : `Errorr`
+        errorr : `sandy.formats.endf6.Errorr`
             `Errorr` instance containing covariance sections
         
         Returns
@@ -989,27 +991,27 @@ class XsCov(BaseCov):
         `XsCov`
             global xs/nubar covariance matrix from ERRORR file
         """
-        mat = errorr.mat[0]
-        eg = errorr.read_section(mat,1,451)["EG"]
-        List = []
-        for (mat,mf,mt),text in errorr.TEXT.iteritems():
-            if mf not in [31, 33]:
-                continue
-            X = errorr.read_section(mat,mf,mt)
-            for mt1,y in X["RP"].items():
-                List.append([mat, X["MT"], mat, mt1, y])
-        frame = pd.DataFrame(List, columns=('MAT', 'MT','MAT1', 'MT1', 'COV'))
-        mi = [(mat,mt,e) for mat,mt in sorted(set(zip(frame.MAT, frame.MT))) for e in eg]
-        index = pd.MultiIndex.from_tuples(mi, names=("MAT", "MT", "E"))
-        # initialize union matrix
-        matrix = np.zeros((len(index),len(index)))
-        for i,row in frame.iterrows():
-            ix = index.get_loc((row.MAT,row.MT))
-            ix1 = index.get_loc((row.MAT1,row.MT1))
-            matrix[ix.start:ix.stop-1,ix1.start:ix1.stop-1] = row.COV
-        i_lower = np.tril_indices(len(index), -1)
-        matrix[i_lower] = matrix.T[i_lower]  # make the matrix symmetric
-        return XsCov(matrix, index=index, columns=index)
+        tape = errorr.filter_by(listmf=[31,33])
+        eg = errorr.energy_grid
+        data = []
+        # Loop MF/MT
+        logging.debug("found {} covariance sections".format(len(tape)))
+        for (mat,mf,mt), text in tape.TEXT.iteritems():
+            X = tape.read_section(mat, mf, mt)
+            # Loop subsections
+            logging.debug("reading section MAT={}/MF={}/MT={}".format(mat, mf, mt))
+            logging.debug("found {} subsections".format(len(X["RP"])))
+            for mt1,cov in X["RP"].items():
+                logging.debug("\treading subsection MAT1={}/MT1={}".format(mat, mt1))
+                # add zero row and column at the end of the matrix (this must be done for ERRORR covariance matrices)
+                cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                cov = EnergyCov(cov, index=eg, columns=eg)
+                data.append([(mat, mt), (mat, mt1), cov])
+        if not data:
+            logging.warn("no xs covariance was found")
+            return pd.DataFrame()
+        return cls._from_list(data)
 
 
 

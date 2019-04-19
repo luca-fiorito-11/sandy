@@ -287,11 +287,11 @@ def sampling(iargs=None):
     pchi = pd.DataFrame()
     pfy = pd.DataFrame()
     ftape, covtape, pnu, pxs, plpc, pchi, pfy = extract_samples(init, ftape, covtape)
+    df = {}
     if pnu.empty and pxs.empty and plpc.empty and pchi.empty and pfy.empty:
         logging.warn("no covariance section was selected/found")
-        return
+        return ftape, covtape, df
     # APPLY PERTURBATIONS BY MAT
-    df = {}
     for imat,(mat, tape) in enumerate(sorted(ftape.groupby('MAT'))):
         skip_title = False if imat == 0 else True
         skip_fend = False if imat == len(ftape.mat) - 1 else True

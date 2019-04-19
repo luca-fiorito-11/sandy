@@ -7,6 +7,8 @@ addons:
   apt:
     packages:
       - gfortran
+      - cmake
+      - git
 
 python:
   - "3.6"
@@ -15,6 +17,10 @@ branches:
   except: gh-pages
 
 before_install:
+  - git clone https://github.com/njoy/NJOY2016.git &&\
+    cd NJOY2016 && mkdir build && cd build &&\
+    cmake .. && \
+    make # install NJOY
   - pip install sphinx sphinx_rtd_theme codecov numpydoc
 
 install:

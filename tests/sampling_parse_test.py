@@ -129,7 +129,7 @@ def test_sampling_mt(file):
     init = parse([file, "--mt", "18", "20"])
     assert init.mt == [18, 20]
     init = parse([file])
-    assert init.mt == range(1,1000)
+    assert init.mt == list(range(1,1000))
 
 @pytest.mark.sampling
 def test_sampling_mat(file):
@@ -139,7 +139,7 @@ def test_sampling_mat(file):
     init = parse([file, "--mat", "18", "20"])
     assert init.mat == [18, 20]
     init = parse([file])
-    assert init.mat == range(1,10000)
+    assert init.mat == list(range(1,10000))
 
 @pytest.mark.sampling
 def test_sampling_mf(file):
