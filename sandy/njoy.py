@@ -415,6 +415,7 @@ def _run_njoy(text, inputs, outputs, exe=None):
                 break
     if not exe:
         raise SandyError("could not find njoy executable")
+    logging.debug("Use NJOY executable '{}'".format(exe))
     stdout = stderr = None
     stdin = text.encode()
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -428,6 +429,8 @@ def _run_njoy(text, inputs, outputs, exe=None):
                            stdout=stdout, 
                            stderr=stderr)
         stdoutdata, stderrdata = process.communicate(input=stdin)
+        logging.debug(stdoutdata)
+        logging.debug(stderrdata)
         if process.returncode != 0:
             raise SandyError("process status={}, cannot run njoy executable".format(process.returncode))
         for tape,dst in outputs.items():

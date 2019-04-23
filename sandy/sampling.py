@@ -166,6 +166,10 @@ def parse(iargs=None):
                         default=None,
                         metavar="S35",
                         help="seed for random sampling of MF35 covariance matrix (default = random)")
+    parser.add_argument('--njoy',
+                        type=lambda x: is_valid_file(parser, x),
+                        default=None,
+                        help="NJOY executable (default search PATH, and env variable NJOY)")
     parser.add_argument('--errorr',
                         default=False,
                         action="store_true",
@@ -194,7 +198,8 @@ def parse(iargs=None):
 
 
 
-def extract_samples(init, ftape, covtape):
+def extract_samples(ftape, covtape):
+    global init
     # EXTRACT FY PERTURBATIONS FROM COV FILE
     PertFy = pd.DataFrame()
     if 8 in covtape.mf and 454 in ftape.mt:
@@ -247,7 +252,7 @@ def extract_samples(init, ftape, covtape):
                 outputs = njoy.process(init.file, broadr=False, thermr=False, 
                                        unresr=False, heatr=False, gaspr=False, 
                                        purr=False, errorr=init.errorr, acer=False,
-                                       wdir=td, keep_pendf=True,
+                                       wdir=td, keep_pendf=True, exe=init.njoy,
                                        temperatures=[0], suffixes=[0], err=0.005)[2]
                 ptape = read_formatted_file(outputs["tape30"])
                 if init.debug: shutil.move(outputs["tape30"],  os.path.join(init.outdir, "tape30"))
@@ -286,7 +291,7 @@ def sampling(iargs=None):
     plpc = pd.DataFrame()
     pchi = pd.DataFrame()
     pfy = pd.DataFrame()
-    ftape, covtape, pnu, pxs, plpc, pchi, pfy = extract_samples(init, ftape, covtape)
+    ftape, covtape, pnu, pxs, plpc, pchi, pfy = extract_samples(ftape, covtape)
     df = {}
     if pnu.empty and pxs.empty and plpc.empty and pchi.empty and pfy.empty:
         logging.warn("no covariance section was selected/found")
