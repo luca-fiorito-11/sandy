@@ -1,0 +1,2 @@
+Place sandy-develop.zip in the same folder as the Dockerfile and run
+"docker build -t "sandy:develop" .
