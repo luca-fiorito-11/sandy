@@ -31,6 +31,19 @@ __author__ = "Luca Fiorito"
 __all__ = ["sampling"]
 
 
+def _process_into_ace(ismp):
+    global init
+    outname = init.outname if init.outname else os.path.basename(init.file)
+    smpfile = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
+    if sandy.formats.get_file_format(smpfile) == "pendf":
+        input, inputs, outputs = njoy.process(init.file, purr=True, wdir=init.outdir,
+                                              keep_pendf=False, pendftape=smpfile, tag="_{}".format(ismp),
+                                              temperatures=init.temperatures, err=0.005, addpath="")
+    elif sandy.formats.get_file_format(smpfile) == "endf6":
+        input, inputs, outputs = njoy.process(smpfile, purr=True, wdir=init.outdir,
+                                              keep_pendf=True, tag="_{}".format(ismp),
+                                              temperatures=init.temperatures, err=0.005, addpath="")
+
 def _sampling_mp(ismp, skip_title=False, skip_fend=False):
     global init, pnu, pxs, plpc, pchi, pfy, tape
     t0 = time.time()
@@ -174,6 +187,17 @@ def parse(iargs=None):
                         default=False,
                         action="store_true",
                         help="run NJOY module ERRORR to produce covariance matrix for xs data (default = False)")
+    parser.add_argument('--acer',
+                        default=False,
+                        action="store_true",
+                        help="for each perturbed file, produce ACE files\n(argument file must be in ENDF-6 format, not PENDF)\n(argument temperature is required)\n(default = False)")
+    parser.add_argument('--temperatures', '-T',
+                        default=[],
+                        type=float,
+                        action='store',
+                        nargs="+",
+                        metavar="T",
+                        help="for each perturbed file, produce ACE files at given temperatures")
     parser.add_argument('--outname','-O',
                         type=str,
                         help="basename for the output files (default is the the basename of <file>.)")
@@ -194,7 +218,12 @@ def parse(iargs=None):
                         action='version',
                         version='%(prog)s {}'.format(sandy.__version__),
                         help="SANDY's version.")
-    return parser.parse_known_args(args=iargs)[0]
+    init = parser.parse_known_args(args=iargs)[0]
+    if init.acer and not init.temperatures:
+        parser.error("--acer requires --temperatures")
+    if init.acer and sandy.formats.get_file_format(init.file) != "endf6":
+        parser.error("--acer requires file in 'endf6' format")
+    return init
 
 
 
@@ -322,7 +351,21 @@ def sampling(iargs=None):
         with open(output, 'w') as f:
             for mat,dfmat in dfsmp.groupby("MAT"):
                 f.write(frame[ismp,mat])
+    # PRODUCE ACE FILES
+    if init.acer:
+        if init.processes == 1:
+            for i in range(1,init.samples+1):
+                _process_into_ace(ismp) 
+        else:
+            pool = mp.Pool(processes=init.processes)
+            outs = {i : pool.apply_async(_process_into_ace, (i,)) for i in range(1,init.samples+1)}
+            pool.close()
+            pool.join()
     return ftape, covtape, df 
+
+
+
+
     pdb.set_trace()
     df = {}
     if init.fission_yields:

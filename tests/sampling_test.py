@@ -192,6 +192,8 @@ def test_h1(tmpdir):
     iargs = [file,
              "--cov", filecov,
              "--outdir", str(tmpdir),
+             "--acer",
+             "--temperatures", "900", "1200",
              "--debug", 
              "--seed33", "555", 
              "--samples", "1",]
@@ -237,6 +239,10 @@ def test_h1(tmpdir):
     assert np.allclose(ratio[(egrid < 1e1) & (egrid >=1e-5)], perts[0], rtol=1e-3)
     assert np.allclose(ratio[(egrid < 1e7) & (egrid >=1e1)], perts[1], rtol=1e-3)
     assert np.allclose(ratio[(egrid >= 1e7)], perts[2], rtol=1e-3)
+    assert '1001_1.09c' in os.listdir(str(tmpdir))
+    assert '1001_1.12c' in os.listdir(str(tmpdir))
+    assert '1001_1.09c.xsd' in os.listdir(str(tmpdir))
+    assert '1001_1.12c.xsd' in os.listdir(str(tmpdir))
 
 @pytest.mark.sampling
 @pytest.mark.njoy_exe

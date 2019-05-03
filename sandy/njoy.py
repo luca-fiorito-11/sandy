@@ -46,7 +46,30 @@ sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [26,425,2,1,231,'be'],
                                   [60,1325,0,2,221,'asap']],
             columns = ['matde','matdp','icoh','natom','mtref','ext'])
-   
+
+def get_suffix(temp):
+    """Determine suffix saccording to temperature value using aleph method.
+    
+    Parameters
+    ----------
+    temp : `float`
+        processing temperature
+    
+    Returns
+    -------
+    `int`
+        suffix number
+    """
+    if abs(temp) >= 1000:
+        suff = round(abs(temp)/100)
+    else:
+        suff = round(abs(temp/10/5))*5
+        if suff%10 == 0:
+            suff = round(suff/10)
+    return suff
+
+
+
 def _moder_input(nin, nout, **kwargs):
     """Write moder input.
     
@@ -439,6 +462,8 @@ def _run_njoy(text, inputs, outputs, exe=None):
                 os.makedirs(path, exist_ok=True)
             shutil.move(os.path.join(tmpdir, tape), dst)
 
+
+
 def process(endftape, pendftape=None,
             kermas=[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447],
             temperatures=[293.6],
@@ -451,7 +476,8 @@ def process(endftape, pendftape=None,
             purr=True,
             errorr=False,
             acer=True,
-            wdir="", dryrun=False, tag="", exe=None, keep_pendf=True, route="0",
+            wdir="", dryrun=False, tag="", exe=None, keep_pendf=True,
+            route="0", addpath=None,
             **kwargs):
     """Run sequence to process file with njoy.
     
@@ -474,13 +500,13 @@ def process(endftape, pendftape=None,
             - `MT=445` : elastic damage energy production cross section
             - `MT=446` : inelastic damage energy production cross section
             - `MT=447` : neutron disappearance damage energy production cross section
-        .. note:
-        
-            `MT=301` is the KERMA total (energy balance) and is always calculated
+        .. note: `MT=301` is the KERMA total (energy balance) and is always calculated
     temperatures : iterable of `float`
         iterable of temperature values in K (default is 293.6 K)
     suffixes : iterable of `int`
-        iterable of suffix values for ACE files (default is `None`)
+        iterable of suffix values for ACE files (default is `None`, use internal routine to determine suffixes)
+        .. warning: must have the same number of entries then `temperatures`
+        must match the number of entries in `temperatures`
     broadr : `bool`
         option to run module broadr (default is `True`)
     thermr : `bool`
@@ -500,22 +526,19 @@ def process(endftape, pendftape=None,
     wdir : `str`
         working directory (absolute or relative) where all output files are
         saved
-        .. note:
-            
-            `wdir` will appear as part of the `filename` in 
-            any `xsdir` file
+        .. note: `wdir` will appear as part of the `filename` in any `xsdir` file if `addpath` is not set
+    addpath : `str`
+        path to add in xsdir, by default use `wdir`
     dryrun : `bool`
         option to produce the njoy input file without running njoy
     tag : `str`
         tag to append to each output filename beofre the extension (default is `None`)
-        .. hint:
-            to process JEFF-3.3 files you could set `tag = "_j33"`
+        .. hint: to process JEFF-3.3 files you could set `tag = "_j33"`
     exe : `str`
         njoy executable (with path)
-        .. note:
-            If no executable is given, SANDY looks for a default executable in `PATH`
-    keep_pendf : `str`
-        save output PENDF file
+        .. note: if no executable is given, SANDY looks for a default executable in `PATH` and in env variable `NJOY`
+    keep_pendf : `bool`
+        save output PENDF file (default is `True`)
     route : `str`
         xsdir "route" parameter (default is "0")
     
@@ -538,6 +561,11 @@ def process(endftape, pendftape=None,
     outputs = {}
     # Only kwargs are passed to NJOY inputs, therefore add temperatures and mat
     kwargs.update({"temperatures" : temperatures, "mat" : mat})
+    # Check input args
+    if not suffixes:
+        suffixes = list(map(get_suffix, temperatures))
+    if len(suffixes) != len(temperatures):
+        raise SandyError("number of suffixex must match number of temperatures")
     inputs["tape20"] = endftape
     e = 21
     p = e + 1
@@ -585,8 +613,6 @@ def process(endftape, pendftape=None,
             text += _errorr_input(-e, -p, o, **kwargs)
             outputs["tape{}".format(o)] = os.path.join(wdir, "{}{}{}.errorr".format(za_new, tag, suff))
     if acer:
-        if not suffixes:
-            suffixes = range(len(temperatures))
         for i,(temp,suff) in enumerate(zip(temperatures, suffixes)):
             a = 50 + i
             x = 70 + i
@@ -604,10 +630,16 @@ def process(endftape, pendftape=None,
                 a = 50 + i
                 x = 70 + i
                 acefile = outputs["tape{}".format(a)]
+                if addpath is None:
+                    filename = acefile
+                else:
+                    filename = os.path.basename(acefile)
+                    if addpath:
+                        filename = os.path.join(addpath, filename)
                 xsdfile = outputs["tape{}".format(x)]
                 text_xsd = open(xsdfile).read(). \
                                          replace("route", route). \
-                                         replace("filename", acefile)
+                                         replace("filename", filename)
                 text_xsd = " ".join(text_xsd.split())
                 # If isotope is metatable rewrite ZA in xsdir and ace as ZA = Z*1000 + 300 + A + META*100.
                 if meta:
