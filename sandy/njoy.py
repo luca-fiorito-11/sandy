@@ -1,7 +1,55 @@
 # -*- coding: utf-8 -*-
 """
+Outline
+=======
+1. Summary_
+2. Examples_
+3. Routines_
+
+.. _Summary:
+
+Summary
+=======
 This module contains template inputs for NJOY routines and functions to run them.
 
+Two major functions `process` and `process_protons` are provided to process nuclear data 
+files with NJOY into ACE format, respectively for fast neutron-induced and proton-induced 
+nuclear data.
+
+Given any nuclear data evaluation file for incident neutrons (fast, not SAB) function `process` 
+generates the correspoding ACE filea for a given set of temperatures (one file per temperature).
+If no keyword argument is provided, function `process` runs with default options, which include 
+NJOY routines RECONR, BROADR, THERMR, HEATR, GASPR, PURR, ACER.
+Keyword arguments can be changed to add/remove NJOY routines using `True/False` flags, or to change 
+a routine's input parameters.
+
+Major default parmameters:
+
++------------------+-----------------------------------------------------------+------------------------------+ 
+| Parameter        | Value                                                     | Description                  |
++==================+===========================================================+==============================+
+| err              | `0.001`                                                   | xs reconstruction tolerance  |
++------------------+-----------------------------------------------------------+------------------------------+ 
+| temperatures     | `[293.6]`                                                 | `list` of temperatures (K)   |
++------------------+-----------------------------------------------------------+------------------------------+ 
+| bins             | `20`                                                      | # probability bins (PURR)    |
++------------------+-----------------------------------------------------------+------------------------------+ 
+| ladders          | `32`                                                      | # resonance ladders (PURR)   |
++------------------+-----------------------------------------------------------+------------------------------+ 
+| iprint           | `False`                                                   | output verbosity             |
++------------------+-----------------------------------------------------------+------------------------------+ 
+| kermas           | `[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447]` | `list` of KERMA factors (MT) |
++------------------+-----------------------------------------------------------+------------------------------+ 
+
+.. _Examples:
+
+Examples
+========
+
+.. _Routines:
+
+Routines
+========
 """
 
 import os
