@@ -24,7 +24,6 @@ branches:
 before_install:
   - git clone https://github.com/njoy/NJOY2016.git && (cd NJOY2016 && mkdir build && cd build && cmake .. && make) # install NJOY
   - rm -rf NJOY2016/tests
-  - find -name "*njoy*"
   - pip install sphinx sphinx_rtd_theme codecov numpydoc
 
 install:
@@ -39,11 +38,7 @@ after_success:
 
 # Set up sphinx configuration file and produce SANDY documentation in html.
 before_deploy:
-  - sphinx-quickstart --sep --dot _ --language en --suffix .rst --master index --makefile --batchfile --use-make-mode --author "Luca Fiorito" --project "SANDY API" -v 1 --release 0 --ext-autodoc --ext-doctest --ext-githubpages --ext-mathjax --extensions numpydoc api_docs
-  - sed -i '13i\   sandy' api_docs/source/index.rst 
-  - sed -i "s/alabaster/sphinx_rtd_theme/" api_docs/source/conf.py
-  - sphinx-apidoc --separate --force --module-first -o api_docs/source sandy
-  - cd api_docs && make html >/dev/null 2>&1
+  - bash make_docs.sh html
 
 # Deploy SANDY docs to gihub pages
 deploy:

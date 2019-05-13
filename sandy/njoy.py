@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-This module contains template inputs for NJOY modules and functions to run them. 
+This module contains template inputs for NJOY routines and functions to run them.
+
 """
 
 import os
