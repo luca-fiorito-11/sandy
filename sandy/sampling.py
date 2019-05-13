@@ -36,11 +36,11 @@ def _process_into_ace(ismp):
     outname = init.outname if init.outname else os.path.basename(init.file)
     smpfile = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
     if sandy.formats.get_file_format(smpfile) == "pendf":
-        input, inputs, outputs = njoy.process(init.file, purr=True, wdir=init.outdir,
+        input, inputs, outputs = njoy.process(init.file, purr=False, wdir=init.outdir,
                                               keep_pendf=False, pendftape=smpfile, tag="_{}".format(ismp),
                                               temperatures=init.temperatures, err=0.005, addpath="")
     elif sandy.formats.get_file_format(smpfile) == "endf6":
-        input, inputs, outputs = njoy.process(smpfile, purr=True, wdir=init.outdir,
+        input, inputs, outputs = njoy.process(smpfile, purr=False, wdir=init.outdir,
                                               keep_pendf=True, tag="_{}".format(ismp),
                                               temperatures=init.temperatures, err=0.005, addpath="")
 
