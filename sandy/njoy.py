@@ -1,6 +1,55 @@
 # -*- coding: utf-8 -*-
 """
-This module contains template inputs for NJOY modules and functions to run them. 
+Outline
+=======
+1. Summary_
+2. Examples_
+3. Routines_
+
+.. _Summary:
+
+Summary
+=======
+This module contains template inputs for NJOY routines and functions to run them.
+
+Two major functions `process` and `process_protons` are provided to process nuclear data 
+files with NJOY into ACE format, respectively for fast neutron-induced and proton-induced 
+nuclear data.
+
+Given any nuclear data evaluation file for incident neutrons (fast, not SAB) function `process` 
+generates the correspoding ACE filea for a given set of temperatures (one file per temperature).
+If no keyword argument is provided, function `process` runs with default options, which include 
+NJOY routines RECONR, BROADR, THERMR, HEATR, GASPR, PURR, ACER.
+Keyword arguments can be changed to add/remove NJOY routines using `True/False` flags, or to change 
+a routine's input parameters.
+
+Major default parmameters:
+
++------------------+-----------------------------------------------------------+------------------------------+ 
+| Parameter        | Value                                                     | Description                  |
++==================+===========================================================+==============================+
+| err              | `0.001`                                                   | xs reconstruction tolerance  |
++------------------+-----------------------------------------------------------+------------------------------+ 
+| temperatures     | `[293.6]`                                                 | `list` of temperatures (K)   |
++------------------+-----------------------------------------------------------+------------------------------+ 
+| bins             | `20`                                                      | # probability bins (PURR)    |
++------------------+-----------------------------------------------------------+------------------------------+ 
+| ladders          | `32`                                                      | # resonance ladders (PURR)   |
++------------------+-----------------------------------------------------------+------------------------------+ 
+| iprint           | `False`                                                   | output verbosity             |
++------------------+-----------------------------------------------------------+------------------------------+ 
+| kermas           | `[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447]` | `list` of KERMA factors (MT) |
++------------------+-----------------------------------------------------------+------------------------------+ 
+
+.. _Examples:
+
+Examples
+========
+
+.. _Routines:
+
+Routines
+========
 """
 
 import os
@@ -46,7 +95,30 @@ sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [26,425,2,1,231,'be'],
                                   [60,1325,0,2,221,'asap']],
             columns = ['matde','matdp','icoh','natom','mtref','ext'])
-   
+
+def get_suffix(temp):
+    """Determine suffix saccording to temperature value using aleph method.
+    
+    Parameters
+    ----------
+    temp : `float`
+        processing temperature
+    
+    Returns
+    -------
+    `int`
+        suffix number
+    """
+    if abs(temp) >= 1000:
+        suff = round(abs(temp)/100)
+    else:
+        suff = round(abs(temp/10/5))*5
+        if suff%10 == 0:
+            suff = round(suff/10)
+    return suff
+
+
+
 def _moder_input(nin, nout, **kwargs):
     """Write moder input.
     
@@ -348,6 +420,42 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
     text += ["/"]
     return "\n".join(text) + "\n"
 
+def _errorr_input(endfin, pendfin, errorrout, mat,
+                  ign=2, iwt=2, temp=293.6, iprint=False,
+                  **kwargs):
+    """Write acer input for fast data.
+    
+    Parameters
+    ----------
+    endfin : `int`
+        tape number for input ENDF-6 file
+    pendfin : `int`
+        tape number for input PENDF file
+    errorrout : `int`
+        tape number for output ERRORR file
+    mat : `int`
+        MAT number
+    ign : `int`
+        neutron group option (default is 2, csewg 239-group structure)
+    iwt : `int`
+        weight function option (default is 2, constant)
+    temp : `float`
+        temperature in K (default is 293.6 K)
+    iprint : `bool`
+        print option (default is `False`)
+
+    Returns
+    -------
+    `str`
+        acer input text
+    """
+    text = ["errorr"]
+    text += ["{:d} {:d} 0 {:d} 0 /".format(endfin, pendfin, errorrout)]
+    text += ["{:d} {:d} {:d} {:d} 1 /".format(mat, ign, iwt, int(iprint))]
+    text += ["{:d} {:.1f} /".format(int(iprint), temp)]
+    text += ["0 33 /"]
+    return "\n".join(text) + "\n"
+
 def _run_njoy(text, inputs, outputs, exe=None):
     """
     Run njoy executable.
@@ -360,7 +468,8 @@ def _run_njoy(text, inputs, outputs, exe=None):
     Parameters
     ----------
     exe : `str` or `None`
-        njoy executable: if `None` (default) search in `PATH`
+        njoy executable: if `None` (default) search firts `NJOY` env variable and then 
+        in `PATH`
     inputs : `map`
         map of {`tape` : `file`) for input files
     outputs : `map`
@@ -369,16 +478,20 @@ def _run_njoy(text, inputs, outputs, exe=None):
         njoy input file passed to `Popen` as `stdin` (it must be encoded first)
     """
     if not exe:
+        if "NJOY" in os.environ:
+            exe = os.environ["NJOY"]
+    if not exe:
         for try_exe in ["njoy2016", "njoy", "njoy2012", "xnjoy"]:
             exe = which(try_exe)
             if exe:
                 break
     if not exe:
         raise SandyError("could not find njoy executable")
+    logging.debug("Use NJOY executable '{}'".format(exe))
     stdout = stderr = None
     stdin = text.encode()
     with tempfile.TemporaryDirectory() as tmpdir:
-        logging.debug("Create temprary directory '{}'".format(tmpdir))
+        logging.debug("Create temporary directory '{}'".format(tmpdir))
         for tape,src in inputs.items():
             shutil.copy(src, os.path.join(tmpdir, tape))
         process = sp.Popen(exe,
@@ -388,6 +501,8 @@ def _run_njoy(text, inputs, outputs, exe=None):
                            stdout=stdout, 
                            stderr=stderr)
         stdoutdata, stderrdata = process.communicate(input=stdin)
+        logging.debug(stdoutdata)
+        logging.debug(stderrdata)
         if process.returncode != 0:
             raise SandyError("process status={}, cannot run njoy executable".format(process.returncode))
         for tape,dst in outputs.items():
@@ -395,6 +510,8 @@ def _run_njoy(text, inputs, outputs, exe=None):
             if path:
                 os.makedirs(path, exist_ok=True)
             shutil.move(os.path.join(tmpdir, tape), dst)
+
+
 
 def process(endftape, pendftape=None,
             kermas=[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447],
@@ -406,13 +523,17 @@ def process(endftape, pendftape=None,
             heatr=True,
             gaspr=True,
             purr=True,
+            errorr=False,
             acer=True,
-            wdir="", dryrun=False, tag="", exe=None, keep_pendf=True, route="0",
+            wdir="", dryrun=False, tag="", exe=None, keep_pendf=True,
+            route="0", addpath=None,
             **kwargs):
     """Run sequence to process file with njoy.
     
     Parameters
     ----------
+    pendftape : `str`
+        use this PENDF file and skip module reconr (defult is `None`: run reconr) 
     kermas : iterable of `int`
         MT numbers for partial kermas to pass to heatr.
         Default is:
@@ -428,13 +549,13 @@ def process(endftape, pendftape=None,
             - `MT=445` : elastic damage energy production cross section
             - `MT=446` : inelastic damage energy production cross section
             - `MT=447` : neutron disappearance damage energy production cross section
-        .. note:
-        
-            `MT=301` is the KERMA total (energy balance) and is always calculated
+        .. note: `MT=301` is the KERMA total (energy balance) and is always calculated
     temperatures : iterable of `float`
         iterable of temperature values in K (default is 293.6 K)
     suffixes : iterable of `int`
-        iterable of suffix values for ACE files (default is `None`)
+        iterable of suffix values for ACE files (default is `None`, use internal routine to determine suffixes)
+        .. warning: must have the same number of entries then `temperatures`
+        must match the number of entries in `temperatures`
     broadr : `bool`
         option to run module broadr (default is `True`)
     thermr : `bool`
@@ -447,27 +568,26 @@ def process(endftape, pendftape=None,
         option to run module gapr (default is `True`)
     purr : `bool`
         option to run module purr (default is `True`)
+    errorr : `bool`
+        option to run module errorr (default is `False`)
     acer : `bool`
         option to run module acer (default is `True`)
     wdir : `str`
         working directory (absolute or relative) where all output files are
         saved
-        .. note:
-            
-            `wdir` will appear as part of the `filename` in 
-            any `xsdir` file
+        .. note: `wdir` will appear as part of the `filename` in any `xsdir` file if `addpath` is not set
+    addpath : `str`
+        path to add in xsdir, by default use `wdir`
     dryrun : `bool`
         option to produce the njoy input file without running njoy
     tag : `str`
         tag to append to each output filename beofre the extension (default is `None`)
-        .. hint:
-            to process JEFF-3.3 files you could set `tag = "_j33"`
+        .. hint: to process JEFF-3.3 files you could set `tag = "_j33"`
     exe : `str`
         njoy executable (with path)
-        .. note:
-            If no executable is given, SANDY looks for a default executable in `PATH`
-    keep_pendf : `str`
-        save output PENDF file
+        .. note: if no executable is given, SANDY looks for a default executable in `PATH` and in env variable `NJOY`
+    keep_pendf : `bool`
+        save output PENDF file (default is `True`)
     route : `str`
         xsdir "route" parameter (default is "0")
     
@@ -490,6 +610,11 @@ def process(endftape, pendftape=None,
     outputs = {}
     # Only kwargs are passed to NJOY inputs, therefore add temperatures and mat
     kwargs.update({"temperatures" : temperatures, "mat" : mat})
+    # Check input args
+    if not suffixes:
+        suffixes = list(map(get_suffix, temperatures))
+    if len(suffixes) != len(temperatures):
+        raise SandyError("number of suffixex must match number of temperatures")
     inputs["tape20"] = endftape
     e = 21
     p = e + 1
@@ -526,12 +651,17 @@ def process(endftape, pendftape=None,
         text += _purr_input(-e, -p, -o, **kwargs)
         p = o
     if keep_pendf:
-        o = p + 1
+        o = 30
         text += _moder_input(-p, o)
         outputs["tape{}".format(o)] = os.path.join(wdir, "{}{}.pendf".format(za_new, tag))
+    if errorr:
+        for i,(temp,suff) in enumerate(zip(temperatures, suffixes)):
+            o = 33 + i
+            kwargs["temp"] = temp
+            kwargs["suff"] = suff = ".{:02d}".format(suff)
+            text += _errorr_input(-e, -p, o, **kwargs)
+            outputs["tape{}".format(o)] = os.path.join(wdir, "{}{}{}.errorr".format(za_new, tag, suff))
     if acer:
-        if not suffixes:
-            suffixes = range(len(temperatures))
         for i,(temp,suff) in enumerate(zip(temperatures, suffixes)):
             a = 50 + i
             x = 70 + i
@@ -549,10 +679,16 @@ def process(endftape, pendftape=None,
                 a = 50 + i
                 x = 70 + i
                 acefile = outputs["tape{}".format(a)]
+                if addpath is None:
+                    filename = acefile
+                else:
+                    filename = os.path.basename(acefile)
+                    if addpath:
+                        filename = os.path.join(addpath, filename)
                 xsdfile = outputs["tape{}".format(x)]
                 text_xsd = open(xsdfile).read(). \
                                          replace("route", route). \
-                                         replace("filename", acefile)
+                                         replace("filename", filename)
                 text_xsd = " ".join(text_xsd.split())
                 # If isotope is metatable rewrite ZA in xsdir and ace as ZA = Z*1000 + 300 + A + META*100.
                 if meta:

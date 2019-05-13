@@ -20,7 +20,6 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 def is_valid_file(parser, arg, r=True, w=False, x=False):
-    arg = os.path.abspath(os.path.realpath(os.path.normpath(arg)))
     if not os.path.isfile(arg):
         parser.error("File {} does not exist".format(arg))
     if r and not os.access(arg, os.R_OK):
@@ -33,7 +32,6 @@ def is_valid_file(parser, arg, r=True, w=False, x=False):
 
 
 def is_valid_dir(parser, arg, mkdir=False):
-    arg = os.path.abspath(os.path.realpath(os.path.normpath(arg)))
     if os.path.isdir(arg):
         return arg
     if mkdir:

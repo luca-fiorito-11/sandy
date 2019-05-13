@@ -33,7 +33,7 @@ def read_errorr(text):
     out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
     i = 0
     C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "ERRFLAG" :C.N1})
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "LRP" :C.N1})
     L, i = read_list(str_list, i)
     out.update({"EG" : L.B})
     return out
@@ -44,7 +44,7 @@ def read_groupr(text):
     out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
     i = 0
     C, i = read_cont(str_list, i)
-    out.update({"ZA" : C.C1, "AWR" : C.C2, "NZ" : C.L2, "GROUPRFLAG" : C.N1, "NTW" : C.N2})
+    out.update({"ZA" : C.C1, "AWR" : C.C2, "NZ" : C.L2, "LRP" : C.N1, "NTW" : C.N2})
     L, i = read_list(str_list, i)
     out.update({"TEMPIN" : L.C1, "NGN" : L.L1, "NGG" : L.L2})
     out["TITLE"] = L.B[:out["NTW"]]; del L.B[:out["NTW"]]
@@ -77,7 +77,7 @@ def read_info(text):
         TEXT.append(T)
     out.update({ "TEXT" : TEXT })
     # This part is not given in PENDF files
-    if out["LRP"] != 2:
+    if out["LRP"] != 2 and len(TEXT) > 0:
 #        groups = TEXT[0][:11].split("-")
 #        out["Z"] = int(groups[0])
 #        out["SYM"] = groups[1].strip()

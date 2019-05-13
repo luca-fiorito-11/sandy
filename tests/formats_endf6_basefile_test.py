@@ -75,18 +75,21 @@ def basefile2(basetext2):
 def test_BaseFile_mat(basefile1):
     """Test property mat"""
     assert basefile1.mat == [2631]
+    assert type(basefile1.mat) == list
 
 @pytest.mark.formats
 @pytest.mark.endf6
 def test_BaseFile_mf(basefile1):
     """Test property mf"""
     assert basefile1.mf == [1, 2, 3, 34]
+    assert type(basefile1.mf) == list
 
 @pytest.mark.formats
 @pytest.mark.endf6
 def test_BaseFile_mt(basefile1):
     """Test property mt"""
     assert basefile1.mt == [1, 2, 151, 451]
+    assert type(basefile1.mt) == list
 
 @pytest.mark.formats
 @pytest.mark.endf6
@@ -161,3 +164,23 @@ def test_BaseFile_delete_sections(basefile2):
     assert tape4.equals(tape3)
     with pytest.raises(Exception):
         basefile2.delete_sections((228, None, None), (2631, None, None))
+
+@pytest.mark.formats
+@pytest.mark.endf6
+def test_BaseFile_get_file_format():
+    """Check that method get_file_format works as expected"""
+    text = " 2.605600+4 5.545440+1          1          0          2          02631 1451    1\n"
+    ftype = sandy.formats.endf6._BaseFile.from_text(text).get_file_format()
+    assert ftype == "endf6"
+    text = " 2.605600+4 5.545440+1          2          0          2          02631 1451    1\n"
+    ftype = sandy.formats.endf6._BaseFile.from_text(text).get_file_format()
+    assert ftype == "pendf"
+    text = " 2.605600+4 5.545440+1          1          0        -11          02631 1451    1\n"
+    ftype = sandy.formats.endf6._BaseFile.from_text(text).get_file_format()
+    assert ftype == "errorr"
+    text = " 2.605600+4 5.545440+1          1          0        -12          02631 1451    1\n"
+    ftype = sandy.formats.endf6._BaseFile.from_text(text).get_file_format()
+    assert ftype == "errorr"
+    text = " 2.605600+4 5.545440+1          1          0         -1          02631 1451    1\n"
+    ftype = sandy.formats.endf6._BaseFile.from_text(text).get_file_format()
+    assert ftype == "gendf"

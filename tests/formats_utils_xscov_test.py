@@ -202,23 +202,3 @@ def test_xscov__from_list(cov_lb5_sym, cov_lb1, cov_lb2):
     assert cov.index.get_level_values("E").tolist() == \
            cov.index.get_level_values("E").tolist() == \
            V1.index.values.tolist() + V2.index.values.tolist()
-
-#@pytest.mark.formats
-#@pytest.mark.utils
-#@pytest.mark.cov
-#def test_xscov_get_samples():
-#    """Draw samples from 'XsCov'"""
-#    index = pd.MultiIndex.from_tuples([(1,2,3),(1,2,4),(1,3,5),(1,3,6)], names=["A", "B", "C"])
-#    data = np.array([[1.  , 0.  , 1.25, 0.  ],
-#                     [0.  , 3.  , 1.5 , 0.  ],
-#                     [1.25, 1.5 , 4.  , 0.  ],
-#                     [0.  , 0.  , 0.  , 0.  ]])
-#    cov = sandy.formats.utils.XsCov(data, index=index, columns=index)
-#    np.random.seed(30)
-#    smp = cov.get_samples(10)
-#    assert np.allclose(smp.values, np.array([[-0.26405266,  2.52790535,  0.02928906,  1.47055962,  0.89930328,  1.30379318, -0.72596243,  2.58509537,  1.13429659, -0.10685547],
-#                                             [ 3.73356684,  1.1861919 , -0.32336966, -0.34266588,  3.3968936 ,  2.3170256 ,  0.50524746,  1.93247982, -2.60941484,  2.62428557],
-#                                             [ 0.77921175,  2.39570465, -1.42458649,  2.29966938, -1.69900924,  4.13865649,  0.44696235,  2.58406689,  0.64273905, -1.78039573],
-#                                             [ 1.        ,  1.        ,  1.        ,  1.        ,  1.        ,  1.        ,  1.        ,  1.        ,  1.        ,  1.        ]]))
-#    assert (smp.index == cov.index).all()
-#    assert (smp.columns == [1,2,3,4,5,6,7,8,9,10]).all()

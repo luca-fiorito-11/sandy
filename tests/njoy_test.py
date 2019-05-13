@@ -54,10 +54,10 @@ purr
 1.00E+10 /
 0 /
 moder
--28 29 /
+-28 30 /
 acer
 -21 -28 0 50 70 /
-1 0 1 .00 0 /
+1 0 1 .03 0 /
 'sandy runs acer'/
 225 293.6 /
 1 1 /
@@ -65,9 +65,9 @@ acer
 stop"""
     assert input == text
     assert inputs['tape20'] == endftape
-    assert outputs['tape29'] == '2003.pendf'
-    assert outputs['tape50'] == '2003.00c'
-    assert outputs['tape70'] == '2003.00c.xsd'
+    assert outputs['tape30'] == '2003.pendf'
+    assert outputs['tape50'] == '2003.03c'
+    assert outputs['tape70'] == '2003.03c.xsd'
 
 @pytest.mark.njoy
 def test_njoy_process_no_broadr():
@@ -104,10 +104,10 @@ purr
 1.00E+10 /
 0 /
 moder
--27 28 /
+-27 30 /
 acer
 -21 -27 0 50 70 /
-1 0 1 .00 0 /
+1 0 1 .03 0 /
 'sandy runs acer'/
 225 293.6 /
 1 1 /
@@ -115,9 +115,9 @@ acer
 stop"""
     assert input == text
     assert inputs['tape20'] == endftape
-    assert outputs['tape28'] == '2003.pendf'
-    assert outputs['tape50'] == '2003.00c'
-    assert outputs['tape70'] == '2003.00c.xsd'
+    assert outputs['tape30'] == '2003.pendf'
+    assert outputs['tape50'] == '2003.03c'
+    assert outputs['tape70'] == '2003.03c.xsd'
 
 @pytest.mark.njoy
 def test_njoy_process_no_gaspr():
@@ -152,10 +152,10 @@ purr
 1.00E+10 /
 0 /
 moder
--26 27 /
+-26 30 /
 acer
 -21 -26 0 50 70 /
-1 0 1 .00 0 /
+1 0 1 .03 0 /
 'sandy runs acer'/
 225 293.6 /
 1 1 /
@@ -163,9 +163,9 @@ acer
 stop"""
     assert input == text
     assert inputs['tape20'] == endftape
-    assert outputs['tape27'] == '2003.pendf'
-    assert outputs['tape50'] == '2003.00c'
-    assert outputs['tape70'] == '2003.00c.xsd'
+    assert outputs['tape30'] == '2003.pendf'
+    assert outputs['tape50'] == '2003.03c'
+    assert outputs['tape70'] == '2003.03c.xsd'
 
 @pytest.mark.njoy
 def test_njoy_process_no_thermr():
@@ -196,10 +196,10 @@ purr
 1.00E+10 /
 0 /
 moder
--25 26 /
+-25 30 /
 acer
 -21 -25 0 50 70 /
-1 0 1 .00 0 /
+1 0 1 .03 0 /
 'sandy runs acer'/
 225 293.6 /
 1 1 /
@@ -207,9 +207,9 @@ acer
 stop"""
     assert input == text
     assert inputs['tape20'] == endftape
-    assert outputs['tape26'] == '2003.pendf'
-    assert outputs['tape50'] == '2003.00c'
-    assert outputs['tape70'] == '2003.00c.xsd'
+    assert outputs['tape30'] == '2003.pendf'
+    assert outputs['tape50'] == '2003.03c'
+    assert outputs['tape70'] == '2003.03c.xsd'
 
 @pytest.mark.njoy
 def test_njoy_process_no_acer():
@@ -240,11 +240,11 @@ purr
 1.00E+10 /
 0 /
 moder
--25 26 /
+-25 30 /
 stop"""
     assert input == text
     assert inputs['tape20'] == endftape
-    assert outputs['tape26'] == '2003.pendf'
+    assert outputs['tape30'] == '2003.pendf'
 
 @pytest.mark.njoy
 def test_njoy_process_no_purr():
@@ -269,11 +269,11 @@ heatr
 225 4 0 0 0 0 /
 444 445 446 447 /
 moder
--24 25 /
+-24 30 /
 stop"""
     assert input == text
     assert inputs['tape20'] == endftape
-    assert outputs['tape25'] == '2003.pendf'
+    assert outputs['tape30'] == '2003.pendf'
 
 @pytest.mark.njoy
 def test_njoy_process_no_heatr():
@@ -290,11 +290,11 @@ reconr
 0.001 0. /
 0/
 moder
--22 23 /
+-22 30 /
 stop"""
     assert input == text
     assert inputs['tape20'] == endftape
-    assert outputs['tape23'] == '2003.pendf'
+    assert outputs['tape30'] == '2003.pendf'
 
 @pytest.mark.njoy
 def test_njoy_process_no_keep_pendf():
@@ -369,50 +369,6 @@ moder
 99 -22 /
 acer
 -21 -22 0 50 70 /
-1 0 1 .00 0 /
-'sandy runs acer'/
-225 300.0 /
-1 1 /
-/
-acer
--21 -22 0 51 71 /
-1 0 1 .01 0 /
-'sandy runs acer'/
-225 600.0 /
-1 1 /
-/
-acer
--21 -22 0 52 72 /
-1 0 1 .02 0 /
-'sandy runs acer'/
-225 900.0 /
-1 1 /
-/
-stop"""
-    assert input == text
-    assert inputs['tape20'] == endftape
-    assert inputs['tape99'] == pendftape
-    assert outputs['tape50'] == '2003.00c'
-    assert outputs['tape70'] == '2003.00c.xsd'
-    assert outputs['tape51'] == '2003.01c'
-    assert outputs['tape71'] == '2003.01c.xsd'
-    assert outputs['tape52'] == '2003.02c'
-    assert outputs['tape72'] == '2003.02c.xsd'
-
-@pytest.mark.njoy
-def test_njoy_process_suffixes():
-    """Test njoy.process for acer at different temperatures"""
-    endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    pendftape = "pendf"
-    input, inputs, outputs = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, broadr=False, gaspr=False,
-                               thermr=False, acer=True, purr=False, heatr=False, keep_pendf=False,
-                               temperatures=[300, 600.0000, 900.001], suffixes=[3, 6, 9])
-    text = """moder
-20 -21 /
-moder
-99 -22 /
-acer
--21 -22 0 50 70 /
 1 0 1 .03 0 /
 'sandy runs acer'/
 225 300.0 /
@@ -442,6 +398,50 @@ stop"""
     assert outputs['tape71'] == '2003.06c.xsd'
     assert outputs['tape52'] == '2003.09c'
     assert outputs['tape72'] == '2003.09c.xsd'
+
+@pytest.mark.njoy
+def test_njoy_process_suffixes():
+    """Test njoy.process for acer at different temperatures"""
+    endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
+    pendftape = "pendf"
+    input, inputs, outputs = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, broadr=False, gaspr=False,
+                               thermr=False, acer=True, purr=False, heatr=False, keep_pendf=False,
+                               temperatures=[300, 600.0000, 900.001], suffixes=[1,2,6])
+    text = """moder
+20 -21 /
+moder
+99 -22 /
+acer
+-21 -22 0 50 70 /
+1 0 1 .01 0 /
+'sandy runs acer'/
+225 300.0 /
+1 1 /
+/
+acer
+-21 -22 0 51 71 /
+1 0 1 .02 0 /
+'sandy runs acer'/
+225 600.0 /
+1 1 /
+/
+acer
+-21 -22 0 52 72 /
+1 0 1 .06 0 /
+'sandy runs acer'/
+225 900.0 /
+1 1 /
+/
+stop"""
+    assert input == text
+    assert inputs['tape20'] == endftape
+    assert inputs['tape99'] == pendftape
+    assert outputs['tape50'] == '2003.01c'
+    assert outputs['tape70'] == '2003.01c.xsd'
+    assert outputs['tape51'] == '2003.02c'
+    assert outputs['tape71'] == '2003.02c.xsd'
+    assert outputs['tape52'] == '2003.06c'
+    assert outputs['tape72'] == '2003.06c.xsd'
 
 @pytest.mark.njoy
 def test_njoy_process_sig0():
@@ -478,8 +478,8 @@ def test_njoy_process(tmpdir):
     input, inputs, outputs = sandy.njoy.process(endftape, temperatures=[300, 600, 900], suffixes=[3, 6, 15], tag="_b71", wdir=wdir,
                                thermr=False)
     assert inputs['tape20'] == endftape
-    assert outputs['tape28'] == os.path.join(wdir, '2003_b71.pendf')
-    assert os.path.isfile(outputs['tape28'])
+    assert outputs['tape30'] == os.path.join(wdir, '2003_b71.pendf')
+    assert os.path.isfile(outputs['tape30'])
     assert outputs['tape50'] == os.path.join(wdir, '2003_b71.03c')
     assert os.path.isfile(outputs['tape50'])
     assert outputs['tape70'] == os.path.join(wdir, '2003_b71.03c.xsd')
@@ -520,17 +520,36 @@ def test_njoy_process_2(tmpdir):
     wdir = str(tmpdir)
     input, inputs, outputs = sandy.njoy.process(endftape, wdir=wdir, thermr=False, keep_pendf=True, route="1")
     assert inputs['tape20'] == endftape
-    assert outputs['tape28'] == os.path.join(wdir, '27458.pendf')
-    assert os.path.isfile(outputs['tape28'])
-    assert outputs['tape50'] == os.path.join(wdir, '27458.00c')
+    assert outputs['tape30'] == os.path.join(wdir, '27458.pendf')
+    assert os.path.isfile(outputs['tape30'])
+    assert outputs['tape50'] == os.path.join(wdir, '27458.03c')
     assert os.path.isfile(outputs['tape50'])
-    assert outputs['tape70'] == os.path.join(wdir, '27458.00c.xsd')
+    assert outputs['tape70'] == os.path.join(wdir, '27458.03c.xsd')
     assert os.path.isfile(outputs['tape70'])
     xsdargs = open(outputs['tape70']).read().split()
     assert len(xsdargs) == 10
-    assert xsdargs[0] == "27458.00c"
+    assert xsdargs[0] == "27458.03c"
     assert xsdargs[2] == outputs['tape50']
     assert xsdargs[3] == "1"
+
+@pytest.mark.njoy
+@pytest.mark.njoy_exe
+def test_njoy_process_addpath(tmpdir):
+    """Test add_path keyword"""
+    endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
+    wdir = str(tmpdir)
+    input, inputs, outputs = sandy.njoy.process(endftape, wdir=wdir, thermr=False, gaspr=False, heatr=False, purr=False, addpath="")
+    text = open(outputs['tape70']).read()
+    assert text == '2003.03c 2.989032 2003.03c 0 1 1 7108 0 0 2.530E-08'
+    input, inputs, outputs = sandy.njoy.process(endftape, wdir=wdir, thermr=False, gaspr=False, heatr=False, purr=False, addpath="aaa")
+    text = open(outputs['tape70']).read()
+    assert text == '2003.03c 2.989032 aaa/2003.03c 0 1 1 7108 0 0 2.530E-08'
+    input, inputs, outputs = sandy.njoy.process(endftape, wdir=wdir, thermr=False, gaspr=False, heatr=False, purr=False, addpath=None)
+    text = open(outputs['tape70']).read()
+    assert text == '2003.03c 2.989032 {} 0 1 1 7108 0 0 2.530E-08'.format(outputs['tape50'])
+    input, inputs, outputs = sandy.njoy.process(endftape, wdir=wdir, thermr=False, gaspr=False, heatr=False, purr=False)
+    text = open(outputs['tape70']).read()
+    assert text == '2003.03c 2.989032 {} 0 1 1 7108 0 0 2.530E-08'.format(outputs['tape50'])
 
 @pytest.mark.njoy
 def test_moder_1():
@@ -811,3 +830,19 @@ def test_process_proton_2(tmpdir):
     assert xsdargs[0] == "8016.00h"
     assert xsdargs[2] == outputs['tape50']
     assert xsdargs[3] == "0"
+
+@pytest.mark.njoy
+def test_get_suffix():
+    """Test function get_suffix"""
+    assert sandy.njoy.get_suffix(300) == 3
+    assert sandy.njoy.get_suffix(-300) == 3
+    assert sandy.njoy.get_suffix(-325) == 3
+    assert sandy.njoy.get_suffix(-324.115163) == 3
+    assert sandy.njoy.get_suffix(-325.0001) == 35
+    assert sandy.njoy.get_suffix(-350) == 35
+    assert sandy.njoy.get_suffix(1e1) == 0
+    assert sandy.njoy.get_suffix(0.0) == 0
+    assert sandy.njoy.get_suffix(999) == 10
+    assert sandy.njoy.get_suffix(1000) == 10
+    assert sandy.njoy.get_suffix(-1200.55) == 12
+    assert sandy.njoy.get_suffix(1251) == 13

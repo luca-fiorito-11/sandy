@@ -13,6 +13,7 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 
+from sandy.formats.records import read_cont
 from sandy.formats import (mf1,
         mf3,
         mf4,
@@ -74,6 +75,11 @@ class _BaseFile(pd.DataFrame):
 
         - TEXT : (`string`) MAT/MF/MT section reported as a single string
     
+    Attributes
+    ----------
+    labels : `list` of `str`
+        index labels MAT, MT and MT
+
     Methods
     -------
     add_sections
@@ -86,6 +92,13 @@ class _BaseFile(pd.DataFrame):
         Create dataframe by reading a endf6 file
     from_text
         Create dataframe from endf6 text in string
+    
+    Raises
+    ------
+    `SandyError`
+        if the tape is empty
+    `SandyError`
+        if the same combination MAT/MF/MT is found more than once
     """
     
     labels = ['MAT', 'MF', 'MT']
@@ -175,7 +188,7 @@ class _BaseFile(pd.DataFrame):
         ----------
         tuples : sequence of `tuple`
             each tuple should have the format (MAT, MF, MT)
-            To delete, say a given MF, independentently from the MAT and MT, assign `None` 
+            To delete, say, a given MF independentently from the MAT and MT, assign `None` 
             to the MAT and MT position in the tuple.
 
         Returns
@@ -209,11 +222,11 @@ class _BaseFile(pd.DataFrame):
         Parameters
         ----------
         listmat : `list` or `None`
-            list of requested MAT values
+            list of requested MAT values (default is `None`: use all MAT)
         listmf : `list` or `None`
-            list of requested MF values
+            list of requested MF values (default is `None`: use all MF)
         listmt : `list` or `None`
-            list of requested MT values
+            list of requested MT values (default is `None`: use all MT)
         
         Returns
         -------
@@ -240,6 +253,32 @@ class _BaseFile(pd.DataFrame):
     @property
     def mt(self):
         return sorted(self.index.get_level_values("MT").unique())
+    
+    def get_file_format(self):
+        """Determine ENDF-6 format type by reading flags "NLIB" and "LRP" of first MAT in file:
+            
+            * `NLIB = -11 | NLIB = -12` : errorr
+            * `NLIB = -1` : gendf
+            * `LRP = 2` : pendf
+            * `LRP != 2` : endf6
+        
+        Returns
+        -------
+        `str`
+            type of ENDF-6 format
+        """
+        lines = self.TEXT.loc[self.mat[0], 1, 451].splitlines()
+        C, i = read_cont(lines, 0)
+        if C.N1 == -11 or C.N1 == -12:
+            ftype = "errorr"
+        elif C.N1 == -1:
+            ftype = "gendf"
+        else:
+            if C.L1 == 2:
+                ftype = "pendf"
+            else:
+                ftype = "endf6"
+        return ftype
 
         
         
@@ -259,6 +298,19 @@ class Endf6(_BaseFile):
     Methods
     -------
     """
+
+    def get_nsub(self):
+        """Determine ENDF-6 sub-library type by reading flag "NSUB" of first MAT in file:
+            
+            * `NSUB = 10` : Incident-Neutron Data
+            * `NSUB = 11` : Neutron-Induced Fission Product Yields
+        
+        Returns
+        -------
+        `int`
+            NSUB value
+        """
+        return self.read_section(self.mat[0], 1, 451)["NSUB"]
 
     def read_section(self, mat, mf, mt):
         """Parse MAT/MF/MT section.
