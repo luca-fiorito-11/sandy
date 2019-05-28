@@ -1012,6 +1012,12 @@ class XsCov(BaseCov):
             logging.warn("no xs covariance was found")
             return pd.DataFrame()
         return cls._from_list(data)
+    
+    def plot(self):
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        pdb.set_trace()
+    
 
 
 

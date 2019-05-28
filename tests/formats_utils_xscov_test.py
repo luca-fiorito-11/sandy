@@ -23,8 +23,8 @@ def cov_lb1():
  0.000000+0 0.000000+0          0          1          6          3922831455    3
  1.000000-5 2.025000-3 1.000000+2 2.209000-3 3.000000+7 0.000000+0922831455    4
      """
-    tape = sandy.endf6.Endf6.from_text(text)
-    return sandy.formats.utils.XsCov.from_endf6(tape)
+    tape = sandy.Endf6.from_text(text)
+    return sandy.XsCov.from_endf6(tape)
 
 @pytest.fixture(scope="module")
 def cov_lb2():
@@ -35,8 +35,8 @@ def cov_lb2():
  0.000000+0 0.000000+0          0          2          6          3922831456    3
  1.000000-5 1.434000-3 6.000000-1 1.600000-3 3.000000+7 0.000000+0922831456    4
     """
-    tape = sandy.endf6.Endf6.from_text(text)
-    return sandy.formats.utils.XsCov.from_endf6(tape)
+    tape = sandy.Endf6.from_text(text)
+    return sandy.XsCov.from_endf6(tape)
 
 @pytest.fixture(scope="module")
 def cov_lb4():
@@ -73,8 +73,8 @@ def cov_lb5_sym():
  7.102100-4 7.142400-4 6.919200-4 8.410000-4 7.145600-4 7.012200-4402533 16    6
  1.024000-3 8.233600-4 9.610000-4                                 402533 16    7
     """
-    tape = sandy.endf6.Endf6.from_text(text)
-    return sandy.formats.utils.XsCov.from_endf6(tape)
+    tape = sandy.Endf6.from_text(text)
+    return sandy.XsCov.from_endf6(tape)
 
 @pytest.fixture(scope="module")
 def text_cov_lb5_asym():
@@ -169,18 +169,18 @@ def test_xscov_lb5_sym(cov_lb5_sym):
 @pytest.mark.cov
 def test_xscov_wrong_shape(text_cov_lb6):
     """Check that `XsCov` raises error because matrix withwrong different shape"""
-    tape = sandy.endf6.Endf6.from_text(text_cov_lb6)
+    tape = sandy.Endf6.from_text(text_cov_lb6)
     with pytest.raises(Exception):
-        return sandy.formats.utils.XsCov.from_endf6(tape)
+        return sandy.XsCov.from_endf6(tape)
 
 @pytest.mark.formats
 @pytest.mark.utils
 @pytest.mark.cov
 def test_xscov_asymmetric(text_cov_lb5_asym):
     """Check that `XsCov` raises error because matrix non symmetric"""
-    tape = sandy.endf6.Endf6.from_text(text_cov_lb5_asym)
+    tape = sandy.Endf6.from_text(text_cov_lb5_asym)
     with pytest.raises(Exception):
-        return sandy.formats.utils.XsCov.from_endf6(tape)
+        return sandy.XsCov.from_endf6(tape)
 
 @pytest.mark.formats
 @pytest.mark.utils
@@ -193,7 +193,7 @@ def test_xscov__from_list(cov_lb5_sym, cov_lb1, cov_lb2):
     L = [[(1,  18), (1,  18), V1],
          [(2, 102), (2, 102), V2],
          [(1,  18), (2, 102), C12]]
-    cov = sandy.formats.utils.XsCov._from_list(L)
+    cov = sandy.XsCov._from_list(L)
     assert (cov.loc[(1,18),(1,18)].values == V1.values).all()
     assert (cov.loc[(2,102),(2,102)].values == V2.values).all()
     C12_new = C12.change_grid(ex=V1.index.values, ey=V2.columns.values)
