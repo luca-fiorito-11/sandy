@@ -35,7 +35,6 @@ from sandy.formats.utils import (
         )
 from sandy.settings import SandyError
 from sandy.functions import find_nearest
-from sandy.utils import TimeDecorator
 
 
 __author__ = "Luca Fiorito"

@@ -1,77 +1,77 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Nov 20 13:44:51 2018
+Outline
+=======
+1. Summary_
+2. Examples_
+3. Routines_
 
-@author: Luca Fiorito
+.. _Summary:
+
+Summary
+=======
+This module contains all classes and functions dedicated to the processing and 
+analysis of a decay data.
+
+.. _Examples:
+
+Examples
+========
+
+Example 1
+---------
+To collect all decay data from a endf-6 file called `"rdd.dat"` into a `DecayData` object:
+
+>>> import sandy
+>>> tape = sandy.read_formatted_file("rdd.dat")
+>>> rdd = sandy.decay.from_endf6(tape)
+
+Example 2
+---------
+To save the data content of a `DecayData` object into a hdf5 file `"decay.hdf5"` in the 
+group namespace `"jeff_33"`:
+
+>>> rdd.to_hdf5("decay.hdf5", "jeff_33")
+
+Example 3
+---------
+To collect all decay data from a hdf5 file called `"decay.hdf5"` into a `DecayData` object:
+
+>>> import sandy
+>>> rdd = sandy.decay.from_hdf5("decay.hdf5")
+
+Example 4
+---------
+To produce a transition matrix (for depletion purposes) from a `DecayData` object `rdd`:
+
+>>> tmatrix = rdd.get_transition_matrix()
+
+.. _Routines:
+
+Routines
+========
+
 """
 
 import logging
-import os
 import pdb
+import h5py
+import os
 
 import numpy as np
 import pandas as pd
 
-from sandy.formats.endf6 import Endf6
-from sandy.data import RDD
+import sandy
 
 __author__ = "Luca Fiorito"
-__all__ = ["get_bmatrix", "get_qmatrix", "DecayChains", "BMatrix", "QMatrix"]
+
+__all__ = [
+        "DecayData"
+        ]
 
 
 
-def get_bmatrix(file="jeff"):
-    """Extract Q-matrix dataframe from decay data file.
-
-    Parameters
-    ----------
-    file : `str`
-        ENDF-6 file containing decay data (by default use JEFF-3.3)
-    
-    Returns
-    -------
-    `BMatrix`
-    """
-    if file is "jeff":   
-        return BMatrix.from_file(os.path.join(RDD.__path__[0], "RDD.jeff33"))
-
-
-
-def get_qmatrix(file="jeff"):
-    """Extract Q-matrix dataframe from decay data file.
-
-    Parameters
-    ----------
-    file : `str`
-        ENDF-6 file containing decay data (by default use JEFF-3.3)
-    
-    Returns
-    -------
-    `QMatrix`
-    """
-    if file is "jeff":   
-        return QMatrix.from_file(os.path.join(RDD.__path__[0], "RDD.jeff33"))
-
-
-
-def get_transition_matrix(file="jeff"):
-    """Extract transition matrix from decay data file.
-    
-    Parameters
-    ----------
-    file : `str`
-        ENDF-6 file containing decay data (by default use JEFF-3.3)
-
-    Returns
-    -------
-    `TMatrix`
-    """
-    if file is "jeff":
-        return TMatrix.from_file(os.path.join(RDD.__path__[0], "RDD.jeff33"))
-
-
-
-class DecayChains(pd.DataFrame):
+class DecayData():
     """Dataframe of decay chains for several isotopes.
     Each row contain a different decay chain.
     
@@ -85,12 +85,10 @@ class DecayChains(pd.DataFrame):
     
     Methods
     -------
-    from_endf6
-        Extract dataframe of decay chains from endf6 instance
-    from_file
-        Extract dataframe of decay chains from file
     get_bmatrix
         extract B-matrix inro dataframe
+    get_decay_chains
+        extract decay chains into dataframe
     get_qmatrix
         extract Q-matrix into dataframe
     get_transition_matrix
@@ -99,176 +97,38 @@ class DecayChains(pd.DataFrame):
 
     labels = ["PARENT", "DAUGHTER", "YIELD", "CONSTANT"]
     
+    def to_hdf5(self, filename, lib):
+        """
+        ....
+        """
+        with h5py.File(filename, 'w') as h5file:
+            sandy.tools.recursively_save_dict_contents_to_group(h5file, '/decay/{}/'.format(lib), self.data)
+    
     def get_bmatrix(self):
-        """Extract B-matrix dataframe.
+        """
+        Extract B-matrix into dataframe.
         
         Returns
         -------
-        `sandy.decay.BMatrix`
+        `pandas.DataFrame`
             B-matrix associated to the given decay chains
         """
-        B = self.pivot_table(index="DAUGHTER", columns="PARENT", values="YIELD", aggfunc=np.sum, fill_value=0.0). \
+        df = self.get_decay_chains()
+        B = df.pivot_table(index="DAUGHTER", columns="PARENT", values="YIELD", aggfunc=np.sum, fill_value=0.0). \
                  astype(float). \
                  fillna(0)
         np.fill_diagonal(B.values, 0)
-        return BMatrix(B)
+        return B.reindex(B.columns.values, fill_value=0.0)
 
-    def get_qmatrix(self):
+    def get_qmatrix(self, keep_neutrons=False):
         """Extract Q-matrix dataframe.
         
         Returns
         -------
-        `sandy.decay.QMatrix`
+        `pandas.DataFrame`
             Q-matrix associated to the given decay chains
         """
-        return self.get_bmatrix().to_qmatrix()
-
-    def get_transition_matrix(self):
-        """Extract transition matrix into dataframe.
-        
-        Returns
-        -------
-        `sandy.decay.TMatrix`
-            transition matrix associated to the given decay chains
-        """
-        df = self.copy()
-        df["YIELD"] *= df["CONSTANT"]
-        T = df.pivot_table(index="DAUGHTER", columns="PARENT", values="YIELD", aggfunc=np.sum). \
-               astype(float). \
-               fillna(0)
-        return T
-
-    @classmethod
-    def from_file(cls, file):
-        """Extract dataframe of decay chains from file.
-        
-        Parameters
-        ----------
-        file : `str`
-            ENDF-6 file containing decay data
-        
-        Returns
-        -------
-        `sandy.decay.DecayChains`
-            dataframe of decay chains
-        """
-        tape = Endf6.from_file(file)
-        return cls.from_endf6(tape)
-        
-
-    @classmethod
-    def from_endf6(cls, endf6):
-        """Extract dataframe of decay chains from Endf6 instance.
-        
-        Parameters
-        ----------
-        tape : `Endf6`
-            Endf6 instance containing decay data
-        
-        Returns
-        -------
-        `sandy.decay.DecayChains`
-            dataframe of decay chains
-        """
-        tape = endf6.filter_by(listmf=[8], listmt=[457])
-        listrdd = []
-        for ix,text in tape.TEXT.iteritems():
-            X = endf6.read_section(*ix)
-            zam = int(X["ZA"]*10 + X["LISO"])
-            listrdd += [dict(zip(cls.labels, (zam, zam, 0, 0)))]
-            if "DK" not in X: # Stable isotope
-                continue
-            for rtyp,dk in X["DK"].items():
-                parent = zam
-                daughter = zam//10
-                neutrons = 0; protons = 0; alphas = 0
-                for dtype in map(int, rtyp):
-                    if dtype == 1: # Beta decay
-                        daughter += 1001 - 1
-                    elif dtype == 2: # Electron capture and/or positron emission
-                        daughter += 1 - 1001
-                    elif dtype == 3: # Isomeric transition
-                        pass
-                    elif dtype == 4: # Alpha decay
-                        daughter -= 2004
-                        alphas += 1
-                    elif dtype == 5: # Neutron emission
-                        daughter -= 1
-                        neutrons += 1
-                    elif dtype == 6: # Spontaneous fission
-                        logging.debug("skip spontaneous fission for {}...".format(parent))
-                    elif dtype == 7: # Proton emission
-                        daughter -= 1001
-                        protons += 1
-                    elif dtype == 0: # Gamma emission (not used in MT457)
-                        pass
-                    else: # Unknown decay mode
-                        logging.debug("skip unknown decay mode for {}...".format(parent))
-                daughter = int(daughter*10 + dk["RFS"])
-                if daughter == parent:
-                    continue
-                # Add production of daughter to the list of decay chains
-                d = dict(zip(cls.labels, (parent, daughter, dk["BR"], X["LAMBDA"])))
-                listrdd.append(d)
-                # Add decay of parent to the list of decay chains
-                d = dict(zip(cls.labels, (parent, parent, -dk["BR"], X["LAMBDA"])))
-                listrdd.append(d)
-                if neutrons > 0: # add neutrons produced by decay
-                    d = dict(zip(cls.labels, (parent, 10, neutrons*dk["BR"], X["LAMBDA"])))
-                    listrdd.append(d)
-                if protons > 0: # add protons produced by decay
-                    d = dict(zip(cls.labels, (parent, 10010, protons*dk["BR"], X["LAMBDA"])))
-                    listrdd.append(d)
-                if alphas > 0: # add alphas produced by decay
-                    d = dict(zip(cls.labels, (parent, 20040, alphas*dk["BR"], X["LAMBDA"])))
-                    listrdd.append(d)
-        if not listrdd:
-            logging.warn("no decay path found in file")
-            return pd.DataFrame()
-        return cls(listrdd)
-    
-
-
-class BMatrix(pd.DataFrame):
-    """Dataframe for a B-matrix, that is, the production yields 
-    of all decay chains (sum of branching ratios).
-
-    **Index**:
-    
-        - DAUGHTER : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of daughter nuclide
-    
-
-    **Columns**:
-        
-        - PARENT : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of parent nuclide
-    
-    Methods
-    -------
-    to_qmatrix
-        Convert B-matrix into Q-matrix
-    from_file
-        Extract B-matrix from file
-    """
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.index.name = "DAUGHTER"
-        self.columns.name = "PARENT"
-
-    def to_qmatrix(self, keep_neutrons=False):
-        """Convert B-matrix into Q-matrix.
-        
-        Parameters
-        ----------
-        keep_neutrons : `bool`
-            if `False` (default) remove neutrons from the matrix
-        
-        Returns
-        -------
-        `sandy.decay.BMatrix`
-            Q-matrix associated to B-matrix instance
-        """
-        B = self.copy()
+        B = self.get_bmatrix()
         if not keep_neutrons:
             if 10 in B.index:
                 B.drop(index=10, inplace=True)
@@ -276,105 +136,224 @@ class BMatrix(pd.DataFrame):
                 B.drop(columns=10, inplace=True)
         C = np.identity(len(B)) - B.values
         Q = np.linalg.pinv(C)
-        return QMatrix(Q, index=B.index, columns=B.columns)
+        return pd.DataFrame(Q, index=B.index, columns=B.columns)
 
-    @classmethod
-    def from_file(cls, file):
-        """Extract B-matrix from file.
-        
-        Parameters
-        ----------
-        file : `str`
-            ENDF-6 file containing decay data
+    def get_decay_chains(self):
+        """
+        Extract decay chains into dataframe.
         
         Returns
         -------
-        `sandy.decay.BMatrix`
-            B-matrix extracted from given file
-        """
-        B = DecayChains.from_file(file).get_bmatrix()
-        return cls(B)
-
-
-
-class QMatrix(pd.DataFrame):
-    """Dataframe for a Q-matrix.
-
-    **Index**:
-    
-        - DAUGHTER : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of daughter nuclide
-    
-
-    **Columns**:
+        `pandas.DataFrame`
+            decay chains dataframe
         
-        - PARENT : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of parent nuclide
-    
-    Methods
-    -------
-    from_file
-        Extract Q-matrix from file
+        Raises
+        ------
+        `AssertionError`
+            when key `"decay_mode"` is not present but `"decay_constant"` is larger than 0
+        `AssertionError`
+            when key `"decay_products"` is not present and decay mode is not spontaneous fission
+        """
+        items = []
+        for zam,v in sorted(self.data.items()):
+            items.append((zam, zam, -1., 1., v["decay_constant"]))
+            if "decay_mode" not in v:
+                assert v["decay_constant"] == 0
+                continue
+            for km, vm in v["decay_mode"].items():
+                if "decay_products" not in vm:
+                    assert km == 60
+                    continue
+                for zap,yld in vm["decay_products"].items():
+                    items.append((zam, zap, yld, vm["branching_ratio"], v["decay_constant"]))
+        return pd.DataFrame(items, columns=["PARENT", "DAUGHTER", "YIELD", "BR", "LAMBDA"]).sort_values(by=["PARENT", "DAUGHTER"])
+            
+    def get_transition_matrix(self):
+        """
+        Extract transition matrix into dataframe.
+        
+        Returns
+        -------
+        `pandas.DataFrame`
+            transition matrix associated to the given decay chains
+        """
+        df = self.get_decay_chains()
+        df["YIELD"] *= df["LAMBDA"]*df["BR"]
+        T = df.pivot_table(index="DAUGHTER", columns="PARENT", values="YIELD", aggfunc=np.sum). \
+               astype(float). \
+               fillna(0)
+        return T.reindex(T.columns.values, fill_value=0.0)
+
+
+
+def expand_decay_type(zam, dectyp):
     """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.index.name = "DAUGHTER"
-        self.columns.name = "PARENT"
+    Expand a decay type into decay products
     
-    @classmethod
-    def from_file(cls, file):
-        """Extract Q-matrix from file.
-        
-        Parameters
-        ----------
-        file : `str`
-            ENDF-6 file containing decay data
-        
-        Returns
-        -------
-        `sandy.decay.QMatrix`
-            Q-matrix extracted from given file
-        """
-        Q = DecayChains.from_file(file).get_qmatrix()
-        return cls(Q)
-
-
-
-class TMatrix(pd.DataFrame):
-    """Dataframe for a transition matrix.
-
-    **Index**:
+    Parameters
+    ----------
+    zam : `int`
+        ZAM identifier
+    dectyp : `int`
+        decay mode where:
+            1. Beta decay
+            2. Electron capture and/or positron emission
+            3. Isomeric transition
+            4. Alpha decay
+            5. Neutron emission (not delayed neutron decay)
+            6. Spontaneous fission
+            7. Proton emission
     
-        - DAUGHTER : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of daughter nuclide
-    
-
-    **Columns**:
-        
-        - PARENT : (`int`) `ID = ZZZ * 10000 + AAA * 10 + META` of parent nuclide
-    
-    Methods
+    Returns
     -------
-    from_file
-        Extract transition matrix from file
+    `int`
+        decay daughter product ZAM identifier
+    `float`
+        number of emitted neutrons
+    `float`
+        number of emitted protons
+    `float`
+        number of emitted alphas
     """
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.index.name = "DAUGHTER"
-        self.columns.name = "PARENT"
+    daughter = zam//10
+    neutrons = 0.
+    protons = 0.
+    alphas = 0.
+    if dectyp == 1: # Beta decay
+        daughter += 1001 - 1
+    elif dectyp == 2: # Electron capture and/or positron emission
+        daughter += 1 - 1001
+    elif dectyp == 3: # Isomeric transition
+        pass
+    elif dectyp == 4: # Alpha decay
+        daughter -= 2004
+        alphas += 1.
+    elif dectyp == 5: # Neutron emission
+        daughter -= 1
+        neutrons += 1.
+    elif dectyp == 6: # Spontaneous fission
+        pass
+    elif dectyp == 7: # Proton emission
+        daughter -= 1001
+        protons += 1.
+    elif dectyp == 0: # Gamma emission (not used in MT457)
+        pass
+    else: # Unknown decay mode
+        raise sandy.SandyError("unknown decay mode {} for ZAM={}...".format(dectyp, zam))
+    return daughter*10, neutrons, protons, alphas
 
-    @classmethod
-    def from_file(cls, file):
-        """Extract transition matrix from file.
+
+
+def get_decay_products(rtyp, zam, rfs):
+    """
+    For a given isotope and decay mode, extract a dictionary of decay products.
+
+    Parameters
+    ----------
+    rtyp : `str`
+        string of decay modes where:
+            1. Beta decay
+            2. Electron capture and/or positron emission
+            3. Isomeric transition
+            4. Alpha decay
+            5. Neutron emission (not delayed neutron decay)
+            6. Spontaneous fission
+            7. Proton emission
         
-        Parameters
-        ----------
-        file : `str`
-            ENDF-6 file containing decay data
-        
-        Returns
-        -------
-        `sandy.decay.TMatrix`
-            transition matrix extracted from given file
-        """
-        T = DecayChains.from_file(file).get_transition_matrix()
-        return cls(T)
+        Decay mode combinations are allowed, e.g. "15" means Beta decay 
+        followed by neutron emission (delayed neutron decay).
+    zam : `int`
+        ZAM identifier of the nuclide undergoing decay (parent)
+    rfs : `int`
+        Isomeric state flag for daughter nuclide, e.g. `rfs=0` is ground state, 
+        `rfs=1` is first isomeric state, etc.
+    
+    Returns
+    -------
+    `dict`
+        dictionary of decay products where the keys are the ZAM identifiers for the products
+        and the values are the corresponding yield.       
+    """
+    daughter = zam + 0
+    neutrons = 0.
+    protons = 0.
+    alphas = 0.
+    for dectyp in map(int, rtyp):
+        daughter, n, h, a = expand_decay_type(daughter, dectyp)
+        neutrons += n
+        protons += h
+        alphas += a
+    daughter = int(daughter + rfs)
+    products = {}
+    if daughter != zam:
+        products[daughter] = 1.0
+    if neutrons != 0:
+        products[10] = neutrons 
+    if protons != 0:
+        products[10010] = protons
+    if alphas != 0:
+        products[20040] = alphas
+    return products
+
+
+def from_endf6(endf6):
+    """
+    Extract hierarchical structure of decay data from `sandy.Endf6` instance.
+    
+    Parameters
+    ----------
+    tape : `sandy.Endf6`
+        instance containing decay data
+    
+    Returns
+    -------
+    `DecayData`
+        decay data object
+    
+    Raises
+    ------
+    `sandy.SandyError`
+        if no decay data is found
+    """
+    tape = endf6.filter_by(listmf=[8], listmt=[457])
+    if tape.empty:
+        raise sandy.SandyError("no decay data found in file")
+    groups = {} 
+    for ix,text in tape.TEXT.iteritems():
+        X = endf6.read_section(*ix)
+        zam = int(X["ZA"]*10 + X["LISO"])
+        groups[zam] = {"decay_constant" : X["LAMBDA"], "decay_mode" : {}}
+        if "DK" not in X: # Stable isotope
+            continue
+        for rtyp, dk in X["DK"].items():
+            decay_mode_data = {
+                    "decay_products" : get_decay_products(rtyp, zam, dk["RFS"]),
+                    "branching_ratio" : dk["BR"],
+                    }
+            groups[zam]["decay_mode"][rtyp] = decay_mode_data
+    out = DecayData()
+    out.data = groups
+    return out
+
+
+
+def from_hdf5(filename, lib):
+    """
+    Extract hierarchical structure of decay data from hdf5 file.
+    
+    Parameters
+    ----------
+    filename : `str`
+        hdf5 filename (absolute or relative)
+    lib : `str`
+        library ID contained in the hdf5 file
+    
+    Returns
+    -------
+    `DecayData`
+        decay data object
+    """
+    out = DecayData()
+    with h5py.File(filename, 'r') as h5file:
+        out.data = sandy.tools.recursively_load_dict_contents_from_group(h5file, '/decay/{}/'.format(lib))
+    return out
