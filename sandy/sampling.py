@@ -24,7 +24,7 @@ from sandy.formats import read_formatted_file, get_file_format
 from sandy.formats.endf6 import Endf6
 from sandy.formats.utils import FySamples, XsCov
 from sandy.core import pfns
-from sandy.utils import is_valid_dir, is_valid_file
+from sandy.tools import is_valid_dir, is_valid_file
 from sandy import njoy
 
 __author__ = "Luca Fiorito"

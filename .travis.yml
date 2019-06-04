@@ -25,6 +25,7 @@ before_install:
   - git clone https://github.com/njoy/NJOY2016.git && (cd NJOY2016 && mkdir build && cd build && cmake .. && make) # install NJOY
   - rm -rf NJOY2016/tests
   - pip install sphinx sphinx_rtd_theme codecov numpydoc
+  - pip install -r requirements.txt
 
 install:
   - python setup.py install

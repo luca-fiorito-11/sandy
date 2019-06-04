@@ -63,8 +63,8 @@ import subprocess as sp
 import pandas as pd
 import numpy as np
 
+import sandy
 from sandy.settings import SandyError
-from sandy.utils import which
 from sandy.formats.endf6 import Endf6
 
 __author__ = "Luca Fiorito"
@@ -482,7 +482,7 @@ def _run_njoy(text, inputs, outputs, exe=None):
             exe = os.environ["NJOY"]
     if not exe:
         for try_exe in ["njoy2016", "njoy", "njoy2012", "xnjoy"]:
-            exe = which(try_exe)
+            exe = sandy.tools.which(try_exe)
             if exe:
                 break
     if not exe:
