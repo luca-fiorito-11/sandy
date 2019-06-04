@@ -31,7 +31,7 @@ def check_xs(xs, xspert, perts, mat, mt, ismp):
         rr = ratio[(egrid < emax) & (egrid >= emin)]
         if rr.empty:
             continue
-        assert np.allclose(rr, pert.values[j], rtol=1e-5)
+        assert np.allclose(rr, pert.values[j], rtol=1e-4)
     j = len(pert) - 1
     emin = perts[perts.MT == mt].E.values[j]
     assert np.allclose(ratio[(egrid >= emin)], pert.values[j], rtol=1e-6)
