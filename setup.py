@@ -41,10 +41,9 @@ setup(
     },
 )
 
-import sandy
-
-try:
-    sandy.get_njoy()
-except sandy.SandyError:
-    logging.warning("env variable 'NJOY' is not assigned. SANDY might not behave as expected.")
-
+#import sandy
+#
+#try:
+#    sandy.get_njoy()
+#except sandy.SandyError:
+#    logging.warning("env variable 'NJOY' is not assigned. SANDY might not behave as expected.")
