@@ -1,5 +1,5 @@
 from .endf6 import *
-from .errorr import *
+# from .errorr import *
 from .groupr import *
 from .utils import *
 from .records import *
@@ -33,7 +33,10 @@ def get_file_format(file):
     elif flag == -1:
         ftype = "gendf"
     else:
-        ftype = "endf6"
+        if C.L1 == 2:
+            ftype = "pendf"
+        else:
+            ftype = "endf6"
     return ftype
 
 
@@ -48,10 +51,10 @@ def read_formatted_file(file, listmat=None, listmf=None, listmt=None):
     """
     ftype = get_file_format(file)
     if ftype is "errorr":
-        return Errorr.from_file(file, listmat=listmat, listmf=listmf, listmt=listmt)
+        return Errorr.from_file(file).filter_by(listmat=listmat, listmf=listmf, listmt=listmt)
     elif ftype is "gendf":
-        return Gendf.from_file(file, listmat=listmat, listmf=listmf, listmt=listmt)
-    elif ftype is "endf6":
-        return Endf6.from_file(file, listmat=listmat, listmf=listmf, listmt=listmt)
+        return Gendf.from_file(file).filter_by(listmat=listmat, listmf=listmf, listmt=listmt)
+    elif ftype is "endf6" or ftype is "pendf":
+        return Endf6.from_file(file).filter_by(listmat=listmat, listmf=listmf, listmt=listmt)
     else:
         raise SandyError("file '{}' not in a known format".format(file))
