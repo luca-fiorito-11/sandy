@@ -25,16 +25,19 @@ def check_xs(xs, xspert, perts, mat, mt, ismp):
     nonzero = xs[(mat,mt)] != 0
     ratio = (xspert[(mat,mt)]/xs[(mat,mt)])[nonzero]
     egrid = ratio.index.get_level_values("E")
-    for j in range(len(pert)-1):
-        emin = perts[perts.MT == mt].E.values[j]
-        emax = perts[perts.MT == mt].E.values[j+1]
-        rr = ratio[(egrid < emax) & (egrid >= emin)]
-        if rr.empty:
-            continue
-        assert np.allclose(rr, pert.values[j], rtol=1e-4)
-    j = len(pert) - 1
-    emin = perts[perts.MT == mt].E.values[j]
-    assert np.allclose(ratio[(egrid >= emin)], pert.values[j], rtol=1e-6)
+    pert = perts[(perts.MT==mt) & (perts.MAT==mat)].set_index("E")[str(ismp)].reindex(egrid, method="ffill").fillna(1)
+    assert np.allclose(pert, ratio, rtol=1e-5)
+    
+    # for j in range(len(pert)-1):
+        # emin = perts[perts.MT == mt].E.values[j]
+        # emax = perts[perts.MT == mt].E.values[j+1]
+        # rr = ratio[(egrid < emax) & (egrid >= emin)]
+        # if rr.empty:
+            # continue
+        # assert np.allclose(rr, pert.values[j], rtol=1e-4)
+    # j = len(pert) - 1
+    # emin = perts[perts.MT == mt].E.values[j]
+    # assert np.allclose(ratio[(egrid >= emin)], pert.values[j], rtol=1e-6)
 
 @pytest.mark.sampling
 @pytest.mark.xs

@@ -1,7 +1,12 @@
 from setuptools import find_packages
 from numpy.distutils.core import setup, Extension
 import os
+import sys
+import logging
 
+import sandy
+
+__author__ = "Luca Fiorito"
 
 extensions = [
         Extension(name='rwf',
@@ -10,12 +15,20 @@ extensions = [
         ]
 keywords = ['uncertainty', 'nuclear data', 'covariance', 'sampling', 'ENDF-6']
 requirements = "requirements.txt"
+
+try:
+    sandy.get_njoy()
+except sandy.SandyError:
+    logging.warning("env variable 'NJOY' is not assigned. SANDY might not behave as expected.")
+    answer = sandy.tools.query_yes_no("Do you want to continue?", default="no")
+    if not answer:
+        sys.exit()
+
 setup(
     name = 'sandy',
     version = '0.1',
     description = 'SANDY: sampling of nuclear data and uncertainty',
-    #long_description = long_description,
-    # url='https://github.com/pypa/sampleproject',
+    url='https://github.com/luca-fiorito-11/sandy',
     author = 'Luca Fiorito',
     author_email = 'lucafiorito.11@gmail.com',
     classifiers=[

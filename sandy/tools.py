@@ -6,6 +6,7 @@ import os
 import time
 import ctypes
 import h5py
+import sys
 
 import numpy as np
 
@@ -87,7 +88,8 @@ def is_valid_dir(parser, arg, mkdir=False):
     return arg
 
 def which(program):
-    """Mimic the behavior of the UNIX 'which' command.     
+    """
+    Mimic the behavior of the UNIX 'which' command.     
     """
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
@@ -103,7 +105,8 @@ def which(program):
     return None
 
 def force_symlink(file1, file2):
-    """Mimic the behavior of the UNIX 'ln -sf' command.     
+    """
+    Mimic the behavior of the UNIX 'ln -sf' command.    
     """
     try:
         os.symlink(file1, file2)
@@ -112,7 +115,8 @@ def force_symlink(file1, file2):
         os.symlink(file1, file2)
 
 def TimeDecorator(foo):
-    """Output the time a function takes to execute.
+    """
+    Output the time a function takes to execute.
     """
     def wrapper(*args, **kwargs):
         t1 = time.time()
@@ -129,4 +133,47 @@ def mkl_get_max_threads():
 def mkl_set_num_threads(cores):
     mkl_rt = ctypes.CDLL('libmkl_rt.so')
     return mkl_rt.mkl_set_num_threads(ctypes.byref(ctypes.c_int(cores)))
+
+def query_yes_no(question, default="yes"):
+    """
+    Ask a yes/no question via `input()` and return their answer.
+
+    Parameters
+    ----------
+    question : `srt`
+        string that is presented to the user.
+    default : `str`, optional, default is `"yes"`
+        it is the presumed answer if the user just hits <Enter>.
+        It must be "yes" (the default), "no" or None (meaning
+        an answer is required of the user).
+
+    Returns
+    -------
+    `bool`
+        The "answer" return value is `True` for `"yes"` or `False` for `"no"`.
     
+    Raises
+    ------
+    `ValueError`
+        if `default` is not a valid option
+    """
+    valid = {"yes": True, "y": True, "ye": True,
+             "no": False, "n": False}
+    if default is None:
+        prompt = " [y/n] "
+    elif default == "yes":
+        prompt = " [Y/n] "
+    elif default == "no":
+        prompt = " [y/N] "
+    else:
+        raise ValueError("invalid default answer: '%s'" % default)
+    while True:
+        sys.stdout.write(question + prompt)
+        choice = input().lower()
+        if default is not None and choice == '':
+            return valid[default]
+        elif choice in valid:
+            return valid[choice]
+        else:
+            sys.stdout.write("Please respond with 'yes' or 'no' "
+                             "(or 'y' or 'n').\n")

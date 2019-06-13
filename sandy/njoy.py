@@ -46,10 +46,31 @@ Major default parmameters:
 Examples
 ========
 
+Extract njoy executable
+-----------------------
+
+>>> import sandy
+>>> exe = sandy.get_njoy()
+
+It raises an error if the system environment variable `NJOY` is not set.
+
+Default njoy processing of a neutron file
+-----------------------------------------
+Process a ENDF-6 neutron file "my_file.endf6" using NJOY with default options
+
+>>> import sandy.njoy
+>>> endftape = "my_file.endf6"
+>>> input, inputs, outputs = sandy.njoy.process(endftape)
+
+
 .. _Routines:
 
 Routines
 ========
+
+* get_njoy
+* process
+* process_proton
 """
 
 import os
@@ -68,7 +89,7 @@ from sandy.settings import SandyError
 from sandy.formats.endf6 import Endf6
 
 __author__ = "Luca Fiorito"
-__all__ = ["process", "process_proton"]
+__all__ = ["process", "process_proton", "get_njoy"]
 
 sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [42,125,0,8,221,'tol'],
@@ -96,26 +117,117 @@ sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [60,1325,0,2,221,'asap']],
             columns = ['matde','matdp','icoh','natom','mtref','ext'])
 
-def get_suffix(temp):
-    """Determine suffix saccording to temperature value using aleph method.
+tmp2ext = {
+    293.6 : "02",
+    300 : "03",
+    350 : "35",
+    400 : "04",
+    450 : "45",
+    500 : "05",
+    550 : "55",
+    600 : "06",
+    650 : "65",
+    700 : "07",
+    750 : "75",
+    800 : "08",
+    850 : "85",
+    900 : "09",
+    950 : "95",
+    1000 : "10",
+    1100 : "11",
+    1200 : "12",
+    1300 : "13",
+    1400 : "14",
+    1500 : "15",
+    1600 : "16",
+    1700 : "17",
+    1800 : "18",
+    1900 : "19",
+    2000 : "20",
+    2100 : "21",
+    2200 : "22",
+    2300 : "23",
+    2400 : "24",
+    2500 : "25",
+    }
+
+tmp2ext_meta = {
+    293.6 : "30",
+    300 : "31",
+    350 : "32",
+    400 : "33",
+    450 : "34",
+    500 : "36",
+    550 : "37",
+    600 : "38",
+    650 : "39",
+    700 : "40",
+    750 : "41",
+    800 : "42",
+    850 : "43",
+    900 : "44",
+    950 : "46",
+    1000 : "47",
+    1100 : "48",
+    1200 : "49",
+    1300 : "50",
+    1400 : "51",
+    1500 : "52",
+    1800 : "53",
+    2100 : "54",
+    2200 : "56",
+    2300 : "57",
+    2400 : "58",
+    2500 : "59",
+    }
+
+def get_njoy():
+    """
+    Extract njoy executable from system environment variable `NJOY`.
+    
+    Returns
+    -------
+    `string`
+        njoy executable
+        
+    Raises
+    ------
+    `SandyError`
+        if environment variable `NJOY` is not assigned 
+    """
+    if "NJOY" in os.environ:
+        exe = os.environ["NJOY"]
+    else:
+        raise SandyError("environment variable 'NJOY' is not assigned")
+    return exe
+
+def get_suffix(temp, meta, method=None):
+    """
+    Determine suffix saccording to temperature value.
     
     Parameters
     ----------
     temp : `float`
         processing temperature
+    meta : `int`
+        metastate number
+    method : `str`, optional, default `None`
+        use `method="aleph"` to treat metastate extensions using aleph rules
     
     Returns
     -------
-    `int`
-        suffix number
+    `str`
+        suffix
     """
-    if abs(temp) >= 1000:
-        suff = round(abs(temp)/100)
+    dct = tmp2ext_meta if meta and method == "aleph" else tmp2ext
+    if temp in dct:
+        temp_in_dict = temp
     else:
-        suff = round(abs(temp/10/5))*5
-        if suff%10 == 0:
-            suff = round(suff/10)
-    return suff
+        splitter = 50 if temp < 1000 else 100
+        temp_in_dict = int(round(temp/splitter)*splitter)
+    if temp_in_dict not in dct:
+        raise SandyError("extension was not found for temperature '{}'".format(temp))
+    return dct[temp_in_dict]
 
 
 
@@ -458,35 +570,21 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
 
 def _run_njoy(text, inputs, outputs, exe=None):
     """
-    Run njoy executable.
-    
-    .. Important::
-
-        In `Python 3` you need to convert input string to bytes with a 
-        `encode()` function
+    Run njoy executable for given input.
     
     Parameters
     ----------
-    exe : `str` or `None`
-        njoy executable: if `None` (default) search firts `NJOY` env variable and then 
-        in `PATH`
     inputs : `map`
         map of {`tape` : `file`) for input files
     outputs : `map`
         map of {`tape` : `file`) for ouptut files
     text : `str`
         njoy input file passed to `Popen` as `stdin` (it must be encoded first)
+    exe : `str`, optional, default is `None`
+        njoy executable: if `None` (default) get it from `NJOY` env variable
     """
-    if not exe:
-        if "NJOY" in os.environ:
-            exe = os.environ["NJOY"]
-    if not exe:
-        for try_exe in ["njoy2016", "njoy", "njoy2012", "xnjoy"]:
-            exe = sandy.tools.which(try_exe)
-            if exe:
-                break
-    if not exe:
-        raise SandyError("could not find njoy executable")
+    if exe is None:
+        exe = get_njoy()
     logging.debug("Use NJOY executable '{}'".format(exe))
     stdout = stderr = None
     stdin = text.encode()
@@ -513,7 +611,8 @@ def _run_njoy(text, inputs, outputs, exe=None):
 
 
 
-def process(endftape, pendftape=None,
+def process(endftape,
+            pendftape=None,
             kermas=[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447],
             temperatures=[293.6],
             suffixes=None,
@@ -525,71 +624,63 @@ def process(endftape, pendftape=None,
             purr=True,
             errorr=False,
             acer=True,
-            wdir="", dryrun=False, tag="", exe=None, keep_pendf=True,
-            route="0", addpath=None,
+            wdir="",
+            dryrun=False,
+            tag="",
+            method=None,
+            exe=None,
+            keep_pendf=True,
+            route="0",
+            addpath=None,
             **kwargs):
-    """Run sequence to process file with njoy.
+    """
+    Run sequence to process file with njoy.
     
     Parameters
     ----------
-    pendftape : `str`
-        use this PENDF file and skip module reconr (defult is `None`: run reconr) 
-    kermas : iterable of `int`
+    pendftape : `str`, optional, default is `None`
+        skip module reconr and use this PENDF file 
+    kermas : iterable of `int`, optional, default is `[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447]`
         MT numbers for partial kermas to pass to heatr.
-        Default is:
-            
-            - `MT=302` : KERMA elastic
-            - `MT=303` : KERMA non-elastic
-            - `MT=304` : KERMA inelastic
-            - `MT=318` : KERMA fission
-            - `MT=402` : KERMA radiative capture
-            - `MT=442` : total photon KERMA contribution
-            - `MT=443` : total kinematic KERMA (kinematic Limit)
-            - `MT=444` : total damage energy production cross section
-            - `MT=445` : elastic damage energy production cross section
-            - `MT=446` : inelastic damage energy production cross section
-            - `MT=447` : neutron disappearance damage energy production cross section
-        .. note: `MT=301` is the KERMA total (energy balance) and is always calculated
-    temperatures : iterable of `float`
-        iterable of temperature values in K (default is 293.6 K)
-    suffixes : iterable of `int`
-        iterable of suffix values for ACE files (default is `None`, use internal routine to determine suffixes)
-        .. warning: must have the same number of entries then `temperatures`
-        must match the number of entries in `temperatures`
-    broadr : `bool`
-        option to run module broadr (default is `True`)
-    thermr : `bool`
-        option to run module thermr (default is `True`)
-    unresr : `bool`
-        option to run module unresr (default is `False`)
-    heatr : `bool`
-        option to run module heatr (default is `True`)
-    gaspr : `bool`
-        option to run module gapr (default is `True`)
-    purr : `bool`
-        option to run module purr (default is `True`)
-    errorr : `bool`
-        option to run module errorr (default is `False`)
-    acer : `bool`
-        option to run module acer (default is `True`)
-    wdir : `str`
-        working directory (absolute or relative) where all output files are
-        saved
-        .. note: `wdir` will appear as part of the `filename` in any `xsdir` file if `addpath` is not set
-    addpath : `str`
+        .. note:: `MT=301` is the KERMA total (energy balance) and is always calculated
+    temperatures : iterable of `float`, optional, default is [293.6]
+        iterable of temperature values in K
+    suffixes : iterable of `int`, optional, default is `None`
+        iterable of suffix values for ACE files: if `None` is given, use internal routine to determine suffixes
+        .. warning:: `suffixes` must match the number of entries in `temperatures`
+    broadr : `bool`, optional, default is `True`
+        option to run module broadr
+    thermr : `bool`, optional, default is `True`
+        option to run module thermr
+    unresr : `bool`, optional, default is `False`
+        option to run module unresr
+    heatr : `bool`, optional, default is `True`
+        option to run module heatr 
+    gaspr : `bool`, optional, default is `True`
+        option to run module gapr
+    purr : `bool`, optional, default is `True`
+        option to run module purr
+    errorr : `bool`, optional, default is `False`
+        option to run module errorr
+    acer : `bool`, optional, default is `True`
+        option to run module acer
+    wdir : `str`, optional, default is `""`
+        working directory (absolute or relative) where all output files are saved
+        .. note:: `wdir` will appear as part of the `filename` in any `xsdir` file if `addpath` is not set
+    addpath : `str`, optional, default is `None`
         path to add in xsdir, by default use `wdir`
-    dryrun : `bool`
+    dryrun : `bool`, optional, default is `False`
         option to produce the njoy input file without running njoy
-    tag : `str`
-        tag to append to each output filename beofre the extension (default is `None`)
-        .. hint: to process JEFF-3.3 files you could set `tag = "_j33"`
-    exe : `str`
+    tag : `str`, optional, default is `""`
+        tag to append to each output filename before the extension (default is `None`)
+        .. hint:: to process JEFF-3.3 files you could set `tag = "_j33"`
+    exe : `str`, optional, default is `None`
         njoy executable (with path)
-        .. note: if no executable is given, SANDY looks for a default executable in `PATH` and in env variable `NJOY`
-    keep_pendf : `bool`
-        save output PENDF file (default is `True`)
-    route : `str`
-        xsdir "route" parameter (default is "0")
+        .. note:: if no executable is given, SANDY looks for a default executable in `PATH` and in env variable `NJOY`
+    keep_pendf : `bool`, optional, default is `True`
+        save output PENDF file
+    route : `str`, optional, default is `0`
+        xsdir "route" parameter
     
     Returns
     -------
@@ -605,16 +696,18 @@ def process(endftape, pendftape=None,
     info = tape.read_section(mat, 1, 451)
     meta = info["LISO"]
     za = int(info["ZA"])
+    zam = za*10 + meta
     za_new = za + meta*100 + 300 if meta else za
+    outprefix = zam if method == "aleph" else za_new
     inputs = {}
     outputs = {}
     # Only kwargs are passed to NJOY inputs, therefore add temperatures and mat
     kwargs.update({"temperatures" : temperatures, "mat" : mat})
     # Check input args
     if not suffixes:
-        suffixes = list(map(get_suffix, temperatures))
+        suffixes = [get_suffix(temp, meta, method) for temp in temperatures]
     if len(suffixes) != len(temperatures):
-        raise SandyError("number of suffixex must match number of temperatures")
+        raise SandyError("number of suffixes must match number of temperatures")
     inputs["tape20"] = endftape
     e = 21
     p = e + 1
@@ -653,23 +746,23 @@ def process(endftape, pendftape=None,
     if keep_pendf:
         o = 30
         text += _moder_input(-p, o)
-        outputs["tape{}".format(o)] = os.path.join(wdir, "{}{}.pendf".format(za_new, tag))
+        outputs["tape{}".format(o)] = os.path.join(wdir, "{}{}.pendf".format(outprefix, tag))
     if errorr:
         for i,(temp,suff) in enumerate(zip(temperatures, suffixes)):
             o = 33 + i
             kwargs["temp"] = temp
-            kwargs["suff"] = suff = ".{:02d}".format(suff)
+            kwargs["suff"] = suff = ".{}".format(suff)
             text += _errorr_input(-e, -p, o, **kwargs)
-            outputs["tape{}".format(o)] = os.path.join(wdir, "{}{}{}.errorr".format(za_new, tag, suff))
+            outputs["tape{}".format(o)] = os.path.join(wdir, "{}{}{}.errorr".format(outprefix, tag, suff))
     if acer:
         for i,(temp,suff) in enumerate(zip(temperatures, suffixes)):
             a = 50 + i
             x = 70 + i
             kwargs["temp"] = temp
-            kwargs["suff"] = suff = ".{:02d}".format(suff)
+            kwargs["suff"] = suff = ".{}".format(suff)
             text += _acer_input(-e, -p, a, x, **kwargs)
-            outputs["tape{}".format(a)] = os.path.join(wdir, "{}{}{}c".format(za_new, tag, suff))
-            outputs["tape{}".format(x)] = os.path.join(wdir, "{}{}{}c.xsd".format(za_new, tag, suff))
+            outputs["tape{}".format(a)] = os.path.join(wdir, "{}{}{}c".format(outprefix, tag, suff))
+            outputs["tape{}".format(x)] = os.path.join(wdir, "{}{}{}c.xsd".format(outprefix, tag, suff))
     text += "stop"
     if not dryrun:
         _run_njoy(text, inputs, outputs, exe=exe)
@@ -691,7 +784,7 @@ def process(endftape, pendftape=None,
                                          replace("filename", filename)
                 text_xsd = " ".join(text_xsd.split())
                 # If isotope is metatable rewrite ZA in xsdir and ace as ZA = Z*1000 + 300 + A + META*100.
-                if meta:
+                if meta and method != "aleph":
                     pattern = '{:d}'.format(za) + '\.(?P<ext>\d{2}[ct])'
                     found = re.search(pattern, text_xsd)
                     ext = found.group("ext")
