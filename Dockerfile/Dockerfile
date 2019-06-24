@@ -3,8 +3,7 @@ MAINTAINER Jan Malec (jan.malec@gmail.com)
 
 RUN apt update
 RUN apt install -y gfortran python3 python3-setuptools\
-    python3-numpy python3-dev unzip ca-certificates
+    python3-numpy python3-dev unzip ca-certificates git
 
-COPY sandy-develop.zip /
-RUN unzip sandy-develop.zip
-RUN cd sandy-develop && python3 setup.py install
+RUN git clone https://github.com/janmalec/sandy.git
+RUN cd sandy && python3 setup.py install
