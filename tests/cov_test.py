@@ -19,7 +19,7 @@ def testCov():
                     [0.  , 9.  , 1.5 , 0.  ],
                     [1.25, 1.5 , 6.25, 0.  ],
                     [0.  , 0.  , 0.  , 0.  ]])
-    return sandy.formats.utils.Cov(cov)
+    return sandy.Cov(cov)
 
 @pytest.mark.formats
 @pytest.mark.utils
@@ -31,7 +31,7 @@ def test_Cov_asym():
                     [1.25, 1.5 , 6.25, 0.  ],
                     [0.  , 0.  , 0.  , 0.  ]])
     with pytest.raises(Exception):
-        sandy.formats.utils.Cov(cov)
+        sandy.Cov(cov)
 
 @pytest.mark.formats
 @pytest.mark.utils
@@ -40,7 +40,7 @@ def test_Cov_2D():
     """Check that Cov raises error during initialization when matrix is not 2D"""
     cov = np.array([1.  , 0.  ])
     with pytest.raises(Exception):
-        sandy.formats.utils.Cov(cov)
+        sandy.Cov(cov)
 
 @pytest.mark.formats
 @pytest.mark.utils
@@ -49,7 +49,7 @@ def test_Cov_integer():
     """Check that Cov converts integer matrix into float"""
     cov = np.array([[1  , 0  ],
                     [0  , 9  ]], dtype=int)
-    C = sandy.formats.utils.Cov(cov)
+    C = sandy.Cov(cov)
     assert C.dtype == float
 
 @pytest.mark.formats
@@ -61,7 +61,7 @@ def test_Cov_not_square():
                     [0.  , 9.  , 5.0 , 0.  ],
                     [1.25, 1.5 , 6.25, 0.  ]])
     with pytest.raises(Exception):
-        sandy.formats.utils.Cov(cov)
+        sandy.Cov(cov)
 
 @pytest.mark.formats
 @pytest.mark.utils
@@ -73,7 +73,7 @@ def test_Cov_negative_diag():
                     [1.25, 1.5 , 6.25, 0.  ],
                     [0.  , 0.  , 0.  , 0.  ]])
     with pytest.raises(Exception):
-        sandy.formats.utils.Cov(cov)
+        sandy.Cov(cov)
 
 @pytest.mark.formats
 @pytest.mark.utils
@@ -88,7 +88,7 @@ def test_Cov_eig(testCov):
 def test_Cov_corr(testCov):
     """Check that Cov method corr works correctly"""
     C = testCov.corr()
-    assert isinstance(C, sandy.formats.utils.Cov)
+    assert isinstance(C, sandy.Cov)
     assert (C == np.array([[1. , 0. , 0.5, 0. ],
                            [0. , 1. , 0.2, 0. ],
                            [0.5, 0.2, 1. , 0. ],
@@ -104,14 +104,14 @@ def test_Cov__reduce_size(testCov):
     assert (C == np.array([[1.  , 0.  , 1.25],
                            [0.  , 9.  , 1.5 ],
                            [1.25, 1.5 , 6.25]])).all()
-    assert isinstance(C, sandy.formats.utils.Cov)
+    assert isinstance(C, sandy.Cov)
 
 @pytest.mark.formats
 @pytest.mark.utils
 @pytest.mark.cov
 def test_Cov__reduce_size_all_zeros():
     """Check that Cov method _reduce_size works correctly"""
-    cov = sandy.formats.utils.Cov(np.zeros((3,3)))
+    cov = sandy.Cov(np.zeros((3,3)))
     I, C = cov._reduce_size()
     assert not I
     assert not C
@@ -125,9 +125,9 @@ def test_Cov__restore_size(testCov):
     C = np.array([[1.  , 0.  , 1.25],
                   [0.  , 9.  , 1.5 ],
                   [1.25, 1.5 , 6.25]])
-    cov = sandy.formats.utils.Cov._restore_size(I, C, 4)
+    cov = sandy.Cov._restore_size(I, C, 4)
     assert (cov == testCov).all()
-    assert isinstance(cov, sandy.formats.utils.Cov)
+    assert isinstance(cov, sandy.Cov)
 
 @pytest.mark.formats
 @pytest.mark.utils
@@ -135,10 +135,10 @@ def test_Cov__restore_size(testCov):
 def test_Cov__restore_size_all_zeros():
     """Check that Cov method _restore_size works correctly"""
     I = np.array([])
-    C = sandy.formats.utils.Cov(np.ndarray((0,0)))
-    cov = sandy.formats.utils.Cov._restore_size(I, C, 3)
+    C = sandy.Cov(np.ndarray((0,0)))
+    cov = sandy.Cov._restore_size(I, C, 3)
     assert (cov == np.zeros((3,3))).all()
-    assert isinstance(cov, sandy.formats.utils.Cov)
+    assert isinstance(cov, sandy.Cov)
 
 @pytest.mark.formats
 @pytest.mark.utils
@@ -147,7 +147,7 @@ def test_Cov_get_L_cholesky():
     """Check that Cov method get_L works correctly with cholesky"""
     C = np.array([[1.  , 0.  ],
                   [0.  , 2   ]])
-    cov = sandy.formats.utils.Cov(C)
+    cov = sandy.Cov(C)
     L = cov.get_L()
     assert np.allclose(L, np.sqrt(cov))
 
@@ -159,12 +159,12 @@ def test_Cov_get_L_eigendecomp():
     C = np.array([[1.  , 0.  , 1.25],
                   [0.  , 0.2 , 1.5 ],
                   [1.25, 1.5 , 6.25]])
-    cov = sandy.formats.utils.Cov(C)
+    cov = sandy.Cov(C)
     L = cov.get_L()
     assert np.allclose(L, np.array([[-1.00842023,  0.        ,  0.        ],
                                     [-0.05742429, -0.62848243,  0.        ],
                                     [-1.22303907, -2.18416873,  0.        ]]))
-    CC = sandy.formats.utils.Cov(L.dot(L.T))
+    CC = sandy.Cov(L.dot(L.T))
     E1 = cov.eig()[0]
     E2 = CC.eig()[0]
     assert np.allclose(E1[:-1], E2[:-1])
@@ -178,7 +178,7 @@ def test_Cov_sampling():
     C = np.array([[1.  , 0.  , 1.25],
                   [0.  , 0.2 , 1.5 ],
                   [1.25, 1.5 , 6.25]])
-    cov = sandy.formats.utils.Cov(C)
+    cov = sandy.Cov(C)
     smp = cov.sampling(4, seed=1587)
     assert smp.shape == (3, 4)
     assert np.allclose(smp, np.array([[ 0.99853553, -0.34123088,  0.31211793,  0.79757716],
@@ -193,7 +193,7 @@ def test_Cov_sampling_1sample():
     C = np.array([[1.  , 0.  , 1.25],
                   [0.  , 0.2 , 1.5 ],
                   [1.25, 1.5 , 6.25]])
-    cov = sandy.formats.utils.Cov(C)
+    cov = sandy.Cov(C)
     smp = cov.sampling(1)
     assert smp.shape == (3, 1)
-    assert not isinstance(smp, sandy.formats.utils.Cov)
+    assert not isinstance(smp, sandy.Cov)

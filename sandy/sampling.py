@@ -117,6 +117,9 @@ def parse(iargs=None):
     parser.add_argument('--cov', '-C',
                         type=lambda x: is_valid_file(parser, x),
                         help="file containing covariances")
+    parser.add_argument('--cov33csv',
+                        type=lambda x: is_valid_file(parser, x),
+                        help="file containing xs/nubar covariances in csv format")
     parser.add_argument('--samples', '-S',
                         type=int,
                         default=200,
@@ -312,15 +315,29 @@ def sampling(iargs=None):
     global init, pnu, pxs, plpc, pchi, pfy, tape
     init = parse(iargs)
     ftape = read_formatted_file(init.file)
-    covtape = read_formatted_file(init.cov) if init.cov else ftape
-    # nsub = ftape.get_nsub()
-    # INITIALIZE PERT DF
-    pnu = pd.DataFrame()
-    pxs = pd.DataFrame()
-    plpc = pd.DataFrame()
-    pchi = pd.DataFrame()
-    pfy = pd.DataFrame()
-    ftape, covtape, pnu, pxs, plpc, pchi, pfy = extract_samples(ftape, covtape)
+    if init.cov33csv:
+        covtape = xscov = sandy.XsCov.from_csv(init.cov33csv)
+        logging.warn("found argument '--cov33csv', will skip any other covariance")
+        if ftape.get_file_format() == "endf6":
+            with tempfile.TemporaryDirectory() as td:
+                outputs = njoy.process(init.file, broadr=False, thermr=False, 
+                                       unresr=False, heatr=False, gaspr=False, 
+                                       purr=False, errorr=init.errorr, acer=False,
+                                       wdir=td, keep_pendf=True, exe=init.njoy,
+                                       temperatures=[0], suffixes=[0], err=0.005)[2]
+                ptape = read_formatted_file(outputs["tape30"])
+                if init.debug:
+                    shutil.move(outputs["tape30"],  os.path.join(init.outdir, "tape30"))
+            ftape = ftape.delete_sections((None, 3, None)). \
+                          add_sections(ptape.filter_by(listmf=[3])). \
+                          add_sections(ptape.filter_by(listmf=[1], listmt=[451]))
+        pxs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
+        pnu = plpc = pchi = pfy = pd.DataFrame()
+        if init.debug:
+            pxs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
+    else:
+        covtape = read_formatted_file(init.cov) if init.cov else ftape
+        ftape, covtape, pnu, pxs, plpc, pchi, pfy = extract_samples(ftape, covtape)
     df = {}
     if pnu.empty and pxs.empty and plpc.empty and pchi.empty and pfy.empty:
         logging.warn("no covariance section was selected/found")

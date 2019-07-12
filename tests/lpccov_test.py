@@ -112,4 +112,4 @@ def text_cov_p6():
 @pytest.mark.cov
 def test_cov_p6(text_cov_p6):
      tape = sandy.endf6.Endf6.from_text(text_cov_p6)
-     A = sandy.formats.utils.LpcCov.from_endf6(tape)
+     A = sandy.LpcCov.from_endf6(tape)
