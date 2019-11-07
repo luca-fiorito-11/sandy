@@ -797,6 +797,8 @@ def process(endftape,
                     f.write(text_xsd)
     return text, inputs, outputs
 
+
+
 def process_proton(endftape, wdir="", dryrun=False, tag="", exe=None, route="0", **kwargs):
     """Run sequence to process proton file with njoy.
     

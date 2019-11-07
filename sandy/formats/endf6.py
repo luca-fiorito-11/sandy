@@ -299,7 +299,8 @@ class Endf6(_BaseFile):
     """
 
     def get_nsub(self):
-        """Determine ENDF-6 sub-library type by reading flag "NSUB" of first MAT in file:
+        """
+        Determine ENDF-6 sub-library type by reading flag "NSUB" of first MAT in file:
             
             * `NSUB = 10` : Incident-Neutron Data
             * `NSUB = 11` : Neutron-Induced Fission Product Yields

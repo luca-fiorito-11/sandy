@@ -5,7 +5,7 @@ from sandy.formats import *
 from sandy.settings import *
 from sandy.decay import *
 from sandy.njoy import *
-from sandy.core import *
+from .core import *
 import sandy.tools
 
 class ShutdownHandler(logging.Handler):
@@ -27,6 +27,9 @@ class DuplicateFilter(object):
         self.msgs.add(record.msg)
         return rv
 
+class Error(Exception):
+    pass
+    
 FORMAT = '%(levelname)s:  %(message)s'
 logging.basicConfig(format=FORMAT)
 logging.getLogger().setLevel(logging.INFO)
