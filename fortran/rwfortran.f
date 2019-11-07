@@ -68,7 +68,7 @@ c
 c
       subroutine wint(x,a)
       real*8   :: x
-      integer*4 :: y
+      integer :: y
       character*11 :: a
       y = int(x)
       write(a,'(I11)') y
@@ -95,7 +95,7 @@ c
 c
       subroutine wilist(string,list,n)
       integer  :: n,i
-      integer*8   :: list(n)
+      integer   :: list(n)
       character*11 :: tmp
       character*(*) :: string
 Cf2py intent(inout) string
@@ -153,7 +153,7 @@ c
 c
       subroutine rilist(string,io_status,ilist,n)
       integer  :: n,i,io_status
-      integer*8 :: ilist(n)
+      integer :: ilist(n)
       character*80 :: string
 Cf2py intent(inout) string
 Cf2py intent(inout) io_status
