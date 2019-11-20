@@ -7,3 +7,4 @@ seaborn >= 0.9
 h5py
 numpydoc
 sphinx
+numba
