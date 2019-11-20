@@ -22,6 +22,10 @@ which acts as a container for a `pandas.Series` of multigroup perturbations.
 Examples
 ========
 
+Examples are reported in the following Jupyter notebook_.
+
+.. _notebook: https://github.com/luca-fiorito-11/sandy/blob/develop/notebooks/pert_notebook.ipynb
+
 .. _Routines:
 
 Routines

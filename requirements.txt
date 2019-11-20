@@ -5,3 +5,5 @@ pandas >= 0.24
 matplotlib >= 2.2.23
 seaborn >= 0.9
 h5py
+numpydoc
+sphinx
