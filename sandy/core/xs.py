@@ -331,7 +331,7 @@ class Xs():
                        fillna(0)
         return Xs(df)
 
-    def reconstruct_sums(self, drop=True):
+    def _reconstruct_sums(self, drop=True):
         """
         Reconstruct redundant xs.
         """
@@ -347,7 +347,7 @@ class Xs():
                 frame.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
         return Xs(frame)
 
-    def perturb(self, pert, method=2, **kwargs):
+    def _perturb(self, pert, method=2, **kwargs):
         """Perturb cross sections/nubar given a set of perturbations.
         
         Parameters
@@ -392,7 +392,7 @@ class Xs():
         return Xs(frame).reconstruct_sums()
 
     @classmethod
-    def from_errorr(cls, errorr):
+    def _from_errorr(cls, errorr):
         """Extract cross sections/nubar from ERRORR instance.
         
         Parameters
@@ -425,7 +425,7 @@ class Xs():
         return Xs(frame)
    
 
-def from_file(file, sep=None, **kwargs):
+def _from_file(file, sep=None, **kwargs):
     """
     Initialize `Xs` object reading it from file.
     The given shall contain energy values in the first column and pointwise 
