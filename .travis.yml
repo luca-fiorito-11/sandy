@@ -49,4 +49,4 @@ deploy:
   keep-history: false
   overwrite: true
   on:
-    branch: master
+    branch: develop
