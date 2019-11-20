@@ -11,9 +11,13 @@ import pandas as pd
 import scipy.interpolate
 import numba
 
-
 __author__ = "Luca Fiorito"
 __all__ = []
+
+
+MeV_MWs = 1.60217733e-19 # conversion coefficient MeV --> MW s
+Amn = 1.00866491578      # molar mass of a neutron in amu, source: P. J. Mohr and B. N. Taylor, "The 1998 CODATA Recommended Values of the Fundamental Physics Constants", Version 3.1
+
 
 def grouper(iterable, n, fillvalue=None):
     """
@@ -54,6 +58,45 @@ def za2zam(za, method="nndc", meta=0):
 def zam2za(zam, method="nndc"):
     z, a, m = expand_zam(zam)
     return get_za(z, a, m, method=method)
+
+def at2wt(zam, at):
+    """
+    Given an isotope ZAM id and its atomic density in at/cm/b, convert the 
+    latter in g/cm3.
+    
+    Parameters
+    ----------
+    zam : `int`
+        isotope ZAM id
+    at : `float`
+        atomic density in at/b/cm
+    
+    Returns
+    -------
+    `float`
+        weight density in g/cm3
+    """
+    return at * 1e24 / Avogadro * aleph.common.awr[zam] * aleph.common.Amn
+
+def wt2at(zam, wt):
+    """
+    Given an isotope ZAM id and its weight density in g/cm3, convert the 
+    latter in at/cm/b.
+    
+    Parameters
+    ----------
+    zam : `int`
+        isotope ZAM id
+    wt : `float`
+        weight density in g/cm3
+    
+    Returns
+    -------
+    `float`
+        atomic density in at/b/cm
+    """
+    z, a, m = expand_zam(zam)
+    return wt / 1e24 * Avogadro / aleph.common.awr[zam] / aleph.common.Amn
 
 def uniform_loggrid(xmin, xmax, npoints=100):
     """
@@ -131,7 +174,7 @@ def pad_from_beginning(vals, maxlen=None, value=0., axis=0):
 
 def pad_from_beginning_fast(vals, maxlen):
     """
-    Like `pad_from_beginning` but faster.
+    Like `aleph.utils.pad_from_beginning` but faster.
     Keyword arguments `axis` and `values` take the default options.
     .. note:: this function can be used to put cross sections into one matrix 
               by adding zeros before the first value of threshold reactions.

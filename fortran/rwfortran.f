@@ -14,19 +14,19 @@ Cf2py integer intent(hide),depend(list) :: n=shape(list,0)
 c
 c
 c
-      subroutine wlist_int(string,list,n)
-      integer  :: n,i
-      real*8   :: list(n)
-      character*11 :: tmp
-      character*(*) :: string
-Cf2py intent(inout) string
-Cf2py intent(in,copy) list
-Cf2py integer intent(hide),depend(list) :: n=shape(list,0)
-      do i = 1,n
-         call wint(list(i),tmp)
-         string((i-1)*11+1:i*11) = tmp
-      enddo
-      end subroutine wlist_int
+c       subroutine wlist_int(string,list,n)
+c       integer   :: n,i
+c       integer*8 :: list(n)
+c       character*11 :: tmp
+c       character*(*) :: string
+c Cf2py intent(inout) string
+c Cf2py intent(in,copy) list
+c Cf2py integer intent(hide),depend(list) :: n=shape(list,0)
+c       do i = 1,n
+c          call wint(list(i),tmp)
+c          string((i-1)*11+1:i*11) = tmp
+c       enddo
+c       end subroutine wlist_int
 c
 c
 c
@@ -66,13 +66,13 @@ Cf2py intent(in) x
 c
 c
 c
-      subroutine wint(x,a)
-      real*8   :: x
-      integer :: y
-      character*11 :: a
-      y = int(x)
-      write(a,'(I11)') y
-      end subroutine wint
+c       subroutine wint(x,a)
+c       real*8   :: x
+c       integer :: y
+c       character*11 :: a
+c       y = int(x)
+c       write(a,'(I11)') y
+c       end subroutine wint
 c
 c
 c
@@ -95,7 +95,7 @@ c
 c
       subroutine wilist(string,list,n)
       integer  :: n,i
-      integer   :: list(n)
+      integer*8   :: list(n)
       character*11 :: tmp
       character*(*) :: string
 Cf2py intent(inout) string
@@ -153,7 +153,7 @@ c
 c
       subroutine rilist(string,io_status,ilist,n)
       integer  :: n,i,io_status
-      integer :: ilist(n)
+      integer*8 :: ilist(n)
       character*80 :: string
 Cf2py intent(inout) string
 Cf2py intent(inout) io_status
