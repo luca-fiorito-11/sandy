@@ -7,6 +7,7 @@ from sandy.decay import *
 from sandy.njoy import *
 from .core import *
 import sandy.tools
+import sandy.shared
 
 class ShutdownHandler(logging.Handler):
     """Trigger exit on errors.

@@ -41,6 +41,7 @@ def check_xs(xs, xspert, perts, mat, mt, ismp):
 
 @pytest.mark.sampling
 @pytest.mark.xs
+@pytest.mark.slow
 def test_sample_xs():
     errtape = Errorr.from_text("\n".join(H1.errorr))
     nsmp = 1000

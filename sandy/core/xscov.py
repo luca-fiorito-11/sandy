@@ -115,7 +115,8 @@ class XsCov(BaseCov):
 
     @classmethod
     def from_endf6(cls, endf6):
-        """Extract cross section/nubar covariance from `Endf6` instance.
+        """
+        Extract cross section/nubar covariance from `Endf6` instance.
         
         Parameters
         ----------
