@@ -116,7 +116,7 @@ def _read_rdd(text):
     out["DHL"] = DHL = L.C2     # uncertainty on half-life
     out["E"] = E = L.B[::2]     # list of average decay energies (eV) for different radiation types.
     out["DE"] = DE = L.B[1::2]  # list of uncertainties on average decay energy (eV) for different radiation types.
-    out["LAMBDA"] = np.log(2)/HL if HL else 0
+    out["LAMBDA"] = np.asscalar(np.log(2)/HL) if HL else 0
     L, i = read_list(str_list, i)
     out["SPI"] = SPI = L.C1 # Spin of the nuclide in its LIS state
     out["PAR"] = PAR = L.C2 # Parity of the nuclide in its LIS state
