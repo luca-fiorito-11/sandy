@@ -7,6 +7,7 @@ Created on Thu Jun 14 10:22:58 2018
 import sys
 import numpy as np
 from collections import namedtuple
+import pdb
 
 import rwf
 from ..settings import SandyError
