@@ -9,4 +9,4 @@ numpydoc
 sphinx
 numba
 nbval
-yaml
+pyyaml
