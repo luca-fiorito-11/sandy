@@ -1,4 +1,5 @@
 from .xs import *
+from .lpc import *
 from .pfns import *
 from .cov import *
 from .basecov import *

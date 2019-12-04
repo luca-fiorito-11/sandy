@@ -8,3 +8,5 @@ h5py
 numpydoc
 sphinx
 numba
+nbval
+pyyaml
