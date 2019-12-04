@@ -294,6 +294,6 @@ def reshape_bfill(x, y, xnew, left_values="first", right_values=0):
             kind="next",
             bounds_error=False,
             fill_value=fill_value,
-            assume_sorted=True
+            assume_sorted=True,
             )
     return foo(xnew)

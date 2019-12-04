@@ -110,6 +110,22 @@ __all__ = [
 class Xs():
     """
     Object for energy dependent cross sections.
+    
+    Attributes
+    ----------
+    data : `pandas.DataFrame`
+        source of energy dependent tabulated cross sections
+    
+    Methods
+    -------
+    reshape
+        Interpolate cross sections over new grid structure
+    custom_perturbation
+        Apply a custom perturbation to a given cross section
+    to_endf6
+        Update cross sections in `Endf6` instance
+    from_endf6
+        Extract cross sections/nubar from `Endf6` instance
     """
     
     redundant_xs = {107 : range(800,850),
@@ -164,7 +180,7 @@ class Xs():
     @data.setter
     def data(self, data):
         if not isinstance(data, pd.DataFrame):
-            raise aleph.Error("'data' is not a 'pandas.DataFrame'")
+            raise sandy.Error("'data' is not a 'pandas.DataFrame'")
         self._data = data.astype(float)
         self._data.index = self._data.index.astype(float)
         if not data.index.is_monotonic_increasing:
@@ -174,7 +190,7 @@ class Xs():
     
     def reshape(self, eg, inplace=False):
         """
-        Interpolate cross sections over new grid structure.
+        Linearly interpolate cross sections over new grid structure.
         
         Parameters
         ----------
@@ -186,13 +202,17 @@ class Xs():
         Returns
         -------
         `Xs`
-            cross section instance over new grid, which is teh union between 
-            the old and the given energy grid
+            cross section instance over new grid
+        
+        Warnings
+        --------
+        The new cross sections are tabulated over the union between 
+        the old and the given energy grid
         """
         df = self.data
         enew = df.index.union(eg).astype("float").values
-        spec = sandy.shared.reshape_differential(df.index.values, df.values, enew)
-        df = pd.DataFrame(spec, index=enew, columns=df.columns)
+        xsnew = sandy.shared.reshape_differential(df.index.values, df.values, enew)
+        df = pd.DataFrame(xsnew, index=enew, columns=df.columns)
         if inplace:
             self.data = df
         else:
@@ -220,7 +240,7 @@ class Xs():
             cross section instance with given series MAT/MT perturbed
         """
         if (mat, mt) not in self.data:
-            logging.warning("could not find MAT{}/MT{}, perturbation will not be applied")
+            logging.warning("could not find MAT{}/MT{}, perturbation will not be applied".format(mat, mt))
             u_xs = self
         else:
             enew = np.union1d(self.data.index.values, pert.right.index.values)
@@ -253,13 +273,6 @@ class Xs():
         -------
         `sandy.Endf6`
             `Endf6` instance with updated xs
-
-        Raises
-        ------
-        `sandy.Error`
-            if interpolation scheme is not lin-lin
-        `sandy.Error`
-            if requested cross section was not found
         """
         tape = endf6.copy()
         df = self.data
@@ -277,14 +290,14 @@ class Xs():
             # Assume all xs have only 1 interpolation region and it is linear
             sec["NBT"] = [xs.size]
             sec["INT"] = [2]
-            text = sandy.records.mf3.write(sec)
+            text = sandy.formats.mf3.write(sec)
             tape.loc[mat,mf,mt].TEXT = text
         return sandy.Endf6(tape)
         
     @classmethod
     def from_endf6(self, endf6):
         """
-        Extract cross sections/nubar from `Endf6` instance.
+        Extract cross sections from `Endf6` instance.
         
         .. note:: xs are linearized on a unique grid.
 
@@ -307,6 +320,7 @@ class Xs():
         ------
         `sandy.Error`
             if interpolation scheme is not lin-lin
+        `sandy.Error`
             if requested cross section was not found
         """
         tape = endf6.filter_by(listmf=[3])
@@ -321,7 +335,7 @@ class Xs():
                 logging.warning("found duplicate energy for MAT{}/MF{}/MT{} at {:.5e} MeV, keep only {} value".format(mat, mf, mt, energy, keep))
             xs = xs[~mask_duplicates]
             if sec['INT'] != [2]:
-                raise SandyError('MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(mat, mf, mt))
+                raise sandy.Error('MAT{}/MF{}/MT{} interpolation scheme is not lin-lin'.format(mat, mf, mt))
             data.append(xs)
         if not data:
             raise sandy.Error("requested cross sections were not found")

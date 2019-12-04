@@ -516,7 +516,6 @@ class Tpd(pd.DataFrame):
         self.sort_index(inplace=True)
 
 
-
 class Fy(pd.DataFrame):
     """Dataset of independent and/or cumulative fission yields and 
     uncertainties for one or more energies and fissioning isotope.

@@ -189,9 +189,16 @@ class Pert():
             raise ValueError("found negative values in the energy grid")
         enew = self.right.index.union(index).unique().astype(float).values
         enew = enew[enew != 0]  # remove zero if any, it will be automatically added by `Pert`
+        # this part prevents errors in "scipy.interp1d" when x.size == 1
+        x = self.right.index.values
+        y = self.right.values
+        if y.size == 1:
+            # this must be done after that enew is created
+            x = np.insert(x, 0 , 0)
+            y = np.insert(y, 0 , 0)
         pertnew = sandy.shared.reshape_bfill(
-                          self.right.index.values,
-                          self.right.values,
+                          x,
+                          y,
                           enew,
                           left_values=1,
                           right_values=1,
