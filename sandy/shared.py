@@ -3,6 +3,7 @@ Collection of utilities, functions and classes that are requetsed in all code co
 """
 
 import pdb
+import re
 from itertools import zip_longest
 from scipy.constants import Avogadro
 
@@ -25,6 +26,9 @@ def grouper(iterable, n, fillvalue=None):
     """
     args = [iter(iterable)] * n
     return zip_longest(*args, fillvalue=fillvalue)
+
+def interwine_lists(a, b):
+    return [ z for item in zip(a, b) for z in item ]
 
 def expand_za(za, method="nndc", meta=0):
     z = int(za//1000)
@@ -297,3 +301,10 @@ def reshape_bfill(x, y, xnew, left_values="first", right_values=0):
             assume_sorted=True,
             )
     return foo(xnew)
+
+def add_delimiter_every_n_characters(string, step, delimiter=" "):
+    return delimiter.join(string[i:i+step] for i in range(0, len(string), step))
+
+def add_exp_in_endf6_text(text):
+    pattern = re.compile("([0-9\.])([+-])([0-9])")
+    return pattern.sub("\g<1>E\g<2>\g<3>", text)

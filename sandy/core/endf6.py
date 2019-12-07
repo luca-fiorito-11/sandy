@@ -8,53 +8,49 @@ import pdb
 import logging
 import io
 
-import numpy as np
 import pandas as pd
 
 import sandy
 
 __author__ = "Luca Fiorito"
 __all__ = [
+        "Endf6",
         ]
 
 class _FormattedFile():
-    """This class is to be inherited by  all classes that parse and analyze 
-    nuclear data evaluated files in ENDF-6 or derived (ERRORR) formats.
-    
-    **Index**:
-        
-        - MAT : (`int`) MAT number to identify the isotope
-        - MF : (`int`) MF number to identify the data type
-        - MT : (`int`) MT number to identify the reaction
-
-    **Columns**:
-
-        - TEXT : (`string`) MAT/MF/MT section reported as a single string
+    """
+    Base class to store ENDF-6 content grouped by `(MAT, MF, MT)`
     
     Attributes
     ----------
-    labels : `list` of `str`
-        index labels MAT, MT and MT
+    data
+    
+    keys
+    
+    mat : `int`
+        MAT number.
+    mf : `int`
+        MF number.
+    mt : `int`
+        MT number
 
     Methods
     -------
     add_sections
-        Collapse two tapes into a single one
-    delete_sections
-        Delete sections from the dataframe
+        Add text section for given `(MAT, MF, MT)`.
     filter_by
-        Filter dataframe based on MAT, MF, MT lists
+        Filter dataframe based on `(MAT, MF, MT)` lists.
     from_file
-        Create dataframe by reading a endf6 file
+        Create dataframe by reading a ENDF-6 file.
     from_text
-        Create dataframe from endf6 text in string
+        Create dataframe from endf6 text in string.
+    to_series
+        Covert content into `pandas.Series`.
     
-    Raises
-    ------
-    `SandyError`
-        if the tape is empty
-    `SandyError`
-        if the same combination MAT/MF/MT is found more than once
+    Notes
+    -----
+    This class supports ENDF-6 content from ENDF-6 files, ERRORR files and 
+    GROUPR files.
     """
     def __repr__(self):
         return self.to_series().__repr__()
@@ -94,23 +90,27 @@ class _FormattedFile():
         if not isinstance(data, dict):
             raise sandy.Error("'data' is not a 'dict'")
         self._data = data
-        
+
     @property
     def keys(self):
+        return self.data.keys()
+
+    @property
+    def _keys(self):
         mat, mf, mt = zip(*self.data.keys())
         return {"MAT" : mat, "MF" : mf, "MT" : mt}
 
     @property
     def mat(self):
-        return sorted(set(self.keys["MAT"]))
+        return sorted(set(self._keys["MAT"]))
 
     @property
     def mf(self):
-        return sorted(set(self.keys["MF"]))
+        return sorted(set(self._keys["MF"]))
 
     @property
     def mt(self):
-        return sorted(set(self.keys["MT"]))
+        return sorted(set(self._keys["MT"]))
     
     def to_series(self):
         series = pd.Series(self.data, name=self.file).sort_index(ascending=True)
@@ -157,7 +157,9 @@ class _FormattedFile():
             names=["TEXT", "MAT", "MF", "MT"],
             dtype={"TEXT" : str, "MAT" : int, "MF" : int, "MT" : int},
             na_filter=False, # speeds up and does not add NaN in empty lines
+            usecols = ("MAT", "MF", "MT") # Do not use TEXT beacuse  the parser does not preserve the whitespaces
         )
+        df["TEXT"] = text.splitlines() # use splitlines instead of readlines to remove ""\n"
         data = df[(df.MT>0) & (df.MF>0) & (df.MAT>0)].groupby(["MAT", "MF", "MT"]).agg({"TEXT" : "\n".join}).TEXT
         return cls(data.to_dict())
 
@@ -239,23 +241,18 @@ class _FormattedFile():
 
 
 class Endf6(_FormattedFile):
-    """Class to contain the content of ENDF-6 files, grouped by MAT/MF/MT.
-    
-    **Index**:
-        
-        - MAT : (`int`) MAT number to identify the isotope
-        - MF : (`int`) MF number to identify the data type
-        - MT : (`int`) MT number to identify the reaction
-
-    **Columns**:
-
-        - TEXT : (`string`) MAT/MF/MT section reported as a single string
+    """
+    Container for ENDF-6 file text grouped by MAT, MF and MT numbers.
     
     Methods
     -------
+    read_section
+        Parse MAT/MF/MT section.
+    write_string
+        Write ENDF-6 content to string.
     """
 
-    def get_nsub(self):
+    def _get_nsub(self):
         """
         Determine ENDF-6 sub-library type by reading flag "NSUB" of first MAT in file:
             
@@ -269,65 +266,67 @@ class Endf6(_FormattedFile):
         """
         return self.read_section(self.mat[0], 1, 451)["NSUB"]
 
-    def read_section(self, mat, mf, mt):
-        """Parse MAT/MF/MT section.
+    def _get_section_df(self, mat, mf, mt, delimiter="?"):
         """
-        if mf == 1:
-            foo = mf1.read
-        elif mf == 3:
-            foo = mf3.read
-        elif mf == 4:
-            foo = mf4.read
-        elif mf == 5:
-            foo = mf5.read
-        elif mf == 8:
-            foo = mf8.read
-        elif mf == 33 or mf == 31:
-            foo = mf33.read
-        elif mf == 34:
-            foo = mf34.read
-        elif mf == 35:
-            foo = mf35.read
-        else:
-            raise SandyError("SANDY cannot parse section MAT{}/MF{}/MT{}".format(mat,mf,mt))
-        if (mat,mf,mt) not in self.index:
-            raise SandyError("section MAT{}/MF{}/MT{} is not in tape".format(mat,mf,mt))
-        return foo(self.loc[mat,mf,mt].TEXT)
-
-    def write_string(self, title=" "*66, skip_title=False, skip_fend=False):
-        """Collect all rows in `Endf6` and write them into string.
+        """
+        text = self.data[(mat,mf,mt)]
+        foo = lambda x : sandy.shared.add_delimiter_every_n_characters(x[:66], 11, delimiter=delimiter)
+        newtext = "\n".join(map(foo, text.splitlines()))
+        df = pd.read_csv(
+            io.StringIO(sandy.shared.add_exp_in_endf6_text(newtext)),
+            delimiter=delimiter,
+            na_filter=True,
+            names=["C1", "C2", "L1", "L2", "N1", "N2"],
+        )
+        return df
+    
+    def read_section(self, mat, mf, mt):
+        """
+        Parse MAT/MF/MT section.
+        
         
         Parameters
         ----------
-        title : `str`
-            title of the file
-        skip_title : `bool`
-            do not write the title
-        skip_fend : `bool`
-            do not write the last FEND line
+        `mat` : int
+            MAT number
+        `mf` : int
+            MF number
+        `mt` : int
+            MT number
+
+        Returns
+        -------
+        `dict`
+        """
+        foo = eval("sandy.read_mf{}".format(mf))
+        return foo(self, mat, mt)
+
+    def write_string(self, title="", skip_title=False, skip_fend=False):
+        """
+        Write ENDF-6 content to string.
+        
+        Parameters
+        ----------
+        title : `str`, optional, default is an empty string
+            first line of the file
 
         Returns
         -------
         `str`
+            string containing the ENDF-6 information stored in this instance.
         """
-        from .records import write_cont
-        tape = self.copy()
-        string = ""
-        if not skip_title:
-            string += "{:<66}{:4}{:2}{:3}{:5}\n".format(title, 1, 0, 0, 0)
-        for mat,dfmat in tape.groupby('MAT', sort=True):
+        string = sandy.write_line(title, 1, 0, 0, 0) + "\n"
+        for mat,dfmat in self.to_series().groupby('MAT', sort=True):
             for mf,dfmf in dfmat.groupby('MF', sort=True):
-                for mt,dfmt in dfmf.groupby('MT', sort=True):
-                    for text in dfmt.TEXT:
-                        string += text.encode('ascii', 'replace').decode('ascii')
-                    string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), int(mat), int(mf), 0, 99999)
-                string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), int(mat), 0, 0, 0)
-            string += "{:<66}{:4}{:2}{:3}{:5}\n".format(*write_cont(*[0]*6), 0, 0, 0, 0)
-        if not skip_fend:
-            string += "{:<66}{:4}{:2}{:3}{:5}".format(*write_cont(*[0]*6), -1, 0, 0, 0)
+                for mt,text in dfmf.groupby('MT', sort=True):
+                    string += text.squeeze().encode('ascii', 'replace').decode('ascii')  + "\n"
+                    string += sandy.write_line("", mat, mf, 0, 99999) + "\n"
+                string += sandy.write_line("", mat, 0, 0, 0) + "\n"
+            string += sandy.write_line("", 0, 0, 0, 0) + "\n"
+        string += sandy.write_line("", -1, 0, 0, 0)
         return string
 
-    def update_info(self, descr=None):
+    def _update_info(self, descr=None):
         """Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
         """
         from .mf1 import write
@@ -356,12 +355,6 @@ class Endf6(_FormattedFile):
             tape.loc[mat,1,451].TEXT = text
         return Endf6(tape)
 
-    def delete_cov(self):
-        """Delete covariance sections (MF>=30) from Endf6 dataframe.
-        """
-        tape = self.query("MF<30")
-        return Endf6(tape)
-
     def parse(self):
         mats = self.index.get_level_values("MAT").unique()
         if len(mats) > 1:
@@ -375,3 +368,4 @@ class Endf6(_FormattedFile):
         self.SECTIONS = self.loc[INFO["MAT"]].reset_index()["MF"].unique()
         self.EHRES = 0
         self.THNMAX = - self.EHRES if self.EHRES != 0 else 1.0E6
+

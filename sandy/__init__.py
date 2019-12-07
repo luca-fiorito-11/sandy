@@ -1,10 +1,11 @@
 import logging
 import sys
 
-from sandy.formats import *
+from sandy.formats import read_formatted_file
 from sandy.settings import *
 from sandy.decay import *
 from sandy.njoy import *
+from sandy.sections import *
 from .core import *
 import sandy.tools
 import sandy.shared

@@ -145,7 +145,7 @@ class Xs():
     _columnsnames = ["MAT", "MT"]
     
     def __repr__(self):
-        return self.data.__repr__()
+        return self.data.head().__repr__()
     
     def __init__(self, df, isotope=None):
         self.data = df
@@ -172,6 +172,8 @@ class Xs():
         
         Raises
         ------
+        `sandy.Error`
+            if `data` is not a `pandas.DataFrame`
         `sandy.Error`
             if energy grid is not monotonically increasing
         """
@@ -274,14 +276,13 @@ class Xs():
         `sandy.Endf6`
             `Endf6` instance with updated xs
         """
-        tape = endf6.copy()
-        df = self.data
+        data = endf6.data.copy()
         mf = 3
-        for (mat,mt),xs in df.iteritems():
+        for (mat,mt),xs in self.data.iteritems():
             # Must read original section to extract info not given in `Xs` instance, e.g. QI, QM
-            if (mat,mf,mt) not in df.index:
+            if (mat,mf,mt) not in endf6.keys:
                 continue
-            sec = self.read_section(mat,mf,mt)
+            sec = endf6.read_section(mat, mf, mt)
             # Cut threshold xs
             ethresh = sec["E"][0]
             xs = xs.where(xs.index >= ethresh).dropna()
@@ -290,9 +291,8 @@ class Xs():
             # Assume all xs have only 1 interpolation region and it is linear
             sec["NBT"] = [xs.size]
             sec["INT"] = [2]
-            text = sandy.formats.mf3.write(sec)
-            tape.loc[mat,mf,mt].TEXT = text
-        return sandy.Endf6(tape)
+            data[mat, mf, mt] = sandy.write_mf3(sec)
+        return sandy.Endf6(data)
         
     @classmethod
     def from_endf6(self, endf6):
@@ -304,7 +304,7 @@ class Xs():
         .. note:: missing points are linearly interpolated if inside the energy domain, 
                   else zero is assigned.
 
-        .. note:: duplicate energy points will be removed, only the first one is kept.
+        .. note:: 
         
         Parameters
         ----------
@@ -313,8 +313,8 @@ class Xs():
         
         Returns
         -------
-        `Xs`
-            xs/nubar tabulated data
+        `sandy.Xs`
+            xs tabulated data
 
         Raises
         ------
@@ -322,14 +322,27 @@ class Xs():
             if interpolation scheme is not lin-lin
         `sandy.Error`
             if requested cross section was not found
+        
+        Warns
+        -----
+        `logging.warning`
+            if duplicate energy points are found
+        
+        Notes
+        -----
+        .. note:: Cross sections are linearized on a unique grid.
+        
+        .. note:: Missing points are linearly interpolated if inside the energy domain, 
+                  else zero is assigned.
+        
+        .. note:: Duplicate energy points will be removed, only the first one is kept.
         """
         tape = endf6.filter_by(listmf=[3])
         data = []
-        # Loop MAT/MF/MT
         keep = "first"
-        for (mat,mf,mt),text in tape.TEXT.iteritems():
+        for mat, mf, mt in tape.data:
             sec = tape.read_section(mat, mf, mt)
-            xs = pd.Series(sec["XS"], index=sec["E"], name=(sec["MAT"],sec["MT"])).rename_axis("E").to_frame()
+            xs = pd.Series(sec["XS"], index=sec["E"], name=(mat, mt)).rename_axis("E").to_frame()
             mask_duplicates = xs.index.duplicated(keep=keep)
             for energy in xs.index[mask_duplicates]:
                 logging.warning("found duplicate energy for MAT{}/MF{}/MT{} at {:.5e} MeV, keep only {} value".format(mat, mf, mt, energy, keep))
@@ -438,6 +451,7 @@ class Xs():
         frame = pd.concat(listxs, axis=1).reindex(eg, method="ffill")
         return Xs(frame)
    
+
 
 def _from_file(file, sep=None, **kwargs):
     """

@@ -60,6 +60,8 @@ class Lpc():
         Update cross sections in `Endf6` instance
     from_endf6
         Extract cross sections/nubar from `Endf6` instance
+    to_tpd
+        Convert `Lpc` instance to `Tpd` instance.
     """
     
     _indexnames = ["MAT", "MT", "E"]
@@ -220,23 +222,22 @@ class Lpc():
                      section we need info that is not available in the `Lpc` 
                      instance itself.
         """
-        tape = endf6.copy()
-        df = self.data
+        data = endf6.data.copy()
         mf = 4
-        for (mat,mt),group in df.groupby(["MAT", "MT"]):
+        for (mat,mt),group in self.data.groupby(["MAT", "MT"]):
             # Must read original section to extract info not given in `Lpc` instance
-            if (mat,mf,mt) not in endf6.index:
+            if (mat,mf,mt) not in endf6.keys:
                 continue
-            sec = endf6.read_section(mat,mf,mt)
+            sec = endf6.read_section(mat, mf, mt)
             if "LPC" not in sec:
                 continue
             for e in group.loc[mat,mt].index:
                 T  = sec["LPC"]["E"][e]["T"]  if e in sec["LPC"]["E"] else 0
                 LT = sec["LPC"]["E"][e]["LT"] if e in sec["LPC"]["E"] else 0
-                coeff = group.loc[mat,mt,e]
+                coeff = group.loc[mat, mt, e]
                 len_coeff = coeff.ne(0).idxmin()
-                if len_coeff < 4:
-                    len_coeff = 4
+                if len_coeff < 5:
+                    len_coeff = 5
                 # reduce number of coefficient for each energy by cutting the zeros
                 # (keep at least 4 coefficients)
                 dict_distr = {"COEFF" : coeff[1:len_coeff],
@@ -246,9 +247,8 @@ class Lpc():
                 sec["LPC"]["E"].update({e : dict_distr})
             sec["LPC"]["NBT"] = [len(sec["LPC"]["E"])]
             sec["LPC"]["INT"] = [2]
-            text = sandy.formats.mf4.write(sec)
-            tape.loc[mat,mf,mt].TEXT = text
-        return sandy.Endf6(tape)
+            data[mat, mf, mt] = sandy.write_mf4(sec)
+        return sandy.Endf6(data)
     
     def _to_tab(self, mat, mt, e, cosines):
         """Return tabulated angular distribution for given MAT, MT and energy point.
@@ -265,7 +265,7 @@ class Lpc():
         adistr = legendre.legval(cosines, c)
         return pd.Series(adistr, index=cosines, name=(mat,mt,e))
 
-    def add_points(self, extra_points):
+    def _add_points(self, extra_points):
         """
         Add additional entries to Lpc incoming energies.
         """
@@ -286,7 +286,7 @@ class Lpc():
             List.append(rdf)
         return Lpc(pd.concat(List, axis=0))
 
-    def perturb(self, pert, method=2, **kwargs):
+    def _perturb(self, pert, method=2, **kwargs):
         """Perturb Legendre polynomials coefficients given a set of perturbations.
         
         Parameters
@@ -331,13 +331,10 @@ class Lpc():
     
     def to_tpd(self, cosines=np.linspace(-1,1,101)):
         """
-        Convert Lpc instance to Tpd instance.
-        Keep indexes.
+        Convert `Lpc` instance to `Tpd` instance.
         """
         df = self.data.T.agg(lpc_to_tpd, cosines=cosines).T
         return Tpd(df)
-        out = pd.DataFrame([self._to_tab(mat, mt, e, cosines=cosines) for mat,mt,e in self.index], index=self.index)
-        return Tpd(out)
     
     @classmethod
     def from_endf6(cls, endf6):
@@ -353,17 +350,21 @@ class Lpc():
         -------
         `Lpc`
             Legendre polynomial coefficient data
+        
+        Raises
+        ------
+        `sandy.Error`
+            if requested LPC were not found
 
-        Warns
-        -----
+        Warnings
+        --------
         `logging.warn`
             skip section if coefficiets request an interpolation scheme over 
             energy that is not lin-lin.
         """
         tape = endf6.filter_by(listmf=[4])
         data = []
-        # Loop MAT/MF/MT
-        for (mat,mf,mt),text in tape.TEXT.iteritems():
+        for mat, mf, mt in tape.data:
             sec = tape.read_section(mat, mf, mt)
             if "LPC" not in sec:
                 continue
@@ -375,11 +376,9 @@ class Lpc():
                 series = pd.Series(coefficients, name=(sec["MAT"], sec["MT"], energy))
                 data.append(series)
         if not data:
-            logging.warn("no LPC section was found")
-            return
+            raise sandy.Error("requested LPC were not found")
         df = pd.DataFrame(data).fillna(0)
-        names = ["MF", "MT", "E"]
-        df.index = pd.MultiIndex.from_tuples(df.index, names=names)
+        df.index = pd.MultiIndex.from_tuples(df.index, names=["MF", "MT", "E"])
         return Lpc(df)
 
 
