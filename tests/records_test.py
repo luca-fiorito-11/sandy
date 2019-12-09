@@ -3,22 +3,22 @@ import pytest
 import sandy
 
 
-@pytest.mark.parametrize(
-        "lines, expected",
-        [
-                ([' 3.50000000-4.00000000          6          7          8     -64649'], (3.5, -4, 6, 7, 8, -64649)),
-                ]
-        )
-def test_read_cont(lines, expected):
-    ipos = 0
-    C, ipos = sandy.read_cont(lines, ipos)
-    assert ipos == 1
-    assert C.C1 == 3.5
-    assert C.C2 == -4
-    assert C.L1 == 6
-    assert C.L2 == 7
-    assert C.N1 == 8
-    assert C.N2 == -64649
+#@pytest.mark.parametrize(
+#        "lines, expected",
+#        [
+#                ([' 3.50000000-4.00000000          6          7          8     -64649'], (3.5, -4, 6, 7, 8, -64649)),
+#                ]
+#        )
+#def test_read_cont(lines, expected):
+#    ipos = 0
+#    C, ipos = sandy.read_cont(lines, ipos)
+#    assert ipos == 1
+#    assert C.C1 == 3.5
+#    assert C.C2 == -4
+#    assert C.L1 == 6
+#    assert C.L2 == 7
+#    assert C.N1 == 8
+#    assert C.N2 == -64649
 
 
 
