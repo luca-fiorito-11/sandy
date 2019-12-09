@@ -129,37 +129,18 @@ class Lpc():
         -------
         `Lpc`
             lpc instance with given series polynomial coefficient perturbed
-        
-        Warns
-        -----
-        `logging.warning`
-            if requested `mat` was not found
-        `logging.warning`
-            if requested `mt` was not found
-        `logging.warning`
-            if requested polynomial `p` was not found
         """
-        if mat not in self.data.index.get_level_values("MAT"):
-            logging.warning("could not find MAT{}, perturbation will not be applied".format(mat))
-            u_lpc = self
-        elif mt not in self.data.loc[mat].index.get_level_values("MT"):
-            logging.warning("could not find MT{}, perturbation will not be applied".format(mt))
-            u_lpc = self
-        elif p not in self.data.loc[(mat,mt)]:
-            logging.warning("could not find P{}, perturbation will not be applied".format(p))
-            u_lpc = self
-        else:
-            eg = self.data.loc[(mat,mt)].index.values
-            enew = np.union1d(eg, pert.right.index.values)
-            u_lpc = self.reshape(enew)
-            u_pert = pert.reshape(enew)
-            u_lpc.data.loc[(mat,mt)][p] *= u_pert.right.values
+        eg = self.data.loc[(mat,mt)].index.values
+        enew = np.union1d(eg, pert.right.index.values)
+        u_lpc = self.reshape(enew, selected_mat=mat, selected_mt=mt)
+        u_pert = pert.reshape(enew)
+        u_lpc.data.loc[(mat,mt)][p] *= u_pert.right.values
         if inplace:
             self.data = u_lpc.data
         else:
             return Lpc(u_lpc.data)
 
-    def reshape(self, eg, inplace=False):
+    def reshape(self, eg, selected_mat=None, selected_mt=None, inplace=False):
         """
         Linearly interpolate Legendre polynomial coefficients 
         over new grid structure.
@@ -168,6 +149,10 @@ class Lpc():
         ----------
         eg : array-like object
             new energy grid
+        selected_mat : `int`, optional, default is `None`
+            MAT number for which the reshape will apply (all MAT by default)
+        selected_mt : `int`, optional, default is `None`
+            MT number for which the reshape will apply (all MT by default)
         inplace : `bool`, optional, default is `False`
             flag to activate inplace replacement
         
@@ -183,6 +168,14 @@ class Lpc():
         """
         listdf = []
         for (mat,mt),df in self.data.groupby(["MAT","MT"]):
+            if selected_mat:
+                if mat != selected_mat:
+                    listdf.append(df)
+                    continue
+            if selected_mt:
+                if mt != selected_mt:
+                    listdf.append(df)
+                    continue
             df = df.T[mat][mt].T
             enew = df.index.union(eg).astype("float").rename("E")
             valsnew = sandy.shared.reshape_differential(df.index.values, df.values, enew)
@@ -235,12 +228,12 @@ class Lpc():
                 T  = sec["LPC"]["E"][e]["T"]  if e in sec["LPC"]["E"] else 0
                 LT = sec["LPC"]["E"][e]["LT"] if e in sec["LPC"]["E"] else 0
                 coeff = group.loc[mat, mt, e]
-                len_coeff = coeff.ne(0).idxmin()
-                if len_coeff < 5:
-                    len_coeff = 5
+                len_coeff = coeff.ne(0)[::-1].idxmax()
+                if len_coeff < 4:
+                    len_coeff = 4
                 # reduce number of coefficient for each energy by cutting the zeros
                 # (keep at least 4 coefficients)
-                dict_distr = {"COEFF" : coeff[1:len_coeff],
+                dict_distr = {"COEFF" : coeff[1:len_coeff+1],
                               "LT" : LT,
                               "T" : T,
                               }

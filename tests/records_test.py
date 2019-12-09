@@ -3,31 +3,24 @@ import pytest
 import sandy
 
 
-#@pytest.mark.parametrize(
-#        "line, expected",
-#        [
-#                (" 0.000000+0 0.000000+0          0          0          1       3201", (0, 0,)),
-#                ("2+4", 6),
-#                ("6*9", 42),
-#                ]
-#        )
-#def test_read_cont():
-#    text = [' 0.000000+0 0.000000+0          0          0          1       3201']
-#    ipos = 0
-#    (C1, C2, L1, L2, N1, N2), ipos = sandy.records.read_cont(text, ipos)
-#    assert ipos == 1
-#    assert isinstance(C1, float)
-#    assert isinstance(C1, float)
-#    assert isinstance(L1, int)
-#    assert isinstance(L2, int)
-#    assert isinstance(N1, int)
-#    assert isinstance(N1, int)
-#    assert C1 == 0
-#    assert C2 == 0
-#    assert L1 == 0
-#    assert L2 == 0
-#    assert N1 == 1
-#    assert N2 == 3201
+@pytest.mark.parametrize(
+        "lines, expected",
+        [
+                ([' 3.50000000-4.00000000          6          7          8     -64649'], (3.5, -4, 6, 7, 8, -64649)),
+                ]
+        )
+def test_read_cont(lines, expected):
+    ipos = 0
+    C, ipos = sandy.read_cont(lines, ipos)
+    assert ipos == 1
+    assert C.C1 == 3.5
+    assert C.C2 == -4
+    assert C.L1 == 6
+    assert C.L2 == 7
+    assert C.N1 == 8
+    assert C.N2 == -64649
+
+
 
 @pytest.mark.parametrize(
         "value, expected",
