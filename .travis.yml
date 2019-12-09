@@ -31,7 +31,7 @@ install:
   - python setup.py install
 
 script:
-  - pytest --nbval --cov=sandy/
+  - pytest --cov=sandy/
 
 after_success:
   - coveralls
