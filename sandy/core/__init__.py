@@ -4,6 +4,7 @@ from .xs import *
 from .lpc import *
 from .pfns import *
 from .cov import *
+from .samples import *
 from .basecov import *
 from .ecov import *
 from .xscov import *
