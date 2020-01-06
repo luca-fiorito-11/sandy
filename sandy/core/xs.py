@@ -20,72 +20,6 @@ section values.
 
 .. _Examples:
 
-Examples
-========
-
-Extract cross sections from ENDF-6 file
----------------------------------------
-
-First, import `sandy` and define the ENDF-6 file name with its absolute path or a path 
-relative to the current working directory.
-
->>> import sandy
->>> file = "path/to/endf6/file.txt"
-
-Second, import the text content of the file into a hierarchical object `Endf6`.
-
->>> tape = sandy.read_formatted_file(file)
-
-Then, extract all cross sections into a dedicated object.
-
->>> xs = sandy.Xs.from_endf6(tape)
->>> xs
-
-The last command shows you the content of the object `xs`.
-
-How to apply a custom perturbation to a given cross section
------------------------------------------------------------
-
-To apply an energy dependent perturbation to a given cross section you must 
-first create the perturbation object.
-This can be done by reading the perturbation coefficients from a `.csv` file, as 
-
->>> file = "path/to/perturbation/file.csv"
->>> pert = sandy.Pert.from_file(file, sep=",")
-
-Notice that we specified the column separator as `","`, the default separator 
-used in `.csv` files.
-
-To apply the perturbation to the U-238 fission cross section `(mat=9228, mt=18)` 
-stored in `xs` you can 
-
->>> mat, mt = 9237, 18
->>> xspert = xs.custom_perturbation(mat, mt, pert)
->>> xspert
-
-.. _Routines:
-
-How to update a `Endf6` object with a modified cross section
-------------------------------------------------------------
-
-Modified cross sections contained in a `Xs` instance `xspert` can be rewritten into 
-text ENDF-6 ascii format and used to update a `Endf6` instance.
- 
->>> # `tape` is our `Endf6` instance
->>> newtape = xspert.to_endf6(tape) # newtape is the updated `Endf6` instance
-
-Notice that only the cross sections originally present in `tape` are updated.
-Cross sections present in `xs` and not in `tape` are neglected
-
-
-How to create a text file from a `Endf6` object
------------------------------------------------
->>> output = "path/to/output/file.txt"
-
->>> string = tape.write_string()
->>> with open(output, 'w') as f:
->>>    f.write()
->>>
 
 Routines
 ========
@@ -103,7 +37,23 @@ import sandy
 __author__ = "Luca Fiorito"
 __all__ = [
         "Xs",
+        "redundant_xs",
         ]
+
+
+
+redundant_xs = {107 : range(800,850),
+                106 : range(750,800),
+                105 : range(700,750),
+                104 : range(650,700),
+                103 : range(600,650),
+                101 : range(102,118),
+                18 : (19,20,21,38),
+                27 : (18,101),
+                4 : range(50,92),
+                3 : (4,5,11,16,17,*range(22,38),41,42,44,45),
+                1 : (2,3),
+                452 : (455,456)}
 
 
 
@@ -358,21 +308,36 @@ class Xs():
                        fillna(0)
         return Xs(df)
 
-    def _reconstruct_sums(self, drop=True):
+    def _reconstruct_sums(self, drop=True, inplace=False):
         """
         Reconstruct redundant xs.
         """
-        frame = self.copy()
-        for mat in frame.columns.get_level_values("MAT").unique():
-            for parent, daughters in sorted(Xs.redundant_xs.items(), reverse=True):
-                daughters = [ x for x in daughters if x in frame[mat]]
+        df = self.data.copy()
+        for mat in self.data.columns.get_level_values("MAT").unique():
+            for parent, daughters in sorted(redundant_xs.items(), reverse=True):
+                daughters = [x for x in daughters if x in df[mat]]
                 if daughters:
-                    frame[mat,parent] = frame[mat][daughters].sum(axis=1)
+                    df[mat,parent] = df[mat][daughters].sum(axis=1)
             # keep only mts present in the original file
             if drop:
-                todrop = [ x for x in frame[mat].columns if x not in self.columns.get_level_values("MT") ]
-                frame.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
-        return Xs(frame)
+                todrop = [x for x in df[mat].columns if x not in self.data[mat].columns]
+                cols_to_drop = pd.MultiIndex.from_product([[mat], todrop])
+                df.drop(cols_to_drop, axis=1, inplace=True)
+        if inplace:
+            self.data = df
+        else:
+            return Xs(df)
+#        frame = self.copy()
+#        for mat in frame.columns.get_level_values("MAT").unique():
+#            for parent, daughters in sorted(Xs.redundant_xs.items(), reverse=True):
+#                daughters = [ x for x in daughters if x in frame[mat]]
+#                if daughters:
+#                    frame[mat,parent] = frame[mat][daughters].sum(axis=1)
+#            # keep only mts present in the original file
+#            if drop:
+#                todrop = [ x for x in frame[mat].columns if x not in self.columns.get_level_values("MT") ]
+#                frame.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
+#        return Xs(frame)
 
     def _perturb(self, pert, method=2, **kwargs):
         """Perturb cross sections/nubar given a set of perturbations.
@@ -450,38 +415,3 @@ class Xs():
         # Use concat instead of merge because indexes are the same
         frame = pd.concat(listxs, axis=1).reindex(eg, method="ffill")
         return Xs(frame)
-   
-
-
-def _from_file(file, sep=None, **kwargs):
-    """
-    Initialize `Xs` object reading it from file.
-    The given shall contain energy values in the first column and pointwise 
-    cross sections in the the reaining columns (each column is a different xs).
-    The default column separator is `'\\s+'` or a separator 
-    accepted by `numpy.genfromtxt`.
-    
-    Parameters
-    ----------
-    file : `str`
-        file name (absolute or relative path)
-    sep : `str`, optional, default `None`
-        column separator. By default it takes the `numpy.genfromtxt` 
-        default separator `'\\s+'`
-    **kwargs : `numpy.genfromtxt` properties, optional
-    
-    Returns
-    -------
-    `Xs`
-        Container for pointwise cross sections
-
-    Raises
-    ------
-    `aleph.Error`
-        if the file containing the spectrum has less than two columns
-    """
-    data = np.genfromtxt(file, dtype=float, delimiter=sep, **kwargs)
-    if data.ndim < 2:
-        raise sandy.Error("at least 2 columns should be given in the file")
-    df = pd.DataFrame(data[:,1], index=data[:,0])
-    return Xs(df)
