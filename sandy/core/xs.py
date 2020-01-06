@@ -295,7 +295,7 @@ class Xs():
         return sandy.Endf6(data)
         
     @classmethod
-    def from_endf6(self, endf6):
+    def from_endf6(cls, endf6):
         """
         Extract cross sections from `Endf6` instance.
         
@@ -356,7 +356,7 @@ class Xs():
         df = functools.reduce(lambda left,right : pd.merge(left, right, left_index=True, right_index=True, how='outer'), data).\
                        interpolate(method='slinear', axis=0). \
                        fillna(0)
-        return Xs(df)
+        return cls(df)
 
     def _reconstruct_sums(self, drop=True):
         """
