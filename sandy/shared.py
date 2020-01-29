@@ -3,6 +3,7 @@ Collection of utilities, functions and classes that are requetsed in all code co
 """
 
 import pdb
+import os
 import re
 from itertools import zip_longest
 from scipy.constants import Avogadro
