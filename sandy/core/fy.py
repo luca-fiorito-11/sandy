@@ -28,6 +28,8 @@ Fy
 
 """
 import pdb
+import itertools
+import h5py
 import logging
 
 import numpy as np
@@ -232,33 +234,50 @@ class Fy():
         df = pd.DataFrame(data)
         return cls(df)
     
-    def _to_hdf5(self, file, lib):
+    def to_hdf5(self, file, library):
         """
         Write fission yield data to hdf5 file.
         
         Parameters
         ----------
         `file` : `str`
-            HDF5 filename (relative or absolute)
-        `lib` : `str`
+            HDF5 filename (relative or absolute path)
+        `library` : `str`
             library name
-        
-        Raises
-        ------
-        `sandy.Error`
-            ...
         
         Warns
         -----
         `logging.warning`
-            ...
+            raise a warning if any hdf5 group key is already in used, still the 
+            existing group will be replaced
         
         Notes
         -----
-        .. note:: ...
+        .. note:: the group key for each set of fission yields contains
+                    * library: the lowercase name of the library
+                    * fy: key "fy"
+                    * kind: "independent" or "cumulative"
+                    * iZAM: the ZAM number proceeded by prefix "i"
+        .. note:: the energy values in the HDF5 file are in MeV
         """
-        # to be written
-        pass
+        # APPEND DATA TO HDF5 FILE
+        lib = library
+        with h5py.File(file, "a") as f:
+            for (zam, mt), df in self.data.groupby(["ZAM", "MT"]):
+                kind = "independent" if mt == 454 else "cumulative"
+                key = "{}/fy/{}/i{}".format(lib.lower(), kind, zam)
+                if key in f:
+                    logging.warning("hdf5 dataset '{}' already exists and will be replaced".format(key))
+                    del f[key]
+                else:
+                    logging.info("creating hdf5 dataset '{}'".format(key))
+                group = f.create_group(key)
+                group.attrs["isotope"] = zam
+                group.attrs["kind"] = kind
+                group.attrs["library"] = lib
+                tab = self.energy_table(mt, zam=zam)
+                tab.index *= 1e-6
+                tab.to_hdf(file, key, format="fixed")
 
     def _to_endf6(self, endf6):
         """
