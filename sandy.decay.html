@@ -1,0 +1,448 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sandy.decay module &mdash; SANDY API 0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.functions module" href="sandy.functions.html" />
+    <link rel="prev" title="sandy.sections.mf8 module" href="sandy.sections.mf8.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> SANDY API
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.decay module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#outline">Outline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#routines">Routines</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+        
+      <li>sandy.decay module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/sandy.decay.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-sandy.decay">
+<span id="sandy-decay-module"></span><h1>sandy.decay module<a class="headerlink" href="#module-sandy.decay" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="outline">
+<h2>Outline<a class="headerlink" href="#outline" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#summary">Summary</a></p></li>
+<li><p><a href="#id3"><span class="problematic" id="id4">Examples_</span></a></p></li>
+<li><p><a class="reference internal" href="#routines">Routines</a></p></li>
+</ol>
+</div>
+<div class="section" id="summary">
+<span id="id1"></span><h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<p>This module contains all classes and functions dedicated to the processing and 
+analysis of a decay data.</p>
+</div>
+<div class="section" id="routines">
+<span id="id2"></span><h2>Routines<a class="headerlink" href="#routines" title="Permalink to this headline">¶</a></h2>
+<p>endf2hdf</p>
+<dl class="py class">
+<dt id="sandy.decay.DecayData">
+<em class="property">class </em><code class="sig-prename descclassname">sandy.decay.</code><code class="sig-name descname">DecayData</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dct</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Container of radioactive nuclide data for several isotopes.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><a class="reference internal" href="#sandy.decay.DecayData.data" title="sandy.decay.DecayData.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a><span class="classifier"><cite>dict</cite></span></dt><dd><p>Dictionary of RDD content.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.DecayData.get_bmatrix" title="sandy.decay.DecayData.get_bmatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_bmatrix</span></code></a>(**kwargs)</p></td>
+<td><p>Extract B-matrix into dataframe.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.decay.DecayData.get_decay_chains" title="sandy.decay.DecayData.get_decay_chains"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_decay_chains</span></code></a>(**kwargs)</p></td>
+<td><p>Extract decay chains into dataframe.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.DecayData.get_qmatrix" title="sandy.decay.DecayData.get_qmatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_qmatrix</span></code></a>([keep_neutrons])</p></td>
+<td><p>Extract Q-matrix dataframe.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.decay.DecayData.get_transition_matrix" title="sandy.decay.DecayData.get_transition_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_transition_matrix</span></code></a>()</p></td>
+<td><p>Extract transition matrix into dataframe.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.DecayData.from_endf6" title="sandy.decay.DecayData.from_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_endf6</span></code></a>(endf6)</p></td>
+<td><p>Extract hierarchical structure of decay data from <cite>sandy.Endf6</cite> instance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.decay.DecayData.from_hdf5" title="sandy.decay.DecayData.from_hdf5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_hdf5</span></code></a>(filename, lib)</p></td>
+<td><p>Extract hierarchical structure of decay data from hdf5 file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.DecayData.to_hdf5" title="sandy.decay.DecayData.to_hdf5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_hdf5</span></code></a>(filename, lib)</p></td>
+<td><p>Write decay data to hdf5 file.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="sandy.decay.DecayData.data">
+<em class="property">property </em><code class="sig-name descname">data</code><a class="headerlink" href="#sandy.decay.DecayData.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary of RDD content.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>dict</cite></dt><dd><p>hierarchical RDD content</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Error</cite></dt><dd><p>if <cite>data</cite> is not a dictionary</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.decay.DecayData.from_endf6">
+<em class="property">classmethod </em><code class="sig-name descname">from_endf6</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">endf6</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.from_endf6" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract hierarchical structure of decay data from <cite>sandy.Endf6</cite> instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>tape</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p>instance containing decay data</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>dict</cite></dt><dd><p>structured container with RDD.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>sandy.Error</cite></dt><dd><p>if no decay data is found</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.decay.DecayData.from_hdf5">
+<em class="property">classmethod </em><code class="sig-name descname">from_hdf5</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="n">lib</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.from_hdf5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract hierarchical structure of decay data from hdf5 file.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>filename</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>hdf5 filename (absolute or relative)</p>
+</dd>
+<dt><strong>lib</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>library ID contained in the hdf5 file</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>DecayData</cite></dt><dd><p>decay data object</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.decay.DecayData.get_bmatrix">
+<code class="sig-name descname">get_bmatrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_bmatrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract B-matrix into dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>B-matrix associated to the given decay chains</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.decay.DecayData.get_decay_chains">
+<code class="sig-name descname">get_decay_chains</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_decay_chains" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract decay chains into dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>decay chains dataframe</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>AssertionError</cite></dt><dd><p>when key <cite>“decay_mode”</cite> is not present but <cite>“decay_constant”</cite> is larger than 0</p>
+</dd>
+<dt><cite>AssertionError</cite></dt><dd><p>when key <cite>“decay_products”</cite> is not present and decay mode is not spontaneous fission</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.decay.DecayData.get_qmatrix">
+<code class="sig-name descname">get_qmatrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">keep_neutrons</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_qmatrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract Q-matrix dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>Q-matrix associated to the given decay chains</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.decay.DecayData.get_transition_matrix">
+<code class="sig-name descname">get_transition_matrix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_transition_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract transition matrix into dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>transition matrix associated to the given decay chains</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.decay.DecayData.to_hdf5">
+<code class="sig-name descname">to_hdf5</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="n">lib</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.to_hdf5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write decay data to hdf5 file.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>filename</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>name of the hdf5 file (with absolute or relative path)</p>
+</dd>
+<dt><strong>lib</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>name of the library that will be used</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="sandy.functions.html" class="btn btn-neutral float-right" title="sandy.functions module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="sandy.sections.mf8.html" class="btn btn-neutral float-left" title="sandy.sections.mf8 module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Luca Fiorito
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

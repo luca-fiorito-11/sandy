@@ -1,0 +1,538 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sandy.core.xs module &mdash; SANDY API 0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.core.xscov module" href="sandy.core.xscov.html" />
+    <link rel="prev" title="sandy.core.records module" href="sandy.core.records.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> SANDY API
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="sandy.core.html">sandy.core package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="sandy.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+        
+          <li><a href="sandy.core.html">sandy.core package</a> &raquo;</li>
+        
+      <li>sandy.core.xs module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/sandy.core.xs.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-sandy.core.xs">
+<span id="sandy-core-xs-module"></span><h1>sandy.core.xs module<a class="headerlink" href="#module-sandy.core.xs" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="outline">
+<h2>Outline<a class="headerlink" href="#outline" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#summary">Summary</a></p></li>
+<li><p><a class="reference internal" href="#examples">Examples</a></p></li>
+<li><p><a class="reference internal" href="#routines">Routines</a></p></li>
+</ol>
+</div>
+<div class="section" id="summary">
+<span id="id1"></span><h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<p>This module contains all classes and functions specific for the cross section 
+class <cite>Xs</cite> that acts as a container for energy-dependent tabulated cross 
+section values.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>once created, the <cite>Xs</cite> instance should be modified only 
+using its public API, to gurantee that the information 
+stored in its attributes is preserved.</p>
+</div>
+</div>
+<div class="section" id="examples">
+<span id="id2"></span><h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="extract-cross-sections-from-endf-6-file">
+<h3>Extract cross sections from ENDF-6 file<a class="headerlink" href="#extract-cross-sections-from-endf-6-file" title="Permalink to this headline">¶</a></h3>
+<p>First, import <cite>sandy</cite> and define the ENDF-6 file name with its absolute path or a path 
+relative to the current working directory.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">sandy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">file</span> <span class="o">=</span> <span class="s2">&quot;path/to/endf6/file.txt&quot;</span>
+</pre></div>
+</div>
+<p>Second, import the text content of the file into a hierarchical object <cite>Endf6</cite>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">read_formatted_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Then, extract all cross sections into a dedicated object.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">xs</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Xs</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">xs</span>
+</pre></div>
+</div>
+<p>The last command shows you the content of the object <cite>xs</cite>.</p>
+</div>
+<div class="section" id="how-to-apply-a-custom-perturbation-to-a-given-cross-section">
+<h3>How to apply a custom perturbation to a given cross section<a class="headerlink" href="#how-to-apply-a-custom-perturbation-to-a-given-cross-section" title="Permalink to this headline">¶</a></h3>
+<p>To apply an energy dependent perturbation to a given cross section you must 
+first create the perturbation object.
+This can be done by reading the perturbation coefficients from a <cite>.csv</cite> file, as</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">file</span> <span class="o">=</span> <span class="s2">&quot;path/to/perturbation/file.csv&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pert</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Pert</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Notice that we specified the column separator as <cite>“,”</cite>, the default separator 
+used in <cite>.csv</cite> files.</p>
+<p>To apply the perturbation to the U-238 fission cross section <cite>(mat=9228, mt=18)</cite> 
+stored in <cite>xs</cite> you can</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mat</span><span class="p">,</span> <span class="n">mt</span> <span class="o">=</span> <span class="mi">9237</span><span class="p">,</span> <span class="mi">18</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">xspert</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">custom_perturbation</span><span class="p">(</span><span class="n">mat</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">pert</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">xspert</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="how-to-update-a-endf6-object-with-a-modified-cross-section">
+<span id="routines"></span><h3>How to update a <cite>Endf6</cite> object with a modified cross section<a class="headerlink" href="#how-to-update-a-endf6-object-with-a-modified-cross-section" title="Permalink to this headline">¶</a></h3>
+<p>Modified cross sections contained in a <cite>Xs</cite> instance <cite>xspert</cite> can be rewritten into 
+text ENDF-6 ascii format and used to update a <cite>Endf6</cite> instance.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># `tape` is our `Endf6` instance</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">newtape</span> <span class="o">=</span> <span class="n">xspert</span><span class="o">.</span><span class="n">to_endf6</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span> <span class="c1"># newtape is the updated `Endf6` instance</span>
+</pre></div>
+</div>
+<p>Notice that only the cross sections originally present in <cite>tape</cite> are updated.
+Cross sections present in <cite>xs</cite> and not in <cite>tape</cite> are neglected</p>
+</div>
+<div class="section" id="how-to-create-a-text-file-from-a-endf6-object">
+<h3>How to create a text file from a <cite>Endf6</cite> object<a class="headerlink" href="#how-to-create-a-text-file-from-a-endf6-object" title="Permalink to this headline">¶</a></h3>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">output</span> <span class="o">=</span> <span class="s2">&quot;path/to/output/file.txt&quot;</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">string</span> <span class="o">=</span> <span class="n">tape</span><span class="o">.</span><span class="n">write_string</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">()</span>
+<span class="go">&gt;&gt;&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="id3">
+<h2>Routines<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="sandy.core.xs.Xs">
+<em class="property">class </em><code class="sig-prename descclassname">sandy.core.xs.</code><code class="sig-name descname">Xs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">isotope</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xs.Xs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Object for energy dependent cross sections.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><a class="reference internal" href="#sandy.core.xs.Xs.data" title="sandy.core.xs.Xs.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a><span class="classifier"><cite>pandas.DataFrame</cite></span></dt><dd><p>Dataframe of energy-dependent tabulated cross sections.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.xs.Xs.reshape" title="sandy.core.xs.Xs.reshape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reshape</span></code></a>(eg[, inplace])</p></td>
+<td><p>Linearly interpolate cross sections over new grid structure.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.xs.Xs.custom_perturbation" title="sandy.core.xs.Xs.custom_perturbation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">custom_perturbation</span></code></a>(mat, mt, pert[, inplace])</p></td>
+<td><p>Apply a custom perturbation to a given cross section identified by  a MAT and MT number.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.xs.Xs.to_endf6" title="sandy.core.xs.Xs.to_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_endf6</span></code></a>(endf6)</p></td>
+<td><p>Update cross sections in <cite>Endf6</cite> instance with those available in a  <cite>Xs</cite> instance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.xs.Xs.from_endf6" title="sandy.core.xs.Xs.from_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_endf6</span></code></a>(endf6)</p></td>
+<td><p>Extract cross sections from <cite>Endf6</cite> instance.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="sandy.core.xs.Xs.custom_perturbation">
+<code class="sig-name descname">custom_perturbation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mat</span></em>, <em class="sig-param"><span class="n">mt</span></em>, <em class="sig-param"><span class="n">pert</span></em>, <em class="sig-param"><span class="n">inplace</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xs.Xs.custom_perturbation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply a custom perturbation to a given cross section identified by 
+a MAT and MT number.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>mat</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT material number of the xs to which perturbations are to be applied</p>
+</dd>
+<dt><strong>mt</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MT reaction number of the xs to which perturbations are to be applied</p>
+</dd>
+<dt><strong>pert</strong><span class="classifier"><cite>sandy.Pert</cite></span></dt><dd><p>tabulated perturbations</p>
+</dd>
+<dt><strong>inplace</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>flag to activate inplace replacement</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>Xs</cite></dt><dd><p>cross section instance with given series MAT/MT perturbed</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.core.xs.Xs.data">
+<em class="property">property </em><code class="sig-name descname">data</code><a class="headerlink" href="#sandy.core.xs.Xs.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dataframe of energy-dependent tabulated cross sections.</p>
+<dl class="field-list">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>tabulated xs</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Error</cite></dt><dd><p>if <cite>data</cite> is not a <cite>pandas.DataFrame</cite></p>
+</dd>
+<dt><cite>sandy.Error</cite></dt><dd><p>if energy grid is not monotonically increasing</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><strong>index</strong><span class="classifier"><cite>pandas.Index</cite></span></dt><dd><p>energy grid in eV</p>
+</dd>
+<dt><strong>columns</strong><span class="classifier"><cite>pandas.MultiIndex</cite></span></dt><dd><p>MAT/MT indices</p>
+</dd>
+<dt><strong>values</strong><span class="classifier"><cite>numpy.array</cite></span></dt><dd><p>cross sections in barns</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.core.xs.Xs.from_endf6">
+<em class="property">classmethod </em><code class="sig-name descname">from_endf6</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">endf6</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xs.Xs.from_endf6" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract cross sections from <cite>Endf6</cite> instance.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>xs are linearized on a unique grid.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>missing points are linearly interpolated if inside the energy domain, 
+else zero is assigned.</p>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>`endf6`</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p><cite>Endf6</cite> instance</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Xs</cite></dt><dd><p>xs tabulated data</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>sandy.Error</cite></dt><dd><p>if interpolation scheme is not lin-lin</p>
+</dd>
+<dt><cite>sandy.Error</cite></dt><dd><p>if requested cross section was not found</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Warns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>logging.warning</cite></dt><dd><p>if duplicate energy points are found</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Cross sections are linearized on a unique grid.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Missing points are linearly interpolated if inside the energy domain, 
+else zero is assigned.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Duplicate energy points will be removed, only the first one is kept.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="sandy.core.xs.Xs.redundant_xs">
+<code class="sig-name descname">redundant_xs</code><em class="property"> = {1: (2, 3), 3: (4, 5, 11, 16, 17, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 41, 42, 44, 45), 4: range(50, 92), 18: (19, 20, 21, 38), 27: (18, 101), 101: range(102, 118), 103: range(600, 650), 104: range(650, 700), 105: range(700, 750), 106: range(750, 800), 107: range(800, 850), 452: (455, 456)}</em><a class="headerlink" href="#sandy.core.xs.Xs.redundant_xs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="sandy.core.xs.Xs.reshape">
+<code class="sig-name descname">reshape</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">eg</span></em>, <em class="sig-param"><span class="n">inplace</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xs.Xs.reshape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Linearly interpolate cross sections over new grid structure.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>eg</strong><span class="classifier">array-like object</span></dt><dd><p>new energy grid</p>
+</dd>
+<dt><strong>inplace</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>flag to activate inplace replacement</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>Xs</cite></dt><dd><p>cross section instance over new grid</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The new cross sections are tabulated over the union between 
+the old and the given energy grid</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.core.xs.Xs.to_endf6">
+<code class="sig-name descname">to_endf6</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">endf6</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xs.Xs.to_endf6" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update cross sections in <cite>Endf6</cite> instance with those available in a 
+<cite>Xs</cite> instance.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>only xs with <cite>(MAT,MT)</cite> combinations that are originally 
+present in the <cite>Endf6</cite> instance are modififed, the others 
+are discarded.
+The reason behind this is that to reconstruct a endf6 
+section we need info that is not available in the <cite>Xs</cite> 
+instance itself.</p>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>`endf6`</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p><cite>Endf6</cite> instance</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Endf6</cite></dt><dd><p><cite>Endf6</cite> instance with updated xs</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="sandy.core.xscov.html" class="btn btn-neutral float-right" title="sandy.core.xscov module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="sandy.core.records.html" class="btn btn-neutral float-left" title="sandy.core.records module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Luca Fiorito
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

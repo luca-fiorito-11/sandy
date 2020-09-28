@@ -1,0 +1,17 @@
+sandy.sections package
+======================
+
+.. automodule:: sandy.sections
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   sandy.sections.mf3
+   sandy.sections.mf4
+   sandy.sections.mf8

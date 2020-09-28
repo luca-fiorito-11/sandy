@@ -1,0 +1,7 @@
+sandy.core.fy module
+====================
+
+.. automodule:: sandy.core.fy
+   :members:
+   :undoc-members:
+   :show-inheritance:

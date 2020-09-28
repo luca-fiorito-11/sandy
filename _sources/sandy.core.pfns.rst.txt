@@ -1,0 +1,7 @@
+sandy.core.pfns module
+======================
+
+.. automodule:: sandy.core.pfns
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,7 @@
+sandy.integrals.macs module
+===========================
+
+.. automodule:: sandy.integrals.macs
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,371 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sandy.core.pfns module &mdash; SANDY API 0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.core.records module" href="sandy.core.records.html" />
+    <link rel="prev" title="sandy.core.pert module" href="sandy.core.pert.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> SANDY API
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="sandy.core.html">sandy.core package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="sandy.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+        
+          <li><a href="sandy.core.html">sandy.core package</a> &raquo;</li>
+        
+      <li>sandy.core.pfns module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/sandy.core.pfns.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-sandy.core.pfns">
+<span id="sandy-core-pfns-module"></span><h1>sandy.core.pfns module<a class="headerlink" href="#module-sandy.core.pfns" title="Permalink to this headline">¶</a></h1>
+<p>This module contains all classes and functions dedicated to handling PFNS data and, more in general, 
+any tabulated energy distribution provided in MF8 sections.</p>
+<dl class="py class">
+<dt id="sandy.core.pfns.Edistr">
+<em class="property">class </em><code class="sig-prename descclassname">sandy.core.pfns.</code><code class="sig-name descname">Edistr</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.pfns.Edistr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.core.frame.DataFrame</span></code></p>
+<p>Energy distribution object.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><strong>labels</strong><span class="classifier"><cite>list</cite></span></dt><dd><p>names of the dataframe index</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.pfns.Edistr.add_points" title="sandy.core.pfns.Edistr.add_points"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_points</span></code></a>(extra_points)</p></td>
+<td><p>Add outgoing energy distributions at additional incident energies by interpolation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.pfns.Edistr.integrals" title="sandy.core.pfns.Edistr.integrals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">integrals</span></code></a>()</p></td>
+<td><p>Calculate the integral of each energy distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.pfns.Edistr.normalize" title="sandy.core.pfns.Edistr.normalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize</span></code></a>()</p></td>
+<td><p>Renormalize each outgoing energy distribution to 1.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.pfns.Edistr.perturb" title="sandy.core.pfns.Edistr.perturb"><code class="xref py py-obj docutils literal notranslate"><span class="pre">perturb</span></code></a>(pert[, method, normalize])</p></td>
+<td><p>Perturb energy distributions given a set of perturbations.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.pfns.Edistr.to_stack" title="sandy.core.pfns.Edistr.to_stack"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_stack</span></code></a>()</p></td>
+<td><p>Move ‘EOUT’ from columns to index and transform dataframe into series.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="sandy.core.pfns.Edistr.add_points">
+<code class="sig-name descname">add_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">extra_points</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.pfns.Edistr.add_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add outgoing energy distributions at additional incident energies by interpolation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>extra_points</strong><span class="classifier">iterable</span></dt><dd><p>energy points in eV</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.core.pfns.Edistr</cite></dt><dd><p><cite>Edistr</cite> object with additional incoming energies</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.core.pfns.Edistr.integrals">
+<code class="sig-name descname">integrals</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.pfns.Edistr.integrals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the integral of each energy distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.Series</cite></dt><dd><p>series of integrals indexed by MAT, MT, K, EIN</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="sandy.core.pfns.Edistr.labels">
+<code class="sig-name descname">labels</code><em class="property"> = ['MAT', 'MT', 'K', 'EIN']</em><a class="headerlink" href="#sandy.core.pfns.Edistr.labels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="sandy.core.pfns.Edistr.normalize">
+<code class="sig-name descname">normalize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.pfns.Edistr.normalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Renormalize each outgoing energy distribution to 1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>sandy.core.pfns.Edistr</cite></dt><dd><p>renormalized <cite>Edistr</cite> object</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.core.pfns.Edistr.perturb">
+<code class="sig-name descname">perturb</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pert</span></em>, <em class="sig-param"><span class="n">method</span><span class="o">=</span><span class="default_value">2</span></em>, <em class="sig-param"><span class="n">normalize</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.pfns.Edistr.perturb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perturb energy distributions given a set of perturbations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>pert</strong><span class="classifier">pandas.Series</span></dt><dd><p>multigroup perturbations from sandy.EdistrSamples</p>
+</dd>
+<dt><strong>method</strong><span class="classifier">int</span></dt><dd><ul class="simple">
+<li><p>1 : samples outside the range [0, 2*_mean_] are set to _mean_.</p></li>
+<li><p>2 : samples outside the range [0, 2*_mean_] are set to 0 or 2*_mean_ respectively if they fall below or above the defined range.</p></li>
+</ul>
+</dd>
+<dt><strong>normalize</strong><span class="classifier">bool</span></dt><dd><p>apply normalization</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>sandy.Edistr</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.core.pfns.Edistr.to_stack">
+<code class="sig-name descname">to_stack</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.pfns.Edistr.to_stack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Move ‘EOUT’ from columns to index and transform dataframe into series.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.Series</cite></dt><dd><p>stack of energy distribution values</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="sandy.core.records.html" class="btn btn-neutral float-right" title="sandy.core.records module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="sandy.core.pert.html" class="btn btn-neutral float-left" title="sandy.core.pert module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Luca Fiorito
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

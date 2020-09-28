@@ -1,0 +1,483 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sandy.core.lpc module &mdash; SANDY API 0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.core.lpccov module" href="sandy.core.lpccov.html" />
+    <link rel="prev" title="sandy.core.fy module" href="sandy.core.fy.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> SANDY API
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="sandy.core.html">sandy.core package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="sandy.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+        
+          <li><a href="sandy.core.html">sandy.core package</a> &raquo;</li>
+        
+      <li>sandy.core.lpc module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/sandy.core.lpc.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-sandy.core.lpc">
+<span id="sandy-core-lpc-module"></span><h1>sandy.core.lpc module<a class="headerlink" href="#module-sandy.core.lpc" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="outline">
+<h2>Outline<a class="headerlink" href="#outline" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#summary">Summary</a></p></li>
+<li><p><a class="reference internal" href="#examples">Examples</a></p></li>
+<li><p><a class="reference internal" href="#routines">Routines</a></p></li>
+</ol>
+</div>
+<div class="section" id="summary">
+<span id="id1"></span><h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<p>This module contains all classes and functions specific for the cross section 
+class <cite>Xs</cite> that acts as a container for energy-dependent tabulated cross 
+section values.</p>
+</div>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="routines">
+<h2>Routines<a class="headerlink" href="#routines" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="sandy.core.lpc.Lpc">
+<em class="property">class </em><code class="sig-prename descclassname">sandy.core.lpc.</code><code class="sig-name descname">Lpc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.lpc.Lpc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Object for energy dependent tabulated Legendre polynomial coefficients 
+that describe angular distributions.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><a class="reference internal" href="#sandy.core.lpc.Lpc.data" title="sandy.core.lpc.Lpc.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a><span class="classifier"><cite>pandas.DataFrame</cite></span></dt><dd><p>Dataframe of energy-dependent tabulated cross sections.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.lpc.Lpc.custom_perturbation" title="sandy.core.lpc.Lpc.custom_perturbation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">custom_perturbation</span></code></a>(mat, mt, p, pert[, inplace])</p></td>
+<td><p>Apply a custom perturbation (energy dependent) to a given  Legendre polynomial coefficient.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.lpc.Lpc.reshape" title="sandy.core.lpc.Lpc.reshape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reshape</span></code></a>(eg[, selected_mat, selected_mt, inplace])</p></td>
+<td><p>Linearly interpolate Legendre polynomial coefficients  over new grid structure.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.lpc.Lpc.to_endf6" title="sandy.core.lpc.Lpc.to_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_endf6</span></code></a>(endf6)</p></td>
+<td><p>Update angular distributions in <cite>Endf6</cite> instance with those available  in a <cite>Lpc</cite> instance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.lpc.Lpc.from_endf6" title="sandy.core.lpc.Lpc.from_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_endf6</span></code></a>(endf6)</p></td>
+<td><p>Extract legendre polynomial coefficients from <cite>Endf6</cite> instance.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.lpc.Lpc.to_tpd" title="sandy.core.lpc.Lpc.to_tpd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_tpd</span></code></a>([cosines])</p></td>
+<td><p>Convert <cite>Lpc</cite> instance to <cite>Tpd</cite> instance.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="sandy.core.lpc.Lpc.custom_perturbation">
+<code class="sig-name descname">custom_perturbation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mat</span></em>, <em class="sig-param"><span class="n">mt</span></em>, <em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">pert</span></em>, <em class="sig-param"><span class="n">inplace</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.lpc.Lpc.custom_perturbation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply a custom perturbation (energy dependent) to a given 
+Legendre polynomial coefficient.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>mat</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT material number</p>
+</dd>
+<dt><strong>mt</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MT reaction number</p>
+</dd>
+<dt><strong>p</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>order of the Legendre polynomial coefficient</p>
+</dd>
+<dt><strong>pert</strong><span class="classifier"><cite>sandy.Pert</cite></span></dt><dd><p>tabulated perturbations</p>
+</dd>
+<dt><strong>inplace</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>flag to activate inplace replacement</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>Lpc</cite></dt><dd><p>lpc instance with given series polynomial coefficient perturbed</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.core.lpc.Lpc.data">
+<em class="property">property </em><code class="sig-name descname">data</code><a class="headerlink" href="#sandy.core.lpc.Lpc.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dataframe of energy-dependent tabulated cross sections.</p>
+<dl class="field-list">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>tabulated xs</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Error</cite></dt><dd><p>if energy grid is not monotonically increasing</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><strong>index</strong><span class="classifier"><cite>pandas.Index</cite></span></dt><dd><p>energy grid in eV</p>
+</dd>
+<dt><strong>columns</strong><span class="classifier"><cite>pandas.MultiIndex</cite></span></dt><dd><p>MAT/MT indices</p>
+</dd>
+<dt><strong>values</strong><span class="classifier"><cite>numpy.array</cite></span></dt><dd><p>cross sections in barns</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.core.lpc.Lpc.from_endf6">
+<em class="property">classmethod </em><code class="sig-name descname">from_endf6</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">endf6</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.lpc.Lpc.from_endf6" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract legendre polynomial coefficients from <cite>Endf6</cite> instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>`endf6`</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p><cite>Endf6</cite> instance</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>Lpc</cite></dt><dd><p>Legendre polynomial coefficient data</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>sandy.Error</cite></dt><dd><p>if requested LPC were not found</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<dl class="simple">
+<dt><cite>logging.warn</cite></dt><dd><p>skip section if coefficiets request an interpolation scheme over 
+energy that is not lin-lin.</p>
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.core.lpc.Lpc.reshape">
+<code class="sig-name descname">reshape</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">eg</span></em>, <em class="sig-param"><span class="n">selected_mat</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">selected_mt</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">inplace</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.lpc.Lpc.reshape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Linearly interpolate Legendre polynomial coefficients 
+over new grid structure.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>eg</strong><span class="classifier">array-like object</span></dt><dd><p>new energy grid</p>
+</dd>
+<dt><strong>selected_mat</strong><span class="classifier"><cite>int</cite>, optional, default is <cite>None</cite></span></dt><dd><p>MAT number for which the reshape will apply (all MAT by default)</p>
+</dd>
+<dt><strong>selected_mt</strong><span class="classifier"><cite>int</cite>, optional, default is <cite>None</cite></span></dt><dd><p>MT number for which the reshape will apply (all MT by default)</p>
+</dd>
+<dt><strong>inplace</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>flag to activate inplace replacement</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>Lpc</cite></dt><dd><p>Legendre polynomial coefficients instance over new grid</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The new Legendre polynomial coefficients are tabulated over the 
+union between the old and the given energy grid</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.core.lpc.Lpc.to_endf6">
+<code class="sig-name descname">to_endf6</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">endf6</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.lpc.Lpc.to_endf6" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update angular distributions in <cite>Endf6</cite> instance with those available 
+in a <cite>Lpc</cite> instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>`endf6`</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p><cite>Endf6</cite> instance</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Endf6</cite></dt><dd><p><cite>Endf6</cite> instance with updated angular distributions</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>only lpc with <cite>(MAT,MT)</cite> combinations that are originally 
+present in the <cite>Endf6</cite> instance are modififed, the others 
+are discarded.
+The reason behind this is that to reconstruct a endf6 
+section we need info that is not available in the <cite>Lpc</cite> 
+instance itself.</p>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="sandy.core.lpc.Lpc.to_tpd">
+<code class="sig-name descname">to_tpd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cosines</span><span class="o">=</span><span class="default_value">array([- 1.0, - 0.98, - 0.96, - 0.94, - 0.92, - 0.9, - 0.88, - 0.86, - 0.84, - 0.82, - 0.8, - 0.78, - 0.76, - 0.74, - 0.72, - 0.7, - 0.68, - 0.66, - 0.64, - 0.62, - 0.6, - 0.58, - 0.56, - 0.54, - 0.52, - 0.5, - 0.48, - 0.46, - 0.44, - 0.42, - 0.4, - 0.38, - 0.36, - 0.34, - 0.32, - 0.3, - 0.28, - 0.26, - 0.24, - 0.22, - 0.2, - 0.18, - 0.16, - 0.14, - 0.12, - 0.1, - 0.08, - 0.06, - 0.04, - 0.02, 0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.22, 0.24, 0.26, 0.28, 0.3, 0.32, 0.34, 0.36, 0.38, 0.4, 0.42, 0.44, 0.46, 0.48, 0.5, 0.52, 0.54, 0.56, 0.58, 0.6, 0.62, 0.64, 0.66, 0.68, 0.7, 0.72, 0.74, 0.76, 0.78, 0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 0.92, 0.94, 0.96, 0.98, 1.0])</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.lpc.Lpc.to_tpd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert <cite>Lpc</cite> instance to <cite>Tpd</cite> instance.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="sandy.core.lpc.lpc_to_tpd">
+<code class="sig-prename descclassname">sandy.core.lpc.</code><code class="sig-name descname">lpc_to_tpd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">coeff</span></em>, <em class="sig-param"><span class="n">cosines</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.lpc.lpc_to_tpd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert polynomial coefficients into cosine-tabulated distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>coeff</strong><span class="classifier">array-like object</span></dt><dd><p>Legendre prolynomial coefficients starting from P0 up to any order</p>
+</dd>
+<dt><strong>cosines</strong><span class="classifier">array-like object</span></dt><dd><p>Cosines values over which to tabulate the distribution</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>pandas.Series</cite></dt><dd><p>tabulated distribution</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="sandy.core.lpccov.html" class="btn btn-neutral float-right" title="sandy.core.lpccov module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="sandy.core.fy.html" class="btn btn-neutral float-left" title="sandy.core.fy module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Luca Fiorito
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

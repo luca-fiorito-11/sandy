@@ -1,0 +1,503 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sandy.shared module &mdash; SANDY API 0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.tools module" href="sandy.tools.html" />
+    <link rel="prev" title="sandy.settings module" href="sandy.settings.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> SANDY API
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html">sandy.decay module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+        
+      <li>sandy.shared module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/sandy.shared.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-sandy.shared">
+<span id="sandy-shared-module"></span><h1>sandy.shared module<a class="headerlink" href="#module-sandy.shared" title="Permalink to this headline">¶</a></h1>
+<p>Collection of utilities, functions and classes that are requetsed in all code components.</p>
+<dl class="py function">
+<dt id="sandy.shared.add_delimiter_every_n_characters">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">add_delimiter_every_n_characters</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">string</span></em>, <em class="sig-param"><span class="n">step</span></em>, <em class="sig-param"><span class="n">delimiter</span><span class="o">=</span><span class="default_value">' '</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.add_delimiter_every_n_characters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.add_exp_in_endf6_text">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">add_exp_in_endf6_text</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">text</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.add_exp_in_endf6_text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.at2wt">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">at2wt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">zam</span></em>, <em class="sig-param"><span class="n">at</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.at2wt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given an isotope ZAM id and its atomic density in at/cm/b, convert the 
+latter in g/cm3.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>zam</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>isotope ZAM id</p>
+</dd>
+<dt><strong>at</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>atomic density in at/b/cm</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>float</cite></dt><dd><p>weight density in g/cm3</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.expand_za">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">expand_za</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">za</span></em>, <em class="sig-param"><span class="n">method</span><span class="o">=</span><span class="default_value">'nndc'</span></em>, <em class="sig-param"><span class="n">meta</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.expand_za" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.expand_zam">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">expand_zam</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">zam</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.expand_zam" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.get_za">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">get_za</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">z</span></em>, <em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">m</span></em>, <em class="sig-param"><span class="n">method</span><span class="o">=</span><span class="default_value">'nndc'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.get_za" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.get_zam">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">get_zam</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">z</span></em>, <em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">m</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.get_zam" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.grouper">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">grouper</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">iterable</span></em>, <em class="sig-param"><span class="n">n</span></em>, <em class="sig-param"><span class="n">fillvalue</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.grouper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collect data into fixed-length chunks or blocks</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.interwine_lists">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">interwine_lists</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.interwine_lists" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.pad_from_beginning">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">pad_from_beginning</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">vals</span></em>, <em class="sig-param"><span class="n">maxlen</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">value</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">axis</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.pad_from_beginning" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert list of arrays into matrix by backward padding.
+.. note:: this function can be used to put cross sections into one matrix</p>
+<blockquote>
+<div><p>by adding zeros before the first value of threshold reactions.</p>
+</div></blockquote>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>vals</strong><span class="classifier"><cite>iterable</cite> of arrays/lists</span></dt><dd><p>values of the matrix</p>
+</dd>
+<dt><strong>maxlen</strong><span class="classifier"><cite>int</cite>, optional, default is <cite>None</cite></span></dt><dd><p>length to fill with padding.
+If not given, use the maximum length of the arrays in <cite>vals</cite>
+.. important:: if give, maxlen should be <cite>maxlen &lt;= max([len(v) for v in vals])</cite></p>
+</dd>
+<dt><strong>value</strong><span class="classifier"><cite>float</cite>, optional, default is <cite>0.</cite></span></dt><dd><p>value used for padding</p>
+</dd>
+<dt><strong>axis</strong><span class="classifier"><cite>int</cite>, optional, either <cite>0</cite> or <cite>1</cite>, default is <cite>0</cite></span></dt><dd><p>axis along whihc the arrays should be positioned.
+<cite>0</cite> means rows, <cite>1</cite> means columns</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy.array</cite></dt><dd><p>2D <cite>numpy.array</cite> with shape <cite>(len(vals), maxlen)</cite> if <cite>axis=0</cite> and 
+<cite>(maxlen, len(vals))</cite> if <cite>axis=1</cite></p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>ValueError</cite></dt><dd><p>if <cite>axis</cite> is neither <cite>0</cite> nor <cite>1</cite></p>
+</dd>
+<dt><cite>ValueError</cite></dt><dd><p>if <cite>maxlen &lt;= max([len(v) for v in vals])</cite></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.pad_from_beginning_fast">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">pad_from_beginning_fast</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">vals</span></em>, <em class="sig-param"><span class="n">maxlen</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.pad_from_beginning_fast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like <cite>aleph.utils.pad_from_beginning</cite> but faster.
+Keyword arguments <cite>axis</cite> and <cite>values</cite> take the default options.
+.. note:: this function can be used to put cross sections into one matrix</p>
+<blockquote>
+<div><p>by adding zeros before the first value of threshold reactions.</p>
+</div></blockquote>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>vals</strong><span class="classifier"><cite>iterable</cite> of arrays/lists</span></dt><dd><p>values of the matrix</p>
+</dd>
+<dt><strong>maxlen</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>length to fill with padding.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy.array</cite></dt><dd><p>2D <cite>numpy.array</cite> with shape <cite>(len(vals), maxlen)</cite></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.reshape_bfill">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">reshape_bfill</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">xnew</span></em>, <em class="sig-param"><span class="n">left_values</span><span class="o">=</span><span class="default_value">'first'</span></em>, <em class="sig-param"><span class="n">right_values</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.reshape_bfill" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate array over new energy grid structure using “bfill” method.</p>
+<p>Right-extrapolated values are replaced by zeros.
+Left-extrapolated values are replaced by <cite>y[0]</cite>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>x</strong><span class="classifier">1d array-like object with at least two entries</span></dt><dd><p>energy grid</p>
+</dd>
+<dt><strong>xnew</strong><span class="classifier">1d array-like object with at least two entries</span></dt><dd><p>new energy grid</p>
+</dd>
+<dt><strong>y</strong><span class="classifier"><cite>numpy.ndarray</cite> with at least two entries and same length as <cite>x</cite></span></dt><dd><p>array to interpolate</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy.ndarray</cite> with length <cite>len(xnew)</cite></dt><dd><p>interpolated array</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.reshape_differential">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">reshape_differential</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">xnew</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.reshape_differential" title="Permalink to this definition">¶</a></dt>
+<dd><p>Linearly interpolate array over new energy grid structure.</p>
+<p>Extrapolated values are replaced by zeros.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>x</strong><span class="classifier">1d array-like object with at least two entries</span></dt><dd><p>energy grid</p>
+</dd>
+<dt><strong>xnew</strong><span class="classifier">1d array-like object with at least two entries</span></dt><dd><p>new energy grid</p>
+</dd>
+<dt><strong>y</strong><span class="classifier"><cite>numpy.ndarray</cite> with at least two entries and same length as <cite>x</cite></span></dt><dd><p>array to interpolate</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy.ndarray</cite> with length <cite>len(xnew)</cite></dt><dd><p>interpolated array</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.reshape_integral">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">reshape_integral</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">xnew</span></em>, <em class="sig-param"><span class="n">left_values</span><span class="o">=</span><span class="default_value">'first'</span></em>, <em class="sig-param"><span class="n">right_values</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.reshape_integral" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate array over new energy grid structure using “bfill” method.
+It is assumed that the values of <cite>y</cite> are  multiplied by the grid bin-width.
+The values of the interpolated array are recalculated proportionally to 
+the new grid bin-widths.</p>
+<p>Extrapolated values are replaced by zeros.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>x</strong><span class="classifier">1d array-like object with at least two entries</span></dt><dd><p>energy grid</p>
+</dd>
+<dt><strong>xnew</strong><span class="classifier">1d array-like object with at least two entries</span></dt><dd><p>new energy grid</p>
+</dd>
+<dt><strong>y</strong><span class="classifier"><cite>numpy.ndarray</cite> with at least two entries and same length as <cite>x</cite></span></dt><dd><p>array to interpolate</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy.ndarray</cite> with length <cite>len(xnew)</cite></dt><dd><p>interpolated array</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.uniform_loggrid">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">uniform_loggrid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">xmin</span></em>, <em class="sig-param"><span class="n">xmax</span></em>, <em class="sig-param"><span class="n">npoints</span><span class="o">=</span><span class="default_value">100</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.uniform_loggrid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given lower and upper limits, produce a grid with a number of points <cite>npoints</cite>
+that define equivalent intervals in log scale.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>xmin</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>lower bound of the grid structure</p>
+</dd>
+<dt><strong>xmax</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>upper bound of the grid structure</p>
+</dd>
+<dt><strong>npoints</strong><span class="classifier"><cite>int</cite>, optional, default <cite>100</cite></span></dt><dd></dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy</cite> array</dt><dd><p>grid equally spaced in logarithmic scale</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.wt2at">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">wt2at</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">zam</span></em>, <em class="sig-param"><span class="n">wt</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.wt2at" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given an isotope ZAM id and its weight density in g/cm3, convert the 
+latter in at/cm/b.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>zam</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>isotope ZAM id</p>
+</dd>
+<dt><strong>wt</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>weight density in g/cm3</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>float</cite></dt><dd><p>atomic density in at/b/cm</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.za2zam">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">za2zam</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">za</span></em>, <em class="sig-param"><span class="n">method</span><span class="o">=</span><span class="default_value">'nndc'</span></em>, <em class="sig-param"><span class="n">meta</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.za2zam" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="sandy.shared.zam2za">
+<code class="sig-prename descclassname">sandy.shared.</code><code class="sig-name descname">zam2za</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">zam</span></em>, <em class="sig-param"><span class="n">method</span><span class="o">=</span><span class="default_value">'nndc'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.shared.zam2za" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="sandy.tools.html" class="btn btn-neutral float-right" title="sandy.tools module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="sandy.settings.html" class="btn btn-neutral float-left" title="sandy.settings module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Luca Fiorito
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

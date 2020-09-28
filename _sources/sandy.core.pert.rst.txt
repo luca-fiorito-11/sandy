@@ -1,0 +1,7 @@
+sandy.core.pert module
+======================
+
+.. automodule:: sandy.core.pert
+   :members:
+   :undoc-members:
+   :show-inheritance:
