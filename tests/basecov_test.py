@@ -113,7 +113,7 @@ def test_BaseCov_get_std_name(std4):
 def test_BaseCov_to_matrix(cov4):
     cov = cov4.to_matrix()
     np.testing.assert_array_equal(cov, cov4.values)
-    assert isinstance(cov, sandy.Cov)
+    assert isinstance(cov, sandy.core.cov._Cov)
 
 
 

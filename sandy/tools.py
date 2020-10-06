@@ -13,6 +13,7 @@ import numpy as np
 __author__ = "Luca Fiorito"
 __all__ = []
 
+
 def save_dict_to_hdf5(dic, filename):
     """
     ....
@@ -20,17 +21,6 @@ def save_dict_to_hdf5(dic, filename):
     with h5py.File(filename, 'w') as h5file:
         recursively_save_dict_contents_to_group(h5file, '/', dic)
 
-def recursively_save_dict_contents_to_group(h5file, path, dic):
-    """
-    ....
-    """
-    for key, item in dic.items():
-        if isinstance(item, (np.ndarray, np.int64, np.float64, str, bytes, int, float)):
-            h5file[path + str(key)] = item
-        elif isinstance(item, dict):
-            recursively_save_dict_contents_to_group(h5file, path + str(key) + '/', item)
-        else:
-            raise ValueError('Cannot save %s type'%type(item))
 
 def load_dict_from_hdf5(filename):
     """
@@ -38,6 +28,25 @@ def load_dict_from_hdf5(filename):
     """
     with h5py.File(filename, 'r') as h5file:
         return recursively_load_dict_contents_from_group(h5file, '/')
+
+
+def recursively_save_dict_contents_to_group(h5file, path, dic):
+    """
+    ....
+    """
+    dtypes = (np.ndarray, np.int64, np.float64, str, bytes, int, float)
+    for key, item in dic.items():
+        newentry = f"{path}{key}"
+        if isinstance(item, dtypes):
+            if newentry in h5file:
+                del h5file[newentry]
+            h5file[newentry] = item
+        elif isinstance(item, dict):
+            newpath = f"{newentry}/"
+            recursively_save_dict_contents_to_group(h5file, newpath, item)
+        else:
+            raise ValueError(f"Cannot save '{type(item)}' type")
+
 
 def recursively_load_dict_contents_from_group(h5file, path):
     """
@@ -55,8 +64,11 @@ def recursively_load_dict_contents_from_group(h5file, path):
         if isinstance(item, h5py._hl.dataset.Dataset):
             ans[kdict] = item[()]
         elif isinstance(item, h5py._hl.group.Group):
-            ans[kdict] = recursively_load_dict_contents_from_group(h5file, path + key + '/')
+            group = path + key + '/'
+            out = recursively_load_dict_contents_from_group(h5file, group)
+            ans[kdict] = out
     return ans
+
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -65,6 +77,7 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
 
 def is_valid_file(parser, arg, r=True, w=False, x=False):
     if not os.path.isfile(arg):
@@ -87,6 +100,7 @@ def is_valid_dir(parser, arg, mkdir=False):
         parser.error("Directory {} does not exist".format(arg))
     return arg
 
+
 def which(program):
     """
     Mimic the behavior of the UNIX 'which' command.     
@@ -104,6 +118,7 @@ def which(program):
                 return exe_file
     return None
 
+
 def force_symlink(file1, file2):
     """
     Mimic the behavior of the UNIX 'ln -sf' command.    
@@ -113,6 +128,7 @@ def force_symlink(file1, file2):
     except FileExistsError:
         os.remove(file2)
         os.symlink(file1, file2)
+
 
 def TimeDecorator(foo):
     """
@@ -126,13 +142,16 @@ def TimeDecorator(foo):
         return out
     return wrapper
 
+
 def mkl_get_max_threads():
     mkl_rt = ctypes.CDLL('libmkl_rt.so')
     return mkl_rt.mkl_get_max_threads()
 
+
 def mkl_set_num_threads(cores):
     mkl_rt = ctypes.CDLL('libmkl_rt.so')
     return mkl_rt.mkl_set_num_threads(ctypes.byref(ctypes.c_int(cores)))
+
 
 def query_yes_no(question, default="yes"):
     """

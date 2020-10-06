@@ -77,7 +77,8 @@ def test_read_info(testPu9):
 @pytest.mark.info
 def test_update_info(testPu9):
     testPu9.loc[9437,3,1].TEXT = "\n".join(testPu9.loc[9437,3,1].TEXT.splitlines()[:10]) + "\n"
-    testPu9 = Endf6(testPu9.drop([(9437,3,102)]))
+    # need to convert it to pd.DataFrame to avoid assertion error in pandas 1.0
+    testPu9 = Endf6(pd.DataFrame(testPu9).drop([(9437,3,102)]))
     new = testPu9.update_info()
     recordsold = testPu9.read_section(9437,1,451)["RECORDS"]
     recordsnew = new.read_section(9437,1,451)["RECORDS"]

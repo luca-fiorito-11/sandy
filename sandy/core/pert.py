@@ -10,11 +10,11 @@ Outline
 
 Summary
 =======
-This module contains all classes and functions specific for class `Pert`, 
+This module contains all classes and functions specific for class `Pert`,
 which acts as a container for a `pandas.Series` of multigroup perturbations.
 
-.. important:: once created, the `Pert` instance should be modified only 
-               using its public API, to gurantee that the information 
+.. important:: once created, the `Pert` instance should be modified only
+               using its public API, to gurantee that the information
                stored in its attributes is preserved.
 
 .. _Examples:
@@ -50,48 +50,51 @@ __all__ = [
 class Pert():
     """
     Container for tabulated multigroup perturbation coefficients.
-    
+
     Attributes
     ----------
     data : `pandas.Series`
         series of groupwise perturbation coefficients
     left : `pandas.Series`
-        perturbation coefficients with left-bounds of the energy intervals as index
+        perturbation coefficients with left-bounds of the energy intervals as
+        index
     mid : `pandas.Series`
-        perturbation coefficients with mid-values of the energy intervals as index
+        perturbation coefficients with mid-values of the energy intervals as
+        index
     right : `pandas.Series`
-        perturbation coefficients with right-bounds of the energy intervals as index
-    
+        perturbation coefficients with right-bounds of the energy intervals as
+        index
+
     Methods
     -------
     reshape
-        interpolate perturbation coefficients over new energy grid structure 
+        interpolate perturbation coefficients over new energy grid structure
     """
     _indexname = "ENERGY"
-    
+
     def __repr__(self):
         return self.data.__repr__()
-        
-    def __init__(self, series):
-        self.data = series
-    
+
+    def __init__(self, series, **kwargs):
+        self.data = pd.Series(series, dtype=float, **kwargs)
+
     @property
     def data(self):
         """
         Series of groupwise perturbation coefficients.
-        
+
         Attributes
         ----------
         index : `pandas.IntervalIndex`
             energy bins (in eV) over which the perturbations are defined
         values : `numpy.array`
             perturation coeffcients as ratio values
-        
+
         Returns
         -------
         `pandas.Series`
             multigroup perturbation coefficients
-        
+
         Raises
         ------
         `sandy.Error`
@@ -100,12 +103,10 @@ class Pert():
             if energy grid is not monotonically increasing
         """
         return self._data
-    
+
     @data.setter
     def data(self, data):
-        if not isinstance(data, pd.Series):
-            raise sandy.Error("'data' is not a 'pandas.Series'")
-        self._data = data.astype(float)
+        self._data = data
         if isinstance(self._data.index, pd.IntervalIndex):
             self._data.index = self._data.index.right
         index = self._data.index.astype(float)
@@ -120,7 +121,7 @@ class Pert():
         Pertrubations with right-bounds of the energy intervals as index.
         .. note:: the index of the series is a `pandas.Index` instance, not a
                   `pandas.IntervalIndex` instance.
-        
+
         Returns
         -------
         `pandas.Series`
@@ -134,7 +135,7 @@ class Pert():
         Pertrubations with left-bounds of the energy intervals as index.
         .. note:: the index of the series is a `pandas.Index` instance, not a
                   `pandas.IntervalIndex` instance.
-        
+
         Returns
         -------
         `pandas.Series`
@@ -148,33 +149,34 @@ class Pert():
         Pertrubations with mid-values of the energy intervals as index.
         .. note:: the index of the series is a `pandas.Index` instance, not a
                   `pandas.IntervalIndex` instance.
-        
+
         Returns
         -------
         `pandas.Series`
             perturbations
         """
         return pd.Series(self.data.values, index=self.data.index.mid)
-    
+
     def reshape(self, eg, inplace=False):
         """
-        Interpolate perturbation over new energy grid structure using `bfill` method.
-        
+        Interpolate perturbation over new energy grid structure using `bfill`
+        method.
+
         .. note:: value `1` is given to extrapolated energies
-        
+
         Parameters
         ----------
         eg : array-like object
             monotonic energy grid with non-negative values
         inplace : `bool`, optional, default is `False`
             apply changes **inplace** and return `None`
-        
+
         Returns
         -------
         `sandy.Pert`
             perturbation coefficients reshaped over a union of the original and
             new energy grids
-        
+
         Raises
         ------
         `aleph.Error`
@@ -188,14 +190,14 @@ class Pert():
         if (index < 0).any():
             raise ValueError("found negative values in the energy grid")
         enew = self.right.index.union(index).unique().astype(float).values
-        enew = enew[enew != 0]  # remove zero if any, it will be automatically added by `Pert`
+        enew = enew[enew != 0]   # remove zero if any, it will be automatically added by `Pert`
         # this part prevents errors in "scipy.interp1d" when x.size == 1
         x = self.right.index.values
         y = self.right.values
         if y.size == 1:
             # this must be done after that enew is created
-            x = np.insert(x, 0 , 0)
-            y = np.insert(y, 0 , 0)
+            x = np.insert(x, 0, 0)
+            y = np.insert(y, 0, 0)
         pertnew = sandy.shared.reshape_bfill(
                           x,
                           y,
@@ -207,12 +209,12 @@ class Pert():
         if not inplace:
             return Pert(series)
         self.data = series
-    
+
     @classmethod
     def from_file(cls, file, sep=None, **kwargs):
         """
         Initialize `Pert` object reading perturbations from file.
-        
+
         Parameters
         ----------
         file : `str`
@@ -221,7 +223,7 @@ class Pert():
             column separator. By default it takes blankspaces as separators.
             .. note:: for `csv` files use `","`
         **kwargs : `pandas.read_csv` properties, optional
-        
+
         Returns
         -------
         `Pert`
@@ -230,5 +232,5 @@ class Pert():
         data = np.genfromtxt(file, dtype=float, delimiter=sep, **kwargs)
         if data.ndim < 2:
             raise sandy.Error("at least 2 columns should be given in the file")
-        series = pd.Series(data[:,1], index=data[:,0])
+        series = pd.Series(data[:, 1], index=data[:, 0])
         return Pert(series)

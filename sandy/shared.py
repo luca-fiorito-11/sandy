@@ -13,7 +13,9 @@ import scipy.interpolate
 import numba
 
 __author__ = "Luca Fiorito"
-__all__ = []
+__all__ = [
+        "uniform_loggrid",
+        ]
 
 
 MeV_MWs = 1.60217733e-19 # conversion coefficient MeV --> MW s
@@ -102,11 +104,12 @@ def wt2at(zam, wt):
     z, a, m = expand_zam(zam)
     return wt / 1e24 * Avogadro / aleph.common.awr[zam] / aleph.common.Amn
 
+
 def uniform_loggrid(xmin, xmax, npoints=100):
     """
-    Given lower and upper limits, produce a grid with a number of points `npoints`
-    that define equivalent intervals in log scale.
-    
+    Given lower and upper limits, produce a grid with a number of points
+    `npoints` that define equivalent intervals in log scale.
+
     Parameters
     ----------
     xmin : `float`
@@ -114,11 +117,22 @@ def uniform_loggrid(xmin, xmax, npoints=100):
     xmax : `float`
         upper bound of the grid structure
     npoints : `int`, optional, default `100`
-    
+
     Returns
     -------
     `numpy` array
         grid equally spaced in logarithmic scale
+
+    Examples
+    --------
+    >>> uniform_loggrid(1e-5, 1e7, 25)
+    array([1.00000000e-05, 3.16227766e-05, 1.00000000e-04, 3.16227766e-04,
+           1.00000000e-03, 3.16227766e-03, 1.00000000e-02, 3.16227766e-02,
+           1.00000000e-01, 3.16227766e-01, 1.00000000e+00, 3.16227766e+00,
+           1.00000000e+01, 3.16227766e+01, 1.00000000e+02, 3.16227766e+02,
+           1.00000000e+03, 3.16227766e+03, 1.00000000e+04, 3.16227766e+04,
+           1.00000000e+05, 3.16227766e+05, 1.00000000e+06, 3.16227766e+06,
+           1.00000000e+07])
     """
     return 10.0**np.linspace(np.log10(xmin), np.log10(xmax), npoints)
 

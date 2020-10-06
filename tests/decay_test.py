@@ -14,72 +14,7 @@ import sandy
 
 __author__ = "Luca Fiorito"
 
-def test_expand_decay_type_gamma():
-    d, n, p, a = sandy.decay.expand_decay_type(581480, 0)
-    assert d == 581480
-    assert n == 0
-    assert p == 0
-    assert a == 0
 
-def test_expand_decay_type_beta():
-    d, n, p, a = sandy.decay.expand_decay_type(581480, 1)
-    assert d == 591480
-    assert n == 0
-    assert p == 0
-    assert a == 0
-
-def test_expand_decay_type_electron_capture():
-    d, n, p, a = sandy.decay.expand_decay_type(581480, 2)
-    assert d == 571480
-    assert n == 0
-    assert p == 0
-    assert a == 0
-    
-def test_expand_decay_type_isomeric_transition():
-    d, n, p, a = sandy.decay.expand_decay_type(581480, 3)
-    assert d == 581480
-    assert n == 0
-    assert p == 0
-    assert a == 0
-
-def test_expand_decay_type_alpha():
-    d, n, p, a = sandy.decay.expand_decay_type(581480, 4)
-    assert d == 561440
-    assert n == 0
-    assert p == 0
-    assert a == 1
-
-def test_expand_decay_type_neutron():
-    d, n, p, a = sandy.decay.expand_decay_type(581480, 5)
-    assert d == 581470
-    assert n == 1
-    assert p == 0
-    assert a == 0
-
-def test_expand_decay_type_spontaneous_fission():
-    d, n, p, a = sandy.decay.expand_decay_type(581480, 6)
-    assert d == 581480
-    assert n == 0
-    assert p == 0
-    assert a == 0
-
-def test_expand_decay_type_proton():
-    d, n, p, a = sandy.decay.expand_decay_type(581480, 7)
-    assert d == 571470
-    assert n == 0
-    assert p == 1
-    assert a == 0
-
-def test_expand_decay_type_unknown():
-    with pytest.raises(sandy.SandyError):
-        sandy.decay.expand_decay_type(581480, 8)
-
-def test_get_decay_products():
-    products = sandy.decay.get_decay_products("01234567", 581480, 1)
-    assert products[551421] == 1
-    assert products[10] == 1
-    assert products[10010] == 1
-    assert products[20040] == 1
 
 
 #@pytest.fixture(scope="module")

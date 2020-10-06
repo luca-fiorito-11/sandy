@@ -6,6 +6,7 @@ Created on Mon Jan 16 18:03:13 2017
 """
 import pdb
 import os
+import io
 import logging
 from collections import Counter
 from functools import reduce
@@ -111,11 +112,12 @@ class _BaseFile(pd.DataFrame):
         self.sort_index(level=self.labels, inplace=True)
         if self.index.duplicated().any():
             raise SandyError("found duplicate MAT/MF/MT")
-    
+
     @classmethod
     def from_file(cls, file):
-        """Create dataframe by reading a file.
-        
+        """
+        Create dataframe by reading a file.
+
         Parameters
         ----------
         file : `str`
@@ -126,8 +128,11 @@ class _BaseFile(pd.DataFrame):
         `sandy.formats.endf6.BaseFile` or derived instance
             Dataframe containing ENDF6 data grouped by MAT/MF/MT
         """
-        with open(file) as f:
-            text = f.read()
+        if isinstance(file, io.StringIO):
+            text = file.read()
+        else:
+            with open(file) as f:
+                text = f.read()
         return cls.from_text(text)
 
     @classmethod

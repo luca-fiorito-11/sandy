@@ -8,25 +8,92 @@ __all__ = [
         "write_mf3"
         ]
 
+
 def read_mf3(tape, mat, mt):
+    """
+    Parse MAT/MF=3/MT section from `sandy.Endf6` object and return structured
+    content in nested dcitionaries.
+
+    Parameters
+    ----------
+    tape : `sandy.Endf6`
+        endf6 object containing requested section
+    mat : `int`
+        MAT number
+    mt : `int`
+        MT number
+
+    Returns
+    -------
+    `dict`
+        Content of the ENDF-6 tape structured as nested `dict`.
+    """
     mf = 3
     df = tape._get_section_df(mat, mf, mt)
-    out = {"MAT" : mat, "MF" : mf, "MT" : mt}
+    out = {
+            "MAT": mat,
+            "MF": mf,
+            "MT": mt,
+            }
     i = 0
     C, i = sandy.read_cont(df, i)
-    out.update({
-            "ZA" : C.C1,
-            "AWR" : C.C2,
-            "PFLAG" : C.L2,
-            })
+    add = {
+            "ZA": C.C1,
+            "AWR": C.C2,
+            "PFLAG": C.L2,
+            }
+    out.update(add)
     T, i = sandy.read_tab1(df, i)
-    out.update({"QM" : T.C1, "QI" : T.C2, "LR" : T.L2, "NBT" : T.NBT, "INT" : T.INT, "E" : T.x, "XS" : T.y})
+    add = {
+            "QM": T.C1,
+            "QI": T.C2,
+            "LR": T.L2,
+            "NBT": T.NBT,
+            "INT": T.INT,
+            "E": T.x,
+            "XS": T.y,
+            }
+    out.update(add)
     return out
 
+
 def write_mf3(sec):
-    lines = sandy.write_cont(sec["ZA"], sec["AWR"], 0, sec["PFLAG"], 0, 0)
-    lines += sandy.write_tab1(sec["QM"], sec["QI"], 0, sec["LR"], sec["NBT"], sec["INT"], sec["E"], sec["XS"])
+    """
+    Given the content of a MF3 section as nested dictionaries, write it
+    to string.
+
+    Returns
+    -------
+    `str`
+        Multiline string reproducing the content of a ENDF-6 section.
+
+    Notes
+    -----
+    .. note:: The end-of-line records MAT, MF, MT and line number are added at
+              the end of each line.
+
+    .. important:: The string does not endf with a newline symbol `\n`.
+    """
+    lines = sandy.write_cont(
+            sec["ZA"],
+            sec["AWR"],
+            0,
+            sec["PFLAG"],
+            0,
+            0,
+            )
+    lines += sandy.write_tab1(
+            sec["QM"],
+            sec["QI"],
+            0,
+            sec["LR"],
+            sec["NBT"],
+            sec["INT"],
+            sec["E"],
+            sec["XS"],
+            )
     return "\n".join(sandy.write_eol(lines, sec["MAT"], 3, sec["MT"]))
+
 
 def _read_errorr(text):
     str_list = text.splitlines()
@@ -36,6 +103,7 @@ def _read_errorr(text):
     L, i = read_list(str_list, i)
     out.update({"XS" : L.B})
     return out
+
 
 def _read_groupr(text):
     str_list = text.splitlines()

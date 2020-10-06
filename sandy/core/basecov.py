@@ -62,7 +62,7 @@ class BaseCov(pd.DataFrame):
         `sandy.Cov`
             covariance matrix as a `numpy` array
         """
-        return sandy.Cov(self.values)
+        return sandy.core.cov._Cov(self.values)
 
     def eig(self):
         """

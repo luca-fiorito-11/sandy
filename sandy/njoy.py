@@ -49,8 +49,8 @@ Examples
 Extract njoy executable
 -----------------------
 
->>> import sandy
->>> exe = sandy.get_njoy()
+#>>> import sandy
+#>>> exe = sandy.get_njoy()
 
 It raises an error if the system environment variable `NJOY` is not set.
 
@@ -58,9 +58,9 @@ Default njoy processing of a neutron file
 -----------------------------------------
 Process a ENDF-6 neutron file "my_file.endf6" using NJOY with default options
 
->>> import sandy.njoy
->>> endftape = "my_file.endf6"
->>> input, inputs, outputs = sandy.njoy.process(endftape)
+#>>> import sandy.njoy
+#>>> endftape = "my_file.endf6"
+#>>> input, inputs, outputs = sandy.njoy.process(endftape)
 
 
 .. _Routines:
