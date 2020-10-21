@@ -55,6 +55,12 @@ The official SANDY documentation can be found [here](https://luca-fiorito-11.git
 
 <br>
 
+## :video_game: Jupyter notebooks
+
+[Here](https://luca-fiorito-11.github.io/sandy_notebooks/) you can find some cool [Jupyter notebooks](https://jupyter.org/) that kind of give an idea of what one can do with SANDY. 
+
+<br>
+
 ## :telephone_receiver: Contacts
 
 * [**Luca Fiorito**](https://github.com/luca-fiorito-11) - lucafiorito.11@gmail.com
