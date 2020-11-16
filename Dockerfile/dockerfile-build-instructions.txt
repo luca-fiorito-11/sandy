@@ -1,0 +1,5 @@
+Run "docker build -t "sandy:develop" .
+in the directory with the Dockerfile.
+
+You can create a container by running
+"docker run -it sandy:develop".
