@@ -199,6 +199,10 @@ class CategoryCov():
     def data(self, data):
         self._data = data.astype(float)
 
+    @property
+    def size(self):
+        return self.data.values.shape[0]
+
     def eig(self, sort=True):
         """
         Extract eigenvalues and eigenvectors.
@@ -337,6 +341,17 @@ class CategoryCov():
         M = V.values.dot(np.diag(np.sqrt(E.values)))
         Q, R = scipy.linalg.qr(M.T)
         return R.T
+
+    def glls(self, S, Vy):
+        Vx = self.data.values
+        V = S.T.dot(Vx.dot(S)) + Vy
+        C = Vx - Vx.dot(S.dot(np.linalg.inv(V).dot(S.T.dot(Vx))))
+        return self.__class__(C)
+
+    def sandwich(self, S):
+        C = self.data.values
+        S_ = S.reshape(self.size, -1)
+        return S_.T.dot(C.dot(S_))
 
     def plot_corr(self, ax):
         kwargs = {"cbar": True, "vmin": -1, "vmax": 1, "cmap": "RdBu"}

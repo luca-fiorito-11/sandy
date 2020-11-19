@@ -3,7 +3,10 @@ import sys
 
 from sandy.formats import read_formatted_file
 from sandy.settings import *
-from sandy.decay import *
+from .decay import *
+from .errorr import *
+from .fy import *
+from .pfns import *
 from sandy.njoy import *
 from sandy.sections import *
 from sandy.shared import *

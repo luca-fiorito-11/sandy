@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Summary
-=======
 This module contains all classes and functions specific for processing fission
 yield data.
 """
+from tables import NaturalNameWarning
 import h5py
 import logging
 import warnings
 
 import pandas as pd
-from tables import NaturalNameWarning
 
 import sandy
 from sandy.shared import expand_zam
@@ -18,6 +16,7 @@ from sandy.shared import expand_zam
 __author__ = "Luca Fiorito"
 __all__ = [
         "Fy",
+        "fy2hdf",
         ]
 
 
@@ -121,6 +120,11 @@ class Fy():
         `pandas.DataFrame`
             tabulated fission yields
 
+        Notes
+        -----
+        ..note :: if a fission product has a yield at say, thermal energy but
+                  not at fast, then a fast yield of zero will be assigned.
+
         Raises
         ------
         `ValueError`
@@ -143,13 +147,14 @@ class Fy():
             msg = "`kind` must be either `'independent'` or `'cumulative'`"
             raise ValueError(msg)
         condition = (df[by] == key) & (df.MT == mt)
+        # if i use fill_value in pivot_table it replaces small values
+        # (e.g. 2.88210e-12) with zero. Use fillna!!!
         return pd.pivot_table(
                     df[condition],
                     index="E",
                     columns="ZAP",
                     values="FY",
-                    fill_value=0,
-                    )
+                    ).fillna(0.)
 
     def _expand_zap(self):
         """
@@ -161,7 +166,7 @@ class Fy():
         `pandas.DataFrame`
             dataframe with Z, A and M columns.
 
-        >>> Fy(minimal_fytest)._expand_zam
+        >>> Fy(minimal_fytest)._expand_zap()
             MAT   MT     ZAM     ZAP           E          FY   Z    A  M
         0  9437  454  942390  380900 2.53000e-07 2.00000e-01  38   90  0
         1  9437  454  942390  551370 2.53000e-07 1.80000e+00  55  137  0
@@ -185,7 +190,7 @@ class Fy():
         `pandas.DataFrame`
             dataframe with Z, A and M columns.
 
-        >>> Fy(minimal_fytest)._expand_zam
+        >>> Fy(minimal_fytest)._expand_zam()
             MAT   MT     ZAM     ZAP           E          FY   Z    A  M
         0  9437  454  942390  380900 2.53000e-07 2.00000e-01  94  239  0
         1  9437  454  942390  551370 2.53000e-07 1.80000e+00  94  239  0
@@ -226,7 +231,7 @@ class Fy():
         0  9437  454  942390  380900 2.53000e-07 2.00000e-01
         1  9437  454  942390  380900 5.00000e+05 8.00000e-01
 
-        >>> sandy.Fy(sandy.core.fy.minimal_fytest).filter_by("E", 5e5)
+        >>> Fy(minimal_fytest).filter_by("E", 5e5)
             MAT   MT     ZAM     ZAP           E          FY
         0  9437  454  942390  380900 5.00000e+05 8.00000e-01
         1  9437  454  942390  551370 5.00000e+05 1.00000e+00
@@ -237,7 +242,7 @@ class Fy():
         return self.__class__(out)
 
     @classmethod
-    def from_endf6(cls, endf6):
+    def from_endf6(cls, endf6, verbose=False):
         """
         Extract fission yields from `Endf6` instance.
 
@@ -245,6 +250,8 @@ class Fy():
         ----------
         endf6 : `sandy.Endf6`
             object containing the ENDF-6 text
+        verbose : `bool`, optional, default is `False`
+            flag to print information when reading ENDF-6 file
 
         Returns
         -------
@@ -261,6 +268,8 @@ class Fy():
         for mat, mf, mt in tape.data:
             sec = tape.read_section(mat, mf, mt)
             zam = sec["ZAM"]
+            if verbose:
+                logging.info(f"reading 'ZAM={zam}'...")
             for e in sec["E"]:
                 for zap in sec["E"][e]["ZAP"]:
                     fy = sec["E"][e]["ZAP"][zap]["FY"]
@@ -324,3 +333,23 @@ class Fy():
 #    def _custom_perturbation(self, pert):
 #        # to be written
 #        pass
+
+
+def fy2hdf(e6file, h5file, lib):
+    """
+    Write to disk a HDF5 file that reproduces the content of a FY file in
+    ENDF6 format.
+
+    Parameters
+    ----------
+    e6file : `str`
+        ENDF-6 filename
+    h5file : `str`
+        HDF5 filename
+    lib : `str`
+        library name (it will appear as a hdf5 group)
+    """
+    # This function os tested in an ALEPH notebook
+    endf6 = sandy.Endf6.from_file(e6file)
+    logging.info(f"adding FY to '{lib}' in '{h5file}'")
+    Fy.from_endf6(endf6, verbose=True).to_hdf5(h5file, lib)

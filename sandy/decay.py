@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Summary
-=======
 This module contains all classes and functions dedicated to the processing and
 analysis of a decay data.
 """
-import h5py
 import logging
 import os  # used in docstrings
 import pytest  # used in docstrings
 import tempfile  # used in docstrings
 import yaml  # used in docstrings
+import h5py
+
 
 import numpy as np
 import pandas as pd
@@ -21,6 +20,7 @@ __author__ = "Luca Fiorito"
 __all__ = [
         "DecayData",
         "decay_modes",
+        "rdd2hdf",
         ]
 
 pd.options.display.float_format = '{:.5e}'.format
@@ -140,6 +140,7 @@ class DecayData():
         0  270600    280600  1.00000e+00 4.16705e-09
         """
         items = []
+        columns = ["PARENT", "DAUGHTER", "YIELD", "LAMBDA"]
         for zam, nucl in sorted(self.data.items()):
             yld = 0. if nucl["stable"] else -1.
             if not skip_parents:   # add also the disappearance of the parent
@@ -153,6 +154,7 @@ class DecayData():
             if nucl["stable"]:
                 continue
             for decay_mode in nucl["decay_modes"].values():
+                br = decay_mode["branching_ratio"]
                 if "decay_products" not in decay_mode:
                     continue  # S.F.
                 for zap, yld in decay_mode["decay_products"].items():
@@ -160,11 +162,15 @@ class DecayData():
                     add = {
                         "PARENT": zam,
                         "DAUGHTER": zap,
-                        "YIELD": yld,
+                        "YIELD": yld * br,
                         "LAMBDA": nucl["decay_constant"]
                         }
                     items.append(add)
-        return pd.DataFrame(items).sort_values(by=["PARENT", "DAUGHTER"])
+        df = pd.DataFrame(items) \
+               .groupby(["PARENT", "DAUGHTER", "LAMBDA"]).sum().reset_index() \
+               .sort_values(by=["PARENT", "DAUGHTER"]) \
+               .reset_index(drop=True)[columns]
+        return df
 
     def get_bmatrix(self, **kwargs):
         """
@@ -217,12 +223,16 @@ class DecayData():
         >>> file = os.path.join(sandy.data.__path__[0], "rdd.endf")
         >>> endf6 = sandy.Endf6.from_file(file)
         >>> rdd = sandy.DecayData.from_endf6(endf6)
-        >>> rdd.get_qmatrix()
-        PARENT        10010       270600      280600
-        DAUGHTER
-        10010    1.00000e+00 0.00000e+00 0.00000e+00
-        270600   0.00000e+00 1.00000e+00 2.39461e-17
-        280600   0.00000e+00 1.00000e+00 1.00000e+00
+        >>> out = rdd.get_qmatrix()
+        >>> comp = pd.DataFrame([[1, 0, 0],
+        ...                      [0, 1, 0],
+        ...                      [0, 1, 1]],
+        ...                     dtype=float,
+        ...                     index=[10010, 270600, 280600],
+        ...                     columns=[10010, 270600, 280600])
+        >>> comp.index.name = "DAUGHTER"
+        >>> comp.columns.name = "PARENT"
+        >>> pd.testing.assert_frame_equal(comp, out)
         """
         B = self.get_bmatrix(**kwargs)
         if not keep_neutrons:
@@ -277,6 +287,8 @@ class DecayData():
         ----------
         tape : `sandy.Endf6`
             instance containing decay data
+        verbose : `bool`, optional, default is `False`
+            flag to print information when reading ENDF-6 file
 
         Returns
         -------
@@ -511,7 +523,7 @@ class DecayData():
 
 def expand_decay_type(zam, dectyp):
     """
-    Given a nuclide and an individual decay mode as in `decay_modes`, 
+    Given a nuclide and an individual decay mode as in `decay_modes`,
     return:
         - the decay product
         - the number of emitted neutrons
@@ -702,7 +714,7 @@ def get_decay_products(rtyp, zam, meta=0, br=1.):
     return products
 
 
-def endf2hdf(e6file, h5file, lib):
+def rdd2hdf(e6file, h5file, lib):
     """
     Write to disk a HDF5 file that reproduces the content of a RDD file in
     ENDF6 format.
@@ -710,9 +722,9 @@ def endf2hdf(e6file, h5file, lib):
     Parameters
     ----------
     e6file : `str`
-        filename (with absolute or relative path) of the ENDF6 file
+        ENDF-6 filename
     h5file : `str`
-        filename (with absolute or relative path) of the HDF5 file
+        HDF5 filename
     lib : `str`
         library name (it will appear as a hdf5 group)
     """

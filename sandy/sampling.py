@@ -25,7 +25,7 @@ from sandy.settings import SandyError
 from sandy.formats import read_formatted_file, get_file_format
 from sandy.formats.endf6 import Endf6
 from sandy.formats.utils import FySamples, XsCov
-from sandy.core import pfns
+from sandy import pfns
 from sandy.tools import is_valid_dir, is_valid_file
 from sandy import njoy
 
