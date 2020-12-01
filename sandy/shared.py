@@ -220,9 +220,9 @@ def pad_from_beginning_fast(vals, maxlen):
 def reshape_differential(x, y, xnew):
     """
     Linearly interpolate array over new energy grid structure.
-    
+
     Extrapolated values are replaced by zeros.
-    
+
     Parameters
     ----------
     x : 1d array-like object with at least two entries
@@ -231,34 +231,33 @@ def reshape_differential(x, y, xnew):
         new energy grid
     y : `numpy.ndarray` with at least two entries and same length as `x`
         array to interpolate
-    
+
     Returns
     -------
     `numpy.ndarray` with length `len(xnew)`
         interpolated array
     """
     foo = scipy.interpolate.interp1d(
-            x, y, 
-            axis=0, 
-            copy=False, 
-            kind="slinear", 
-            bounds_error=False, 
-            fill_value=0., 
+            x, y,
+            axis=0,
+            copy=False,
+            kind="slinear",
+            bounds_error=False,
+            fill_value=0.,
             assume_sorted=True,
             )
     return foo(xnew)
-
 
 
 def reshape_integral(x, y, xnew, left_values="first", right_values=0):
     """
     Interpolate array over new energy grid structure using "bfill" method.
     It is assumed that the values of `y` are  multiplied by the grid bin-width.
-    The values of the interpolated array are recalculated proportionally to 
+    The values of the interpolated array are recalculated proportionally to
     the new grid bin-widths.
-    
+
     Extrapolated values are replaced by zeros.
-   
+
     Parameters
     ----------
     x : 1d array-like object with at least two entries
@@ -267,7 +266,7 @@ def reshape_integral(x, y, xnew, left_values="first", right_values=0):
         new energy grid
     y : `numpy.ndarray` with at least two entries and same length as `x`
         array to interpolate
-    
+
     Returns
     -------
     `numpy.ndarray` with length `len(xnew)`
@@ -277,17 +276,23 @@ def reshape_integral(x, y, xnew, left_values="first", right_values=0):
     dx[1:] = np.ediff1d(x)
     dxnew = xnew.copy()
     dxnew[1:] = np.ediff1d(xnew)
-    return reshape_bfill(x, y/dx, xnew, left_values=np.nan, right_values=np.nan)*dxnew
-
+    out = reshape_bfill(
+        x,
+        y / dx,
+        xnew,
+        left_values=np.nan,
+        right_values=np.nan
+        ) * dxnew
+    return out
 
 
 def reshape_bfill(x, y, xnew, left_values="first", right_values=0):
     """
     Interpolate array over new energy grid structure using "bfill" method.
-    
+
     Right-extrapolated values are replaced by zeros.
     Left-extrapolated values are replaced by `y[0]`.
-   
+
     Parameters
     ----------
     x : 1d array-like object with at least two entries
@@ -296,7 +301,7 @@ def reshape_bfill(x, y, xnew, left_values="first", right_values=0):
         new energy grid
     y : `numpy.ndarray` with at least two entries and same length as `x`
         array to interpolate
-    
+
     Returns
     -------
     `numpy.ndarray` with length `len(xnew)`
@@ -316,8 +321,10 @@ def reshape_bfill(x, y, xnew, left_values="first", right_values=0):
             )
     return foo(xnew)
 
+
 def add_delimiter_every_n_characters(string, step, delimiter=" "):
     return delimiter.join(string[i:i+step] for i in range(0, len(string), step))
+
 
 def add_exp_in_endf6_text(text):
     pattern = re.compile("([0-9\.])([+-])([0-9])")

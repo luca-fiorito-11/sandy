@@ -348,18 +348,20 @@ class CategoryCov():
         C = Vx - Vx.dot(S.dot(np.linalg.inv(V).dot(S.T.dot(Vx))))
         return self.__class__(C)
 
-    def sandwich(self, S):
+    def sandwich(self, Si, Sj=None):
         C = self.data.values
-        S_ = S.reshape(self.size, -1)
-        return S_.T.dot(C.dot(S_))
+        Si_ = Si.reshape(self.size, -1)
+        if Sj is None:
+            Sj_ = Si_
+        else:
+            Sj_ = Sj.reshape(self.size, -1)
+        return Si_.T.dot(C.dot(Sj_))
 
-    def plot_corr(self, ax):
-        kwargs = {"cbar": True, "vmin": -1, "vmax": 1, "cmap": "RdBu"}
-        ax = sns.heatmap(self.corr, ax=ax, **kwargs)
-        if self.xlabel:
-            ax.set_xlabel("{}".format(self.xlabel))
-        if self.ylabel:
-            ax.set_ylabel("{}".format(self.xlabel))
+    def plot_corr(self, ax, **kwargs):
+        add = {"cbar": True, "vmin": -1, "vmax": 1, "cmap": "RdBu"}
+        for k, v in kwargs.items():
+            add[k] = v
+        ax = sns.heatmap(self.corr, ax=ax, **add)
         return ax
 
     @classmethod

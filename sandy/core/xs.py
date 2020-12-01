@@ -1,29 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Outline
-=======
-1. Summary_
-2. Examples_
-3. Routines_
-
-.. _Summary:
-
-Summary
-=======
-This module contains all classes and functions specific for the cross section 
-class `Xs` that acts as a container for energy-dependent tabulated cross 
+This module contains all classes and functions specific for the cross section
+class `Xs` that acts as a container for energy-dependent tabulated cross
 section values.
-
-.. important:: once created, the `Xs` instance should be modified only 
-               using its public API, to gurantee that the information 
-               stored in its attributes is preserved.
-
-.. _Examples:
-
-
-Routines
-========
-
 """
 import os
 import pdb
