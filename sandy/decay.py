@@ -386,6 +386,9 @@ class DecayData():
                             "beta": sec["DE"][0],
                             "gamma": sec["DE"][1],
                             "alpha": sec["DE"][2],
+                            "total": np.sqrt(
+                                np.sum(x**2 for x in sec["DE"][:3])
+                                ),
                             },
                     }
             if groups[zam]["stable"]:
@@ -402,6 +405,7 @@ class DecayData():
                                                 residual_state,
                                                 ),
                         "branching_ratio": dk["BR"],
+                        "branching_ratio_uncertainty": dk["DBR"],
                         }
                 groups[zam]["decay_modes"][rtyp] = decay_mode_data
         return cls(groups)

@@ -158,7 +158,7 @@ class Xs():
         else:
             return Xs(df)
 
-    def custom_perturbation(self, mat, mt, pert, inplace=False):
+    def custom_perturbation(self, mat, mt, pert):
         """
         Apply a custom perturbation to a given cross section identified by
         a MAT and MT number.
@@ -173,8 +173,6 @@ class Xs():
             applied
         pert : `sandy.Pert`
             tabulated perturbations
-        inplace : `bool`, optional, default is `False`
-            flag to activate inplace replacement
 
         Returns
         -------
@@ -182,19 +180,18 @@ class Xs():
             cross section instance with given series MAT/MT perturbed
         """
         if (mat, mt) not in self.data:
-            logging.warning("could not find MAT{}/MT{}, perturbation will not be applied".format(mat, mt))
+            msg = f"could not find MAT{mat}/MT{mt}, " +\
+                "perturbation will not be applied"
+            logging.warning(msg)
             u_xs = self
         else:
             enew = np.union1d(self.data.index.values, pert.right.index.values)
             u_xs = self.reshape(enew)
             u_pert = pert.reshape(enew)
-            u_xs.data[(mat,mt)] = u_xs.data[(mat,mt)]*u_pert.right.values
-        if inplace:
-            self.data = u_xs.data
-        else:
-            return Xs(u_xs.data)
+            u_xs.data[(mat, mt)] = u_xs.data[(mat, mt)] * u_pert.right.values
+        return self.__class__(u_xs.data)
 
-    def to_endf6(self, endf6, inplace=False):
+    def to_endf6(self, endf6):
         """
         Update cross sections in `Endf6` instance with those available in a
         `Xs` instance.
@@ -218,10 +215,7 @@ class Xs():
         """
         endf6new = self._xs_to_endf6(endf6)
         endf6new = self._nubar_to_endf6(endf6new)
-        if inplace:
-            endf6.data = endf6new.data
-        else:
-            return endf6new
+        return endf6new
 
     def _nubar_to_endf6(self, endf6):
         data = endf6.data.copy()

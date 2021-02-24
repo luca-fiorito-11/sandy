@@ -465,7 +465,9 @@ def _sampling_mp(ismp, skip_title=False, skip_fend=False):
             nubarpert = nubar.perturb(pnu[ismp])
             newtape = newtape.update_nubar(nubarpert)
     if not pchi.empty:
-        edistr = sandy.Edistr.from_endf6(newtape).add_points(extra_points)
+        # use new format tape for energy distribution
+        endfnew = sandy.Endf6._from_old_format(newtape)
+        edistr = sandy.Edistr.from_endf6(endfnew).add_points(extra_points)
         if not edistr.empty:
             edistrpert = edistr.perturb(pchi[ismp])
             newtape = newtape.update_edistr(edistrpert)

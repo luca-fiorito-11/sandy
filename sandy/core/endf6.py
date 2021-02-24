@@ -444,6 +444,13 @@ class _FormattedFile():
             return new_tape
         print(new_text)
 
+    @classmethod
+    def _from_old_format(cls, old_endf6):
+        """
+        Convert old endf6 tape into new one!
+        """
+        return cls(old_endf6.TEXT.to_dict())
+
 
 class Endf6(_FormattedFile):
     """

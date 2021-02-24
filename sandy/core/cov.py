@@ -23,6 +23,28 @@ __all__ = [
         ]
 
 
+def cov33csv(func):
+    def inner(*args, **kwargs):
+        key = "cov33csv"
+        kw = kwargs.copy()
+        if key in kw:
+            if kw[key]:
+                print(f"found argument '{key}', ignore oher arguments")
+                out = func(
+                    *args,
+                    index_col=[0, 1, 2],
+                    header=[0, 1, 2],
+                    )
+                out.index.names = ["MAT", "MT", "E"]
+                out.columns.names = ["MAT", "MT", "E"]
+                return out
+            else:
+                del kw[key]
+        out = func(*args, **kw)
+        return out
+    return inner
+
+
 class _Cov(np.ndarray):
     """Covariance matrix treated as a `numpy.ndarray`.
 
@@ -386,6 +408,7 @@ class CategoryCov():
         return cls(corr2cov(corr, std), **kwargs)
 
     @classmethod
+    @cov33csv
     def from_csv(cls, file, **kwargs):
         """
         Read covariance matrix from csv file using `pandas.read_csv`.

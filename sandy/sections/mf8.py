@@ -256,34 +256,46 @@ def _read_rdd(tape, mat):
                     discr["DER"] = L.C2
                     # Number of entries given for each discrete energy (ER)
                     NT = len(L.B)
-                    # Decay mode
-                    discr["RTYP"] = L.B[0]
-                    # Type of transition for beta and electron capture
-                    discr["TYPE"] = L.B[1]
-                    # intensity of discrete radiation produced (relative units)
-                    discr["RI"] = L.B[2]
-                    # uncertainty on the intensity of discrete radiation
-                    # produced
-                    discr["DRI"] = L.B[3]
-                    # Internal pair formation coefficient (STYP=2.0 positron
-                    # intensity, STYP=0.0 otherwise)
-                    discr["RIS"] = L.B[4]
-                    # Uncertainty on internal pair formation coefficient
-                    discr["DRIS"] = L.B[5]
-                    if NT == 12:
+                    if NT > 0:
+                        # Decay mode
+                        discr["RTYP"] = L.B[0]
+                    if NT > 1:
+                        # Type of transition for beta and electron capture
+                        discr["TYPE"] = L.B[1]
+                    if NT > 2:
+                        # intensity of discrete radiation produced
+                        # (relative units)
+                        discr["RI"] = L.B[2]
+                    if NT > 3:
+                        # uncertainty on the intensity of discrete radiation
+                        # produced
+                        discr["DRI"] = L.B[3]
+                    if NT > 4:
+                        # Internal pair formation coefficient
+                        # (STYP=2.0 positron intensity, STYP=0.0 otherwise)
+                        discr["RIS"] = L.B[4]
+                    if NT > 5:
+                        # Uncertainty on internal pair formation coefficient
+                        discr["DRIS"] = L.B[5]
+                    if NT > 6:
                         # Total internal conversion coefficient
                         # (STYP=0.0 only)
                         discr["RICC"] = L.B[6]
+                    if NT > 7:
                         # Uncertainty on RICC1
                         discr["DRICC"] = L.B[7]
+                    if NT > 8:
                         # K-shell internal conversion coefficient
                         # (STYP=0.0 only)
                         discr["RICK"] = L.B[8]
+                    if NT > 9:
                         # Uncertainty on RICC1
                         discr["DRICK"] = L.B[9]
+                    if NT > 10:
                         # L-shell internal conversion coefficient
                         # (STYP=0.0 only)
                         discr["RICL"] = L.B[10]
+                    if NT > 11:
                         # Uncertainty on RICL1
                         discr["DRICL"] = L.B[11]
                     discrete_spectrum[ER] = discr

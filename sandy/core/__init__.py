@@ -8,4 +8,3 @@ from .basecov import *
 from .ecov import *
 from .xscov import *
 from .lpccov import *
-from .pert import *

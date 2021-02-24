@@ -329,3 +329,19 @@ def add_delimiter_every_n_characters(string, step, delimiter=" "):
 def add_exp_in_endf6_text(text):
     pattern = re.compile("([0-9\.])([+-])([0-9])")
     return pattern.sub("\g<1>E\g<2>\g<3>", text)
+
+
+def star(func):
+    def inner(*args, **kwargs):
+        print("*" * 30)
+        func(*args, **kwargs)
+        print("*" * 30)
+    return inner
+
+
+def percent(func):
+    def inner(*args, **kwargs):
+        print("%" * 30)
+        func(*args, **kwargs)
+        print("%" * 30)
+    return inner

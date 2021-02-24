@@ -38,8 +38,13 @@ class Edistr():
     Methods
     -------
     add_energy_point
+        add outgoing energy distributions at additional single incident energy
+        by interpolation
+    add_energy_points
         add outgoing energy distributions at additional incident energies by
         interpolation
+    custom_perturbation
+        perturb individual outgoing distribution
     filter_by
         apply condition to source data and return filtered results
     from_endf6
@@ -183,18 +188,24 @@ class Edistr():
 
     def add_energy_point(self, mat, mt, k, enew):
         """
-        Add outgoing energy distributions at additional incident energies by
+        Add outgoing energy distribution at one additional incident energy by
         interpolation.
 
         Parameters
         ----------
-        extra_points : iterable
-            energy points in eV
+        mat : `int`
+            MAT number.
+        mt : `int`
+            MT number.
+        k : `int`
+            subsection.
+        enew : float
+            energy point in eV
 
         Returns
         -------
         `sandy.Edistr`
-            energy distribution with additional additional incoming energy.
+            energy distribution with an additional additional incoming energy.
 
         Examples
         --------
@@ -246,6 +257,55 @@ class Edistr():
                       .reset_index() \
                       .assign(MAT=mat, MT=mt, K=k, EIN=enew)
         return self.__class__(pd.concat((data, df)))
+
+    def add_energy_points(self, mat, mt, k, elist):
+        """
+        Add outgoing energy distributions at additional incident energies by
+        interpolation.
+
+        Parameters
+        ----------
+        mat : `int`
+            MAT number.
+        mt : `int`
+            MT number.
+        k : `int`
+            subsection.
+        elist : iterable of `float`
+            energy points in eV
+
+        Returns
+        -------
+        new : `sandy.Edistr`
+            energy distribution with an additional additional incoming
+            energies.
+
+        Examples
+        --------
+        >>> orig = Edistr(minimal_edistrtest)
+        >>> new = orig.add_energy_points(9437, 18, 0, [1, 1.5, 1.7])
+        >>> new
+             MAT  MT  K         EIN        EOUT       VALUE
+        0   9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
+        1   9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01
+        2   9437  18  0 1.50000e+00 1.00000e-05 2.00000e-01
+        3   9437  18  0 1.50000e+00 1.00000e-04 3.00000e-01
+        4   9437  18  0 1.50000e+00 1.00000e+00 5.50000e-01
+        5   9437  18  0 1.50000e+00 1.00000e+07 3.00000e-01
+        6   9437  18  0 1.50000e+00 2.00000e+07 3.00000e-01
+        7   9437  18  0 1.70000e+00 1.00000e-05 1.20000e-01
+        8   9437  18  0 1.70000e+00 1.00000e-04 2.60000e-01
+        9   9437  18  0 1.70000e+00 1.00000e+00 6.10000e-01
+        10  9437  18  0 1.70000e+00 1.00000e+07 2.20000e-01
+        11  9437  18  0 1.70000e+00 2.00000e+07 1.80000e-01
+        12  9437  18  0 2.00000e+00 1.00000e-04 2.00000e-01
+        13  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
+        14  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
+        """
+        new = self.__class__(self.data.copy())
+        for e in elist:
+            new = new.add_energy_point(mat, mt, k, e)
+        return new
 
     def get_integrals(self):
         """
@@ -318,7 +378,72 @@ class Edistr():
         df = pd.concat(out)
         return self.__class__(df)
 
-    def perturb(self, pert, method=2, normalize=True, **kwargs):
+    def custom_perturbation(self, pert, mat, mt, k, ein_low, ein_high):
+        """
+        Given a peruration object (fractions), a MAT number, a MT number,
+        a subsection number, a lower and an upper incoming energy bound,
+        apply the perturbation to the outgoing energy distributions for all
+        incident energies comprised within the given boundaries.
+
+        Parameters
+        ----------
+        pert : `sandy.Pert`
+            perturbation object.
+        mat : `int`
+            MAT number.
+        mt : `int`
+            MT number.
+        k : `int`
+            subsection.
+        ein_low : TYPE
+            lower energy boundary in eV.
+        ein_high : TYPE
+            upper energy boundary in eV.
+
+        Returns
+        -------
+        `sandy.Edistr`
+            perturbed distributions.
+
+        Notes
+        -----
+        .. note:: the output distributions are not renormalized.
+
+        .. note:: The energy grid of the perturbation object refers to the
+                  outgoing energy distribution.
+
+        .. note:: If the perturbation exceeds 100%, it is truncated.
+
+        Examples
+        --------
+        >>> orig = Edistr(minimal_edistrtest)
+        >>> pert = sandy.Pert([1.3], index=[1e-3])
+        >>> orig.custom_perturbation(pert, 9437, 18, 0, 1.5, 2.5)
+            MAT  MT  K         EIN        EOUT       VALUE
+        0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
+        1  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01
+        2  9437  18  0 2.00000e+00 1.00000e-04 2.60000e-01
+        3  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
+        4  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
+        """
+        data = self.data.copy()
+        condition = (data.MT == mt) &\
+                    (data.MAT == mat) &\
+                    (data.K == k) &\
+                    (data.EIN < ein_high) &\
+                    (data.EIN >= ein_low)
+        dfs = []
+        dfs.append(data[~condition])
+        for ein, df in data[condition].groupby("EIN"):
+            series = pert.reshape(df.EOUT).data.loc[df.EOUT]
+            # truncate extremes and replace them with boundaries
+            px = sandy.Pert(series).truncate()
+            df.VALUE *= px.data.values
+            dfs.append(df)
+        out = pd.concat(dfs)
+        return self.__class__(out)
+
+    def _perturb(self, pert, method=2, normalize=True, **kwargs):
         """Perturb energy distributions given a set of perturbations.
         
         Parameters
@@ -382,7 +507,7 @@ class Edistr():
                          f"MAT{mat}/MF{mf}/MT{mt}, subsection {k}"
                     logging.warning(msg)
                     continue
-                if list(filter(lambda x:x["INT"] != [2], pdistr["EIN"].values())):
+                if list(filter(lambda x: x["INT"] != [2], pdistr["EIN"].values())):
                     msg = "found non-linlin interpolation, skip " +\
                          f"distribution for MAT{mat}/MF{mf}/MT{mt}," +\
                          f" subsection {k}"
