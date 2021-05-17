@@ -28,6 +28,7 @@ before_install:
   - pip install -r requirements_pip.txt
 
 install:
+  - which python
   - git clone https://github.com/njoy/NJOY2016.git && (cd NJOY2016 && mkdir build && cd build && cmake .. && make) # install NJOY
   - rm -rf NJOY2016/tests
   - python setup.py install
