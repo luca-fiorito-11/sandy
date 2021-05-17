@@ -8,6 +8,8 @@ import pdb
 import io
 import os
 import tempfile
+import logging
+import urllib
 
 import pandas as pd
 
@@ -16,9 +18,91 @@ import sandy
 __author__ = "Luca Fiorito"
 __all__ = [
         "Endf6",
+        "get_endf6_file",
         ]
 
 pd.options.display.float_format = '{:.5e}'.format
+
+URL_JEFF40T0 = "https://www.oecd-nea.org/dbdata/nds/JEFF4T0/endf6/files/"
+
+
+def get_endf6_file(library, kind, zam):
+    """
+    Given a library and a nuclide import the corresponding ENDF-6 nuclear
+    data file directly from internet.
+
+    Parameters
+    ----------
+    library : `str`
+        nuclear data library. Available libraries are:
+            * `'jeff_40t0'`
+    kind : `str`
+        nuclear data type:
+            * `xs` is a standard neutron-induced nuclear data file
+            * no other data type is allowed at the moment
+    zam : `int`
+        ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
+            * $Z$ is the charge number
+            * $A$ is the mass number
+            * $M$ is the metastate level (0=ground, 1=1st level)
+
+    Raises
+    ------
+    ValueError
+        if library is not among available selection.
+
+    Returns
+    -------
+    `Endf6`
+        `Endf6` object with ENDF-6 data for specified library and nuclide.
+
+    Examples
+    --------
+    Import hydrogen file from JEFF-4.0T0
+    >>> tape = sandy.get_endf6_file("jeff_40t0", 'xs', 10010)
+    >>> assert type(tape) is sandy.Endf6
+    """
+    library_ = library.lower()
+    if library_ == "jeff_40t0":
+        url = get_url_jeff_40t0(zam)
+    else:
+        raise ValueError("library '{library}' is not available")
+    return Endf6.from_url(url)
+
+
+def get_url_jeff_40t0(zam):
+    """
+    Given a nuclide retrieve its corresponding url for JEFF-4.0T0
+
+    Parameters
+    ----------
+    zam : `int`
+        ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
+            * $Z$ is the charge number
+            * $A$ is the mass number
+            * $M$ is the metastate level (0=ground, 1=1st level)
+
+    Returns
+    -------
+    url : `str`
+        file url.
+
+    Examples
+    --------
+    Get URL of U-235 file from JEFF-4.0T0.
+    >>> get_url_jeff_40t0(922350)
+    'https://www.oecd-nea.org/dbdata/nds/JEFF4T0/endf6/files/92-u-235g.endf2c'
+
+    Get URL of a metastable nuclide from JEFF-4.0T0.
+    >>> get_url_jeff_40t0(952421)
+    'https://www.oecd-nea.org/dbdata/nds/JEFF4T0/endf6/files/95-am-242m.endf2c'
+    """
+    z, a, m = sandy.zam.expand_zam(zam)
+    sym = sandy.zam.z2sym(z).lower()
+    ml = sandy.zam.get_meta_letter(m)
+    file = f"{z}-{sym}-{a}{ml}.endf2c"
+    url = URL_JEFF40T0 + file
+    return url
 
 
 class _FormattedFile():
@@ -60,6 +144,7 @@ class _FormattedFile():
     This class supports ENDF-6 content from ENDF-6 files, ERRORR files and
     GROUPR files.
     """
+
     def __repr__(self):
         return self.to_series().__repr__()
 
@@ -81,7 +166,16 @@ class _FormattedFile():
 
     @property
     def keys(self):
-        return self.data.keys()
+        """
+        List of keys `(MAT, MF, MT)` used to identify each tape section.
+
+        Returns
+        -------
+        `list`
+            list of tuples of type `(MAT, MF, MT)` for each section found in
+            tape.
+        """
+        return list(self.data.keys())
 
     @property
     def _keys(self):
@@ -150,6 +244,12 @@ class _FormattedFile():
             else:
                 kind == "unkwown"
         return kind
+
+    @classmethod
+    def from_url(cls, url):
+        with urllib.request.urlopen(url) as f:
+            text = f.read().decode('utf-8')
+        return cls.from_text(text)
 
     @classmethod
     def from_file(cls, file):
@@ -263,8 +363,14 @@ class _FormattedFile():
         """
         """
         text = self.data[(mat, mf, mt)]
-        foo = lambda x : sandy.shared.add_delimiter_every_n_characters(x[:66], 11, delimiter=delimiter)
-        newtext = "\n".join(map(foo, text.splitlines()))
+
+        def foo(x):
+            return sandy.shared.add_delimiter_every_n_characters(
+                x[:66],
+                11,
+                delimiter=delimiter,
+            )
+        newtext = "\n".join(map(foo, text.splitlines())).replace('"', '*')
         df = pd.read_csv(
             io.StringIO(sandy.shared.add_exp_in_endf6_text(newtext)),
             delimiter=delimiter,
@@ -478,21 +584,7 @@ class Endf6(_FormattedFile):
         """
         return self.read_section(self.mat[0], 1, 451)["NSUB"]
 
-    def _get_section_df(self, mat, mf, mt, delimiter="?"):
-        """
-        """
-        text = self.data[(mat, mf, mt)]
-        foo = lambda x : sandy.shared.add_delimiter_every_n_characters(x[:66], 11, delimiter=delimiter)
-        newtext = "\n".join(map(foo, text.splitlines()))
-        df = pd.read_csv(
-            io.StringIO(sandy.shared.add_exp_in_endf6_text(newtext)),
-            delimiter=delimiter,
-            na_filter=True,
-            names=["C1", "C2", "L1", "L2", "N1", "N2"],
-        )
-        return df
-
-    def read_section(self, mat, mf, mt):
+    def read_section(self, mat, mf, mt, raise_error=True):
         """
         Parse MAT/MF/MT section.
 
@@ -509,7 +601,11 @@ class Endf6(_FormattedFile):
         -------
         `dict`
         """
-        foo = eval(f"sandy.read_mf{mf}")
+        read_module = f"read_mf{mf}"
+        found = hasattr(sandy, read_module)
+        if not raise_error and not found:
+            return
+        foo = eval(f"sandy.{read_module}")
         return foo(self, mat, mt)
 
     def write_string(self, title="", skip_title=False, skip_fend=False):

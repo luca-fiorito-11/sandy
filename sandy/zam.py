@@ -450,6 +450,7 @@ def abundance_per_element():
     for zam, v in NATURAL_ABUNDANCE.items():
         z, a, m = expand_zam(zam)
         abundance_per_element[z][zam] = v
+    return abundance_per_element
 
 
 def expand_za(za, method="nndc", meta=0):

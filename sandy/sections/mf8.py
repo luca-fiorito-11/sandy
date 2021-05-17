@@ -50,26 +50,102 @@ def read_mf8(tape, mat, mt):
         out = _read_fy(tape, mat, mt)
     elif mt == 457:
         out = _read_rdd(tape, mat)
+    else:
+        out = _read_nucl_prod(tape, mat, mt)
+#    else:
+#        raise ValueError(f"'MF={mf}/MT={mt}' not yet implemented")
     return out
 
 
-def write(sec):
+# def write(sec):
+#     """
+#     Write MT section for MF8
+
+#     Parameters
+#     ----------
+#     sec : `sandy.utils.Section`
+#         dictionary with MT section for MF8
+
+#     Returns
+#     -------
+#     `str`
+#     """
+#     if sec["MT"] in (454, 459):
+#         return _write_fy(sec)
+#     elif sec["MT"] == 457:
+#         return _write_rdd(sec)
+
+
+def _read_nucl_prod(tape, mat, mt):
     """
-    Write MT section for MF8
+    Parse MAT/MF=8/MT section for radioactive nuclide production from
+    `sandy.Endf6` object and return structured content in nested dcitionaries.
 
     Parameters
     ----------
-    sec : `sandy.utils.Section`
-        dictionary with MT section for MF8
+    tape : `sandy.Endf6`
+        endf6 object containing requested section
+    mat : `int`
+        MAT number
+    mt : `int`
+        MT number
 
     Returns
     -------
-    `str`
+    `dict`
+        Content of the ENDF-6 tape structured as nested `dict`.
     """
-    if sec["MT"] in (454, 459):
-        return _write_fy(sec)
-    elif sec["MT"] == 457:
-        return _write_rdd(sec)
+    df = tape._get_section_df(mat, mf, mt)
+    out = {
+            "MAT": mat,
+            "MF": mf,
+            "MT": mt,
+            }
+    i = 0
+    C, i = sandy.read_cont(df, i)
+    NS = C.N1
+    add = {
+            "ZAM": int(C.C1*10),
+            "AWR": C.C2,
+            "LIS": C.L1,   # State number (including ground and all levels) of the target (ZA)
+            "LISO": C.L2,  # Isomeric state number of the target
+            "NS": NS,      # Total number of states (LFS) of the radioactive reaction product for which decay data are given
+            "NO": C.N2,    # Flag denoting where the decay information is to be given for an important radioactive end product.
+            }
+    out.update(add)
+    products = {}
+    for j in range(NS):
+        L, i = sandy.read_list(df, i)
+        LFS = L.L2
+        ND = int(L.NPL / 6)
+        LIST = L.B[:]
+        decay_modes = []
+        for k in range(ND):
+            B = LIST[:6]
+            LIST = LIST[6:]
+            add = {
+                "HL": B[0],    # half-life of the nuclide ZAP in seconds
+                "RTYP": B[1],  # Mode of decay using the same definitions specified in MT=457
+                "ZAN": B[2],   # Z and mass identifier of the next nuclide produced along the chain
+                "BR": B[3],    # Branching ratio for the production of that particular ZAN and level
+                "END": B[4],   # Endpoint energy of the particle or quantum emitted
+                "CT": B[5],    # Chain terminator that gives minimal information about the formation and decay of ZAN
+                }
+            decay_modes.append(add)
+        ZAP = int(L.C1)
+        add = {
+            "ZAP": ZAP,
+            "ELFS": L.C2,
+            "LMF": L.L1,
+            "LFS": LFS,
+            }
+        if ND > 0:
+            add["DECAY"] = decay_modes
+        products[ZAP] = add
+    out.update({
+        "PRODUCTS": products,
+        })
+    return out
 
 
 def _read_fy(tape, mat, mt):
@@ -204,20 +280,24 @@ def _read_rdd(tape, mat):
             # Decay Mode (Multiple particle decay is also allowed using
             # combination of RTYP variables)
             RTYP = str(data[0]).replace(".", "")
+            # Isomeric state flag for daughter nuclide
+            RFS = data[1]
+            residual_state = int(RFS)
+            key = f"{RTYP}x{residual_state}"
             decay = {
-                    # Isomeric state flag for daughter nuclide
-                    "RFS": data[1],
-                    # Total decay energy (eV) available in the corresponding
-                    # decay process
-                    "Q": data[2],
-                    # Uncertainty on the total decay heat available
-                    "DQ": data[3],
-                    # Branching ratio
-                    "BR": data[4],
-                    # Uncertainty on branching ratio
-                    "DBR": data[5],
-                    }
-            dk[RTYP] = decay
+                "RTYP": RTYP,
+                "RFS": RFS,
+                # Total decay energy (eV) available in the corresponding
+                # decay process
+                "Q": data[2],
+                # Uncertainty on the total decay heat available
+                "DQ": data[3],
+                # Branching ratio
+                "BR": data[4],
+                # Uncertainty on branching ratio
+                "DBR": data[5],
+                }
+            dk[key] = decay
         out["DK"] = dk
     ###########################
     # READ SPECTRA
@@ -322,21 +402,21 @@ def _read_rdd(tape, mat):
     return out
 
 
-def _write_fy(sec):
-    LE = len(sec["E"])
-    text = write_cont(sec["ZA"], sec["AWR"], LE, 0, 0, 0)
-    for i,(e,esec) in enumerate(sorted(sec["E"].items())):
-        tab = [ksec[j] for k,ksec in sorted(esec["FY"].items()) for j in ("ZAFP","FPS","YI","DYI")]
-        NFP = len(esec["FY"])
-        I = LE-1 if i == 0 else esec["I"]
-        text += write_list(e, 0, I, 0, NFP, tab)
-    TextOut = []; iline = 1
-    for line in text:
-        if iline > 99999:
-            iline = 1
-        TextOut.append("{:<66}{:4}{:2}{:3}{:5}\n".format(line, sec["MAT"], sec["MF"], sec["MT"], iline))
-        iline += 1
-    return "".join(TextOut)
+# def _write_fy(sec):
+#     LE = len(sec["E"])
+#     text = write_cont(sec["ZA"], sec["AWR"], LE, 0, 0, 0)
+#     for i,(e,esec) in enumerate(sorted(sec["E"].items())):
+#         tab = [ksec[j] for k,ksec in sorted(esec["FY"].items()) for j in ("ZAFP","FPS","YI","DYI")]
+#         NFP = len(esec["FY"])
+#         I = LE-1 if i == 0 else esec["I"]
+#         text += write_list(e, 0, I, 0, NFP, tab)
+#     TextOut = []; iline = 1
+#     for line in text:
+#         if iline > 99999:
+#             iline = 1
+#         TextOut.append("{:<66}{:4}{:2}{:3}{:5}\n".format(line, sec["MAT"], sec["MF"], sec["MT"], iline))
+#         iline += 1
+#     return "".join(TextOut)
 
 
 def _write_rdd(*args, **kwargs):

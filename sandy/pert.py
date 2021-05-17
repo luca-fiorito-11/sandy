@@ -32,6 +32,8 @@ class Pert():
 
     Methods
     -------
+    from_bin
+        generate a `Pert` object from a pair of energy bins
     reshape
         interpolate perturbation coefficients over new energy grid structure
     """
@@ -249,3 +251,33 @@ class Pert():
             raise sandy.Error("at least 2 columns should be given in the file")
         series = pd.Series(data[:, 1], index=data[:, 0])
         return Pert(series)
+
+    @classmethod
+    def from_bin(cls, elow, ehigh, coeff):
+        """
+        Generate a `Pert` object from a pair of energy bins `(elow, ehigh]`.
+
+        Parameters
+        ----------
+        elow : TYPE
+            lower energy boundary in eV.
+        ehigh : `float`
+            upper energy boundary in eV.
+        coeff : `float`
+            perturbation coefficient.
+
+        Returns
+        -------
+        pert : `sandy.Pert`
+            perturbation object.
+
+        Examples
+        --------
+        >>> Pert.from_bin(1e-5, 1e-4, 0.05)
+        ENERGY
+        (0.0, 1e-05]      1.00000e+00
+        (1e-05, 0.0001]   1.05000e+00
+        dtype: float64
+        """
+        pert = cls([1, 1 + coeff], index=[elow, ehigh])
+        return pert

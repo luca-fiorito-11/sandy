@@ -9,6 +9,7 @@ import pytest  # used in docstrings
 import tempfile  # used in docstrings
 import yaml  # used in docstrings
 import h5py
+from math import sqrt
 
 
 import numpy as np
@@ -95,7 +96,7 @@ class DecayData():
         for zam, data in self.data.items():
             if data["stable"]:
                 continue
-            for rdtp, decay_mode in data["decay_modes"].items():
+            for decay_mode in data["decay_modes"].values():
                 # number_del_neuts = f"{rdtp}".count("5")
                 daughters = decay_mode["decay_products"]
                 if 10 in daughters:
@@ -320,6 +321,7 @@ class DecayData():
               alpha: 0.0
               beta: 0.0
               gamma: 0.0
+              total: 0.0
             half_life: 0.0
             parity: 1.0
             spin: 0.5
@@ -335,9 +337,11 @@ class DecayData():
               alpha: 0.0
               beta: 202.529
               gamma: 352.186
+              total: 406.26712202318316
             decay_modes:
-              '10':
+              10x0:
                 branching_ratio: 1.0
+                branching_ratio_uncertainty: 0.0
                 decay_products:
                   280600: 1.0
             half_life: 166340000.0
@@ -355,6 +359,7 @@ class DecayData():
               alpha: 0.0
               beta: 0.0
               gamma: 0.0
+              total: 0.0
             half_life: 0.0
             parity: 1.0
             spin: 0.0
@@ -386,8 +391,8 @@ class DecayData():
                             "beta": sec["DE"][0],
                             "gamma": sec["DE"][1],
                             "alpha": sec["DE"][2],
-                            "total": np.sqrt(
-                                np.sum(x**2 for x in sec["DE"][:3])
+                            "total": sqrt(
+                                sum(x**2 for x in sec["DE"][:3])
                                 ),
                             },
                     }
@@ -396,7 +401,8 @@ class DecayData():
                 assert "DK" not in sec
                 continue
             groups[zam]["decay_modes"] = {}
-            for rtyp, dk in sec["DK"].items():
+            for key, dk in sec["DK"].items():
+                rtyp = key.split("x")[0]
                 residual_state = dk["RFS"]
                 decay_mode_data = {
                         "decay_products": get_decay_products(
@@ -407,7 +413,7 @@ class DecayData():
                         "branching_ratio": dk["BR"],
                         "branching_ratio_uncertainty": dk["DBR"],
                         }
-                groups[zam]["decay_modes"][rtyp] = decay_mode_data
+                groups[zam]["decay_modes"][key] = decay_mode_data
         return cls(groups)
 
     @classmethod
@@ -476,42 +482,7 @@ class DecayData():
 
         Then, make sure `sandy` reads it correctly
         >>> rdd.from_hdf5(path, "jeff_33")
-        {10010: {'decay_constant': 0,
-          'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0},
-          'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0},
-          'half_life': 0.0,
-          'parity': 1.0,
-          'spin': 0.5,
-          'stable': True},
-         270600: {'decay_constant': 4.167050502344267e-09,
-          'decay_energy': {'alpha': 0.0,
-           'beta': 96522.0,
-           'gamma': 2503840.0,
-           'total': 2600362.0},
-          'decay_energy_uncertainties': {'alpha': 0.0,
-           'beta': 202.529,
-           'gamma': 352.186},
-          'decay_modes': {10: {'branching_ratio': 1.0,
-            'decay_products': {280600: 1.0}}},
-          'half_life': 166340000.0,
-          'parity': 1.0,
-          'spin': 5.0,
-          'stable': False},
-         280600: {'decay_constant': 0,
-          'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0},
-          'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0},
-          'half_life': 0.0,
-          'parity': 1.0,
-          'spin': 0.0,
-          'stable': True}}
-      >>> rdd.from_hdf5(path, "jeff_33", 10010)
-        {10010: {'decay_constant': 0,
-          'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0},
-          'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0},
-          'half_life': 0.0,
-          'parity': 1.0,
-          'spin': 0.5,
-          'stable': True}}
+        {10010: {'decay_constant': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.5, 'stable': True}, 270600: {'decay_constant': 4.167050502344267e-09, 'decay_energy': {'alpha': 0.0, 'beta': 96522.0, 'gamma': 2503840.0, 'total': 2600362.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 202.529, 'gamma': 352.186, 'total': 406.26712202318316}, 'decay_modes': {'10x0': {'branching_ratio': 1.0, 'branching_ratio_uncertainty': 0.0, 'decay_products': {280600: 1.0}}}, 'half_life': 166340000.0, 'parity': 1.0, 'spin': 5.0, 'stable': False}, 280600: {'decay_constant': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.0, 'stable': True}}
         >>> f.cleanup()
         """
         with h5py.File(filename, mode=mode) as h5file:

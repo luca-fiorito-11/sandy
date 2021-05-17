@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Jun 14 10:22:58 2018
-
-@author: fiorito_l
-"""
 from collections import namedtuple
 import itertools
 import pytest
@@ -18,6 +13,7 @@ __all__ = [
         "read_tab1",
         "read_tab2",
         "read_list",
+        "read_text",
         "write_cont",
         "write_tab1",
         "write_tab2",
@@ -98,6 +94,30 @@ def write_cont(C1, C2, L1, L2, N1, N2):
     integers = f"{L1:11d}{L2:11d}{N1:11d}{N2:11d}"
     line = write_float(C1) + write_float(C2) + integers
     return [line]
+
+
+def read_text(df, ipos):
+    """
+    Read ENDF-6 `TEXT` record in formatted fortran.
+
+    Returns
+    -------
+    `TEXT` : `collections.namedtuple`
+        - `HL` : `str`
+            66-character string
+    """
+    TEXT = namedtuple('TEXT', 'HL')
+    series = df.iloc[ipos]
+    HL = "".join([
+        series.C1,
+        series.C2,
+        series.L1,
+        series.L2,
+        series.N1,
+        series.N2,
+        ])
+    ipos += 1
+    return TEXT(HL), ipos
 
 
 def write_integer_list(lst):
@@ -332,4 +352,4 @@ def write_eol(lines, mat, mf, mt, istart=1):
     or longer than 66 characters.
     """
     ilines = line_numbers(len(lines), istart=istart)
-    return [write_line(string, mat, mf, mt, iline) for string,iline in zip(lines, ilines)]
+    return [write_line(string, mat, mf, mt, iline) for string, iline in zip(lines, ilines)]

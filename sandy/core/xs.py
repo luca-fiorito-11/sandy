@@ -5,7 +5,6 @@ class `Xs` that acts as a container for energy-dependent tabulated cross
 section values.
 """
 import os
-import pdb
 import logging
 import functools
 
@@ -128,7 +127,7 @@ class Xs():
         if not data.index.is_monotonic_increasing:
             raise sandy.Error("energy grid is not monotonically increasing")
 
-    def reshape(self, eg, inplace=False):
+    def reshape(self, eg):
         """
         Linearly interpolate cross sections over new grid structure.
 
@@ -136,8 +135,6 @@ class Xs():
         ----------
         eg : array-like object
             new energy grid
-        inplace : `bool`, optional, default is `False`
-            flag to activate inplace replacement
 
         Returns
         -------
@@ -151,12 +148,13 @@ class Xs():
         """
         df = self.data
         enew = df.index.union(eg).astype("float").values
-        xsnew = sandy.shared.reshape_differential(df.index.values, df.values, enew)
+        xsnew = sandy.shared.reshape_differential(
+            df.index.values,
+            df.values,
+            enew,
+            )
         df = pd.DataFrame(xsnew, index=enew, columns=df.columns)
-        if inplace:
-            self.data = df
-        else:
-            return Xs(df)
+        return self.__class__(df)
 
     def custom_perturbation(self, mat, mt, pert):
         """
@@ -190,6 +188,11 @@ class Xs():
             u_pert = pert.reshape(enew)
             u_xs.data[(mat, mt)] = u_xs.data[(mat, mt)] * u_pert.right.values
         return self.__class__(u_xs.data)
+
+    def filter_energies(self, energies):
+        mask = self.data.index.isin(energies)
+        data = self.data.loc[mask]
+        return self.__class__(data)
 
     def to_endf6(self, endf6):
         """

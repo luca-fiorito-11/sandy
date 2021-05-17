@@ -14,6 +14,8 @@ import numba
 
 __author__ = "Luca Fiorito"
 __all__ = [
+        "pad_from_beginning",
+        "pad_from_beginning_fast",
         "uniform_loggrid",
         ]
 
@@ -136,12 +138,13 @@ def uniform_loggrid(xmin, xmax, npoints=100):
     """
     return 10.0**np.linspace(np.log10(xmin), np.log10(xmax), npoints)
 
+
 def pad_from_beginning(vals, maxlen=None, value=0., axis=0):
     """
     Convert list of arrays into matrix by backward padding.
-    .. note:: this function can be used to put cross sections into one matrix 
+    .. note:: this function can be used to put cross sections into one matrix
               by adding zeros before the first value of threshold reactions.
-    
+
     Parameters
     ----------
     vals : `iterable` of arrays/lists
@@ -149,26 +152,27 @@ def pad_from_beginning(vals, maxlen=None, value=0., axis=0):
     maxlen : `int`, optional, default is `None`
         length to fill with padding.
         If not given, use the maximum length of the arrays in `vals`
-        .. important:: if give, maxlen should be `maxlen <= max([len(v) for v in vals])`
-        
+        .. important:: if given, maxlen should be
+                       `maxlen <= max([len(v) for v in vals])`
+
     value : `float`, optional, default is `0.`
         value used for padding
     axis : `int`, optional, either `0` or `1`, default is `0`
         axis along whihc the arrays should be positioned.
         `0` means rows, `1` means columns
-    
+
     Returns
     -------
     `numpy.array`
-        2D `numpy.array` with shape `(len(vals), maxlen)` if `axis=0` and 
+        2D `numpy.array` with shape `(len(vals), maxlen)` if `axis=0` and
         `(maxlen, len(vals))` if `axis=1`
-    
+
     Raises
     ------
     `ValueError`
         if `axis` is neither `0` nor `1`
     `ValueError`
-        if `maxlen <= max([len(v) for v in vals])` 
+        if `maxlen <= max([len(v) for v in vals])`
     """
     length = len(vals)
     lens = [len(v) for v in vals]                     # only iteration
@@ -180,7 +184,7 @@ def pad_from_beginning(vals, maxlen=None, value=0., axis=0):
     else:
         maxlen_ = maxlen
     matrix = np.ones((length, maxlen_), dtype=float)*value
-    mask = np.arange(maxlen_)[::-1] < np.array(lens)[:,None] # key line
+    mask = np.arange(maxlen_)[::-1] < np.array(lens)[:, None]  # key line
     matrix[mask] = np.concatenate(vals)
     if axis == 0:
         return matrix
@@ -194,16 +198,16 @@ def pad_from_beginning_fast(vals, maxlen):
     """
     Like `aleph.utils.pad_from_beginning` but faster.
     Keyword arguments `axis` and `values` take the default options.
-    .. note:: this function can be used to put cross sections into one matrix 
+    .. note:: this function can be used to put cross sections into one matrix
               by adding zeros before the first value of threshold reactions.
-    
+
     Parameters
     ----------
     vals : `iterable` of arrays/lists
         values of the matrix
     maxlen : `int`
         length to fill with padding.
-    
+
     Returns
     -------
     `numpy.array`
@@ -211,8 +215,8 @@ def pad_from_beginning_fast(vals, maxlen):
     """
     length = len(vals)
     matrix = np.zeros((length, maxlen))
-    lens = [len(v) for v in vals ]                    # only iteration
-    mask = np.arange(maxlen)[::-1] < np.array(lens)[:,None] # key line
+    lens = [len(v) for v in vals]                    # only iteration
+    mask = np.arange(maxlen)[::-1] < np.array(lens)[:, None]  # key line
     matrix[mask] = np.concatenate(vals)
     return matrix
 
