@@ -5,7 +5,7 @@ nbval
 numba
 numpy
 numpydoc
-pandas >= 1
+pandas
 pytest >= 3.3
 pyyaml
 scipy
