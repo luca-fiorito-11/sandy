@@ -16,7 +16,7 @@ env:
   - NJOY=${TRAVIS_BUILD_DIR}/NJOY2016/build/njoy
 
 python:
-  - "3.6"
+  - "3.5"
 
 branches:
   except: gh-pages
