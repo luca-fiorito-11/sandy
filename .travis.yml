@@ -23,7 +23,7 @@ branches:
 
 before_install:
   - pip install sphinx sphinx_rtd_theme codecov numpydoc coveralls pytest-cov
-  - pip install -r requirements.txt
+  - pip install -r requirements_pip.txt
 
 install:
   - git clone https://github.com/njoy/NJOY2016.git && (cd NJOY2016 && mkdir build && cd build && cmake .. && make) # install NJOY
