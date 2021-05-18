@@ -7,7 +7,6 @@ numpy
 numpydoc
 pandas >= 1
 pytest >= 3.3
-pytest-cov
 pyyaml
 scipy
 sphinx

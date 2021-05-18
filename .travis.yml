@@ -31,6 +31,7 @@ install:
   - python setup.py install
 
 script:
+  - echo $PYTHONPATH
   - pytest --cov=sandy sandy
 
 after_success:
