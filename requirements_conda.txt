@@ -5,11 +5,11 @@ nbval
 numba
 numpy
 numpydoc
-pandas
+pandas >= 1
+pytables
 pytest >= 3.3
 pyyaml
 scipy
 sphinx
 seaborn >= 0.9
 statsmodels
-tables
