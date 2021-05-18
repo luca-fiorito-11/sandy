@@ -50,7 +50,7 @@ I like to include jupyterlab to my environment!
 
 Then, dependences are installed from the requirement file,
 ```sh
-conda install --force-reinstall -y --name sandy-devel -c conda-forge --file requirements.txt
+conda install --force-reinstall -y --name sandy-devel -c conda-forge --file requirements_conda.txt
 ```
 Make sure you are in the folder `sandy` that you cloned with git and where 
 file `requirement.txt` is located.

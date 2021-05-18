@@ -6,10 +6,11 @@ numba
 numpy
 numpydoc
 pandas >= 1
-pytables
 pytest >= 3.3
+pytest-cov
 pyyaml
 scipy
 sphinx
 seaborn >= 0.9
 statsmodels
+pytables
