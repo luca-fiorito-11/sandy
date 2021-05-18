@@ -247,7 +247,12 @@ class _FormattedFile():
 
     @classmethod
     def from_url(cls, url):
-        with urllib.request.urlopen(url) as f:
+        # set a known browser user agent to ensure access
+        req = urllib.request.Request(
+            url,
+            headers={'User-Agent': 'Mozilla/5.0'},
+            )
+        with urllib.request.urlopen(req) as f:
             text = f.read().decode('utf-8')
         return cls.from_text(text)
 
