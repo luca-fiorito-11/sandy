@@ -446,9 +446,9 @@ def read_line(line, **kwargs):
     >>> read_line(line)
     [952410.0, 3.0, 4.0, 200.0]
 
-    >>> line = "  5.000000000000E+00"
-    >>> read_line(line, dtype=int)
-    5
+    #>>> line = "  5.000000000000E+00"
+    #>>> read_line(line, dtype=int)
+    #5
     """
     stream = StringIO(line)
     vals = np.genfromtxt(stream, **kwargs).tolist()
