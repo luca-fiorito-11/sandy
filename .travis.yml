@@ -22,7 +22,7 @@ branches:
   except: gh-pages
 
 before_install:
-  - git clone https://github.com/njoy/NJOY2016.git && (cd NJOY2016 && mkdir build && cd build && cmake .. && make) # install NJOY
+  - git clone https://github.com/njoy/NJOY2016.git && (cd NJOY2016 && mkdir build && cd build && cmake -DPython3_EXECUTABLE=$(which python3) .. && make) # install NJOY
   - rm -rf NJOY2016/tests
   - pip install sphinx sphinx_rtd_theme codecov numpydoc coveralls pytest-cov
   - pip install -r requirements.txt
@@ -31,8 +31,7 @@ install:
   - python setup.py install
 
 script:
-  - pytest --cov=sandy/
-  -pytest --nbval notebooks/fy_notebook.ipynb
+  - pytest --cov=sandy sandy
 
 after_success:
   - coveralls

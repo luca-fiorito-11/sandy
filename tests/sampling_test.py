@@ -91,9 +91,11 @@ def test_H1(tmpdir):
              "--samples", "10",]
     sampling(iargs)
 
+
 @pytest.mark.sampling
 @pytest.mark.endf6
 @pytest.mark.nubar
+@pytest.mark.njoy_exe
 def test_Cm242(tmpdir):
     iargs = [os.path.join(Cm242.__path__[0], r"cm242.endf"),
              "--cov", os.path.join(Cm242.__path__[0], r"cm242.endf"),
@@ -102,6 +104,7 @@ def test_Cm242(tmpdir):
              "--eig", "10",
              "--samples", "10",]
     sampling(iargs)
+
 
 @pytest.mark.sampling
 @pytest.mark.errorr
@@ -116,6 +119,7 @@ def test_U5_errorr(tmpdir):
              "--samples", "10",]
     sampling(iargs)
 
+
 @pytest.mark.sampling
 @pytest.mark.chi
 def test_U5_chi(tmpdir):
@@ -127,6 +131,7 @@ def test_U5_chi(tmpdir):
              "--mf", "35"]
     sampling(iargs)
 
+
 @pytest.mark.sampling
 @pytest.mark.lpc
 def test_Fe56_lpc(tmpdir):
@@ -137,6 +142,7 @@ def test_Fe56_lpc(tmpdir):
              "--samples", "10",
              "--mf", "34"]
     sampling(iargs)
+
 
 @pytest.mark.sampling
 @pytest.mark.lpc
@@ -151,6 +157,7 @@ def test_U238_lpc(tmpdir):
              "--mf", "34"]
     sampling(iargs)
 
+
 @pytest.mark.sampling
 @pytest.mark.fy
 def test_jeff33_fy(tmpdir):
@@ -161,6 +168,7 @@ def test_jeff33_fy(tmpdir):
              "--samples", "10",
              "--fission-yields"]
     sampling(iargs)
+
 
 @pytest.mark.sampling
 @pytest.mark.njoy_exe
@@ -247,6 +255,7 @@ def test_h1(tmpdir):
     assert '1001_1.12c' in os.listdir(str(tmpdir))
     assert '1001_1.09c.xsd' in os.listdir(str(tmpdir))
     assert '1001_1.12c.xsd' in os.listdir(str(tmpdir))
+
 
 @pytest.mark.sampling
 @pytest.mark.njoy_exe

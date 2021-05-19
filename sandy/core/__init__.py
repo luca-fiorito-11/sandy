@@ -3,10 +3,9 @@ from .endf6 import *
 from .xs import *
 from .fy import *
 from .lpc import *
-from .pfns import *
 from .cov import *
+from .samples import *
 from .basecov import *
 from .ecov import *
 from .xscov import *
 from .lpccov import *
-from .pert import *

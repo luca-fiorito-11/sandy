@@ -2,190 +2,422 @@
 """
 This module contains only two public functions:
 
-    * `read`
-    * `write`
+    * `read_mf8`
+    * `write_mf8`
 
-Function `read` reads a MF8/MT section from a string and produces a content object with a dictionary-like 
-structure.
-The content object can be accessed using most of the keywords specified in the ENDF6 manual for this specific 
-MF section.
+Function `read` reads a MF8/MT section from a string and produces a content
+object with a dictionary-like structure.
+The content object can be accessed using most of the keywords specified in
+the ENDF6 manual for this specific MF section.
 
-Function `write` writes a content object for a MF8/MT section into a string.
+Function `write_mf8` writes a content object for a MF8/MT section into a
+string.
 MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
 """
-
-import pdb
+import math
 
 import sandy
 
 __author__ = "Luca Fiorito"
 __all__ = [
         "read_mf8",
-#        "write_mf8",
+        # "write_mf8",
         ]
 
 mf = 8
 
 
-
 def read_mf8(tape, mat, mt):
+    """
+    Parse MAT/MF=8/MT section from `sandy.Endf6` object and return
+    structured content in nested dcitionaries.
+
+    Parameters
+    ----------
+    tape : `sandy.Endf6`
+        endf6 object containing requested section
+    mat : `int`
+        MAT number
+    mt : `int`
+        MT number
+
+    Returns
+    -------
+    `dict`
+        Content of the ENDF-6 tape structured as nested `dict`.
+    """
     if mt in (454, 459):
         out = _read_fy(tape, mat, mt)
     elif mt == 457:
-        out = _read_rdd(tape, mat, mt)
+        out = _read_rdd(tape, mat)
+    else:
+        out = _read_nucl_prod(tape, mat, mt)
+#    else:
+#        raise ValueError(f"'MF={mf}/MT={mt}' not yet implemented")
     return out
 
 
+# def write(sec):
+#     """
+#     Write MT section for MF8
+
+#     Parameters
+#     ----------
+#     sec : `sandy.utils.Section`
+#         dictionary with MT section for MF8
+
+#     Returns
+#     -------
+#     `str`
+#     """
+#     if sec["MT"] in (454, 459):
+#         return _write_fy(sec)
+#     elif sec["MT"] == 457:
+#         return _write_rdd(sec)
 
 
-def write(sec):
-    """Write MT section for MF8
-    
+def _read_nucl_prod(tape, mat, mt):
+    """
+    Parse MAT/MF=8/MT section for radioactive nuclide production from
+    `sandy.Endf6` object and return structured content in nested dcitionaries.
+
     Parameters
     ----------
-    sec : `sandy.utils.Section`
-        dictionary with MT section for MF8
-    
+    tape : `sandy.Endf6`
+        endf6 object containing requested section
+    mat : `int`
+        MAT number
+    mt : `int`
+        MT number
+
     Returns
     -------
-    `str`
+    `dict`
+        Content of the ENDF-6 tape structured as nested `dict`.
     """
-    if sec["MT"] in (454, 459):
-        return _write_fy(sec)
-    elif sec["MT"] == 457:
-        return _write_rdd(sec)
-
+    df = tape._get_section_df(mat, mf, mt)
+    out = {
+            "MAT": mat,
+            "MF": mf,
+            "MT": mt,
+            }
+    i = 0
+    C, i = sandy.read_cont(df, i)
+    NS = C.N1
+    add = {
+            "ZAM": int(C.C1*10),
+            "AWR": C.C2,
+            "LIS": C.L1,   # State number (including ground and all levels) of the target (ZA)
+            "LISO": C.L2,  # Isomeric state number of the target
+            "NS": NS,      # Total number of states (LFS) of the radioactive reaction product for which decay data are given
+            "NO": C.N2,    # Flag denoting where the decay information is to be given for an important radioactive end product.
+            }
+    out.update(add)
+    products = {}
+    for j in range(NS):
+        L, i = sandy.read_list(df, i)
+        LFS = L.L2
+        ND = int(L.NPL / 6)
+        LIST = L.B[:]
+        decay_modes = []
+        for k in range(ND):
+            B = LIST[:6]
+            LIST = LIST[6:]
+            add = {
+                "HL": B[0],    # half-life of the nuclide ZAP in seconds
+                "RTYP": B[1],  # Mode of decay using the same definitions specified in MT=457
+                "ZAN": B[2],   # Z and mass identifier of the next nuclide produced along the chain
+                "BR": B[3],    # Branching ratio for the production of that particular ZAN and level
+                "END": B[4],   # Endpoint energy of the particle or quantum emitted
+                "CT": B[5],    # Chain terminator that gives minimal information about the formation and decay of ZAN
+                }
+            decay_modes.append(add)
+        ZAP = int(L.C1)
+        add = {
+            "ZAP": ZAP,
+            "ELFS": L.C2,
+            "LMF": L.L1,
+            "LFS": LFS,
+            }
+        if ND > 0:
+            add["DECAY"] = decay_modes
+        products[ZAP] = add
+    out.update({
+        "PRODUCTS": products,
+        })
+    return out
 
 
 def _read_fy(tape, mat, mt):
+    """
+    Parse MAT/MF=8/MT section for fission yields from `sandy.Endf6` object
+    and return structured content in nested dcitionaries.
+
+    Parameters
+    ----------
+    tape : `sandy.Endf6`
+        endf6 object containing requested section
+    mat : `int`
+        MAT number
+
+    Returns
+    -------
+    `dict`
+        Content of the ENDF-6 tape structured as nested `dict`.
+
+    Notes
+    -----
+    .. note:: Fission yields are only contained in sections with `mt=454` (IFY)
+              or `mt=459` (CFY).
+    """
     df = tape._get_section_df(mat, mf, mt)
-    out = {"MAT" : mat, "MF" : mf, "MT" : mt}
+    out = {
+            "MAT": mat,
+            "MF": mf,
+            "MT": mt,
+            }
     i = 0
     C, i = sandy.read_cont(df, i)
-    out.update({
-            "ZAM" : int(C.C1*10),
-            "AWR" : C.C2,
-            })
+    add = {
+            "ZAM": int(C.C1*10),
+            "AWR": C.C2,
+            }
+    out.update(add)
     nranges = C.L1
     eranges = {}
     for j in range(nranges):
         L, i = sandy.read_list(df, i)
         data = {}
-        for zafp,fps,fy,dfy in  zip(*[iter(L.B)]*4):
+        for zafp, fps, fy, dfy in zip(*[iter(L.B)]*4):
             zap = int(zafp*10 + fps)
             data[zap] = {
-                    "FY" : fy,
-                    "DFY" : dfy,
+                    "FY": fy,
+                    "DFY": dfy,
                     }
-        section = {"ZAP" : data}
+        section = {"ZAP": data}
         section["INTERP"] = L.L1
         eranges[L.C1] = section
     out["E"] = eranges
     return out
 
 
-def _write_fy(sec):
-    LE = len(sec["E"])
-    text = write_cont(sec["ZA"], sec["AWR"], LE, 0, 0, 0)
-    for i,(e,esec) in enumerate(sorted(sec["E"].items())):
-        tab = [ksec[j] for k,ksec in sorted(esec["FY"].items()) for j in ("ZAFP","FPS","YI","DYI")]
-        NFP = len(esec["FY"])
-        I = LE-1 if i == 0 else esec["I"]
-        text += write_list(e, 0, I, 0, NFP, tab)
-    TextOut = []; iline = 1
-    for line in text:
-        if iline > 99999:
-            iline = 1
-        TextOut.append("{:<66}{:4}{:2}{:3}{:5}\n".format(line, sec["MAT"], sec["MF"], sec["MT"], iline))
-        iline += 1
-    return "".join(TextOut)
+def _read_rdd(tape, mat):
+    """
+    Parse MAT/MF=8/MT=457 section from `sandy.Endf6` object and return
+    structured content in nested dcitionaries.
 
+    Parameters
+    ----------
+    tape : `sandy.Endf6`
+        endf6 object containing requested section
+    mat : `int`
+        MAT number
 
-
-def _read_rdd(text):
-    str_list = text.splitlines()
-    MAT, MF, MT = read_control(str_list[0])[:3]
-    out = {"MAT" : MAT, "MF" : MF, "MT" : MT}
+    Returns
+    -------
+    `dict`
+        Content of the ENDF-6 tape structured as nested `dict`.
+    """
+    mt = 457
+    df = tape._get_section_df(mat, mf, mt)
+    out = {
+            "MAT": mat,
+            "MF": mf,
+            "MT": mt,
+            }
     i = 0
-    C, i = read_cont(str_list, i)
-    out["ZA"] = ZA = C.C1       # Designation of the original (radioactive) nuclide (ZA = Z*1000 + A)
-    out["AWR"] = AWR = C.C2     # Ratio of the LIS state nuclide mass to that of neutron
-    out["LIS"] = LIS = C.L1     # State of the original nuclide (LIS=0, ground state, LIS=1, first excited state, etc.)
-    out["LISO"] = LISO = C.L2   # Isomeric state number for the original nuclide (LISO=0, ground state; LISO=1, first isomeric state; etc.)
-    out["NST"] = NST = C.N1     # Nucleus stability flag (NST=0, radioactive; NST=1, stable)
-    NSP = C.N2     # Total number of radiation types (STYP) for which spectral information is given (NSP may be zero)
-    L, i = read_list(str_list, i)
-    out["HL"] = HL = L.C1       # half-life of the original nuclide (seconds)
-    out["DHL"] = DHL = L.C2     # uncertainty on half-life
-    out["E"] = E = L.B[::2]     # list of average decay energies (eV) for different radiation types.
-    out["DE"] = DE = L.B[1::2]  # list of uncertainties on average decay energy (eV) for different radiation types.
-    out["LAMBDA"] = np.asscalar(np.log(2)/HL) if HL else 0
-    L, i = read_list(str_list, i)
-    out["SPI"] = SPI = L.C1 # Spin of the nuclide in its LIS state
-    out["PAR"] = PAR = L.C2 # Parity of the nuclide in its LIS state
-    NDK = L.N2              # Total number of decay modes given
-    dk = {}
-    # Update list of decay modes when nuclide is radioactive
-    for idk,(RTYP,RFS,Q,DQ,BR,DBR) in enumerate(zip(*[iter(L.B)]*6)):
-        RTYP = str(RTYP).replace(".", "") # Decay Mode (Multiple particle decay is also allowed using combination of RTYP variables)
-        decay = {
-                 "RFS" : RFS,   # Isomeric state flag for daughter nuclide
-                 "Q" : Q,       # Total decay energy (eV) available in the corresponding decay process
-                 "DQ" : DQ,     # Uncertainty on the total decay heat available
-                 "BR" : BR,     # Branching ratio
-                 "DBR" : DBR    # Uncertainty on branching ratio
-                }
-        dk[RTYP] = decay
+    C, i = sandy.read_cont(df, i)
+    add = {
+            # Designation of the original (radioactive) nuclide (Z*1000 + A)
+            "ZA": C.C1,
+            # Ratio of the LIS state nuclide mass to that of neutron
+            "AWR": C.C2,
+            # State of the original nuclide (LIS=0, ground state,
+            # LIS=1, first excited state, etc.)
+            "LIS": C.L1,
+            # Isomeric state number for the original nuclide
+            # (LISO=0, ground state; LISO=1, first isomeric state; etc.)
+            "LISO": C.L2,
+            # Nucleus stability flag (NST=0, radioactive; NST=1, stable)
+            "NST": C.N1,
+            }
+    out.update(add)
+    # Total number of radiation types (STYP) for which spectral information is
+    # given (NSP may be zero)
+    NSP = C.N2
+    L, i = sandy.read_list(df, i)
+    add = {
+            # half-life of the original nuclide (seconds)
+            "HL": L.C1,
+            # uncertainty on half-life
+            "DHL": L.C2,
+            # list of average decay energies (eV) for different radiation types
+            "E": L.B[::2],
+            # list of uncertainties on average decay energy (eV) for different
+            # radiation types
+            "DE": L.B[1::2],
+            # decay constant in 1/s, 0 if stable
+            "LAMBDA": math.log(2.0)/L.C1 if L.C1 else 0
+            }
+    out.update(add)
+    L, i = sandy.read_list(df, i)
+    add = {
+            # Spin of the nuclide in its LIS state
+            "SPI": L.C1,
+            # Parity of the nuclide in its LIS state
+            "PAR": L.C2,
+            }
+    out.update(add)
+    # Total number of decay modes given
+    NDK = L.N2
+    ###########################
+    # READ DECAY MODES
+    ###########################
     if NDK > 0:
+        dk = {}
+        # Update list of decay modes when nuclide is radioactive
+        for idk, data in enumerate(zip(*[iter(L.B)]*6)):
+            # Decay Mode (Multiple particle decay is also allowed using
+            # combination of RTYP variables)
+            RTYP = str(data[0]).replace(".", "")
+            # Isomeric state flag for daughter nuclide
+            RFS = data[1]
+            residual_state = int(RFS)
+            key = f"{RTYP}x{residual_state}"
+            decay = {
+                "RTYP": RTYP,
+                "RFS": RFS,
+                # Total decay energy (eV) available in the corresponding
+                # decay process
+                "Q": data[2],
+                # Uncertainty on the total decay heat available
+                "DQ": data[3],
+                # Branching ratio
+                "BR": data[4],
+                # Uncertainty on branching ratio
+                "DBR": data[5],
+                }
+            dk[key] = decay
         out["DK"] = dk
-    spectra = {}
-    for ist in range(NSP):
-        L, i = read_list(str_list, i)
-        STYP = int(L.C2)  # Decay spectrum type
-        spectra[STYP] = {}
-        spectra[STYP]["LCON"] = LCON = L.L1 # Continuum spectrum flag (0=no continuous spectrum, 1=only continuous spectrum, 2=both discrete and continuum spectra)
-        NER = L.N2   # Total number of tabulated discrete energies for a given spectral type (STYP)
-        spectra[STYP]["FD"] = FD = L.B[0]   # Discrete spectrum normalization factor
-        spectra[STYP]["DFD"] = L.B[1]
-        spectra[STYP]["ERAV"] = L.B[2]      # Average decay energy of radiation produced
-        spectra[STYP]["DERAV"] = L.B[3]
-        spectra[STYP]["FC"] = L.B[4]        # Continuum spectrum normalization factor
-        spectra[STYP]["DFC"] = L.B[5]
-        if LCON != 1:
-            discrete_spectrum = {}
-            for ier in range(NER):
-                discr = {}
-                L, i = read_list(str_list, i)
-                ER = L.C1                 # Discrete energy (eV) of radiation produced
-                discr["DER"] = DER = L.C2 # Uncertainty on discrete energy
-                NT = len(L.B)             # Number of entries given for each discrete energy (ER)
-                discr["RTYP"] = L.B[0]    # Decay mode
-                discr["TYPE"] = L.B[1]    # Type of transition for beta and electron capture
-                discr["RI"] = L.B[2]      # intensity of discrete radiation produced (relative units).
-                discr["DRI"] = L.B[3]     # uncertainty on the intensity of discrete radiation produced
-                discr["RIS"] = L.B[4]     # Internal pair formation coefficient (STYP=2.0 positron intensity, STYP=0.0 otherwise)
-                discr["DRIS"] = L.B[5]    # Uncertainty on internal pair formation coefficient 
-                if NT == 12:
-                    discr["RICC"] = L.B[6]   # Total internal conversion coefficient (STYP=0.0 only)
-                    discr["DRICC"] = L.B[7]  # Uncertainty on RICC1
-                    discr["RICK"] = L.B[8]   # K-shell internal conversion coefficient (STYP=0.0 only)
-                    discr["DRICK"] = L.B[9]  # Uncertainty on RICC1
-                    discr["RICL"] = L.B[10]  # L-shell internal conversion coefficient (STYP=0.0 only)
-                    discr["DRICL"] = L.B[11] # Uncertainty on RICL1
-                discrete_spectrum[ER] = discr
-            if discrete_spectrum:
-                spectra[STYP]["ER"] = discrete_spectrum
-        if LCON != 0:
-            spectra[STYP]["CONT"] = {}
-            cont = {}
-            T, i = read_tab1(str_list, i)
-            cont["RTYP"] = T.C1        # Decay mode 
-            cont["LCOV"] = LCOV = T.L2 # Flag indicating whether covariance data are given (0=no, 1=yes).
-            cont["NBT"] = T.NBT
-            cont["INT"] = T.INT
-            cont["E"] = T.x,
-            cont["RP"] = T.y           # Normalized spectrum of the continuum component of the radiation (1/eV)
-            spectra[STYP]["CONT"][RTYP] = cont
-    if spectra:
-        out["SPECTRA"] = spectra
-    return Section(out)
+    ###########################
+    # READ SPECTRA
+    ###########################
+    if NSP > 0:
+        spectra = {}
+        # Update list of spectra
+        for ist in range(NSP):
+            L, i = sandy.read_list(df, i)
+            # Decay spectrum type
+            STYP = int(L.C2)
+            spectra[STYP] = {}
+            # Continuum spectrum flag (0=no continuous spectrum, 1=only
+            # continuous spectrum, 2=both discrete and continuum spectra)
+            spectra[STYP]["LCON"] = LCON = L.L1
+            # Total number of tabulated discrete energies for a given spectral
+            # type (STYP)
+            NER = L.N2
+            # Discrete spectrum normalization factor
+            spectra[STYP]["FD"] = L.B[0]
+            spectra[STYP]["DFD"] = L.B[1]
+            # Average decay energy of radiation produced
+            spectra[STYP]["ERAV"] = L.B[2]
+            spectra[STYP]["DERAV"] = L.B[3]
+            # Continuum spectrum normalization factor
+            spectra[STYP]["FC"] = L.B[4]
+            spectra[STYP]["DFC"] = L.B[5]
+            if LCON != 1:
+                discrete_spectrum = {}
+                for ier in range(NER):
+                    discr = {}
+                    L, i = sandy.read_list(df, i)
+                    # Discrete energy (eV) of radiation produced
+                    ER = L.C1
+                    # Uncertainty on discrete energy
+                    discr["DER"] = L.C2
+                    # Number of entries given for each discrete energy (ER)
+                    NT = len(L.B)
+                    if NT > 0:
+                        # Decay mode
+                        discr["RTYP"] = L.B[0]
+                    if NT > 1:
+                        # Type of transition for beta and electron capture
+                        discr["TYPE"] = L.B[1]
+                    if NT > 2:
+                        # intensity of discrete radiation produced
+                        # (relative units)
+                        discr["RI"] = L.B[2]
+                    if NT > 3:
+                        # uncertainty on the intensity of discrete radiation
+                        # produced
+                        discr["DRI"] = L.B[3]
+                    if NT > 4:
+                        # Internal pair formation coefficient
+                        # (STYP=2.0 positron intensity, STYP=0.0 otherwise)
+                        discr["RIS"] = L.B[4]
+                    if NT > 5:
+                        # Uncertainty on internal pair formation coefficient
+                        discr["DRIS"] = L.B[5]
+                    if NT > 6:
+                        # Total internal conversion coefficient
+                        # (STYP=0.0 only)
+                        discr["RICC"] = L.B[6]
+                    if NT > 7:
+                        # Uncertainty on RICC1
+                        discr["DRICC"] = L.B[7]
+                    if NT > 8:
+                        # K-shell internal conversion coefficient
+                        # (STYP=0.0 only)
+                        discr["RICK"] = L.B[8]
+                    if NT > 9:
+                        # Uncertainty on RICC1
+                        discr["DRICK"] = L.B[9]
+                    if NT > 10:
+                        # L-shell internal conversion coefficient
+                        # (STYP=0.0 only)
+                        discr["RICL"] = L.B[10]
+                    if NT > 11:
+                        # Uncertainty on RICL1
+                        discr["DRICL"] = L.B[11]
+                    discrete_spectrum[ER] = discr
+                if discrete_spectrum:
+                    spectra[STYP]["ER"] = discrete_spectrum
+            if LCON != 0:
+                spectra[STYP]["CONT"] = {}
+                cont = {}
+                T, i = sandy.read_tab1(df, i)
+                # Decay mode
+                cont["RTYP"] = T.C1
+                # Flag indicating whether covariance data are given
+                # (0=no, 1=yes)
+                cont["LCOV"] = T.L2
+                cont["NBT"] = T.NBT
+                cont["INT"] = T.INT
+                cont["E"] = T.x,
+                # Normalized spectrum of the continuum component of the
+                # radiation (1/eV)
+                cont["RP"] = T.y
+                spectra[STYP]["CONT"][RTYP] = cont
+        if spectra:
+            out["SPECTRA"] = spectra
+    return out
+
+
+# def _write_fy(sec):
+#     LE = len(sec["E"])
+#     text = write_cont(sec["ZA"], sec["AWR"], LE, 0, 0, 0)
+#     for i,(e,esec) in enumerate(sorted(sec["E"].items())):
+#         tab = [ksec[j] for k,ksec in sorted(esec["FY"].items()) for j in ("ZAFP","FPS","YI","DYI")]
+#         NFP = len(esec["FY"])
+#         I = LE-1 if i == 0 else esec["I"]
+#         text += write_list(e, 0, I, 0, NFP, tab)
+#     TextOut = []; iline = 1
+#     for line in text:
+#         if iline > 99999:
+#             iline = 1
+#         TextOut.append("{:<66}{:4}{:2}{:3}{:5}\n".format(line, sec["MAT"], sec["MF"], sec["MT"], iline))
+#         iline += 1
+#     return "".join(TextOut)
+
+
+def _write_rdd(*args, **kwargs):
+    pass

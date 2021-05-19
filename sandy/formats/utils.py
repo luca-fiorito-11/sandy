@@ -482,7 +482,8 @@ class Lpc(pd.DataFrame):
             lpc_copy = lpc_copy.reset_index()
             lpc_copy["MAT"] = mat
             lpc_copy["MT"] = mt
-            lpc_copy = Lpc(lpc_copy.set_index(["MAT","MT","E"]))
+            # need to convert it to pd.DataFrame to avoid assertion error in pandas 1.0
+            lpc_copy = pd.DataFrame(Lpc(lpc_copy.set_index(["MAT","MT","E"])))
             frame.update(lpc_copy)
         return Lpc(frame)
     
@@ -1540,6 +1541,8 @@ class EnergyCov(BaseCov):
         `sandy.formats.utils.EnergyCov`
             Covariance matrix interpolated over the new axes.
         """
+        # need to convert it to pd.DataFrame to avoid assertion error in pandas 1.0
+
         df = self.reindex(index=ex, method="ffill"). \
                   reindex(columns=ey, method="ffill"). \
                   fillna(0)

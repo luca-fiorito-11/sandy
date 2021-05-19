@@ -1,13 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Jun 14 10:22:58 2018
-
-@author: fiorito_l
-"""
-import sys
 from collections import namedtuple
 import itertools
-import pdb
+import pytest
 
 import numpy as np
 
@@ -19,11 +13,13 @@ __all__ = [
         "read_tab1",
         "read_tab2",
         "read_list",
+        "read_text",
         "write_cont",
         "write_tab1",
         "write_tab2",
         "write_list",
         "write_float",
+        "write_int",
         "write_integer_list",
         "write_float_list",
         "line_numbers",
@@ -33,7 +29,6 @@ __all__ = [
 
 
 line_pattern = "{:<66}{:4d}{:2d}{:3d}{:5d}"
-
 
 
 def read_cont(df, ipos):
@@ -82,7 +77,6 @@ def read_cont(df, ipos):
     return CONT(c1, c2, l1, l2, n1, n2), ipos
 
 
-
 def write_cont(C1, C2, L1, L2, N1, N2):
     """
     Write ENDF-6 **cont** record.
@@ -90,16 +84,40 @@ def write_cont(C1, C2, L1, L2, N1, N2):
     Returns
     -------
     `list` of `str`
-        list of 66-characters-long ENDF-6 formatted string 
-    
+        list of 66-characters-long ENDF-6 formatted string
+
     Warns
     -----
-    This function will produce strings longer than 66 characters if integers 
+    This function will produce strings longer than 66 characters if integers
     `> 99999999999` are given.
     """
-    lines = [write_float(C1) + write_float(C2) + "{:11d}{:11d}{:11d}{:11d}".format(L1, L2, N1, N2)]
-    return lines
+    integers = f"{L1:11d}{L2:11d}{N1:11d}{N2:11d}"
+    line = write_float(C1) + write_float(C2) + integers
+    return [line]
 
+
+def read_text(df, ipos):
+    """
+    Read ENDF-6 `TEXT` record in formatted fortran.
+
+    Returns
+    -------
+    `TEXT` : `collections.namedtuple`
+        - `HL` : `str`
+            66-character string
+    """
+    TEXT = namedtuple('TEXT', 'HL')
+    series = df.iloc[ipos]
+    HL = "".join([
+        series.C1,
+        series.C2,
+        series.L1,
+        series.L2,
+        series.N1,
+        series.N2,
+        ])
+    ipos += 1
+    return TEXT(HL), ipos
 
 
 def write_integer_list(lst):
@@ -109,11 +127,10 @@ def write_integer_list(lst):
     Returns
     -------
     `list` of `str`
-        list of 66-characters-long ENDF-6 formatted string 
+        list of 66-characters-long ENDF-6 formatted string
     """
     itr = sandy.shared.grouper(map("{:11d}".format, lst), 6, fillvalue=" "*11)
-    return ["".join(vals) for vals in itr ]
-
+    return ["".join(vals) for vals in itr]
 
 
 def write_float_list(lst):
@@ -123,11 +140,10 @@ def write_float_list(lst):
     Returns
     -------
     `list` of `str`
-        list of 66-characters-long ENDF-6 formatted string 
+        list of 66-characters-long ENDF-6 formatted string
     """
     itr = sandy.shared.grouper(map(write_float, lst), 6, fillvalue=" "*11)
-    return ["".join(vals) for vals in itr ]
-
+    return ["".join(vals) for vals in itr]
 
 
 def read_tab2(df, ipos):
@@ -170,7 +186,6 @@ def read_tab2(df, ipos):
     return TAB2(C.C1, C.C2, C.L1, C.L2, C.N1, C.N2, NBT, INT), ipos
 
 
-
 def write_tab2(C1, C2, L1, L2, N2, NBT, INT):
     """
     Write ENDF-6 **tab2** record.
@@ -178,7 +193,7 @@ def write_tab2(C1, C2, L1, L2, N2, NBT, INT):
     Returns
     -------
     `list` of `str`
-        list of 66-characters-long ENDF-6 formatted string 
+        list of 66-characters-long ENDF-6 formatted string
     """
     N1 = len(NBT)
     lines = write_cont(C1, C2, L1, L2, N1, N2)
@@ -186,13 +201,12 @@ def write_tab2(C1, C2, L1, L2, N2, NBT, INT):
     return lines
 
 
-
 def read_tab1(df, ipos):
     """
     Read ENDF-6 **tab1** record.
     These records are used for one-dimensional tabulated functions such as
     :math:`y(x)`.
-    
+
     The data needed to specify a one-dimensional tabulated function are
     the interpolation tables *nbt* and *int* for each of the *nr* ranges,
     and the *np* tabulated pairs of :math:`x(n)` and :math:`y(n)`.
@@ -223,7 +237,6 @@ def read_tab1(df, ipos):
     return TAB1(*list(TAB2), x, y), ipos
 
 
-
 def write_tab1(C1, C2, L1, L2, NBT, INT, x, y):
     """
     Write ENDF-6 **tab1** record.
@@ -231,13 +244,12 @@ def write_tab1(C1, C2, L1, L2, NBT, INT, x, y):
     Returns
     -------
     `list` of `str`
-        list of 66-characters-long ENDF-6 formatted string 
+        list of 66-characters-long ENDF-6 formatted string
     """
     N2 = len(x)
     lines = write_tab2(C1, C2, L1, L2, N2, NBT, INT)
     lines += write_float_list(sandy.shared.interwine_lists(x, y))
     return lines
-
 
 
 def _read_list(df, ipos, size):
@@ -248,13 +260,11 @@ def _read_list(df, ipos, size):
     return tab, ipos
 
 
-
 def read_list(df, ipos):
     LIST = namedtuple('LIST', 'C1 C2 L1 L2 NPL N2 B')
     C, ipos = read_cont(df, ipos)
     L, ipos = _read_list(df, ipos, C.N1)
     return LIST(*list(C), [float(i) for i in L]), ipos
-
 
 
 def write_list(C1, C2, L1, L2, N2, B):
@@ -270,34 +280,50 @@ def write_list(C1, C2, L1, L2, N2, B):
     return lines
 
 
-
 def write_float(x):
     if abs(x) >= 1e0 and abs(x) < 1e1:
-        y = "{:11.8f}".format(x)
+        y = f"{x:11.8f}"
     elif abs(x) >= 1E1 and abs(x) < 1E2:
-        y = "{:11.7f}".format(x)
+        y = f"{x:11.7f}"
     elif abs(x) >= 1E2 and abs(x) < 1E3:
-        y = "{:11.6f}".format(x)
+        y = f"{x:11.6f}"
     elif abs(x) >= 1E3 and abs(x) < 1E4:
-        y = "{:11.5f}".format(x)
+        y = f"{x:11.5f}"
     elif abs(x) >= 1E4 and abs(x) < 1E5:
-        y = "{:11.4f}".format(x)
+        y = f"{x:11.4f}"
     elif abs(x) >= 1E5 and abs(x) < 1E6:
-        y = "{:11.3f}".format(x)
+        y = f"{x:11.3f}"
     elif abs(x) >= 1E6 and abs(x) < 1E7:
-        y = "{:11.2f}".format(x)
+        y = f"{x:11.2f}"
     elif abs(x) >= 1E7 and abs(x) < 1E8:
-        y = "{:11.1f}".format(x)
+        y = f"{x:11.1f}"
     elif abs(x) >= 1E8 and abs(x) < 1E10:
-        y = "{:11.0f}".format(x)
+        y = f"{x:11.0f}"
     elif x == 0:
-        y = "{:11.8f}".format(x)
+        y = f"{x:11.8f}"
     elif abs(x) < 1E0 and abs(x) >= 1e-9:
-        y = "{:13.6e}".format(x).replace("e-0", "-")
+        y = f"{x:13.6e}".replace("e-0", "-")
     else:
-        y = "{:12.5e}".format(x).replace("e", "")
+        y = f"{x:12.5e}".replace("e", "")
     return y
 
+
+def write_int(x):
+    """
+    Examples
+    --------
+    >>> sandy.write_int(10)
+    '         10'
+
+    >>> sandy.write_int(-1e5)
+    '    -100000'
+
+    >>> with pytest.raises(ValueError): sandy.write_int(-1e10)
+    """
+    y = f"{int(x):>11d}"
+    if len(y) > 11:
+        raise ValueError(f"Integer '{y}' exceeds 11 characters")
+    return y
 
 
 def line_numbers(length, istart=1):
@@ -306,10 +332,8 @@ def line_numbers(length, istart=1):
     return np.where(ilines < 100000, ilines, ilines-99999).tolist()
 
 
-
 def write_line(string, mat, mf, mt, iline):
     return line_pattern.format(string, mat, mf, mt, iline)
-
 
 
 def write_eol(lines, mat, mf, mt, istart=1):
@@ -319,14 +343,13 @@ def write_eol(lines, mat, mf, mt, istart=1):
     Returns
     -------
     `str`
-        A string that is the sum of the list of strings, i.e. including 
+        A string that is the sum of the list of strings, i.e. including
         eol falgs, separated by the newline character `\n`.
-    
+
     Warns
     -----
-    This function does not check if the strings are in ENDF-6 format 
+    This function does not check if the strings are in ENDF-6 format
     or longer than 66 characters.
     """
     ilines = line_numbers(len(lines), istart=istart)
-    return [write_line(string, mat, mf, mt, iline) for string,iline in zip(lines, ilines)]
-
+    return [write_line(string, mat, mf, mt, iline) for string, iline in zip(lines, ilines)]

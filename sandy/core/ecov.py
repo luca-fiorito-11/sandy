@@ -8,7 +8,7 @@ import sandy
 
 __author__ = "Luca Fiorito"
 __all__ = [
-        "EnergyCov",
+#        "EnergyCov",
         ]
 
 class EnergyCov(sandy.formats.utils.BaseCov):
@@ -169,16 +169,17 @@ class EnergyCov(sandy.formats.utils.BaseCov):
 
     @classmethod
     def from_lb5_sym(cls, evalues, fvalues):
-        """Extract square symmetric covariance matrix from NI-type sub-subsection data 
-        with flag `lb=5`.
-        
+        """
+        Extract square symmetric covariance matrix from NI-type sub-subsection
+        data with flag `lb=5`.
+
         Parameters
         ----------
         evalues : `iterable`
             covariance energy grid for both axis
         fvalues : `iterable`
             array of F-values (flattened upper triangular matrix coefficients)
-        
+
         Returns
         -------
         `sandy.formats.utils.EnergyCov`
