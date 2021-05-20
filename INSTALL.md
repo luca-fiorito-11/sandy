@@ -110,12 +110,6 @@ Now SANDY should work also on Windows! If it still doesn't, some dependencies mi
 3. Search for the missing dependencies on your PC and copy them to the same directory where the `*.pyd` file of the failing module is located.
 4. Good luck!
 
-If SANDY doesn't work, some dependencies are missing and an import module error will ocurr. To fix it:
-
-1. Download software to scan module dependencies [here](https://visualstudio.microsoft.com/visual-cpp-build-tools/).
-2. Open `DependenciesGui.exe` and load the *.pyd file of the module SANDY is failing to import. Missing dependencies (DLL files) will appear with a ? sign.
-3. Search for the missing dependencies on your PC and copy them to the same directory in which the *.pyd file of the module failing to load is located.
-4. Close and open Anaconda Prompt again and test SANDY installation
 
 ### Adding SANDY to PYTHONPATH
 If you want to add the `sandy` folder to your `PYTHONPATH` you can do
