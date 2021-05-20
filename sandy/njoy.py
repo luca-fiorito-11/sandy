@@ -191,21 +191,21 @@ NJOY_THERMR_EMAX = 10
 def get_njoy():
     """
     Extract njoy executable from system environment variable `NJOY`.
-    
+
     Returns
     -------
     `string`
         njoy executable
-        
+
     Raises
     ------
     `SandyError`
-        if environment variable `NJOY` is not assigned 
+        if environment variable `NJOY` is not assigned
     """
     if "NJOY" in os.environ:
         exe = os.environ["NJOY"]
     else:
-        raise SandyError("environment variable 'NJOY' is not assigned")
+        raise ValueError("environment variable 'NJOY' is not assigned")
     return exe
 
 def get_suffix(temp, meta, method=None):
