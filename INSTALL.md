@@ -173,12 +173,20 @@ python -m ipykernel install --user --name sandy-devel --display-name "Python3 (s
 ```
 
 ## Running SANDY with NJOY
-SANDY also works as a wrapper to the NJOY code to process nuclear data files to PENDF and ACE formats. The installation of NJOY is not mandatory, but To install NJOY you can do the following:
+SANDY also works as a wrapper to the NJOY code to process nuclear data files into PENDF and ACE formats.
+The installation of NJOY is not mandatory, but recommended.
+
+We suggest using NJOY2016 (we haven't tried NJOY2021 yet!).
+You can find the source on its [github repository](https://github.com/njoy/NJOY2016).
+
+To install NJOY you can do the following
 
 **in Linux**
-Go to the [njoy21 github repository](https://github.com/njoy/NJOY21) and follow the installation instructions.
+
+Clone NJOY2016 with `git` and follow the installation instructions provided on the [NJOY website](https://docs.njoy21.io/install.html).
 
 **in Windows**
+
 1. Download [Cygwin64](https://cygwin.com/install.html).
 2. Follow the instructions of the installation wizard.
 3. You will be asked to select a 'Root Install Directory', that is, the directory where you want to install cygwin. In my case it is `C:\cygwin64
@@ -215,7 +223,7 @@ If you run the following you should see `NJOY` in your list of environment varia
 conda env config vars list
 ```
 
-To verify that NJOY is correclty found by SANDY open a python terminal, import sandy and run `get_njoy()`.
+To verify that NJOY is correctly found by SANDY open a python terminal, import sandy and run `get_njoy()`.
 ```python
 import sandy
 sandy.get_njoy()
