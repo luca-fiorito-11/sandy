@@ -76,7 +76,7 @@ python setup.py install
 
 **on Windows**
 
-For the C++ compiler, [Microsoft C++ Build Tools]((https://visualstudio.microsoft.com/visual-cpp-build-tools/)) are recommended. Once the download has completed follow these steps:
+For the C++ compiler, [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) are recommended. Once the download has completed follow these steps:
 1. Launch the Visual Studio Build Tools installation wizard.
 2. In the `Workloads` tab select the `C++ build tools package` and click on `Install`.
 3. A reboot of your machine is requested.
@@ -110,7 +110,6 @@ Now SANDY should work also on Windows! If it still doesn't, some dependencies mi
 3. Search for the missing dependencies on your PC and copy them to the same directory where the `*.pyd` file of the failing module is located.
 4. Good luck!
 
-
 ### Adding SANDY to PYTHONPATH
 If you want to add the `sandy` folder to your `PYTHONPATH` you can do
 
@@ -126,8 +125,10 @@ set PYTHONPATH=%PYTHONPATH%;C:\path\to\sandy
 ```
 or, if you want the changes to be permanent,
 ```dos
-setx PYTHONPATH=%PYTHONPATH%;C:\path\to\sandy
+setx PYTHONPATH="%PYTHONPATH%;C:\path\to\sandy" /m
 ```
+
+> Alternatively, use the environment variable editor in **Control panel** &rarr; **View advanced system settings**.
 
 ## Running a python shell
 1. Open a terminal/Anaconda Prompt.
@@ -218,16 +219,51 @@ conda env config vars set NJOY=C:\path\to\cygwin64\home\username\NJOY2016\bin\nj
 conda activate sandy-devel
 ```
 
-If you run the following you should see `NJOY` in your list of environment variables,
+If you run the following you should see `NJOY` in your list of environment variables (inside the python virtual environment),
 ```dos
 conda env config vars list
 ```
+
+To succesfully run NJOY Windows must be able to find some DLL files such as `cygwin1.dll`.
+This file is part of cygwin, so most likely it's located in `C:\path\to\cygwin64\bin`.
+Then, you have to add `C:\path\to\cygwin64\bin` (or the location where `cygwin1.dll` can be found) to your `PATH` typing the following on an Anaconda Prompt terminal 
+```dos
+set PATH=%PATH%;C:\path\to\cygwin64\bin
+```
+or, if you want the changes to be permanent,
+```dos
+setx PATH="%PATH%;C:\path\to\cygwin64\bin" \m
+```
+
+> Again, the environment variable editor in the control panel can also be used.
+
 
 To verify that NJOY is correctly found by SANDY open a python terminal, import sandy and run `get_njoy()`.
 ```python
 import sandy
 sandy.get_njoy()
 ```
+
+If you want to succesfully run NJOY2016 through SANDY, cygwin must be allowed to access different directories outside the cygwin home directory.
+From a cygwin terminal this can be done specifing `/cygdrive/` before the directory absolute path.
+
+> Example: you can access the root of your C: drive from cygwin by specifying the directory
+```bash
+cd /cygdrive/c
+```
+
+To consistently be able to write in your user account on the C: drive (`C:\Users\your_username`), for example, we recommend creating a symbolic link in a cygwin terminal, as
+```bash
+ln -sv /cygdrive/c/Users/your_username ~/your_username
+```
+
+To check if NJOY works you can:
+ * open a Anaconda Prompt terminal;
+ * move to a directory where cygwin has writing permission;
+ * make sure `C:\path\to\cygwin64\bin` is in your list of environemnt variables (juste type `set` and look at `Path`);
+ * run `C:\path\to\cygwin64\home\your_username\NJOY2016\bin\njoy.exe`.
+
+NJOY should now be running in your terminal!
 
 ## `git` branches
 The development of SANDY is mostly carried out on the `git` branch `develop`. In this branch you should have the latest features available. We recommend using this branch if you want to use SANDY as an interface to nuclear data files. All SANDY tutorials available [here](https://luca-fiorito-11.github.io/sandy_notebooks/) were produced with the `develop` branch and might not work on other branches. 

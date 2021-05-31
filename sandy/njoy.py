@@ -74,6 +74,7 @@ Routines
 """
 
 import os
+from os.path import join
 import shutil
 import re
 import logging
@@ -118,67 +119,67 @@ sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
             columns = ['matde','matdp','icoh','natom','mtref','ext'])
 
 tmp2ext = {
-    293.6 : "02",
-    300 : "03",
-    350 : "35",
-    400 : "04",
-    450 : "45",
-    500 : "05",
-    550 : "55",
-    600 : "06",
-    650 : "65",
-    700 : "07",
-    750 : "75",
-    800 : "08",
-    850 : "85",
-    900 : "09",
-    950 : "95",
-    1000 : "10",
-    1100 : "11",
-    1200 : "12",
-    1300 : "13",
-    1400 : "14",
-    1500 : "15",
-    1600 : "16",
-    1700 : "17",
-    1800 : "18",
-    1900 : "19",
-    2000 : "20",
-    2100 : "21",
-    2200 : "22",
-    2300 : "23",
-    2400 : "24",
-    2500 : "25",
+    293.6: "02",
+    300: "03",
+    350: "35",
+    400: "04",
+    450: "45",
+    500: "05",
+    550: "55",
+    600: "06",
+    650: "65",
+    700: "07",
+    750: "75",
+    800: "08",
+    850: "85",
+    900: "09",
+    950: "95",
+    1000: "10",
+    1100: "11",
+    1200: "12",
+    1300: "13",
+    1400: "14",
+    1500: "15",
+    1600: "16",
+    1700: "17",
+    1800: "18",
+    1900: "19",
+    2000: "20",
+    2100: "21",
+    2200: "22",
+    2300: "23",
+    2400: "24",
+    2500: "25",
     }
 
 tmp2ext_meta = {
-    293.6 : "30",
-    300 : "31",
-    350 : "32",
-    400 : "33",
-    450 : "34",
-    500 : "36",
-    550 : "37",
-    600 : "38",
-    650 : "39",
-    700 : "40",
-    750 : "41",
-    800 : "42",
-    850 : "43",
-    900 : "44",
-    950 : "46",
-    1000 : "47",
-    1100 : "48",
-    1200 : "49",
-    1300 : "50",
-    1400 : "51",
-    1500 : "52",
-    1800 : "53",
-    2100 : "54",
-    2200 : "56",
-    2300 : "57",
-    2400 : "58",
-    2500 : "59",
+    293.6: "30",
+    300: "31",
+    350: "32",
+    400: "33",
+    450: "34",
+    500: "36",
+    550: "37",
+    600: "38",
+    650: "39",
+    700: "40",
+    750: "41",
+    800: "42",
+    850: "43",
+    900: "44",
+    950: "46",
+    1000: "47",
+    1100: "48",
+    1200: "49",
+    1300: "50",
+    1400: "51",
+    1500: "52",
+    1800: "53",
+    2100: "54",
+    2200: "56",
+    2300: "57",
+    2400: "58",
+    2500: "59",
     }
 
 
@@ -208,10 +209,11 @@ def get_njoy():
         raise ValueError("environment variable 'NJOY' is not assigned")
     return exe
 
+
 def get_suffix(temp, meta, method=None):
     """
     Determine suffix saccording to temperature value.
-    
+
     Parameters
     ----------
     temp : `float`
@@ -219,8 +221,13 @@ def get_suffix(temp, meta, method=None):
     meta : `int`
         metastate number
     method : `str`, optional, default `None`
-        use `method="aleph"` to treat metastate extensions using aleph rules
-    
+        use `method="aleph"` to treat metastate extensions using ALEPH rules
+
+    Raise
+    -----
+    `ValueError`
+        if extension was not found for given temperature
+
     Returns
     -------
     `str`
@@ -231,9 +238,9 @@ def get_suffix(temp, meta, method=None):
         temp_in_dict = temp
     else:
         splitter = 50 if temp < 1000 else 100
-        temp_in_dict = int(round(temp/splitter)*splitter)
+        temp_in_dict = int(round(temp / splitter) * splitter)
     if temp_in_dict not in dct:
-        raise SandyError("extension was not found for temperature '{}'".format(temp))
+        raise ValueError(f"extension was not found for temperature '{temp}'")
     return dct[temp_in_dict]
 
 
@@ -648,48 +655,53 @@ def _run_njoy(text, inputs, outputs, exe=None):
     stdin = text.encode()
     with tempfile.TemporaryDirectory() as tmpdir:
         logging.debug("Create temporary directory '{}'".format(tmpdir))
-        for tape,src in inputs.items():
+        for tape, src in inputs.items():
             shutil.copy(src, os.path.join(tmpdir, tape))
         process = sp.Popen(exe,
                            shell=True,
                            cwd=tmpdir,
-                           stdin=sp.PIPE, 
-                           stdout=stdout, 
+                           stdin=sp.PIPE,
+                           stdout=stdout,
                            stderr=stderr)
         stdoutdata, stderrdata = process.communicate(input=stdin)
         logging.debug(stdoutdata)
         logging.debug(stderrdata)
-        if process.returncode != 0:
-            raise SandyError("process status={}, cannot run njoy executable".format(process.returncode))
-        for tape,dst in outputs.items():
+        retrn = process.returncode
+        if retrn != 0:
+            msg = f"process status={retrn}, cannot run njoy executable"
+            raise SandyError(msg)
+        for tape, dst in outputs.items():
             path = os.path.split(dst)[0]
             if path:
                 os.makedirs(path, exist_ok=True)
             shutil.move(os.path.join(tmpdir, tape), dst)
 
 
-def process(endftape,
-            pendftape=None,
-            kermas=[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447],
-            temperatures=[293.6],
-            suffixes=None,
-            broadr=True,
-            thermr=True,
-            unresr=False,
-            heatr=True,
-            gaspr=True,
-            purr=True,
-            errorr=False,
-            acer=True,
-            wdir="",
-            dryrun=False,
-            tag="",
-            method=None,
-            exe=None,
-            keep_pendf=True,
-            route="0",
-            addpath=None,
-            **kwargs):
+def process(
+        endftape,
+        pendftape=None,
+        kermas=[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447],
+        temperatures=[293.6],
+        suffixes=None,
+        broadr=True,
+        thermr=True,
+        unresr=False,
+        heatr=True,
+        gaspr=True,
+        purr=True,
+        errorr=False,
+        acer=True,
+        wdir="",
+        dryrun=False,
+        tag="",
+        method=None,
+        exe=None,
+        keep_pendf=True,
+        route="0",
+        addpath=None,
+        verbose=False,
+        **kwargs,
+        ):
     """
     Run sequence to process file with njoy.
 
@@ -746,6 +758,8 @@ def process(endftape,
         save output PENDF file
     route : `str`, optional, default is `0`
         xsdir "route" parameter
+    verbose : `bool`, optional, default is `False`
+        flag to print NJOY input to screen before running the executable
 
     Returns
     -------
@@ -766,8 +780,11 @@ def process(endftape,
     outprefix = zam if method == "aleph" else za_new
     inputs = {}
     outputs = {}
-    # Only kwargs are passed to NJOY inputs, therefore add temperatures and mat
-    kwargs.update({"temperatures": temperatures, "mat": mat})
+    # Only kwargs are passed to NJOY inputs, then add temperatures and mat
+    kwargs.update({
+        "temperatures": temperatures,
+        "mat": mat,
+        })
     # Check input args
     if not suffixes:
         suffixes = [get_suffix(temp, meta, method) for temp in temperatures]
@@ -812,84 +829,118 @@ def process(endftape,
     if keep_pendf:
         o = 30
         text += _moder_input(-p, o)
-        outputs["tape{}".format(o)] = os.path.join(wdir, "{}{}.pendf".format(outprefix, tag))
+        outputs[f"tape{o}"] = join(
+            wdir,
+            f"{outprefix}{tag}.pendf",
+            )
     if errorr:
-        for i,(temp,suff) in enumerate(zip(temperatures, suffixes)):
+        for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
             o = 33 + i
             kwargs["temp"] = temp
-            kwargs["suff"] = suff = ".{}".format(suff)
+            kwargs["suff"] = suff = f".{suff}"
             text += _errorr_input(-e, -p, o, **kwargs)
-            outputs["tape{}".format(o)] = os.path.join(wdir, "{}{}{}.errorr".format(outprefix, tag, suff))
+            outputs[f"tape{o}"] = join(
+                wdir,
+                f"{outprefix}{tag}{suff}.errorr",
+                )
     if acer:
-        for i,(temp,suff) in enumerate(zip(temperatures, suffixes)):
+        for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
             a = 50 + i
             x = 70 + i
             kwargs["temp"] = temp
-            kwargs["suff"] = suff = ".{}".format(suff)
+            kwargs["suff"] = suff = f".{suff}"
             text += _acer_input(-e, -p, a, x, **kwargs)
-            outputs["tape{}".format(a)] = os.path.join(wdir, "{}{}{}c".format(outprefix, tag, suff))
-            outputs["tape{}".format(x)] = os.path.join(wdir, "{}{}{}c.xsd".format(outprefix, tag, suff))
+            outputs[f"tape{a}"] = join(
+                wdir,
+                f"{outprefix}{tag}{suff}c",
+                )
+            outputs[f"tape{x}"] = join(
+                wdir,
+                f"{outprefix}{tag}{suff}c.xsd",
+                )
     text += "stop"
-    if not dryrun:
-        _run_njoy(text, inputs, outputs, exe=exe)
-        if acer:
-            # Change route and filename in xsdir file.
-            for i,(temp,suff) in enumerate(zip(temperatures, suffixes)):
-                a = 50 + i
-                x = 70 + i
-                acefile = outputs["tape{}".format(a)]
-                if addpath is None:
-                    filename = acefile
-                else:
-                    filename = os.path.basename(acefile)
-                    if addpath:
-                        filename = os.path.join(addpath, filename)
-                xsdfile = outputs["tape{}".format(x)]
-                text_xsd = open(xsdfile).read(). \
-                                         replace("route", route). \
-                                         replace("filename", filename)
-                text_xsd = " ".join(text_xsd.split())
-                # If isotope is metatable rewrite ZA in xsdir and ace as ZA = Z*1000 + 300 + A + META*100.
-                if meta and method != "aleph":
-                    pattern = '{:d}'.format(za) + '\.(?P<ext>\d{2}[ct])'
-                    found = re.search(pattern, text_xsd)
-                    ext = found.group("ext")
-                    text_xsd = text_xsd.replace("{:d}.{}".format(za, ext), "{:d}.{}".format(za_new, ext), 1)
-                    text_ace = open(acefile).read()
-                    text_ace = text_ace.replace("{:d}.{}".format(za, ext), "{:d}.{}".format(za_new, ext), 1)
-                    with open(acefile, 'w') as f:
-                        f.write(text_ace)
-                with open(xsdfile, 'w') as f:
-                    f.write(text_xsd)
+    # stop here if a dryrun is requested
+    if verbose:
+        print(text)
+    if dryrun:
+        return text
+
+    _run_njoy(text, inputs, outputs, exe=exe)
+    if acer:
+        # Change route and filename in xsdir file.
+        for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
+            a = 50 + i
+            x = 70 + i
+            acefile = outputs["tape{}".format(a)]
+            if addpath is None:
+                filename = acefile
+            else:
+                filename = os.path.basename(acefile)
+                if addpath:
+                    filename = os.path.join(addpath, filename)
+            xsdfile = outputs["tape{}".format(x)]
+            text_xsd = open(xsdfile).read() \
+                                    .replace("route", route) \
+                                    .replace("filename", filename)
+            text_xsd = " ".join(text_xsd.split())
+            # If isotope is metatable rewrite ZA in xsdir and ace as
+            # ZA = Z*1000 + 300 + A + META*100.
+            if meta and method != "aleph":
+                pattern = f'{za:d}' + '\.(?P<ext>\d{2}[ct])'
+                found = re.search(pattern, text_xsd)
+                ext = found.group("ext")
+                text_xsd = text_xsd.replace(
+                    f"{za:d}.{ext}",
+                    f"{za_new:d}.{ext}",
+                    1,
+                    )
+                text_ace = open(acefile).read().replace(
+                    f"{za:d}.{ext}",
+                    f"{za_new:d}.{ext}",
+                    1,
+                    )
+                with open(acefile, 'w') as f:
+                    f.write(text_ace)
+            with open(xsdfile, 'w') as f:
+                f.write(text_xsd)
     return text, inputs, outputs
 
 
-
-def process_proton(endftape, wdir="", dryrun=False, tag="", exe=None, route="0", **kwargs):
+def process_proton(
+        endftape,
+        wdir="",
+        dryrun=False,
+        tag="",
+        exe=None,
+        route="0",
+        **kwargs,
+        ):
     """Run sequence to process proton file with njoy.
-    
+
     Parameters
     ----------
     wdir : `str`
         working directory (absolute or relative) where all output files are
         saved
         .. note:
-            
-            `wdir` will appear as part of the `filename` in 
+
+            `wdir` will appear as part of the `filename` in
             any `xsdir` file
     dryrun : `bool`
         option to produce the njoy input file without running njoy
     tag : `str`
-        tag to append to each output filename beofre the extension (default is `None`)
+        tag to append to each output filename beofre the extension
+        (default is `None`)
         .. hint:
             to process JEFF-3.3 files you could set `tag = "_j33"`
     exe : `str`
         njoy executable (with path)
         .. note:
-            If no executable is given, SANDY looks for a default executable in `PATH`
+            If no executable is given, SANDY looks for a default executable
+            in `PATH`
     route : `str`
         xsdir "route" parameter (default is "0")
-    
+
     Returns
     -------
     input : `str`
@@ -912,21 +963,22 @@ def process_proton(endftape, wdir="", dryrun=False, tag="", exe=None, route="0",
     kwargs["temp"] = 0
     kwargs["suff"] = suff = ".00"
     text = _acer_input(20, 20, 50, 70, **kwargs)
-    outputs["tape50"] = os.path.join(wdir, "{}{}{}h".format(za_new, tag, suff))
-    outputs["tape70"] = os.path.join(wdir, "{}{}{}h.xsd".format(za_new, tag, suff))
+    outputs["tape50"] = join(wdir, "{}{}{}h".format(za_new, tag, suff))
+    outputs["tape70"] = join(wdir, "{}{}{}h.xsd".format(za_new, tag, suff))
     text += "stop"
     if not dryrun:
         _run_njoy(text, inputs, outputs, exe=exe)
         # Change route and filename in xsdir file.
         acefile = outputs["tape50"]
         xsdfile = outputs["tape70"]
-        text_xsd = open(xsdfile).read(). \
-                                 replace("route", route). \
-                                 replace("filename", acefile)
+        text_xsd = open(xsdfile).read() \
+                                .replace("route", route) \
+                                .replace("filename", acefile)
         text_xsd = " ".join(text_xsd.split())
-        # If isotope is metatable rewrite ZA in xsdir and ace as ZA = Z*1000 + 300 + A + META*100.
+        # If isotope is metatable rewrite ZA in xsdir and ace as
+        # ZA = Z*1000 + 300 + A + META*100.
         if meta:
-            pattern = '{:d}'.format(za) + '\.(?P<ext>\d{2}[ct])'
+            pattern = f'{za:d}' + '\.(?P<ext>\d{2}[ct])'
             found = re.search(pattern, text_xsd)
             ext = found.group("ext")
             text_xsd = text_xsd.replace("{:d}.{}".format(za, ext), "{:d}.{}".format(za_new, ext), 1)

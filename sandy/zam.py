@@ -520,7 +520,7 @@ def zam2latex(zam):
     return string
 
 
-def zam2nuclide(zam):
+def zam2nuclide(zam, atomic_number=False, sep=""):
     """
     Convert ZAM to string such with symbol and mass, such as `922350` to
     `"U235"` or `952421` to `"Am242m"`.
@@ -529,6 +529,12 @@ def zam2nuclide(zam):
     ----------
     zam : `int`
         nuclide ZAM indicator
+    atomic_number : `bool`, optional, default is `False`
+        flag to include the atomic number in the nuclide name
+    sep : `str`, optional, default is `''`
+        separation character(s) to place between the atomic number
+        (if present), the element ID, and the mass number.
+
     Returns
     -------
     `string`
@@ -538,17 +544,28 @@ def zam2nuclide(zam):
     --------
     >>> zam2nuclide(922350)
     'U235'
+    >>> zam2nuclide(922350, atomic_number=True)
+    '92U235'
+    >>> zam2nuclide(922350, atomic_number=True, sep="-")
+    '92-U-235'
+    >>> zam2nuclide(922350, atomic_number=False, sep="-")
+    'U-235'
     >>> zam2nuclide(952420)
     'Am242'
     >>> zam2nuclide(952421)
     'Am242m'
+    >>> zam2nuclide(952421, atomic_number=True, sep="_")
+    '95_Am_242m'
     >>> zam2nuclide(952422)
     'Am242n'
     """
     z, a, m = expand_zam(zam)
     sym = z2sym(z)
     meta = get_meta_letter(m, skip_ground=True)
-    return f"{sym}{a}{meta}"
+    out = f"{sym}{sep}{a}{meta}"
+    if atomic_number:
+        out = f"{z}{sep}{out}"
+    return out
 
 
 def get_meta_letter(m, skip_ground=False):
