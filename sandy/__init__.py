@@ -1,25 +1,26 @@
 import logging
 import sys
 
-from sandy.formats import read_formatted_file
-from sandy.settings import *
-from sandy.constants import *
-from sandy.decay import *
-from sandy.energy_grids import *
-from sandy.errorr import *
-from sandy.groupr import *
-from sandy.fy import *
-from sandy.h5file import *
-from sandy.pert import *
-from sandy.pfns import *
-from sandy.processing import *
+from .formats import read_formatted_file
+from .settings import *
+from .constants import *
+from .decay import *
+from .energy_grids import *
+from .errorr import *
+from .groupr import *
+from .fy import *
+from .h5file import *
+from .libraries import *
+from .pert import *
+from .pfns import *
+from .processing import *
 from sandy.zam import *
-from sandy.njoy import *
-from sandy.sections import *
-from sandy.shared import *
-from sandy.utils import *
-from sandy.core import *
-from sandy.sampling import *
+from .njoy import *
+from .sections import *
+from .shared import *
+from .utils import *
+from .core import *
+from .sampling import *
 import sandy.mcnp
 import sandy.tools
 import sandy.shared

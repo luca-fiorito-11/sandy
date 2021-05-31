@@ -4,16 +4,29 @@ Created on Wed Dec  4 14:50:33 2019
 
 @author: lfiorito
 """
-import pdb
 import io
+import shutil
 import os
-import tempfile
+from tempfile import TemporaryDirectory
 import logging
-import urllib
+from urllib.request import urlopen, Request
+from zipfile import ZipFile
+
 
 import pandas as pd
 
 import sandy
+from sandy.libraries import (
+    N_FILES_ENDFB_71_IAEA,
+    N_FILES_JEFF_32_NEA,
+    N_FILES_JEFF_33_IAEA,
+    N_FILES_JEFF_40T0_NEA,
+    URL_N_ENDFB_71_IAEA,
+    URL_N_JEFF_32_NEA,
+    URL_N_JEFF_33_IAEA,
+    URL_N_JEFF_40T0_NEA,
+    )
+
 
 __author__ = "Luca Fiorito"
 __all__ = [
@@ -23,10 +36,8 @@ __all__ = [
 
 pd.options.display.float_format = '{:.5e}'.format
 
-URL_JEFF40T0 = "https://www.oecd-nea.org/dbdata/nds/JEFF4T0/endf6/files/"
 
-
-def get_endf6_file(library, kind, zam):
+def get_endf6_file(library, kind, zam, to_file=False):
     """
     Given a library and a nuclide import the corresponding ENDF-6 nuclear
     data file directly from internet.
@@ -58,51 +69,49 @@ def get_endf6_file(library, kind, zam):
 
     Examples
     --------
-    Import hydrogen file from JEFF-4.0T0
+    Import hydrogen file from JEFF-4.0T0.
     >>> tape = sandy.get_endf6_file("jeff_40t0", 'xs', 10010)
     >>> assert type(tape) is sandy.Endf6
+
+    Import hydrogen file from JEFF-3.3.
+    >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 10010)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import hydrogen file from ENDF/B-VII.1.
+    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010)
+    >>> assert type(tape) is sandy.Endf6
     """
+    available_libs = (
+        "jeff_32".upper(),
+        "jeff_33".upper(),
+        "jeff_40t0".upper(),
+        "endfb_71".upper(),
+        )
     library_ = library.lower()
     if library_ == "jeff_40t0":
-        url = get_url_jeff_40t0(zam)
+        filename = N_FILES_JEFF_40T0_NEA[zam]
+        tape = Endf6.from_url(filename, URL_N_JEFF_40T0_NEA)
+    elif library_ == "jeff_33":
+        filename = N_FILES_JEFF_33_IAEA[zam]
+        tape = Endf6.from_zipurl(filename, URL_N_JEFF_33_IAEA)
+    elif library_ == "jeff_32":
+        filename = N_FILES_JEFF_32_NEA[zam]
+        tape = Endf6.from_url(filename, URL_N_JEFF_32_NEA)
+    elif library_ == "endfb_71":
+        filename = N_FILES_ENDFB_71_IAEA[zam]
+        tape = Endf6.from_zipurl(filename, URL_N_ENDFB_71_IAEA)
     else:
-        raise ValueError("library '{library}' is not available")
-    return Endf6.from_url(url)
-
-
-def get_url_jeff_40t0(zam):
-    """
-    Given a nuclide retrieve its corresponding url for JEFF-4.0T0
-
-    Parameters
-    ----------
-    zam : `int`
-        ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
-            * $Z$ is the charge number
-            * $A$ is the mass number
-            * $M$ is the metastate level (0=ground, 1=1st level)
-
-    Returns
-    -------
-    url : `str`
-        file url.
-
-    Examples
-    --------
-    Get URL of U-235 file from JEFF-4.0T0.
-    >>> get_url_jeff_40t0(922350)
-    'https://www.oecd-nea.org/dbdata/nds/JEFF4T0/endf6/files/92-u-235g.endf2c'
-
-    Get URL of a metastable nuclide from JEFF-4.0T0.
-    >>> get_url_jeff_40t0(952421)
-    'https://www.oecd-nea.org/dbdata/nds/JEFF4T0/endf6/files/95-am-242m.endf2c'
-    """
-    z, a, m = sandy.zam.expand_zam(zam)
-    sym = sandy.zam.z2sym(z).lower()
-    ml = sandy.zam.get_meta_letter(m)
-    file = f"{z}-{sym}-{a}{ml}.endf2c"
-    url = URL_JEFF40T0 + file
-    return url
+        raise ValueError(
+            f"""library '{library}' is not available.
+            Available libraries are: {available_libs}
+            """
+            )
+    if to_file:
+        basename = sandy.zam.zam2nuclide(zam, atomic_number=True, sep="-")
+        filename = f"{basename}.{library_}"
+        logging.info(f"writing nuclear data to file '{filename}'")
+        tape.to_file(filename)
+    return tape
 
 
 class _FormattedFile():
@@ -246,15 +255,36 @@ class _FormattedFile():
         return kind
 
     @classmethod
-    def from_url(cls, url):
+    def from_url(cls, filename, rooturl):
+        url = f"{rooturl}/{filename}"
         # set a known browser user agent to ensure access
-        req = urllib.request.Request(
-            url,
-            headers={'User-Agent': 'Mozilla/5.0'},
-            )
-        with urllib.request.urlopen(req) as f:
+        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'},)
+        with urlopen(req) as f:
             text = f.read().decode('utf-8')
-        return cls.from_text(text)
+        tape = cls.from_text(text)
+        return tape
+
+    @classmethod
+    def from_zipurl(cls, filename, rooturl):
+        rootname = os.path.splitext(filename)[0]
+        zipurl = f"{rooturl}/{rootname}.zip"
+        # set a known browser user agent to ensure access
+        req = Request(zipurl, headers={'User-Agent': 'Mozilla/5.0'})
+        with urlopen(req) as zipresp:
+            with ZipFile(io.BytesIO(zipresp.read())) as zfile:
+                with TemporaryDirectory() as td:
+                    zfile.extract(filename, path=td)
+                    tmpfile = os.path.join(td, filename)
+                    tape = cls.from_file(tmpfile)
+        return tape
+
+    # @classmethod
+    # def from_url(cls, url):
+    #     # set a known browser user agent to ensure access
+    #     req = Request(url, headers={'User-Agent': 'Mozilla/5.0'},)
+    #     with urlopen(req) as f:
+    #         text = f.read().decode('utf-8')
+    #     return cls.from_text(text)
 
     @classmethod
     def from_file(cls, file):
@@ -349,7 +379,7 @@ class _FormattedFile():
             io.StringIO(text),
             widths=[66, 4, 2, 3],
             names=["TEXT", "MAT", "MF", "MT"],
-            dtype={"TEXT": str, "MAT": int, "MF": int, "MT": int},
+            dtype={"TEXT": str, "MAT": str, "MF": int, "MT": int},
             na_filter=False,  # speeds up and does not add NaN in empty lines
             # Do not use TEXT because  the parser does not preserve the
             # whitespaces
@@ -357,6 +387,16 @@ class _FormattedFile():
             )
         # use splitlines instead of readlines to remove "\n"
         df["TEXT"] = text.splitlines()
+        #
+        title = df["TEXT"].iloc[0]
+        title_mat = df["MAT"].iloc[0]
+        try:
+            int(title_mat)
+        except ValueError:
+            logging.warning(f"wrong MAT number in the file title\n'{title}'")
+            df = df.iloc[1:].reset_index(drop=True)
+        finally:
+            df["MAT"] = df["MAT"].astype(int)
         condition = (df.MT > 0) & (df.MF > 0) & (df.MAT > 0)
         data = df[condition].groupby(["MAT", "MF", "MT"])\
                             .agg({"TEXT": "\n".join})\
@@ -739,12 +779,100 @@ class Endf6(_FormattedFile):
         self.EHRES = 0
         self.THNMAX = - self.EHRES if self.EHRES != 0 else 1.0E6
 
-    def get_pendf(self, njoy, debug=False):
+    def get_ace(self,
+                temperature,
+                njoy=None,
+                verbose=False,
+                **kwargs,
+                ):
         """
-        #>>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
-        #>>> endf6 = sandy.Endf6.from_file(file)
-        #>>> pendf = endf6.get_pendf("/home/lfiorito/vc/NJOY2016/bin/njoy")
-        #>>> pendf
+        Process `Endf6` instance into an ACE file using NJOY.
+
+        Parameters
+        ----------
+        temperature : `float`
+            temperature of the cross sections in K.
+        njoy : `str`, optional, default is `None`
+            NJOY executable, if `None` serahc in the system path.
+        verbose : TYPE, optional, default is `False`
+            flag to print NJOY input file to screen before running the
+            executable.
+        **kwargs : TYPE
+            keyword argument to pass to `sandy.njoy.process`.
+
+        Returns
+        -------
+        outs : `dict`
+            output with `'ace'` and `'xsdir'` as keys pointing to the
+            filenames of the corresponding ACE and xsdir files generated in
+            the run.
+
+        Examples
+        --------
+        >>> sandy.get_endf6_file("jeff_33", "xs", 10010).get_ace(700)
+        {'ace': '1001.07c', 'xsdir': '1001.07c.xsd'}
+        """
+        outs = {}
+        with TemporaryDirectory() as td:
+            endf6file = os.path.join(td, "endf6_file")
+            self.to_file(endf6file)
+            text, inputs, outputs = sandy.njoy.process(
+                endf6file,
+                wdir=".",
+                keep_pendf=False,
+                exe=njoy,
+                temperatures=[temperature],
+                verbose=verbose,
+                **kwargs,
+                )
+            acefile = outputs["tape50"]
+            basename = os.path.split(acefile)[1]
+            dest = os.path.join(os.getcwd(), basename)
+            outs["ace"] = basename
+            shutil.move(acefile, dest)
+            xsdfile = outputs["tape70"]
+            basename = os.path.split(xsdfile)[1]
+            dest = os.path.join(os.getcwd(), basename)
+            outs["xsdir"] = basename
+            shutil.move(xsdfile, dest)
+        return outs
+
+    def get_pendf(self,
+                  temperature=0,
+                  njoy=None,
+                  to_file=False,
+                  verbose=False,
+                  **kwargs,
+                  ):
+        """
+        Process `Endf6` instance into an PENDF file using NJOY.
+
+        Parameters
+        ----------
+        temperature : `float`, optional, default is `0`.
+            temperature of the cross sections in K.
+            If not given, stop the processing after RECONR (before BROADR).
+        njoy : `str`, optional, default is `None`
+            NJOY executable, if `None` serahc in the system path.
+        to_file : `bool`, optional, default is `False`
+            flag to write processed PENDF data to file.
+            The name of the PENDF file is defined by an internal routine.
+        verbose : TYPE, optional, default is `False`
+            flag to print NJOY input file to screen before running the
+            executable.
+        **kwargs : TYPE
+            keyword argument to pass to `sandy.njoy.process`.
+
+        Returns
+        -------
+        pendf : `sandy.Endf6`
+            `Endf6` instance constaining the nuclear data of the PENDF file.
+
+        Examples
+        --------
+        Process H1 file from ENDF/B-VII.1 into PENDF
+        >>> pendf =sandy.get_endf6_file("endfb_71", "xs", 10010).get_pendf()
+        >>> pendf
         MAT  MF  MT 
         125  1   451     1.001000+3 9.991673-1          2          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
@@ -753,30 +881,39 @@ class Endf6(_FormattedFile):
                  102     1.001000+3 9.991673-1          0          0  ...
         dtype: object
 
-        #>>> pendf.kind
+        >>> pendf.kind
         'pendf'
         """
-        with tempfile.TemporaryDirectory() as td:
+        if temperature == 0:
+            kwargs["broadr"] = False
+            kwargs["thermr"] = False
+            kwargs["gaspr"] = False
+            kwargs["heatr"] = False
+            kwargs["purr"] = False
+            kwargs["unresr"] = False
+            msg = """Zero or no temperature was requested, NJOY processing will stop after RECONR.
+If you want to process 0K cross sections use `temperature=0.1`.
+"""
+            logging.info(msg)
+        with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
             self.to_file(endf6file)
-            outputs = sandy.njoy.process(
-                    endf6file,
-                    broadr=False,
-                    thermr=False,
-                    unresr=False,
-                    heatr=False,
-                    gaspr=False,
-                    purr=False,
-                    errorr=False,
-                    acer=False,
-                    wdir=".",
-                    keep_pendf=True,
-                    exe=njoy,
-                    temperatures=[0],
-                    suffixes=[0],
-                    err=0.005
-                    )[2]  # keep only pendf filename
+            text, inputs, outputs = sandy.njoy.process(
+                endf6file,
+                acer=False,
+                wdir=".",
+                keep_pendf=True,
+                exe=njoy,
+                temperatures=[temperature],
+                suffixes=[0],
+                verbose=verbose,
+                **kwargs,
+                )
             pendffile = outputs["tape30"]
+            if to_file:
+                basename = os.path.split(pendffile)[1]
+                dest = os.path.join(os.getcwd(), basename)
+                shutil.move(pendffile, dest)
             pendf = Endf6.from_file(pendffile)
         return pendf
 
@@ -867,7 +1004,7 @@ class Endf6(_FormattedFile):
         """
         if self.kind != "endf6":
             raise sandy.Error("stop because `kind!='endf6'`")
-        with tempfile.TemporaryDirectory() as td:
+        with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
             self.to_file(endf6file)
             if pendf:
