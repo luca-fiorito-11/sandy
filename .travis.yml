@@ -32,6 +32,8 @@ install:
 
 script:
   - pytest --cov=sandy sandy
+  - git clone https://github.com/luca-fiorito-11/sandy_notebooks.git
+  - pytest --cov-append --cov=sandy sandy_notebooks
 
 after_success:
   - coveralls
