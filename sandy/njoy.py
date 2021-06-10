@@ -708,7 +708,8 @@ def process(
     Parameters
     ----------
     pendftape : `str`, optional, default is `None`
-        skip module reconr and use this PENDF file
+        name (with absolute of relative path) of a pendf file.
+        If given, skip module reconr and use this PENDF file, else run reconr
     kermas : iterable of `int`, optional, default is
              `[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447]`
         MT numbers for partial kermas to pass to heatr.

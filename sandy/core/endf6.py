@@ -783,6 +783,7 @@ class Endf6(_FormattedFile):
                 temperature,
                 njoy=None,
                 verbose=False,
+                pendf=None,
                 **kwargs,
                 ):
         """
@@ -793,7 +794,7 @@ class Endf6(_FormattedFile):
         temperature : `float`
             temperature of the cross sections in K.
         njoy : `str`, optional, default is `None`
-            NJOY executable, if `None` serahc in the system path.
+            NJOY executable, if `None` search in the system path.
         verbose : TYPE, optional, default is `False`
             flag to print NJOY input file to screen before running the
             executable.
@@ -813,11 +814,16 @@ class Endf6(_FormattedFile):
         {'ace': '1001.07c', 'xsdir': '1001.07c.xsd'}
         """
         outs = {}
+        pendftape = None
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
             self.to_file(endf6file)
+            if pendf:
+                pendftape = os.path.join(td, "pendf_file")
+                pendf.to_file(pendftape)
             text, inputs, outputs = sandy.njoy.process(
                 endf6file,
+                pendftape=pendftape,
                 wdir=".",
                 keep_pendf=False,
                 exe=njoy,
@@ -853,7 +859,7 @@ class Endf6(_FormattedFile):
             temperature of the cross sections in K.
             If not given, stop the processing after RECONR (before BROADR).
         njoy : `str`, optional, default is `None`
-            NJOY executable, if `None` serahc in the system path.
+            NJOY executable, if `None` search in the system path.
         to_file : `bool`, optional, default is `False`
             flag to write processed PENDF data to file.
             The name of the PENDF file is defined by an internal routine.
