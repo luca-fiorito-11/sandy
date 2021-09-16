@@ -86,7 +86,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Import hydrogen file from ENDF/B-VII.1.
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010)
     >>> assert type(tape) is sandy.Endf6
-    
+
     Import hydrogen file from ENDF/B-VII.1.
     >>> tape = sandy.get_endf6_file("endfb_80", 'xs', 10010)
     >>> assert type(tape) is sandy.Endf6
@@ -320,7 +320,7 @@ class _FormattedFile():
         Read hydrogen tape from endf-6 formatted file.
         >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
         >>> _FormattedFile.from_file(file)
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          0          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0          0  ...
@@ -336,7 +336,7 @@ class _FormattedFile():
         Read hydrogen tape from text stream.
         >>> stream = io.StringIO(open(file).read())
         >>> _FormattedFile.from_file(stream)
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          0          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0          0  ...
@@ -376,7 +376,7 @@ class _FormattedFile():
         >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
         >>> text = open(file).read()
         >>> _FormattedFile.from_text(text)
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          0          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0          0  ...
@@ -463,14 +463,14 @@ class _FormattedFile():
         --------
         >>> tape = sandy.Endf6({(9437, 3, 102) : "lorem ipsum"})
         >>> tape.add_section(9999, 1, 1, "dolor sit amet")
-        MAT   MF  MT 
+        MAT   MF  MT
         9437  3   102       lorem ipsum
         9999  1   1      dolor sit amet
         dtype: object
 
         >>> tape.add_section(9437, 3, 102, "new text", inplace=True)
         >>> tape
-        MAT   MF  MT 
+        MAT   MF  MT
         9437  3   102    new text
         dtype: object
         """
@@ -520,7 +520,7 @@ class _FormattedFile():
         >>> tape = _FormattedFile.from_file(file)
         >>> new = tape.delete_section(125, 3, 102)
         >>> new
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          0          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0          0  ...
@@ -966,7 +966,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         >>> pendf = sandy.Endf6.from_file(file)
         >>> merged = endf6.merge_pendf(pendf)
         >>> merged
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          2          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0         99  ...
