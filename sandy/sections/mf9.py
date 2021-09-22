@@ -54,17 +54,28 @@ def read_mf9(tape, mat, mt):
      'AWR': 238.986,
      'LIS': 0,
      'NS': 2,
-     'QM': 5539101.0,
-     'QI': 5539101.0,
-     'IZAP': 95242,
-     'LFS': 0,
-     'NBT': [9],
-     'INT': [3],
-     'E': array([1.000000e-05, 3.690000e-01, 1.000000e+03, 1.000000e+05,
-                 6.000001e+05, 1.000000e+06, 2.000000e+06, 4.000001e+06,
-                 3.000000e+07]),
-     'Y': array([0.9    , 0.9    , 0.8667 , 0.842  , 0.81533, 0.74382, 0.5703 ,
-                 0.52   , 0.52   ])}
+     'subsection1': {'QM': 5539101.0,
+                     'QI': 5539101.0,
+                     'IZAP': 95242,
+                     'LFS': 0,
+                     'NBT': [9],
+                     'INT': [3],
+                     'E': array([1.000000e-05, 3.690000e-01, 1.000000e+03, 1.000000e+05,
+                                 6.000001e+05, 1.000000e+06, 2.000000e+06, 4.000001e+06,
+                                 3.000000e+07]),
+                     'Y': array([0.9    , 0.9    , 0.8667 , 0.842  , 0.81533, 0.74382, 0.5703 ,
+                                 0.52   , 0.52   ])},
+     'subsection2': {'QM': 5539101.0,
+                     'QI': 5490471.0,
+                     'IZAP': 95242,
+                     'LFS': 2,
+                     'NBT': [9],
+                     'INT': [3],
+                     'E': array([1.000000e-05, 3.690000e-01, 1.000000e+03, 1.000000e+05,
+                                 6.000001e+05, 1.000000e+06, 2.000000e+06, 4.000001e+06,
+                                 3.000000e+07]),
+                     'Y': array([0.1    , 0.1    , 0.1333 , 0.158  , 0.18467, 0.25618, 0.4297 ,
+                                 0.48   , 0.48   ])}}
     """
     mf = 9
     df = tape._get_section_df(mat, mf, mt)
@@ -77,17 +88,20 @@ def read_mf9(tape, mat, mt):
         "LIS": C.L1,
         "NS": C.N1,
         })
-    T, i = sandy.read_tab1(df, i)
-    out.update({
-            "QM": T.C1,
-            "QI": T.C2,
-            "IZAP": T.L1,
-            "LFS": T.L2,
-            "NBT": T.NBT,
-            "INT": T.INT,
-            "E": T.x,
-            "Y": T.y,
-            })
+    for hx in range(C.N1):
+        T, i = sandy.read_tab1(df, i)
+        add = {}
+        add = {
+                "QM": T.C1,
+                "QI": T.C2,
+                "IZAP": T.L1,
+                "LFS": T.L2,
+                "NBT": T.NBT,
+                "INT": T.INT,
+                "E": T.x,
+                "Y": T.y,
+              }
+        out["subsection" + str(hx+1)] = add
     return out
 
 
@@ -125,14 +139,16 @@ def write_mf9(sec):
             sec["NS"],
             0,
             )
-    lines += sandy.write_tab1(
-            sec["QM"],
-            sec["QI"],
-            sec["IZAP"],
-            sec["LFS"],
-            sec["NBT"],
-            sec["INT"],
-            sec["E"],
-            sec["Y"],
-            )
+    for hz in range(sec["NS"]):
+        subsection = sec["subsection"+str(hz+1)]
+        lines += sandy.write_tab1(
+                subsection["QM"],
+                subsection["QI"],
+                subsection["IZAP"],
+                subsection["LFS"],
+                subsection["NBT"],
+                subsection["INT"],
+                subsection["E"],
+                subsection["Y"],
+                )
     return "\n".join(sandy.write_eol(lines, sec["MAT"], 9, sec["MT"]))
