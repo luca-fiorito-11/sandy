@@ -70,8 +70,8 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Examples
     --------
     Import hydrogen file from JEFF-4.0T0.
-    >>> tape = sandy.get_endf6_file("jeff_40t0", 'xs', 10010)
-    >>> assert type(tape) is sandy.Endf6
+#    >>> tape = sandy.get_endf6_file("jeff_40t0", 'xs', 10010)
+#    >>> assert type(tape) is sandy.Endf6
 
     Import hydrogen file from JEFF-3.3.
     >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 10010)
