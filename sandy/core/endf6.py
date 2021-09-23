@@ -87,7 +87,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010)
     >>> assert type(tape) is sandy.Endf6
 
-    Import hydrogen file from ENDF/B-VII.1.
+    Import hydrogen file from ENDF/B-VIII.0.
     >>> tape = sandy.get_endf6_file("endfb_80", 'xs', 10010)
     >>> assert type(tape) is sandy.Endf6
     """
