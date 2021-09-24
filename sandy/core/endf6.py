@@ -79,7 +79,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Import hydrogen file from JEFF-4.0T0.
 =======
 #    Import hydrogen file from JEFF-4.0T0.
->>>>>>> 29b3c3b92587eb514872e01cbea0f2e9e04affdc
+# >>>>>>> 29b3c3b92587eb514872e01cbea0f2e9e04affdc
 #    >>> tape = sandy.get_endf6_file("jeff_40t0", 'xs', 10010)
 #    >>> assert type(tape) is sandy.Endf6
 
