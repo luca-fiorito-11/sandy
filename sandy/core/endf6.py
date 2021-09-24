@@ -21,10 +21,12 @@ from sandy.libraries import (
     N_FILES_JEFF_32_NEA,
     N_FILES_JEFF_33_IAEA,
     N_FILES_JEFF_40T0_NEA,
+    N_FILES_ENDFB_80_IAEA,
     URL_N_ENDFB_71_IAEA,
     URL_N_JEFF_32_NEA,
     URL_N_JEFF_33_IAEA,
     URL_N_JEFF_40T0_NEA,
+    URL_N_ENDFB_80_IAEA,
     )
 
 
@@ -46,7 +48,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
     ----------
     library : `str`
         nuclear data library. Available libraries are:
+            * `'endfb_71'`
+            * `'jeff_32'`
+            * `'jeff_33'`
             * `'jeff_40t0'`
+            * `'endfb_80'`
     kind : `str`
         nuclear data type:
             * `xs` is a standard neutron-induced nuclear data file
@@ -69,7 +75,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
 
     Examples
     --------
+<<<<<<< HEAD
     Import hydrogen file from JEFF-4.0T0.
+=======
+#    Import hydrogen file from JEFF-4.0T0.
+>>>>>>> 29b3c3b92587eb514872e01cbea0f2e9e04affdc
 #    >>> tape = sandy.get_endf6_file("jeff_40t0", 'xs', 10010)
 #    >>> assert type(tape) is sandy.Endf6
 
@@ -80,12 +90,17 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Import hydrogen file from ENDF/B-VII.1.
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010)
     >>> assert type(tape) is sandy.Endf6
+
+    Import hydrogen file from ENDF/B-VIII.0.
+    >>> tape = sandy.get_endf6_file("endfb_80", 'xs', 10010)
+    >>> assert type(tape) is sandy.Endf6
     """
     available_libs = (
         "jeff_32".upper(),
         "jeff_33".upper(),
         "jeff_40t0".upper(),
         "endfb_71".upper(),
+        "endfb_80".upper(),
         )
     library_ = library.lower()
     if library_ == "jeff_40t0":
@@ -100,6 +115,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
     elif library_ == "endfb_71":
         filename = N_FILES_ENDFB_71_IAEA[zam]
         tape = Endf6.from_zipurl(filename, URL_N_ENDFB_71_IAEA)
+    elif library_ == "endfb_80":
+        filename = N_FILES_ENDFB_80_IAEA[zam]
+        tape = Endf6.from_zipurl(filename, URL_N_ENDFB_80_IAEA)
     else:
         raise ValueError(
             f"""library '{library}' is not available.
@@ -306,7 +324,7 @@ class _FormattedFile():
         Read hydrogen tape from endf-6 formatted file.
         >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
         >>> _FormattedFile.from_file(file)
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          0          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0          0  ...
@@ -322,7 +340,7 @@ class _FormattedFile():
         Read hydrogen tape from text stream.
         >>> stream = io.StringIO(open(file).read())
         >>> _FormattedFile.from_file(stream)
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          0          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0          0  ...
@@ -362,7 +380,7 @@ class _FormattedFile():
         >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
         >>> text = open(file).read()
         >>> _FormattedFile.from_text(text)
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          0          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0          0  ...
@@ -449,14 +467,14 @@ class _FormattedFile():
         --------
         >>> tape = sandy.Endf6({(9437, 3, 102) : "lorem ipsum"})
         >>> tape.add_section(9999, 1, 1, "dolor sit amet")
-        MAT   MF  MT 
+        MAT   MF  MT
         9437  3   102       lorem ipsum
         9999  1   1      dolor sit amet
         dtype: object
 
         >>> tape.add_section(9437, 3, 102, "new text", inplace=True)
         >>> tape
-        MAT   MF  MT 
+        MAT   MF  MT
         9437  3   102    new text
         dtype: object
         """
@@ -506,7 +524,7 @@ class _FormattedFile():
         >>> tape = _FormattedFile.from_file(file)
         >>> new = tape.delete_section(125, 3, 102)
         >>> new
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          0          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0          0  ...
@@ -952,7 +970,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         >>> pendf = sandy.Endf6.from_file(file)
         >>> merged = endf6.merge_pendf(pendf)
         >>> merged
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          2          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0         99  ...
