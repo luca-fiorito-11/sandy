@@ -30,12 +30,12 @@ def read(text):
             if subsub["LTY"] == 0:
                 L, i = read_list(str_list, i)
                 subsub.update({"E1" : L.C1, "E2" : L.C2,
-                               "CI" : L.B[:L.N2], "XMTI" : L.B[L.N2:]})
+                               "CI" : L.B[::2], "XMTI" : L.B[1::2]})
             elif subsub["LTY"] in (1,2,3):
                 L, i = read_list(str_list, i)
                 subsub.update({"E1" : L.C1, "E2" : L.C2, "MATS" : L.L1, "MTS" : L.L2,
                                "XMFS" : L.B[0], "XLFSS" : L.B[1],
-                               "EI" : L.B[2:2+L.N2], "WEI" : L.B[2+L.N2:]})
+                               "EI" : L.B[2::2], "WEI" : L.B[3::2]})
             NCDICT.update({k : subsub})
         sub.update({"NC" : NCDICT})
         NIDICT = {}
