@@ -1,22 +1,11 @@
 """
 This module contains only two public functions:
-<<<<<<< HEAD
     * `read_mf9`
     * `write_mf9`
-=======
-
-    * `read_mf9`
-    * `write_mf9`
-
->>>>>>> ce08eca97e010ab1996b71348064829541a5facf
 Function `read` reads a MF9/MT section from a string and produces a content
 object with a dictionary-like structure.
 The content object can be accessed using most of the keywords specified in
 the ENDF6 manual for this specific MF section.
-<<<<<<< HEAD
-=======
-
->>>>>>> ce08eca97e010ab1996b71348064829541a5facf
 Function `write_mf9` writes a content object for a MF9/MT section into a
 string.
 MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
@@ -34,7 +23,6 @@ def read_mf9(tape, mat, mt):
     """
     Parse MAT/MF=9/MT section from `sandy.Endf6` object and return
     structured content in nested dcitionaries.
-
     Parameters
     ----------
     tape : `sandy.Endf6`
@@ -43,12 +31,10 @@ def read_mf9(tape, mat, mt):
         MAT number
     mt : `int`
         MT number
-
     Returns
     -------
     out: `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
-
     Examples
     --------
     Endf-6 tape structured 'dict' of Radiactive capture of Am-241 from
@@ -115,19 +101,19 @@ def write_mf9(sec):
     """
     Given the content of a MF9 section as nested dictionaries, write it
     to string.
-
     Parameters
     ----------
     sec : 'dic'
         Content of the ENDF-6 tape structured as nested `dict`.
-
+    Returns
+    -------
+    `str`
+        Multiline string reproducing the content of a ENDF-6 section.
     Notes
     -----
     .. note:: The end-of-line records MAT, MF, MT and line number are added at
               the end of each line.
-
     .. important:: The string does not endf with a newline symbol `\n`.
-
     Examples
     --------
     String reproducing the content of a ENDF-6 section for Radiactive capture
