@@ -119,13 +119,13 @@ def read_mf10(tape, mat, mt):
 
 def write_mf10(sec):
     """
-    Given the content of a MF9 section as nested dictionaries, write it
+    Given the content of a MF10 section as nested dictionaries, write it
     to string.
 
     Parameters
     ----------
-    sec : 'dict'
-        Multiline string reproducing the content of a ENDF-6 section.
+    sec : `dict`
+        Content of the ENDF-6 tape structured as nested `dict`.
 
     Returns
     -------
@@ -137,11 +137,11 @@ def write_mf10(sec):
     .. note:: The end-of-line records MAT, MF, MT and line number are added at
               the end of each line.
 
-    .. important:: The string does not endf with a newline symbol `\n`.
+    .. important:: The string does not end with a newline symbol.
 
     Examples
     --------
-    String reproducing the content of a ENDF-6 section for (z,2n)
+    String reproducing the content of a ENDF-6 section for (n,2n)
     of Nb-93 from the JEFF-33 library to obtain the cross sections for
     production of radiactive nuclides
     >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 410930)
