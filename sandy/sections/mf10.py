@@ -184,17 +184,15 @@ def write_mf10(sec):
             0,
             )
 
-    for hz in range(len(sec["LFS"])):
-        LFS = sec["LFS"]
-        key = list(LFS.keys())
+    for LFS, subsection in sec["LFS"].items():
         lines += sandy.write_tab1(
-                LFS[key[hz]]["QM"],
-                LFS[key[hz]]["QI"],
-                LFS[key[hz]]["IZAP"],
-                key[hz],
-                LFS[key[hz]]["NBT"],
-                LFS[key[hz]]["INT"],
-                LFS[key[hz]]["E"],
-                LFS[key[hz]]["XS"],
+                subsection["QM"],
+                subsection["QI"],
+                subsection["IZAP"],
+                LFS,
+                subsection["NBT"],
+                subsection["INT"],
+                subsection["E"],
+                subsection["XS"],
                 )
     return "\n".join(sandy.write_eol(lines, sec["MAT"], 10, sec["MT"]))
