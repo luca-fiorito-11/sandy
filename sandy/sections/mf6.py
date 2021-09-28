@@ -20,6 +20,7 @@ __all__ = [
         ]
 
 import sandy
+from sandy import zam
 
 
 def read_mf6(tape, mat, mt):
@@ -48,19 +49,29 @@ def read_mf6(tape, mat, mt):
     Law 1:
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 70140)
     >>> test = read_mf6(tape, 725, 5)
-    >>> test["NK"][(0.0, 0)]["EGROUPS"][1e-05]
-    {'ND': 0, 'NA': 0, 'NW': 4, 'NEP': 2, 'Ep': [0.0, 1e-05], 'b': [100000.0, 0.0]}
+    >>> test["NK"][10010]["EGROUPS"][1e-05]
+     {'ND': 0,
+     'NA': 1,
+     'NW': 6,
+     'NEP': 2,
+     'Ep': [0.0, 1e-05],
+     'b': [100000.0, 0.0, 0.0, 0.0]}
 
     Law 2:
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010)
     >>> test = read_mf6(tape, 125, 102)
-    >>> test["NK"][(0.0, 0)]["EGROUPS"][1e-05]
-    {'LANG': 0, 'NW': 2, 'NL': 2, 'Al': [-6.16095e-08, -8.86237e-13]}
+    >>> test["NK"][10020]
+    {'AWP': 1.996256,
+     'LAW': 4,
+     'NR': [2],
+     'NP': [2],
+     'E': array([1.e-05, 2.e+07]),
+     'Y': array([1., 1.])}
 
     Law 6:
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10020)
     >>> test = read_mf6(tape, 128, 16)
-    >>> test["NK"][(1.0, 0)]
+    >>> test["NK"][10]
     {'AWP': 1.0,
      'LAW': 6,
      'NR': [2],
@@ -73,7 +84,7 @@ def read_mf6(tape, mat, mt):
     Law 7:
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 40090)
     >>> test = read_mf6(tape, 425, 16)
-    >>> test["NK"][(1.0, 0)]["EGROUPS"][1748830.0]['COSGROUPS'][-1.0]
+    >>> test["NK"][10]["EGROUPS"][1748830.0]['COSGROUPS'][-1.0]
     {'NRP': [15],
      'NEP': [2],
      'EP_INT': array([  1092.99,   1093.  ,   3278.9 ,   7650.8 ,  12023.  ,  20766.  ,
@@ -102,6 +113,7 @@ def read_mf6(tape, mat, mt):
         LAW = T.L2
         ZAP = T.C1
         LIP = T.L1
+        ZAM = zam.za2zam(ZAP, meta=LIP)
         add = {
                 "AWP": T.C2,
                 "LAW": T.L2,
@@ -256,7 +268,7 @@ def read_mf6(tape, mat, mt):
                     add_nu[nu] = add_3
                 add_e[E]["COSGROUPS"] = add_nu
             add["EGROUPS"] = add_e
-        subsections[(ZAP, LIP)] = add
+        subsections[ZAM] = add
     out["NK"] = subsections
     return out
 
@@ -369,10 +381,11 @@ def write_mf6(sec):
                 )
     for product, NK in sec["NK"].items():  # For the rest of the NK subsections
         # [MAT, 6, MT/ ZAP, AWP, LIP, LAW,NR,NP/Eint/yi(E)]TAB1
+        ZAP, LIP = zam.zam2za(product)
         lines += sandy.write_tab1(
-                    product[0],
+                    ZAP,
                     NK["AWP"],
-                    product[1],
+                    LIP,
                     NK["LAW"],
                     NK["NR"],
                     NK["NP"],
