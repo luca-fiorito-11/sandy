@@ -20,7 +20,7 @@ __all__ = [
         ]
 
 import sandy
-import numpy as np
+
 
 def read_mf10(tape, mat, mt):
     """
