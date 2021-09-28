@@ -46,8 +46,9 @@ def read_mf10(tape, mat, mt):
     >>> import pprint
     >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 410930)
     >>> test = read_mf10(tape, 4125, 16)
+    >>> test['AWR'] = round (test['AWR'],5)
     >>> pprint.pprint(test, width=1)
-    {'AWR': 92.10826999999999,
+    {'AWR': 92.10827,
      'LFS': {0: {'E': array([8.92643e+06, 9.00000e+06, 9.50000e+06, 1.00000e+07, 1.05000e+07,
            1.10000e+07, 1.15000e+07, 1.20000e+07, 1.25000e+07, 1.30000e+07,
            1.35000e+07, 1.40000e+07, 1.45000e+07, 1.50000e+07, 1.60000e+07,
