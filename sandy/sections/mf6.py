@@ -71,6 +71,7 @@ def read_mf6(tape, mat, mt):
     Law 6:
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10020)
     >>> test = read_mf6(tape, 128, 16)
+    >>> test["NK"][10]['APSX'] = round (test["NK"][10]['APSX'],5)
     >>> test["NK"][10]
     {'AWP': 1.0,
      'LAW': 6,
