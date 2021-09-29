@@ -124,8 +124,8 @@ def write_mf10(sec):
 
     Parameters
     ----------
-    sec : 'dict'
-        Multiline string reproducing the content of a ENDF-6 section.
+    sec : `dict`
+        Content of the ENDF-6 tape structured as nested `dict`.
 
     Returns
     -------
