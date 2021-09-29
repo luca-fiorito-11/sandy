@@ -44,9 +44,11 @@ def read_mf6(tape, mat, mt):
 
     Examples
     --------
-    Since the outputs are very large, I am only going to check the first energy
-    of each of the law-dependent structures:
-    Law 1:
+    Since the outputs are very large, I am only going to check only some
+    information for the test:
+
+    LAW 1:
+
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 70140)
     >>> test = read_mf6(tape, 725, 5)
     >>> test["NK"][10010]["EGROUPS"][1e-05]
@@ -57,7 +59,8 @@ def read_mf6(tape, mat, mt):
      'Ep': [0.0, 1e-05],
      'b': [100000.0, 0.0, 0.0, 0.0]}
 
-    Law 2:
+    LAW 2:
+
     >>> import pprint
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010)
     >>> test = read_mf6(tape, 125, 102)
@@ -70,7 +73,8 @@ def read_mf6(tape, mat, mt):
      'NR': [2],
      'Y': array([1., 1.])}
 
-    Law 6:
+    LAW 6:
+
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10020)
     >>> test = read_mf6(tape, 128, 16)
     >>> test["NK"][10]['APSX'] = round (test["NK"][10]['APSX'],5)
@@ -84,7 +88,8 @@ def read_mf6(tape, mat, mt):
      'APSX': 2.99862,
      'NPSX': 3}
 
-    Law 7:
+    LAW 7:
+
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 40090)
     >>> test = read_mf6(tape, 425, 16)
     >>> test["NK"][10]["EGROUPS"][1748830.0]['COSGROUPS'][-1.0]
@@ -106,41 +111,43 @@ def read_mf6(tape, mat, mt):
     out.update({
                 "ZA": C.C1,
                 "AWR": C.C2,
-                "LCT": C.L2,
+                "LCT": C.L2,  # Reference system for secondary energy and angle
                })
     subsections = {}
-    # To repeat the proces the number of subsection that we have (NK)
+    # Each subsection describes one reaction product. There can be more than
+    # one subsection for a given particle, but the combination of the product
+    # identifier with its final isomeric state create a unique identifier for
+    # each reaction.
     for a in range(C.N1):
-        # To repeat TAB1 structure for each NK subsection
         T, i = sandy.read_tab1(df, i)
-        LAW = T.L2
-        ZAP = T.C1
-        LIP = T.L1
+        LAW = T.L2  # Distintion between different distribution function
+        ZAP = T.C1  # Product identifier
+        LIP = T.L1  # Product isomeric state identifier
         ZAM = zam.za2zam(ZAP, meta=LIP)
         add = {
-                "AWP": T.C2,
+                "AWP": T.C2,  # Product mass in neutron units
                 "LAW": T.L2,
                 "NR": T.NBT,
                 "NP": T.INT,
-                "E": T.x,
-                "Y": T.y,
+                "E": T.x,  # Neutron incident energy
+                "Y": T.y,  # The product multiplicity
                 }
         # LAW dependent structures:
         if LAW == 1:  # Continuum Energy-Angle Distributions
             L, i = sandy.read_tab2(df, i)
             NE = L.NBT[0]  # How many NE incident energies
             add.update({
-                        "LANG": L.L1,
-                        "LEP": L.L2,
-                        "ENR": L.NR,  # I put here ENR insted of NR to do not overwrite NR of the tab1 section.
-                        "ENE": L.NBT,  # The same as NE
-                        "EINT": L.INT,
+                        "LANG": L.L1,  # Angular representation identificator
+                        "LEP": L.L2,  # Interpolation for secondary energy
+                        "ENR": L.NR,
+                        "ENE": L.NBT,  # Number of different product energy
+                        "EINT": L.INT,  # product energy diferent values
                         })
             add_e = {}
             # To repeat for all the NE incident energies
             for j in range(NE):
                 T, i = sandy.read_list(df, i)
-                E = T.C2
+                E = T.C2  # Incident energy
                 if int(T.L2) == 0:
                     Ep = T.B[::2]
                     b = T.B[1::2]
@@ -149,12 +156,13 @@ def read_mf6(tape, mat, mt):
                     b = T.B[::1]
                     del b[::T.L2+2]  # To delete from b the energy values
                 add_2 = {
-                           "ND": T.L1,
-                           "NA": T.L2,
-                           "NW": T.NPL,
-                           "NEP": T.N2,
-                           "Ep": Ep,
-                           "b": b,
+                         "ND": T.L1,  # Number of discrete energies
+                         "NA": T.L2,  # Number of angular parameters
+                         "NW": T.NPL,  # Total number of words
+                         "NEP": T.N2,  # Secondary energy points in distribution
+                         "Ep": Ep,  # The energy of the product emitted
+                         "b": b,  # Coeficcient for the angular representation
+                         # the contents of the b depend on LANG
                        }
                 add_e[E] = add_2
             add["EGROUPS"] = add_e
@@ -164,109 +172,65 @@ def read_mf6(tape, mat, mt):
             NE = L.NBT[0]
             add.update({
                         "ENR": L.NZ,
-                        "ENE": L.NBT,
-                        "EINT": L.INT,
+                        "ENE": L.NBT,  # Number of different product energy
+                        "EINT": L.INT,  # Product energy values
                         })
             add_e = {}
             # To repeat list records for all the incident energies
             for j in range(NE):
                 T, i = sandy.read_list(df, i)
-                E = T.C2
+                E = T.C2  # Incident energy
                 add_2 = {
-                         "LANG": T.L1,
-                         "NW": T.NPL,
-                         "NL": T.N2,
-                         "Al": T.B,
+                         "LANG": T.L1,  # Angular representation identificator
+                         "NW": T.NPL,  # Number of parameters
+                         "NL": T.N2,  # Highest coefficient identificator
+                         "Al": T.B,  # Coeficcient of angular representation
                          }
                 add_e[E] = add_2
             add["EGROUPS"] = add_e
 
-        elif LAW == 5:  # Charged-Particle Elastic Scattering
-            L, i = sandy.read_tab2(df, i)
-            NE = L.NBT[0]  # How many NE incident energies
-            LIDP = L.L1
-            add.update({
-                        "SPI": L.C1,
-                        "LIDP": L.L1,
-                        "ENR": L.NR,
-                        "ENE": L.NBT,
-                        "EINT": L.INT,
-                        })
-            add_e = {}
-            # To repeat the LIST records for all the NE
-            for j in range(NE):
-                T, i = sandy.read_list(df, i)
-                E = T.C2
-                LTP = T.L1
-                add_2 = {
-                         "E": T.C2,
-                         "LTP": T.L1,
-                         "NW": T.NPL,
-                         "NL": T.N2,
-                         }
-                # The distintion between Ai organizations.
-                if LTP == 1 and LIDP == 0 or LIDP == 1:
-                    mark = T.N2+1
-                    b = T.B[0:mark]
-                    Ra = T.B[mark::2]
-                    Ia = T.B[mark+1::2]
-                    add_2["A"+str(j+1)] = {
-                                             "B": b,
-                                             "Ra": Ra,
-                                             "Ia": Ia,
-                                             }
-                elif LTP == 2:
-                    add_2["A"+str(j+1)] = {
-                                         "C": T.B,
-                                         }
-                elif LTP > 2:
-                    nu = T.B[::2]
-                    p = T.B[1::2]
-                    add_2["A"+str(j+1)] = {
-                                             "nu": nu,
-                                             "p": p,
-                                             }
-                add_e[E] = add_2
-            add["EGROUPS"] = add_e
         elif LAW == 6:  # N-Body Phase-Space Distributions
             T, i = sandy.read_cont(df, i)
             add.update({
-                                "APSX": T.C1,
-                                "NPSX": T.N2,
+                        "APSX": T.C1,  # Total mass(neutron uni) of N particles
+                        "NPSX": T.N2,  # Number of particles distributed
                              })
         elif LAW == 7:  # Laboratory Angle-Energy Law
             L, i = sandy.read_tab2(df, i)
             NE = L.NBT[0]  # How many interpolation range we have
+            # Interpolation parameters for incident energy E
             add.update({
                                 "ENR": L.NZ,
-                                "ENE": L.NBT,
-                                "EINT": L.INT,
+                                "ENE": L.NBT,  # Points
+                                "EINT": L.INT,  # Value
                              })
             add_e = {}
             # To repeat for all NE incident energies
             for j in range(NE):
                 T, i = sandy.read_tab2(df, i)
-                E = T.C2
-                NMU = T.NBT[0]
+                # Interpolation parameters for emission cosine
+                E = T.C2  # Incident energy
+                NMU = T.NBT[0]  # Number of possible emission cosines
                 add_2 = {
                             "NRM": T.NZ,
-                            "NMU": T.NBT,
-                            "NU_INT": T.INT,
+                            "NMU": T.NBT,  # Points
+                            "NU_INT": T.INT,  # Value of emission cosines
                          }
                 add_e[E] = add_2
                 # To repeat for all the NMU emission cosines
                 add_nu = {}
                 for hz in range(NMU):
                     Z, i = sandy.read_tab1(df, i)
-                    nu = Z.C2
+                    # Interpolation parameters for secondary energy E′
+                    nu = Z.C2  # Value for emission cosine
                     E_p = Z.y[::2]
                     E_distr = Z.y[1::2]
                     add_3 = {
                                 "NRP": Z.NBT,
                                 "NEP": Z.INT,
-                                "EP_INT": Z.x,
-                                "E_p": E_p,
-                                "E_distr": E_distr,
+                                "EP_INT": Z.x,  # Energies for E'
+                                "E_p": E_p,  # Secondary energy value
+                                "E_distr": E_distr,  # Distribution according to nu, E and E'
                                 }
                     add_nu[nu] = add_3
                 add_e[E]["COSGROUPS"] = add_nu
@@ -397,7 +361,7 @@ def write_mf6(sec):
                     )
         # LAW dependent structures:
         if NK["LAW"] == 1:
-            # [MAT, 6, MT/ 0.0, 0.0, LANG, LEP, NR, NE/ Eint]TAB2 for each subsection
+            # [MAT, 6, MT/ 0.0, 0.0, LANG, LEP, NR, NE/ Eint]TAB2 for each NK
             lines += sandy.write_tab2(
                             0,
                             0,
@@ -408,37 +372,36 @@ def write_mf6(sec):
                             NK["EINT"],
                     )
             # repeat the LIST structure for all the NE incident energies
-            for hx in range(NK["ENE"][0]):
-                    key = list(NK["EGROUPS"].keys())
-                    NK_E = NK["EGROUPS"][key[hx]]
+            for key, NK_E in NK["EGROUPS"].items():  # NE incident energies
                 # Because the dividision that i made between energies and b
+                    size_E = len(NK_E["Ep"])
+                    size_b = len(NK_E["b"])
+                    add = [0]*(size_E + size_b)
                     if NK_E["NA"] == 0:
-                        add = [0]*(len(NK_E["Ep"])+len(NK_E["b"]))
                         add[::2] = NK_E["Ep"]
                         add[1::2] = NK_E["b"]
                     else:
-                        add = [0]*(len(NK_E["Ep"])+len(NK_E["b"]))
                         n = NK_E["NA"]+1
-                        x = [NK_E["b"][i:i + n] for i in range(0, len(NK_E["b"]), n)]
-                        for i in range(len(NK_E["Ep"])):
+                        x = [NK_E["b"][i:i + n] for i in range(0, size_b, n)]
+                        for i in range(size_E):
                             add.append(NK_E["Ep"][i])
                             for j in range(len(x[i])):
                                 add.append(x[i][j])
-                    #    [MAT, 6, MT/ 0.0, E1, ND, NA, NW, NEP/
-                    #    E′1, b0(E1,E′1), b1(E1,E′1 ), -------- bNA(E1,E′1),
-                    #    E′2, b0(E1,E′2), b1(E1,E′2 ), -------- bNA(E1,E′2),
-                    # --------------------------------------------
-                    #    E′N EP , b0(E1,E′NEP), b1(E1,E′NEP), ---- bNA(E1,E′NEP)]LIST
+                # [MAT, 6, MT/ 0.0, E1, ND, NA, NW, NEP/
+                # E′1, b0(E1,E′1), b1(E1,E′1 ), -------- bNA(E1,E′1),
+                # E′2, b0(E1,E′2), b1(E1,E′2 ), -------- bNA(E1,E′2),
+                # --------------------------------------------
+                # E′N EP , b0(E1,E′NEP), b1(E1,E′NEP), ---- bNA(E1,E′NEP)]LIST
                         lines += sandy.write_list(
-                                                   0,
-                                                   key[hx],
-                                                   NK_E["ND"],
-                                                   NK_E["NA"],
-                                                   NK_E["NEP"],
-                                                   add,
-                                                   )
-        elif NK["LAW"] == 2:
-            # [MAT, 6, MT/ 0.0, 0.0, 0, 0, NR, NE/ Eint]TAB2 for each subsection
+                               0,
+                               key,
+                               NK_E["ND"],
+                               NK_E["NA"],
+                               NK_E["NEP"],
+                               add,
+                                )
+        if NK["LAW"] == 2:
+            # [MAT, 6, MT/ 0.0, 0.0, 0, 0, NR, NE/ Eint]TAB2 for each NK
             lines += sandy.write_tab2(
                     0,
                     0,
@@ -448,27 +411,25 @@ def write_mf6(sec):
                     NK["ENE"],
                     NK["EINT"],
             )
-            # [MAT, 6, MT/ 0.0,E1,LANG,0,NW,NL/Al(E)]LIST for each Ne incident energies
-            for hx in range(len(NK["EGROUPS"])):
-                key = list(NK["EGROUPS"].keys())
-                NK_E = NK["EGROUPS"][key[hx]]
+            # [MAT, 6, MT/ 0.0,E1,LANG,0,NW,NL/Al(E)]LIST for each Ne
+            for key, NK_E in NK["EGROUPS"].items():
                 lines += sandy.write_list(
-                                            0,
-                                            key[hx],
-                                            NK_E["LANG"],
-                                            0,
-                                            NK_E["NL"],
-                                            NK_E["Al"],
-                                            )
-        elif NK["LAW"] == 6:
+                    0,
+                    key,
+                    NK_E["LANG"],
+                    0,
+                    NK_E["NL"],
+                    NK_E["Al"],
+                    )
+        if NK["LAW"] == 6:
             lines += sandy.write_cont(
-                                        NK["APSX"],
-                                        0,
-                                        0,
-                                        0,
-                                        0,
-                                        NK["NPSX"],
-                                                 )
+                NK["APSX"],
+                0,
+                0,
+                0,
+                0,
+                NK["NPSX"],
+                )
         if NK["LAW"] == 7:
             # [MAT, 6, MT/ 0.0,0.0,0,0,NR,NE/Eint]TAB2
             lines += sandy.write_tab2(
@@ -479,37 +440,34 @@ def write_mf6(sec):
                     NK["ENR"],
                     NK["ENE"],
                     NK["EINT"],
-            )
-            # [MAT, 6, MT/ 0.0, E1, 0, 0, NRM, NMU/μint]TAB2 for all the NE incident energies
-            for hx in range(NK["ENE"][0]):
-                key = list(NK["EGROUPS"].keys())
-                NK_E = NK["EGROUPS"][key[hx]]
+                    )
+            # [MAT, 6, MT/ 0.0, E1, 0, 0, NRM, NMU/μint]TAB2 for all the NE
+            for key, NK_E in NK["EGROUPS"].items():
                 lines += sandy.write_tab2(
-                                            0,
-                                            key[0],
-                                            0,
-                                            0,
-                                            NK_E["NRM"],
-                                            NK_E["NMU"],
-                                            NK_E["NU_INT"],
-                                        )
+                    0,
+                    key,
+                    0,
+                    0,
+                    NK_E["NRM"],
+                    NK_E["NMU"],
+                    NK_E["NU_INT"],
+                    )
                 # [MAT, 6, MT/ 0.0, μ1, 0, 0, NRP, NEP/E′int/
                 #     E′1,f(μ1,E1,E′1 ), E′2,f(μ1,E1,E′2 ), -----
-                #     ------------------------- E′N EP ,f(μ1,E1,E′N EP )]TAB1 for all the NMU emission cosines
-                for hy in range(NK_E["NMU"][0]):
-                    key_nu = list(NK_E["COSGROUPS"].keys())
-                    NK_E_NU = NK_E["COSGROUPS"][key_nu[hy]]
+                #     -------------------------
+                # E′N EP ,f(μ1,E1,E′N EP )]TAB1 for all the emission cosines
+                for key_nu, NK_E_NU in NK_E["COSGROUPS"].items():
                     add = [0]*(len(NK_E_NU["E_p"])+len(NK_E_NU["E_distr"]))
                     add[::2] = NK_E_NU["E_p"]
                     add[1::2] = NK_E_NU["E_distr"]
                     lines += sandy.write_tab1(
-                                                0,
-                                                key_nu[0],
-                                                0,
-                                                0,
-                                                NK_E_NU["NRP"],
-                                                NK_E_NU["NEP"],
-                                                NK_E_NU["EP_INT"],
-                                                add,
-                    )
+                        0,
+                        key_nu,
+                        0,
+                        0,
+                        NK_E_NU["NRP"],
+                        NK_E_NU["NEP"],
+                        NK_E_NU["EP_INT"],
+                        add,
+                        )
     return "\n".join(sandy.write_eol(lines, sec["MAT"], 6, sec["MT"]))
