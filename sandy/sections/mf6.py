@@ -58,15 +58,16 @@ def read_mf6(tape, mat, mt):
      'b': [100000.0, 0.0, 0.0, 0.0]}
 
     Law 2:
+    >>> import pprint
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010)
     >>> test = read_mf6(tape, 125, 102)
     >>> test["NK"][10020]['AWP'] = round (test["NK"][10020]['AWP'], 5)
-    >>> test["NK"][10020]
-    {'AWP': 1.996256,
-     'LAW': 4,
-     'NR': [2],
-     'NP': [2],
+    >>> pprint.pprint(test["NK"][10020])
+    {'AWP': 1.99626,
      'E': array([1.e-05, 2.e+07]),
+     'LAW': 4,
+     'NP': [2],
+     'NR': [2],
      'Y': array([1., 1.])}
 
     Law 6:
