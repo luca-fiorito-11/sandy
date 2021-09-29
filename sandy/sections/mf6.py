@@ -48,7 +48,7 @@ def read_mf6(tape, mat, mt):
     Since the outputs are very large, I am only going to check only some
     information for the test:
 
-    LAW 1:
+    **LAW 1**:
 
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 70140)
     >>> test = read_mf6(tape, 725, 5)
@@ -60,7 +60,7 @@ def read_mf6(tape, mat, mt):
      'Ep': [0.0, 1e-05],
      'b': [100000.0, 0.0, 0.0, 0.0]}
 
-    LAW 2:
+    **LAW 2**:
 
     >>> import pprint
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010)
@@ -74,7 +74,7 @@ def read_mf6(tape, mat, mt):
      'NR': [2],
      'Y': array([1., 1.])}
 
-    LAW 6:
+    **LAW 6**:
 
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10020)
     >>> test = read_mf6(tape, 128, 16)
@@ -89,7 +89,7 @@ def read_mf6(tape, mat, mt):
      'APSX': 2.99862,
      'NPSX': 3}
 
-    LAW 7:
+    **LAW 7**:
 
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 40090)
     >>> test = read_mf6(tape, 425, 16)
