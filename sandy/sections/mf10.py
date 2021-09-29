@@ -119,7 +119,7 @@ def read_mf10(tape, mat, mt):
 
 def write_mf10(sec):
     """
-    Given the content of a MF9 section as nested dictionaries, write it
+    Given the content of a MF10 section as nested dictionaries, write it
     to string.
 
     Parameters
@@ -137,7 +137,7 @@ def write_mf10(sec):
     .. note:: The end-of-line records MAT, MF, MT and line number are added at
               the end of each line.
 
-    .. important:: The string does not endf with a newline symbol `\n`.
+    .. important:: The string does not end with a newline symbol.
 
     Examples
     --------
