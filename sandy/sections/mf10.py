@@ -141,7 +141,7 @@ def write_mf10(sec):
 
     Examples
     --------
-    String reproducing the content of a ENDF-6 section for (z,2n)
+    String reproducing the content of a ENDF-6 section for (n,2n)
     of Nb-93 from the JEFF-33 library to obtain the cross sections for
     production of radiactive nuclides
     >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 410930)
