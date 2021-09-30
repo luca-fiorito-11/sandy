@@ -291,7 +291,7 @@ def read_mf6(tape, mat, mt):
 
 def write_mf6(sec):
     """
-    Given the content of a MF9 section as nested dictionaries, write it
+    Given the content of a MF6 section as nested dictionaries, write it
     to string.
 
     Parameters
@@ -309,12 +309,15 @@ def write_mf6(sec):
     .. note:: The end-of-line records MAT, MF, MT and line number are added at
               the end of each line.
 
-    .. important:: The string does not endf with a newline symbol `\n`.
+    .. note:: MF6 LAW5 writing is not tested because not found in existing major
+              nuclear data libraries.
+
+    .. important:: The string does not endf with a newline symbol.
 
     Examples
     --------
     As we have a law-dependent structure, I will develop a test for each law.
-    LAW 1:
+    **LAW 1**:
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 70140)
     >>> sec = read_mf6(tape, 725, 5)
     >>> text = write_mf6(sec)
@@ -333,7 +336,7 @@ def write_mf6(sec):
              19          2                                             725 6  5   12
      0.00000000 1.000000-5
 
-    LAW 2:
+    **LAW 2**:
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010)
     >>> sec = read_mf6(tape, 125, 102)
     >>> text = write_mf6(sec)
@@ -352,7 +355,7 @@ def write_mf6(sec):
     -1.377628-7-4.43100-12                                             125 6102   12
      0.00000000 1.000000-4
 
-    LAW 6:
+    **LAW 6**:
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10020)
     >>> sec = read_mf6(tape, 128, 16)
     >>> text = write_mf6(sec)
@@ -367,7 +370,7 @@ def write_mf6(sec):
      3339002.00 1.00000000  150000000 1.00000000                       128 6 16    8
      2.99862000 0.00000000          0          0          0          3 128 6 16    9
 
-    LAW 7:
+    **LAW 7**:
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 40090)
     >>> sec = read_mf6(tape, 425, 16)
     >>> text = write_mf6(sec)
