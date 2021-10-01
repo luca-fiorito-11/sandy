@@ -892,7 +892,20 @@ class Endf6(_FormattedFile):
         Examples
         --------
         Process H1 file from ENDF/B-VII.1 into PENDF
-        >>> pendf =sandy.get_endf6_file("endfb_71", "xs", 10010).get_pendf()
+        >>> pendf =sandy.get_endf6_file("endfb_71", "xs", 10010) \
+        ...             .get_pendf(verbose=True)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.001 0. /
+        0/
+        moder
+        -22 30 /
+        stop
+
         >>> pendf
         MAT  MF  MT 
         125  1   451     1.001000+3 9.991673-1          2          0  ...
@@ -905,7 +918,7 @@ class Endf6(_FormattedFile):
         >>> pendf.kind
         'pendf'
         """
-        if temperature == 0:
+        if float(temperature) == 0:
             kwargs["broadr"] = False
             kwargs["thermr"] = False
             kwargs["gaspr"] = False
