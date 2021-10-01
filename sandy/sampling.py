@@ -707,7 +707,7 @@ def extract_samples(ftape, covtape):
         # This part is to get the pendf file
         if ftape.get_file_format() == "endf6":
             endf6 = sandy.Endf6.from_file(init.file)
-            pendf = endf6.get_pendf(init.njoy)
+            pendf = endf6.get_pendf(njoy=init.njoy)
             with tempfile.TemporaryDirectory() as td:
                 dst = os.path.join(td, "merged")
                 endf6.merge_pendf(pendf).to_file(dst)
@@ -780,7 +780,7 @@ def sampling(iargs=None):
         # This part is to get the pendf file
         if ftape.get_file_format() == "endf6":
             endf6 = sandy.Endf6.from_file(init.file)
-            pendf = endf6.get_pendf(init.njoy)
+            pendf = endf6.get_pendf(njoy=init.njoy)
             with tempfile.TemporaryDirectory() as td:
                 dst = os.path.join(td, "merged")
                 endf6.merge_pendf(pendf).to_file(dst)
