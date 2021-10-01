@@ -438,15 +438,26 @@ class SamplingManager():
 def _process_into_ace(ismp):
     global init
     outname = init.outname if init.outname else os.path.basename(init.file)
-    smpfile = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
-    if sandy.formats.get_file_format(smpfile) == "pendf":
-        input, inputs, outputs = njoy.process(init.file, purr=False, wdir=init.outdir,
-                                              keep_pendf=False, pendftape=smpfile, tag="_{}".format(ismp),
-                                              temperatures=init.temperatures, err=0.005, addpath="")
-    elif sandy.formats.get_file_format(smpfile) == "endf6":
-        input, inputs, outputs = njoy.process(smpfile, purr=False, wdir=init.outdir,
-                                              keep_pendf=True, tag="_{}".format(ismp),
-                                              temperatures=init.temperatures, err=0.005, addpath="")
+    smpfile = os.path.join(init.outdir, f'{outname}-{ismp}')
+    print(ismp)
+    kwargs = dict(
+        purr=False,
+        wdir=init.outdir,
+        keep_pendf=False,
+        pendftape=smpfile,
+        tag=f"_{ismp}",
+        temperatures=init.temperatures,
+        err=0.005,
+        addpath="",
+        )
+    fmt = sandy.formats.get_file_format(smpfile)
+    if fmt == "pendf":
+        kwargs["pendftape"] = smpfile
+        inp = init.file
+    elif fmt == "endf6":
+        inp = smpfile
+    input, inputs, outputs = njoy.process(inp, **kwargs)
+
 
 def _sampling_mp(ismp, skip_title=False, skip_fend=False):
     global init, pnu, pxs, plpc, pchi, pfy, tape
@@ -849,13 +860,13 @@ def sampling(iargs=None):
         seq = range(1, init.samples + 1)
         if init.processes == 1:
             for i in seq:
-                _process_into_ace(ismp) 
+                _process_into_ace(i)
         else:
             pool = mp.Pool(processes=init.processes)
             outs = {i: pool.apply_async(_process_into_ace, (i,)) for i in seq}
             pool.close()
             pool.join()
-    return ftape, covtape, df 
+    return ftape, covtape, df
 
 
 
