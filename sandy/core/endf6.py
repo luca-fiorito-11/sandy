@@ -892,8 +892,7 @@ class Endf6(_FormattedFile):
         Examples
         --------
         Process H1 file from ENDF/B-VII.1 into PENDF
-        >>> pendf =sandy.get_endf6_file("endfb_71", "xs", 10010) \
-        ...             .get_pendf(verbose=True)
+        >>> pendf =sandy.get_endf6_file("endfb_71", "xs", 10010).get_pendf(verbose=True)
         moder
         20 -21 /
         reconr
