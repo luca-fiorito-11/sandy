@@ -22,11 +22,13 @@ from sandy.libraries import (
     N_FILES_JEFF_33_IAEA,
     N_FILES_JEFF_40T0_NEA,
     N_FILES_ENDFB_80_IAEA,
+    N_FILES_JENDL_40U_IAEA,
     URL_N_ENDFB_71_IAEA,
     URL_N_JEFF_32_NEA,
     URL_N_JEFF_33_IAEA,
     URL_N_JEFF_40T0_NEA,
     URL_N_ENDFB_80_IAEA,
+    URL_N_JENDL_40U_IAEA,
     )
 
 
@@ -53,6 +55,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * `'jeff_33'`
             * `'jeff_40t0'`
             * `'endfb_80'`
+            * `'jendl_40u`
     kind : `str`
         nuclear data type:
             * `xs` is a standard neutron-induced nuclear data file
@@ -91,6 +94,10 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Import hydrogen file from ENDF/B-VIII.0.
     >>> tape = sandy.get_endf6_file("endfb_80", 'xs', 10010)
     >>> assert type(tape) is sandy.Endf6
+
+    Import hydrogen file from JENDL-4.0u
+    >>> tape = sandy.get_endf6_file("jendl_40u", 'xs', 10010)
+    >>> assert type(tape) is sandy.Endf6
     """
     available_libs = (
         "jeff_32".upper(),
@@ -98,6 +105,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
         "jeff_40t0".upper(),
         "endfb_71".upper(),
         "endfb_80".upper(),
+        "jendl_40u".upper(),
         )
     library_ = library.lower()
     if library_ == "jeff_40t0":
@@ -115,6 +123,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
     elif library_ == "endfb_80":
         filename = N_FILES_ENDFB_80_IAEA[zam]
         tape = Endf6.from_zipurl(filename, URL_N_ENDFB_80_IAEA)
+    elif library_ == "jendl_40u":
+        filename = N_FILES_JENDL_40U_IAEA[zam]
+        tape = Endf6.from_zipurl(filename, URL_N_JENDL_40U_IAEA)
     else:
         raise ValueError(
             f"""library '{library}' is not available.
