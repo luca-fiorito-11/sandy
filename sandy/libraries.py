@@ -2048,7 +2048,7 @@ N_FILES_JEFF_32_NEA = {
 }
 
 
-# eutron files for ENDF/B-VIII.0 from the IAEA website
+# neutron files for ENDF/B-VIII.0 from the IAEA website
 URL_N_ENDFB_80_IAEA = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VIII.0/n/"
 N_FILES_ENDFB_80_IAEA = {
     10010: "n_0125_1-H-1.dat",

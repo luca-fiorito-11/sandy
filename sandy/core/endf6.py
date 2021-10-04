@@ -586,7 +586,7 @@ class _FormattedFile():
         
         Returns
         -------
-        `sandy.core.endf6.BaseFile` or derived instance
+        `sandy.formats.endf6.BaseFile` or derived instance
             Copy of the original instance with filtered MAT, MF and MT sections
         """
         series = self.to_series()
