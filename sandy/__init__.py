@@ -22,6 +22,7 @@ from .utils import *
 from .core import *
 from .sampling import *
 import sandy.mcnp
+import sandy.aleph2
 import sandy.tools
 import sandy.shared
 
