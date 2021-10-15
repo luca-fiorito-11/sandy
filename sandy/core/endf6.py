@@ -29,6 +29,20 @@ from sandy.libraries import (
     URL_N_JEFF_40T0_NEA,
     URL_N_ENDFB_80_IAEA,
     URL_N_JENDL_40U_IAEA,
+    URL_NFPY_ENDFB_80_IAEA, 
+    NFPY_FILES_ENDFB_80_IAEA,
+    URL_NFPY_ENDFB_71_IAEA,
+    NFPY_FILES_ENDFB_71_IAEA,
+    URL_NFPY_JENDL_40U_IAEA,
+    NFPY_FILES_JENDL_40U_IAEA,
+    URL_NFPY_JEFF_33_IAEA,
+    NFPY_FILES_JEFF_33_IAEA,
+    URL_DECAY_ENDFB_71_IAEA,
+    DECAY_FILES_ENDFB_71_IAEA,
+    URL_DECAY_ENDFB_80_IAEA, 
+    DECAY_FILES_ENDFB_80_IAEA, 
+    URL_DECAY_JEFF_33_IAEA,
+    DECAY_FILES_JEFF_33_IAEA,
     )
 
 
@@ -50,16 +64,27 @@ def get_endf6_file(library, kind, zam, to_file=False):
     ----------
     library : `str`
         nuclear data library. Available libraries are:
+        for `xs`
             * `'endfb_71'`
             * `'jeff_32'`
             * `'jeff_33'`
             * `'jeff_40t0'`
             * `'endfb_80'`
             * `'jendl_40u`
+        for 'nfpy'
+            * `'endfb_71'`
+            * `'jeff_33'`
+            * `'endfb_80'`
+            * `'jendl_40u`
+        for decay:
+            * `'endfb_71'`
+            * `'jeff_33'`
+            * `'endfb_80'`     
     kind : `str`
         nuclear data type:
             * `xs` is a standard neutron-induced nuclear data file
-            * no other data type is allowed at the moment
+            * 'nfpy' is a Neutron-Induced Fission Product Yields nuclear data file
+            * 'decay' is a Radioactive Decay Data nuclear data file
     zam : `int`
         ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
             * $Z$ is the charge number
@@ -98,40 +123,117 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Import hydrogen file from JENDL-4.0u
     >>> tape = sandy.get_endf6_file("jendl_40u", 'xs', 10010)
     >>> assert type(tape) is sandy.Endf6
+
+    Import Neutron-Induced Fission Product Yields for Th-227 from ENDF/B-VII.1.
+    >>> tape = sandy.get_endf6_file("endfb_71", 'nfpy', 902270)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import Neutron-Induced Fission Product Yields for Th-227 from ENDF/B-VIII.0
+    >>> tape = sandy.get_endf6_file("endfb_80", 'nfpy', 902270)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import Neutron-Induced Fission Product Yields for Th-227 from JENDL-4.0u
+    >>> tape = sandy.get_endf6_file("jendl_40u", 'nfpy', 902270)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import Neutron-Induced Fission Product Yields for Th-232 from JEFF-3.3
+    >>> tape = sandy.get_endf6_file("jeff_33", 'nfpy', 902320)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import Radioactive Decay Data for H-1 from JEFF-3.3
+    >>> tape = sandy.get_endf6_file("jeff_33", 'decay', 10010)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import Radioactive Decay Data for H-1 from ENDF/B-VII.1.
+    >>> tape = sandy.get_endf6_file("endfb_71", 'decay', 10010)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import Radioactive Decay Data for H-1 from ENDF/B-VIII.0.
+    >>> tape = sandy.get_endf6_file("endfb_80", 'decay', 10010)
+    >>> assert type(tape) is sandy.Endf6
     """
-    available_libs = (
-        "jeff_32".upper(),
-        "jeff_33".upper(),
-        "jeff_40t0".upper(),
-        "endfb_71".upper(),
-        "endfb_80".upper(),
-        "jendl_40u".upper(),
-        )
-    library_ = library.lower()
-    if library_ == "jeff_40t0":
-        filename = N_FILES_JEFF_40T0_NEA[zam]
-        tape = Endf6.from_url(filename, URL_N_JEFF_40T0_NEA)
-    elif library_ == "jeff_33":
-        filename = N_FILES_JEFF_33_IAEA[zam]
-        tape = Endf6.from_zipurl(filename, URL_N_JEFF_33_IAEA)
-    elif library_ == "jeff_32":
-        filename = N_FILES_JEFF_32_NEA[zam]
-        tape = Endf6.from_url(filename, URL_N_JEFF_32_NEA)
-    elif library_ == "endfb_71":
-        filename = N_FILES_ENDFB_71_IAEA[zam]
-        tape = Endf6.from_zipurl(filename, URL_N_ENDFB_71_IAEA)
-    elif library_ == "endfb_80":
-        filename = N_FILES_ENDFB_80_IAEA[zam]
-        tape = Endf6.from_zipurl(filename, URL_N_ENDFB_80_IAEA)
-    elif library_ == "jendl_40u":
-        filename = N_FILES_JENDL_40U_IAEA[zam]
-        tape = Endf6.from_zipurl(filename, URL_N_JENDL_40U_IAEA)
-    else:
-        raise ValueError(
-            f"""library '{library}' is not available.
-            Available libraries are: {available_libs}
-            """
+    if kind == 'xs':
+        available_libs = (
+            "jeff_32".upper(),
+            "jeff_33".upper(),
+            "jeff_40t0".upper(),
+            "endfb_71".upper(),
+            "endfb_80".upper(),
+            "jendl_40u".upper(),
             )
+        library_ = library.lower()
+        if library_ == "jeff_40t0":
+            filename = N_FILES_JEFF_40T0_NEA[zam]
+            tape = Endf6.from_url(filename, URL_N_JEFF_40T0_NEA)
+        elif library_ == "jeff_33":
+            filename = N_FILES_JEFF_33_IAEA[zam]
+            tape = Endf6.from_zipurl(filename, URL_N_JEFF_33_IAEA)
+        elif library_ == "jeff_32":
+            filename = N_FILES_JEFF_32_NEA[zam]
+            tape = Endf6.from_url(filename, URL_N_JEFF_32_NEA)
+        elif library_ == "endfb_71":
+            filename = N_FILES_ENDFB_71_IAEA[zam]
+            tape = Endf6.from_zipurl(filename, URL_N_ENDFB_71_IAEA)
+        elif library_ == "endfb_80":
+            filename = N_FILES_ENDFB_80_IAEA[zam]
+            tape = Endf6.from_zipurl(filename, URL_N_ENDFB_80_IAEA)
+        elif library_ == "jendl_40u":
+            filename = N_FILES_JENDL_40U_IAEA[zam]
+            tape = Endf6.from_zipurl(filename, URL_N_JENDL_40U_IAEA)
+        else:
+            raise ValueError(
+                f"""library '{library}' is not available.
+                Available libraries are: {available_libs}
+                """
+                )
+    elif kind == 'nfpy':
+        available_libs = (
+            "endfb_71".upper(),
+            "endfb_80".upper(),
+            "jendl_40u".upper(),
+            "jeff_33".upper(),
+            )
+        library_ = library.lower()
+        if library_ == "endfb_71":
+            filename = NFPY_FILES_ENDFB_71_IAEA[zam]
+            tape = Endf6.from_zipurl(filename, URL_NFPY_ENDFB_71_IAEA)
+        elif library_ == "endfb_80":
+            filename = NFPY_FILES_ENDFB_80_IAEA[zam]
+            tape = Endf6.from_zipurl(filename, URL_NFPY_ENDFB_80_IAEA)
+        elif library_ == "jendl_40u":
+            filename = NFPY_FILES_JENDL_40U_IAEA[zam]
+            tape = Endf6.from_zipurl(filename, URL_NFPY_JENDL_40U_IAEA)
+        elif library_ == "jeff_33":
+            filename = NFPY_FILES_JEFF_33_IAEA[zam]
+            tape = Endf6.from_zipurl(filename, URL_NFPY_JEFF_33_IAEA)
+        else:
+            raise ValueError(
+                f"""library '{library}' is not available.
+                Available libraries are: {available_libs}
+                """
+                    )
+    elif kind == 'decay':
+        available_libs = (
+            "endfb_71".upper(),
+            "endfb_80".upper(),
+            "jeff_33".upper(),
+            )
+        library_ = library.lower()
+        if library_ == "endfb_71":
+            filename = DECAY_FILES_ENDFB_71_IAEA[zam]
+            tape = Endf6.from_zipurl(filename, URL_DECAY_ENDFB_71_IAEA)
+        elif library_ == "endfb_80":
+            filename = DECAY_FILES_ENDFB_80_IAEA[zam]
+            tape = Endf6.from_zipurl(filename, URL_DECAY_ENDFB_80_IAEA)
+        elif library_ == "jeff_33":
+            filename = DECAY_FILES_JEFF_33_IAEA[zam]
+            tape = Endf6.from_zipurl(filename, URL_DECAY_JEFF_33_IAEA)
+        else:
+            raise ValueError(
+                f"""library '{library}' is not available.
+                Available libraries are: {available_libs}
+                """
+                    )
     if to_file:
         basename = sandy.zam.zam2nuclide(zam, atomic_number=True, sep="-")
         filename = f"{basename}.{library_}"

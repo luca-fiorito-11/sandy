@@ -210,6 +210,8 @@ class DecayData():
                 .astype(float)\
                 .fillna(0)
         np.fill_diagonal(B.values, 0)
+        import pdb
+        pdb.set_trace()
         return B.reindex(B.columns.values, fill_value=0.0)
 
     def get_qmatrix(self, keep_neutrons=False, **kwargs):
