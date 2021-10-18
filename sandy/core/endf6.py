@@ -7,6 +7,7 @@ Created on Wed Dec  4 14:50:33 2019
 import io
 import shutil
 import os
+from functools import reduce
 from tempfile import TemporaryDirectory
 import logging
 from urllib.request import urlopen, Request
@@ -29,7 +30,7 @@ from sandy.libraries import (
     URL_N_JEFF_40T0_NEA,
     URL_N_ENDFB_80_IAEA,
     URL_N_JENDL_40U_IAEA,
-    URL_NFPY_ENDFB_80_IAEA, 
+    URL_NFPY_ENDFB_80_IAEA,
     NFPY_FILES_ENDFB_80_IAEA,
     URL_NFPY_ENDFB_71_IAEA,
     NFPY_FILES_ENDFB_71_IAEA,
@@ -79,7 +80,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
         for decay:
             * `'endfb_71'`
             * `'jeff_33'`
-            * `'endfb_80'`    
+            * `'endfb_80'`
     kind : `str`
         nuclear data type:
             * `xs` is a standard neutron-induced nuclear data file
@@ -407,14 +408,6 @@ class _FormattedFile():
                     tape = cls.from_file(tmpfile)
         return tape
 
-    # @classmethod
-    # def from_url(cls, url):
-    #     # set a known browser user agent to ensure access
-    #     req = Request(url, headers={'User-Agent': 'Mozilla/5.0'},)
-    #     with urlopen(req) as f:
-    #         text = f.read().decode('utf-8')
-    #     return cls.from_text(text)
-
     @classmethod
     def from_file(cls, file):
         """
@@ -553,7 +546,7 @@ class _FormattedFile():
         )
         return df
 
-    def add_section(self, mat, mf, mt, text, inplace=False):
+    def add_section(self, mat, mf, mt, text):
         """
         Given MAT, MF and MT add/replace the corresponding section in the
         `Endf6.data`.
@@ -566,8 +559,6 @@ class _FormattedFile():
             MF number
         mt : `int`
             MT number
-        inplace : `bool`, optional, default is `False`
-            flag to operate **inplace**
 
         Returns
         -------
@@ -582,32 +573,20 @@ class _FormattedFile():
         9437  3   102       lorem ipsum
         9999  1   1      dolor sit amet
         dtype: object
-
-        >>> tape.add_section(9437, 3, 102, "new text", inplace=True)
-        >>> tape
-        MAT   MF  MT
-        9437  3   102    new text
-        dtype: object
         """
         d = self.data.copy()
         key = (mat, mf, mt)
         d[key] = text
-        if inplace:
-            self.data = d
-        else:
-            return self.__class__(d)
+        return self.__class__(d)
 
-    def add_sections(self, sections, inplace=False):
+    def add_sections(self, sections):
         d = self.data.copy()
         for (mat, mf, mt), text in sections.items():
             key = (mat, mf, mt)
             d[key] = text
-        if inplace:
-            self.data = d
-        else:
-            return self.__class__(d)
+        return self.__class__(d)
 
-    def delete_section(self, mat, mf, mt, inplace=False, raise_error=True):
+    def delete_section(self, mat, mf, mt, raise_error=True):
         """
         Given MAT, MF and MT delete the corresponding section from the
         `Endf6.data`.
@@ -620,8 +599,6 @@ class _FormattedFile():
             MF number
         mt : `int`
             MT number
-        inplace : `bool`, optional, default is `False`
-            flag to operate **inplace**
 
         Returns
         -------
@@ -646,10 +623,6 @@ class _FormattedFile():
                  2       1.001000+3 9.991673-1          0          0  ...
                  102     1.001000+3 9.991673-1          0          0  ...
         dtype: object
-
-        This method can also work **inplace**.
-        >>> tape.delete_section(125, 3, 102, inplace=True)
-        >>> assert tape.data == new.data
         """
         d = self.data.copy()
         key = (mat, mf, mt)
@@ -657,12 +630,9 @@ class _FormattedFile():
             pass
         else:
             del d[key]
-        if inplace:
-            self.data = d
-        else:
-            return self.__class__(d)
+        return self.__class__(d)
 
-    def delete_sections(self, sections, inplace=False, raise_error=True):
+    def delete_sections(self, sections, raise_error=True):
         d = self.data.copy()
         for mat, mf, mt in sections:
             key = (mat, mf, mt)
@@ -670,17 +640,143 @@ class _FormattedFile():
                 pass
             else:
                 del d[key]
-        if inplace:
-            self.data = d
-        else:
-            return self.__class__(d)
+        return self.__class__(d)
+
+    def merge(self, *iterable):
+        """
+        Given a single `sandy.Endf6` object or an iterable of `sandy.Endf6`
+        objects as keyword arguments, add their sections to a copy of the
+        `self` instance and return a new `sandy.Endf6` object.
+        The new `sandy.Endf6` object contains all MAT/MF/MT sections in `self`
+        and in the passed arguments.
+
+        Parameters
+        ----------
+        iterable : `sandy.Endf6` or iterable of `sandy.Endf6` objects
+            The ENDF6 files that will be merged to `self`.
+
+        Returns
+        -------
+        merged : TYPE
+            a ENDF6 file containing the MAT/MF/MT sections of `self` and of
+            the passed ENDF6 files.
+
+        Notes
+        -----
+        .. note:: if any section (MAT/MF/MT) already present in the orginal
+                  ENDF6 tape also appears in any tape that is being merged,
+                  then the original ENDF6 section will be overwritten.
+
+        Examples
+        --------
+        Merge two files.
+        >>> h1 = sandy.get_endf6_file("jeff_33", 'xs', 10010)
+        >>> h2 = sandy.get_endf6_file("endfb_71", 'xs', 10020)
+        >>> h1.merge(h2)
+        MAT  MF  MT 
+        125  1   451     1.001000+3 9.991673-1          0          0  ...
+             2   151     1.001000+3 9.991673-1          0          0  ...
+             3   1       1.001000+3 9.991673-1          0          0  ...
+                 2       1.001000+3 9.991673-1          0          0  ...
+                 102     1.001000+3 9.991673-1          0          0  ...
+             4   2       1.001000+3 9.991673-1          0          1  ...
+             6   102     1.001000+3 9.991673-1          0          2  ...
+             33  1       1.001000+3 9.991673-1          0          0  ...
+                 2       1.001000+3 9.991673-1          0          0  ...
+                 102     1.001000+3 9.991673-1          0          0  ...
+        128  1   451     1.002000+3 1.996800+0          0          0  ...
+             2   151     1.002000+3 1.996800+0          0          0  ...
+             3   1       1.002000+3 1.996800+0          0          0  ...
+                 2       1.002000+3 1.996800+0          0          0  ...
+                 3       1.002000+3 1.996800+0          0          0  ...
+                 16      1.002000+3 1.996800+0          0          0  ...
+                 102     1.002000+3 1.996800+0          0          0  ...
+             4   2       1.002000+3 1.996800+0          0          2  ...
+             6   16      1.002000+3 1.996800+0          0          1  ...
+             8   102     1.002000+3 1.996800+0          0          0  ...
+             9   102     1.002000+3 1.996800+0          0          0  ...
+             12  102     1.002000+3 1.996800+0          1          0  ...
+             14  102     1.002000+3 1.996800+0          1          0  ...
+             33  1       1.002000+3 1.996800+0          0          0  ...
+                 2       1.002000+3 1.996800+0          0          0  ...
+                 16      1.002000+3 1.996800+0          0          0  ...
+                 102     1.002000+3 1.996800+0          0          0  ...
+        dtype: object
+
+        Merge three files from different libraries.
+        >>> h3 = sandy.get_endf6_file("endfb_71", 'xs', 10030)
+        >>> h1.merge(h2, h3)
+        MAT  MF  MT 
+        125  1   451     1.001000+3 9.991673-1          0          0  ...
+             2   151     1.001000+3 9.991673-1          0          0  ...
+             3   1       1.001000+3 9.991673-1          0          0  ...
+                 2       1.001000+3 9.991673-1          0          0  ...
+                 102     1.001000+3 9.991673-1          0          0  ...
+             4   2       1.001000+3 9.991673-1          0          1  ...
+             6   102     1.001000+3 9.991673-1          0          2  ...
+             33  1       1.001000+3 9.991673-1          0          0  ...
+                 2       1.001000+3 9.991673-1          0          0  ...
+                 102     1.001000+3 9.991673-1          0          0  ...
+        128  1   451     1.002000+3 1.996800+0          0          0  ...
+             2   151     1.002000+3 1.996800+0          0          0  ...
+             3   1       1.002000+3 1.996800+0          0          0  ...
+                 2       1.002000+3 1.996800+0          0          0  ...
+                 3       1.002000+3 1.996800+0          0          0  ...
+                 16      1.002000+3 1.996800+0          0          0  ...
+                 102     1.002000+3 1.996800+0          0          0  ...
+             4   2       1.002000+3 1.996800+0          0          2  ...
+             6   16      1.002000+3 1.996800+0          0          1  ...
+             8   102     1.002000+3 1.996800+0          0          0  ...
+             9   102     1.002000+3 1.996800+0          0          0  ...
+             12  102     1.002000+3 1.996800+0          1          0  ...
+             14  102     1.002000+3 1.996800+0          1          0  ...
+             33  1       1.002000+3 1.996800+0          0          0  ...
+                 2       1.002000+3 1.996800+0          0          0  ...
+                 16      1.002000+3 1.996800+0          0          0  ...
+                 102     1.002000+3 1.996800+0          0          0  ...
+        131  1   451     1.003000+3 2.989596+0          0          0  ...
+             2   151     1.003000+3 2.989596+0          0          0  ...
+             3   1       1.003000+3 2.989596+0          0          0  ...
+                 2       1.003000+3 2.989596+0          0          0  ...
+                 16      1.003000+3 2.989596+0          0          0  ...
+             4   2       1.003000+3 2.989596+0          0          1  ...
+                 16      1.003000+3 2.989596+0          0          2  ...
+             5   16      1.003000+3 2.989596+0          0          0  ...
+        dtype: object
+
+        Merge two evaluations for the same nuclide.
+        >>> h2_2 = sandy.get_endf6_file("jeff_32", 'xs', 10020)
+        >>> h2.merge(h2_2)
+        MAT  MF  MT 
+        128  1   451     1.002000+3 1.995712+0          0          0  ...
+             2   151     1.002000+3 1.995712+0          0          0  ...
+             3   1       1.002000+3 1.995712+0          0          0  ...
+                 2       1.002000+3 1.995712+0          0          0  ...
+                 3       1.002000+3 1.995712+0          0          0  ...
+                 16      1.002000+3 1.995712+0          0          0  ...
+                 102     1.002000+3 1.995712+0          0          0  ...
+             4   2       1.002000+3 1.995712+0          0          1  ...
+             6   16      1.002000+3 1.995712+0          0          1  ...
+             8   102     1.002000+3 1.996800+0          0          0  ...
+             9   102     1.002000+3 1.996800+0          0          0  ...
+             12  102     1.002000+3 1.995712+0          1          0  ...
+             14  102     1.002000+3 1.995712+0          1          0  ...
+             33  1       1.002000+3 1.996800+0          0          0  ...
+                 2       1.002000+3 1.996800+0          0          0  ...
+                 16      1.002000+3 1.996800+0          0          0  ...
+                 102     1.002000+3 1.996800+0          0          0  ...
+        dtype: object
+        """
+        tape = reduce(lambda x, y: x.add_sections(y.data), iterable)
+        merged = self.add_sections(tape.data)
+        return merged
 
     def filter_by(self,
-                  listmat=range(1,10000),
-                  listmf=range(1,10000),
-                  listmt=range(1,10000)):
+                  listmat=range(1, 10000),
+                  listmf=range(1, 10000),
+                  listmt=range(1, 10000)):
         """Filter dataframe based on MAT, MF, MT lists.
-        
+
         Parameters
         ----------
         listmat : `list` or `None`
@@ -689,7 +785,7 @@ class _FormattedFile():
             list of requested MF values (default is `None`: use all MF)
         listmt : `list` or `None`
             list of requested MT values (default is `None`: use all MT)
-        
+
         Returns
         -------
         `sandy.formats.endf6.BaseFile` or derived instance
