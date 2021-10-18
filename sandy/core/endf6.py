@@ -39,8 +39,8 @@ from sandy.libraries import (
     NFPY_FILES_JEFF_33_IAEA,
     URL_DECAY_ENDFB_71_IAEA,
     DECAY_FILES_ENDFB_71_IAEA,
-    URL_DECAY_ENDFB_80_IAEA, 
-    DECAY_FILES_ENDFB_80_IAEA, 
+    URL_DECAY_ENDFB_80_IAEA,
+    DECAY_FILES_ENDFB_80_IAEA,
     URL_DECAY_JEFF_33_IAEA,
     DECAY_FILES_JEFF_33_IAEA,
     )
@@ -79,11 +79,12 @@ def get_endf6_file(library, kind, zam, to_file=False):
         for decay:
             * `'endfb_71'`
             * `'jeff_33'`
-            * `'endfb_80'`     
+            * `'endfb_80'`    
     kind : `str`
         nuclear data type:
             * `xs` is a standard neutron-induced nuclear data file
-            * 'nfpy' is a Neutron-Induced Fission Product Yields nuclear data file
+            * 'nfpy' is a Neutron-Induced Fission Product Yields nuclear data
+              file
             * 'decay' is a Radioactive Decay Data nuclear data file
     zam : `int`
         ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
@@ -674,7 +675,10 @@ class _FormattedFile():
         else:
             return self.__class__(d)
 
-    def filter_by(self, listmat=range(1,10000), listmf=range(1,10000), listmt=range(1,10000), inplace=False):
+    def filter_by(self,
+                  listmat=range(1,10000),
+                  listmf=range(1,10000),
+                  listmt=range(1,10000)):
         """Filter dataframe based on MAT, MF, MT lists.
         
         Parameters
@@ -696,10 +700,7 @@ class _FormattedFile():
         cond_mf = series.index.get_level_values("MF").isin(listmf)
         cond_mt = series.index.get_level_values("MT").isin(listmt)
         d = series.loc[cond_mat & cond_mf & cond_mt].to_dict()
-        if inplace:
-            self.data = d
-        else:
-            return self.__class__(d, file=self.file)
+        return self.__class__(d, file=self.file)
 
     def get_value(self, mat, mf, mt, line_number, pos):
         return self._get_section_df(mat, mf, mt)[pos.upper()] \
@@ -745,11 +746,12 @@ class Endf6(_FormattedFile):
 
     def _get_nsub(self):
         """
-        Determine ENDF-6 sub-library type by reading flag "NSUB" of first MAT in file:
-            
+        Determine ENDF-6 sub-library type by reading flag "NSUB" of first MAT
+        in file:
+
             * `NSUB = 10` : Incident-Neutron Data
             * `NSUB = 11` : Neutron-Induced Fission Product Yields
-        
+
         Returns
         -------
         `int`
