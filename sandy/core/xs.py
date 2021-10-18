@@ -310,15 +310,15 @@ class Xs():
         for mat, mf, mt in tape.data:
             sec = tape.read_section(mat, mf, mt)
             if sec['INT'] != [2]:
-                logging.warning("skip MAT{mat}/MF{mf}/MT{mt} "
-                                f"because interpolation schme is not lin-lin")
+                logging.warning(f"skip MAT{mat}/MF{mf}/MT{mt} "
+                                "because interpolation schme is not lin-lin")
                 continue
             xs = pd.Series(sec["XS"], index=sec["E"], name=(mat, mt)) \
                    .rename_axis("E") \
                    .to_frame()
             mask_duplicates = xs.index.duplicated(keep=keep)
             for energy in xs.index[mask_duplicates]:
-                logging.warning(f"found duplicate energy for "
+                logging.warning("found duplicate energy for "
                                 f"MAT{mat}/MF{mf}/MT{mt} "
                                 f"at {energy:.5e} MeV, keep only {keep} value")
             xs = xs[~mask_duplicates]
@@ -330,18 +330,18 @@ class Xs():
             sec = tape.read_section(mat, mf, mt)
             if sec["LNU"] != 2:
                 logging.warning(f"skip MAT{mat}/MF{mf}/MT{mt} "
-                                f"because not tabulated")
+                                "because not tabulated")
                 continue
             if sec['INT'] != [2]:
-                logging.warning("skip MAT{mat}/MF{mf}/MT{mt} "
-                                f"because interpolation schme is not lin-lin")
+                logging.warning(f"skip MAT{mat}/MF{mf}/MT{mt} "
+                                "because interpolation schme is not lin-lin")
                 continue
             xs = pd.Series(sec["NU"], index=sec["E"], name=(mat, mt)) \
                    .rename_axis("E") \
                    .to_frame()
             mask_duplicates = xs.index.duplicated(keep=keep)
             for energy in xs.index[mask_duplicates]:
-                logging.warning(f"found duplicate energy for "
+                logging.warning("found duplicate energy for "
                                 f"MAT{mat}/MF{mf}/MT{mt} "
                                 f"at {energy:.5e} MeV, keep only {keep} value")
             xs = xs[~mask_duplicates]
