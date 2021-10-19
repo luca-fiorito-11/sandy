@@ -265,7 +265,7 @@ class DecayData():
                 B.drop(columns=10, inplace=True)
         C = np.identity(len(B)) - B.values
         Q = np.linalg.pinv(C)
-        qmatrix =  pd.DataFrame(Q, index=B.index, columns=B.columns)
+        qmatrix = pd.DataFrame(Q, index=B.index, columns=B.columns)
         if threshold is not None:
             qmatrix[qmatrix < threshold] = 0
         return qmatrix
