@@ -14,6 +14,9 @@ from math import sqrt
 
 import numpy as np
 import pandas as pd
+import scipy
+from scipy.sparse import csc_matrix
+from scipy.sparse.linalg import splu
 
 import sandy
 
@@ -256,6 +259,27 @@ class DecayData():
         >>> comp.index.name = "DAUGHTER"
         >>> comp.columns.name = "PARENT"
         >>> pd.testing.assert_frame_equal(comp, out)
+
+        >>> import urllib
+        >>> import pandas as pd
+        >>> url = "https://www.oecd-nea.org/dbdata/jeff/jeff33/downloads/JEFF33-rdd_all.asc"
+        >>> with urllib.request.urlopen(url) as f: text_fy = f.read().decode('utf-8')
+        >>> tape = sandy.Endf6.from_text(text_fy)
+        >>> information = sandy.DecayData.from_endf6(tape)
+        >>> index_pd = pd.Index([551480,551490,561480,561490,571480,571490,581480,591480,591481,601480])
+        >>> q_matrix = information.get_qmatrix()
+        >>> q_matrix.loc[601480, index_pd]
+        551480   7.46004e-01
+        551490   1.82398e-02
+        561480   9.96000e-01
+        561490   1.82398e-02
+        571480   1.00000e+00
+        571490   1.40000e-02
+        581480   1.00000e+00
+        591480   1.00000e+00
+        591481   1.00000e+00
+        601480   1.00000e+00
+        Name: 601480, dtype: float64
         """
         B = self.get_bmatrix(**kwargs)
         if not keep_neutrons:
@@ -263,9 +287,10 @@ class DecayData():
                 B.drop(index=10, inplace=True)
             if 10 in B.columns:
                 B.drop(columns=10, inplace=True)
-        C = np.identity(len(B)) - B.values
-        Q = np.linalg.pinv(C)
-        qmatrix = pd.DataFrame(Q, index=B.index, columns=B.columns)
+        unit = np.identity(len(B))
+        C = unit - B.values
+        C_inv = splu(csc_matrix(C))
+        qmatrix = pd.DataFrame(C_inv.solve(unit), index=B.index, columns=B.columns)
         if threshold is not None:
             qmatrix[qmatrix < threshold] = 0
         return qmatrix
