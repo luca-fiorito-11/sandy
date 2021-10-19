@@ -198,6 +198,27 @@ class DecayData():
         10010    0.00000e+00 0.00000e+00 0.00000e+00
         270600   0.00000e+00 0.00000e+00 0.00000e+00
         280600   0.00000e+00 1.00000e+00 0.00000e+00
+
+        >>> import urllib
+        >>> import pandas as pd
+        >>> url = "https://www.oecd-nea.org/dbdata/jeff/jeff33/downloads/JEFF33-rdd_all.asc"
+        >>> with urllib.request.urlopen(url) as f: text_fy = f.read().decode('utf-8')
+        >>> tape = sandy.Endf6.from_text(text_fy)
+        >>> information = sandy.DecayData.from_endf6(tape)
+        >>> b_matrix_total = information.get_bmatrix()
+        >>> index_pd = pd.Index([551480,551490,561480,561490,571480,571490,581480,591480,591481,601480])
+        >>> b_matrix_total.loc[index_pd, index_pd]
+                     551480 	     551490 	     561480 	     561490 	     571480 	     571490 	     581480 	     591480 	     591481          601480
+        551480 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        551490 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561480 	7.49000e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561490 	0.00000e+00 	1.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        571480 	0.00000e+00 	0.00000e+00 	9.96000e-01 	4.30000e-03 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        571490 	0.00000e+00 	0.00000e+00 	0.00000e+00 	9.95700e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        581480 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	1.00000e+00 	1.40000e-02 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        591480 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	1.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        591481 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        601480 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	1.00000e+00 	1.00000e+00 	0.00000e+00
         """
         B = self.get_decay_chains(**kwargs) \
                 .pivot_table(
@@ -209,10 +230,11 @@ class DecayData():
                         )\
                 .astype(float)\
                 .fillna(0)
-        np.fill_diagonal(B.values, 0)
-        return B.reindex(B.columns.values, fill_value=0.0)
+        data_endf6 = B.reindex(B.index.values, fill_value=0.0, axis=1)
+        np.fill_diagonal(data_endf6.values, 0)
+        return data_endf6
 
-    def get_qmatrix(self, keep_neutrons=False, **kwargs):
+    def get_qmatrix(self, keep_neutrons=False, threshold=None, **kwargs):
         """
         Extract Q-matrix dataframe.
 
@@ -243,7 +265,10 @@ class DecayData():
                 B.drop(columns=10, inplace=True)
         C = np.identity(len(B)) - B.values
         Q = np.linalg.pinv(C)
-        return pd.DataFrame(Q, index=B.index, columns=B.columns)
+        qmatrix =  pd.DataFrame(Q, index=B.index, columns=B.columns)
+        if threshold is not None:
+            qmatrix[qmatrix < threshold] = 0
+        return qmatrix
 
     def get_transition_matrix(self):
         """
