@@ -3158,8 +3158,6 @@ NFPY_FILES_JEFF_33_IAEA = {
     962450: "nfpy_9640_96-Cm-245.dat",
 }
 
-URL_NFPY_JEFF_33_IAEA_ALL = "https://www.oecd-nea.org/dbdata/jeff/jeff33/downloads/JEFF33-nfy.asc"
-
 # Radioactive Decay Data for ENDF-B-VII.1 from the IAEA website
 URL_DECAY_ENDFB_71_IAEA = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VII.1/decay/"
 DECAY_FILES_ENDFB_71_IAEA = {
@@ -14663,5 +14661,3 @@ DECAY_FILES_JEFF_33_IAEA = {
     1102731: "decay_3851_110-Ds-273M.dat",
     1112720: "decay_3852_111-Rg-272.dat",
 }
-
-URL_DECAY_JEFF_33_IAEA_ALL = "https://www.oecd-nea.org/dbdata/jeff/jeff33/downloads/JEFF33-rdd_all.asc"
