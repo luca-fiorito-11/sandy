@@ -37,6 +37,7 @@ from sandy.libraries import (
     URL_NFPY_JENDL_40U_IAEA,
     NFPY_FILES_JENDL_40U_IAEA,
     URL_NFPY_JEFF_33_IAEA,
+    URL_NFPY_JEFF_33_IAEA_ALL,
     NFPY_FILES_JEFF_33_IAEA,
     URL_DECAY_ENDFB_71_IAEA,
     DECAY_FILES_ENDFB_71_IAEA,
@@ -44,6 +45,7 @@ from sandy.libraries import (
     DECAY_FILES_ENDFB_80_IAEA,
     URL_DECAY_JEFF_33_IAEA,
     DECAY_FILES_JEFF_33_IAEA,
+    URL_DECAY_JEFF_33_IAEA_ALL,
     )
 
 
@@ -87,12 +89,17 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * 'nfpy' is a Neutron-Induced Fission Product Yields nuclear data
               file
             * 'decay' is a Radioactive Decay Data nuclear data file
-    zam : `int`
-        ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
-            * $Z$ is the charge number
-            * $A$ is the mass number
-            * $M$ is the metastate level (0=ground, 1=1st level)
-
+    zam : `int` or 'all'
+        zam = 'int' (individual nuclides)
+            ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
+                * $Z$ is the charge number
+                * $A$ is the mass number
+                * $M$ is the metastate level (0=ground, 1=1st level)
+        zam = 'all'
+            We obtain the information of all the library. Actually,
+            the only all libraries available are:
+                * for 'nfpy': 'jeff_33'
+                * for 'decay': 'jeff_33'
     Raises
     ------
     ValueError
@@ -153,8 +160,16 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Import Radioactive Decay Data for H-1 from ENDF/B-VIII.0.
     >>> tape = sandy.get_endf6_file("endfb_80", 'decay', 10010)
     >>> assert type(tape) is sandy.Endf6
+
+    Import all Radioactive Decay Data from JEFF-3.3
+    >>> tape = sandy.get_endf6_file("jeff_33", 'decay', 'all')
+    >>> assert type(tape) is sandy.Endf6
+
+    Import all Neutron-Induced Fission Product Yields from JEFF-3.3
+    >>> tape = sandy.get_endf6_file("jeff_33", 'nfpy', 'all')
+    >>> assert type(tape) is sandy.Endf6
     """
-    if kind == 'xs':
+    if kind == 'xs' and type(zam) == int:
         available_libs = (
             "jeff_32".upper(),
             "jeff_33".upper(),
@@ -188,7 +203,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
                 Available libraries are: {available_libs}
                 """
                 )
-    elif kind == 'nfpy':
+    elif kind == 'nfpy' and type(zam) == int:
         available_libs = (
             "endfb_71".upper(),
             "endfb_80".upper(),
@@ -214,7 +229,22 @@ def get_endf6_file(library, kind, zam, to_file=False):
                 Available libraries are: {available_libs}
                 """
                     )
-    elif kind == 'decay':
+    elif kind == 'nfpy' and zam == 'all':
+        available_libs = (
+            "jeff_33".upper(),
+            )
+        library_ = library.lower()
+        if library_ == "jeff_33":
+            filename = URL_NFPY_JEFF_33_IAEA_ALL
+            tape = Endf6.from_url_all(filename)
+        else:
+            raise ValueError(
+                f"""library '{library}' is not available.
+                Available libraries are: {available_libs}
+                """
+                    )
+
+    elif kind == 'decay' and type(zam) == int:
         available_libs = (
             "endfb_71".upper(),
             "endfb_80".upper(),
@@ -230,6 +260,20 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jeff_33":
             filename = DECAY_FILES_JEFF_33_IAEA[zam]
             tape = Endf6.from_zipurl(filename, URL_DECAY_JEFF_33_IAEA)
+        else:
+            raise ValueError(
+                f"""library '{library}' is not available.
+                Available libraries are: {available_libs}
+                """
+                    )
+    elif kind == 'decay' and zam == 'all':
+        available_libs = (
+            "jeff_33".upper(),
+            )
+        library_ = library.lower()
+        if library_ == "jeff_33":
+            filename = URL_DECAY_JEFF_33_IAEA_ALL
+            tape = Endf6.from_url_all(filename)
         else:
             raise ValueError(
                 f"""library '{library}' is not available.
@@ -383,6 +427,15 @@ class _FormattedFile():
             else:
                 kind == "unkwown"
         return kind
+
+    @classmethod
+    def from_url_all(cls, url):
+        # set a known browser user agent to ensure access
+        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'},)
+        with urlopen(req) as f:
+            text = f.read().decode('utf-8')
+        tape = cls.from_text(text)
+        return tape
 
     @classmethod
     def from_url(cls, filename, rooturl):

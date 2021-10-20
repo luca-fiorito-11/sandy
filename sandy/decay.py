@@ -202,26 +202,21 @@ class DecayData():
         270600   0.00000e+00 0.00000e+00 0.00000e+00
         280600   0.00000e+00 1.00000e+00 0.00000e+00
 
-        >>> import urllib
-        >>> import pandas as pd
-        >>> url = "https://www.oecd-nea.org/dbdata/jeff/jeff33/downloads/JEFF33-rdd_all.asc"
-        >>> with urllib.request.urlopen(url) as f: text_fy = f.read().decode('utf-8')
-        >>> tape = sandy.Endf6.from_text(text_fy)
-        >>> information = sandy.DecayData.from_endf6(tape)
-        >>> b_matrix_total = information.get_bmatrix()
-        >>> index_pd = pd.Index([551480,551490,561480,561490,571480,571490,581480,591480,591481,601480])
-        >>> b_matrix_total.loc[index_pd, index_pd]
-                     551480 	     551490 	     561480 	     561490 	     571480 	     571490 	     581480 	     591480 	     591481          601480
-        551480 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
-        551490 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
-        561480 	7.49000e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
-        561490 	0.00000e+00 	1.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
-        571480 	0.00000e+00 	0.00000e+00 	9.96000e-01 	4.30000e-03 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
-        571490 	0.00000e+00 	0.00000e+00 	0.00000e+00 	9.95700e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
-        581480 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	1.00000e+00 	1.40000e-02 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
-        591480 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	1.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
-        591481 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
-        601480 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	1.00000e+00 	1.00000e+00 	0.00000e+00
+
+        >>> h1 = sandy.endf6.get_endf6_file("endfb_71","decay",551480)
+        >>> h2 = sandy.endf6.get_endf6_file("endfb_71","decay",551490)
+        >>> h3 = h1.merge(h2)
+        >>> rdd = sandy.DecayData.from_endf6(h3)
+        >>> rdd.get_bmatrix()
+        PARENT 	       10 	         551480 	     551490 	     561460 	     561470 	     561480 	     561490
+        DAUGHTER 							
+        10 	    0.00000e+00 	2.18793e-01 	6.88450e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        551480 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        551490 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561460 	0.00000e+00 	1.72560e-04 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561470 	0.00000e+00 	2.18447e-01 	4.09780e-07 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561480 	0.00000e+00 	7.81380e-01 	6.88450e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561490 	0.00000e+00 	0.00000e+00 	3.11550e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
         """
         B = self.get_decay_chains(**kwargs) \
                 .pivot_table(
@@ -233,14 +228,20 @@ class DecayData():
                         )\
                 .astype(float)\
                 .fillna(0)
-        data_endf6 = B.reindex(B.index.values, fill_value=0.0, axis=1)
-        np.fill_diagonal(data_endf6.values, 0)
-        return data_endf6
+        B_reindex = B.reindex(B.index.values, fill_value=0.0, axis=1)
+        np.fill_diagonal(B_reindex.values, 0)
+        return B_reindex
 
     def get_qmatrix(self, keep_neutrons=False, threshold=None, **kwargs):
         """
         Extract Q-matrix dataframe.
 
+        Optional argument
+        -------
+        Thereshold: 'int'
+            Optional argument to avoid numerical fluctuations or
+            values so small that they do not have to be taken into
+            account.
         Returns
         -------
         `pandas.DataFrame`
@@ -260,26 +261,20 @@ class DecayData():
         >>> comp.columns.name = "PARENT"
         >>> pd.testing.assert_frame_equal(comp, out)
 
-        >>> import urllib
-        >>> import pandas as pd
-        >>> url = "https://www.oecd-nea.org/dbdata/jeff/jeff33/downloads/JEFF33-rdd_all.asc"
-        >>> with urllib.request.urlopen(url) as f: text_fy = f.read().decode('utf-8')
-        >>> tape = sandy.Endf6.from_text(text_fy)
-        >>> information = sandy.DecayData.from_endf6(tape)
-        >>> index_pd = pd.Index([551480,551490,561480,561490,571480,571490,581480,591480,591481,601480])
-        >>> q_matrix = information.get_qmatrix()
-        >>> q_matrix.loc[601480, index_pd]
-        551480   7.46004e-01
-        551490   1.82398e-02
-        561480   9.96000e-01
-        561490   1.82398e-02
-        571480   1.00000e+00
-        571490   1.40000e-02
-        581480   1.00000e+00
-        591480   1.00000e+00
-        591481   1.00000e+00
-        601480   1.00000e+00
-        Name: 601480, dtype: float64
+
+        >>> h1 = sandy.endf6.get_endf6_file("endfb_71","decay",551480)
+        >>> h2 = sandy.endf6.get_endf6_file("endfb_71","decay",551490)
+        >>> h3 = h1.merge(h2)
+        >>> rdd = sandy.DecayData.from_endf6(h3)
+        >>> rdd.get_qmatrix()
+        PARENT 	     551480 	     551490 	     561460 	     561470 	     561480 	     561490
+        DAUGHTER 						
+        551480 	1.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        551490 	0.00000e+00 	1.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561460 	1.72560e-04 	0.00000e+00 	1.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561470 	2.18447e-01 	4.09780e-07 	0.00000e+00 	1.00000e+00 	0.00000e+00 	0.00000e+00
+        561480 	7.81380e-01 	6.88450e-01 	0.00000e+00 	0.00000e+00 	1.00000e+00 	0.00000e+00
+        561490 	0.00000e+00 	3.11550e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	1.00000e+00
         """
         B = self.get_bmatrix(**kwargs)
         if not keep_neutrons:
