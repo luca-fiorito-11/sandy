@@ -468,7 +468,7 @@ class _FormattedFile():
         Parameters
         ----------
         filename: 'str'
-            The complete name of the zip file to read
+            The filename without path of the zip file to read
         rooturl: 'str'
             The url direction to extract the zip files
 
