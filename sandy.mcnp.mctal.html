@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sandy.mcnp.mctal module &mdash; SANDY API 0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.mcnp.meshtal module" href="sandy.mcnp.meshtal.html" />
+    <link rel="prev" title="sandy.mcnp package" href="sandy.mcnp.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SANDY API
+          </a>
+              <div class="version">
+                1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.html">sandy.core package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="sandy.mcnp.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+          <li><a href="sandy.mcnp.html">sandy.mcnp package</a> &raquo;</li>
+      <li>sandy.mcnp.mctal module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/sandy.mcnp.mctal.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-sandy.mcnp.mctal">
+<span id="sandy-mcnp-mctal-module"></span><h1>sandy.mcnp.mctal module<a class="headerlink" href="#module-sandy.mcnp.mctal" title="Permalink to this headline"></a></h1>
+<p>This module contains all classes and functions to provide a API for a MCNP
+<em>mctal</em> file.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.mcnp.mctal.MctalTally">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.mcnp.mctal.</span></span><span class="sig-name descname"><span class="pre">MctalTally</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tally</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vals</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.mcnp.mctal.MctalTally" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Container for a MCTAL tally.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><strong>vals</strong><span class="classifier"><cite>pandas.DataFrame</cite></span></dt><dd><p>dataframe of tally values</p>
+<p>6 columns are provided:</p>
+<blockquote>
+<div><ul>
+<li><p>f[c|t] : cells, surfaces or detector bins</p>
+<blockquote>
+<div><p>fc = “cumulative” value is given
+ft = “total” value is given</p>
+</div></blockquote>
+</li>
+<li><p>d : total vs. direct or flagged vs. unflagged bins</p>
+<blockquote>
+<div><p>For detectors, n=2 unless there is an ND on the F5 card;
+for cell and surface tallies, n=1 unless there is an SF or
+CF card</p>
+</div></blockquote>
+</li>
+<li><p>u[c|t] : user bins</p>
+<blockquote>
+<div><p>uc = “cumulative” value is given
+ut = “total” value is given</p>
+</div></blockquote>
+</li>
+<li><p>s[c|t] : segment bins</p>
+<blockquote>
+<div><p>sc = “cumulative” value is given
+st = “total” value is given</p>
+</div></blockquote>
+</li>
+<li><p>m[c,t] : multiplier bins</p>
+<blockquote>
+<div><p>mc = “cumulative” value is given
+mt = “total” value is given</p>
+</div></blockquote>
+</li>
+<li><p>c[c,t] : cosine bins</p>
+<blockquote>
+<div><p>cc = “cumulative” value is given
+ct = “total” value is given</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><cite>f</cite> flag for point values is not yet
+implemented</p>
+</div>
+</div></blockquote>
+</li>
+<li><p>e[c,t] : energy bins</p>
+<blockquote>
+<div><p>ec = “cumulative” value is given
+et = “total” value is given</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><cite>f</cite> flag for point values is not yet
+implemented</p>
+</div>
+</div></blockquote>
+</li>
+<li><p>t[c,t] : time bins</p>
+<blockquote>
+<div><p>tc = “cumulative” value is given
+tt = “total” value is given</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><cite>f</cite> flag for point values is not yet
+implemented</p>
+</div>
+</div></blockquote>
+</li>
+<li><p>vals : tally values</p>
+<blockquote>
+<div><p>The order is what a 9-dimensional Fortran array would have
+if it were dimensioned (NF,…,NE,NT), where NF is the #
+of cell, surface, or detector bins, NE is the # of energy
+bins, and NT is the # of time bins</p>
+</div></blockquote>
+</li>
+<li><p>err : tally statistical error (relative)</p></li>
+</ul>
+</div></blockquote>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.mcnp.mctal.MctalTally.from_file" title="sandy.mcnp.mctal.MctalTally.from_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_file</span></code></a>([filename, encoding, errors])</p></td>
+<td><p>Parse a mctal output file and return tallies.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 57%" />
+<col style="width: 43%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>what_bins</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.mcnp.mctal.MctalTally.cell_bins">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">cell_bins</span></span><a class="headerlink" href="#sandy.mcnp.mctal.MctalTally.cell_bins" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.mcnp.mctal.MctalTally.cosine_bins">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">cosine_bins</span></span><a class="headerlink" href="#sandy.mcnp.mctal.MctalTally.cosine_bins" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.mcnp.mctal.MctalTally.detector_bins">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">detector_bins</span></span><a class="headerlink" href="#sandy.mcnp.mctal.MctalTally.detector_bins" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.mcnp.mctal.MctalTally.energy_bins">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">energy_bins</span></span><a class="headerlink" href="#sandy.mcnp.mctal.MctalTally.energy_bins" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.mcnp.mctal.MctalTally.from_file">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mctal'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'utf8'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">errors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ignore'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.mcnp.mctal.MctalTally.from_file" title="Permalink to this definition"></a></dt>
+<dd><p>Parse a mctal output file and return tallies.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>filename</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘mctal’</cite></span></dt><dd><p>name of the mctal file</p>
+</dd>
+<dt><strong>encoding</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘utf8’</cite></span></dt><dd><p>option passed to python built-in function <cite>open</cite></p>
+</dd>
+<dt><strong>errors</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘ignore’</cite></span></dt><dd><p>option passed to python built-in function <cite>open</cite></p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>dict</cite></dt><dd><p>dictionary of (tally numbers, <cite>MctalTally</cite> objects)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.mcnp.mctal.MctalTally.multiplier_bins">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">multiplier_bins</span></span><a class="headerlink" href="#sandy.mcnp.mctal.MctalTally.multiplier_bins" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.mcnp.mctal.MctalTally.segment_bins">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">segment_bins</span></span><a class="headerlink" href="#sandy.mcnp.mctal.MctalTally.segment_bins" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.mcnp.mctal.MctalTally.time_bins">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">time_bins</span></span><a class="headerlink" href="#sandy.mcnp.mctal.MctalTally.time_bins" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.mcnp.mctal.MctalTally.user_bins">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">user_bins</span></span><a class="headerlink" href="#sandy.mcnp.mctal.MctalTally.user_bins" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.mcnp.mctal.MctalTally.what_bins">
+<span class="sig-name descname"><span class="pre">what_bins</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.mcnp.mctal.MctalTally.what_bins" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sandy.mcnp.html" class="btn btn-neutral float-left" title="sandy.mcnp package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.mcnp.meshtal.html" class="btn btn-neutral float-right" title="sandy.mcnp.meshtal module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

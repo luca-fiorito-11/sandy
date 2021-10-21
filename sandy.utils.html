@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sandy.utils module &mdash; SANDY API 0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.zam module" href="sandy.zam.html" />
+    <link rel="prev" title="sandy.tools module" href="sandy.tools.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SANDY API
+          </a>
+              <div class="version">
+                1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html">sandy.decay module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.energy_grids.html">sandy.energy_grids module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.utils module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.zam.html">sandy.zam module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+      <li>sandy.utils module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/sandy.utils.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-sandy.utils">
+<span id="sandy-utils-module"></span><h1>sandy.utils module<a class="headerlink" href="#module-sandy.utils" title="Permalink to this headline"></a></h1>
+<p>Collection of utilities, functions and classes that are requetsed in all code
+components.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.utils.grouper">
+<span class="sig-prename descclassname"><span class="pre">sandy.utils.</span></span><span class="sig-name descname"><span class="pre">grouper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fillvalue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.utils.grouper" title="Permalink to this definition"></a></dt>
+<dd><p>Collect data into fixed-length chunks or blocks</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.utils.pad_from_beginning">
+<span class="sig-prename descclassname"><span class="pre">sandy.utils.</span></span><span class="sig-name descname"><span class="pre">pad_from_beginning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxlen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.utils.pad_from_beginning" title="Permalink to this definition"></a></dt>
+<dd><p>Convert list of arrays into matrix by backward padding.
+.. note:: this function can be used to put cross sections into one matrix</p>
+<blockquote>
+<div><p>by adding zeros before the first value of threshold reactions.</p>
+</div></blockquote>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>vals</strong><span class="classifier"><cite>iterable</cite> of arrays/lists</span></dt><dd><p>values of the matrix</p>
+</dd>
+<dt><strong>maxlen</strong><span class="classifier"><cite>int</cite>, optional, default is <cite>None</cite></span></dt><dd><p>length to fill with padding.
+If not given, use the maximum length of the arrays in <cite>vals</cite>
+.. important:: if given, maxlen should be</p>
+<blockquote>
+<div><p><cite>maxlen &lt;= max([len(v) for v in vals])</cite></p>
+</div></blockquote>
+</dd>
+<dt><strong>value</strong><span class="classifier"><cite>float</cite>, optional, default is <cite>0.</cite></span></dt><dd><p>value used for padding</p>
+</dd>
+<dt><strong>axis</strong><span class="classifier"><cite>int</cite>, optional, either <cite>0</cite> or <cite>1</cite>, default is <cite>0</cite></span></dt><dd><p>axis along whihc the arrays should be positioned.
+<cite>0</cite> means rows, <cite>1</cite> means columns</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy.array</cite></dt><dd><p>2D <cite>numpy.array</cite> with shape <cite>(len(vals), maxlen)</cite> if <cite>axis=0</cite> and
+<cite>(maxlen, len(vals))</cite> if <cite>axis=1</cite></p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>ValueError</cite></dt><dd><p>if <cite>axis</cite> is neither <cite>0</cite> nor <cite>1</cite></p>
+</dd>
+<dt><cite>ValueError</cite></dt><dd><p>if <cite>maxlen &lt;= max([len(v) for v in vals])</cite></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.utils.pad_from_beginning_fast">
+<span class="sig-prename descclassname"><span class="pre">sandy.utils.</span></span><span class="sig-name descname"><span class="pre">pad_from_beginning_fast</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxlen</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.utils.pad_from_beginning_fast" title="Permalink to this definition"></a></dt>
+<dd><p>Like <cite>aleph.utils.pad_from_beginning</cite> but faster.
+Keyword arguments <cite>axis</cite> and <cite>values</cite> take the default options.
+.. note:: this function can be used to put cross sections into one matrix</p>
+<blockquote>
+<div><p>by adding zeros before the first value of threshold reactions.</p>
+</div></blockquote>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>vals</strong><span class="classifier"><cite>iterable</cite> of arrays/lists</span></dt><dd><p>values of the matrix</p>
+</dd>
+<dt><strong>maxlen</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>length to fill with padding.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy.array</cite></dt><dd><p>2D <cite>numpy.array</cite> with shape <cite>(len(vals), maxlen)</cite></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.utils.uniform_loggrid">
+<span class="sig-prename descclassname"><span class="pre">sandy.utils.</span></span><span class="sig-name descname"><span class="pre">uniform_loggrid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.utils.uniform_loggrid" title="Permalink to this definition"></a></dt>
+<dd><p>Given lower and upper limits, produce a grid with a number of points
+<cite>npoints</cite> that define equivalent intervals in log scale.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>xmin</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>lower bound of the grid structure</p>
+</dd>
+<dt><strong>xmax</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>upper bound of the grid structure</p>
+</dd>
+<dt><strong>npoints</strong><span class="classifier"><cite>int</cite>, optional, default <cite>100</cite></span></dt><dd></dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy</cite> array</dt><dd><p>grid equally spaced in logarithmic scale</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">uniform_loggrid</span><span class="p">(</span><span class="mf">1e-5</span><span class="p">,</span> <span class="mf">1e7</span><span class="p">,</span> <span class="mi">25</span><span class="p">)</span>
+<span class="go">array([1.00000000e-05, 3.16227766e-05, 1.00000000e-04, 3.16227766e-04,</span>
+<span class="go">       1.00000000e-03, 3.16227766e-03, 1.00000000e-02, 3.16227766e-02,</span>
+<span class="go">       1.00000000e-01, 3.16227766e-01, 1.00000000e+00, 3.16227766e+00,</span>
+<span class="go">       1.00000000e+01, 3.16227766e+01, 1.00000000e+02, 3.16227766e+02,</span>
+<span class="go">       1.00000000e+03, 3.16227766e+03, 1.00000000e+04, 3.16227766e+04,</span>
+<span class="go">       1.00000000e+05, 3.16227766e+05, 1.00000000e+06, 3.16227766e+06,</span>
+<span class="go">       1.00000000e+07])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sandy.tools.html" class="btn btn-neutral float-left" title="sandy.tools module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.zam.html" class="btn btn-neutral float-right" title="sandy.zam module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

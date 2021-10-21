@@ -1,0 +1,24 @@
+sandy.core package
+==================
+
+.. automodule:: sandy.core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   sandy.core.basecov
+   sandy.core.cov
+   sandy.core.ecov
+   sandy.core.endf6
+   sandy.core.lpc
+   sandy.core.lpccov
+   sandy.core.records
+   sandy.core.samples
+   sandy.core.xs
+   sandy.core.xscov

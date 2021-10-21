@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sandy.fy module &mdash; SANDY API 0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.groupr module" href="sandy.groupr.html" />
+    <link rel="prev" title="sandy.functions module" href="sandy.functions.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SANDY API
+          </a>
+              <div class="version">
+                1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html">sandy.decay module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.energy_grids.html">sandy.energy_grids module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.zam.html">sandy.zam module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+      <li>sandy.fy module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/sandy.fy.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-sandy.fy">
+<span id="sandy-fy-module"></span><h1>sandy.fy module<a class="headerlink" href="#module-sandy.fy" title="Permalink to this headline"></a></h1>
+<p>This module contains all classes and functions specific for processing fission
+yield data.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.fy.Fy">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.fy.</span></span><span class="sig-name descname"><span class="pre">Fy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Object for fission yield data.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><a class="reference internal" href="#sandy.fy.Fy.data" title="sandy.fy.Fy.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a><span class="classifier"><cite>pandas.DataFrame</cite></span></dt><dd><p>Dataframe of fission yield data with the following columns:</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.fy.Fy.energy_table" title="sandy.fy.Fy.energy_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_table</span></code></a>(key[, by, kind])</p></td>
+<td><p>Pivot dataframe of tabulated fission yields as a function of energy.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_expand_zam</span></code>()</p></td>
+<td><p>Produce dataframe with three extra columns containing the <cite>Z</cite>, <cite>A</cite> and <cite>M</cite> numbers of the <strong>daughter</strong> nuclide (fission product).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_expand_zap</span></code>()</p></td>
+<td><p>Produce dataframe with three extra columns containing the <cite>Z</cite>, <cite>A</cite> and <cite>M</cite> numbers of the <strong>parent</strong> (fissioning) nuclide.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.fy.Fy.filter_by" title="sandy.fy.Fy.filter_by"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_by</span></code></a>(key, value)</p></td>
+<td><p>Apply condition to source data and return filtered results.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.fy.Fy.from_endf6" title="sandy.fy.Fy.from_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_endf6</span></code></a>(endf6[, verbose])</p></td>
+<td><p>Extract fission yields from <cite>Endf6</cite> instance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.fy.Fy.to_hdf5" title="sandy.fy.Fy.to_hdf5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_hdf5</span></code></a>(file, library)</p></td>
+<td><p>Write fission yield data to hdf5 file.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 31%" />
+<col style="width: 69%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>custom_perturbation</strong></p></td>
+<td><p>Apply a custom perturbation to a given cross section</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>to_endf6</strong></p></td>
+<td><p>Update fission yield data in <cite>Endf6</cite> instance</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.fy.Fy.data">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sandy.fy.Fy.data" title="Permalink to this definition"></a></dt>
+<dd><p>Dataframe of fission yield data with the following columns:</p>
+<blockquote>
+<div><ul>
+<li><p><cite>MAT</cite> : MAT number</p></li>
+<li><p><cite>MT</cite> : MT number</p></li>
+<li><p><cite>ZAM</cite> : <cite>Z*1000 + A*10 + M</cite> for the parent (fissioning) nuclide</p></li>
+<li><dl>
+<dt><cite>ZAP</cite><span class="classifier"><cite>Z*1000 + A*10 + M</cite> for the daughter nuclide</span></dt><dd><p>(fission product)</p>
+</dd>
+</dl>
+</li>
+<li><p><cite>E</cite> : fissioning energy</p></li>
+<li><p><cite>FY</cite> : fission yield (fraction)</p></li>
+</ul>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>tabulated fission yields</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest</span><span class="p">)</span>
+<span class="go">    MAT   MT     ZAM     ZAP           E          FY</span>
+<span class="go">0  9437  454  942390  380900 2.53000e-07 2.00000e-01</span>
+<span class="go">1  9437  454  942390  551370 2.53000e-07 1.80000e+00</span>
+<span class="go">2  9437  454  942390  380900 5.00000e+05 8.00000e-01</span>
+<span class="go">3  9437  454  942390  551370 5.00000e+05 1.00000e+00</span>
+<span class="go">4  9437  454  942390  541350 5.00000e+05 2.00000e-01</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.energy_table">
+<span class="sig-name descname"><span class="pre">energy_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ZAM'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'independent'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.energy_table" title="Permalink to this definition"></a></dt>
+<dd><p>Pivot dataframe of tabulated fission yields as a function of energy.
+Columns are determined by keyword argument <cite>‘by’</cite>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>key</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT or ZAM number used as columns of the pivot table</p>
+</dd>
+<dt><strong>by</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘ZAM’</cite></span></dt><dd><p>column name used as columns in the pivot table</p>
+</dd>
+<dt><strong>kind</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘independent’</cite></span></dt><dd><p>either <cite>‘independent’</cite> or <cite>‘cumulative’</cite></p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>tabulated fission yields</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>ValueError</cite></dt><dd><p>if <cite>kind</cite> is neither <cite>‘independent’</cite> nor <cite>‘cumulative’</cite></p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>..note :: if a fission product has a yield at say, thermal energy but</dt><dd><p>not at fast, then a fast yield of zero will be assigned.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest</span><span class="p">)</span><span class="o">.</span><span class="n">energy_table</span><span class="p">(</span><span class="mi">942390</span><span class="p">)</span>
+<span class="go">ZAP              380900      541350      551370</span>
+<span class="go">E                                              </span>
+<span class="go">2.53000e-07 2.00000e-01 0.00000e+00 1.80000e+00</span>
+<span class="go">5.00000e+05 8.00000e-01 2.00000e-01 1.00000e+00</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.filter_by">
+<span class="sig-name descname"><span class="pre">filter_by</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.filter_by" title="Permalink to this definition"></a></dt>
+<dd><p>Apply condition to source data and return filtered results.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>`key`</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>any label present in the columns of <cite>data</cite></p>
+</dd>
+<dt><strong>`value`</strong><span class="classifier"><cite>int</cite> or <cite>float</cite></span></dt><dd><p>value used as filtering condition</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Fy</cite></dt><dd><p>filtered dataframe of fission yields</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The primary function of this method is to make sure that
+the filtered dataframe is still returned as a <cite>Fy</cite> object.</p>
+</div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="s2">&quot;ZAP&quot;</span><span class="p">,</span> <span class="mi">380900</span><span class="p">)</span>
+<span class="go">    MAT   MT     ZAM     ZAP           E          FY</span>
+<span class="go">0  9437  454  942390  380900 2.53000e-07 2.00000e-01</span>
+<span class="go">1  9437  454  942390  380900 5.00000e+05 8.00000e-01</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="s2">&quot;E&quot;</span><span class="p">,</span> <span class="mf">5e5</span><span class="p">)</span>
+<span class="go">    MAT   MT     ZAM     ZAP           E          FY</span>
+<span class="go">0  9437  454  942390  380900 5.00000e+05 8.00000e-01</span>
+<span class="go">1  9437  454  942390  551370 5.00000e+05 1.00000e+00</span>
+<span class="go">2  9437  454  942390  541350 5.00000e+05 2.00000e-01</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.from_endf6">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endf6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.from_endf6" title="Permalink to this definition"></a></dt>
+<dd><p>Extract fission yields from <cite>Endf6</cite> instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>endf6</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p>object containing the ENDF-6 text</p>
+</dd>
+<dt><strong>verbose</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>flag to print information when reading ENDF-6 file</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Fy</cite></dt><dd><p>fission yield object</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Both independent and cumulative fission product yields are
+loaded, if found.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.to_hdf5">
+<span class="sig-name descname"><span class="pre">to_hdf5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">library</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.to_hdf5" title="Permalink to this definition"></a></dt>
+<dd><p>Write fission yield data to hdf5 file.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>`file`</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>HDF5 file</p>
+</dd>
+<dt><strong>`library`</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>library name</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<dl class="simple">
+<dt><cite>logging.warning</cite></dt><dd><p>raise a warning if any hdf5 group key is already in used, still
+the existing group will be replaced</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>the group key for each set of fission yields contains
+* library: the lowercase name of the library
+* fy: key “fy”
+* kind: “independent” or “cumulative”
+* ZAM: the ZAM number proceeded by prefix “i”</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>the energy values in the HDF5 file are in MeV</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.fy.fy2hdf">
+<span class="sig-prename descclassname"><span class="pre">sandy.fy.</span></span><span class="sig-name descname"><span class="pre">fy2hdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">e6file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h5file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lib</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.fy2hdf" title="Permalink to this definition"></a></dt>
+<dd><p>Write to disk a HDF5 file that reproduces the content of a FY file in
+ENDF6 format.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>e6file</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>ENDF-6 filename</p>
+</dd>
+<dt><strong>h5file</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>HDF5 filename</p>
+</dd>
+<dt><strong>lib</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>library name (it will appear as a hdf5 group)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sandy.functions.html" class="btn btn-neutral float-left" title="sandy.functions module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.groupr.html" class="btn btn-neutral float-right" title="sandy.groupr module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sandy.pfns module &mdash; SANDY API 0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.processing module" href="sandy.processing.html" />
+    <link rel="prev" title="sandy.pert module" href="sandy.pert.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SANDY API
+          </a>
+              <div class="version">
+                1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html">sandy.decay module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.energy_grids.html">sandy.energy_grids module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.pfns module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.zam.html">sandy.zam module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+      <li>sandy.pfns module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/sandy.pfns.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-sandy.pfns">
+<span id="sandy-pfns-module"></span><h1>sandy.pfns module<a class="headerlink" href="#module-sandy.pfns" title="Permalink to this headline"></a></h1>
+<p>This module contains all classes and functions dedicated to handling PFNS
+data and, more in general, any tabulated energy distribution provided in
+MF5 sections.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.pfns.Edistr">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.pfns.</span></span><span class="sig-name descname"><span class="pre">Edistr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pfns.Edistr" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Object to store tabulate energy distributions.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><a class="reference internal" href="#sandy.pfns.Edistr.data" title="sandy.pfns.Edistr.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a><span class="classifier"><cite>pandas.DataFrame</cite></span></dt><dd><p>Dataframe of energy distribution data with the following columns:</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.pfns.Edistr.add_energy_point" title="sandy.pfns.Edistr.add_energy_point"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_energy_point</span></code></a>(mat, mt, k, enew)</p></td>
+<td><p>Add outgoing energy distribution at one additional incident energy by interpolation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.pfns.Edistr.add_energy_points" title="sandy.pfns.Edistr.add_energy_points"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_energy_points</span></code></a>(mat, mt, k, elist)</p></td>
+<td><p>Add outgoing energy distributions at additional incident energies by interpolation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.pfns.Edistr.custom_perturbation" title="sandy.pfns.Edistr.custom_perturbation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">custom_perturbation</span></code></a>(pert, mat, mt, k, ...)</p></td>
+<td><p>Given a peruration object (fractions), a MAT number, a MT number, a subsection number, a lower and an upper incoming energy bound, apply the perturbation to the outgoing energy distributions for all incident energies comprised within the given boundaries.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.pfns.Edistr.filter_by" title="sandy.pfns.Edistr.filter_by"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_by</span></code></a>(key, value)</p></td>
+<td><p>Apply condition to source data and return filtered results.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.pfns.Edistr.from_endf6" title="sandy.pfns.Edistr.from_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_endf6</span></code></a>(endf6)</p></td>
+<td><p>Extract energy distributions from <cite>Endf6</cite> instance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.pfns.Edistr.get_integrals" title="sandy.pfns.Edistr.get_integrals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_integrals</span></code></a>()</p></td>
+<td><p>Calculate the integral of each energy distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.pfns.Edistr.get_table" title="sandy.pfns.Edistr.get_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_table</span></code></a>(mat, mt, k)</p></td>
+<td><p>Pivot dataframe of tabulated energy spectra.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.pfns.Edistr.normalize" title="sandy.pfns.Edistr.normalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize</span></code></a>()</p></td>
+<td><p>Renormalize each outgoing energy distribution to 1.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.pfns.Edistr.add_energy_point">
+<span class="sig-name descname"><span class="pre">add_energy_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enew</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pfns.Edistr.add_energy_point" title="Permalink to this definition"></a></dt>
+<dd><p>Add outgoing energy distribution at one additional incident energy by
+interpolation.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>mat</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT number.</p>
+</dd>
+<dt><strong>mt</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MT number.</p>
+</dd>
+<dt><strong>k</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>subsection.</p>
+</dd>
+<dt><strong>enew</strong><span class="classifier">float</span></dt><dd><p>energy point in eV</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Edistr</cite></dt><dd><p>energy distribution with an additional additional incoming energy.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">orig</span> <span class="o">=</span> <span class="n">Edistr</span><span class="p">(</span><span class="n">minimal_edistrtest</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">add_energy_point</span><span class="p">(</span><span class="mi">9437</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new</span>
+<span class="go">    MAT  MT  K         EIN        EOUT       VALUE</span>
+<span class="go">0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01</span>
+<span class="go">1  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01</span>
+<span class="go">2  9437  18  0 1.50000e+00 1.00000e-05 2.00000e-01</span>
+<span class="go">3  9437  18  0 1.50000e+00 1.00000e-04 3.00000e-01</span>
+<span class="go">4  9437  18  0 1.50000e+00 1.00000e+00 5.50000e-01</span>
+<span class="go">5  9437  18  0 1.50000e+00 1.00000e+07 3.00000e-01</span>
+<span class="go">6  9437  18  0 1.50000e+00 2.00000e+07 3.00000e-01</span>
+<span class="go">7  9437  18  0 2.00000e+00 1.00000e-04 2.00000e-01</span>
+<span class="go">8  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01</span>
+<span class="go">9  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">new</span><span class="o">.</span><span class="n">get_table</span><span class="p">(</span><span class="mi">9437</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="go">EOUT         1.00000e-05  1.00000e-04  1.00000e+00  1.00000e+07  2.00000e+07</span>
+<span class="go">EIN                                                                         </span>
+<span class="go">1.00000e+00  4.00000e-01  4.00000e-01  4.00000e-01  5.00000e-01  6.00000e-01</span>
+<span class="go">1.50000e+00  2.00000e-01  3.00000e-01  5.50000e-01  3.00000e-01  3.00000e-01</span>
+<span class="go">2.00000e+00  0.00000e+00  2.00000e-01  7.00000e-01  1.00000e-01  0.00000e+00</span>
+</pre></div>
+</div>
+<p>If energy point is already present
+&gt;&gt;&gt; copy = orig.add_energy_point(9437, 18, 0, 1)
+&gt;&gt;&gt; pd.testing.assert_frame_equal(orig.data, copy.data)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.pfns.Edistr.add_energy_points">
+<span class="sig-name descname"><span class="pre">add_energy_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elist</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pfns.Edistr.add_energy_points" title="Permalink to this definition"></a></dt>
+<dd><p>Add outgoing energy distributions at additional incident energies by
+interpolation.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>mat</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT number.</p>
+</dd>
+<dt><strong>mt</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MT number.</p>
+</dd>
+<dt><strong>k</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>subsection.</p>
+</dd>
+<dt><strong>elist</strong><span class="classifier">iterable of <cite>float</cite></span></dt><dd><p>energy points in eV</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>new</strong><span class="classifier"><cite>sandy.Edistr</cite></span></dt><dd><p>energy distribution with an additional additional incoming
+energies.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">orig</span> <span class="o">=</span> <span class="n">Edistr</span><span class="p">(</span><span class="n">minimal_edistrtest</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new</span> <span class="o">=</span> <span class="n">orig</span><span class="o">.</span><span class="n">add_energy_points</span><span class="p">(</span><span class="mi">9437</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">1.7</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new</span>
+<span class="go">     MAT  MT  K         EIN        EOUT       VALUE</span>
+<span class="go">0   9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01</span>
+<span class="go">1   9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01</span>
+<span class="go">2   9437  18  0 1.50000e+00 1.00000e-05 2.00000e-01</span>
+<span class="go">3   9437  18  0 1.50000e+00 1.00000e-04 3.00000e-01</span>
+<span class="go">4   9437  18  0 1.50000e+00 1.00000e+00 5.50000e-01</span>
+<span class="go">5   9437  18  0 1.50000e+00 1.00000e+07 3.00000e-01</span>
+<span class="go">6   9437  18  0 1.50000e+00 2.00000e+07 3.00000e-01</span>
+<span class="go">7   9437  18  0 1.70000e+00 1.00000e-05 1.20000e-01</span>
+<span class="go">8   9437  18  0 1.70000e+00 1.00000e-04 2.60000e-01</span>
+<span class="go">9   9437  18  0 1.70000e+00 1.00000e+00 6.10000e-01</span>
+<span class="go">10  9437  18  0 1.70000e+00 1.00000e+07 2.20000e-01</span>
+<span class="go">11  9437  18  0 1.70000e+00 2.00000e+07 1.80000e-01</span>
+<span class="go">12  9437  18  0 2.00000e+00 1.00000e-04 2.00000e-01</span>
+<span class="go">13  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01</span>
+<span class="go">14  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.pfns.Edistr.custom_perturbation">
+<span class="sig-name descname"><span class="pre">custom_perturbation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pert</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ein_low</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ein_high</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pfns.Edistr.custom_perturbation" title="Permalink to this definition"></a></dt>
+<dd><p>Given a peruration object (fractions), a MAT number, a MT number,
+a subsection number, a lower and an upper incoming energy bound,
+apply the perturbation to the outgoing energy distributions for all
+incident energies comprised within the given boundaries.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>pert</strong><span class="classifier"><cite>sandy.Pert</cite></span></dt><dd><p>perturbation object.</p>
+</dd>
+<dt><strong>mat</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT number.</p>
+</dd>
+<dt><strong>mt</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MT number.</p>
+</dd>
+<dt><strong>k</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>subsection.</p>
+</dd>
+<dt><strong>ein_low</strong><span class="classifier">TYPE</span></dt><dd><p>lower energy boundary in eV.</p>
+</dd>
+<dt><strong>ein_high</strong><span class="classifier">TYPE</span></dt><dd><p>upper energy boundary in eV.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Edistr</cite></dt><dd><p>perturbed distributions.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>the output distributions are not renormalized.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The energy grid of the perturbation object refers to the
+outgoing energy distribution.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the perturbation exceeds 100%, it is truncated.</p>
+</div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">orig</span> <span class="o">=</span> <span class="n">Edistr</span><span class="p">(</span><span class="n">minimal_edistrtest</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pert</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Pert</span><span class="p">([</span><span class="mf">1.3</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="mf">1e-3</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">orig</span><span class="o">.</span><span class="n">custom_perturbation</span><span class="p">(</span><span class="n">pert</span><span class="p">,</span> <span class="mi">9437</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">)</span>
+<span class="go">    MAT  MT  K         EIN        EOUT       VALUE</span>
+<span class="go">0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01</span>
+<span class="go">1  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01</span>
+<span class="go">2  9437  18  0 2.00000e+00 1.00000e-04 2.60000e-01</span>
+<span class="go">3  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01</span>
+<span class="go">4  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.pfns.Edistr.data">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sandy.pfns.Edistr.data" title="Permalink to this definition"></a></dt>
+<dd><p>Dataframe of energy distribution data with the following columns:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>MAT</cite> : MAT number</p></li>
+<li><p><cite>MT</cite> : MT number</p></li>
+<li><p><cite>K</cite> : subsection number</p></li>
+<li><p><cite>EIN</cite> : incoming energy</p></li>
+<li><p><cite>EOUT</cite> : outgoing energy</p></li>
+<li><p><cite>VALUE</cite> : tabulated value of the distribution</p></li>
+</ul>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>tabulated energy distribution</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>tabulated values are assumed to be interpolated linearly</p>
+</div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edistr</span><span class="p">(</span><span class="n">minimal_edistrtest</span><span class="p">)</span>
+<span class="go">    MAT  MT  K         EIN        EOUT       VALUE</span>
+<span class="go">0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01</span>
+<span class="go">1  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01</span>
+<span class="go">2  9437  18  0 2.00000e+00 1.00000e-04 2.00000e-01</span>
+<span class="go">3  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01</span>
+<span class="go">4  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.pfns.Edistr.filter_by">
+<span class="sig-name descname"><span class="pre">filter_by</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pfns.Edistr.filter_by" title="Permalink to this definition"></a></dt>
+<dd><p>Apply condition to source data and return filtered results.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>`key`</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>any label present in the columns of <cite>data</cite></p>
+</dd>
+<dt><strong>`value`</strong><span class="classifier"><cite>int</cite> or <cite>float</cite></span></dt><dd><p>value used as filtering condition</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Edistr</cite></dt><dd><p>filtered dataframe of energy distributions</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>sandy.Error</cite></dt><dd><p>if applied filter returned empty dataframe</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The primary function of this method is to make sure that
+the filtered dataframe is still returned as a <cite>Edistr</cite>
+object.</p>
+</div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edistr</span><span class="p">(</span><span class="n">minimal_edistrtest</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="s2">&quot;EIN&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">    MAT  MT  K         EIN        EOUT       VALUE</span>
+<span class="go">0  9437  18  0 2.00000e+00 1.00000e-04 2.00000e-01</span>
+<span class="go">1  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01</span>
+<span class="go">2  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.pfns.Edistr.from_endf6">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endf6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pfns.Edistr.from_endf6" title="Permalink to this definition"></a></dt>
+<dd><p>Extract energy distributions from <cite>Endf6</cite> instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>endf6</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p>object containing the ENDF-6 text</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Edistr</cite></dt><dd><p>object with tabulated energy distributions</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.pfns.Edistr.get_integrals">
+<span class="sig-name descname"><span class="pre">get_integrals</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pfns.Edistr.get_integrals" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the integral of each energy distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>dataframe of integrals</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edistr</span><span class="p">(</span><span class="n">minimal_edistrtest</span><span class="p">)</span><span class="o">.</span><span class="n">get_integrals</span><span class="p">()</span>
+<span class="go">    MAT  MT  K         EIN    INTEGRAL</span>
+<span class="go">0  9437  18  0 1.00000e+00 1.00000e+07</span>
+<span class="go">1  9437  18  0 2.00000e+00 4.00000e+06</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.pfns.Edistr.get_table">
+<span class="sig-name descname"><span class="pre">get_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pfns.Edistr.get_table" title="Permalink to this definition"></a></dt>
+<dd><p>Pivot dataframe of tabulated energy spectra.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>mat</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT number to filter data</p>
+</dd>
+<dt><strong>mt</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MT number to filter data</p>
+</dd>
+<dt><strong>k</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>subsection number to filter data</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>tabulated energy spectra with incident energies as index and
+outgoing energies as columns.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edistr</span><span class="p">(</span><span class="n">minimal_edistrtest</span><span class="p">)</span><span class="o">.</span><span class="n">get_table</span><span class="p">(</span><span class="mi">9437</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="go">EOUT         1.00000e-05  1.00000e-04  1.00000e+00  1.00000e+07  2.00000e+07</span>
+<span class="go">EIN                                                                         </span>
+<span class="go">1.00000e+00  4.00000e-01  4.00000e-01  4.00000e-01  5.00000e-01  6.00000e-01</span>
+<span class="go">2.00000e+00  0.00000e+00  2.00000e-01  7.00000e-01  1.00000e-01  0.00000e+00</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.pfns.Edistr.normalize">
+<span class="sig-name descname"><span class="pre">normalize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pfns.Edistr.normalize" title="Permalink to this definition"></a></dt>
+<dd><p>Renormalize each outgoing energy distribution to 1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>sandy.Edistr</cite></dt><dd><p>renormalized energy distributions</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">new</span> <span class="o">=</span> <span class="n">Edistr</span><span class="p">(</span><span class="n">minimal_edistrtest</span><span class="p">)</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new</span>
+<span class="go">    MAT  MT  K         EIN        EOUT       VALUE</span>
+<span class="go">0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-08</span>
+<span class="go">1  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-08</span>
+<span class="go">2  9437  18  0 2.00000e+00 1.00000e-04 5.00000e-08</span>
+<span class="go">3  9437  18  0 2.00000e+00 1.00000e+00 1.75000e-07</span>
+<span class="go">4  9437  18  0 2.00000e+00 1.00000e+07 2.50000e-08</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">new</span><span class="o">.</span><span class="n">get_integrals</span><span class="p">()</span>
+<span class="go">    MAT  MT  K         EIN    INTEGRAL</span>
+<span class="go">0  9437  18  0 1.00000e+00 1.00000e+00</span>
+<span class="go">1  9437  18  0 2.00000e+00 1.00000e+00</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sandy.pert.html" class="btn btn-neutral float-left" title="sandy.pert module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.processing.html" class="btn btn-neutral float-right" title="sandy.processing module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

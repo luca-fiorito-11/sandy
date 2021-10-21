@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sandy.core.lpccov module &mdash; SANDY API 0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.core.records module" href="sandy.core.records.html" />
+    <link rel="prev" title="sandy.core.lpc module" href="sandy.core.lpc.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SANDY API
+          </a>
+              <div class="version">
+                1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="sandy.core.html">sandy.core package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="sandy.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+          <li><a href="sandy.core.html">sandy.core package</a> &raquo;</li>
+      <li>sandy.core.lpccov module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/sandy.core.lpccov.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-sandy.core.lpccov">
+<span id="sandy-core-lpccov-module"></span><h1>sandy.core.lpccov module<a class="headerlink" href="#module-sandy.core.lpccov" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.core.lpccov.LpcCov">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.core.lpccov.</span></span><span class="sig-name descname"><span class="pre">LpcCov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.lpccov.LpcCov" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="sandy.core.basecov.html#sandy.core.basecov.BaseCov" title="sandy.core.basecov.BaseCov"><code class="xref py py-class docutils literal notranslate"><span class="pre">sandy.core.basecov.BaseCov</span></code></a></p>
+<p>Covariance matrix for energy dependent Legendre polynomials coefficients covariance.
+Covariances can be stored for:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>individual polynomial coefficients,</p></li>
+<li><p>cross polynomial coefficients,</p></li>
+<li><p>cross isotopes,</p></li>
+</ul>
+</div></blockquote>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><strong>index</strong><span class="classifier"><cite>pandas.MultiIndex</cite></span></dt><dd><dl class="simple">
+<dt>index with four levels:</dt><dd><ul class="simple">
+<li><p><cite>MAT</cite> : <cite>int</cite>, MAT number to identify the isotope</p></li>
+<li><p><cite>MT</cite> : <cite>int</cite>, MT number to identify the reaction</p></li>
+<li><p><cite>L</cite> : <cite>int</cite>, polynomial order</p></li>
+<li><p><cite>E</cite> : <cite>float</cite>, energy of the incident particle</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt><strong>columns</strong><span class="classifier"><cite>pandas.MultiIndex</cite></span></dt><dd><p>see <cite>index</cite></p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">values</span></code><span class="classifier"><cite>numpy array</cite></span></dt><dd><p>Return a Numpy representation of the DataFrame.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.lpccov.LpcCov.from_endf6" title="sandy.core.lpccov.LpcCov.from_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_endf6</span></code></a>(endf6)</p></td>
+<td><p>Extract global Legendre Polynomials coefficients covariance matrix  from <cite>sandy.Endf6</cite> instance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.lpccov.LpcCov.get_samples" title="sandy.core.lpccov.LpcCov.get_samples"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_samples</span></code></a>(nsmp, **kwargs)</p></td>
+<td><p>Draw samples from probability distribution centered in 1 and with relative covariance in <cite>LpcCov</cite> instance.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 88%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>from_list</strong></p></td>
+<td><p>Extract global cross section/nubar covariance matrix from iterables of <cite>sandy.formats.utils.EnergyCov</cite> instances</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_section</strong></p></td>
+<td><p>Extract section of global cross section/nubar covariance matrix as a <cite>sandy.formats.utils.EnergyCov</cite> instance</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.lpccov.LpcCov.filter_p">
+<span class="sig-name descname"><span class="pre">filter_p</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.lpccov.LpcCov.filter_p" title="Permalink to this definition"></a></dt>
+<dd><p>Delete covariances for Legendre polynomial coefficients with order higher than <cite>p</cite>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>p</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>maximum order of Legendre polynomial coefficients</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.LpcCov</cite></dt><dd><p>reduced covariance matrix with Legendre polynomial coefficients of order lower than <cite>p</cite></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.lpccov.LpcCov.from_endf6">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endf6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.lpccov.LpcCov.from_endf6" title="Permalink to this definition"></a></dt>
+<dd><p>Extract global Legendre Polynomials coefficients covariance matrix 
+from <cite>sandy.Endf6</cite> instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>endf6</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p>ENDF-6 file instance containing covariance sections</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.LpcCov</cite></dt><dd><p>covariance matrix for Legendre polynomial coefficients found in ENDF-6 file instance</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.lpccov.LpcCov.get_samples">
+<span class="sig-name descname"><span class="pre">get_samples</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nsmp</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.lpccov.LpcCov.get_samples" title="Permalink to this definition"></a></dt>
+<dd><p>Draw samples from probability distribution centered in 1 and with
+relative covariance in <cite>LpcCov</cite> instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>nsmp</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>number of samples</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.LpcSamples</cite></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sandy.core.lpccov.LpcCov.labels">
+<span class="sig-name descname"><span class="pre">labels</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['MAT',</span> <span class="pre">'MT',</span> <span class="pre">'L',</span> <span class="pre">'E']</span></em><a class="headerlink" href="#sandy.core.lpccov.LpcCov.labels" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.lpccov.LpcCov.plot_std">
+<span class="sig-name descname"><span class="pre">plot_std</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">display</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.lpccov.LpcCov.plot_std" title="Permalink to this definition"></a></dt>
+<dd><p>Plot standard deviations with seaborn.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>display</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>flag to display figure to screen</p>
+</dd>
+<dt><strong>kwargs</strong><span class="classifier">keyword arguments</span></dt><dd><p>extra arguments to pass to <cite>seaborn.lineplot</cite></p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>matplotlib.pyplot.Axes</cite></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sandy.core.lpc.html" class="btn btn-neutral float-left" title="sandy.core.lpc module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.core.records.html" class="btn btn-neutral float-right" title="sandy.core.records module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

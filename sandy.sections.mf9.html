@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sandy.sections.mf9 module &mdash; SANDY API 0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.constants module" href="sandy.constants.html" />
+    <link rel="prev" title="sandy.sections.mf8 module" href="sandy.sections.mf8.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SANDY API
+          </a>
+              <div class="version">
+                1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.html">sandy.core package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="sandy.sections.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+          <li><a href="sandy.sections.html">sandy.sections package</a> &raquo;</li>
+      <li>sandy.sections.mf9 module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/sandy.sections.mf9.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-sandy.sections.mf9">
+<span id="sandy-sections-mf9-module"></span><h1>sandy.sections.mf9 module<a class="headerlink" href="#module-sandy.sections.mf9" title="Permalink to this headline"></a></h1>
+<dl class="simple">
+<dt>This module contains only two public functions:</dt><dd><ul class="simple">
+<li><p><cite>read_mf9</cite></p></li>
+<li><p><cite>write_mf9</cite></p></li>
+</ul>
+</dd>
+</dl>
+<p>Function <cite>read</cite> reads a MF9/MT section from a string and produces a content
+object with a dictionary-like structure.
+The content object can be accessed using most of the keywords specified in
+the ENDF6 manual for this specific MF section.
+Function <cite>write_mf9</cite> writes a content object for a MF9/MT section into a
+string.
+MAT, MF, MT and line numbers are also added (each line ends with a `
+<a href="#id1"><span class="problematic" id="id2">`</span></a>).</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.sections.mf9.read_mf9">
+<span class="sig-prename descclassname"><span class="pre">sandy.sections.mf9.</span></span><span class="sig-name descname"><span class="pre">read_mf9</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sections.mf9.read_mf9" title="Permalink to this definition"></a></dt>
+<dd><p>Parse MAT/MF=9/MT section from <cite>sandy.Endf6</cite> object and return
+structured content in nested dcitionaries.
+Parameters
+———-
+tape : <cite>sandy.Endf6</cite></p>
+<blockquote>
+<div><p>endf6 object containing requested section</p>
+</div></blockquote>
+<dl>
+<dt>mat<span class="classifier"><cite>int</cite></span></dt><dd><p>MAT number</p>
+</dd>
+<dt>mt<span class="classifier"><cite>int</cite></span></dt><dd><p>MT number</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>out: <cite>dict</cite></dt><dd><p>Content of the ENDF-6 tape structured as nested <cite>dict</cite>.</p>
+</dd>
+</dl>
+<p>Endf-6 tape structured ‘dict’ of Radiactive capture of Am-241 from
+the ENDFB-VII.1 library to obtain the multiplicities for production
+of radioactive nuclides
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘xs’, 952410)
+&gt;&gt;&gt; read_mf9(tape, 9543, 102)
+{‘MAT’: 9543,</p>
+<blockquote>
+<div><p>‘MF’: 9,
+‘MT’: 102,
+‘ZA’: 95241.0,
+‘AWR’: 238.986,
+‘LIS’: 0,
+‘LFS’: {0: {‘QM’: 5539101.0,</p>
+<blockquote>
+<div><blockquote>
+<div><p>‘QI’: 5539101.0,
+‘IZAP’: 95242,
+‘NBT’: [9],
+‘INT’: [3],
+‘E’: array([1.000000e-05, 3.690000e-01, 1.000000e+03, 1.000000e+05,</p>
+<blockquote>
+<div><p>6.000001e+05, 1.000000e+06, 2.000000e+06, 4.000001e+06,
+3.000000e+07]),</p>
+</div></blockquote>
+<dl class="simple">
+<dt>‘Y’: array([0.9    , 0.9    , 0.8667 , 0.842  , 0.81533, 0.74382, 0.5703 ,</dt><dd><p>0.52   , 0.52   ])},</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl>
+<dt>2: {‘QM’: 5539101.0,</dt><dd><p>‘QI’: 5490471.0,
+‘IZAP’: 95242,
+‘NBT’: [9],
+‘INT’: [3],
+‘E’: array([1.000000e-05, 3.690000e-01, 1.000000e+03, 1.000000e+05,</p>
+<blockquote>
+<div><p>6.000001e+05, 1.000000e+06, 2.000000e+06, 4.000001e+06,
+3.000000e+07]),</p>
+</div></blockquote>
+<dl class="simple">
+<dt>‘Y’: array([0.1    , 0.1    , 0.1333 , 0.158  , 0.18467, 0.25618, 0.4297 ,</dt><dd><p>0.48   , 0.48   ])}}}</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.sections.mf9.write_mf9">
+<span class="sig-prename descclassname"><span class="pre">sandy.sections.mf9.</span></span><span class="sig-name descname"><span class="pre">write_mf9</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sections.mf9.write_mf9" title="Permalink to this definition"></a></dt>
+<dd><blockquote>
+<div><p>Given the content of a MF9 section as nested dictionaries, write it
+to string.
+Parameters
+———-
+sec : ‘dic’</p>
+<blockquote>
+<div><p>Content of the ENDF-6 tape structured as nested <cite>dict</cite>.</p>
+</div></blockquote>
+<dl class="simple">
+<dt><cite>str</cite></dt><dd><p>Multiline string reproducing the content of a ENDF-6 section.</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The end-of-line records MAT, MF, MT and line number are added at
+the end of each line.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The string does not endf with a newline symbol `</p>
+</div>
+</div></blockquote>
+<dl>
+<dt><a href="#id3"><span class="problematic" id="id4">`</span></a>.</dt><dd><p>String reproducing the content of a ENDF-6 section for Radiactive capture
+of Am-241 from the ENDFB-VII.1 library to obtain the multiplicities for
+production of radioactive nuclides
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘xs’, 952410)
+&gt;&gt;&gt; sec = read_mf9(tape, 9543, 102)
+&gt;&gt;&gt; text = write_mf9(sec)
+&gt;&gt;&gt; print(text)</p>
+<blockquote>
+<div><p>95241.0000 238.986000          0          0          2          09543 9102    1
+5539101.00 5539101.00      95242          0          1          99543 9102    2</p>
+<blockquote>
+<div><p>9          3                                            9543 9102    3</p>
+</div></blockquote>
+<p>1.000000-5 9.000000-1 3.690000-1 9.000000-1 1000.00000 8.667000-19543 9102    4
+100000.000 8.420000-1 600000.100 8.153300-1 1000000.00 7.438200-19543 9102    5
+2000000.00 5.703000-1 4000001.00 5.200000-1 30000000.0 5.200000-19543 9102    6
+5539101.00 5490471.00      95242          2          1          99543 9102    7</p>
+<blockquote>
+<div><p>9          3                                            9543 9102    8</p>
+</div></blockquote>
+<p>1.000000-5 1.000000-1 3.690000-1 1.000000-1 1000.00000 1.333000-19543 9102    9
+100000.000 1.580000-1 600000.100 1.846700-1 1000000.00 2.561800-19543 9102   10
+2000000.00 4.297000-1 4000001.00 4.800000-1 30000000.0 4.800000-19543 9102   11</p>
+</div></blockquote>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sandy.sections.mf8.html" class="btn btn-neutral float-left" title="sandy.sections.mf8 module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.constants.html" class="btn btn-neutral float-right" title="sandy.constants module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

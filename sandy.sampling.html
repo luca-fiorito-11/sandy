@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sandy.sampling module &mdash; SANDY API 0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.settings module" href="sandy.settings.html" />
+    <link rel="prev" title="sandy.processing module" href="sandy.processing.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SANDY API
+          </a>
+              <div class="version">
+                1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html">sandy.decay module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.energy_grids.html">sandy.energy_grids module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.sampling module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.zam.html">sandy.zam module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+      <li>sandy.sampling module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/sandy.sampling.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-sandy.sampling">
+<span id="sandy-sampling-module"></span><h1>sandy.sampling module<a class="headerlink" href="#module-sandy.sampling" title="Permalink to this headline"></a></h1>
+<p>Created on Mon Mar 19 22:51:03 2018</p>
+<p>&#64;author: Luca Fiorito</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.sampling.</span></span><span class="sig-name descname"><span class="pre">SamplingManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sampling.SamplingManager" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><a class="reference internal" href="#sandy.sampling.SamplingManager.file" title="sandy.sampling.SamplingManager.file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">file</span></code></a><span class="classifier"><cite>str</cite></span></dt><dd><p>Examples</p>
+</dd>
+<dt><strong>covfile</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>ENDF-6 file containing covariances</p>
+</dd>
+<dt><strong>mat</strong><span class="classifier"><cite>list</cite> of <cite>int</cite></span></dt><dd><p>draw samples only from the selected MAT sections</p>
+</dd>
+<dt><strong>mf</strong><span class="classifier"><cite>list</cite> of <cite>int</cite></span></dt><dd><p>draw samples only from the selected MF sections</p>
+</dd>
+<dt><strong>mt</strong><span class="classifier"><cite>list</cite> of <cite>int</cite></span></dt><dd><p>draw samples only from the selected MT sections</p>
+</dd>
+<dt><strong>processes</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>number of worker processes (default is 1)</p>
+</dd>
+<dt><strong>samples</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>number of samples (default is 100)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.sampling.SamplingManager.from_cli" title="sandy.sampling.SamplingManager.from_cli"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_cli</span></code></a>([iargs])</p></td>
+<td><p>Parse command line arguments for sampling option.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.sampling.SamplingManager.from_cli2" title="sandy.sampling.SamplingManager.from_cli2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_cli2</span></code></a>([iargs])</p></td>
+<td><p>Parse command line arguments for sampling option.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.sampling.SamplingManager.get_xs_samples" title="sandy.sampling.SamplingManager.get_xs_samples"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_xs_samples</span></code></a>()</p></td>
+<td><p>Draw samples using all covariance sections in the given tape.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 72%" />
+<col style="width: 28%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>add_covfile_argument</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>add_file_argument</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>add_mat_argument</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>add_mf_argument</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>add_mt_argument</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>add_processes_argument</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>add_samples_argument</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>add_version_argument</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.add_covfile_argument">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">add_covfile_argument</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sampling.SamplingManager.add_covfile_argument" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.add_file_argument">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">add_file_argument</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sampling.SamplingManager.add_file_argument" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.add_mat_argument">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">add_mat_argument</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sampling.SamplingManager.add_mat_argument" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.add_mf_argument">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">add_mf_argument</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sampling.SamplingManager.add_mf_argument" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.add_mt_argument">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">add_mt_argument</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sampling.SamplingManager.add_mt_argument" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.add_processes_argument">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">add_processes_argument</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sampling.SamplingManager.add_processes_argument" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.add_samples_argument">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">add_samples_argument</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sampling.SamplingManager.add_samples_argument" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.add_version_argument">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">add_version_argument</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sampling.SamplingManager.add_version_argument" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.covfile">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">covfile</span></span><a class="headerlink" href="#sandy.sampling.SamplingManager.covfile" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.covtape">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">covtape</span></span><a class="headerlink" href="#sandy.sampling.SamplingManager.covtape" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.file">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">file</span></span><a class="headerlink" href="#sandy.sampling.SamplingManager.file" title="Permalink to this definition"></a></dt>
+<dd><p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span> <span class="n">sandy</span><span class="o">.</span><span class="n">SamplingManager</span><span class="p">(</span><span class="s2">&quot;random_file&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.from_cli">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_cli</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sampling.SamplingManager.from_cli" title="Permalink to this definition"></a></dt>
+<dd><p>Parse command line arguments for sampling option.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>iargs</strong><span class="classifier"><cite>list</cite> of <cite>str</cite>, optional, default is <cite>None</cite></span></dt><dd><p>list of strings to parse.
+The default is taken from <cite>sys.argv</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.SamplingManager</cite></dt><dd><p>object to draw samples from endf6 file</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;h1.endf&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sm</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">SamplingManager</span><span class="o">.</span><span class="n">from_cli</span><span class="p">([</span><span class="n">file</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.from_cli2">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_cli2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sampling.SamplingManager.from_cli2" title="Permalink to this definition"></a></dt>
+<dd><p>Parse command line arguments for sampling option.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>iargs</strong><span class="classifier"><cite>list</cite> of <cite>str</cite>, optional, default is <cite>None</cite></span></dt><dd><p>list of strings to parse.
+The default is taken from <cite>sys.argv</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>argparse.Namespace</cite></dt><dd><p>namespace object containing processed given arguments and/or
+default options.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.get_xs_samples">
+<span class="sig-name descname"><span class="pre">get_xs_samples</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sampling.SamplingManager.get_xs_samples" title="Permalink to this definition"></a></dt>
+<dd><p>Draw samples using all covariance sections in the given tape.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.mat">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">mat</span></span><a class="headerlink" href="#sandy.sampling.SamplingManager.mat" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.mf">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">mf</span></span><a class="headerlink" href="#sandy.sampling.SamplingManager.mf" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.mt">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">mt</span></span><a class="headerlink" href="#sandy.sampling.SamplingManager.mt" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.processes">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">processes</span></span><a class="headerlink" href="#sandy.sampling.SamplingManager.processes" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.samples">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">samples</span></span><a class="headerlink" href="#sandy.sampling.SamplingManager.samples" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.sampling.SamplingManager.tape">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">tape</span></span><a class="headerlink" href="#sandy.sampling.SamplingManager.tape" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.sampling.sampling">
+<span class="sig-prename descclassname"><span class="pre">sandy.sampling.</span></span><span class="sig-name descname"><span class="pre">sampling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sampling.sampling" title="Permalink to this definition"></a></dt>
+<dd><p>Construct multivariate normal distributions with a unit vector for 
+mean and with relative covariances taken from the evaluated files.
+Perturbation factors are sampled with the same multigroup structure of 
+the covariance matrix, and are applied to the pointwise data to produce 
+the perturbed files.</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sandy.processing.html" class="btn btn-neutral float-left" title="sandy.processing module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.settings.html" class="btn btn-neutral float-right" title="sandy.settings module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

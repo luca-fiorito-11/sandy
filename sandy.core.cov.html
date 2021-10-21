@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sandy.core.cov module &mdash; SANDY API 0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.core.ecov module" href="sandy.core.ecov.html" />
+    <link rel="prev" title="sandy.core.basecov module" href="sandy.core.basecov.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SANDY API
+          </a>
+              <div class="version">
+                1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="sandy.core.html">sandy.core package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="sandy.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+          <li><a href="sandy.core.html">sandy.core package</a> &raquo;</li>
+      <li>sandy.core.cov module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/sandy.core.cov.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-sandy.core.cov">
+<span id="sandy-core-cov-module"></span><h1>sandy.core.cov module<a class="headerlink" href="#module-sandy.core.cov" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.core.cov.</span></span><span class="sig-name descname"><span class="pre">CategoryCov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.CategoryCov" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><a class="reference internal" href="#sandy.core.cov.CategoryCov.data" title="sandy.core.cov.CategoryCov.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a></dt><dd><p>Covariance matrix as a dataframe.</p>
+</dd>
+<dt><a class="reference internal" href="#sandy.core.cov.CategoryCov.std" title="sandy.core.cov.CategoryCov.std"><code class="xref py py-obj docutils literal notranslate"><span class="pre">std</span></code></a></dt><dd><p>Extract standard deviations.</p>
+</dd>
+<dt><a class="reference internal" href="#sandy.core.cov.CategoryCov.corr" title="sandy.core.cov.CategoryCov.corr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">corr</span></code></a></dt><dd><p>Extract correlation matrix.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.cov.CategoryCov.corr2cov" title="sandy.core.cov.CategoryCov.corr2cov"><code class="xref py py-obj docutils literal notranslate"><span class="pre">corr2cov</span></code></a>(corr, std, **kwargs)</p></td>
+<td><p>Produce covariance matrix given correlation matrix and standard deviation array.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.cov.CategoryCov.decompose" title="sandy.core.cov.CategoryCov.decompose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">decompose</span></code></a>()</p></td>
+<td><p>Extract lower triangular matrix <cite>L</cite> for which <cite>L*L^T == COV</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.cov.CategoryCov.eig" title="sandy.core.cov.CategoryCov.eig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eig</span></code></a>([sort])</p></td>
+<td><p>Extract eigenvalues and eigenvectors.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.cov.CategoryCov.random_corr" title="sandy.core.cov.CategoryCov.random_corr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">random_corr</span></code></a>(size[, correlations, seed])</p></td>
+<td><p><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sandy</span><span class="o">.</span><span class="n">CategoryCov</span><span class="o">.</span><span class="n">random_corr</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.cov.CategoryCov.random_cov" title="sandy.core.cov.CategoryCov.random_cov"><code class="xref py py-obj docutils literal notranslate"><span class="pre">random_cov</span></code></a>(size[, stdmin, stdmax, ...])</p></td>
+<td><p><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sandy</span><span class="o">.</span><span class="n">CategoryCov</span><span class="o">.</span><span class="n">random_cov</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.cov.CategoryCov.sampling" title="sandy.core.cov.CategoryCov.sampling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sampling</span></code></a>(nsmp[, seed])</p></td>
+<td><p>Extract random samples from normali distribution centered in zero and with given covariance matrix.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 57%" />
+<col style="width: 43%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>from_csv</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>glls</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>plot_corr</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>sandwich</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.corr">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">corr</span></span><a class="headerlink" href="#sandy.core.cov.CategoryCov.corr" title="Permalink to this definition"></a></dt>
+<dd><p>Extract correlation matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>correlation matrix</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sandy</span><span class="o">.</span><span class="n">CategoryCov</span><span class="p">([[</span><span class="mi">4</span><span class="p">,</span> <span class="mf">2.4</span><span class="p">],[</span><span class="mf">2.4</span><span class="p">,</span> <span class="mi">9</span><span class="p">]])</span><span class="o">.</span><span class="n">corr</span>
+<span class="go">            0           1</span>
+<span class="go">0 1.00000e+00 4.00000e-01</span>
+<span class="go">1 4.00000e-01 1.00000e+00</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.corr2cov">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">corr2cov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">corr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.CategoryCov.corr2cov" title="Permalink to this definition"></a></dt>
+<dd><p>Produce covariance matrix given correlation matrix and standard
+deviation array.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>corr</strong><span class="classifier">2d <cite>numpy.ndarray</cite></span></dt><dd><p>square 2D correlation matrix</p>
+</dd>
+<dt><strong>std</strong><span class="classifier">1d <cite>numpy.ndarray</cite></span></dt><dd><p>array of standard deviations</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.CategoryCov</cite></dt><dd><p>covariance matrix</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.data">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sandy.core.cov.CategoryCov.data" title="Permalink to this definition"></a></dt>
+<dd><p>Covariance matrix as a dataframe.</p>
+<dl class="field-list">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>covariance matrix</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl>
+<dt><strong>index</strong><span class="classifier"><cite>pandas.Index</cite> or <cite>pandas.MultiIndex</cite></span></dt><dd><p>indices</p>
+</dd>
+<dt><strong>columns</strong><span class="classifier"><cite>pandas.Index</cite> or <cite>pandas.MultiIndex</cite></span></dt><dd><p>columns</p>
+</dd>
+<dt><strong>values</strong><span class="classifier"><cite>numpy.array</cite></span></dt><dd><p>covariance values as <cite>float</cite></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.decompose">
+<span class="sig-name descname"><span class="pre">decompose</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.CategoryCov.decompose" title="Permalink to this definition"></a></dt>
+<dd><p>Extract lower triangular matrix <cite>L</cite> for which <cite>L*L^T == COV</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>numpy.ndarray</cite></dt><dd><p>lower triangular matrix</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.eig">
+<span class="sig-name descname"><span class="pre">eig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sort</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.CategoryCov.eig" title="Permalink to this definition"></a></dt>
+<dd><p>Extract eigenvalues and eigenvectors.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>sort</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>True</cite></span></dt><dd><p>flag to return sorted eigenvalues and eigenfunctions</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>Pandas.Series</cite></dt><dd><p>real part of eigenvalues sorted in descending order</p>
+</dd>
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>matrix of eigenvectors</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Extract eigenvalues of covariance matrix.
+&gt;&gt;&gt; sandy.CategoryCov([[1, 0.4],[0.4, 1]]).eig()[0]
+0   1.40000e+00
+1   6.00000e-01
+Name: eigenvalues, dtype: float64</p>
+<p>Extract eigenfunctions of covariance matrix.
+&gt;&gt;&gt; sandy.CategoryCov([[1, 0.4],[0.4, 1]]).eig()[1]</p>
+<blockquote>
+<div><p>0            1</p>
+</div></blockquote>
+<p>0 7.07107e-01 -7.07107e-01
+1 7.07107e-01  7.07107e-01</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.from_csv">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.CategoryCov.from_csv" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.glls">
+<span class="sig-name descname"><span class="pre">glls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vy</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.CategoryCov.glls" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.plot_corr">
+<span class="sig-name descname"><span class="pre">plot_corr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.CategoryCov.plot_corr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.random_corr">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">random_corr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">correlations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.CategoryCov.random_corr" title="Permalink to this definition"></a></dt>
+<dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sandy</span><span class="o">.</span><span class="n">CategoryCov</span><span class="o">.</span><span class="n">random_corr</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">            0           1</span>
+<span class="go">0 1.00000e+00 4.40649e-01</span>
+<span class="go">1 4.40649e-01 1.00000e+00</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sandy</span><span class="o">.</span><span class="n">CategoryCov</span><span class="o">.</span><span class="n">random_corr</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">correlations</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">            0           1</span>
+<span class="go">0 1.00000e+00 0.00000e+00</span>
+<span class="go">1 0.00000e+00 1.00000e+00</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.random_cov">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">random_cov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stdmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stdmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">correlations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.CategoryCov.random_cov" title="Permalink to this definition"></a></dt>
+<dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sandy</span><span class="o">.</span><span class="n">CategoryCov</span><span class="o">.</span><span class="n">random_cov</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">            0           1</span>
+<span class="go">0 2.15373e-02 5.97134e-03</span>
+<span class="go">1 5.97134e-03 8.52642e-03</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.sampling">
+<span class="sig-name descname"><span class="pre">sampling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nsmp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.CategoryCov.sampling" title="Permalink to this definition"></a></dt>
+<dd><p>Extract random samples from normali distribution centered in zero
+and with given covariance matrix.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>nsmp</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>number of samples</p>
+</dd>
+<dt><strong>seed</strong><span class="classifier"><cite>int</cite>, optional, default is <cite>None</cite></span></dt><dd><p>seed for the random number generator (by default use <cite>numpy</cite>
+dafault pseudo-random number generator)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Samples</cite></dt><dd><p>object containing samples</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Draw 3 sets of samples using custom seed.
+&gt;&gt;&gt; sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11)</p>
+<blockquote>
+<div><p>0            1</p>
+</div></blockquote>
+<p>0 -1.74945e+00 -3.13159e+00
+1  2.86073e-01  1.06836e-01
+2  4.84565e-01 -9.91209e-02</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.sandwich">
+<span class="sig-name descname"><span class="pre">sandwich</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Si</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Sj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.CategoryCov.sandwich" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.size">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#sandy.core.cov.CategoryCov.size" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.core.cov.CategoryCov.std">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">std</span></span><a class="headerlink" href="#sandy.core.cov.CategoryCov.std" title="Permalink to this definition"></a></dt>
+<dd><p>Extract standard deviations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.Series</cite></dt><dd><p>1d array of standard deviations</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sandy</span><span class="o">.</span><span class="n">CategoryCov</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">],[</span><span class="mf">0.4</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span><span class="o">.</span><span class="n">std</span>
+<span class="go">0   1.00000e+00</span>
+<span class="go">1   1.00000e+00</span>
+<span class="go">Name: std, dtype: float64</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.core.cov.EnergyCov">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.core.cov.</span></span><span class="sig-name descname"><span class="pre">EnergyCov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.EnergyCov" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#sandy.core.cov.CategoryCov" title="sandy.core.cov.CategoryCov"><code class="xref py py-class docutils literal notranslate"><span class="pre">sandy.core.cov.CategoryCov</span></code></a></p>
+<p>Dataframe for a multigroup covariance matrix.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is assumed that the covariance matrix is defined over
+multi-group energy grids.</p>
+<p>Only ‘zero’ interpolation is supported.</p>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>sandy.Error</cite></dt><dd><p>if index values are not monotonically increasing</p>
+</dd>
+<dt><cite>sandy.Error</cite></dt><dd><p>if columns values are not monotonically increasing</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl>
+<dt><a class="reference internal" href="#sandy.core.cov.EnergyCov.data" title="sandy.core.cov.EnergyCov.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a><span class="classifier"><cite>pandas.DataFrame</cite></span></dt><dd><p>Covariance matrix as a dataframe.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.cov.EnergyCov.add" title="sandy.core.cov.EnergyCov.add"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add</span></code></a>(cov[, inplace])</p></td>
+<td><p>Add the content of another <cite>EnergyCov</cite> (sum).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.cov.EnergyCov.change_grid" title="sandy.core.cov.EnergyCov.change_grid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">change_grid</span></code></a>(ex, ey[, inplace])</p></td>
+<td><p>Given one energy grid for the x-axis and one energy grid for the y-axis, interpolate/extrapolate the covariance matrix over the new points using the <em>forward-filling</em> method.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.cov.EnergyCov.from_lb1" title="sandy.core.cov.EnergyCov.from_lb1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_lb1</span></code></a>(evalues, fvalues)</p></td>
+<td><p>Extract square covariance matrix from NI-type sub-subsection data  with flag <cite>lb=1</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.cov.EnergyCov.from_lb2" title="sandy.core.cov.EnergyCov.from_lb2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_lb2</span></code></a>(evalues, fvalues)</p></td>
+<td><p>Extract square covariance matrix from NI-type sub-subsection data  with flag <cite>lb=2</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.cov.EnergyCov.from_lb5_sym" title="sandy.core.cov.EnergyCov.from_lb5_sym"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_lb5_sym</span></code></a>(evalues, fvalues)</p></td>
+<td><p>Extract square symmetric covariance matrix from NI-type sub-subsection data  with flag <cite>lb=5</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.cov.EnergyCov.from_lb5_asym" title="sandy.core.cov.EnergyCov.from_lb5_asym"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_lb5_asym</span></code></a>(evalues, fvalues)</p></td>
+<td><p>Extract square asymmetric covariance matrix from NI-type sub-subsection data  with flag <cite>lb=5</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.cov.EnergyCov.from_lb6" title="sandy.core.cov.EnergyCov.from_lb6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_lb6</span></code></a>(evalues_r, evalues_c, fvalues)</p></td>
+<td><p>Extract covariance matrix from NI-type sub-subsection data  with flag <cite>lb6</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.cov.EnergyCov.sum_covs" title="sandy.core.cov.EnergyCov.sum_covs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sum_covs</span></code></a>(*covs)</p></td>
+<td><p>Sum multigroup covariance matrices into a single one.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.EnergyCov.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cov</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.EnergyCov.add" title="Permalink to this definition"></a></dt>
+<dd><p>Add the content of another <cite>EnergyCov</cite> (sum).
+If the energy grids do not match, interpolate.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>cov</strong><span class="classifier"><cite>sandy.EnergyCov</cite></span></dt><dd><p>multigroup covariance matrices (axes can be different)</p>
+</dd>
+<dt><strong>inplace</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>flag to operate <strong>inplace</strong></p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.EnergyCov</cite></dt><dd><p>Multi-group covariance matrix.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">eg</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1e-2</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">C</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">EnergyCov</span><span class="o">.</span><span class="n">random_corr</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">eg</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">eg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">C</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">C</span><span class="p">)</span>
+<span class="go">E            1.00000e-02  1.00000e+06</span>
+<span class="go">E                                    </span>
+<span class="go">1.00000e-02  2.00000e+00  8.81298e-01</span>
+<span class="go">1.00000e+06  8.81298e-01  2.00000e+00</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">eg</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1e-1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">D</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">EnergyCov</span><span class="o">.</span><span class="n">random_corr</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">eg</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">eg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">C</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
+<span class="go">E            1.00000e-02  1.00000e-01  1.00000e+00  1.00000e+06</span>
+<span class="go">E                                                              </span>
+<span class="go">1.00000e-02  1.00000e+00  1.00000e+00  1.00000e+00  4.40649e-01</span>
+<span class="go">1.00000e-01  1.00000e+00  2.00000e+00  1.74146e+00  1.18211e+00</span>
+<span class="go">1.00000e+00  1.00000e+00  1.74146e+00  2.00000e+00  1.44065e+00</span>
+<span class="go">1.00000e+06  4.40649e-01  1.18211e+00  1.44065e+00  2.00000e+00</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">C</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">D</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">D</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">C</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.EnergyCov.change_grid">
+<span class="sig-name descname"><span class="pre">change_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ex</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ey</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.EnergyCov.change_grid" title="Permalink to this definition"></a></dt>
+<dd><p>Given one energy grid for the x-axis and one energy grid for the
+y-axis, interpolate/extrapolate the covariance matrix over the new
+points using the <em>forward-filling</em> method.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<ul class="simple">
+<li><p>backward extrapolated values (e.g. below threshold) are replaced
+by 0</p></li>
+<li><p>forward extrapolated values (e.g. above 20 MeV) are replaced by
+the covariance coefficient that refers to the last point in the
+original grid</p></li>
+</ul>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>ex</strong><span class="classifier"><cite>iterable</cite></span></dt><dd><p>energy grid for the x-axis</p>
+</dd>
+<dt><strong>ey</strong><span class="classifier"><cite>iterable</cite></span></dt><dd><p>energy grid for the y-axis</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.EnergyCov</cite></dt><dd><p>Covariance matrix interpolated over the new axes.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">eg</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1e-2</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">C</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">EnergyCov</span><span class="o">.</span><span class="n">random_corr</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">eg</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">eg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">C</span><span class="o">.</span><span class="n">change_grid</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">,</span> <span class="mf">1e7</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">,</span> <span class="mf">1e7</span><span class="p">])</span>
+<span class="go">E            0.00000e+00  1.00000e+00  1.00000e+06  1.00000e+07</span>
+<span class="go">E                                                              </span>
+<span class="go">0.00000e+00  0.00000e+00  0.00000e+00  0.00000e+00  0.00000e+00</span>
+<span class="go">1.00000e+00  0.00000e+00  1.00000e+00  4.40649e-01  4.40649e-01</span>
+<span class="go">1.00000e+06  0.00000e+00  4.40649e-01  1.00000e+00  1.00000e+00</span>
+<span class="go">1.00000e+07  0.00000e+00  4.40649e-01  1.00000e+00  1.00000e+00</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.core.cov.EnergyCov.data">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sandy.core.cov.EnergyCov.data" title="Permalink to this definition"></a></dt>
+<dd><p>Covariance matrix as a dataframe.</p>
+<dl class="field-list">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>covariance matrix</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Error</cite></dt><dd><p>if <cite>index</cite> or <cite>columns</cite> are not monotonically increasing</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><strong>index</strong><span class="classifier"><cite>pandas.Index</cite></span></dt><dd><p>indices</p>
+</dd>
+<dt><strong>columns</strong><span class="classifier"><cite>pandas.MultiIndex</cite></span></dt><dd><p>indices</p>
+</dd>
+<dt><strong>values</strong><span class="classifier"><cite>numpy.array</cite></span></dt><dd><p>covariance values as <cite>float</cite></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.EnergyCov.from_lb1">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_lb1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">evalues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fvalues</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.EnergyCov.from_lb1" title="Permalink to this definition"></a></dt>
+<dd><p>Extract square covariance matrix from NI-type sub-subsection data 
+with flag <cite>lb=1</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>evalues</strong><span class="classifier">iterable</span></dt><dd><p>covariance energy grid (same for both axes)</p>
+</dd>
+<dt><strong>fvalues</strong><span class="classifier">iterable</span></dt><dd><p>array of F-values (covriance matrix diagonal)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.EnergyCov</cite></dt><dd><p>Multi-group covariance matrix.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.EnergyCov.from_lb2">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_lb2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">evalues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fvalues</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.EnergyCov.from_lb2" title="Permalink to this definition"></a></dt>
+<dd><p>Extract square covariance matrix from NI-type sub-subsection data 
+with flag <cite>lb=2</cite>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>evalues</strong><span class="classifier"><cite>iterable</cite></span></dt><dd><p>covariance energy grid for both axis</p>
+</dd>
+<dt><strong>fvalues</strong><span class="classifier"><cite>iterable</cite></span></dt><dd><p>array of F-values</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.formats.utils.EnergyCov</cite></dt><dd><p>Multi-group covariance matrix.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.EnergyCov.from_lb5_asym">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_lb5_asym</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">evalues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fvalues</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.EnergyCov.from_lb5_asym" title="Permalink to this definition"></a></dt>
+<dd><p>Extract square asymmetric covariance matrix from NI-type sub-subsection data 
+with flag <cite>lb=5</cite>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>evalues</strong><span class="classifier"><cite>iterable</cite></span></dt><dd><p>covariance energy grid for both axis</p>
+</dd>
+<dt><strong>fvalues</strong><span class="classifier"><cite>iterable</cite></span></dt><dd><p>array of F-values (flattened full matrix)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.formats.utils.EnergyCov</cite></dt><dd><p>Multi-group covariance matrix.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.EnergyCov.from_lb5_sym">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_lb5_sym</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">evalues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fvalues</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.EnergyCov.from_lb5_sym" title="Permalink to this definition"></a></dt>
+<dd><p>Extract square symmetric covariance matrix from NI-type sub-subsection data 
+with flag <cite>lb=5</cite>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>evalues</strong><span class="classifier"><cite>iterable</cite></span></dt><dd><p>covariance energy grid for both axis</p>
+</dd>
+<dt><strong>fvalues</strong><span class="classifier"><cite>iterable</cite></span></dt><dd><p>array of F-values (flattened upper triangular matrix coefficients)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.formats.utils.EnergyCov</cite></dt><dd><p>Multi-group covariance matrix.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.EnergyCov.from_lb6">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_lb6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">evalues_r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evalues_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fvalues</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.EnergyCov.from_lb6" title="Permalink to this definition"></a></dt>
+<dd><p>Extract covariance matrix from NI-type sub-subsection data 
+with flag <cite>lb6</cite>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>evalues_r</strong><span class="classifier"><cite>iterable</cite></span></dt><dd><p>covariance energy grid for row axis</p>
+</dd>
+<dt><strong>evalues_c</strong><span class="classifier"><cite>iterable</cite></span></dt><dd><p>covariance energy grid for column axis</p>
+</dd>
+<dt><strong>fvalues</strong><span class="classifier"><cite>iterable</cite></span></dt><dd><p>array of F-values (flattened full matrix)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.formats.utils.EnergyCov</cite></dt><dd><p>Multi-group covariance matrix.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.cov.EnergyCov.sum_covs">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">sum_covs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">covs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.EnergyCov.sum_covs" title="Permalink to this definition"></a></dt>
+<dd><p>Sum multigroup covariance matrices into a single one.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>covs</strong><span class="classifier">iterable of <cite>sandy.EnergyCov</cite></span></dt><dd><p>list of multigroup covariance matrices (axes can be different)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.EnergyCov</cite></dt><dd><p>Multi-group covariance matrix.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Sum two 2x2 correlation matrices with different indices and columns
+&gt;&gt;&gt; eg = [1e-2, 1e6]
+&gt;&gt;&gt; C = sandy.EnergyCov.random_corr(2, seed=1, index=eg, columns=eg)
+&gt;&gt;&gt; eg = [1e-1, 1]
+&gt;&gt;&gt; D = sandy.EnergyCov.random_corr(2, seed=5, index=eg, columns=eg)
+&gt;&gt;&gt; sandy.EnergyCov.sum_covs(C, D)
+E            1.00000e-02  1.00000e-01  1.00000e+00  1.00000e+06
+E                                                              
+1.00000e-02  1.00000e+00  1.00000e+00  1.00000e+00  4.40649e-01
+1.00000e-01  1.00000e+00  2.00000e+00  1.74146e+00  1.18211e+00
+1.00000e+00  1.00000e+00  1.74146e+00  2.00000e+00  1.44065e+00
+1.00000e+06  4.40649e-01  1.18211e+00  1.44065e+00  2.00000e+00</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.core.cov.corr2cov">
+<span class="sig-prename descclassname"><span class="pre">sandy.core.cov.</span></span><span class="sig-name descname"><span class="pre">corr2cov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">corr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.corr2cov" title="Permalink to this definition"></a></dt>
+<dd><p>Produce covariance matrix given correlation matrix and standard
+deviation array.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>corr</strong><span class="classifier">2d <cite>numpy.ndarray</cite></span></dt><dd><p>square 2D correlation matrix</p>
+</dd>
+<dt><strong>s</strong><span class="classifier">1d <cite>numpy.ndarray</cite></span></dt><dd><p>array of standard deviations</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy.ndarray</cite></dt><dd><p>covariance matrix</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.core.cov.get_eig">
+<span class="sig-prename descclassname"><span class="pre">sandy.core.cov.</span></span><span class="sig-name descname"><span class="pre">get_eig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cov</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.get_eig" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.core.cov.random_corr">
+<span class="sig-prename descclassname"><span class="pre">sandy.core.cov.</span></span><span class="sig-name descname"><span class="pre">random_corr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">correlations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.random_corr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.core.cov.random_cov">
+<span class="sig-prename descclassname"><span class="pre">sandy.core.cov.</span></span><span class="sig-name descname"><span class="pre">random_cov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stdmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stdmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">correlations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.random_cov" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.core.cov.triu_matrix">
+<span class="sig-prename descclassname"><span class="pre">sandy.core.cov.</span></span><span class="sig-name descname"><span class="pre">triu_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.cov.triu_matrix" title="Permalink to this definition"></a></dt>
+<dd><p>Given the upper triangular values of a <strong>square symmetric</strong> matrix in
+an array, return the full matrix.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>arr</strong><span class="classifier">1d <cite>numpy.ndarray</cite></span></dt><dd><p>array with the upper triangular values of the matrix</p>
+</dd>
+<dt><strong>size</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>dimension of the matrix</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>2d <cite>numpy.ndarray</cite></dt><dd><p>reconstructed 2d-array with symmetric matrix</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sandy.core.basecov.html" class="btn btn-neutral float-left" title="sandy.core.basecov module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.core.ecov.html" class="btn btn-neutral float-right" title="sandy.core.ecov module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

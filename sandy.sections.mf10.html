@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sandy.sections.mf10 module &mdash; SANDY API 0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="sandy.sections.mf3 module" href="sandy.sections.mf3.html" />
+    <link rel="prev" title="sandy.sections.mf1 module" href="sandy.sections.mf1.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SANDY API
+          </a>
+              <div class="version">
+                1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.html">sandy.core package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="sandy.sections.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SANDY API</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="sandy.html">sandy package</a> &raquo;</li>
+          <li><a href="sandy.sections.html">sandy.sections package</a> &raquo;</li>
+      <li>sandy.sections.mf10 module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/sandy.sections.mf10.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-sandy.sections.mf10">
+<span id="sandy-sections-mf10-module"></span><h1>sandy.sections.mf10 module<a class="headerlink" href="#module-sandy.sections.mf10" title="Permalink to this headline"></a></h1>
+<p>This module contains only two public functions:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>read_mf10</cite></p></li>
+<li><p><cite>write_mf10</cite></p></li>
+</ul>
+</div></blockquote>
+<p>Function <cite>read</cite> reads a MF10/MT section from a string and produces a content
+object with a dictionary-like structure.
+The content object can be accessed using most of the keywords specified in
+the ENDF6 manual for this specific MF section.</p>
+<p>Function <cite>write_mf10</cite> writes a content object for a MF10/MT section into a
+string.
+MAT, MF, MT and line numbers are also added (each line ends with a `
+<a href="#id1"><span class="problematic" id="id2">`</span></a>).</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.sections.mf10.read_mf10">
+<span class="sig-prename descclassname"><span class="pre">sandy.sections.mf10.</span></span><span class="sig-name descname"><span class="pre">read_mf10</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sections.mf10.read_mf10" title="Permalink to this definition"></a></dt>
+<dd><p>Parse MAT/MF=10/MT section from <cite>sandy.Endf6</cite> object and return
+structured content in nested dictionary.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>tape</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p>endf6 object containing requested section.</p>
+</dd>
+<dt><strong>mat</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT number.</p>
+</dd>
+<dt><strong>mt</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MT number.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>out</strong><span class="classifier"><cite>dict</cite></span></dt><dd><p>Content of the ENDF-6 tape structured as nested <cite>dict</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pprint</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;xs&#39;</span><span class="p">,</span> <span class="mi">410930</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span> <span class="o">=</span> <span class="n">read_mf10</span><span class="p">(</span><span class="n">tape</span><span class="p">,</span> <span class="mi">4125</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span><span class="p">[</span><span class="s1">&#39;AWR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span> <span class="p">(</span><span class="n">test</span><span class="p">[</span><span class="s1">&#39;AWR&#39;</span><span class="p">],</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pprint</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">{&#39;AWR&#39;: 92.10827,</span>
+<span class="go"> &#39;LFS&#39;: {0: {&#39;E&#39;: array([8.92643e+06, 9.00000e+06, 9.50000e+06, 1.00000e+07, 1.05000e+07,</span>
+<span class="go">       1.10000e+07, 1.15000e+07, 1.20000e+07, 1.25000e+07, 1.30000e+07,</span>
+<span class="go">       1.35000e+07, 1.40000e+07, 1.45000e+07, 1.50000e+07, 1.60000e+07,</span>
+<span class="go">       1.70000e+07, 1.80000e+07, 1.90000e+07, 2.00000e+07, 2.10000e+07,</span>
+<span class="go">       2.20000e+07, 2.30000e+07, 2.40000e+07, 2.50000e+07, 2.60000e+07,</span>
+<span class="go">       2.70000e+07, 2.80000e+07, 2.90000e+07, 3.00000e+07, 3.00000e+07,</span>
+<span class="go">       2.00000e+08]),</span>
+<span class="go">             &#39;INT&#39;: [2],</span>
+<span class="go">             &#39;IZAP&#39;: 41092,</span>
+<span class="go">             &#39;NBT&#39;: [31],</span>
+<span class="go">             &#39;QI&#39;: -8830560.0,</span>
+<span class="go">             &#39;QM&#39;: -8830560.0,</span>
+<span class="go">             &#39;XS&#39;: array([0.       , 0.0194186, 0.162104 , 0.308902 , 0.435116 , 0.517474 ,</span>
+<span class="go">       0.573998 , 0.624693 , 0.659328 , 0.6818   , 0.698818 , 0.717961 ,</span>
+<span class="go">       0.7367761, 0.750743 , 0.7747931, 0.7894241, 0.7807111, 0.7326431,</span>
+<span class="go">       0.657407 , 0.5754551, 0.494091 , 0.430171 , 0.386188 , 0.348402 ,</span>
+<span class="go">       0.322404 , 0.299157 , 0.282034 , 0.264006 , 0.253063 , 0.       ,</span>
+<span class="go">       0.       ])},</span>
+<span class="go">         1: {&#39;E&#39;: array([9.0634e+06, 9.5000e+06, 1.0000e+07, 1.0500e+07, 1.1000e+07,</span>
+<span class="go">       1.1500e+07, 1.2000e+07, 1.2500e+07, 1.3000e+07, 1.3500e+07,</span>
+<span class="go">       1.4000e+07, 1.4500e+07, 1.5000e+07, 1.6000e+07, 1.7000e+07,</span>
+<span class="go">       1.8000e+07, 1.9000e+07, 2.0000e+07, 2.1000e+07, 2.2000e+07,</span>
+<span class="go">       2.3000e+07, 2.4000e+07, 2.5000e+07, 2.6000e+07, 2.7000e+07,</span>
+<span class="go">       2.8000e+07, 2.9000e+07, 3.0000e+07, 3.0000e+07, 2.0000e+08]),</span>
+<span class="go">             &#39;INT&#39;: [2],</span>
+<span class="go">             &#39;IZAP&#39;: 41092,</span>
+<span class="go">             &#39;NBT&#39;: [30],</span>
+<span class="go">             &#39;QI&#39;: -8966060.0,</span>
+<span class="go">             &#39;QM&#39;: -8830560.0,</span>
+<span class="go">             &#39;XS&#39;: array([0.       , 0.0312977, 0.127211 , 0.213139 , 0.285268 , 0.344366 ,</span>
+<span class="go">       0.389636 , 0.421435 , 0.441539 , 0.452998 , 0.459128 , 0.46013  ,</span>
+<span class="go">       0.4603   , 0.45204  , 0.445074 , 0.420786 , 0.372079 , 0.323721 ,</span>
+<span class="go">       0.272363 , 0.232887 , 0.206726 , 0.186974 , 0.17223  , 0.160468 ,</span>
+<span class="go">       0.150715 , 0.142191 , 0.135368 , 0.129116 , 0.       , 0.       ])}},</span>
+<span class="go"> &#39;LIS&#39;: 0,</span>
+<span class="go"> &#39;MAT&#39;: 4125,</span>
+<span class="go"> &#39;MF&#39;: 10,</span>
+<span class="go"> &#39;MT&#39;: 16,</span>
+<span class="go"> &#39;ZA&#39;: 41093.0}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.sections.mf10.write_mf10">
+<span class="sig-prename descclassname"><span class="pre">sandy.sections.mf10.</span></span><span class="sig-name descname"><span class="pre">write_mf10</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sections.mf10.write_mf10" title="Permalink to this definition"></a></dt>
+<dd><p>Given the content of a MF10 section as nested dictionaries, write it
+to string.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>sec</strong><span class="classifier"><cite>dict</cite></span></dt><dd><p>Content of the ENDF-6 tape structured as nested <cite>dict</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>str</cite></dt><dd><p>Multiline string reproducing the content of a ENDF-6 section.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The end-of-line records MAT, MF, MT and line number are added at
+the end of each line.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The string does not end with a newline symbol.</p>
+</div>
+<p class="rubric">Examples</p>
+<p>String reproducing the content of a ENDF-6 section for (n,2n)
+of Nb-93 from the JEFF-33 library to obtain the cross sections for
+production of radiactive nuclides
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, ‘xs’, 410930)
+&gt;&gt;&gt; sec = read_mf10(tape, 4125, 16)
+&gt;&gt;&gt; text = write_mf10(sec)
+&gt;&gt;&gt; print(text)</p>
+<blockquote>
+<div><p>41093.0000 92.1082700          0          0          2          0412510 16    1</p>
+</div></blockquote>
+<dl>
+<dt>-8830560.00-8830560.00      41092          0          1         31412510 16    2</dt><dd><blockquote>
+<div><p>31          2                                            412510 16    3</p>
+</div></blockquote>
+<p>8926430.00 0.00000000 9000000.00 1.941860-2 9500000.00 1.621040-1412510 16    4
+10000000.0 3.089020-1 10500000.0 4.351160-1 11000000.0 5.174740-1412510 16    5
+11500000.0 5.739980-1 12000000.0 6.246930-1 12500000.0 6.593280-1412510 16    6
+13000000.0 6.818000-1 13500000.0 6.988180-1 14000000.0 7.179610-1412510 16    7
+14500000.0 7.367761-1 15000000.0 7.507430-1 16000000.0 7.747931-1412510 16    8
+17000000.0 7.894241-1 18000000.0 7.807111-1 19000000.0 7.326431-1412510 16    9
+20000000.0 6.574070-1 21000000.0 5.754551-1 22000000.0 4.940910-1412510 16   10
+23000000.0 4.301710-1 24000000.0 3.861880-1 25000000.0 3.484020-1412510 16   11
+26000000.0 3.224040-1 27000000.0 2.991570-1 28000000.0 2.820340-1412510 16   12
+29000000.0 2.640060-1 30000000.0 2.530630-1 30000000.0 0.00000000412510 16   13</p>
+<blockquote>
+<div><p>200000000 0.00000000                                            412510 16   14</p>
+</div></blockquote>
+</dd>
+<dt>-8830560.00-8966060.00      41092          1          1         30412510 16   15</dt><dd><blockquote>
+<div><p>30          2                                            412510 16   16</p>
+</div></blockquote>
+<p>9063400.00 0.00000000 9500000.00 3.129770-2 10000000.0 1.272110-1412510 16   17
+10500000.0 2.131390-1 11000000.0 2.852680-1 11500000.0 3.443660-1412510 16   18
+12000000.0 3.896360-1 12500000.0 4.214350-1 13000000.0 4.415390-1412510 16   19
+13500000.0 4.529980-1 14000000.0 4.591280-1 14500000.0 4.601300-1412510 16   20
+15000000.0 4.603000-1 16000000.0 4.520400-1 17000000.0 4.450740-1412510 16   21
+18000000.0 4.207860-1 19000000.0 3.720790-1 20000000.0 3.237210-1412510 16   22
+21000000.0 2.723630-1 22000000.0 2.328870-1 23000000.0 2.067260-1412510 16   23
+24000000.0 1.869740-1 25000000.0 1.722300-1 26000000.0 1.604680-1412510 16   24
+27000000.0 1.507150-1 28000000.0 1.421910-1 29000000.0 1.353680-1412510 16   25
+30000000.0 1.291160-1 30000000.0 0.00000000  200000000 0.00000000412510 16   26</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sandy.sections.mf1.html" class="btn btn-neutral float-left" title="sandy.sections.mf1 module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.sections.mf3.html" class="btn btn-neutral float-right" title="sandy.sections.mf3 module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
