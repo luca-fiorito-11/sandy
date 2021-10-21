@@ -162,7 +162,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
     >>> tape = sandy.get_endf6_file("endfb_80", 'decay', 10010)
     >>> assert type(tape) is sandy.Endf6
 
-    Import all Neutron-Induced Fission Product Yields from JEFF-3.3
+    Import all Neutron-Induced Fission Product Yields from ENDF/B-VII.1.
     >>> tape = sandy.get_endf6_file("endfb_71", 'nfpy', 'all')
     >>> assert type(tape) is sandy.Endf6
 
@@ -420,19 +420,40 @@ class _FormattedFile():
     @classmethod
     def from_url(cls, filename, rooturl):
         """
-        Transform text information into a 'Endf6' object
+        Given a filename and the url where the file is located,
+        extract the ENDF6 data from the file into a sandy.Endf6
+        instance.
 
         Parameters
         ----------
         filename: 'str'
-            The complete name of the zip file to read
-
+            The filename without path of the zip file to read
         rooturl: 'str'
             The url direction to extract the zip files
+
         Returns
         -------
         `Endf6`
             `Endf6` object with ENDF-6 data for specified library and nuclide.
+
+        Examples
+        --------
+
+        >>> filename = "n-1-H-001.jeff32"
+        >>> rooturl = "https://www.oecd-nea.org/dbforms/data/eva/evatapes/jeff_32/"
+        >>> sandy.Endf6.from_url(filename, rooturl)
+        MAT  MF  MT
+        125  1   451     1.001000+3 9.991673-1          0          0  ...
+            2   151     1.001000+3 9.991673-1          0          0  ...
+            3   1       1.001000+3 9.991673-1          0          0  ...
+                2       1.001000+3 9.991673-1          0          0  ...
+                102     1.001000+3 9.991673-1          0          0  ...
+            4   2       1.001000+3 9.991673-1          0          1  ...
+            6   102     1.001000+3 9.991673-1          0          2  ...
+            33  1       1.001000+3 9.991673-1          0          0  ...
+                2       1.001000+3 9.991673-1          0          0  ...
+                102     1.001000+3 9.991673-1          0          0  ...
+        dtype: object
         """
         text = cls.read_url(filename, rooturl)
         tape = cls.from_text(text)
@@ -441,20 +462,39 @@ class _FormattedFile():
     @staticmethod
     def read_url(filename, rooturl):
         """
-        Generates a text file with all the information contained in
-        the files located in the url direction
+        Given a filename and the url where the file is located,
+        extract the ENDF6 data from the file into a string.
 
         Parameters
         ----------
         filename: 'str'
             The complete name of the zip file to read
-
         rooturl: 'str'
             The url direction to extract the zip files
+
         Returns
         -------
         `str`
             All the endf6 data in a 'str'
+
+        Examples
+        --------
+
+        >>> filename = "n-1-H-001.jeff32"
+        >>> rooturl = "https://www.oecd-nea.org/dbforms/data/eva/evatapes/jeff_32/"
+        >>> file = sandy.Endf6.read_url(filename, rooturl)
+        >>> print(file[0:890])
+        JEFF-3.2 Release - Neutron File March 2014                             0  0    0
+        1.001000+3 9.991673-1          0          0          2          5 125 1451    1
+        0.000000+0 0.000000+0          0          0          0          6 125 1451    2
+        1.000000+0 2.000000+7          1          0         10         32 125 1451    3
+        0.000000+0 0.000000+0          0          0         87         10 125 1451    4
+        1-H -  1 LANL       EVAL-OCT05 G.M.Hale                          125 1451    5
+                            DIST-DEC06                       20111222    125 1451    6
+        ----JEFF32            MATERIAL  125                                125 1451    7
+        -----INCIDENT NEUTRON DATA                                         125 1451    8
+        ------ENDF-6 FORMAT                                                125 1451    9
+        *****************************  JEFF-3.2    *********************** 125 1451   10
         """
         url = f"{rooturl}/{filename}"
         # set a known browser user agent to ensure access
@@ -466,19 +506,32 @@ class _FormattedFile():
     @classmethod
     def from_zipurl(cls, filename, rooturl):
         """
-        Transform text information into a 'Endf6' object
+        Given a filename and the url where the file is located (in
+        zipped format), extract the ENDF6 data from the file into a
+        sandy.Endf6 instance.
 
         Parameters
         ----------
         filename: 'str'
-            The complete name of the zip file to read
-
+            The filename without path of the zip file to read
         rooturl: 'str'
             The url direction to extract the zip files
+
         Returns
         -------
         `Endf6`
             `Endf6` object with ENDF-6 data for specified library and nuclide.
+
+        Examples
+        --------
+
+        >>> filename = "decay_1907_57-La-149.dat"
+        >>> rooturl = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VII.1/decay/"
+        >>> sandy.Endf6.from_zipurl(filename, rooturl)
+        MAT   MF  MT
+        1907  1   451     5.714900+4 1.476553+2         -1          0  ...
+            8   457     5.714900+4 1.476553+2          0          0  ...
+        dtype: object
         """
         text = cls.read_zipurl(filename, rooturl)
         tape = cls.from_text(text)
@@ -487,20 +540,41 @@ class _FormattedFile():
     @staticmethod
     def read_zipurl(filename, rooturl):
         """
-        Generates a text file with all the information contained in
-        the .zip files located in the url direction
+        Given a filename and the url where the file is located (in
+        zipped format), extract the ENDF6 data from the file into
+        a string.
 
         Parameters
         ----------
         filename: 'str'
-            The complete name of the zip file to read
-
+            The filename without path of the zip file to read
         rooturl: 'str'
             The url direction to extract the zip files
+
         Returns
         -------
         `str`
             All the endf6 data in a 'str'
+
+        Examples
+        --------
+
+        >>> filename = "decay_1907_57-La-149.dat"
+        >>> rooturl = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VII.1/decay/"
+        >>> file = sandy.Endf6.read_zipurl(filename, rooturl)
+        >>> print(file[0:971])
+        Retrieved by E4-util: 2012/01/16,13:45:44                            1 0  0    0
+        5.714900+4 1.476553+2         -1          0          0          11907 1451    1
+        0.000000+0 1.000000+0          0          0          0          61907 1451    2
+        0.000000+0 0.000000+0          1          0          4          71907 1451    3
+        0.000000+0 0.000000+0          0          0         27          21907 1451    4
+        57-La-149  BNL        EVAL-AUG11 Conv. from CGM                  1907 1451    5
+        /ENSDF/                                               20111222   1907 1451    6
+        ----ENDF/B-VII.1      Material 1907                               1907 1451    7
+        -----RADIOACTIVE DECAY DATA                                       1907 1451    8
+        ------ENDF-6 FORMAT                                               1907 1451    9
+        *********************** Begin Description *********************** 1907 1451   10
+        **         ENDF/B-VII.1 RADIOACTIVE DECAY DATA FILE            ** 1907 1451   11
         """
         rootname = os.path.splitext(filename)[0]
         zipurl = f"{rooturl}/{rootname}.zip"
