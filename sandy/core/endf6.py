@@ -87,16 +87,24 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * 'nfpy' is a Neutron-Induced Fission Product Yields nuclear data
               file
             * 'decay' is a Radioactive Decay Data nuclear data file
-    zam : `int`
-        ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
-            * $Z$ is the charge number
-            * $A$ is the mass number
-            * $M$ is the metastate level (0=ground, 1=1st level)
-
+    zam : `int` or 'all'
+        zam = 'int' (individual nuclides)
+            ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
+                * $Z$ is the charge number
+                * $A$ is the mass number
+                * $M$ is the metastate level (0=ground, 1=1st level)
+        zam = 'all'
+            We obtain the information of all the library. Actually,
+            the only all libraries available are:
+                * for 'nfpy': 'jeff_33'
+                * for 'decay': 'jeff_33'
     Raises
     ------
     ValueError
         if library is not among available selection.
+
+    ValueError
+        if when you select 'xs', you select zam = 'all'
 
     Returns
     -------
@@ -153,7 +161,18 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Import Radioactive Decay Data for H-1 from ENDF/B-VIII.0.
     >>> tape = sandy.get_endf6_file("endfb_80", 'decay', 10010)
     >>> assert type(tape) is sandy.Endf6
+
+    Import all Neutron-Induced Fission Product Yields from ENDF/B-VII.1.
+    >>> tape = sandy.get_endf6_file("endfb_71", 'nfpy', 'all')
+    >>> assert type(tape) is sandy.Endf6
+
+#    Checked, but the test takes too long(~10 min), that's why it is commented.
+#    Import all Radioactive Decay Data from ENDF/B-VIII.0.
+#    >>> tape = sandy.get_endf6_file("endfb_80", 'decay', 'all')
+#    >>> assert type(tape) is sandy.Endf6
     """
+    foo_get = Endf6.from_zipurl
+    foo_read = Endf6.read_zipurl
     if kind == 'xs':
         available_libs = (
             "jeff_32".upper(),
@@ -165,23 +184,27 @@ def get_endf6_file(library, kind, zam, to_file=False):
             )
         library_ = library.lower()
         if library_ == "jeff_40t0":
-            filename = N_FILES_JEFF_40T0_NEA[zam]
-            tape = Endf6.from_url(filename, URL_N_JEFF_40T0_NEA)
+            url = URL_N_JEFF_40T0_NEA
+            files = N_FILES_JEFF_40T0_NEA
+            foo_read = Endf6.read_url
+            foo_get = Endf6.from_url
         elif library_ == "jeff_33":
-            filename = N_FILES_JEFF_33_IAEA[zam]
-            tape = Endf6.from_zipurl(filename, URL_N_JEFF_33_IAEA)
+            url = URL_N_JEFF_33_IAEA
+            files = N_FILES_JEFF_33_IAEA
         elif library_ == "jeff_32":
-            filename = N_FILES_JEFF_32_NEA[zam]
-            tape = Endf6.from_url(filename, URL_N_JEFF_32_NEA)
+            url = URL_N_JEFF_32_NEA
+            files = N_FILES_JEFF_32_NEA
+            foo_read = Endf6.read_url
+            foo_get = Endf6.from_url
         elif library_ == "endfb_71":
-            filename = N_FILES_ENDFB_71_IAEA[zam]
-            tape = Endf6.from_zipurl(filename, URL_N_ENDFB_71_IAEA)
+            url = URL_N_ENDFB_71_IAEA
+            files = N_FILES_ENDFB_71_IAEA
         elif library_ == "endfb_80":
-            filename = N_FILES_ENDFB_80_IAEA[zam]
-            tape = Endf6.from_zipurl(filename, URL_N_ENDFB_80_IAEA)
+            url = URL_N_ENDFB_80_IAEA
+            files = N_FILES_ENDFB_80_IAEA
         elif library_ == "jendl_40u":
-            filename = N_FILES_JENDL_40U_IAEA[zam]
-            tape = Endf6.from_zipurl(filename, URL_N_JENDL_40U_IAEA)
+            url = URL_N_JENDL_40U_IAEA
+            files = N_FILES_JENDL_40U_IAEA
         else:
             raise ValueError(
                 f"""library '{library}' is not available.
@@ -197,23 +220,24 @@ def get_endf6_file(library, kind, zam, to_file=False):
             )
         library_ = library.lower()
         if library_ == "endfb_71":
-            filename = NFPY_FILES_ENDFB_71_IAEA[zam]
-            tape = Endf6.from_zipurl(filename, URL_NFPY_ENDFB_71_IAEA)
+            url = URL_NFPY_ENDFB_71_IAEA
+            files = NFPY_FILES_ENDFB_71_IAEA
         elif library_ == "endfb_80":
-            filename = NFPY_FILES_ENDFB_80_IAEA[zam]
-            tape = Endf6.from_zipurl(filename, URL_NFPY_ENDFB_80_IAEA)
+            url = URL_NFPY_ENDFB_80_IAEA
+            files = NFPY_FILES_ENDFB_80_IAEA
         elif library_ == "jendl_40u":
-            filename = NFPY_FILES_JENDL_40U_IAEA[zam]
-            tape = Endf6.from_zipurl(filename, URL_NFPY_JENDL_40U_IAEA)
+            url = URL_NFPY_JENDL_40U_IAEA
+            files = NFPY_FILES_JENDL_40U_IAEA
         elif library_ == "jeff_33":
-            filename = NFPY_FILES_JEFF_33_IAEA[zam]
-            tape = Endf6.from_zipurl(filename, URL_NFPY_JEFF_33_IAEA)
+            url = URL_NFPY_JEFF_33_IAEA
+            files = NFPY_FILES_JEFF_33_IAEA
         else:
             raise ValueError(
                 f"""library '{library}' is not available.
                 Available libraries are: {available_libs}
                 """
                     )
+
     elif kind == 'decay':
         available_libs = (
             "endfb_71".upper(),
@@ -222,20 +246,29 @@ def get_endf6_file(library, kind, zam, to_file=False):
             )
         library_ = library.lower()
         if library_ == "endfb_71":
-            filename = DECAY_FILES_ENDFB_71_IAEA[zam]
-            tape = Endf6.from_zipurl(filename, URL_DECAY_ENDFB_71_IAEA)
+            url = URL_DECAY_ENDFB_71_IAEA
+            files = DECAY_FILES_ENDFB_71_IAEA
         elif library_ == "endfb_80":
-            filename = DECAY_FILES_ENDFB_80_IAEA[zam]
-            tape = Endf6.from_zipurl(filename, URL_DECAY_ENDFB_80_IAEA)
+            url = URL_DECAY_ENDFB_80_IAEA
+            files = DECAY_FILES_ENDFB_80_IAEA
         elif library_ == "jeff_33":
-            filename = DECAY_FILES_JEFF_33_IAEA[zam]
-            tape = Endf6.from_zipurl(filename, URL_DECAY_JEFF_33_IAEA)
+            url = URL_DECAY_JEFF_33_IAEA
+            files = DECAY_FILES_JEFF_33_IAEA
         else:
             raise ValueError(
                 f"""library '{library}' is not available.
                 Available libraries are: {available_libs}
                 """
                     )
+    if str(zam).lower() == 'all':
+        if kind.lower() == 'xs':
+            raise ValueError("'all' option is not available for xs")
+        text = "".join([foo_read(name, url) for name in files.values()])
+        tape = Endf6.from_text(text)
+    else:
+        filename = files[zam]
+        tape = foo_get(filename, url)
+
     if to_file:
         basename = sandy.zam.zam2nuclide(zam, atomic_number=True, sep="-")
         filename = f"{basename}.{library_}"
@@ -353,7 +386,7 @@ class _FormattedFile():
         `str`
             kind of ENDF-6 formatted file
 
-        Eaxmples
+        Examples
         --------
         >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
         >>> _FormattedFile.from_file(file).kind
@@ -386,16 +419,163 @@ class _FormattedFile():
 
     @classmethod
     def from_url(cls, filename, rooturl):
+        """
+        Given a filename and the url where the file is located,
+        extract the ENDF6 data from the file into a sandy.Endf6
+        instance.
+
+        Parameters
+        ----------
+        filename: 'str'
+            The filename without path of the zip file to read
+        rooturl: 'str'
+            The url direction to extract the zip files
+
+        Returns
+        -------
+        `Endf6`
+            `Endf6` object with ENDF-6 data for specified library and nuclide.
+
+        Examples
+        --------
+
+        >>> filename = "n-1-H-001.jeff32"
+        >>> rooturl = "https://www.oecd-nea.org/dbforms/data/eva/evatapes/jeff_32/"
+        >>> sandy.Endf6.from_url(filename, rooturl)
+        MAT  MF  MT
+        125  1   451     1.001000+3 9.991673-1          0          0  ...
+            2   151     1.001000+3 9.991673-1          0          0  ...
+            3   1       1.001000+3 9.991673-1          0          0  ...
+                2       1.001000+3 9.991673-1          0          0  ...
+                102     1.001000+3 9.991673-1          0          0  ...
+            4   2       1.001000+3 9.991673-1          0          1  ...
+            6   102     1.001000+3 9.991673-1          0          2  ...
+            33  1       1.001000+3 9.991673-1          0          0  ...
+                2       1.001000+3 9.991673-1          0          0  ...
+                102     1.001000+3 9.991673-1          0          0  ...
+        dtype: object
+        """
+        text = cls.read_url(filename, rooturl)
+        tape = cls.from_text(text)
+        return tape
+
+    @staticmethod
+    def read_url(filename, rooturl):
+        """
+        Given a filename and the url where the file is located,
+        extract the ENDF6 data from the file into a string.
+
+        Parameters
+        ----------
+        filename: 'str'
+            The filename without path of the zip file to read
+        rooturl: 'str'
+            The url direction to extract the zip files
+
+        Returns
+        -------
+        `str`
+            All the endf6 data in a 'str'
+
+        Examples
+        --------
+
+        >>> filename = "n-1-H-001.jeff32"
+        >>> rooturl = "https://www.oecd-nea.org/dbforms/data/eva/evatapes/jeff_32/"
+        >>> file = sandy.Endf6.read_url(filename, rooturl)
+        >>> print(file[0:890])
+        JEFF-3.2 Release - Neutron File March 2014                             0  0    0
+        1.001000+3 9.991673-1          0          0          2          5 125 1451    1
+        0.000000+0 0.000000+0          0          0          0          6 125 1451    2
+        1.000000+0 2.000000+7          1          0         10         32 125 1451    3
+        0.000000+0 0.000000+0          0          0         87         10 125 1451    4
+        1-H -  1 LANL       EVAL-OCT05 G.M.Hale                          125 1451    5
+                            DIST-DEC06                       20111222    125 1451    6
+        ----JEFF32            MATERIAL  125                                125 1451    7
+        -----INCIDENT NEUTRON DATA                                         125 1451    8
+        ------ENDF-6 FORMAT                                                125 1451    9
+        *****************************  JEFF-3.2    *********************** 125 1451   10
+        """
         url = f"{rooturl}/{filename}"
         # set a known browser user agent to ensure access
         req = Request(url, headers={'User-Agent': 'Mozilla/5.0'},)
         with urlopen(req) as f:
             text = f.read().decode('utf-8')
-        tape = cls.from_text(text)
-        return tape
+        return text
 
     @classmethod
     def from_zipurl(cls, filename, rooturl):
+        """
+        Given a filename and the url where the file is located (in
+        zipped format), extract the ENDF6 data from the file into a
+        sandy.Endf6 instance.
+
+        Parameters
+        ----------
+        filename: 'str'
+            The filename without path of the zip file to read
+        rooturl: 'str'
+            The url direction to extract the zip files
+
+        Returns
+        -------
+        `Endf6`
+            `Endf6` object with ENDF-6 data for specified library and nuclide.
+
+        Examples
+        --------
+
+        >>> filename = "decay_1907_57-La-149.dat"
+        >>> rooturl = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VII.1/decay/"
+        >>> sandy.Endf6.from_zipurl(filename, rooturl)
+        MAT   MF  MT
+        1907  1   451     5.714900+4 1.476553+2         -1          0  ...
+            8   457     5.714900+4 1.476553+2          0          0  ...
+        dtype: object
+        """
+        text = cls.read_zipurl(filename, rooturl)
+        tape = cls.from_text(text)
+        return tape
+
+    @staticmethod
+    def read_zipurl(filename, rooturl):
+        """
+        Given a filename and the url where the file is located (in
+        zipped format), extract the ENDF6 data from the file into
+        a string.
+
+        Parameters
+        ----------
+        filename: 'str'
+            The filename without path of the zip file to read
+        rooturl: 'str'
+            The url direction to extract the zip files
+
+        Returns
+        -------
+        `str`
+            All the endf6 data in a 'str'
+
+        Examples
+        --------
+
+        >>> filename = "decay_1907_57-La-149.dat"
+        >>> rooturl = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VII.1/decay/"
+        >>> file = sandy.Endf6.read_zipurl(filename, rooturl)
+        >>> print(file[0:971])
+        Retrieved by E4-util: 2012/01/16,13:45:44                            1 0  0    0
+        5.714900+4 1.476553+2         -1          0          0          11907 1451    1
+        0.000000+0 1.000000+0          0          0          0          61907 1451    2
+        0.000000+0 0.000000+0          1          0          4          71907 1451    3
+        0.000000+0 0.000000+0          0          0         27          21907 1451    4
+        57-La-149  BNL        EVAL-AUG11 Conv. from CGM                  1907 1451    5
+        /ENSDF/                                               20111222   1907 1451    6
+        ----ENDF/B-VII.1      Material 1907                               1907 1451    7
+        -----RADIOACTIVE DECAY DATA                                       1907 1451    8
+        ------ENDF-6 FORMAT                                               1907 1451    9
+        *********************** Begin Description *********************** 1907 1451   10
+        **         ENDF/B-VII.1 RADIOACTIVE DECAY DATA FILE            ** 1907 1451   11
+        """
         rootname = os.path.splitext(filename)[0]
         zipurl = f"{rooturl}/{rootname}.zip"
         # set a known browser user agent to ensure access
@@ -405,8 +585,9 @@ class _FormattedFile():
                 with TemporaryDirectory() as td:
                     zfile.extract(filename, path=td)
                     tmpfile = os.path.join(td, filename)
-                    tape = cls.from_file(tmpfile)
-        return tape
+                    with open(tmpfile, "r") as f:
+                        text = f.read()
+        return text
 
     @classmethod
     def from_file(cls, file):
@@ -673,7 +854,7 @@ class _FormattedFile():
         >>> h1 = sandy.get_endf6_file("jeff_33", 'xs', 10010)
         >>> h2 = sandy.get_endf6_file("endfb_71", 'xs', 10020)
         >>> h1.merge(h2)
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          0          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0          0  ...
@@ -706,7 +887,7 @@ class _FormattedFile():
         Merge three files from different libraries.
         >>> h3 = sandy.get_endf6_file("endfb_71", 'xs', 10030)
         >>> h1.merge(h2, h3)
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          0          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0          0  ...
@@ -747,7 +928,7 @@ class _FormattedFile():
         Merge two evaluations for the same nuclide.
         >>> h2_2 = sandy.get_endf6_file("jeff_32", 'xs', 10020)
         >>> h2.merge(h2_2)
-        MAT  MF  MT 
+        MAT  MF  MT
         128  1   451     1.002000+3 1.995712+0          0          0  ...
              2   151     1.002000+3 1.995712+0          0          0  ...
              3   1       1.002000+3 1.995712+0          0          0  ...

@@ -14,6 +14,9 @@ from math import sqrt
 
 import numpy as np
 import pandas as pd
+import scipy
+from scipy.sparse import csc_matrix
+from scipy.sparse.linalg import splu
 
 import sandy
 
@@ -198,6 +201,32 @@ class DecayData():
         10010    0.00000e+00 0.00000e+00 0.00000e+00
         270600   0.00000e+00 0.00000e+00 0.00000e+00
         280600   0.00000e+00 1.00000e+00 0.00000e+00
+
+        >>> tape = sandy.endf6.get_endf6_file("endfb_71", 'decay', 571480)
+        >>> decay_data = sandy.DecayData.from_endf6(tape)
+        >>> decay_data.get_bmatrix()
+        PARENT 	       10 	       571480 	        581470 	       581480
+        DAUGHTER
+        10 	    0.00000e+00 	1.50000e-03 	0.00000e+00 	0.00000e+00
+        571480 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        581470 	0.00000e+00 	1.50000e-03 	0.00000e+00 	0.00000e+00
+        581480 	0.00000e+00 	9.98500e-01 	0.00000e+00 	0.00000e+00
+
+
+        >>> h1 = sandy.endf6.get_endf6_file("endfb_71","decay",551480)
+        >>> h2 = sandy.endf6.get_endf6_file("endfb_71","decay",551490)
+        >>> h3 = h1.merge(h2)
+        >>> rdd = sandy.DecayData.from_endf6(h3)
+        >>> rdd.get_bmatrix()
+        PARENT 	       10 	         551480 	     551490 	     561460 	     561470 	     561480 	     561490
+        DAUGHTER
+        10 	    0.00000e+00 	2.18793e-01 	6.88450e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        551480 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        551490 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561460 	0.00000e+00 	1.72560e-04 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561470 	0.00000e+00 	2.18447e-01 	4.09780e-07 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561480 	0.00000e+00 	7.81380e-01 	6.88450e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561490 	0.00000e+00 	0.00000e+00 	3.11550e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
         """
         B = self.get_decay_chains(**kwargs) \
                 .pivot_table(
@@ -209,13 +238,20 @@ class DecayData():
                         )\
                 .astype(float)\
                 .fillna(0)
-        np.fill_diagonal(B.values, 0)
-        return B.reindex(B.columns.values, fill_value=0.0)
+        B_reindex = B.reindex(B.index.values, fill_value=0.0, axis=1)
+        np.fill_diagonal(B_reindex.values, 0)
+        return B_reindex
 
-    def get_qmatrix(self, keep_neutrons=False, **kwargs):
+    def get_qmatrix(self, keep_neutrons=False, threshold=None, **kwargs):
         """
         Extract Q-matrix dataframe.
 
+        Optional argument
+        -------
+        Thereshold: 'int'
+            Optional argument to avoid numerical fluctuations or
+            values so small that they do not have to be taken into
+            account.
         Returns
         -------
         `pandas.DataFrame`
@@ -234,6 +270,21 @@ class DecayData():
         >>> comp.index.name = "DAUGHTER"
         >>> comp.columns.name = "PARENT"
         >>> pd.testing.assert_frame_equal(comp, out)
+
+
+        >>> h1 = sandy.endf6.get_endf6_file("endfb_71","decay",551480)
+        >>> h2 = sandy.endf6.get_endf6_file("endfb_71","decay",551490)
+        >>> h3 = h1.merge(h2)
+        >>> rdd = sandy.DecayData.from_endf6(h3)
+        >>> rdd.get_qmatrix()
+        PARENT 	     551480 	     551490 	     561460 	     561470 	     561480 	     561490
+        DAUGHTER
+        551480 	1.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        551490 	0.00000e+00 	1.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561460 	1.72560e-04 	0.00000e+00 	1.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
+        561470 	2.18447e-01 	4.09780e-07 	0.00000e+00 	1.00000e+00 	0.00000e+00 	0.00000e+00
+        561480 	7.81380e-01 	6.88450e-01 	0.00000e+00 	0.00000e+00 	1.00000e+00 	0.00000e+00
+        561490 	0.00000e+00 	3.11550e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	1.00000e+00
         """
         B = self.get_bmatrix(**kwargs)
         if not keep_neutrons:
@@ -241,9 +292,13 @@ class DecayData():
                 B.drop(index=10, inplace=True)
             if 10 in B.columns:
                 B.drop(columns=10, inplace=True)
-        C = np.identity(len(B)) - B.values
-        Q = np.linalg.pinv(C)
-        return pd.DataFrame(Q, index=B.index, columns=B.columns)
+        unit = np.identity(len(B))
+        C = unit - B.values
+        C_inv = splu(csc_matrix(C))
+        qmatrix = pd.DataFrame(C_inv.solve(unit), index=B.index, columns=B.columns)
+        if threshold is not None:
+            qmatrix[qmatrix < threshold] = 0
+        return qmatrix
 
     def get_transition_matrix(self):
         """
