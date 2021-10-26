@@ -21,7 +21,7 @@ import sandy
 __author__ = "Luca Fiorito"
 __all__ = [
         "read_mf8",
-        "write_mf8",
+        # "write_mf8",
         ]
 
 mf = 8
@@ -56,23 +56,24 @@ def read_mf8(tape, mat, mt):
 #        raise ValueError(f"'MF={mf}/MT={mt}' not yet implemented")
     return out
 
-def write_mf8(sec):
-    """
-    Write MT section for MF8
-    
-    Parameters
-    ----------
-    sec : `sandy.utils.Section`
-        dictionary with MT section for MF8
 
-    Returns
-    -------
-    `str`
-    """
-    if sec["MT"] in (454, 459):
-        return _write_fy(sec)
-    elif sec["MT"] == 457:
-        return _write_rdd(sec)
+# def write(sec):
+#     """
+#     Write MT section for MF8
+
+#     Parameters
+#     ----------
+#     sec : `sandy.utils.Section`
+#         dictionary with MT section for MF8
+
+#     Returns
+#     -------
+#     `str`
+#     """
+#     if sec["MT"] in (454, 459):
+#         return _write_fy(sec)
+#     elif sec["MT"] == 457:
+#         return _write_rdd(sec)
 
 
 def _read_nucl_prod(tape, mat, mt):
@@ -168,18 +169,6 @@ def _read_fy(tape, mat, mt):
     -----
     .. note:: Fission yields are only contained in sections with `mt=454` (IFY)
               or `mt=459` (CFY).
-
-    Examples
-    --------
-    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
-    >>> IFY = sandy.sections.mf8.read_mf8(nfpy,9228,454)
-    >>> IFY["E"][0.0253]['ZAP'][10010]
-    {'FY': 1.711e-05, 'DFY': 2.9483e-06}
-    
-    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
-    >>> IFY = sandy.sections.mf8.read_mf8(nfpy,9228,459)
-    >>> IFY["E"][0.0253]['ZAP'][10010]
-    {'FY': 1.711e-05, 'DFY': 1.8479e-06}
     """
     df = tape._get_section_df(mat, mf, mt)
     out = {
@@ -228,25 +217,6 @@ def _read_rdd(tape, mat):
     -------
     `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
-
-    Examples
-    --------
-    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
-    >>> rdd = sandy.sections.mf8.read_mf8(decay,3542,457)
-    >>> rdd['SPECTRA'][0]['ER'][19595.0]
-    {'DER': 4.0,
-    'RTYP': 4.0,
-    'TYPE': 0.0,
-    'RI': 0.00011,
-    'DRI': 2e-05,
-    'RIS': 0.0,
-    'DRIS': 0.0,
-    'RICC': 9670.0,
-    'DRICC': 967.0,
-    'RICK': 0.0,
-    'DRICK': 0.0,
-    'RICL': 0.0,
-    'DRICL': 0.0}
     """
     mt = 457
     df = tape._get_section_df(mat, mf, mt)
@@ -432,9 +402,7 @@ def _read_rdd(tape, mat):
     return out
 
 
-def _write_fy(sec):
-    LE = len(sec["E"])
-    lines = sandy.write_cont(sec["ZA"], sec["AWR"], LE, 0, 0, 0)
+# def _write_fy(sec):
 #     LE = len(sec["E"])
 #     text = write_cont(sec["ZA"], sec["AWR"], LE, 0, 0, 0)
 #     for i,(e,esec) in enumerate(sorted(sec["E"].items())):
@@ -448,7 +416,7 @@ def _write_fy(sec):
 #             iline = 1
 #         TextOut.append("{:<66}{:4}{:2}{:3}{:5}\n".format(line, sec["MAT"], sec["MF"], sec["MT"], iline))
 #         iline += 1
-    return "\n".join(sandy.write_eol(lines, sec["MAT"], 9, sec["MT"]))
+#     return "".join(TextOut)
 
 
 def _write_rdd(*args, **kwargs):
