@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 This module contains only two public functions:
-
     * `read_mf8`
     * `write_mf8`
-
 Function `read` reads a MF8/MT section from a string and produces a content
 object with a dictionary-like structure.
 The content object can be accessed using most of the keywords specified in
 the ENDF6 manual for this specific MF section.
-
 Function `write_mf8` writes a content object for a MF8/MT section into a
 string.
 MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
@@ -31,7 +28,6 @@ def read_mf8(tape, mat, mt):
     """
     Parse MAT/MF=8/MT section from `sandy.Endf6` object and return
     structured content in nested dcitionaries.
-
     Parameters
     ----------
     tape : `sandy.Endf6`
@@ -40,7 +36,6 @@ def read_mf8(tape, mat, mt):
         MAT number
     mt : `int`
         MT number
-
     Returns
     -------
     `dict`
@@ -80,7 +75,6 @@ def _read_nucl_prod(tape, mat, mt):
     """
     Parse MAT/MF=8/MT section for radioactive nuclide production from
     `sandy.Endf6` object and return structured content in nested dcitionaries.
-
     Parameters
     ----------
     tape : `sandy.Endf6`
@@ -89,7 +83,6 @@ def _read_nucl_prod(tape, mat, mt):
         MAT number
     mt : `int`
         MT number
-
     Returns
     -------
     `dict`
@@ -152,19 +145,16 @@ def _read_fy(tape, mat, mt):
     """
     Parse MAT/MF=8/MT section for fission yields from `sandy.Endf6` object
     and return structured content in nested dcitionaries.
-
     Parameters
     ----------
     tape : `sandy.Endf6`
         endf6 object containing requested section
     mat : `int`
         MAT number
-
     Returns
     -------
     `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
-
     Notes
     -----
     .. note:: Fission yields are only contained in sections with `mt=454` (IFY)
@@ -205,14 +195,12 @@ def _read_rdd(tape, mat):
     """
     Parse MAT/MF=8/MT=457 section from `sandy.Endf6` object and return
     structured content in nested dcitionaries.
-
     Parameters
     ----------
     tape : `sandy.Endf6`
         endf6 object containing requested section
     mat : `int`
         MAT number
-
     Returns
     -------
     `dict`
