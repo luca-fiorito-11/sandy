@@ -419,5 +419,5 @@ def _read_rdd(tape, mat):
 #     return "".join(TextOut)
 
 
-# def _write_rdd(*args, **kwargs):
-    # pass
+def _write_rdd(*args, **kwargs):
+    pass
