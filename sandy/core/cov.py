@@ -115,6 +115,17 @@ class _Cov(np.ndarray):
         return self.__class__(corr)
 
     def _reduce_size(self):
+        """
+        Reduces the size of the matrix
+
+        Returns
+        -------
+        nonzero_idxs : numpy.ndarray
+            The indices of the diagonal that are not null.
+        cov_reduced : sandy.core.cov._Cov
+            The reduced matrix.
+
+        """
         nonzero_idxs = np.flatnonzero(np.diag(self))
         cov_reduced = self[nonzero_idxs][:, nonzero_idxs]
         return nonzero_idxs, cov_reduced
