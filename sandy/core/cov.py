@@ -116,7 +116,7 @@ class _Cov(np.ndarray):
 
     def _reduce_size(self):
         """
-        Reduces the size of the matrix
+        Reduces the size of the matrix, erasing the null values.
 
         Returns
         -------
@@ -132,6 +132,24 @@ class _Cov(np.ndarray):
 
     @classmethod
     def _restore_size(cls, nonzero_idxs, cov_reduced, dim):
+        """
+        Restore the size of the matrix
+
+        Parameters
+        ----------
+        nonzero_idxs : numpy.ndarray
+            The indices of the diagonal that are not null.
+        cov_reduced : sandy.core.cov._Cov
+            The reduced matrix.
+        dim : int
+            Dimension of the original matrix.
+
+        Returns
+        -------
+        cov : sandy.core.cov._Cov
+            Matrix of specified dimensions.
+
+        """
         cov = _Cov(np.zeros((dim, dim)))
         for i, ni in enumerate(nonzero_idxs):
             cov[ni, nonzero_idxs] = cov_reduced[i]
