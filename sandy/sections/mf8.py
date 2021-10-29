@@ -21,7 +21,7 @@ import sandy
 __author__ = "Luca Fiorito"
 __all__ = [
         "read_mf8",
-        # "write_mf8",
+        "write_mf8",
         ]
 
 mf = 8
@@ -57,23 +57,23 @@ def read_mf8(tape, mat, mt):
     return out
 
 
-# def write(sec):
-#     """
-#     Write MT section for MF8
+def write_mf8(sec):
+    """
+    Write MT section for MF8
 
-#     Parameters
-#     ----------
-#     sec : `sandy.utils.Section`
-#         dictionary with MT section for MF8
+    Parameters
+    ----------
+    sec : `sandy.Section`
+        dictionary with MT section for MF8
 
-#     Returns
-#     -------
-#     `str`
-#     """
-#     if sec["MT"] in (454, 459):
-#         return _write_fy(sec)
-#     elif sec["MT"] == 457:
-#         return _write_rdd(sec)
+    Returns
+    -------
+    `str`
+    """
+    if sec["MT"] in (454, 459):
+        return _write_fy(sec)
+    elif sec["MT"] == 457:
+        return _write_rdd(sec)
 
 
 def _read_nucl_prod(tape, mat, mt):
@@ -169,6 +169,18 @@ def _read_fy(tape, mat, mt):
     -----
     .. note:: Fission yields are only contained in sections with `mt=454` (IFY)
               or `mt=459` (CFY).
+
+    Examples
+    --------
+    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
+    >>> IFY = sandy.sections.mf8.read_mf8(nfpy,9228,454)
+    >>> IFY["E"][0.0253]['ZAP'][10010]
+    {'FY': 1.711e-05, 'DFY': 2.9483e-06}
+
+    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
+    >>> IFY = sandy.sections.mf8.read_mf8(nfpy,9228,459)
+    >>> IFY["E"][0.0253]['ZAP'][10010]
+    {'FY': 1.711e-05, 'DFY': 1.8479e-06}
     """
     df = tape._get_section_df(mat, mf, mt)
     out = {
@@ -217,6 +229,25 @@ def _read_rdd(tape, mat):
     -------
     `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
+
+    Examples
+    --------
+    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
+    >>> rdd = sandy.sections.mf8.read_mf8(decay,3542,457)
+    >>> rdd['SPECTRA'][0]['ER'][19595.0]
+    {'DER': 4.0,
+    'RTYP': 4.0,
+    'TYPE': 0.0,
+    'RI': 0.00011,
+    'DRI': 2e-05,
+    'RIS': 0.0,
+    'DRIS': 0.0,
+    'RICC': 9670.0,
+    'DRICC': 967.0,
+    'RICK': 0.0,
+    'DRICK': 0.0,
+    'RICL': 0.0,
+    'DRICL': 0.0}
     """
     mt = 457
     df = tape._get_section_df(mat, mf, mt)
@@ -402,22 +433,237 @@ def _read_rdd(tape, mat):
     return out
 
 
-# def _write_fy(sec):
-#     LE = len(sec["E"])
-#     text = write_cont(sec["ZA"], sec["AWR"], LE, 0, 0, 0)
-#     for i,(e,esec) in enumerate(sorted(sec["E"].items())):
-#         tab = [ksec[j] for k,ksec in sorted(esec["FY"].items()) for j in ("ZAFP","FPS","YI","DYI")]
-#         NFP = len(esec["FY"])
-#         I = LE-1 if i == 0 else esec["I"]
-#         text += write_list(e, 0, I, 0, NFP, tab)
-#     TextOut = []; iline = 1
-#     for line in text:
-#         if iline > 99999:
-#             iline = 1
-#         TextOut.append("{:<66}{:4}{:2}{:3}{:5}\n".format(line, sec["MAT"], sec["MF"], sec["MT"], iline))
-#         iline += 1
-#     return "".join(TextOut)
+def _write_fy(sec):
+    """
+    Given the content of MF8 for fission yields as nested dictionaries,
+    write it to string.
+
+    Parameters
+    ----------
+    sec : 'dict'
+        Multiline string reproducing the content of a ENDF-6 section.
+
+    Returns
+    -------
+    `str`
+        Multiline string reproducing the content of a ENDF-6 section.
+
+    Examples
+    --------
+    Independent fission yield:
+    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
+    >>> sec = sandy.sections.mf8.read_mf8(nfpy, 9228, 454)
+    >>> text = _write_fy(sec)
+    >>> print(text[:1000])
+     922350.000 233.025000          3          0          0          09228 8454    1
+     2.530000-2 0.00000000          2          0       3932        9839228 8454    2
+     1001.00000 0.00000000 1.711000-5 2.948300-6 1002.00000 0.000000009228 8454    3
+     8.400000-6 2.438900-6 1003.00000 0.00000000 1.080000-4 5.863500-69228 8454    4
+     2003.00000 0.00000000 0.00000000 0.00000000 2004.00000 0.000000009228 8454    5
+     1.700000-3 8.134700-5 2006.00000 0.00000000 2.668000-5 4.878400-69228 8454    6
+     3006.00000 0.00000000 0.00000000 0.00000000 3008.00000 0.000000009228 8454    7
+     7.292000-7 2.368000-7 3009.00000 0.00000000 4.071000-7 1.049100-79228 8454    8
+     4008.00000 0.00000000 7.292000-7 1.650700-7 4009.00000 0.000000009228 8454    9
+     4.071000-7 1.653500-7 4010.00000 0.00000000 5.201000-6 9.085300-79228 8454   10
+     4012.00000 0.00000000 1.261000-7 4.498200-8 5009.00000 0.000000009228 8454   11
+     4.071000-7 1.101800-7 5010.00000 0.00000000 5.201000-6 8.994800-79228 8454   12
+     5012.00000 0.00000000 1.261
+
+    Cumulative fission yield:
+    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
+    >>> sec = sandy.sections.mf8.read_mf8(nfpy, 9228, 459)
+    >>> text = _write_fy(sec)
+    >>> print(text[:1000])
+     922350.000 233.025000          3          0          0          09228 8459    1
+     2.530000-2 0.00000000          2          0       3932        9839228 8459    2
+     1001.00000 0.00000000 1.711000-5 1.847900-6 1002.00000 0.000000009228 8459    3
+     8.400000-6 1.503600-6 1003.00000 0.00000000 1.080000-4 3.996000-69228 8459    4
+     2003.00000 0.00000000 1.080000-4 3.996000-6 2004.00000 0.000000009228 8459    5
+     1.702100-3 4.930000-5 2006.00000 0.00000000 2.668000-5 1.840900-69228 8459    6
+     3006.00000 0.00000000 2.668000-5 1.840900-6 3008.00000 0.000000009228 8459    7
+     7.292000-7 1.181300-7 3009.00000 0.00000000 4.071000-7 2.849700-89228 8459    8
+     4008.00000 0.00000000 1.341800-6 1.181300-7 4009.00000 0.000000009228 8459    9
+     6.126800-7 2.849700-8 4010.00000 0.00000000 5.201000-6 2.548500-79228 8459   10
+     4012.00000 0.00000000 1.261000-7 3.013800-8 5009.00000 0.000000009228 8459   11
+     4.071000-7 2.849700-8 5010.00000 0.00000000 5.201000-6 2.548500-79228 8459   12
+     5012.00000 0.00000000 2.522
+    """
+    LE = len(sec["E"])
+    lines = sandy.write_cont(sec["ZAM"], sec["AWR"], LE, 0, 0, 0)
+    for E, FY_information in sec['E'].items():
+        interp = FY_information['INTERP']
+        energy_data = FY_information['ZAP']
+        NFP = len(energy_data)
+        B = []
+        for zap, fy_dat in energy_data.items():
+            z, a, m = sandy.zam.expand_zam(zap)
+            zaps, fps = sandy.zam.get_za(z, a, m, method='none')
+            fy = fy_dat['FY']
+            dfy = fy_dat['DFY']
+            B.extend([zaps, fps, fy, dfy])
+        lines += sandy.write_list(
+                    E,
+                    0,
+                    interp,
+                    0,
+                    NFP,
+                    B,
+                    )
+    return "\n".join(sandy.write_eol(lines, sec["MAT"], 8, sec["MT"]))
 
 
-def _write_rdd(*args, **kwargs):
-    pass
+def _write_rdd(sec):
+    """
+    Given the content of MF8 for radioactive decay as nested dictionaries,
+    write it to string.
+
+    Parameters
+    ----------
+    sec : 'dict'
+        Multiline string reproducing the content of a ENDF-6 section.
+
+    Returns
+    -------
+    `str`
+        Multiline string reproducing the content of a ENDF-6 section.
+
+    Examples
+    --------
+    Stable nuclide:
+    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 551340)
+    >>> sec = sandy.sections.mf8.read_mf8(decay,1803,457)
+    >>> text = _write_rdd(sec)
+    >>> print(text[:1000])
+     55134.0000 132.756000          0          0          0          51803 8457    1
+     65146100.0 44179.7000          0          0          6          01803 8457    2
+     163850.000 403.088000 1554660.00 895.993000 0.00000000 0.000000001803 8457    3
+     4.00000000 1.00000000          0          0         12          21803 8457    4
+     20.0000000 0.00000000 1233300.00 800.000000 3.000000-6 1.000000-61803 8457    5
+     10.0000000 0.00000000 2058980.00 330.000000 9.999970-1 1.000000-61803 8457    6
+     0.00000000 0.00000000          0          0          6         121803 8457    7
+     1.000000-2 0.00000000 1554380.00 895.965000 0.00000000 0.000000001803 8457    8
+     242760.000 50.0000000          0          0         12          01803 8457    9
+     1.00000000 0.00000000 2.409990-2 3.099990-3 0.00000000 0.000000001803 8457   10
+     8.700000-2 3.000000-3 7.220000-2 3.289850-3 1.200000-2 2.551310-31803 8457   11
+     326585.000 14.0000000          0          0         12          01803 8457   12
+     1.00000000 0.00000000 1.709
+
+    Unstable nuclide:
+    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
+    >>> sec = sandy.sections.mf8.read_mf8(decay,3542,457)
+    >>> text = _write_rdd(sec)
+    >>> print(text[:1000])
+     92235.0000 233.025000          0          0          0          63542 8457    1
+     2.22102+16 1.57788+13          0          0          6          03542 8457    2
+     50671.7000 4291.63000 163616.000 1708.01000 4464600.00 163255.0003542 8457    3
+     3.50000000-1.00000000          0          0         12          23542 8457    4
+     40.0000000 0.00000000 4678700.00 700.000000 1.00000000 1.000000-43542 8457    5
+     60.0000000 0.00000000  176400000 4600000.00 7.20000-11 2.10000-113542 8457    6
+     0.00000000 0.00000000          2          0          6         503542 8457    7
+     5.710000-1 3.000000-3 148550.000 804.564000 5.82048-10 1.79455-103542 8457    8
+     19595.0000 4.00000000          0          0         12          03542 8457    9
+     4.00000000 0.00000000 1.100000-4 2.000000-5 0.00000000 0.000000003542 8457   10
+     9670.00000 967.000000 0.00000000 0.00000000 0.00000000 0.000000003542 8457   11
+     31580.0000 10.0000000          0          0         12          03542 8457   12
+     4.00000000 0.00000000 3.000
+    """
+    if sec['NST'] == 1:
+        lines = sandy.write_cont(sec["ZA"],
+                                 sec["AWR"],
+                                 sec['LIS'],
+                                 sec['LISO'],
+                                 1,
+                                 0,
+                                 )
+        lines += sandy.write_list(0,
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                  [0]*6,
+                                  )
+        lines += sandy.write_list(sec['SPI'],
+                                  sec['PAR'],
+                                  0,
+                                  0,
+                                  0,
+                                  [0]*6,
+                                  )
+    elif sec['NST'] == 0:
+        lines = sandy.write_cont(sec["ZA"],
+                                 sec["AWR"],
+                                 sec['LIS'],
+                                 sec['LISO'],
+                                 0,
+                                 len(sec['SPECTRA']),
+                                 )
+        size_E = len(sec['E'])
+        size_DE = len(sec['DE'])
+        add = [0]*(size_E + size_DE)
+        add[::2] = sec['E']
+        add[1::2] = sec['DE']
+        lines += sandy.write_list(
+                            sec['HL'],
+                            sec['DHL'],
+                            0,
+                            0,
+                            0,
+                            add,
+                            )
+        NDK = len(sec['DK'])
+        add = []
+        for key, decay_data in sec['DK'].items():
+            add.extend([int(decay_data['RTYP']),
+                        decay_data['RFS'],
+                        decay_data['Q'],
+                        decay_data['DQ'],
+                        decay_data['BR'],
+                        decay_data['DBR'],
+                        ])
+        lines += sandy.write_list(
+            sec['SPI'],
+            sec['PAR'],
+            0,
+            0,
+            NDK,
+            add,
+            )
+        for STYP, spectra in sec['SPECTRA'].items():
+            if spectra['LCON'] != 1 and 'ER' in list(sec['SPECTRA'][STYP].keys()):
+                add = [spectra['FD'],
+                       spectra['DFD'],
+                       spectra['ERAV'],
+                       spectra['DERAV'],
+                       spectra['FC'],
+                       spectra['DFC'],
+                       ]
+                lines += sandy.write_list(
+                    0,
+                    STYP,
+                    spectra['LCON'],
+                    0,
+                    len(spectra['ER']),
+                    add
+                    )
+                for ER, discr in spectra['ER'].items():
+                    lines += sandy.write_list(
+                        ER,
+                        discr['DER'],
+                        0,
+                        0,
+                        0,
+                        list(discr.values())[1:],
+                        )
+                if spectra['LCON'] != 0 and 'CONT' in list(sec['SPECTRA'][STYP].keys()):
+                    for RTYP, cont in spectra['CONT'].items():
+                        lines += sandy.write_tab1(
+                            cont['RTYP'],
+                            0.0,
+                            0,
+                            cont['LCOV'],
+                            cont['NBT'],
+                            cont['INT'],
+                            cont['E'][0],
+                            cont["RP"],
+                            )
+        return "\n".join(sandy.write_eol(lines, sec["MAT"], 8, sec["MT"]))
