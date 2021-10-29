@@ -173,7 +173,7 @@ def _read_fy(tape, mat, mt):
     Examples
     --------
     >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
-    >>> IFY = sandy.sections.mf8.read_mf8(nfpy,9228,454)
+    >>> IFY = sandy.sections.mf8.read_mf8(nfpy, 9228, 454)
     >>> IFY["E"][0.0253]['ZAP'][10010]
     {'FY': 1.711e-05, 'DFY': 2.9483e-06}
 
