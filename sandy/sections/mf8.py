@@ -178,7 +178,7 @@ def _read_fy(tape, mat, mt):
     {'FY': 1.711e-05, 'DFY': 2.9483e-06}
 
     >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
-    >>> IFY = sandy.sections.mf8.read_mf8(nfpy,9228,459)
+    >>> IFY = sandy.sections.mf8.read_mf8(nfpy, 9228, 459)
     >>> IFY["E"][0.0253]['ZAP'][10010]
     {'FY': 1.711e-05, 'DFY': 1.8479e-06}
     """
@@ -233,7 +233,7 @@ def _read_rdd(tape, mat):
     Examples
     --------
     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
-    >>> rdd = sandy.sections.mf8.read_mf8(decay,3542,457)
+    >>> rdd = sandy.sections.mf8.read_mf8(decay, 3542, 457)
     >>> rdd['SPECTRA'][0]['ER'][19595.0]
     {'DER': 4.0,
     'RTYP': 4.0,
