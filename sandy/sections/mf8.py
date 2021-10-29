@@ -63,8 +63,8 @@ def write_mf8(sec):
 
     Parameters
     ----------
-    sec : `sandy.Section`
-        dictionary with MT section for MF8
+    sec : 'dict'
+        Multiline string reproducing the content of a ENDF-6 section.
 
     Returns
     -------
