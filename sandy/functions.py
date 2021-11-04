@@ -318,10 +318,23 @@ def convert_za(za):
     sym = elements.loc[z].SYM
     return z, sym, a
 
-#import pytest
-#@pytest.mark.sampling
-#@pytest.mark.errorr
-#@pytest.mark.xs
-#@pytest.mark.aaa
-#def test_aaa():
-#    convert_za(92235.0)
+
+def uniform_loggrid(xmin, xmax, npoints=100):
+    """
+    Given lower and upper limits, produce a grid with a number of points `npoints`
+    that define equivalent intervals in log scale.
+    
+    Parameters
+    ----------
+    xmin : `float`
+        lower bound of the grid structure
+    xmax : `float`
+        upper bound of the grid structure
+    npoints : `int`, optional, default `100`
+    
+    Returns
+    -------
+    `numpy` array
+        grid equally spaced in logarithmic scale
+    """
+    return 10.0**np.linspace(np.log10(xmin), np.log10(xmax), npoints)

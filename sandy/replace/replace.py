@@ -14,7 +14,7 @@ import pdb
 
 from ..settings import SandyError
 from ..formats import read_formatted_file
-from ..utils import is_valid_file
+from ..tools import is_valid_file
 
 __author__ = "Luca Fiorito"
 __all__ = ["replace"]

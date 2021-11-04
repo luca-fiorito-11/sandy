@@ -10,89 +10,76 @@ import os
 
 import numpy as np
 
-from sandy.data import RDD
-import sandy.decay
-from sandy.decay import DecayChains, BMatrix, QMatrix
-from sandy.formats.endf6 import Endf6
+import sandy
 
 __author__ = "Luca Fiorito"
 
-@pytest.fixture(scope="module")
-def testRDD():
-    tape = Endf6.from_text("\n".join(RDD.endf6))
-    assert tape.index.get_level_values("MAT").unique().size == 3852
-    return tape
 
-@pytest.fixture(scope="module")
-def DecayChains_small():
-    tape = Endf6.from_text("\n".join(RDD.endf6)).filter_by(listmat=[471, 498, 528])
-    return DecayChains.from_endf6(tape)
 
-#@pytest.mark.rdd
-#@pytest.mark.qmatrix
-#def test_qmatrix():
-#    Q = sandy.get_jeff_qmatrix()
-#    assert (np.isclose(np.diag(Q.values), 1)).all()
 
-@pytest.mark.rdd
-def test_decay_chains(DecayChains_small):
-    DC = DecayChains_small.copy()
-    assert DC.loc[(DC.DAUGHTER == 250560) & (DC.PARENT == 240560)]["YIELD"].sum() == 1
-    assert DC.loc[(DC.DAUGHTER == 240560) & (DC.PARENT == 240560)]["YIELD"].sum() == -1
-    assert DC.loc[(DC.DAUGHTER == 260560) & (DC.PARENT == 250560)]["YIELD"].sum() == 1
-    assert DC.loc[(DC.DAUGHTER == 250560) & (DC.PARENT == 250560)]["YIELD"].sum() == -1
-    assert DC.loc[(DC.DAUGHTER == 260560) & (DC.PARENT == 260560)]["YIELD"].sum() == 0
-
-@pytest.mark.rdd
-def test_qmatrix(DecayChains_small):
-    Q = DecayChains_small.get_qmatrix()
-    assert np.isclose(Q.loc[240560,240560], 1)
-    assert np.isclose(Q.loc[250560,250560], 1)
-    assert np.isclose(Q.loc[260560,260560], 1)
-    assert np.isclose(Q.loc[250560,240560], 1)
-    assert np.isclose(Q.loc[260560,240560], 1)
-    assert np.isclose(Q.loc[260560,250560], 1)
-    assert np.isclose(Q.loc[240560,250560], 0)
-    assert np.isclose(Q.loc[240560,260560], 0)
-    assert np.isclose(Q.loc[250560,260560], 0)
-
-@pytest.mark.rdd
-def test_bmatrix(DecayChains_small):
-    B = DecayChains_small.get_bmatrix()
-    assert (B.values == np.array([[0,0,0],[1,0,0],[0,1,0]])).all()
-
-@pytest.mark.rdd
-def test_transition_matrix(DecayChains_small):
-    """Test on a toy problem that the transition matrix contains 
-    the correct values.
-    """
-    T = DecayChains_small.get_transition_matrix()
-    assert np.isclose(T.loc[240560,240560], -0.0019448574089785222)
-    assert np.isclose(T.loc[250560,240560], 0.0019448574089785222)
-    assert np.isclose(T.loc[250560,250560], -7.46635393516041e-05)
-    assert np.isclose(T.loc[260560,250560], 7.46635393516041e-05)
-
-@pytest.mark.rdd
-def test_bmatrix_methods():
-    """Test that all accessible methods to bmatrix are working and are equivalent.
-    """
-    tape = Endf6.from_text("\n".join(RDD.endf6))
-    DC = DecayChains.from_endf6(tape)
-    B1 = DC.get_bmatrix()
-    B2 = BMatrix.from_file(os.path.join(RDD.__path__[0], "RDD.jeff33"))
-    B3 = sandy.decay.get_bmatrix()
-    assert B1.equals(B2)
-    assert B1.equals(B3)
-    
-@pytest.mark.rdd
-def test_qmatrix_methods():
-    """Test that all accessible methods to qmatrix are working and are equivalent.
-    """
-    tape = Endf6.from_text("\n".join(RDD.endf6))
-    DC = DecayChains.from_endf6(tape)
-    B = DC.get_bmatrix()
-    Q1 = B.to_qmatrix()
-    Q2 = DC.get_qmatrix()
-    Q3 = QMatrix.from_file(os.path.join(RDD.__path__[0], "RDD.jeff33"))
-    assert Q1.equals(Q2)
-    assert Q1.equals(Q3)
+#@pytest.fixture(scope="module")
+#def rdd1():
+#    data = {
+#        581480 : {'decay_constant': 0.01, 'decay_mode': {10: {'branching_ratio': 1.0, 'decay_products': {591480: 1.0}}}},
+#        591480 : {'decay_constant': 0.05, 'decay_mode': {10: {'branching_ratio': 1.0, 'decay_products': {601480: 1.0}}}},
+#        591481 : {'decay_constant': 0.06, 'decay_mode': {10: {'branching_ratio': 0.4, 'decay_products': {601480: 1.0, 10010: 2.0}},
+#                                                         12: {'branching_ratio': 0.6, 'decay_products': {601470: 1.0}}
+#                                                        }},
+#        601480 : {'decay_constant': 0},
+#        601470 : {'decay_constant': 0},
+#        10010  : {'decay_constant': 0},
+#        }
+#    rdd = sandy.DecayData()
+#    rdd.data = data
+#    return rdd
+#
+#def test_get_decay_chains(rdd1):
+#    DC = rdd1.get_decay_chains()
+#    assert (DC[DC.PARENT == DC.DAUGHTER].YIELD == -1).all()
+#    assert (DC[DC.PARENT == DC.DAUGHTER].BR == 1).all()
+#    assert (DC[DC.PARENT==581480].LAMBDA == 0.01).all()
+#    assert (DC[DC.PARENT==591480].LAMBDA == 0.05).all()
+#    assert (DC[DC.PARENT==591481].LAMBDA == 0.06).all()
+#    assert (DC[DC.PARENT==601480].LAMBDA == 0).all()
+#    assert (DC[DC.PARENT==601470].LAMBDA == 0).all()
+#    assert (DC[DC.PARENT==10010].LAMBDA == 0).all()
+#    dec = DC[(DC.PARENT==581480) & (DC.DAUGHTER==591480)].iloc[0]
+#    assert dec.YIELD == 1.0
+#    assert dec.BR == 1.0
+#    dec = DC[(DC.PARENT==591480) & (DC.DAUGHTER==601480)].iloc[0]
+#    assert dec.YIELD == 1.0
+#    assert dec.BR == 1.0
+#    dec = DC[(DC.PARENT==591481) & (DC.DAUGHTER==601480)].iloc[0]
+#    assert dec.YIELD == 1.0
+#    assert dec.BR == 0.4
+#    dec = DC[(DC.PARENT==591481) & (DC.DAUGHTER==10010)].iloc[0]
+#    assert dec.YIELD == 2.0
+#    assert dec.BR == 0.4
+#    dec = DC[(DC.PARENT==591481) & (DC.DAUGHTER==601470)].iloc[0]
+#    assert dec.YIELD == 1.0
+#    assert dec.BR == 0.6
+#    assert DC.PARENT.equals(DC.PARENT.sort_values())
+#    
+#def test_get_bmatrix(rdd1):
+#    B = rdd1.get_bmatrix()
+#    assert (B.values == np.array([
+#       [0., 0., 0., 2., 0., 0.],
+#       [0., 0., 0., 0., 0., 0.],
+#       [0., 1., 0., 0., 0., 0.],
+#       [0., 0., 0., 0., 0., 0.],
+#       [0., 0., 0., 1., 0., 0.],
+#       [0., 0., 1., 1., 0., 0.]])).all()
+#    assert (B.index == sorted(rdd1.data.keys())).all()
+#    assert (B.index == B.columns).all()
+#
+#def test_get_transition_matrix(rdd1):
+#    T = rdd1.get_transition_matrix()
+#    assert (T.values == np.array(
+#      [[ 0.   ,  0.   ,  0.   ,  0.048,  0.   ,  0.   ],
+#       [ 0.   , -0.01 ,  0.   ,  0.   ,  0.   ,  0.   ],
+#       [ 0.   ,  0.01 , -0.05 ,  0.   ,  0.   ,  0.   ],
+#       [ 0.   ,  0.   ,  0.   , -0.06 ,  0.   ,  0.   ],
+#       [ 0.   ,  0.   ,  0.   ,  0.036,  0.   ,  0.   ],
+#       [ 0.   ,  0.   ,  0.05 ,  0.024,  0.   ,  0.   ]])).all()
+#    assert (T.index == sorted(rdd1.data.keys())).all()
+#    assert (T.index == T.columns).all()

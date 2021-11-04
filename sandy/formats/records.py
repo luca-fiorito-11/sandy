@@ -7,6 +7,7 @@ Created on Thu Jun 14 10:22:58 2018
 import sys
 import numpy as np
 from collections import namedtuple
+import pdb
 
 import rwf
 from ..settings import SandyError
@@ -90,7 +91,7 @@ def read_text(text, ipos):
         sys.exit("ERROR : line '{}' is not in TEXT format".format(string))
 
 def read_ilist(string):
-    array = np.zeros(6, dtype=int)
+    array = np.zeros(6, dtype=np.int64)
     io_status = np.array(0, dtype=int)
     rwf.rilist(string, io_status, array, 6)
     if io_status != 0:

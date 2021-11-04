@@ -135,7 +135,7 @@ def test_energy_cov_sum_covs_3():
 @pytest.mark.cov
 def test_energycov_lb6(text_cov_lb6):
     """Check that MF31/33 LB=6 is processed correctly"""
-    tape = sandy.endf6.Endf6.from_text(text_cov_lb6)
+    tape = sandy.formats.endf6.Endf6.from_text(text_cov_lb6)
     sec = tape.read_section(1025, 33, 16)
     nisec = sec["SUB"][16]["NI"][0]
     ecov = sandy.formats.utils.EnergyCov.from_lb6(nisec["EK"], nisec["EL"], nisec["FKL"])
@@ -150,7 +150,7 @@ def test_energycov_lb6(text_cov_lb6):
 @pytest.mark.cov
 def test_energycov_lb5_asym(text_cov_lb5_asym):
     """Check that MF31/33 LB=5 LS=0 is processed correctly"""
-    tape = sandy.endf6.Endf6.from_text(text_cov_lb5_asym)
+    tape = sandy.formats.endf6.Endf6.from_text(text_cov_lb5_asym)
     sec = tape.read_section(925, 33, 4)
     nisec = sec["SUB"][4]["NI"][0]
     ecov = sandy.formats.utils.EnergyCov.from_lb5_asym(nisec["EK"], nisec["FKK"])
