@@ -282,9 +282,9 @@ class Fy():
     def to_endf6(self, endf6):
         """
         Update cross sections in `Endf6` instance with those available in a
-        `Xs` instance.
+        `Fy` instance.
 
-        .. warning:: only nfpy IFY and CFY that are originally
+        .. warning:: only IFY and CFY that are originally
                      present in the `Endf6` instance are modififed
 
         Parameters
@@ -304,22 +304,14 @@ class Fy():
         >>> new_tape = fy.to_endf6(tape)
         >>> assert new_tape.data == tape.data
         """
-        endf6new = self._NPFY_to_endf6(endf6, 454)
-        endf6new = self._NPFY_to_endf6(endf6new, 459)
-        return endf6new
-
-    def _NPFY_to_endf6(self, endf6, nfpy_data):
-        mt = nfpy_data
-        data = endf6.data
+        data_endf6 = endf6.data
         mf = 8
-        mat = self.data.MAT.unique()[0]
-        NPFY_data = self.data[self.data.MT == mt]
-        sec = endf6.read_section(mat, mf, mt)
-        for E in self.data.E.unique():
-            new_data = NPFY_data[NPFY_data.E == E].set_index('ZAP')
-            sec['E'][E]['ZAP'] == new_data.loc[:, ['FY', 'DFY']].T.to_dict()
-        data[(mat, mf, mt)] = sandy.write_mf8(sec)
-        return sandy.Endf6(data)
+        for [mat, mt, E], data_fy in self.data.groupby(['MAT', 'MT', 'E']):
+            sec = endf6.read_section(mat, mf, mt)
+            new_data = data_fy.set_index('ZAP')[['FY', 'DFY']].T.to_dict()
+            sec['E'][E]['ZAP'] = new_data
+            data_endf6[(mat, mf, mt)] = sandy.write_mf8(sec)
+        return sandy.Endf6(data_endf6)
 
     def to_hdf5(self, file, library):
         """
