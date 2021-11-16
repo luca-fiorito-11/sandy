@@ -279,6 +279,40 @@ class Fy():
         df = pd.DataFrame(data)
         return cls(df)
 
+    def to_endf6(self, endf6):
+        """
+        Update cross sections in `Endf6` instance with those available in a
+        `Fy` instance.
+
+        .. warning:: only IFY and CFY that are originally
+                     present in the `Endf6` instance are modified
+
+        Parameters
+        ----------
+        `endf6` : `sandy.Endf6`
+            `Endf6` instance
+
+        Returns
+        -------
+        `sandy.Endf6`
+            `Endf6` instance with updated IFY and CFY
+
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", "all")
+        >>> fy = sandy.Fy.from_endf6(tape)
+        >>> new_tape = fy.to_endf6(tape)
+        >>> assert new_tape.data == tape.data
+        """
+        data_endf6 = endf6.data
+        mf = 8
+        for (mat, mt, e), data_fy in self.data.groupby(['MAT', 'MT', 'E']):
+            sec = endf6.read_section(mat, mf, mt)
+            new_data = data_fy.set_index('ZAP')[['FY', 'DFY']].T.to_dict()
+            sec['E'][e]['ZAP'] = new_data
+            data_endf6[(mat, mf, mt)] = sandy.write_mf8(sec)
+        return sandy.Endf6(data_endf6)
+
     def to_hdf5(self, file, library):
         """
         Write fission yield data to hdf5 file.
