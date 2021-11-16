@@ -306,10 +306,10 @@ class Fy():
         """
         data_endf6 = endf6.data
         mf = 8
-        for (mat, mt, E), data_fy in self.data.groupby(['MAT', 'MT', 'E']):
+        for (mat, mt, e), data_fy in self.data.groupby(['MAT', 'MT', 'E']):
             sec = endf6.read_section(mat, mf, mt)
             new_data = data_fy.set_index('ZAP')[['FY', 'DFY']].T.to_dict()
-            sec['E'][E]['ZAP'] = new_data
+            sec['E'][e]['ZAP'] = new_data
             data_endf6[(mat, mf, mt)] = sandy.write_mf8(sec)
         return sandy.Endf6(data_endf6)
 
