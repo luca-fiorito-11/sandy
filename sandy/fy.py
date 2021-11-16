@@ -285,7 +285,7 @@ class Fy():
         `Fy` instance.
 
         .. warning:: only IFY and CFY that are originally
-                     present in the `Endf6` instance are modififed
+                     present in the `Endf6` instance are modified
 
         Parameters
         ----------
@@ -299,14 +299,14 @@ class Fy():
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
+        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", "all")
         >>> fy = sandy.Fy.from_endf6(tape)
         >>> new_tape = fy.to_endf6(tape)
         >>> assert new_tape.data == tape.data
         """
         data_endf6 = endf6.data
         mf = 8
-        for [mat, mt, E], data_fy in self.data.groupby(['MAT', 'MT', 'E']):
+        for (mat, mt, E), data_fy in self.data.groupby(['MAT', 'MT', 'E']):
             sec = endf6.read_section(mat, mf, mt)
             new_data = data_fy.set_index('ZAP')[['FY', 'DFY']].T.to_dict()
             sec['E'][E]['ZAP'] = new_data
