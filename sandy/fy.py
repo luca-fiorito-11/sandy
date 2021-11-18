@@ -272,7 +272,7 @@ class Fy():
         -------
         `Fy`
             Fission yield instance with IFY calculated for a given combination
-            of ZAM/e/decay_data 
+            of ZAM/e/decay_data.
 
         Examples
         --------
@@ -299,6 +299,51 @@ class Fy():
         # Apply (1-B) matrix
         fy_calc = sensitivity.dot(fy_data)
         mask = (new_data.ZAM == zam) & (new_data.MT == 454) & (new_data.E == e)
+        new_data.loc[mask, 'FY'] = fy_calc.values
+        return self.__class__(new_data)
+
+    def apply_qmatrix(self, zam, energy, decay_data):
+        """
+        Perform CFY =(Q)(IFY) equation to calculate CFY in a given zam
+        for a given energy and apply into the original data.
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which calculations are to be
+            applied.
+        e : `float`
+            Energy to which calculations are to be applied.
+        decay_data : `sandy.DecayData`
+            Radioactive nuclide data for several isotopes.
+
+        Returns
+        -------
+        `Fy`
+            Fission yield instance with IFY calculated for a given combination
+            of ZAM/e/decay_data.
+
+        Examples
+        --------
+        >>> zam = [591480, 591481, 601480]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
+        >>> npfy = Fy(minimal_fytest_2)
+        >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest)
+        >>> diff = npfy_pert.data[npfy_pert.data.FY != npfy.data.FY].FY
+        >>> comp = npfy_pert.data.query('ZAM==942390 & MT==459 & E==500e3').squeeze().FY
+        >>> assert comp.values.all() == diff.values.all()
+
+        """
+        new_data = self.data.copy()
+        fy_data = self.filter_by('ZAM', zam)\
+            .filter_by('MT', 454)\
+            .filter_by("E", energy).data\
+            .set_index('ZAP')['FY']
+        Q = decay_data.get_qmatrix().loc[fy_data.index, fy_data.index]
+        # Apply qmatrix
+        fy_calc = Q.dot(fy_data).rename('FY').to_frame()
+        mask = (new_data.ZAM == zam) & (new_data.MT == 459) & (new_data.E == energy)
         new_data.loc[mask, 'FY'] = fy_calc.values
         return self.__class__(new_data)
 
