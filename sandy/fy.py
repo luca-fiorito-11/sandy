@@ -30,9 +30,12 @@ minimal_fytest = pd.DataFrame(
     columns=["MAT", "MT", "ZAM", "ZAP", "E", "FY", "DFY"]
     )
 minimal_fytest_2 = pd.DataFrame([
-     [9437, 459, 942390, 380900, 500e3, 0.4 * 2, 0.04],
-     [9437, 459, 942390, 551370, 500e3, 0.5 * 2, 0.05],
-     [9437, 459, 942390, 541350, 500e3, 0.1 * 2, 0.01]],
+     [9437, 454, 942390, 591480, 500e3, 0.1, 0.04],
+     [9437, 454, 942390, 591481, 500e3, 0.1 * 2, 0.05],
+     [9437, 454, 942390, 601480, 500e3, 0.1 * 3, 0.01],
+     [9437, 459, 942390, 591480, 500e3, 0.4 * 2, 0.04],
+     [9437, 459, 942390, 591481, 500e3, 0.5 * 2, 0.05],
+     [9437, 459, 942390, 601480, 500e3, 0.1 * 2, 0.01]],
     columns=["MAT", "MT", "ZAM", "ZAP", "E", "FY", "DFY"]
     )
 
@@ -213,7 +216,7 @@ class Fy():
     def custom_perturbation(self, zam, mt, e, zap, pert):
         """
         Apply a custom perturbation in the fission yields identified by the mt,
-        for a given  zam in a given energy and for a given product.
+        for a given zam in a given energy and for a given product.
 
         Parameters
         ----------
@@ -222,27 +225,28 @@ class Fy():
             applied.
         mt : `int`
             MT reaction number of the FY to which perturbations are to be
-            applied.
-        e : 'float'
-            Energy to which perturbations are to be applied.
+            applied either 454 or 459.
+        e : `float`
+            Energy of the fissioning system to which which perturbations
+            are to be applied.
         zap : `int`
-            Product identifier to which perturbations are to be
+            ZAP of the product to which perturbations are to be
             applied.
-        pert : 'float'
-            Perturation coeffcients as ratio values.
+        pert : `float`
+            Perturbation coefficients as ratio values.
 
         Returns
         -------
         `Fy`
-            Fission yield instance with given value ZAM/ZAP/MT/E perturbed.
+            Fission yield instance with applied perturbation.
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33",'nfpy','all')
+        >>> tape = sandy.get_endf6_file("jeff_33", 'nfpy', 'all')
         >>> nfpy = Fy.from_endf6(tape)
         >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, 551370, -0.1)
         >>> comp = nfpy_pert.data.query('ZAM==922350 & ZAP==551370 & MT==459 & E==0.0253').squeeze().FY
-        >>> assert np.setdiff1d(nfpy_pert.data.values,nfpy.data.values) == comp
+        >>> assert np.setdiff1d(nfpy_pert.data.values, nfpy.data.values) == comp
         """
         df = self.data.copy()
         mask = (df.ZAM == zam) & (df.ZAP == zap) & (df.MT == mt) & (df.E == e)
@@ -251,33 +255,35 @@ class Fy():
 
     def apply_bmatrix(self, zam, e, decay_data):
         """
-        Apply calculated IFY with (1-B) method in a given zam
-        for a given energy.
+        Perform IFY = (1-B)CFY equation to calculate IFY in a given zam
+        for a given energy and apply into the original data.
 
         Parameters
         ----------
         zam : `int`
-            ZAM number of the material to which perturbations are to be
+            ZAM number of the material to which calculations are to be
             applied.
-        e : 'float'
-            Energy to which perturbations are to be applied.
+        e : `float`
+            Energy to which calculations are to be applied.
         decay_data : `sandy.DecayData`
             Radioactive nuclide data for several isotopes.
 
         Returns
         -------
         `Fy`
-            Fission yield instance with IFY calculated for a given value
-            of ZAM/E.
+            Fission yield instance with IFY calculated for a given combination
+            of ZAM/e/decay_data 
 
         Examples
         --------
-        >>> zam = [380900,551370,541350]
+        >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
-        >>> npfy_pert = npfy.apply_bmatrix(942390,5.00000e+05, decay_fytest)
-        >>> assert npfy.data.values.all() == npfy_pert.data.values.all()
+        >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest)
+        >>> diff = npfy_pert.data[npfy_pert.data.FY != npfy.data.FY].FY
+        >>> comp = npfy_pert.data.query('ZAM==942390 & MT==454 & E==500e3').squeeze().FY
+        >>> assert comp.values.all() == diff.values.all()
 
         """
         new_data = self.data.copy()
