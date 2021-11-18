@@ -272,9 +272,8 @@ class Fy():
 
         Examples
         --------
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', 380900)
-        >>> decay_minimal = decay_minimal.merge(sandy.get_endf6_file("jeff_33", 'decay', 551370))
-        >>> decay_minimal = decay_minimal.merge(sandy.get_endf6_file("jeff_33", 'decay', 541350))
+        >>> zam = [380900,551370,541350]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_bmatrix(942390,5.00000e+05, decay_fytest)

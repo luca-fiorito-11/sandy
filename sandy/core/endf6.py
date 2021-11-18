@@ -87,8 +87,8 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * 'nfpy' is a Neutron-Induced Fission Product Yields nuclear data
               file
             * 'decay' is a Radioactive Decay Data nuclear data file
-    zam : `int` or 'all'
-        zam = 'int' (individual nuclides)
+    zam : `int` or 'list' or 'all'
+        zam = 'int' (individual nuclides) or 'list'(list of nuclides)
             ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
                 * $Z$ is the charge number
                 * $A$ is the mass number
@@ -164,6 +164,10 @@ def get_endf6_file(library, kind, zam, to_file=False):
 
     Import all Neutron-Induced Fission Product Yields from ENDF/B-VII.1.
     >>> tape = sandy.get_endf6_file("endfb_71", 'nfpy', 'all')
+    >>> assert type(tape) is sandy.Endf6
+
+    Import a list of Decay Data for JEFF-3.3.
+    >>> tape = sandy.get_endf6_file("jeff_33", 'decay', [380900,551370,541350])
     >>> assert type(tape) is sandy.Endf6
 
 #    Checked, but the test takes too long(~10 min), that's why it is commented.
@@ -266,8 +270,16 @@ def get_endf6_file(library, kind, zam, to_file=False):
         text = "".join([foo_read(name, url) for name in files.values()])
         tape = Endf6.from_text(text)
     else:
-        filename = files[zam]
-        tape = foo_get(filename, url)
+        if type(zam) == list:
+            filename = files[zam[0]]
+            tape = foo_get(filename, url)
+            for nuclide in zam[1:]:
+                filename = files[nuclide]
+                tape_2 = foo_get(filename, url)
+                tape = tape.merge(tape_2)
+        elif type(zam) == int:
+            filename = files[zam]
+            tape = foo_get(filename, url)
 
     if to_file:
         basename = sandy.zam.zam2nuclide(zam, atomic_number=True, sep="-")
