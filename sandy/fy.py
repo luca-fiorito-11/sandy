@@ -274,6 +274,11 @@ class Fy():
             Fission yield instance with IFY calculated for a given combination
             of ZAM/e/decay_data.
 
+        Notes
+        -----
+        .. note:: This method applies a perturbation to certain IFYs,
+        since the equation IFY = (1-B)*CFY is not satisfied for all nuclei.
+
         Examples
         --------
         >>> zam = [591480, 591481, 601480]
@@ -322,6 +327,11 @@ class Fy():
         `Fy`
             Fission yield instance with IFY calculated for a given combination
             of ZAM/e/decay_data.
+
+        Notes
+        -----
+        .. note:: This method applies a perturbation to certain CFYs,
+        since the equation CFY = Q*IFY is not satisfied for all nuclei.
 
         Examples
         --------
