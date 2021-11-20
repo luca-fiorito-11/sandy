@@ -88,9 +88,8 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * 'nfpy' is a Neutron-Induced Fission Product Yields nuclear data
               file
             * 'decay' is a Radioactive Decay Data nuclear data file
-    zam : `int` or `list` or 'all'
-        zam = 'int' (individual nuclides) or `list` or `tuple` or 
-        `numpy.ndarray` (group of nuclides)
+    zam : `int` or 'all' or iterable
+        zam = 'int' (individual nuclides) or iterable (group of nuclides)
             ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
                 * $Z$ is the charge number
                 * $A$ is the mass number
@@ -272,13 +271,15 @@ def get_endf6_file(library, kind, zam, to_file=False):
         text = "".join([foo_read(name, url) for name in files.values()])
         tape = Endf6.from_text(text)
     else:
-        if isinstance(zam, (list, tuple, numpy.ndarray)):
+        if type(zam) == pd.Series:
+            zam = zam.values()
+        if zam.__len__() != 1:
             filename = files[zam[0]]
             tape = foo_get(filename, url)
             for nuclide in zam[1:]:
                 filename = files[nuclide]
                 tape = tape.merge(foo_get(filename, url))
-        elif type(zam) == int:
+        else:
             filename = files[zam]
             tape = foo_get(filename, url)
 

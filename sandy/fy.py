@@ -304,7 +304,7 @@ class Fy():
 
     def apply_qmatrix(self, zam, energy, decay_data):
         """
-        Perform CFY =(Q)(IFY) equation to calculate CFY in a given zam
+        Perform CFY =Q*IFY equation to calculate CFY in a given zam
         for a given energy and apply into the original data.
 
         Parameters
@@ -342,7 +342,7 @@ class Fy():
             .set_index('ZAP')['FY']
         Q = decay_data.get_qmatrix().loc[fy_data.index, fy_data.index]
         # Apply qmatrix
-        fy_calc = Q.dot(fy_data).rename('FY').to_frame()
+        fy_calc = Q.dot(fy_data)
         mask = (new_data.ZAM == zam) & (new_data.MT == 459) & (new_data.E == energy)
         new_data.loc[mask, 'FY'] = fy_calc.values
         return self.__class__(new_data)
