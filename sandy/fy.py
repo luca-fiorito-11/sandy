@@ -255,7 +255,7 @@ class Fy():
 
     def apply_bmatrix(self, zam, e, decay_data):
         """
-        Perform IFY = (1-B)CFY equation to calculate IFY in a given zam
+        Perform IFY = (1-B)*CFY equation to calculate IFY in a given zam
         for a given energy and apply into the original data.
 
         Parameters
