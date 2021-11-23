@@ -10,6 +10,9 @@ import warnings
 
 import pandas as pd
 import numpy as np
+import scipy
+from scipy.sparse import csc_matrix
+from scipy.sparse.linalg import splu
 
 import sandy
 from sandy.shared import expand_zam
@@ -356,6 +359,89 @@ class Fy():
         mask = (new_data.ZAM == zam) & (new_data.MT == 459) & (new_data.E == energy)
         new_data.loc[mask, 'FY'] = fy_calc.values
         return self.__class__(new_data)
+
+    def GLS_sensitivity(self, zam, e, V_y, V_y_MT, decay_data):
+        """
+        The sensitivity of the IFY or CFY calculated with GLS method.
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which calculations are to be
+            applied.
+        e : `float`
+            Energy to which calculations are to be applied.
+        V_y : `pd.Series`
+            Extra information for the GLS method.
+        V_y_MT : `str`
+            The MT number of the V_y data.
+        decay_data : `sandy.DecayData`
+            Radioactive nuclide data for several isotopes.
+
+        Raises
+        ------
+        sandy.error
+            The data is not in the appropiate format.
+        sandy.error
+            Extra output data MT is not in Fy object.
+
+        Returns
+        -------
+        `pd.DataFrame`
+            The sensitivity matrix for IFY or CFY calculated with GLS.
+
+        """
+        # Filter the data:
+        if len(V_y.columns) != 1:
+            raise sandy.Error('Extra output data is not in \
+                              an appropriate format')
+        fy_data = self.filter_by('ZAM', zam)\
+            .filter_by("E", e).data\
+            .set_index('ZAP')[['MT', 'FY', 'DFY']]
+        if V_y_MT not in fy_data.MT.unique():
+            raise sandy.Error('Extra output data type is not a MT \
+                              of Fy object')
+        # Divide the CFY and IFY
+        fy_type = fy_data.groupby('MT')
+        IFY, CFY = [fy_type.get_group(x)[['DFY']] for x in fy_type.groups]
+        if V_y.index.values.all() != CFY.index.values.all():
+            raise sandy.Error('Extra output data is not in \
+                              an appropriate format')
+        # Create the matrix's:
+        if V_y_MT == 459:
+            S = decay_data.get_qmatrix().loc[CFY.index, CFY.index]
+            V_x = IFY.pivot_table(index='ZAP', columns='ZAP', values='DFY',
+                                  aggfunc='sum').fillna(0)
+            V_y = V_y.pivot_table(index='ZAP', columns='ZAP', values='DFY',
+                                  aggfunc='sum').fillna(0)
+        elif V_y_MT == 454:
+            B = decay_data.get_bmatrix()
+            unit = np.identity(len(B))
+            C = unit - B.values
+            S = pd.DataFrame(C, index=B.index, columns=B.columns)\
+                .loc[CFY.index, CFY.index]
+            V_x = CFY.pivot_table(index='ZAP', columns='ZAP', values='DFY',
+                                  aggfunc='sum').fillna(0)
+            V_y = V_y.pivot_table(index='ZAP', columns='ZAP', values='DFY',
+                                  aggfunc='sum').fillna(0)
+        # Calculate the sensitivity:
+
+        def _GLS_sensitivity(S, V_y, V_x, threshold=None):
+            M = S.dot(V_x).dot(S.T) + V_y
+            M_calc = sandy.core.cov._Cov(M)
+            M_nonzero_idxs, M_reduce = M_calc._reduce_size()
+            unit = np.identity(len(M_reduce))
+            M_reduce_inverse = splu(csc_matrix(M_reduce)).solve(unit)
+            M_inv = pd.DataFrame(
+                sandy.core.cov._Cov._restore_size(M_nonzero_idxs, M_reduce_inverse, len(M_calc)),
+                index=S.index,
+                columns=S.index
+                                 )
+            sensitivity = V_x.dot(S.T).dot(M_inv)
+            if threshold is not None:
+                sensitivity[sensitivity < threshold] = 0
+            return sensitivity
+        return _GLS_sensitivity(S, V_y, V_x, threshold=1.0e-14)
 
     def filter_by(self, key, value):
         """
