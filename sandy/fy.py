@@ -9,6 +9,7 @@ import logging
 import warnings
 
 import pandas as pd
+import numpy as np
 
 import sandy
 from sandy.shared import expand_zam
@@ -26,6 +27,15 @@ minimal_fytest = pd.DataFrame(
      [9437, 454, 942390, 380900, 500e3, 0.4 * 2, 0.04],
      [9437, 454, 942390, 551370, 500e3, 0.5 * 2, 0.05],
      [9437, 454, 942390, 541350, 500e3, 0.1 * 2, 0.01]],
+    columns=["MAT", "MT", "ZAM", "ZAP", "E", "FY", "DFY"]
+    )
+minimal_fytest_2 = pd.DataFrame([
+     [9437, 454, 942390, 591480, 500e3, 0.1, 0.04],
+     [9437, 454, 942390, 591481, 500e3, 0.1 * 2, 0.05],
+     [9437, 454, 942390, 601480, 500e3, 0.1 * 3, 0.01],
+     [9437, 459, 942390, 591480, 500e3, 0.4 * 2, 0.04],
+     [9437, 459, 942390, 591481, 500e3, 0.5 * 2, 0.05],
+     [9437, 459, 942390, 601480, 500e3, 0.1 * 2, 0.01]],
     columns=["MAT", "MT", "ZAM", "ZAP", "E", "FY", "DFY"]
     )
 
@@ -202,6 +212,150 @@ class Fy():
                            columns=["Z", "A", "M"],
                            dtype=int)
         return self.data.assign(Z=zam.Z, A=zam.A, M=zam.M)
+
+    def custom_perturbation(self, zam, mt, e, zap, pert):
+        """
+        Apply a custom perturbation in the fission yields identified by the mt,
+        for a given zam in a given energy and for a given product.
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which perturbations are to be
+            applied.
+        mt : `int`
+            MT reaction number of the FY to which perturbations are to be
+            applied either 454 or 459.
+        e : `float`
+            Energy of the fissioning system to which which perturbations
+            are to be applied.
+        zap : `int`
+            ZAP of the product to which perturbations are to be
+            applied.
+        pert : `float`
+            Perturbation coefficients as ratio values.
+
+        Returns
+        -------
+        `Fy`
+            Fission yield instance with applied perturbation.
+
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33", 'nfpy', 'all')
+        >>> nfpy = Fy.from_endf6(tape)
+        >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, 551370, -0.1)
+        >>> comp = nfpy_pert.data.query('ZAM==922350 & ZAP==551370 & MT==459 & E==0.0253').squeeze().FY
+        >>> assert np.setdiff1d(nfpy_pert.data.values, nfpy.data.values) == comp
+        """
+        df = self.data.copy()
+        mask = (df.ZAM == zam) & (df.ZAP == zap) & (df.MT == mt) & (df.E == e)
+        df.loc[mask, "FY"] = df[mask].squeeze().FY * (1 + pert)
+        return self.__class__(df)
+
+    def apply_bmatrix(self, zam, e, decay_data):
+        """
+        Perform IFY = (1-B)*CFY equation to calculate IFY in a given zam
+        for a given energy and apply into the original data.
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which calculations are to be
+            applied.
+        e : `float`
+            Energy to which calculations are to be applied.
+        decay_data : `sandy.DecayData`
+            Radioactive nuclide data for several isotopes.
+
+        Returns
+        -------
+        `Fy`
+            Fission yield instance with IFY calculated for a given combination
+            of ZAM/e/decay_data.
+
+        Notes
+        -----
+        .. note:: This method applies a perturbation to certain IFYs,
+        since the equation IFY = (1-B)*CFY is not satisfied for all nuclei.
+
+        Examples
+        --------
+        >>> zam = [591480, 591481, 601480]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
+        >>> npfy = Fy(minimal_fytest_2)
+        >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest)
+        >>> diff = npfy_pert.data[npfy_pert.data.FY != npfy.data.FY].FY
+        >>> comp = npfy_pert.data.query('ZAM==942390 & MT==454 & E==500e3').squeeze().FY
+        >>> assert comp.values.all() == diff.values.all()
+
+        """
+        new_data = self.data.copy()
+        fy_data = self.filter_by('ZAM', zam)\
+            .filter_by('MT', 459)\
+            .filter_by("E", e).data\
+            .set_index('ZAP')['FY']
+        B = decay_data.get_bmatrix().loc[fy_data.index, fy_data.index]
+        # Creating (1-B) matrix:
+        unit = np.identity(len(B))
+        C = unit - B.values
+        sensitivity = pd.DataFrame(C, index=B.index, columns=B.columns)
+        # Apply (1-B) matrix
+        fy_calc = sensitivity.dot(fy_data)
+        mask = (new_data.ZAM == zam) & (new_data.MT == 454) & (new_data.E == e)
+        new_data.loc[mask, 'FY'] = fy_calc.values
+        return self.__class__(new_data)
+
+    def apply_qmatrix(self, zam, energy, decay_data):
+        """
+        Perform CFY = Q*IFY equation to calculate CFY in a given zam
+        for a given energy and apply into the original data.
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which calculations are to be
+            applied.
+        e : `float`
+            Energy to which calculations are to be applied.
+        decay_data : `sandy.DecayData`
+            Radioactive nuclide data for several isotopes.
+
+        Returns
+        -------
+        `Fy`
+            Fission yield instance with IFY calculated for a given combination
+            of ZAM/e/decay_data.
+
+        Notes
+        -----
+        .. note:: This method applies a perturbation to certain CFYs,
+        since the equation CFY = Q*IFY is not satisfied for all nuclei.
+
+        Examples
+        --------
+        >>> zam = [591480, 591481, 601480]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
+        >>> npfy = Fy(minimal_fytest_2)
+        >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest)
+        >>> diff = npfy_pert.data[npfy_pert.data.FY != npfy.data.FY].FY
+        >>> comp = npfy_pert.data.query('ZAM==942390 & MT==459 & E==500e3').squeeze().FY
+        >>> assert comp.values.all() == diff.values.all()
+
+        """
+        new_data = self.data.copy()
+        fy_data = self.filter_by('ZAM', zam)\
+            .filter_by('MT', 454)\
+            .filter_by("E", energy).data\
+            .set_index('ZAP')['FY']
+        Q = decay_data.get_qmatrix().loc[fy_data.index, fy_data.index]
+        # Apply qmatrix
+        fy_calc = Q.dot(fy_data)
+        mask = (new_data.ZAM == zam) & (new_data.MT == 459) & (new_data.E == energy)
+        new_data.loc[mask, 'FY'] = fy_calc.values
+        return self.__class__(new_data)
 
     def filter_by(self, key, value):
         """
