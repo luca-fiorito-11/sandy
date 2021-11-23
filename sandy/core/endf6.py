@@ -271,17 +271,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
         text = "".join([foo_read(name, url) for name in files.values()])
         tape = Endf6.from_text(text)
     else:
-        if type(zam) == pd.Series:
-            zam = zam.values()
-        if zam.__len__() != 1:
-            filename = files[zam[0]]
-            tape = foo_get(filename, url)
-            for nuclide in zam[1:]:
-                filename = files[nuclide]
-                tape = tape.merge(foo_get(filename, url))
+        if hasattr(zam, "__len__"):
+            tapes = map(lambda x: foo_get(files[x], url), zam)
+            tape = reduce(lambda x, y: x.add_sections(y.data), tapes)
         else:
-            filename = files[zam]
-            tape = foo_get(filename, url)
+            tape = foo_get(files[zam], url)
 
     if to_file:
         basename = sandy.zam.zam2nuclide(zam, atomic_number=True, sep="-")
