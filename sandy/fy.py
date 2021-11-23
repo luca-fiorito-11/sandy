@@ -443,6 +443,64 @@ class Fy():
             return sensitivity
         return _GLS_sensitivity(S, V_y, V_x, threshold=1.0e-14)
 
+    def custom_GLS(self, zam, e, perturbed_fy, sensitivity, pert_data):
+        """
+        Apply a GLS method perturbation in the fission yields original data
+        for a given zam in a given energy.
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which calculations are to be
+            applied.
+        e : `float`
+            Energy to which calculations are to be applied.
+        perturbed_fy : `Fy` object
+            Fy object with the perturbed CFY or IFY data.
+        sensitivity : `pd.DataFrame`
+            GLS sensitivity matrix for that MT perturbed.
+        pert_data : `int`
+            The MT number of the perturbed data.
+
+        Raises
+        ------
+        sandy.error
+            Perturbed data MT is not in Fy object.
+
+        Returns
+        -------
+        `Fy`
+            Fission yield instance with IFY and CFY perturbed using GLS
+            for a given ZAM/e/decay_data.
+
+        """
+        new_data = self.data.copy()
+        mask = (new_data.ZAM == zam) & (new_data.E == e)
+        # Divide the CFY and IFY:
+        fy_type = perturbed_fy.data.loc[mask].groupby('MT')
+        IFY_pert, CFY_pert = [fy_type.get_group(x)[['ZAP', 'FY']]
+                              .set_index('ZAP') for x in fy_type.groups]
+        fy_type = new_data.loc[mask].groupby('MT')
+        IFY, CFY = [fy_type.get_group(x)[['ZAP', 'FY']]
+                    .set_index('ZAP') for x in fy_type.groups]
+        # perform the GLS method
+        if pert_data == 454:
+            CFY_new = CFY + sensitivity.dot(IFY_pert-IFY)
+            CFY_new[CFY_new < 1.0e-14] = 0  # Avoid numerical fluctuations
+            CFY = CFY_new
+            IFY = IFY_pert
+        elif pert_data == 459:
+            IFY_new = IFY + sensitivity.dot(CFY_pert-CFY)
+            IFY_new[IFY_new < 1.0e-14] = 0
+            IFY = IFY_new
+            CFY = CFY_pert
+        else:
+            raise sandy.Error('Perturbed data is nor valid')
+        # Update the original object with the perturbation:
+        new_data.loc[mask & (new_data.MT == 454), 'FY'] = IFY.values
+        new_data.loc[mask & (new_data.MT == 459), 'FY'] = CFY.values
+        return self.__class__(new_data)
+
     def filter_by(self, key, value):
         """
         Apply condition to source data and return filtered results.
