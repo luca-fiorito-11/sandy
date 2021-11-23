@@ -15,7 +15,6 @@ from zipfile import ZipFile
 
 
 import pandas as pd
-import numpy
 
 import sandy
 from sandy.libraries import (

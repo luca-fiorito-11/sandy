@@ -309,7 +309,7 @@ class Fy():
 
     def apply_qmatrix(self, zam, energy, decay_data):
         """
-        Perform CFY =Q*IFY equation to calculate CFY in a given zam
+        Perform CFY = Q*IFY equation to calculate CFY in a given zam
         for a given energy and apply into the original data.
 
         Parameters
