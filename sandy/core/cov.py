@@ -22,6 +22,13 @@ __all__ = [
         "get_eig",
         ]
 
+S = np.array([[1, 1, 1],
+              [1, 2, 1],
+              [1, 3, 1]])
+var = np.array([[0, 0, 0],
+                [0, 2, 0],
+                [0, 0, 3]])
+
 
 def cov33csv(func):
     def inner(*args, **kwargs):
@@ -399,14 +406,39 @@ class CategoryCov():
         C = Vx - Vx.dot(S.dot(np.linalg.inv(V).dot(S.T.dot(Vx))))
         return self.__class__(C)
 
-    def sandwich(self, Si, Sj=None):
+    def sandwich(self, S):
+        """
+        Apply the sandwich formula to the CategoryCov object for a given
+        pandas.Series.
+
+        Parameters
+        ----------
+        S : `pd.Series`
+            Standard desviations.
+
+        Returns
+        -------
+        `CategoryCov`
+            `CategoryCov` object to which we have applied sandwich
+            formula for a given pd.Series
+
+        Examples
+        --------
+        >>> S = np.diag(np.array([1,2,3]))
+        >>> var = pd.Series([1, 2, 3])
+        >>> cov = sandy.CategoryCov(S)
+        >>> cov.sandwich(var)
+                    0           1           2
+        0 1.00000e+00 0.00000e+00 0.00000e+00
+        1 0.00000e+00 8.00000e+00 0.00000e+00
+        2 0.00000e+00 0.00000e+00 2.70000e+01
+        """
+        if self.data.index.values.all() != S.index.values.all():
+            raise sandy.Error("The index are not the same")
         C = self.data.values
-        Si_ = Si.reshape(self.size, -1)
-        if Sj is None:
-            Sj_ = Si_
-        else:
-            Sj_ = Sj.reshape(self.size, -1)
-        return Si_.T.dot(C.dot(Sj_))
+        s = S.values
+        out = corr2cov(C, s)
+        return self.__class__(out)
 
     def plot_corr(self, ax, **kwargs):
         add = {"cbar": True, "vmin": -1, "vmax": 1, "cmap": "RdBu"}
@@ -934,6 +966,7 @@ class GlobalCov(CategoryCov):
                 matrix[ix1.start:ix1.stop,ix.start:ix.stop] = cov.data.T
         return cls(matrix, index=index, columns=index)
 
+
 def corr2cov(corr, s):
     """
     Produce covariance matrix given correlation matrix and standard
@@ -951,10 +984,33 @@ def corr2cov(corr, s):
     -------
     `numpy.ndarray`
         covariance matrix
+
+    Examples
+    --------
+    >>> S = np.array([1,2,3])
+    >>> var = np.array([[1, 0, 2, 0], [0, 3, 0, 0], [4, 0, 5, 0], [0, 0, 0, 0]])
+    >>> corr2cov(var,S)
+    array([[ 1,  0,  6,  0],
+           [ 0, 12,  0,  0],
+           [12,  0, 45,  0],
+           [ 0,  0,  0,  0]])
+
+    >>> S = np.array([1,2,3])
+    >>> var = np.array([[1, 0, 2], [0, 3, 0], [4, 0, 5]])
+    >>> corr2cov(var,S)
+    array([[ 1,  0,  6],
+           [ 0, 12,  0],
+           [12,  0, 45]])
     """
     dim = corr.shape[0]
-    S = np.repeat(s, dim).reshape(dim, dim)
-    return S.T * (corr * S)
+    if len(s) > dim:
+        raise sandy.Error("The shape of the variables is not correct")
+    if len(s) != dim:
+        dim_ext = abs(len(s)-dim)
+        S = np.pad(np.diag(s), ((0, dim_ext), (0, dim_ext)))
+    else:
+        S = np.diag(s)
+    return S.T.dot(corr).dot(S)
 
 
 def triu_matrix(arr, size):
