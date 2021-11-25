@@ -379,29 +379,58 @@ class CategoryCov():
         cov_reduced = self.data.loc[nonzero_idxs, nonzero_idxs]
         return nonzero_idxs, cov_reduced
 
-    def _restore_size(cls, nonzero_idxs, cov_reduced, dim):
+    @classmethod
+    def restore_size(cls, nonzero_idxs, cov_reduced, dim):
         """
         Restore the size of the matrix
 
         Parameters
         ----------
-        nonzero_idxs : numpy.ndarray
+        nonzero_idxs : `numpy.ndarray`
             The indices of the diagonal that are not null.
-        cov_reduced : sandy.core.cov._Cov
+        cov_reduced : `numpy.ndarray`
             The reduced matrix.
-        dim : int
+        dim : `int`
             Dimension of the original matrix.
 
         Returns
         -------
-        cov : sandy.core.cov._Cov
+        cov : `numpy.ndarray`
             Matrix of specified dimensions.
 
+        Notes
+        -----
+        ..notes:: This method was developed to be used after calling
+                  `_reduce_size`.
+
+        Examples
+        --------
+        >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3, 0])))
+        >>> S
+                    0           1           2           3
+        0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+        1 0.00000e+00 2.00000e+00 0.00000e+00 0.00000e+00
+        2 0.00000e+00 0.00000e+00 3.00000e+00 0.00000e+00
+        3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+
+        >>> M_nonzero_idxs, M_reduce = S._reduce_size()
+        >>> M_reduce[::] = 1
+        >>> M_reduce
+                      1	          2
+        1	1.00000e+00	1.00000e+00
+        2	1.00000e+00	1.00000e+00
+
+        >>> sandy.CategoryCov.restore_size(M_nonzero_idxs, M_reduce.values, len(S.data))
+                    0           1           2           3
+        0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+        1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+        2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+        3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
         """
         cov = np.zeros((dim, dim))
         for i, ni in enumerate(nonzero_idxs):
             cov[ni, nonzero_idxs] = cov_reduced[i]
-        return cov
+        return cls(cov)
 
     def invert(self):
         """
@@ -432,8 +461,9 @@ class CategoryCov():
         M_nonzero_idxs, M_reduce = self._reduce_size()
         unit = np.identity(len(M_reduce))
         M_reduce_inv = splu(csc_matrix(M_reduce)).solve(unit)
-        data = self._restore_size(M_nonzero_idxs, M_reduce_inv, len(self.data))
-        M_inv = pd.DataFrame(data,
+        data = CategoryCov.restore_size(M_nonzero_idxs, M_reduce_inv,
+                                        len(self.data))
+        M_inv = pd.DataFrame(data.data,
                              index=index, columns=columns)
         return self.__class__(M_inv)
 
@@ -497,9 +527,56 @@ class CategoryCov():
         return R.T
 
     @classmethod
-    def get_covariance(cls, std):
+    def from_var(cls, var):
         """
         Construct the covariance matrix from the variance vector.
+
+        Parameters
+        ----------
+        var : 1D iterable
+            Variance vector.
+
+        Returns
+        -------
+        `CategoryCov`
+            Object containing the covariance matrix.
+
+        Example
+        -------
+        >>> S = pd.Series(np.array([0, 2, 3]), index=pd.Index([1, 2, 3]))
+        >>> cov = sandy.CategoryCov.from_var(S)
+        >>> cov
+                    1           2           3
+        1 0.00000e+00 0.00000e+00 0.00000e+00
+        2 0.00000e+00 2.00000e+00 0.00000e+00
+        3 0.00000e+00 0.00000e+00 3.00000e+00
+
+        >>> assert type(cov) is sandy.CategoryCov
+
+        >>> S = sandy.CategoryCov.from_var((1, 2, 3))
+        >>> S
+                    0           1           2
+        0 1.00000e+00 0.00000e+00 0.00000e+00
+        1 0.00000e+00 2.00000e+00 0.00000e+00
+        2 0.00000e+00 0.00000e+00 3.00000e+00
+
+        >>> assert type(S) is sandy.CategoryCov
+        >>> assert type(sandy.CategoryCov.from_var([1, 2, 3])) is sandy.CategoryCov
+        """
+        if hasattr(var, "__len__") and type(var) != str:
+            if type(var) == pd.Series:
+                cov = pd.DataFrame(np.diag(var.values),
+                                   index=var.index, columns=var.index)
+            else:
+                cov = pd.DataFrame(np.diag(var))
+        else:
+            raise TypeError("Variance vector is not valid")
+        return cls(cov)
+
+    @classmethod
+    def from_stdev(cls, std):
+        """
+        Construct the covariance matrix from the standard deviation vector.
 
         Parameters
         ----------
@@ -514,29 +591,46 @@ class CategoryCov():
         Example
         -------
         >>> S = pd.Series(np.array([0, 2, 3]), index=pd.Index([1, 2, 3]))
-        >>> cov = sandy.CategoryCov.get_covariance(S)
+        >>> cov = sandy.CategoryCov.from_stdev(S)
         >>> cov
                     1           2           3
         1 0.00000e+00 0.00000e+00 0.00000e+00
-        2 0.00000e+00 2.00000e+00 0.00000e+00
-        3 0.00000e+00 0.00000e+00 3.00000e+00
+        2 0.00000e+00 4.00000e+00 0.00000e+00
+        3 0.00000e+00 0.00000e+00 9.00000e+00
 
         >>> assert type(cov) is sandy.CategoryCov
+
+        >>> S = sandy.CategoryCov.from_stdev((1, 2, 3))
+        >>> S
+                    0           1           2
+        0 1.00000e+00 0.00000e+00 0.00000e+00
+        1 0.00000e+00 4.00000e+00 0.00000e+00
+        2 0.00000e+00 0.00000e+00 9.00000e+00
+
+        >>> assert type(S) is sandy.CategoryCov
+        >>> assert type(sandy.CategoryCov.from_stdev([1, 2, 3])) is sandy.CategoryCov
         """
-        cov = pd.DataFrame(np.diag(std.values),
-                           index=std.index, columns=std.index)
+        if hasattr(std, "__len__") and type(std) != str:
+            if type(std) == pd.Series:
+                cov = pd.DataFrame(np.diag(std.values*std.values),
+                                   index=std.index, columns=std.index)
+            else:
+                std_ = np.array(std)
+                cov = pd.DataFrame(np.diag(std_*std_))
+        else:
+            raise TypeError("Standart deviation vector is not valid")
         return cls(cov)
 
-    def GLS_sensitivity(self, S, Vy):
+    def _gls_sensitivity(self, S, Vy, threshold=None):
         """
         
 
         Parameters
         ----------
-        S : `pandas.DataFrame`
-            DESCRIPTION.
-        Vy : `pandas.Series`
-            DESCRIPTION.
+        S : 2D iterable
+            Sensitivity square matrix (MXM).
+        Vy : 1D iterable
+            Extra Covariance vector (MX1).
 
         Raises
         ------
@@ -549,37 +643,58 @@ class CategoryCov():
             DESCRIPTION.
 
         """
+        # Check the data entered
+        if hasattr(S, "__len__") and type(S) != str:
+            if type(S) != pd.DataFrame:
+                S_ = pd.Dataframe(S)
+            else:
+                S_ = S
+        else:
+            raise TypeError('Introduced sensitivity is not valid')
+
+        if hasattr(Vy, "__len__") and type(Vy) != str:
+            if type(Vy) != pd.Series:
+                Vy_ = pd.Series(Vy)
+            else:
+                Vy_ = Vy
+        else:
+            raise TypeError('Introduced extra covariance vector is not valid')
+
         # Posible errors:
-        if S.data.index.values.all() != S.data.columns.values.all():
-            raise TypeError("Sensitivity matrix has not symmetric indexes")
-        if S.index.values.all() != self.data.index.values.all():
+        if S_.columns.values.all() != self.data.index.values.all():
             raise TypeError('The object indexes and the sensitivity \
+                            columns do not match')
+        if S_.columns.values.all() != self.data.columns.values.all():
+            raise TypeError('The object columns and the sensitivity \
+                            columns do not match')
+        if not S_.columns.intersection(Vy_.index).any():
+            raise TypeError('Object indexes and the extra information\
                             indexes do not match')
-        if Vy.index.values.all() != self.data.index.values.all():
-            raise TypeError('The object indexes and the extra information\
-                            indexes do not match')
+        elif len(S_.columns.intersection(Vy_.index)) < len(S_.columns):
+            Vy_ = Vy_.reindex(S_.columns.index, fill_value=0)
         # GLS_sensitivity:
         Vx = self.data.values
-        M = S.T.dot(Vx.dot(S)) + Vy
+        M = S_.T.dot(Vx.dot(S_)) + Vy_
         M_inv = sandy.CategoryCov(M).invert()
-        sensitivity = Vx.dot(S).dot(M_inv)
+        sensitivity = Vx.dot(S_).dot(M_inv)
+        if threshold is not None:
+            sensitivity[sensitivity < threshold] = 0
         return self.__class__(sensitivity)
 
-    def custom_GLS(self, Vx, Vy):
+    def gls_update(self, Vy, S, delta, threshold=None):
         """
         
 
         Parameters
         ----------
-        Vx : `pandas.Series`
-            DESCRIPTION.
-        Vy : `pandas.Series`
-            DESCRIPTION.
-
-        Raises
-        ------
-        TypeError
-            DESCRIPTION.
+        Vy : 1D iterable
+            Extra Covariance vector (MX1).
+        S : 2D iterable
+            Sensitivity square matrix (MXM).
+        delta : 1D iterable
+            Perturbed vector minus non perturbed vector.
+        threshold : `int`, optional
+            Thereshold to avoid numerical fluctuations. The default is None.
 
         Returns
         -------
@@ -587,15 +702,40 @@ class CategoryCov():
             DESCRIPTION.
 
         """
-        # Posible errors:
-        if Vx.index.values.all() != self.data.index.values.all():
-            raise TypeError('The object indexes and the sensitivity indexes\
-                             do not match')
-        if Vy.index.values.all() != self.data.index.values.all():
-            raise TypeError('The object indexes and the extra information\
+        # Check the data entered
+        if hasattr(S, "__len__") and type(S) != str:
+            if type(S) != pd.DataFrame:
+                S_ = pd.Dataframe(S)
+            else:
+                S_ = S
+        else:
+            raise TypeError('Introduced sensitivity is not valid')
+
+        if hasattr(Vy, "__len__") and type(Vy) != str:
+            if type(Vy) != pd.Series:
+                Vy_ = pd.Series(Vy)
+            else:
+                Vy_ = Vy
+        else:
+            raise TypeError('Introduced extra covariance vector is not valid')
+        if hasattr(delta, "__len__") and type(delta) != str:
+            if type(delta) != pd.Series:
+                delta_ = pd.Series(delta)
+            else:
+                delta_ = delta
+        else:
+            raise TypeError('Introduced extra covariance vector is not valid')
+        if not S_.columns.intersection(delta_.index).any():
+            raise TypeError('Sensitivity columns and the delta \
                             indexes do not match')
+        elif len(S_.columns.intersection(delta_.index)) < len(S_.columns):
+            delta_ = delta_.reindex(S_.columns.index, fill_value=0)
         # Custom GLS:
-        V_new = Vx + self.data.dot(Vy)
+        Vx = self.data
+        A = self._gls_sensitivity(S_,Vy_)
+        V_new = Vx + A.data.dot(delta_)
+        if threshold is not None:
+            V_new[V_new < threshold] = 0
         return self.__class__(V_new)
 
     def sandwich(self, S):
@@ -637,7 +777,7 @@ class CategoryCov():
         index = self.data.index
         column = self.data.columns
         if self.data.index.values.all() != S.index.values.all():
-            raise sandy.Error("The indices of the sensitivity array \
+            raise TypeError("The indices of the sensitivity array \
                               and of the CategoryCov are not the same")
         C = self.data.values
         s = S.values
@@ -1211,7 +1351,7 @@ def corr2cov(corr, s):
         raise sandy.Error("The shape of the variables is not correct")
     # Create s diagonal matrix
     if len(s) != dim:
-        # Increase the size of s by filling it with zeros.
+        # Increase the size of s to the size of corr by filling it with zeros.
         dim_ext = dim - len(s)
         S = np.pad(np.diag(s), ((0, dim_ext), (0, dim_ext)))
     else:
