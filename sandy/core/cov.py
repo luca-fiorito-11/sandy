@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 import sandy
-
+import scipy
+from scipy.sparse import csc_matrix
+from scipy.sparse.linalg import splu
 pd.options.display.float_format = '{:.5e}'.format
 
 __author__ = "Luca Fiorito"
@@ -341,6 +343,100 @@ class CategoryCov():
                             columns=self.data.columns,
                             )
 
+    def _reduce_size(self):
+        """
+        Reduces the size of the matrix, erasing the null values.
+
+        Returns
+        -------
+        nonzero_idxs : `numpy.ndarray`
+            The indices of the diagonal that are not null.
+        cov_reduced : `pandas.DataFrame`
+            The reduced matrix.
+
+        Examples
+        --------
+        >>> S = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
+        >>> non_zero_index, reduce_matrix = S._reduce_size()
+        >>> non_zero_index
+        array([0, 1, 2], dtype=int64)
+        >>> reduce_matrix
+                      0	          1	          2
+        0	1.00000e+00	0.00000e+00	0.00000e+00
+        1	0.00000e+00	2.00000e+00	0.00000e+00
+        2	0.00000e+00	0.00000e+00	3.00000e+00
+
+        >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3])))
+        >>> non_zero_index, reduce_matrix = S._reduce_size()
+        >>> non_zero_index
+        array([1, 2], dtype=int64)
+        >>> reduce_matrix
+                      1	          2
+        1	2.00000e+00	0.00000e+00
+        2	0.00000e+00	3.00000e+00
+        """
+        nonzero_idxs = np.flatnonzero(np.diag(self.data))
+        cov_reduced = self.data.loc[nonzero_idxs, nonzero_idxs]
+        return nonzero_idxs, cov_reduced
+
+    def _restore_size(cls, nonzero_idxs, cov_reduced, dim):
+        """
+        Restore the size of the matrix
+
+        Parameters
+        ----------
+        nonzero_idxs : numpy.ndarray
+            The indices of the diagonal that are not null.
+        cov_reduced : sandy.core.cov._Cov
+            The reduced matrix.
+        dim : int
+            Dimension of the original matrix.
+
+        Returns
+        -------
+        cov : sandy.core.cov._Cov
+            Matrix of specified dimensions.
+
+        """
+        cov = np.zeros((dim, dim))
+        for i, ni in enumerate(nonzero_idxs):
+            cov[ni, nonzero_idxs] = cov_reduced[i]
+        return cov
+
+    def inv(self):
+        """
+        Method for calculating the inverse matrix.
+
+        Returns
+        -------
+        `CategoryCov`
+            The inverse matrix.
+
+        Examples
+        --------
+        >>> S = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
+        >>> S.inv()
+                    0           1           2
+        0 1.00000e+00 0.00000e+00 0.00000e+00
+        1 0.00000e+00 5.00000e-01 0.00000e+00
+        2 0.00000e+00 0.00000e+00 3.33333e-01
+
+        >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3])))
+        >>> S.inv()
+                    0           1           2
+        0 0.00000e+00 0.00000e+00 0.00000e+00
+        1 0.00000e+00 5.00000e-01 0.00000e+00
+        2 0.00000e+00 0.00000e+00 3.33333e-01
+        """
+        index, columns = self.data.index, self.data.columns
+        M_nonzero_idxs, M_reduce = self._reduce_size()
+        unit = np.identity(len(M_reduce))
+        M_reduce_inv = splu(csc_matrix(M_reduce)).solve(unit)
+        data = self._restore_size(M_nonzero_idxs, M_reduce_inv, len(self.data))
+        M_inv = pd.DataFrame(data,
+                             index=index, columns=columns)
+        return self.__class__(M_inv)
+
     def sampling(self, nsmp, seed=None):
         """
         Extract random samples from normali distribution centered in zero
@@ -414,7 +510,7 @@ class CategoryCov():
         Parameters
         ----------
         S : `pd.Series`
-            Standard desviations.
+            General sensitivities.
 
         Returns
         -------
@@ -424,7 +520,7 @@ class CategoryCov():
 
         Examples
         --------
-        >>> S = np.diag(np.array([1,2,3]))
+        >>> S = np.diag(np.array([1, 2, 3]))
         >>> var = pd.Series([1, 2, 3])
         >>> cov = sandy.CategoryCov(S)
         >>> cov.sandwich(var)
@@ -432,12 +528,24 @@ class CategoryCov():
         0 1.00000e+00 0.00000e+00 0.00000e+00
         1 0.00000e+00 8.00000e+00 0.00000e+00
         2 0.00000e+00 0.00000e+00 2.70000e+01
+
+        >>> S = pd.DataFrame(np.diag(np.array([1, 2, 3])), index=pd.Index([1, 2, 3]), columns=pd.Index([4, 5, 6]))
+        >>> var = pd.Series([1, 2, 3], index=pd.Index([1, 2, 3]))
+        >>> cov = sandy.CategoryCov(S)
+        >>> cov.sandwich(var)
+                    4           5           6
+        1 1.00000e+00 0.00000e+00 0.00000e+00
+        2 0.00000e+00 8.00000e+00 0.00000e+00
+        3 0.00000e+00 0.00000e+00 2.70000e+01
         """
+        index = self.data.index
+        column = self.data.columns
         if self.data.index.values.all() != S.index.values.all():
-            raise sandy.Error("The index are not the same")
+            raise sandy.Error("The indices of the sensitivity array \
+                              and of the CategoryCov are not the same")
         C = self.data.values
         s = S.values
-        out = corr2cov(C, s)
+        out = pd.DataFrame(corr2cov(C, s), index=index, columns=column)
         return self.__class__(out)
 
     def plot_corr(self, ax, **kwargs):
@@ -987,17 +1095,17 @@ def corr2cov(corr, s):
 
     Examples
     --------
-    >>> S = np.array([1,2,3])
+    >>> S = np.array([1, 2, 3])
     >>> var = np.array([[1, 0, 2, 0], [0, 3, 0, 0], [4, 0, 5, 0], [0, 0, 0, 0]])
-    >>> corr2cov(var,S)
+    >>> corr2cov(var, S)
     array([[ 1,  0,  6,  0],
            [ 0, 12,  0,  0],
            [12,  0, 45,  0],
            [ 0,  0,  0,  0]])
 
-    >>> S = np.array([1,2,3])
+    >>> S = np.array([1, 2, 3])
     >>> var = np.array([[1, 0, 2], [0, 3, 0], [4, 0, 5]])
-    >>> corr2cov(var,S)
+    >>> corr2cov(var, S)
     array([[ 1,  0,  6],
            [ 0, 12,  0],
            [12,  0, 45]])
@@ -1005,8 +1113,10 @@ def corr2cov(corr, s):
     dim = corr.shape[0]
     if len(s) > dim:
         raise sandy.Error("The shape of the variables is not correct")
+    # Create s diagonal matrix
     if len(s) != dim:
-        dim_ext = abs(len(s)-dim)
+        # Increase the size of s by filling it with zeros.
+        dim_ext = dim - len(s)
         S = np.pad(np.diag(s), ((0, dim_ext), (0, dim_ext)))
     else:
         S = np.diag(s)
