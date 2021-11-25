@@ -403,7 +403,7 @@ class CategoryCov():
             cov[ni, nonzero_idxs] = cov_reduced[i]
         return cov
 
-    def inv(self):
+    def invert(self):
         """
         Method for calculating the inverse matrix.
 
@@ -415,14 +415,14 @@ class CategoryCov():
         Examples
         --------
         >>> S = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
-        >>> S.inv()
+        >>> S.invert()
                     0           1           2
         0 1.00000e+00 0.00000e+00 0.00000e+00
         1 0.00000e+00 5.00000e-01 0.00000e+00
         2 0.00000e+00 0.00000e+00 3.33333e-01
 
         >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3])))
-        >>> S.inv()
+        >>> S.invert()
                     0           1           2
         0 0.00000e+00 0.00000e+00 0.00000e+00
         1 0.00000e+00 5.00000e-01 0.00000e+00
@@ -496,11 +496,107 @@ class CategoryCov():
         Q, R = scipy.linalg.qr(M.T)
         return R.T
 
-    def glls(self, S, Vy):
+    @classmethod
+    def get_covariance(cls, std):
+        """
+        Construct the covariance matrix from the variance vector.
+
+        Parameters
+        ----------
+        std : `pandas.Series`
+            Variance vector.
+
+        Returns
+        -------
+        `CategoryCov`
+            Object containing the covariance matrix.
+
+        Example
+        -------
+        >>> S = pd.Series(np.array([0, 2, 3]), index=pd.Index([1, 2, 3]))
+        >>> cov = sandy.CategoryCov.get_covariance(S)
+        >>> cov
+                    1           2           3
+        1 0.00000e+00 0.00000e+00 0.00000e+00
+        2 0.00000e+00 2.00000e+00 0.00000e+00
+        3 0.00000e+00 0.00000e+00 3.00000e+00
+
+        >>> assert type(cov) is sandy.CategoryCov
+        """
+        cov = pd.DataFrame(np.diag(std.values),
+                           index=std.index, columns=std.index)
+        return cls(cov)
+
+    def GLS_sensitivity(self, S, Vy):
+        """
+        
+
+        Parameters
+        ----------
+        S : `pandas.DataFrame`
+            DESCRIPTION.
+        Vy : `pandas.Series`
+            DESCRIPTION.
+
+        Raises
+        ------
+        TypeError
+            DESCRIPTION.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+        # Posible errors:
+        if S.data.index.values.all() != S.data.columns.values.all():
+            raise TypeError("Sensitivity matrix has not symmetric indexes")
+        if S.index.values.all() != self.data.index.values.all():
+            raise TypeError('The object indexes and the sensitivity \
+                            indexes do not match')
+        if Vy.index.values.all() != self.data.index.values.all():
+            raise TypeError('The object indexes and the extra information\
+                            indexes do not match')
+        # GLS_sensitivity:
         Vx = self.data.values
-        V = S.T.dot(Vx.dot(S)) + Vy
-        C = Vx - Vx.dot(S.dot(np.linalg.inv(V).dot(S.T.dot(Vx))))
-        return self.__class__(C)
+        M = S.T.dot(Vx.dot(S)) + Vy
+        M_inv = sandy.CategoryCov(M).invert()
+        sensitivity = Vx.dot(S).dot(M_inv)
+        return self.__class__(sensitivity)
+
+    def custom_GLS(self, Vx, Vy):
+        """
+        
+
+        Parameters
+        ----------
+        Vx : `pandas.Series`
+            DESCRIPTION.
+        Vy : `pandas.Series`
+            DESCRIPTION.
+
+        Raises
+        ------
+        TypeError
+            DESCRIPTION.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+        # Posible errors:
+        if Vx.index.values.all() != self.data.index.values.all():
+            raise TypeError('The object indexes and the sensitivity indexes\
+                             do not match')
+        if Vy.index.values.all() != self.data.index.values.all():
+            raise TypeError('The object indexes and the extra information\
+                            indexes do not match')
+        # Custom GLS:
+        V_new = Vx + self.data.dot(Vy)
+        return self.__class__(V_new)
 
     def sandwich(self, S):
         """
