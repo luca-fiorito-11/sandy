@@ -357,7 +357,6 @@ class Fy():
         new_data.loc[mask, 'FY'] = fy_calc.values
         return self.__class__(new_data)
 
-
     def filter_by(self, key, value):
         """
         Apply condition to source data and return filtered results.
