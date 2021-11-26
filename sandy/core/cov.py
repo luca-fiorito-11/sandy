@@ -11,6 +11,7 @@ import sandy
 import scipy
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import splu
+import pytest
 pd.options.display.float_format = '{:.5e}'.format
 
 __author__ = "Luca Fiorito"
@@ -258,12 +259,6 @@ class CategoryCov():
     @data.setter
     def data(self, data):
         self._data = data.astype(float)
-        if not len(data.shape) == 2 and data.shape[0] == data.shape[1]:
-            raise sandy.Error("covariance matrix must have two dimensions")
-        if not np.allclose(data.values, data.values.T):
-            raise sandy.Error("covariance matrix must be symmetric")
-        if (np.diag(data) < 0).any():
-            raise sandy.Error("covariance matrix must have positive variances")
 
     @property
     def size(self):
@@ -468,10 +463,10 @@ class CategoryCov():
         unit = np.identity(len(M_reduce))
         M_reduce_inv = splu(csc_matrix(M_reduce)).solve(unit)
         data = CategoryCov._restore_size(M_nonzero_idxs, M_reduce_inv,
-                                        len(self.data))
+                                         len(self.data))
         M_inv = pd.DataFrame(data.data,
                              index=index, columns=columns)
-        return self.__class__(M_inv)
+        return M_inv
 
     def sampling(self, nsmp, seed=None):
         """
@@ -612,8 +607,8 @@ class CategoryCov():
         >>> assert type(sandy.CategoryCov.from_stdev([1, 2, 3])) is sandy.CategoryCov
         """
         std_ = pd.Series(std)
-        std_ = std_ * std_
-        return CategoryCov.from_var(std_)
+        var = std_ * std_
+        return CategoryCov.from_var(var)
 
     def _gls_sensitivity(self, S, Vy, threshold=None):
         """
@@ -631,7 +626,7 @@ class CategoryCov():
         Returns
         -------
         `CategoryCov`
-            DESCRIPTION.
+            GlS sensitivity for a given Vy and S.
 
         """
         S_ = pd.DataFrame(S)
@@ -643,11 +638,11 @@ class CategoryCov():
         sensitivity = Vx.dot(S_).dot(M_inv).dot(S_.T)
         if threshold is not None:
             sensitivity[sensitivity < threshold] = 0
-        return self.__class__(sensitivity)
+        return pd.DataFrame(sensitivity, index=S_.index, columns=S_.columns)
 
     def gls_update(self, Vy, S, delta, threshold=None):
         """
-        
+        Perform GlS method for a given variance and sensitivity.
 
         Parameters
         ----------
@@ -662,18 +657,13 @@ class CategoryCov():
 
         Returns
         -------
-        TYPE
-            DESCRIPTION.
+        `CategoryCov`
+            GLS method apply to a CategoryCov object for a given Vy and S.
 
         """
-        # Check the data entered
-        S_ = pd.Dataframe(S)
-        Vy_ = pd.Series(Vy)
-
-        # Custom GLS:
         Vx = self.data
-        A = self._gls_sensitivity(S_, Vy_)
-        V_new = Vx - A.data.dot(Vx)
+        A = self._gls_sensitivity(S, Vy)
+        V_new = Vx - A.dot(Vx)
         if threshold is not None:
             V_new[V_new < threshold] = 0
         return self.__class__(V_new)
@@ -696,9 +686,9 @@ class CategoryCov():
 
         Examples
         --------
-        >>> S = np.diag(np.array([1, 2, 3]))
+        >>> S = np.array([1, 2, 3])
         >>> var = pd.Series([1, 2, 3])
-        >>> cov = sandy.CategoryCov(S)
+        >>> cov = sandy.CategoryCov.from_var(S)
         >>> cov.sandwich(var)
                     0           1           2
         0 1.00000e+00 0.00000e+00 0.00000e+00
@@ -709,20 +699,16 @@ class CategoryCov():
         >>> var = pd.Series([1, 2, 3], index=pd.Index([1, 2, 3]))
         >>> cov = sandy.CategoryCov(S)
         >>> cov.sandwich(var)
-                    4           5           6
-        1 1.00000e+00 0.00000e+00 0.00000e+00
-        2 0.00000e+00 8.00000e+00 0.00000e+00
-        3 0.00000e+00 0.00000e+00 2.70000e+01
+        	          1	          2	          3
+        1	1.00000e+00	0.00000e+00	0.00000e+00
+        2	0.00000e+00	8.00000e+00	0.00000e+00
+        3	0.00000e+00	0.00000e+00	2.70000e+01
         """
-        index = self.data.index
-        column = self.data.columns
         if self.data.index.values.all() != S.index.values.all():
             raise TypeError("The indices of the sensitivity array \
                               and of the CategoryCov are not the same")
-        C = self.data.values
-        s = S.values
-        out = pd.DataFrame(corr2cov(C, s), index=index, columns=column)
-        return self.__class__(out)
+        C = self.data
+        return corr2cov(C, S)
 
     def plot_corr(self, ax, **kwargs):
         add = {"cbar": True, "vmin": -1, "vmax": 1, "cmap": "RdBu"}
@@ -1258,10 +1244,10 @@ def corr2cov(corr, s):
 
     Parameters
     ----------
-    corr : 2d `numpy.ndarray`
+    corr : 2d iterable
         square 2D correlation matrix
 
-    s : 1d `numpy.ndarray`
+    s : 1d iterable
         array of standard deviations
 
     Returns
@@ -1274,29 +1260,35 @@ def corr2cov(corr, s):
     >>> S = np.array([1, 2, 3])
     >>> var = np.array([[1, 0, 2, 0], [0, 3, 0, 0], [4, 0, 5, 0], [0, 0, 0, 0]])
     >>> corr2cov(var, S)
-    array([[ 1,  0,  6,  0],
-           [ 0, 12,  0,  0],
-           [12,  0, 45,  0],
-           [ 0,  0,  0,  0]])
+        0   1   2  3
+    0   1   0   6  0
+    1   0  12   0  0
+    2  12   0  45  0
+    3   0   0   0  0
 
     >>> S = np.array([1, 2, 3])
     >>> var = np.array([[1, 0, 2], [0, 3, 0], [4, 0, 5]])
     >>> corr2cov(var, S)
-    array([[ 1,  0,  6],
-           [ 0, 12,  0],
-           [12,  0, 45]])
+        0   1   2
+    0   1   0   6
+    1   0  12   0
+    2  12   0  45
     """
-    dim = corr.shape[0]
-    if len(s) > dim:
-        raise sandy.Error("The shape of the variables is not correct")
+    s_ = pd.Series(s)
+    corr_ = pd.DataFrame(corr)
+    dim = corr_.values.shape[0]
+    if len(s_) > dim:
+        raise TypeError("The shape of the variables is not correct")
     # Create s diagonal matrix
-    if len(s) != dim:
+    if len(s_) != dim:
         # Increase the size of s to the size of corr by filling it with zeros.
         dim_ext = dim - len(s)
-        S = np.pad(np.diag(s), ((0, dim_ext), (0, dim_ext)))
+        S = np.pad(np.diag(s_), ((0, dim_ext), (0, dim_ext)))
+        S = pd.DataFrame(S, index=corr_.index, columns=corr_.columns)
     else:
-        S = np.diag(s)
-    return S.T.dot(corr).dot(S)
+        S = pd.DataFrame(np.diag(s_), index=s_.index, columns=s_.index)
+        corr_ = pd.DataFrame(corr_.values, index=s_.index, columns=s_.index)
+    return S.T.dot(corr_).dot(S)
 
 
 def triu_matrix(arr, size):
