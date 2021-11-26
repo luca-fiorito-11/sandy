@@ -10,9 +10,6 @@ import warnings
 
 import pandas as pd
 import numpy as np
-import scipy
-from scipy.sparse import csc_matrix
-from scipy.sparse.linalg import splu
 
 import sandy
 from sandy.shared import expand_zam
