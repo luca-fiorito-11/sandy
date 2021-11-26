@@ -258,6 +258,12 @@ class CategoryCov():
     @data.setter
     def data(self, data):
         self._data = data.astype(float)
+        if not len(data.shape) == 2 and data.shape[0] == data.shape[1]:
+            raise sandy.Error("covariance matrix must have two dimensions")
+        if not np.allclose(data.values, data.values.T):
+            raise sandy.Error("covariance matrix must be symmetric")
+        if (np.diag(data) < 0).any():
+            raise sandy.Error("covariance matrix must have positive variances")
 
     @property
     def size(self):
@@ -380,7 +386,7 @@ class CategoryCov():
         return nonzero_idxs, cov_reduced
 
     @classmethod
-    def restore_size(cls, nonzero_idxs, cov_reduced, dim):
+    def _restore_size(cls, nonzero_idxs, cov_reduced, dim):
         """
         Restore the size of the matrix
 
@@ -420,7 +426,7 @@ class CategoryCov():
         1	1.00000e+00	1.00000e+00
         2	1.00000e+00	1.00000e+00
 
-        >>> sandy.CategoryCov.restore_size(M_nonzero_idxs, M_reduce.values, len(S.data))
+        >>> sandy.CategoryCov._restore_size(M_nonzero_idxs, M_reduce.values, len(S.data))
                     0           1           2           3
         0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
         1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
@@ -461,7 +467,7 @@ class CategoryCov():
         M_nonzero_idxs, M_reduce = self._reduce_size()
         unit = np.identity(len(M_reduce))
         M_reduce_inv = splu(csc_matrix(M_reduce)).solve(unit)
-        data = CategoryCov.restore_size(M_nonzero_idxs, M_reduce_inv,
+        data = CategoryCov._restore_size(M_nonzero_idxs, M_reduce_inv,
                                         len(self.data))
         M_inv = pd.DataFrame(data.data,
                              index=index, columns=columns)
@@ -563,14 +569,9 @@ class CategoryCov():
         >>> assert type(S) is sandy.CategoryCov
         >>> assert type(sandy.CategoryCov.from_var([1, 2, 3])) is sandy.CategoryCov
         """
-        if hasattr(var, "__len__") and type(var) != str:
-            if type(var) == pd.Series:
-                cov = pd.DataFrame(np.diag(var.values),
-                                   index=var.index, columns=var.index)
-            else:
-                cov = pd.DataFrame(np.diag(var))
-        else:
-            raise TypeError("Variance vector is not valid")
+        var_ = pd.Series(var)
+        cov = pd.DataFrame(np.diag(var_),
+                           index=var_.index, columns=var_.index)
         return cls(cov)
 
     @classmethod
@@ -581,7 +582,7 @@ class CategoryCov():
         Parameters
         ----------
         std : `pandas.Series`
-            Variance vector.
+            Standard deviations vector.
 
         Returns
         -------
@@ -610,20 +611,13 @@ class CategoryCov():
         >>> assert type(S) is sandy.CategoryCov
         >>> assert type(sandy.CategoryCov.from_stdev([1, 2, 3])) is sandy.CategoryCov
         """
-        if hasattr(std, "__len__") and type(std) != str:
-            if type(std) == pd.Series:
-                cov = pd.DataFrame(np.diag(std.values*std.values),
-                                   index=std.index, columns=std.index)
-            else:
-                std_ = np.array(std)
-                cov = pd.DataFrame(np.diag(std_*std_))
-        else:
-            raise TypeError("Standart deviation vector is not valid")
-        return cls(cov)
+        std_ = pd.Series(std)
+        std_ = std_ * std_
+        return CategoryCov.from_var(std_)
 
     def _gls_sensitivity(self, S, Vy, threshold=None):
         """
-        
+        Method to obtain sensitivity according to GLS
 
         Parameters
         ----------
@@ -631,52 +625,22 @@ class CategoryCov():
             Sensitivity square matrix (MXM).
         Vy : 1D iterable
             Extra Covariance vector (MX1).
-
-        Raises
-        ------
-        TypeError
-            DESCRIPTION.
+        threshold : `int`, optional
+            threshold to avoid numerical fluctuations. The default is None.
 
         Returns
         -------
-        TYPE
+        `CategoryCov`
             DESCRIPTION.
 
         """
-        # Check the data entered
-        if hasattr(S, "__len__") and type(S) != str:
-            if type(S) != pd.DataFrame:
-                S_ = pd.Dataframe(S)
-            else:
-                S_ = S
-        else:
-            raise TypeError('Introduced sensitivity is not valid')
-
-        if hasattr(Vy, "__len__") and type(Vy) != str:
-            if type(Vy) != pd.Series:
-                Vy_ = pd.Series(Vy)
-            else:
-                Vy_ = Vy
-        else:
-            raise TypeError('Introduced extra covariance vector is not valid')
-
-        # Posible errors:
-        if S_.columns.values.all() != self.data.index.values.all():
-            raise TypeError('The object indexes and the sensitivity \
-                            columns do not match')
-        if S_.columns.values.all() != self.data.columns.values.all():
-            raise TypeError('The object columns and the sensitivity \
-                            columns do not match')
-        if not S_.columns.intersection(Vy_.index).any():
-            raise TypeError('Object indexes and the extra information\
-                            indexes do not match')
-        elif len(S_.columns.intersection(Vy_.index)) < len(S_.columns):
-            Vy_ = Vy_.reindex(S_.columns.index, fill_value=0)
+        S_ = pd.DataFrame(S)
+        Vy_ = pd.Series(Vy)
         # GLS_sensitivity:
         Vx = self.data.values
         M = S_.T.dot(Vx.dot(S_)) + Vy_
         M_inv = sandy.CategoryCov(M).invert()
-        sensitivity = Vx.dot(S_).dot(M_inv)
+        sensitivity = Vx.dot(S_).dot(M_inv).dot(S_.T)
         if threshold is not None:
             sensitivity[sensitivity < threshold] = 0
         return self.__class__(sensitivity)
@@ -703,37 +667,13 @@ class CategoryCov():
 
         """
         # Check the data entered
-        if hasattr(S, "__len__") and type(S) != str:
-            if type(S) != pd.DataFrame:
-                S_ = pd.Dataframe(S)
-            else:
-                S_ = S
-        else:
-            raise TypeError('Introduced sensitivity is not valid')
+        S_ = pd.Dataframe(S)
+        Vy_ = pd.Series(Vy)
 
-        if hasattr(Vy, "__len__") and type(Vy) != str:
-            if type(Vy) != pd.Series:
-                Vy_ = pd.Series(Vy)
-            else:
-                Vy_ = Vy
-        else:
-            raise TypeError('Introduced extra covariance vector is not valid')
-        if hasattr(delta, "__len__") and type(delta) != str:
-            if type(delta) != pd.Series:
-                delta_ = pd.Series(delta)
-            else:
-                delta_ = delta
-        else:
-            raise TypeError('Introduced extra covariance vector is not valid')
-        if not S_.columns.intersection(delta_.index).any():
-            raise TypeError('Sensitivity columns and the delta \
-                            indexes do not match')
-        elif len(S_.columns.intersection(delta_.index)) < len(S_.columns):
-            delta_ = delta_.reindex(S_.columns.index, fill_value=0)
         # Custom GLS:
         Vx = self.data
-        A = self._gls_sensitivity(S_,Vy_)
-        V_new = Vx + A.data.dot(delta_)
+        A = self._gls_sensitivity(S_, Vy_)
+        V_new = Vx - A.data.dot(Vx)
         if threshold is not None:
             V_new[V_new < threshold] = 0
         return self.__class__(V_new)
