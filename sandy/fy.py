@@ -52,7 +52,7 @@ class Fy():
     Methods
     -------
     custom_perturbation
-        Apply a custom perturbation to a given cross section
+        Apply a custom perturbation to a given fission yield
     energy_table
         Interpolate cross sections over new grid structure
     _expand_zam

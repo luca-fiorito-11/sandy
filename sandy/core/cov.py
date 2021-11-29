@@ -253,12 +253,19 @@ class CategoryCov():
         -------
         `pandas.DataFrame`
             covariance matrix
+
+        Notes
+        -----
+        ..note :: In the future, another tests will be implemented to check
+        that the covariance matrix is symmetric and have positive variances.
         """
         return self._data
 
     @data.setter
     def data(self, data):
-        self._data = data.astype(float)
+        self._data = pd.DataFrame(data, dtype=float)
+        if not len(data.shape) == 2 and data.shape[0] == data.shape[1]:
+            raise TypeError("covariance matrix must have two dimensions")
 
     @property
     def size(self):
@@ -466,7 +473,7 @@ class CategoryCov():
                                          len(self.data))
         M_inv = pd.DataFrame(data.data,
                              index=index, columns=columns)
-        return M_inv
+        return self.__class__(M_inv)
 
     def sampling(self, nsmp, seed=None):
         """
@@ -628,21 +635,37 @@ class CategoryCov():
         `CategoryCov`
             GlS sensitivity for a given Vy and S.
 
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> var = sandy.CategoryCov.from_var([1, 1])
+        >>> var._gls_sensitivity(S, np.array([1, 1]))
+                      0	          1
+        0	2.57143e-01	3.14286e-01
+        1	3.14286e-01	8.28571e-01
+
+        >>> S = pd.DataFrame([[1, 2], [3, 4]], columns =[1, 2],index=[3, 4])
+        >>> var = sandy.CategoryCov.from_var([1, 1])
+        >>> var._gls_sensitivity(S,pd.Series([1, 1], index=[1, 2]))
+                      1	          2
+        1	2.57143e-01	3.14286e-01
+        2	3.14286e-01	8.28571e-01
         """
-        S_ = pd.DataFrame(S)
-        Vy_ = pd.Series(Vy)
+        columns = pd.DataFrame(S).columns
+        S_ = pd.DataFrame(S).values
+        Vy_ = pd.DataFrame(np.diag(pd.Series(Vy))).values
         # GLS_sensitivity:
         Vx = self.data.values
-        M = S_.T.dot(Vx.dot(S_)) + Vy_
+        M = S_.T.dot(Vx).dot(S_) + Vy_
         M_inv = sandy.CategoryCov(M).invert()
-        sensitivity = Vx.dot(S_).dot(M_inv).dot(S_.T)
+        sensitivity = Vx.dot(S_).dot(M_inv.data.values).dot(S_.T)
         if threshold is not None:
             sensitivity[sensitivity < threshold] = 0
-        return pd.DataFrame(sensitivity, index=S_.index, columns=S_.columns)
+        return pd.DataFrame(sensitivity, index=columns, columns=columns)
 
-    def gls_update(self, Vy, S, delta, threshold=None):
+    def gls_update(self,  S, Vy, threshold=None):
         """
-        Perform GlS method for a given variance and sensitivity.
+        Perform GlS update for a given variance and sensitivity.
 
         Parameters
         ----------
@@ -660,10 +683,20 @@ class CategoryCov():
         `CategoryCov`
             GLS method apply to a CategoryCov object for a given Vy and S.
 
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> var = sandy.CategoryCov.from_var([1, 1])
+        >>> var.gls_update(S, pd.Series([1, 1],index=[1, 2]))
+                     0            1
+        0  7.42857e-01 -3.14286e-01
+        1 -3.14286e-01  1.71429e-01
         """
-        Vx = self.data
-        A = self._gls_sensitivity(S, Vy)
+        index, columns = self.data.index, self.data.columns
+        Vx = self.data.values
+        A = self._gls_sensitivity(S, Vy).values
         V_new = Vx - A.dot(Vx)
+        V_new = pd.DataFrame(V_new, index=index, columns=columns)
         if threshold is not None:
             V_new[V_new < threshold] = 0
         return self.__class__(V_new)
@@ -683,6 +716,11 @@ class CategoryCov():
         `CategoryCov`
             `CategoryCov` object to which we have applied sandwich
             formula for a given pd.Series
+
+        Warnings
+        --------
+        The `CategoryCov` object and the sensitivity (S) must have the same
+        indices.
 
         Examples
         --------
@@ -704,9 +742,6 @@ class CategoryCov():
         2	0.00000e+00	8.00000e+00	0.00000e+00
         3	0.00000e+00	0.00000e+00	2.70000e+01
         """
-        if self.data.index.values.all() != S.index.values.all():
-            raise TypeError("The indices of the sensitivity array \
-                              and of the CategoryCov are not the same")
         C = self.data
         return corr2cov(C, S)
 
