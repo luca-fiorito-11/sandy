@@ -288,7 +288,9 @@ def _read_rdd(tape, mat):
             # radiation types
             "DE": L.B[1::2],
             # decay constant in 1/s, 0 if stable
-            "LAMBDA": math.log(2.0)/L.C1 if L.C1 else 0
+            "LAMBDA": math.log(2.0)/L.C1 if L.C1 else 0,
+            # uncertainty on decay constant 
+            "DLAMBDA": math.log(2.0)*L.C2/pow(L.C1,2) if L.C1 else 0
             }
     out.update(add)
     L, i = sandy.read_list(df, i)
