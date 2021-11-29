@@ -258,6 +258,10 @@ class CategoryCov():
         -----
         ..note :: In the future, another tests will be implemented to check
         that the covariance matrix is symmetric and have positive variances.
+
+        Examples
+        --------
+        >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array[1])
         """
         return self._data
 
@@ -694,11 +698,9 @@ class CategoryCov():
         """
         index, columns = self.data.index, self.data.columns
         Vx = self.data.values
-        A = self._gls_sensitivity(S, Vy).values
+        A = self._gls_sensitivity(S, Vy, threshold).values
         V_new = Vx - A.dot(Vx)
         V_new = pd.DataFrame(V_new, index=index, columns=columns)
-        if threshold is not None:
-            V_new[V_new < threshold] = 0
         return self.__class__(V_new)
 
     def sandwich(self, S):
