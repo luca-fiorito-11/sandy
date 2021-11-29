@@ -407,7 +407,7 @@ class CategoryCov():
 
         Returns
         -------
-        cov : `numpy.ndarray`
+        cov : `CategoryCov`
             Matrix of specified dimensions.
 
         Notes
