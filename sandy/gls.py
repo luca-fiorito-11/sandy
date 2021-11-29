@@ -146,8 +146,8 @@ class GLS():
         >>> x = np.array([1, 1])
         >>> x_p = np.array([2, 2])
         >>> y.gls_update(S, pd.Series([1, 1], index=[1, 2]), x_p, x)
-        0   9.71429e-01
-        1   7.42857e-01
+        0   1.02857e+00
+        1   1.25714e+00
         dtype: float64
         """
         index = self.data.index
@@ -156,6 +156,6 @@ class GLS():
         delta = x_p_ - x_
         y = self.data.values
         A = self._gls_sensitivity(S, Vy, threshold).values
-        y_new = y - A.dot(delta)
+        y_new = y + A.dot(delta)
         y_new = pd.Series(y_new, index=index)
         return self.__class__(y_new)
