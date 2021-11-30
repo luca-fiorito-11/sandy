@@ -707,7 +707,7 @@ class CategoryCov():
         """
         index, columns = pd.DataFrame(S).index, pd.DataFrame(S).columns
         S_ = pd.DataFrame(S).values
-        general_sens = self._gls_general_sensitivity(S, Vy).values
+        general_sens = self._gls_general_sensitivity(S, Vy, threshold=threshold).values
         cov_sens = general_sens.dot(S_.T)
         if threshold is not None:
             cov_sens[cov_sens < threshold] = 0
