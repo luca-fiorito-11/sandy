@@ -19,10 +19,10 @@ def gls_update(y, S, Vx, Vy, x, x_p, threshold=None):
     ----------
     y: 1D iterable
         Vector in which we are going to apply GLS (MX1)
-    Vx : 1D iterable
-        Covariance vector (MX1).
-    Vy : 1D iterable
-        Extra Covariance vector (MX1).
+    Vx : 2D iterable
+        Covariance vector (MXM).
+    Vy : 2D iterable
+        Extra Covariance vector (MXM).
     S : 2D iterable
         Sensitivity square matrix (MXM).
     x : 1D iterable
@@ -41,8 +41,8 @@ def gls_update(y, S, Vx, Vy, x, x_p, threshold=None):
     -------
     >>> S = [[1, 2], [3, 4]]
     >>> y = pd.Series([1, 1])
-    >>> Vx = pd.Series([1, 1])
-    >>> Vy = pd.Series([1, 1], index=[1, 2])
+    >>> Vx = sandy.CategoryCov.from_var([1, 1]).data
+    >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
     >>> x = [1, 1]
     >>> x_p = [2, 2]
     >>> gls_update(y, S, Vx, Vy,  x, x_p)
@@ -53,7 +53,7 @@ def gls_update(y, S, Vx, Vy, x, x_p, threshold=None):
     y_, index = pd.Series(y).values, pd.Series(y).index
     x_, x_p_ = pd.Series(x).values, pd.Series(x_p).values
     delta = x_p_ - x_
-    Vx_ = sandy.CategoryCov.from_var(Vx)
+    Vx_ = sandy.CategoryCov(Vx)
     A = Vx_._gls_general_sensitivity(S, Vy, threshold).values
     y_new = y_ + A.dot(delta)
     return pd.Series(y_new, index=index)
