@@ -407,7 +407,7 @@ class CategoryCov():
 
         Returns
         -------
-        cov : `numpy.ndarray`
+        cov : `CategoryCov`
             Matrix of specified dimensions.
 
         Notes
@@ -621,16 +621,64 @@ class CategoryCov():
         var = std_ * std_
         return CategoryCov.from_var(var)
 
-    def _gls_sensitivity(self, S, Vy, threshold=None):
+    def _gls_general_sensitivity(self, S, Vy, threshold=None):
         """
-        Method to obtain sensitivity according to GLS
+        Method to obtain general sensitivity according to GLS
 
         Parameters
         ----------
         S : 2D iterable
             Sensitivity square matrix (MXM).
-        Vy : 1D iterable
-            Extra Covariance vector (MX1).
+        Vy : 2D iterable
+            Extra Covariance matrix (MXM).
+        threshold : `int`, optional
+            threshold to avoid numerical fluctuations. The default is None.
+
+        Returns
+        -------
+        `GLS`
+            GLS sensitivity for a given Vy and S.
+
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
+        >>> Vy = np.diag(pd.Series([1, 1]))
+        >>> sensitivity._gls_general_sensitivity(S, Vy)
+                      0	          1
+        0	-2.00000e-01	2.28571e-01
+        1	2.00000e-01	5.71429e-02
+
+        >>> S = pd.DataFrame([[1, 2], [3, 4]], columns=[1, 2],index=[3, 4])
+        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
+        >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
+        >>> sensitivity._gls_general_sensitivity(S, Vy)
+                      1	          2
+        3	-2.00000e-01	2.28571e-01
+        4	2.00000e-01	5.71429e-02
+        """
+        index, columns = pd.DataFrame(S).index, pd.DataFrame(S).columns
+        S_ = pd.DataFrame(S).values
+        Vy_ = sandy.CategoryCov(Vy).data.values
+        # GLS_sensitivity:
+        Vx = self.data.values
+        M = S_.T.dot(Vx).dot(S_) + Vy_
+        M_inv = sandy.CategoryCov(M).invert()
+        sensitivity = Vx.dot(S_).dot(M_inv.data.values)
+        if threshold is not None:
+            sensitivity[sensitivity < threshold] = 0
+        return pd.DataFrame(sensitivity, index=index, columns=columns)
+
+    def _gls_cov_sensitivity(self, S, Vy, threshold=None):
+        """
+        Method to obtain covariance sensitivity according to GLS
+
+        Parameters
+        ----------
+        S : 2D iterable
+            Sensitivity square matrix (MXM).
+        Vy : 2D iterable
+            Extra Covariance matrix (MXM).
         threshold : `int`, optional
             threshold to avoid numerical fluctuations. The default is None.
 
@@ -643,29 +691,27 @@ class CategoryCov():
         -------
         >>> S = np.array([[1, 2], [3, 4]])
         >>> var = sandy.CategoryCov.from_var([1, 1])
-        >>> var._gls_sensitivity(S, np.array([1, 1]))
+        >>> Vy = np.diag(pd.Series([1, 1]))
+        >>> var._gls_cov_sensitivity(S, Vy)
                       0	          1
         0	2.57143e-01	3.14286e-01
         1	3.14286e-01	8.28571e-01
 
         >>> S = pd.DataFrame([[1, 2], [3, 4]], columns =[1, 2],index=[3, 4])
         >>> var = sandy.CategoryCov.from_var([1, 1])
-        >>> var._gls_sensitivity(S,pd.Series([1, 1], index=[1, 2]))
+        >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
+        >>> var._gls_cov_sensitivity(S, Vy)
                       1	          2
-        1	2.57143e-01	3.14286e-01
-        2	3.14286e-01	8.28571e-01
+        3	2.57143e-01	3.14286e-01
+        4	3.14286e-01	8.28571e-01
         """
-        columns = pd.DataFrame(S).columns
+        index, columns = pd.DataFrame(S).index, pd.DataFrame(S).columns
         S_ = pd.DataFrame(S).values
-        Vy_ = pd.DataFrame(np.diag(pd.Series(Vy))).values
-        # GLS_sensitivity:
-        Vx = self.data.values
-        M = S_.T.dot(Vx).dot(S_) + Vy_
-        M_inv = sandy.CategoryCov(M).invert()
-        sensitivity = Vx.dot(S_).dot(M_inv.data.values).dot(S_.T)
+        general_sens = self._gls_general_sensitivity(S, Vy, threshold=threshold).values
+        cov_sens = general_sens.dot(S_.T)
         if threshold is not None:
-            sensitivity[sensitivity < threshold] = 0
-        return pd.DataFrame(sensitivity, index=columns, columns=columns)
+            cov_sens[cov_sens < threshold] = 0
+        return pd.DataFrame(cov_sens, index=index, columns=columns)
 
     def gls_update(self,  S, Vy, threshold=None):
         """
@@ -673,8 +719,8 @@ class CategoryCov():
 
         Parameters
         ----------
-        Vy : 1D iterable
-            Extra Covariance vector (MX1).
+        Vy : 2D iterable
+            Extra Covariance matrix (MXM).
         S : 2D iterable
             Sensitivity square matrix (MXM).
         delta : 1D iterable
@@ -691,17 +737,17 @@ class CategoryCov():
         -------
         >>> S = np.array([[1, 2], [3, 4]])
         >>> var = sandy.CategoryCov.from_var([1, 1])
-        >>> var.gls_update(S, pd.Series([1, 1],index=[1, 2]))
+        >>> Vy = np.diag(pd.Series([1, 1]))
+        >>> var.gls_update(S, Vy)
                      0            1
         0  7.42857e-01 -3.14286e-01
         1 -3.14286e-01  1.71429e-01
         """
         index, columns = self.data.index, self.data.columns
         Vx = self.data.values
-        A = self._gls_sensitivity(S, Vy, threshold).values
+        A = self._gls_cov_sensitivity(S, Vy, threshold=threshold).values
         V_new = Vx - A.dot(Vx)
-        V_new = pd.DataFrame(V_new, index=index, columns=columns)
-        return self.__class__(V_new)
+        return self.__class__(pd.DataFrame(V_new, index=index, columns=columns))
 
     def sandwich(self, S):
         """
