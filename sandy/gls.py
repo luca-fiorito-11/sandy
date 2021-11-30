@@ -7,11 +7,11 @@ import sandy
 
 __author__ = "Aitor Bengoechea"
 __all__ = [
-        "custom_gls",
+        "gls_update",
         ]
 
 
-def custom_gls(y, S, Vx, Vy, x, x_p, threshold=None):
+def gls_update(y, S, Vx, Vy, x, x_p, threshold=None):
     """
     Perform GlS update for a given variances, vectors and sensitivity.
 
@@ -45,7 +45,7 @@ def custom_gls(y, S, Vx, Vy, x, x_p, threshold=None):
     >>> Vy = pd.Series([1, 1], index=[1, 2])
     >>> x = [1, 1]
     >>> x_p = [2, 2]
-    >>> custom_gls(y, S, Vx, Vy,  x, x_p)
+    >>> gls_update(y, S, Vx, Vy,  x, x_p)
     0   1.02857e+00
     1   1.25714e+00
     dtype: float64
