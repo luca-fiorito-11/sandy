@@ -15,6 +15,16 @@ __all__ = [
 class GLS():
     """
     Container for processing GLS.
+
+    Attributes
+    ----------
+    data : `pandas.Series`
+        Vector where GLS is going to be applied.
+
+    Methods
+    -------
+    gls_update:
+        Perform GlS update.
     """
 
     def __repr__(self):
@@ -25,51 +35,25 @@ class GLS():
 
     @property
     def data(self):
+        """
+        Vector where GLS is going to be applied as pandas.Series
+
+        Attributes
+        ----------
+        index : `pandas.Index` or `pandas.MultiIndex`
+            indices
+
+        Returns
+        -------
+        `pandas.Series`
+            Vector where GLS is going to be applied.
+
+        """
         return self._data
 
     @data.setter
     def data(self, data):
         self._data = pd.Series(data, dtype=float)
-
-    @classmethod
-    def from_vec(cls, vec):
-        """
-        Construct the matrix for performing GLS from the data vector.
-
-        Parameters
-        ----------
-        var : 1D iterable
-            Data vector.
-
-        Returns
-        -------
-        `GLS`
-            Object containing the GLS matrix.
-
-        Example
-        -------
-        >>> S = pd.Series(np.array([0, 2, 3]), index=pd.Index([1, 2, 3]))
-        >>> gls = sandy.GLS.from_vec(S)
-        >>> gls
-        1   0.00000e+00
-        2   2.00000e+00
-        3   3.00000e+00
-        dtype: float64
-
-        >>> assert type(gls) is sandy.GLS
-
-        >>> S = sandy.GLS.from_vec((1, 2, 3))
-        >>> S
-        0   1.00000e+00
-        1   2.00000e+00
-        2   3.00000e+00
-        dtype: float64
-
-        >>> assert type(S) is sandy.GLS
-        >>> assert type(sandy.GLS.from_vec([1, 2, 3])) is sandy.GLS
-        """
-        vec_ = pd.Series(vec)
-        return cls(vec_)
 
     def _gls_sensitivity(self, S, x_p, threshold=None):
         """
@@ -92,14 +76,14 @@ class GLS():
         Example
         -------
         >>> S = np.array([[1, 2], [3, 4]])
-        >>> sen = sandy.GLS.from_vec([1, 1])
+        >>> sen = sandy.GLS([1, 1])
         >>> sen._gls_sensitivity(S, np.array([1, 1]))
                       0	          1
         0	-2.00000e-01	2.28571e-01
         1	2.00000e-01	5.71429e-02
 
         >>> S = pd.DataFrame([[1, 2], [3, 4]], columns =[1, 2],index=[3, 4])
-        >>> sen = sandy.GLS.from_vec([1, 1])
+        >>> sen = sandy.GLS([1, 1])
         >>> sen._gls_sensitivity(S,pd.Series([1, 1], index=[1, 2]))
                       1	          2
         1	-2.00000e-01	2.28571e-01
@@ -117,12 +101,14 @@ class GLS():
             sensitivity[sensitivity < threshold] = 0
         return pd.DataFrame(sensitivity, index=columns, columns=columns)
 
-    def gls_update(self,  S, Vy, x_p, x, threshold=None):
+    def gls_update(self, S, Vx, Vy, x_p, x, threshold=None):
         """
         Perform GlS update for a given variance and sensitivity.
 
         Parameters
         ----------
+        Vx : 1D iterable
+            Covariance vector (MX1).
         Vy : 1D iterable
             Extra Covariance vector (MX1).
         S : 2D iterable
@@ -137,25 +123,27 @@ class GLS():
         Returns
         -------
         `GLS`
-            GLS method apply to a GLS object for a given Vy, Vx_p and S.
+            GLS method apply to a GLS object for a given Vy, x, x_p and S.
 
         Example
         -------
         >>> S = np.array([[1, 2], [3, 4]])
-        >>> y = GLS.from_vec([1, 1])
+        >>> y = GLS([1, 1])
+        >>> Vx = pd.Series([1, 1])
+        >>> Vy = pd.Series([1, 1], index=[1, 2])
         >>> x = np.array([1, 1])
         >>> x_p = np.array([2, 2])
-        >>> y.gls_update(S, pd.Series([1, 1], index=[1, 2]), x_p, x)
+        >>> y.gls_update(S, Vx, Vy, x_p, x)
         0   1.02857e+00
         1   1.25714e+00
         dtype: float64
         """
         index = self.data.index
-        x_ = np.array(x)
-        x_p_ = np.array(x_p)
+        x_ = pd.Series(x).values
+        x_p_ = pd.Series(x_p).values
         delta = x_p_ - x_
+        Vx_ = sandy.GLS(Vx)
         y = self.data.values
-        A = self._gls_sensitivity(S, Vy, threshold).values
+        A = Vx_._gls_sensitivity(S, Vy, threshold).values
         y_new = y + A.dot(delta)
-        y_new = pd.Series(y_new, index=index)
-        return self.__class__(y_new)
+        return self.__class__(y_new, index=index)
