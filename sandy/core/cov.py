@@ -708,10 +708,10 @@ class CategoryCov():
         index, columns = pd.DataFrame(S).index, pd.DataFrame(S).columns
         S_ = pd.DataFrame(S).values
         general_sens = self._gls_general_sensitivity(S, Vy).values
-        var_sens = general_sens.dot(S_.T)
+        cov_sens = general_sens.dot(S_.T)
         if threshold is not None:
-            var_sens[var_sens < threshold] = 0
-        return pd.DataFrame(var_sens, index=index, columns=columns)
+            cov_sens[cov_sens < threshold] = 0
+        return pd.DataFrame(cov_sens, index=index, columns=columns)
 
     def gls_update(self,  S, Vy, threshold=None):
         """
