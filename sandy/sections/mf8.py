@@ -249,11 +249,6 @@ def _read_rdd(tape, mat):
     'RICL': 0.0,
     'DRICL': 0.0}
     
-    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
-    >>> rdd = sandy.sections.mf8.read_mf8(decay, 3542, 457)
-    >>> rdd.keys()
-    {'MAT','MF','MT','ZA','AWR','LIS','LISO','NST','HL','DHL',
-     'E','DE','LAMBDA','DLAMBDA','SPI','PAR','DK','SPECTRA'}
     """
     mt = 457
     df = tape._get_section_df(mat, mf, mt)
