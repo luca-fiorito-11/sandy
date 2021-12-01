@@ -114,6 +114,41 @@ class DecayData():
         series.index.name = "ZAM"
         return series
 
+    def get_decayconstant(self, with_uncertainty=True):
+        """
+        Extract decay constant and its uncertainty into dataframe.
+
+        Parameters
+        ----------
+        with_uncertainty : `bool`, optional, default is 'True'
+
+        Returns
+        -------
+        `pandas.DataFrame`
+             decay constant dataframe
+
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file("jeff_33","decay",922350)
+        >>> rdd = sandy.DecayData.from_endf6(endf6)
+        >>> DC = sandy.DecayData.get_decayconstant(rdd)
+        >>> print(DC)
+                   DLAMBDA      LAMBDA
+           922350 2.21715e-20 3.12085e-17
+        """
+
+        decay_constant = {zam: {
+             "LAMBDA": dic['decay_constant'],
+             "DLAMBDA": dic['decay_constant_uncertainty'],
+             } for zam, dic in self.data.items()}
+
+        df = pd.DataFrame(decay_constant)
+        if with_uncertainty:
+            return df.T
+        else:
+            return df.iat[1, 0]
+
+
     def get_decay_chains(self, skip_parents=False, **kwargs):
         """
         Extract decay chains into dataframe.
@@ -333,6 +368,7 @@ class DecayData():
               .fillna(0)
         return T.reindex(T.columns.values, fill_value=0.0)
 
+
     @classmethod
     def from_endf6(cls, endf6, verbose=False):
         """
@@ -367,6 +403,7 @@ class DecayData():
         _data:
           10010:
             decay_constant: 0
+            decay_constant_uncertainty: 0
             decay_energy:
               alpha: 0.0
               beta: 0.0
@@ -383,6 +420,7 @@ class DecayData():
             stable: true
           270600:
             decay_constant: 4.167050502344267e-09
+            decay_constant_uncertainty: 6.324352137605637e-13
             decay_energy:
               alpha: 0.0
               beta: 96522.0
@@ -405,6 +443,7 @@ class DecayData():
             stable: false
           280600:
             decay_constant: 0
+            decay_constant_uncertainty: 0
             decay_energy:
               alpha: 0.0
               beta: 0.0
@@ -433,6 +472,7 @@ class DecayData():
             groups[zam] = {
                     "half_life": sec["HL"],
                     "decay_constant": sec["LAMBDA"],
+                    "decay_constant_uncertainty": sec["DLAMBDA"],
                     "stable": bool(sec["NST"]),
                     "spin": sec["SPI"],
                     "parity": sec["PAR"],
@@ -537,7 +577,7 @@ class DecayData():
 
         Then, make sure `sandy` reads it correctly
         >>> rdd.from_hdf5(path, "jeff_33")
-        {10010: {'decay_constant': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.5, 'stable': True}, 270600: {'decay_constant': 4.167050502344267e-09, 'decay_energy': {'alpha': 0.0, 'beta': 96522.0, 'gamma': 2503840.0, 'total': 2600362.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 202.529, 'gamma': 352.186, 'total': 406.26712202318316}, 'decay_modes': {'10x0': {'branching_ratio': 1.0, 'branching_ratio_uncertainty': 0.0, 'decay_products': {280600: 1.0}}}, 'half_life': 166340000.0, 'parity': 1.0, 'spin': 5.0, 'stable': False}, 280600: {'decay_constant': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.0, 'stable': True}}
+        {10010: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.5, 'stable': True}, 270600: {'decay_constant': 4.167050502344267e-09, 'decay_constant_uncertainty': 6.324352137605637e-13, 'decay_energy': {'alpha': 0.0, 'beta': 96522.0, 'gamma': 2503840.0, 'total': 2600362.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 202.529, 'gamma': 352.186, 'total': 406.26712202318316}, 'decay_modes': {'10x0': {'branching_ratio': 1.0, 'branching_ratio_uncertainty': 0.0, 'decay_products': {280600: 1.0}}}, 'half_life': 166340000.0, 'parity': 1.0, 'spin': 5.0, 'stable': False}, 280600: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.0, 'stable': True}}
         >>> f.cleanup()
         """
         with h5py.File(filename, mode=mode) as h5file:
