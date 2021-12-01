@@ -297,7 +297,7 @@ def _read_rdd(tape, mat):
             # decay constant in 1/s, 0 if stable
             "LAMBDA": math.log(2.0) / L.C1 if L.C1 else 0,
             # uncertainty on decay constant
-            "DLAMBDA": math.log(2.0)*L.C2 / L.C1**2 if L.C1 else 0
+            "DLAMBDA": math.log(2.0) * L.C2 / L.C1**2 if L.C1 else 0
             }
     out.update(add)
     L, i = sandy.read_list(df, i)
