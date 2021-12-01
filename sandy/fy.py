@@ -357,6 +357,105 @@ class Fy():
         new_data.loc[mask, 'FY'] = fy_calc.values
         return self.__class__(new_data)
 
+    def gls_cov_update(self, zam, e, decay_data, Vy, kind='cumulative',
+                       threshold=None):
+        """
+        Update the prior IFY covariance matrix using the GLS technique
+        described in https://doi.org/10.1016/j.anucene.2015.10.027
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which calculations are to be
+            applied.
+        e : `float`
+            Energy to which calculations are to be applied.
+        decay_data : `sandy.DecayData`
+            Radioactive nuclide data for several isotopes.
+        Vy : 2D iterable.
+            Extra Covariance matrix (MXM).
+        kind : `str`, optional
+            Keyword for obtaining prior sensitivity. The
+            default is 'cumulative'.
+        threshold : `int`, optional
+            Optional argument to avoid numerical fluctuations or
+            values so small that they do not have to be taken into
+            account. The default is None.
+
+        Returns
+        -------
+        `panda.DataFrame`
+            IFY covariance matrix performed by GLS for a given energy and zam.
+
+        Notes
+        -----
+        .. note:: only option `kind='cumulative'` is implemented.
+
+        """
+        # Divide the data type:
+        mask = (self.data.ZAM == zam) & (self.data.MT == 454) & (self.data.E == e)
+        DIFY, index = self.data.loc[mask, 'DFY'], self.data.loc[mask].set_index('ZAP').index
+        # Create the Cov object:
+        DIFY = sandy.CategoryCov.from_var(DIFY)
+        # Fix the S with the correct dimension:
+        S = _gls_setup(decay_data, kind, index=index, columns=index)
+        return DIFY.gls_update(S, Vy, threshold=threshold).data
+
+    def gls_update(self, zam, e, decay_data, y, Vy, kind='cumulative',
+                   threshold=None):
+        """
+        Update IFY for a given zam, energy, decay_data and new CFY information.
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which calculations are to be
+            applied.
+        e : `float`
+            Energy to which calculations are to be applied.
+        decay_data : `sandy.DecayData`
+            Radioactive nuclide data for several isotopes.
+        xp : 1D iterable
+            New CFY information vector.
+        Vy : 2D iterable
+            Extra Covariance matrix (MXM).
+        kind : `str`, optional
+            Keyword for obtaining prior sensitivity. The
+            default is 'cumulative'.
+        threshold : `int`, optional
+            Optional argument to avoid numerical fluctuations or
+            values so small that they do not have to be taken into
+            account. The default is None.
+        index_columns : `str`, optional
+            Keyword to determine if the sensitivity is the transposed one.
+            The default is None.
+
+        Returns
+        -------
+        `FY`
+            IFY updated with GLS for a given zam, energy, decay_data and
+            new CFY information.
+
+        """
+        data = self.data
+        # Filter FY data:
+        fy_data = self.filter_by('ZAM', zam)\
+                      .filter_by("E", e).data\
+                      .set_index('ZAP')[['MT', 'FY', 'DFY']]
+        # Divide the data:
+        fy_type = fy_data.groupby('MT')
+        IFY, CFY = [fy_type.get_group(x)['FY'] for x in fy_type.groups]
+        mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e)
+        DIFY = data.loc[mask, 'DFY']
+        # Fix the S with the correct dimension:
+        S = _gls_setup(decay_data, kind, index=IFY.index, columns=IFY.index)
+        # Put the data in a appropiate format:
+        DIFY = sandy.CategoryCov.from_var(DIFY).data
+        # Perform GLS:
+        IFY_new = sandy.gls_update(IFY, S, DIFY, Vy, CFY, y, threshold=threshold)
+        data.loc[mask, 'FY'] = IFY_new.values
+        return self.__class__(data)
+
     def filter_by(self, key, value):
         """
         Apply condition to source data and return filtered results.
@@ -522,6 +621,42 @@ class Fy():
 #    def _custom_perturbation(self, pert):
 #        # to be written
 #        pass
+
+
+def _gls_setup(decay_data, kind, index=None, columns=None):
+    """
+    A function to obtain the prior sensitivity for performing GLS.
+
+    Parameters
+    ----------
+    decay_data : `DecayData`
+        Container of radioactive nuclide data for several isotopes.
+    kind : `str`
+        Keyword for obtaining prior sensitivity.
+    index : 1D iterable, optional
+        Index to expand or reduce sensitivity. The default is None.
+    columns : 1D iterable, optional
+        Columns to expand or reduce sensitivity. The default is None.
+
+    Returns
+    -------
+    S : `pandas.DataFrame`
+        The prior sensitivity for performing GLS.
+
+    """
+    if kind == 'cumulative':
+        S = decay_data.get_qmatrix().T
+    elif kind == 'chain':
+        S = decay_data.get_transition_matrix()
+    else:
+        raise ValueError('The kind introduced is not valid')
+    if index is not None:
+        index_ = pd.Index(index)
+        S = S.loc[index_].fillna(0)
+    if columns is not None:
+        columns_ = pd.Index(columns)
+        S = S.loc[:, columns_].fillna(0)
+    return S
 
 
 def fy2hdf(e6file, h5file, lib):
