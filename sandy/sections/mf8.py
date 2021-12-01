@@ -248,7 +248,13 @@ def _read_rdd(tape, mat):
     'DRICK': 0.0,
     'RICL': 0.0,
     'DRICL': 0.0}
-    
+
+    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
+    >>> rdd = sandy.sections.mf8.read_mf8(decay, 3542, 457)
+    >>> cd s
+    dict_keys(['MAT', 'MF', 'MT', 'ZA', 'AWR', 'LIS', 'LISO', 'NST', 'HL',
+               'DHL', 'E', 'DE', 'LAMBDA', 'DLAMBDA', 'SPI', 'PAR', 'DK',
+               'SPECTRA'])
     """
     mt = 457
     df = tape._get_section_df(mat, mf, mt)
@@ -290,8 +296,8 @@ def _read_rdd(tape, mat):
             "DE": L.B[1::2],
             # decay constant in 1/s, 0 if stable
             "LAMBDA": math.log(2.0)/L.C1 if L.C1 else 0,
-            # uncertainty on decay constant 
-            "DLAMBDA": math.log(2.0)*L.C2/pow(L.C1,2) if L.C1 else 0
+            # uncertainty on decay constant
+            "DLAMBDA": math.log(2.0)*L.C2/L.C1**2 if L.C1 else 0
             }
     out.update(add)
     L, i = sandy.read_list(df, i)
