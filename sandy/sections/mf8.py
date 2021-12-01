@@ -251,10 +251,8 @@ def _read_rdd(tape, mat):
 
     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
     >>> rdd = sandy.sections.mf8.read_mf8(decay, 3542, 457)
-    >>> rdd.keys()
-    dict_keys(['MAT', 'MF', 'MT', 'ZA', 'AWR', 'LIS', 'LISO', 'NST', 'HL',
-               'DHL', 'E', 'DE', 'LAMBDA', 'DLAMBDA', 'SPI', 'PAR', 'DK',
-               'SPECTRA'])
+    >>> rdd["DLAMBDA"]
+    2.2171470275223715e-20
     """
     mt = 457
     df = tape._get_section_df(mat, mf, mt)
@@ -294,18 +292,10 @@ def _read_rdd(tape, mat):
             # list of uncertainties on average decay energy (eV) for different
             # radiation types
             "DE": L.B[1::2],
-            }
-    if L.C1 > 0:
-        add = {
             # decay constant in 1/s, 0 if stable
-            "LAMBDA": math.log(2.0)/L.C1,
+            "LAMBDA": math.log(2.0) / L.C1 if L.C1 else 0,
             # uncertainty on decay constant
-            "DLAMBDA": math.log(2.0)*L.C2/L.C1**2
-            }
-    else:
-        add = {
-            "LAMBDA": 0,
-            "DLAMBDA": 0
+            "DLAMBDA": math.log(2.0)*L.C2 / L.C1**2 if L.C1 else 0
             }
 
     out.update(add)
