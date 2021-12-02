@@ -121,6 +121,7 @@ class DecayData():
         Parameters
         ----------
         with_uncertainty : `bool`, optional, default is 'True'
+            makes the method return lamdba and its uncertainty if set equal True
 
         Returns
         -------
@@ -134,8 +135,15 @@ class DecayData():
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> DC = sandy.DecayData.get_decayconstant(rdd)
         >>> print(DC)
-                   DLAMBDA      LAMBDA
-           922350 2.21715e-20 3.12085e-17
+                DLAMBDA      LAMBDA
+        922350 2.21715e-20 3.12085e-17
+
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", 942390)
+        >>> rdd = sandy.DecayData.from_endf6(endf6)
+        >>> DC = sandy.DecayData.get_decayconstant(rdd, False)
+        >>> print(DC)
+        942390   9.10900e-13
+        Name: LAMBDA, dtype: float64
         """
         decay_constant = {zam: {
              "LAMBDA": dic['decay_constant'],
@@ -147,6 +155,39 @@ class DecayData():
             return df
         else:
             return df.LAMBDA
+
+    def custom_perturbation_decayconstant(self, pert, zam="all"):
+        """
+        Apply a custom perturbation to the decay constant
+        Parameters
+        ----------
+        zam : `int` or `list` or `all`, default is `all`
+            ZAM number of the material to which perturbation is to be
+            applied.
+        pert : 'float'
+            Perturation coeffcient as ratio value.
+        Returns
+        -------
+        `sandy.decay.DecayData`
+            DacayData instance with given value ZAM and decay constant perturbed.
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file("jeff_33",'decay',[922350, 922330, 942390, 942320, 922350])
+        >>> rdd = sandy.DecayData.from_endf6(endf6)
+        >>> tape =sandy.DecayData.custom_perturbation_decayconstant(rdd, 0.05, [922350, 922330])
+        >>> print(tape)
+        922350   3.27689e-17
+        922330   1.44821e-13
+        Name: LAMBDA, dtype: float64
+        """
+        tape = sandy.DecayData.get_decayconstant(self)
+        if zam != 'all':
+            for z in zam:
+                tape.LAMBDA[z] = tape.LAMBDA[z] * (1 + pert)
+            return self.__class__(tape.LAMBDA[zam])
+        else:
+            tape.LAMBDA = tape.LAMBDA * (1 + pert)
+            return self.__class__(tape.LAMBDA)
 
     def get_decay_chains(self, skip_parents=False, **kwargs):
         """
