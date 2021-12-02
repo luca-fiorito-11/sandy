@@ -124,8 +124,9 @@ class DecayData():
 
         Returns
         -------
-        `pandas.DataFrame`
-             decay constant dataframe
+        `pandas.DataFrame` or `pandas.Series`
+            dataframe with decay constant and associated uncertainty
+            series with decay constant if with_uncertainty = False
 
         Examples
         --------
@@ -136,17 +137,16 @@ class DecayData():
                    DLAMBDA      LAMBDA
            922350 2.21715e-20 3.12085e-17
         """
-
         decay_constant = {zam: {
              "LAMBDA": dic['decay_constant'],
              "DLAMBDA": dic['decay_constant_uncertainty'],
              } for zam, dic in self.data.items()}
 
-        df = pd.DataFrame(decay_constant)
+        df = pd.DataFrame(decay_constant).T
         if with_uncertainty:
-            return df.T
+            return df
         else:
-            return df.iat[1, 0]
+            return df.LAMBDA
 
     def get_decay_chains(self, skip_parents=False, **kwargs):
         """
@@ -366,7 +366,6 @@ class DecayData():
               .astype(float)\
               .fillna(0)
         return T.reindex(T.columns.values, fill_value=0.0)
-
 
     @classmethod
     def from_endf6(cls, endf6, verbose=False):
