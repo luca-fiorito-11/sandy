@@ -156,38 +156,31 @@ class DecayData():
         else:
             return df.LAMBDA
 
-    def custom_perturbation_decayconstant(self, pert, zam="all"):
+    def custom_perturbation_decayconstant(self, pert):
         """
-        Apply a custom perturbation to the decay constant
+        Apply a custom perturbation to the decay constant.
+
         Parameters
         ----------
-        zam : `int` or `list` or `all`, default is `all`
-            ZAM number of the material to which perturbation is to be
-            applied.
-        pert : 'float'
-            Perturation coeffcient as ratio value.
+        pert : `float`
+            Perturbation coefficient as ratio value.
+
         Returns
         -------
         `sandy.decay.DecayData`
             DacayData instance with given value ZAM and decay constant perturbed.
+
         Examples
         --------
-        >>> endf6 = sandy.get_endf6_file("jeff_33",'decay',[922350, 922330, 942390, 942320, 922350])
+        >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', [922350, 922330, 922350])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
-        >>> tape =sandy.DecayData.custom_perturbation_decayconstant(rdd, 0.05, [922350, 922330])
-        >>> print(tape)
-        922350   3.27689e-17
-        922330   1.44821e-13
-        Name: LAMBDA, dtype: float64
+        >>> dc_pert = sandy.DecayData.custom_perturbation_decayconstant(rdd, 0.05)
+        >>> print(dc_pert)
+        {922330: 1.4482087325525418e-13, 922350: 3.2768932273817556e-17}
         """
-        tape = sandy.DecayData.get_decayconstant(self)
-        if zam != 'all':
-            for z in zam:
-                tape.LAMBDA[z] = tape.LAMBDA[z] * (1 + pert)
-            return self.__class__(tape.LAMBDA[zam])
-        else:
-            tape.LAMBDA = tape.LAMBDA * (1 + pert)
-            return self.__class__(tape.LAMBDA)
+        dc = self.get_decayconstant().LAMBDA
+        dc = dc * (1 + pert)
+        return self.__class__(dc.to_dict())
 
     def get_decay_chains(self, skip_parents=False, **kwargs):
         """
