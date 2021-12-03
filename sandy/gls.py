@@ -11,7 +11,7 @@ __all__ = [
         ]
 
 
-def gls_update(y, S, Vx, Vy, x, x_p, threshold=None):
+def gls_update(y, S, Vx_calc, Vy_extra, y_calc, y_extra, threshold=None):
     """
     Perform GlS update for a given variances, vectors and sensitivity.
 
@@ -19,23 +19,24 @@ def gls_update(y, S, Vx, Vy, x, x_p, threshold=None):
     ----------
     y: 1D iterable
         Vector in which we are going to apply GLS (MX1)
-    Vx : 2D iterable
-        Covariance vector (MXM).
-    Vy : 2D iterable
-        Extra Covariance vector (MXM).
+    Vx_calc : 2D iterable
+        2D covariance matrix of x_prior (MXN).
+    Vy_extra : 2D iterable
+        2D covariance matrix for y_extra (MXN).
     S : 2D iterable
-        Sensitivity square matrix (MXM).
-    x : 1D iterable
-        x vector.
-    x_p : 1D iterable
-        x vector perturbed.
+        2D sensitivity of the model y=f(x) (MXN).
+    y_calc : 1D iterable
+        1D calculated output using S.dot(x_prior), e.g. calculated CFY (NX1)
+    y_extra : 1D iterable
+        1D extra info on output (NX1)
     threshold : `int`, optional
             Thereshold to avoid numerical fluctuations. The default is None.
 
     Returns
     -------
     `pd.Series`
-        GLS sensitivity for a given Vy and S.
+        GLS performation for a vector y given S, Vx_prior, Vy_extra, y_calc
+        and y_extra.
 
     Example
     -------
@@ -50,10 +51,13 @@ def gls_update(y, S, Vx, Vy, x, x_p, threshold=None):
     1   1.25714e+00
     dtype: float64
     """
-    y_, index = pd.Series(y).values, pd.Series(y).index
-    x_, x_p_ = pd.Series(x).values, pd.Series(x_p).values
-    delta = x_p_ - x_
-    Vx_ = sandy.CategoryCov(Vx)
-    A = Vx_._gls_general_sensitivity(S, Vy, threshold).values
+    y_ = pd.Series(y).values
+    index = pd.Series(y).index
+    y_calc_ = pd.Series(y_calc).values
+    y_extra_ = pd.Series(y_extra).values
+    delta = y_extra_ - y_calc_
+    Vx_calc_ = sandy.CategoryCov(Vx_calc)
+    S_ = pd.DataFrame(S).loc[index, pd.Series(y_calc).index]
+    A = Vx_calc_._gls_general_sensitivity(S_, Vy_extra, threshold).values
     y_new = y_ + A.dot(delta)
     return pd.Series(y_new, index=index)
