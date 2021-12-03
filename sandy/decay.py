@@ -168,19 +168,41 @@ class DecayData():
         Returns
         -------
         `sandy.decay.DecayData`
-            DacayData instance with given value ZAM and decay constant perturbed.
+            DacayData instance with given ZAM and decay constant perturbed.
 
         Examples
         --------
-        >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', [922350, 922330, 922350])
+        >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', 922350)
         >>> rdd = sandy.DecayData.from_endf6(endf6)
-        >>> dc_pert = sandy.DecayData.custom_perturbation_decayconstant(rdd, 0.05)
-        >>> print(dc_pert)
-        {922330: 1.4482087325525418e-13, 922350: 3.2768932273817556e-17}
+        >>> dc_pert = rdd.custom_perturbation_decayconstant(0.05)
+        >>> dc_pert.data
+        {922350: {'half_life': 2.22102e+16,
+                  'decay_constant': 3.2768932273817556e-17,
+                  'decay_constant_uncertainty': 2.2171470275223715e-20,
+                  'stable': False,
+                  'spin': 3.5,
+                  'parity': -1.0,
+                  'decay_energy': {'beta': 50671.7,
+                   'gamma': 163616.0,
+                   'alpha': 4464600.0,
+                   'total': 4678887.7},
+                  'decay_energy_uncertainties': {'beta': 4291.63,
+                   'gamma': 1708.01,
+                   'alpha': 163255.0,
+                   'total': 163320.33067324167},
+                  'decay_modes': {'40x0': {'decay_products': {902310: 1.0, 20040: 1.0},
+                    'branching_ratio': 1.0,
+                    'branching_ratio_uncertainty': 0.0001},
+                   '60x0': {'decay_products': {},
+                    'branching_ratio': 7.2e-11,
+                    'branching_ratio_uncertainty': 2.1e-11}}}}
         """
         dc = self.get_decayconstant().LAMBDA
         dc = dc * (1 + pert)
-        return self.__class__(dc.to_dict())
+        pert_dc = self.data
+        for key in self.data:
+            pert_dc[key]['decay_constant'] = dc[key]
+        return self.__class__(pert_dc)
 
     def get_decay_chains(self, skip_parents=False, **kwargs):
         """
