@@ -1351,7 +1351,7 @@ def corr2cov(corr, s):
     corr : 2d iterable
         square 2D correlation matrix
 
-    s : 2d iterable
+    s : 1d iterable
         Diagonal matrix of standard deviations
 
     Returns
