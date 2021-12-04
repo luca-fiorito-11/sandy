@@ -156,14 +156,17 @@ class DecayData():
         else:
             return df.LAMBDA
 
-    def custom_perturbation_decayconstant(self, pert):
+    def custom_perturbation_decayconstant(self, pert, zam):
         """
-        Apply a custom perturbation to the decay constant.
+        Apply a custom perturbation to the decay constant for a given ZAM.
 
         Parameters
         ----------
         pert : `float`
             Perturbation coefficient as ratio value.
+        zam : `int`
+            ZAM number of the material to which perturbation is to be
+            applied.
 
         Returns
         -------
@@ -172,9 +175,9 @@ class DecayData():
 
         Examples
         --------
-        >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', 922350)
+        >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', [922350, 922380])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
-        >>> dc_pert = rdd.custom_perturbation_decayconstant(0.05)
+        >>> dc_pert = rdd.custom_perturbation_decayconstant(0.05, 922350)
         >>> dc_pert.data
         {922350: {'half_life': 2.22102e+16,
                   'decay_constant': 3.2768932273817556e-17,
@@ -197,12 +200,9 @@ class DecayData():
                     'branching_ratio': 7.2e-11,
                     'branching_ratio_uncertainty': 2.1e-11}}}}
         """
-        dc = self.get_decayconstant().LAMBDA
-        dc = dc * (1 + pert)
-        pert_dc = self.data
-        for key in self.data:
-            pert_dc[key]['decay_constant'] = dc[key]
-        return self.__class__(pert_dc)
+        pert_dc = self.data[zam].copy()
+        pert_dc['decay_constant'] = pert_dc['decay_constant'] * (1 + pert)
+        return self.__class__({zam: pert_dc})
 
     def get_decay_chains(self, skip_parents=False, **kwargs):
         """
