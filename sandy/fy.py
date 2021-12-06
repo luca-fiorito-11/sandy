@@ -397,85 +397,15 @@ class Fy():
 
         """
         # Divide the data type:
-        Vy_calc = self._gls_Vy_calc(zam, e, decay_data, kind, threshold=threshold)
-        # Create the Cov object:
-        Vy_calc = sandy.CategoryCov(Vy_calc)
+        conditions = {'ZAM': zam, "E": e}
+        fy_data = self._filters(conditions).data\
+                      .set_index('ZAP')[['MT', 'DFY']]
+        Vx_prior = fy_data.query('MT==454').DFY
+        Vx_prior = sandy.CategoryCov.from_var(Vx_prior)
         # Fix the S with the correct dimension:
-        S = _gls_setup(decay_data, kind).loc[Vy_calc.data.index, Vy_calc.data.columns]
-        return Vy_calc.gls_update(S, Vy_extra, threshold=threshold).data
-
-    def _gls_y_calc(self, zam, e, decay_data, kind):
-        """
-        “a priori” calculated value for the vector of GLS.
-
-        Parameters
-        ----------
-        zam : `int`
-            ZAM number of the material to which calculations are to be
-            applied.
-        e : `float`
-            Energy to which calculations are to be applied.
-        decay_data : `DecayData`
-            Container of radioactive nuclide data for several isotopes.
-        kind : `str`
-            Keyword for obtaining sensitivity.
-
-        Raises
-        ------
-        TypeError
-            The kind is not implemented in the method.
-
-        Returns
-        -------
-        y_calc : `pandas.Series`
-            1D calculated output using S.dot(x_prior), e.g. calculated CFY
-
-        """
-        fy_data = self.filter_by('ZAM', zam).filter_by("E", e)
-        if kind == 'cumulative':
-            y_calc = fy_data.apply_qmatrix(zam, e, decay_data).data
-            # Apropiate format
-            y_calc = y_calc[y_calc.MT == 459].set_index('ZAP').FY
-        else:
-            raise TypeError('The kind introduced is not valid')
-        return y_calc
-
-    def _gls_Vy_calc(self, zam, e, decay_data, kind, threshold):
-        """
-        Method to calculate the GLS prior variance according to the model.
-
-        Parameters
-        ----------
-        zam : `int`
-            ZAM number of the material to which calculations are to be
-            applied.
-        e : `float`
-            Energy to which calculations are to be applied.
-        decay_data : `DecayData`
-            Container of radioactive nuclide data for several isotopes.
-        kind : `str`
-            Keyword for obtaining sensitivity.
-
-        Raises
-        ------
-        TypeError
-            The kind is not implemented in the method.
-
-        Returns
-        -------
-        Vy_calc : `pd.DataFrame`
-            2D calculated output using S.T.dot(Vx_prior.dot(S)).
-
-        """
-        fy_data = self.filter_by('ZAM', zam).filter_by("E", e).data.set_index('ZAP')
-        if kind == 'cumulative':
-            Vx_prior = fy_data.query('MT==454').DFY
-            Vx_prior = sandy.CategoryCov.from_var(Vx_prior)
-            S = decay_data.get_qmatrix().T
-            Vy_calc = Vx_prior.sandwich(S, threshold=threshold)
-        else:
-            raise TypeError('The kind introduced is not valid')
-        return Vy_calc
+        S = _gls_setup(decay_data, kind).loc[Vx_prior.data.index,
+                                             Vx_prior.data.columns]
+        return Vx_prior.gls_update(S, Vy_extra, threshold=threshold).data
 
     def gls_update(self, zam, e, decay_data, y_extra, Vy_extra,
                    kind='cumulative', threshold=None):
@@ -505,28 +435,56 @@ class Fy():
 
         Returns
         -------
-        `FY`
+        `sandy.FY`
             IFY updated with GLS for a given zam, energy, decay_data and
             new information.
 
         """
-        data = self
+        data = self.data
         # Filter FY data:
-        fy_data = data.filter_by('ZAM', zam)\
-                      .filter_by("E", e).data\
+        conditions = {'ZAM': zam, "E": e}
+        fy_data = self._filters(conditions).data\
                       .set_index('ZAP')[['MT', 'FY', 'DFY']]
         # Divide the data:
-        IFY = fy_data.query('MT==454').FY
-        mask = (data.data.ZAM == zam) & (data.data.MT == 454) & (data.data.E == e)
+        x_prior = fy_data.query('MT==454').FY
+        Vx_prior = fy_data.query('MT==454').DFY
+        Vx_prior = sandy.CategoryCov.from_var(Vx_prior).data
         # Find the GLS varibles:
-        S = _gls_setup(decay_data, kind)
-        y_calc = data._gls_y_calc(zam, e, decay_data, kind)
-        Vy_calc = data._gls_Vy_calc(zam, e, decay_data, kind, threshold=threshold)
+        S = _gls_setup(decay_data, kind).loc[:, x_prior.index]
         # Perform GLS:
-        IFY_new = sandy.gls_update(IFY, S, Vy_calc, Vy_extra, y_calc, y_extra,
-                                   threshold=threshold)
-        data.data.loc[mask, 'FY'] = IFY_new.values
-        return self.__class__(data.data)
+        x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
+                                  threshold=threshold)
+        mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e)
+        data.loc[mask, 'FY'] = x_post.values
+        return self.__class__(data)
+
+    def _filters(self, conditions):
+        """
+        Apply several condition to source data and return filtered results.
+
+        Parameters
+        ----------
+        conditions : `dict`
+            Conditions to apply, where the key is any label present in the
+            columns of `data` and the value is filtering condition.
+
+        Returns
+        -------
+        `sandy.Fy`
+            filtered dataframe of fission yields
+
+        Examples
+        --------
+        >>> conditions = {"ZAP":380900, "E":2.53000e-07}
+        >>> Fy_1(minimal_fytest).filters(conditions)
+            MAT   MT     ZAM     ZAP           E          FY         DFY
+        0  9437  454  942390  380900 2.53000e-07 2.00000e-01 2.00000e-02
+        """
+        conditions = dict(conditions)
+        out = self
+        for keys, values in conditions.items():
+            out = out.filter_by(keys, values)
+        return out
 
     def filter_by(self, key, value):
         """
@@ -695,7 +653,7 @@ class Fy():
 #        pass
 
 
-def _gls_setup(decay_data, kind, index=None, columns=None):
+def _gls_setup(decay_data, kind):
     """
     A function to obtain the sensitivity for performing GLS.
 
@@ -718,9 +676,9 @@ def _gls_setup(decay_data, kind, index=None, columns=None):
 
     """
     if kind == 'cumulative':
-        S = decay_data.get_qmatrix().T
+        S = decay_data.get_qmatrix()
     else:
-        raise TypeError('The kind introduced is not valid')
+        raise ValueError('Keyword argument "kind" is not valid')
     return S
 
 

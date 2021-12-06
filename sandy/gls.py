@@ -11,15 +11,15 @@ __all__ = [
         ]
 
 
-def gls_update(y, S, Vx_calc, Vy_extra, y_calc, y_extra, threshold=None):
+def gls_update(x_prior, S, Vx_prior, Vy_extra, y_calc, y_extra, threshold=None):
     """
     Perform GlS update for a given variances, vectors and sensitivity.
 
     Parameters
     ----------
-    y: 1D iterable
+    x_prior: 1D iterable
         Vector in which we are going to apply GLS (MX1)
-    Vx_calc : 2D iterable
+    Vx_prior : 2D iterable
         2D covariance matrix of x_prior (MXN).
     Vy_extra : 2D iterable
         2D covariance matrix for y_extra (MXN).
@@ -51,13 +51,39 @@ def gls_update(y, S, Vx_calc, Vy_extra, y_calc, y_extra, threshold=None):
     1   1.25714e+00
     dtype: float64
     """
-    y_ = pd.Series(y).values
-    index = pd.Series(y).index
-    y_calc_ = pd.Series(y_calc).values
-    y_extra_ = pd.Series(y_extra).values
+    # Model calculus:
+    y_calc_ = _y_calc(x_prior, S)
+    # Data in a appropiate format
+    x_prior_ = pd.Series(x_prior)
+    y_extra_ = pd.Series(y_extra)
+    y_calc_ = y_calc_.reindex(y_extra_.index)
     delta = y_extra_ - y_calc_
-    Vx_calc_ = sandy.CategoryCov(Vx_calc)
-    S_ = pd.DataFrame(S).loc[index, pd.Series(y_calc).index]
-    A = Vx_calc_._gls_general_sensitivity(S_, Vy_extra, threshold).values
-    y_new = y_ + A.dot(delta)
-    return pd.Series(y_new, index=index)
+    Vx_prior_ = sandy.CategoryCov(Vx_prior)
+    S_ = pd.DataFrame(S).loc[Vx_prior_.data.index, Vx_prior_.data.columns]
+    # GLS update
+    A = Vx_prior_._gls_general_sensitivity(S_, Vy_extra, threshold).values
+    x_post = x_prior_ + A.dot(delta)
+    return x_post
+
+
+def _y_calc(x_prior, S):
+    """
+    Perform model calculation in GLS.
+
+    Parameters
+    ----------
+    x_prior: 1D iterable
+        Vector in which we are going to apply GLS (MX1).
+    S : 2D iterable
+        2D sensitivity of the model y=f(x) (MXN).
+
+    Returns
+    -------
+    y_calc : `pd.Series`
+        1D calculated output using S.dot(x_prior), e.g. calculated CFY
+
+    """
+    S_ = pd.DataFrame(S)
+    x_prior_ = pd.Series(x_prior).reindex(S_.columns).fillna(0)
+    y_calc = S_.dot(x_prior_)
+    return y_calc

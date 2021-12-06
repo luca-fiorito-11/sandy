@@ -621,6 +621,35 @@ class CategoryCov():
         var = std_ * std_
         return CategoryCov.from_var(var)
 
+    def _gls_Vy_calc(self, S):
+        """
+        2D calculated output using S.T.dot(Vx_prior).dot(S)
+
+        Parameters
+        ----------
+        S : 2D iterable
+            Sensitivity square matrix (MXM).
+
+        Returns
+        -------
+        `pd.DataFrame`
+            Vy_calc using S.T.dot(Vx_prior).dot(S)
+
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
+        >>> sensitivity._gls_Vy_calc(S)
+                      0	          1
+        0	5.00000e+00	1.10000e+01
+        1	1.10000e+01	2.50000e+01
+        """
+        index = pd.DataFrame(S).index
+        S_ = pd.DataFrame(S).values
+        Vx_prior = self.data.values
+        Vy_calc = S_.dot(Vx_prior).dot(S_.T)
+        return pd.DataFrame(Vy_calc, index=index, columns=index)
+
     def _gls_general_sensitivity(self, S, Vy_extra, threshold=None):
         """
         Method to obtain general sensitivity according to GLS
@@ -645,26 +674,27 @@ class CategoryCov():
         >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = np.diag(pd.Series([1, 1]))
         >>> sensitivity._gls_general_sensitivity(S, Vy)
-                      0	          1
-        0	-2.00000e-01	2.28571e-01
-        1	2.00000e-01	5.71429e-02
+                      0	              1
+        0	-2.00000e-01	2.00000e-01
+        1	2.28571e-01	    5.71429e-02
 
         >>> S = pd.DataFrame([[1, 2], [3, 4]], columns=[1, 2],index=[3, 4])
         >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
         >>> sensitivity._gls_general_sensitivity(S, Vy)
-                      1	          2
-        3	-2.00000e-01	2.28571e-01
-        4	2.00000e-01	5.71429e-02
+                      1	              2
+        3	-2.00000e-01	2.00000e-01
+        4	2.28571e-01	    5.71429e-02
         """
         index, columns = pd.DataFrame(S).index, pd.DataFrame(S).columns
         S_ = pd.DataFrame(S).values
         Vy_extra_ = sandy.CategoryCov(Vy_extra).data.values
-        # GLS_sensitivity:
         Vx_prior = self.data.values
-        M = S_.T.dot(Vx_prior).dot(S_) + Vy_extra_
+        # GLS_sensitivity:
+        Vy_calc = self._gls_Vy_calc(S).values
+        M = Vy_calc + Vy_extra_
         M_inv = sandy.CategoryCov(M).invert()
-        sensitivity = Vx_prior.dot(S_).dot(M_inv.data.values)
+        sensitivity = Vx_prior.dot(S_.T).dot(M_inv.data.values)
         if threshold is not None:
             sensitivity[sensitivity < threshold] = 0
         return pd.DataFrame(sensitivity, index=index, columns=columns)
@@ -694,21 +724,21 @@ class CategoryCov():
         >>> Vy = np.diag(pd.Series([1, 1]))
         >>> var._gls_cov_sensitivity(S, Vy)
                       0	          1
-        0	2.57143e-01	3.14286e-01
-        1	3.14286e-01	8.28571e-01
+        0	4.00000e-01	4.00000e-01
+        1	4.00000e-01	6.85714e-01
 
         >>> S = pd.DataFrame([[1, 2], [3, 4]], columns =[1, 2],index=[3, 4])
         >>> var = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
         >>> var._gls_cov_sensitivity(S, Vy)
                       1	          2
-        3	2.57143e-01	3.14286e-01
-        4	3.14286e-01	8.28571e-01
+        3	4.00000e-01	4.00000e-01
+        4	4.00000e-01	6.85714e-01
         """
         index, columns = pd.DataFrame(S).index, pd.DataFrame(S).columns
         S_ = pd.DataFrame(S).values
         general_sens = self._gls_general_sensitivity(S, Vy_extra, threshold=threshold).values
-        cov_sens = general_sens.dot(S_.T)
+        cov_sens = general_sens.dot(S_)
         if threshold is not None:
             cov_sens[cov_sens < threshold] = 0
         return pd.DataFrame(cov_sens, index=index, columns=columns)
@@ -740,14 +770,14 @@ class CategoryCov():
         >>> Vy = np.diag(pd.Series([1, 1]))
         >>> var.gls_update(S, Vy)
                      0            1
-        0  7.42857e-01 -3.14286e-01
-        1 -3.14286e-01  1.71429e-01
+        0  6.00000e-01 -4.00000e-01
+        1 -4.00000e-01  3.14286e-01
         """
         index, columns = self.data.index, self.data.columns
         Vx_prior = self.data.values
         A = self._gls_cov_sensitivity(S, Vy_extra, threshold=threshold).values
-        V_new = Vx_prior - A.dot(Vx_prior)
-        return self.__class__(pd.DataFrame(V_new, index=index, columns=columns))
+        Vx_post = Vx_prior - A.dot(Vx_prior)
+        return self.__class__(pd.DataFrame(Vx_post, index=index, columns=columns))
 
     def sandwich(self, S, threshold=None):
         """
