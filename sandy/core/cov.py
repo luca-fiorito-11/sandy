@@ -633,7 +633,7 @@ class CategoryCov():
         Returns
         -------
         `pd.DataFrame`
-            Vy_calc using S.T.dot(Vx_prior).dot(S)
+            Vy_calc calculated using S.T.dot(Vx_prior).dot(S)
 
         Example
         -------
@@ -644,11 +644,45 @@ class CategoryCov():
         0	5.00000e+00	1.10000e+01
         1	1.10000e+01	2.50000e+01
         """
-        index = pd.DataFrame(S).index
+        index = pd.DataFrame(S).columns
         S_ = pd.DataFrame(S).values
         Vx_prior = self.data.values
         Vy_calc = S_.dot(Vx_prior).dot(S_.T)
         return pd.DataFrame(Vy_calc, index=index, columns=index)
+
+    def _gls_M(self, S, Vy_extra):
+        """
+        2D calculated output using S.dot(Vx_prior).dot(S.T) + Vy_extra
+
+        Parameters
+        ----------
+        S : 2D iterable
+            Sensitivity matrix (MXN).
+        Vy_extra : 2D iterable
+            2D covariance matrix for y_extra (MXM).
+
+        Returns
+        -------
+        `pd.DataFrame`
+            M calculated using S.T.dot(Vx_prior).dot(S) + Vy_extra
+
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
+        >>> Vy = np.diag(pd.Series([1, 1]))
+        >>> sensitivity._gls_M(S, Vy)
+                    	0	      1
+        0	6.00000e+00	1.10000e+01
+        1	1.10000e+01	2.60000e+01
+        """
+        index = pd.DataFrame(Vy_extra).index
+        columns = pd.DataFrame(Vy_extra).columns
+        Vy_extra_ = sandy.CategoryCov(Vy_extra).data.values
+        # GLS_sensitivity:
+        Vy_calc = self._gls_Vy_calc(S).values
+        M = Vy_calc + Vy_extra_
+        return pd.DataFrame(M, index=index, columns=columns)
 
     def _gls_general_sensitivity(self, S, Vy_extra, threshold=None):
         """
@@ -657,7 +691,7 @@ class CategoryCov():
         Parameters
         ----------
         S : 2D iterable
-            Sensitivity square matrix (MXM).
+            Sensitivity matrix (MXN).
         Vy_extra : 2D iterable
             2D covariance matrix for y_extra (MXM).
         threshold : `int`, optional
@@ -683,16 +717,14 @@ class CategoryCov():
         >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
         >>> sensitivity._gls_general_sensitivity(S, Vy)
                       1	              2
-        3	-2.00000e-01	2.00000e-01
-        4	2.28571e-01	    5.71429e-02
+        1	-2.00000e-01	2.00000e-01
+        2	2.28571e-01	    5.71429e-02
         """
-        index, columns = pd.DataFrame(S).index, pd.DataFrame(S).columns
+        index, columns = pd.DataFrame(S).columns, pd.DataFrame(S).columns
         S_ = pd.DataFrame(S).values
-        Vy_extra_ = sandy.CategoryCov(Vy_extra).data.values
         Vx_prior = self.data.values
         # GLS_sensitivity:
-        Vy_calc = self._gls_Vy_calc(S).values
-        M = Vy_calc + Vy_extra_
+        M = self._gls_M(S, Vy_extra).values
         M_inv = sandy.CategoryCov(M).invert()
         sensitivity = Vx_prior.dot(S_.T).dot(M_inv.data.values)
         if threshold is not None:
@@ -706,7 +738,7 @@ class CategoryCov():
         Parameters
         ----------
         S : 2D iterable
-            Sensitivity square matrix (MXM).
+            Sensitivity matrix (MXN).
         Vy_extra : 2D iterable
             2D covariance matrix for y_extra (MXM).
         threshold : `int`, optional
@@ -752,7 +784,7 @@ class CategoryCov():
         Vy_extra : 2D iterable
             2D covariance matrix for y_extra (MXM).
         S : 2D iterable
-            Sensitivity square matrix (MXM).
+            Sensitivity matrix (MXN).
         delta : 1D iterable
             Perturbed vector minus non perturbed vector.
         threshold : `int`, optional
@@ -830,16 +862,12 @@ class CategoryCov():
         1	0.00000e+00	8.00000e+00	0.00000e+00
         2	0.00000e+00	0.00000e+00	2.70000e+01
         """
-        C = self.data
         if pd.DataFrame(S).shape[1] == 1:
+            C = self.data
             sandwich = corr2cov(C, S)
         else:
-            index = C.index
-            columns = C.columns
-            S_ = pd.DataFrame(S)
-            C = C.reindex(index=S_.index, columns=S_.columns).fillna(0)
-            sandwich = S_.T.dot(C).dot(S_)
-            sandwich = pd.DataFrame(sandwich).reindex(index=index, columns=columns).fillna(0)
+            S_ = pd.DataFrame(S).T
+            sandwich = self._gls_Vy_calc(S_)
         if threshold is not None:
             sandwich[sandwich < threshold] = 0
         return sandwich

@@ -453,7 +453,7 @@ class Fy():
         S = _gls_setup(decay_data, kind).loc[:, x_prior.index]
         # Perform GLS:
         x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
-                                  threshold=threshold)
+                                  threshold=threshold, reindex=True)
         mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e)
         data.loc[mask, 'FY'] = x_post.values
         return self.__class__(data)
@@ -476,7 +476,7 @@ class Fy():
         Examples
         --------
         >>> conditions = {"ZAP":380900, "E":2.53000e-07}
-        >>> Fy_1(minimal_fytest).filters(conditions)
+        >>> Fy(minimal_fytest)._filters(conditions)
             MAT   MT     ZAM     ZAP           E          FY         DFY
         0  9437  454  942390  380900 2.53000e-07 2.00000e-01 2.00000e-02
         """
