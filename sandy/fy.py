@@ -238,7 +238,7 @@ class Fy():
         >>> zam = 922350
         >>> energy = 0.0253
         >>> nfpy = Fy.from_endf6(tape_nfpy)
-        >>> nfpy.get_decay_chains(zam, energy).loc[148,zap]
+        >>> nfpy.get_decay_chains_sensitivity(zam, energy).loc[148,zap]
         551480   1.00000e+00
         551490   0.00000e+00
         561480   1.00000e+00

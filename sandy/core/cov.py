@@ -644,7 +644,7 @@ class CategoryCov():
         0	5.00000e+00	1.10000e+01
         1	1.10000e+01	2.50000e+01
         """
-        index = pd.DataFrame(S).columns
+        index = pd.DataFrame(S).index
         S_ = pd.DataFrame(S).values
         Vx_prior = self.data.values
         Vy_calc = S_.dot(Vx_prior).dot(S_.T)
@@ -676,13 +676,12 @@ class CategoryCov():
         0	6.00000e+00	1.10000e+01
         1	1.10000e+01	2.60000e+01
         """
-        index = pd.DataFrame(Vy_extra).index
-        columns = pd.DataFrame(Vy_extra).columns
+        index = pd.DataFrame(Vy_extra).index  # Simetry of cov matrix
         Vy_extra_ = sandy.CategoryCov(Vy_extra).data.values
         # GLS_sensitivity:
         Vy_calc = self._gls_Vy_calc(S).values
         M = Vy_calc + Vy_extra_
-        return pd.DataFrame(M, index=index, columns=columns)
+        return pd.DataFrame(M, index=index, columns=index)
 
     def _gls_general_sensitivity(self, S, Vy_extra, threshold=None):
         """
@@ -716,11 +715,11 @@ class CategoryCov():
         >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
         >>> sensitivity._gls_general_sensitivity(S, Vy)
-                      1	              2
+                      3	              4
         1	-2.00000e-01	2.00000e-01
         2	2.28571e-01	    5.71429e-02
         """
-        index, columns = pd.DataFrame(S).columns, pd.DataFrame(S).columns
+        index, columns = pd.DataFrame(S).columns, pd.DataFrame(S).index
         S_ = pd.DataFrame(S).values
         Vx_prior = self.data.values
         # GLS_sensitivity:
@@ -764,10 +763,10 @@ class CategoryCov():
         >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
         >>> var._gls_cov_sensitivity(S, Vy)
                       1	          2
-        3	4.00000e-01	4.00000e-01
-        4	4.00000e-01	6.85714e-01
+        1	4.00000e-01	4.00000e-01
+        2	4.00000e-01	6.85714e-01
         """
-        index, columns = pd.DataFrame(S).index, pd.DataFrame(S).columns
+        index, columns = pd.DataFrame(S).columns, pd.DataFrame(S).columns
         S_ = pd.DataFrame(S).values
         general_sens = self._gls_general_sensitivity(S, Vy_extra, threshold=threshold).values
         cov_sens = general_sens.dot(S_)
