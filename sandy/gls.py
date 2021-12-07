@@ -36,10 +36,6 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
         2D sensitivity of the model y=f(x) (MXN).
     y_extra : 1D iterable
         1D extra info on output (NX1)
-    reindex : `boolean`, optional
-        Optional argument to call the reindexing because S not fill the
-        appropiate dimension. Eg, Q*IFY create a CFY of 3850 element when
-        in the library has 983 elements. The default is False.
     threshold : `int`, optional
             Thereshold to avoid numerical fluctuations. The default is None.
 
@@ -68,9 +64,8 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
     y_calc_ = _y_calc(x_prior, S)
     x_prior_ = pd.Series(x_prior)
     y_extra_ = pd.Series(y_extra)
-    if reindex is True:
-        y_calc_ = y_calc_.reindex(y_extra_.index)
-        S_ = S_.loc[y_extra_.index, :]
+    y_calc_ = y_calc_.reindex(y_extra_.index)
+    S_ = S_.loc[y_extra_.index, :]
     # Data in a appropiate format
     delta = y_extra_ - y_calc_
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
