@@ -628,12 +628,13 @@ class CategoryCov():
         Parameters
         ----------
         S : 2D iterable
-            Sensitivity square matrix (MXM).
+            Sensitivity square matrix (MXN).
 
         Returns
         -------
         `pd.DataFrame`
-            Vy_calc calculated using S.T.dot(Vx_prior).dot(S)
+            Covariance matrix `Vy_calc` calculated using
+            S.dot(Vx_prior).dot(S.T)
 
         Example
         -------
@@ -664,7 +665,8 @@ class CategoryCov():
         Returns
         -------
         `pd.DataFrame`
-            M calculated using S.T.dot(Vx_prior).dot(S) + Vy_extra
+            Covariance matrix `M` calculated using
+            S.dot(Vx_prior).dot(S.T) + Vy_extra
 
         Example
         -------
@@ -745,7 +747,7 @@ class CategoryCov():
 
         Returns
         -------
-        `CategoryCov`
+        `pd.DataFrame`
             GlS sensitivity for a given Vy and S.
 
         Example
@@ -766,7 +768,7 @@ class CategoryCov():
         1	4.00000e-01	4.00000e-01
         2	4.00000e-01	6.85714e-01
         """
-        index, columns = pd.DataFrame(S).columns, pd.DataFrame(S).columns
+        index = columns = pd.DataFrame(S).columns
         S_ = pd.DataFrame(S).values
         general_sens = self._gls_general_sensitivity(S, Vy_extra, threshold=threshold).values
         cov_sens = general_sens.dot(S_)
@@ -774,7 +776,7 @@ class CategoryCov():
             cov_sens[cov_sens < threshold] = 0
         return pd.DataFrame(cov_sens, index=index, columns=columns)
 
-    def gls_update(self,  S, Vy_extra, threshold=None):
+    def gls_update(self, S, Vy_extra, threshold=None):
         """
         Perform GlS update for a given variance and sensitivity.
 
@@ -1409,7 +1411,7 @@ def corr2cov(corr, s):
         square 2D correlation matrix
 
     s : 1d iterable
-        Diagonal matrix of standard deviations
+        1D iterable with information of standard deviations
 
     Returns
     -------

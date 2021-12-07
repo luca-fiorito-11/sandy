@@ -42,7 +42,7 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
     Returns
     -------
     `pd.Series`
-        GLS performation for a vector y given S, Vx_prior, Vy_extra, y_calc
+        GLS apply to a vector y given S, Vx_prior, Vy_extra, y_calc
         and y_extra.
 
     Example
@@ -60,9 +60,10 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
 
     """
     # Model calculus:
-    S_ = pd.DataFrame(S)
-    y_calc_ = _y_calc(x_prior, S)
     x_prior_ = pd.Series(x_prior)
+    S_ = pd.DataFrame(S)
+    S_ = S_.loc[:, x_prior.index]
+    y_calc_ = _y_calc(x_prior, S)
     y_extra_ = pd.Series(y_extra)
     y_calc_ = y_calc_.reindex(y_extra_.index)
     S_ = S_.loc[y_extra_.index, :]
@@ -117,7 +118,9 @@ def _y_calc(x_prior, S):
 
 def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
     """
-    Function to calculate individual chi-value measured in sigmas
+    Function to calculate individual chi-value measured in sigmas according to 
+    https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
+    (page 9, equation (4.2))
 
     Parameters
     ----------
@@ -151,13 +154,15 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
     y_calc_ = _y_calc(x_prior, S).values
     y_extra_ = pd.Series(y_extra)
     delta = np.abs(y_extra_.values - y_calc_)
-    return pd.Series(delta/M, index=y_extra_.index)
+    return pd.Series(delta / M, index=y_extra_.index)
 
 
 def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
     """
     Function to calculate diagonal chi-value measured in sigmas
-    $\chi_{ind,i}$>>1
+    $\chi_{ind,i}$>>1 according to 
+    https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
+    (page 9, equation (4.3))
 
     Parameters
     ----------
@@ -192,12 +197,14 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
     y_calc_ = _y_calc(x_prior, S).values
     y_extra_ = pd.Series(y_extra)
     delta = np.abs(y_extra_.values - y_calc_)
-    return pd.Series(delta/M_inv, index=y_extra_.index)
+    return pd.Series(delta / M_inv, index=y_extra_.index)
 
 
 def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
     """
-    Function to calculate contribution to chi-square value
+    Function to calculate contribution to chi-square value according to 
+    https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
+    (page 10, equation (4.4))
 
     Parameters
     ----------
@@ -233,13 +240,15 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
     y_calc_ = _y_calc(x_prior, S).values
     y_extra_ = pd.Series(y_extra)
     delta = y_extra_.values - y_calc_
-    chi_square = delta.T.dot(M_inv)*delta/N_e
+    chi_square = delta.T.dot(M_inv) * delta / N_e
     return pd.Series(chi_square, index=y_extra_.index)
 
 
-def Ishikawa_factor(S, Vx_prior, Vy_extra):
+def ishikawa_factor(S, Vx_prior, Vy_extra):
     """
-    Function to obtain Ishikawa factor
+    Function to obtain Ishikawa factor according to 
+    https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
+    (page 10, equation (4.5))
 
     Parameters
     ----------
@@ -257,7 +266,7 @@ def Ishikawa_factor(S, Vx_prior, Vy_extra):
 
     Example
     -------
-    >>> Ishikawa_factor(S, Vx_prior, Vy_extra)
+    >>> ishikawa_factor(S, Vx_prior, Vy_extra)
     0   0.00000e+00
     1   3.00000e+00
     2   8.00000e+00
@@ -268,4 +277,4 @@ def Ishikawa_factor(S, Vx_prior, Vy_extra):
     Vy_values = np.diag(Vy_calc)
     Vy_extra_ = np.diag(pd.DataFrame(Vy_extra).values)
     index = pd.DataFrame(Vy_extra).index
-    return pd.Series(Vy_values/Vy_extra_, index=index)
+    return pd.Series(Vy_values / Vy_extra_, index=index)

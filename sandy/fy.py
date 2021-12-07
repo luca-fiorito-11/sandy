@@ -340,10 +340,8 @@ class Fy():
 
         """
         new_data = self.data.copy()
-        fy_data = self.filter_by('ZAM', zam)\
-            .filter_by('MT', 459)\
-            .filter_by("E", e).data\
-            .set_index('ZAP')['FY']
+        conditions = {'ZAM': zam, 'MT': 459, "E": e}
+        fy_data = self._filters(conditions).data.set_index('ZAP')['FY']
         index = fy_data.index
         B = decay_data.get_bmatrix()
         fy_data = fy_data.reindex(B.columns).fillna(0)
@@ -396,10 +394,8 @@ class Fy():
 
         """
         new_data = self.data.copy()
-        fy_data = self.filter_by('ZAM', zam)\
-            .filter_by('MT', 454)\
-            .filter_by("E", energy).data\
-            .set_index('ZAP')['FY']
+        conditions = {'ZAM': zam, 'MT': 454, "E": energy}
+        fy_data = self._filters(conditions).data.set_index('ZAP')['FY']
         index = fy_data.index
         Q = decay_data.get_qmatrix()
         fy_data = fy_data.reindex(Q.columns).fillna(0)
@@ -529,7 +525,7 @@ class Fy():
         Vx_prior = fy_data.query('MT==454').DFY
         Vx_prior = sandy.CategoryCov.from_var(Vx_prior).data
         # Find the GLS varibles:
-        S = _gls_setup(decay_data, kind).loc[:, x_prior.index]
+        S = _gls_setup(decay_data, kind)
         # Perform GLS:
         x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
                                   threshold=threshold)
