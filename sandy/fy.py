@@ -395,6 +395,20 @@ class Fy():
         -----
         .. note:: only option `kind='cumulative'` is implemented.
 
+        Examples
+        --------
+        >>> zam = [591480, 591481, 601480]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
+        >>> IFY_var_extra = np.diag(pd.Series([1, 1, 1]))
+        >>> IFY_var_extra = pd.DataFrame(IFY_var_extra, index=zam, columns=zam)
+        >>> npfy = Fy(minimal_fytest_2)
+        >>> npfy.gls_cov_update(942390, 500e3, decay_fytest, IFY_var_extra)
+        ZAP	         591480	         591481	        601480
+        ZAP
+        591480	3.71119e-02	    -1.67096e-03	 -3.50901e-04
+        591481	-1.67096e-03	4.55502e-02	     -4.34448e-04
+        601480	-3.50901e-04	-4.34448e-04	9.90877e-03
         """
         # Divide the data type:
         conditions = {'ZAM': zam, "E": e}
@@ -439,6 +453,23 @@ class Fy():
             IFY updated with GLS for a given zam, energy, decay_data and
             new information.
 
+        Examples
+        --------
+        >>> zam = [591480, 591481, 601480]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
+        >>> IFY_extra = pd.Series([0, 0.1, 0.2], index=zam)
+        >>> IFY_var_extra = np.diag(pd.Series([1, 1, 1]))
+        >>> IFY_var_extra = pd.DataFrame(IFY_var_extra, index=zam, columns=zam)
+        >>> npfy = Fy(minimal_fytest_2)
+        >>> npfy.gls_update(942390, 500e3, decay_fytest, IFY_extra, IFY_var_extra)
+            MAT   MT     ZAM     ZAP           E          FY         DFY
+        0  9437  454  942390  591480 5.00000e+05 8.24199e-02 4.00000e-02
+        1  9437  454  942390  591481 5.00000e+05 1.78234e-01 5.00000e-02
+        2  9437  454  942390  601480 5.00000e+05 2.96429e-01 1.00000e-02
+        3  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
+        4  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
+        5  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
         """
         data = self.data
         # Filter FY data:

@@ -623,7 +623,7 @@ class CategoryCov():
 
     def _gls_Vy_calc(self, S):
         """
-        2D calculated output using S.T.dot(Vx_prior).dot(S)
+        2D calculated output using S.dot(Vx_prior).dot(S.T)
 
         Parameters
         ----------

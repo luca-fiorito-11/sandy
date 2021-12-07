@@ -70,7 +70,7 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
     y_extra_ = pd.Series(y_extra)
     if reindex is True:
         y_calc_ = y_calc_.reindex(y_extra_.index)
-        S_ = S_.loc[y_extra_.index]
+        S_ = S_.loc[y_extra_.index, :]
     # Data in a appropiate format
     delta = y_extra_ - y_calc_
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
@@ -98,7 +98,21 @@ def _y_calc(x_prior, S):
 
     Example
     -------
-    
+    S square matrix:
+    >>> _y_calc(x_prior, S)
+    0    1
+    1    2
+    2    3
+    dtype: int64
+
+    Different number of row and columns in S:
+    >>> S = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]]
+    >>> _y_calc(x_prior, S)
+    0    1
+    1    2
+    2    3
+    3    6
+    dtype: int64
     """
     S_ = pd.DataFrame(S)
     x_prior_ = pd.Series(x_prior).reindex(S_.columns).fillna(0)
