@@ -628,7 +628,7 @@ class CategoryCov():
         Parameters
         ----------
         S : 2D iterable
-            Sensitivity square matrix (MXN).
+            Sensitivity matrix (MXN).
 
         Returns
         -------
