@@ -484,7 +484,7 @@ class Fy():
         S = _gls_setup(decay_data, kind).loc[:, x_prior.index]
         # Perform GLS:
         x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
-                                  threshold=threshold, reindex=True)
+                                  threshold=threshold)
         mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e)
         data.loc[mask, 'FY'] = x_post.values
         return self.__class__(data)
