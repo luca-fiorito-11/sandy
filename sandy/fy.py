@@ -213,6 +213,54 @@ class Fy():
                            dtype=int)
         return self.data.assign(Z=zam.Z, A=zam.A, M=zam.M)
 
+    def get_decay_chains_sensitivity(self, zam, e):
+        """
+        Obtain decay chains sensitivity matrix from `Fy` for a given zam and
+        energy.
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which perturbations are to be
+            applied.
+        e : `float`
+            Energy of the fissioning system.
+
+        Returns
+        -------
+        decay_chains : `pandas.DataFrame`
+            decay chains sensitivity matrix
+
+        Examples
+        --------
+        >>> zap =pd.Index([551480, 551490, 561480, 561490, 571480, 571490, 581480, 591480, 591481, 601480])
+        >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy','all')
+        >>> zam = 922350
+        >>> energy = 0.0253
+        >>> nfpy = Fy.from_endf6(tape_nfpy)
+        >>> nfpy.get_decay_chains(zam, energy).loc[148,zap]
+        551480   1.00000e+00
+        551490   0.00000e+00
+        561480   1.00000e+00
+        561490   0.00000e+00
+        571480   1.00000e+00
+        571490   0.00000e+00
+        581480   1.00000e+00
+        591480   1.00000e+00
+        591481   1.00000e+00
+        601480   1.00000e+00
+        Name: 148, dtype: float64
+        """
+        # Filter FY data:
+        conditions = {'ZAM': zam, "E": e, 'MT': 454}
+        fy_data = self._filters(conditions)._expand_zap()\
+                      .set_index('A')[['ZAP']]
+        # Create decay_chains
+        groups = fy_data.groupby(fy_data.index)['ZAP'].value_counts()
+        groups = groups.to_frame().rename(columns={'ZAP': 'value'}).reset_index()
+        decay_chains = groups.pivot_table(index='A', columns='ZAP', values='value', aggfunc="sum").fillna(0)
+        return decay_chains
+
     def custom_perturbation(self, zam, mt, e, zap, pert):
         """
         Apply a custom perturbation in the fission yields identified by the mt,
