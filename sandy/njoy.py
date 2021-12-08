@@ -592,9 +592,9 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 
 
 def _errorr_input(endfin, pendfin, errorrout, mat,
-                  ign=2,
+                  ign=2, ek=None,
                   iwt=2,
-                  temp=NJOY_TEMPERATURES[0],
+                  temp=None,
                   iprint=False,
                   **kwargs):
     """
@@ -612,6 +612,8 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
         MAT number
     ign : `int`
         neutron group option (default is 2, csewg 239-group structure)
+    ek : `list`
+        derived cross section energy bounds (default is `None`)
     iwt : `int`
         weight function option (default is 2, constant)
     temp : `float`
@@ -627,9 +629,25 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     text = ["errorr"]
     text += [f"{endfin:d} {pendfin:d} 0 {errorrout:d} 0 /"]
     printflag = int(iprint)
-    text += [f"{mat:d} {ign:d} {iwt:d} {printflag:d} 1 /"]
-    text += [f"{printflag:d} {temp:.1f} /"]
-    text += ["0 33 /"]
+    if temp is None:
+        temp = NJOY_TEMPERATURES[0]
+
+    if ign == 1:
+        if not isinstance(ek, list):
+            msg = "ek should be of type list instead of {} with ign=1!".format(type(ek))
+            raise SandyError(msg)
+        else:
+            nk = len(ek)-1
+        text += [f"{mat:d} {ign:d} {iwt:d} {printflag:d} 1 /"]
+        text += [f"{printflag:d} {temp:.1f} /"]
+        text += ["0 33 /"]
+        text += [f"{nk} /"]
+        text += ["{} /".format(" ".join(str(e) for e in ek))]
+
+    else:
+        text += [f"{mat:d} {ign:d} {iwt:d} {printflag:d} 1 /"]
+        text += [f"{printflag:d} {temp:.1f} /"]
+        text += ["0 33 /"]
     return "\n".join(text) + "\n"
 
 

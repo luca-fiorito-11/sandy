@@ -1408,7 +1408,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
                    .add_sections(section_3_pendf) \
                    .add_sections(section_1451_pendf)
 
-    def get_errorr(self, njoy, pendf=None):
+    def get_errorr(self, njoy, pendf=None, temperatures=0, suffixes=0,
+                   group_structure=None):
         """
         .. important:: this module uses `read_formatted_file`, which is no
                        longer supported.
@@ -1444,6 +1445,13 @@ If you want to process 0K cross sections use `temperature=0.1`.
                 pendf.to_file(pendftape)
             else:
                 pendftape = None
+
+            if not isinstance(temperatures, list):
+                temperatures = [temperatures]
+            if not isinstance(suffixes, list):
+                suffixes = [suffixes]
+
+            ign = 1 if group_structure else 2
             outputs = sandy.njoy.process(
                     endf6file,
                     pendftape=pendftape,
@@ -1458,9 +1466,11 @@ If you want to process 0K cross sections use `temperature=0.1`.
                     wdir=".",
                     keep_pendf=False,
                     exe=njoy,
-                    temperatures=[0],
-                    suffixes=[0],
-                    err=0.005
+                    temperatures=temperatures,
+                    suffixes=suffixes,
+                    err=0.005,
+                    ek=group_structure,
+                    ign=ign,
                     )[2]  # keep only pendf filename
             errorr = sandy.read_formatted_file(outputs["tape33"])
         return errorr
