@@ -213,6 +213,39 @@ class Fy():
                            dtype=int)
         return self.data.assign(Z=zam.Z, A=zam.A, M=zam.M)
 
+    def get_chain_fission_yields(self, zam, e):
+        """
+        Obtain chain fission yields from the following model:
+        ChY = S * IFY
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which perturbations are to be
+            applied.
+        e : `float`
+            Energy of the fissioning system.
+
+        Returns
+        -------
+        `pandas.Series`
+            chain fission yields obtained from ChY = S * IFY
+
+        Examples
+        --------
+        >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy','all')
+        >>> nfpy = Fy.from_endf6(tape_nfpy)
+        >>> nfpy.get_chain_fission_yields(922350, 0.0253).loc[148]
+        0.0169029147
+        """
+        # Filter FY data:
+        conditions = {'ZAM': zam, "E": e, 'MT': 454}
+        fy_data = self._filters(conditions).data.set_index('ZAP').FY
+        chain_data = self._filters({'ZAM': zam, "E": e})
+        S = chain_data.get_decay_chains_sensitivity()
+        chain = S.dot(fy_data)
+        return chain.rename('chain fission yield')
+
     def get_decay_chains_sensitivity(self):
         """
         Obtain decay chains sensitivity matrix from `Fy` for a given zam and
