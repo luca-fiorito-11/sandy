@@ -438,8 +438,8 @@ class Fy():
         new_data.loc[mask, 'FY'] = fy_calc.values
         return self.__class__(new_data)
 
-    def gls_cov_update(self, zam, e, model_sensitivity_object, Vy_extra,
-                       kind='cumulative', threshold=None):
+    def gls_cov_update(self, zam, e, Vy_extra,
+                       kind='chain', decay_data=None, threshold=None):
         """
         Update the prior IFY covariance matrix using the GLS technique
         described in https://doi.org/10.1016/j.anucene.2015.10.027
@@ -451,14 +451,14 @@ class Fy():
             applied.
         e : `float`
             Energy to which calculations are to be applied.
-        model_sensitivity_object : `DecayData` or `Fy`
-            Object from which the sensitivity (S) of the model is to be
-            derived: y_calc = S*x_prior
         Vy_extra : 2D iterable.
             Extra Covariance matrix (MXM).
         kind : `str`, optional
-            Keyword for obtaining sensitivity. The
-            default is 'cumulative'.
+            Keyword for obtaining sensitivity. The default is 'chain'.
+        decay_data : `DecayData`, optional
+            Object to change the model to CFY = Q*IFY, so the sensitivity (S)
+            is Q. The default is None, so the model is ChY = ChY_sens*IFY and
+            the sensitivity is decay chains sensitivity.
         threshold : `int`, optional
             Optional argument to avoid numerical fluctuations or
             values so small that they do not have to be taken into
@@ -481,7 +481,7 @@ class Fy():
         >>> IFY_var_extra = np.diag(pd.Series([1, 1, 1]))
         >>> IFY_var_extra = pd.DataFrame(IFY_var_extra, index=zam, columns=zam)
         >>> npfy = Fy(minimal_fytest_2)
-        >>> npfy.gls_cov_update(942390, 500e3, decay_fytest, IFY_var_extra)
+        >>> npfy.gls_cov_update(942390, 500e3, IFY_var_extra, kind='cumulative', decay_data=decay_fytest)
         ZAP	         591480	         591481	        601480
         ZAP
         591480	3.71119e-02	    -1.67096e-03	 -3.50901e-04
@@ -496,12 +496,14 @@ class Fy():
         Vx_prior = sandy.CategoryCov.from_var(Vx_prior)
         # Fix the S with the correct dimension:
         if kind == 'chain':
-            model_sensitivity_object = model_sensitivity_object._filters(conditions)
+            model_sensitivity_object = self._filters(conditions)
+        elif kind == 'cumulative':
+            model_sensitivity_object = decay_data
         S = _gls_setup(model_sensitivity_object, kind).loc[Vx_prior.data.index, Vx_prior.data.columns]
         return Vx_prior.gls_update(S, Vy_extra, threshold=threshold).data
 
-    def gls_update(self, zam, e, model_sensitivity_object, y_extra, Vy_extra,
-                   kind='cumulative', threshold=None):
+    def gls_update(self, zam, e, y_extra, Vy_extra,
+                   kind='chain', decay_data=None, threshold=None):
         """
         Update IFY for a given zam, energy, decay_data and new CFY information.
 
@@ -512,22 +514,23 @@ class Fy():
             applied.
         e : `float`
             Energy to which calculations are to be applied.
-        model_sensitivity_object : `DecayData` or `Fy`
-            Object from which the sensitivity (S) of the model is to be
-            derived: y_calc = S*x_prior
         y_extra : 1D iterable
             New value of the vector.
         Vy_extra : 2D iterable
             2D covariance matrix for y_extra (MXM).
         kind : `str`, optional
             Keyword for obtaining sensitivity. The
-            default is 'cumulative'.
+            default is 'chain'.
+        decay_data : `DecayData`, optional
+            Object to change the model to CFY = Q*IFY, so the sensitivity (S)
+            is Q. The default is None, so the model is ChY = ChY_sens*IFY and
+            the sensitivity is decay chains sensitivity.
         threshold : `int`, optional
             Optional argument to avoid numerical fluctuations or
             values so small that they do not have to be taken into
             account. The default is None.
 
-        Returns
+         Returns
         -------
         `sandy.FY`
             IFY updated with GLS for a given zam, energy, decay_data and
@@ -542,7 +545,7 @@ class Fy():
         >>> IFY_var_extra = np.diag(pd.Series([1, 1, 1]))
         >>> IFY_var_extra = pd.DataFrame(IFY_var_extra, index=zam, columns=zam)
         >>> npfy = Fy(minimal_fytest_2)
-        >>> npfy.gls_update(942390, 500e3, decay_fytest, IFY_extra, IFY_var_extra)
+        >>> npfy.gls_update(942390, 500e3, IFY_extra, IFY_var_extra, kind='cumulative', decay_data=decay_fytest)
             MAT   MT     ZAM     ZAP           E          FY         DFY
         0  9437  454  942390  591480 5.00000e+05 8.24199e-02 4.00000e-02
         1  9437  454  942390  591481 5.00000e+05 1.78234e-01 5.00000e-02
@@ -562,7 +565,9 @@ class Fy():
         Vx_prior = sandy.CategoryCov.from_var(Vx_prior).data
         # Find the GLS varibles:
         if kind == 'chain':
-            model_sensitivity_object = model_sensitivity_object._filters(conditions)
+            model_sensitivity_object = self._filters(conditions)
+        elif kind == 'cumulative':
+            model_sensitivity_object = decay_data
         S = _gls_setup(model_sensitivity_object, kind)
         # Perform GLS:
         x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
