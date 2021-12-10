@@ -592,7 +592,7 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 
 
 def _errorr_input(endfin, pendfin, errorrout, mat,
-                  ign=2,
+                  ign=2, ek=[1e-5, 2e7],
                   iwt=2,
                   temp=NJOY_TEMPERATURES[0],
                   iprint=False,
@@ -610,19 +610,65 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
         tape number for output ERRORR file
     mat : `int`
         MAT number
-    ign : `int`
+    ign : `int`, optional
         neutron group option (default is 2, csewg 239-group structure)
-    iwt : `int`
+    ek : iterable, optional
+        derived cross section energy bounds (default is `[1e-5, 2e7]`)
+    iwt : `int`, optional
         weight function option (default is 2, constant)
-    temp : `float`
+    temp : `float`, optional
         temperature in K (default is 293.6 K)
-    iprint : `bool`
+    iprint : `bool`, optional
         print option (default is `False`)
 
     Returns
     -------
     `str`
         acer input text
+
+    Examples
+    --------
+    Default test without keyword arguments
+    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237))
+    errorr
+    20 21 0 22 0 /
+    9237 2 2 0 1 /
+    0 293.6 /
+    0 33 /
+
+    Test argument `temp`
+    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9440, temp=600))
+    errorr
+    20 21 0 22 0 /
+    9440 2 2 0 1 /
+    0 600.0 /
+    0 33 /
+
+    Test argument `iwt`
+    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, iwt=6))
+    errorr
+    20 21 0 22 0 /
+    9237 2 6 0 1 /
+    0 293.6 /
+    0 33 /
+
+    Test argument `ign`
+    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, ign=1))
+    errorr
+    20 21 0 22 0 /
+    9237 1 2 0 1 /
+    0 293.6 /
+    0 33 /
+    1 /
+    1.00000e-05 2.00000e+07 /
+    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, ign=1, ek=[1e-2, 1e3, 2e5]))
+    errorr
+    20 21 0 22 0 /
+    9237 1 2 0 1 /
+    0 293.6 /
+    0 33 /
+    2 /
+    1.00000e-02 1.00000e+03 2.00000e+05 /
     """
     text = ["errorr"]
     text += [f"{endfin:d} {pendfin:d} 0 {errorrout:d} 0 /"]
@@ -630,6 +676,10 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     text += [f"{mat:d} {ign:d} {iwt:d} {printflag:d} 1 /"]
     text += [f"{printflag:d} {temp:.1f} /"]
     text += ["0 33 /"]
+    if ign == 1:
+        nk = len(ek) - 1
+        text += [f"{nk} /"]
+        text += [" ".join(map("{:.5e}".format, ek)) + " /"]
     return "\n".join(text) + "\n"
 
 

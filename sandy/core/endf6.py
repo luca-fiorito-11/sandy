@@ -1277,10 +1277,10 @@ class Endf6(_FormattedFile):
         to_file : `bool`, optional, default is `False`
             flag to write processed PENDF data to file.
             The name of the PENDF file is defined by an internal routine.
-        verbose : TYPE, optional, default is `False`
+        verbose : `bool`, optional, default is `False`
             flag to print NJOY input file to screen before running the
             executable.
-        **kwargs : TYPE
+        **kwargs : `dict`
             keyword argument to pass to `sandy.njoy.process`.
 
         Returns
@@ -1333,7 +1333,6 @@ If you want to process 0K cross sections use `temperature=0.1`.
             text, inputs, outputs = sandy.njoy.process(
                 endf6file,
                 acer=False,
-                wdir=".",
                 keep_pendf=True,
                 exe=njoy,
                 temperatures=[temperature],
@@ -1408,59 +1407,114 @@ If you want to process 0K cross sections use `temperature=0.1`.
                    .add_sections(section_3_pendf) \
                    .add_sections(section_1451_pendf)
 
-    def get_errorr(self, njoy, pendf=None):
+    def get_errorr(self,
+                   temperature=0,
+                   njoy=None,
+                   to_file=False,
+                   verbose=False,
+                   err=0.005,
+                   **kwargs,
+                   ):
         """
+        Process `Endf6` instance into a Errorr file using NJOY.
+
+        Parameters
+        ----------
+        temperature : `float`, optional, default is `0`.
+            temperature of the cross sections in K.
+            If not given, stop the processing after RECONR (before BROADR).
+        njoy : `str`, optional, default is `None`
+            NJOY executable, if `None` search in the system path.
+        to_file : `bool`, optional, default is `False`
+            flag to write processed PENDF data to file.
+            The name of the PENDF file is defined by an internal routine.
+        verbose : `bool`, optional, default is `False`
+            flag to print NJOY input file to screen before running the
+            executable.
+        **kwargs : `dict`
+            keyword argument to pass to `sandy.njoy.process`.
+
+        Parameters for RECONR
+        ---------------------
+        err : `float`, optional
+            reconstruction tolerance (default is 0.005)
+
+        Parameters for ERRORR
+        ---------------------
+        ign : `int`, optional
+            neutron group option (default is 2, csewg 239-group structure)
+        ek : iterable, optional
+            derived cross section energy bounds (default is `[1e-5, 2e7]`)
+        iwt : `int`, optional
+            weight function option (default is 2, constant)
+
+        Returns
+        -------
+        errorr : `sandy.Errorr`
+            `Errorr` instance constaining the nuclear data of the ERRORR file.
+
         .. important:: this module uses `read_formatted_file`, which is no
                        longer supported.
 
+        Notes
+        -----
+        .. note:: method arguments are consistent with those of `get_pendf`.
+                      
+
         Examples
         --------
-        #>>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
-        #>>> endf6 = sandy.Endf6.from_file(file)
-        #>>> endf6.get_errorr("/home/lfiorito/vc/NJOY2016/bin/njoy")
-                                                                 TEXT
-        MAT MF MT 
-        125 1  451   1.001000+3 9.991673-1          6          0  ...
-            3  1     1.001000+3 0.000000+0          0          0  ...
-               2     1.001000+3 0.000000+0          0          0  ...
-               102   1.001000+3 0.000000+0          0          0  ...
-            33 1     1.001000+3 9.991673-1          0          0  ...
-               2     1.001000+3 9.991673-1          0          0  ...
-               102   1.001000+3 9.991673-1          0          0  ...
+        Test verbose keyword
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> out = endf6.get_errorr(ign=1, ek=sandy.energy_grids.CASMO12, verbose=True)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        moder
+        -22 30 /
+        errorr
+        -21 -22 0 33 0 /
+        125 1 2 0 1 /
+        0 0.0 /
+        0 33 /
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        stop
+        
+        Test output type
+        >>> assert isinstance(out, sandy.Errorr)
 
-        #>>> file = os.path.join(sandy.data.__path__[0], "h1.pendf")
-        #>>> pendf = sandy.Endf6.from_file(file)
-        #>>> pendf.get_errorr("/home/lfiorito/vc/NJOY2016/bin/njoy")
-
-        #>>>endf6.get_errorr("/home/lfiorito/vc/NJOY2016/bin/njoy", pendf=pendf)
+        Test ign and ek
+        >>> assert out.get_xs(125, 1).size == 12
         """
-        if self.kind != "endf6":
-            raise sandy.Error("stop because `kind!='endf6'`")
+        if float(temperature) == 0:
+            kwargs["broadr"] = False
+            kwargs["thermr"] = False
+            kwargs["gaspr"] = False
+            kwargs["heatr"] = False
+            kwargs["purr"] = False
+            kwargs["unresr"] = False
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
             self.to_file(endf6file)
-            if pendf:
-                pendftape = os.path.join(td, "pendf_file")
-                pendf.to_file(pendftape)
-            else:
-                pendftape = None
             outputs = sandy.njoy.process(
                     endf6file,
-                    pendftape=pendftape,
-                    broadr=False,
-                    thermr=False,
-                    unresr=False,
-                    heatr=False,
-                    gaspr=False,
-                    purr=False,
                     errorr=True,
                     acer=False,
-                    wdir=".",
-                    keep_pendf=False,
-                    exe=njoy,
-                    temperatures=[0],
+                    verbose=verbose,
+                    temperatures=[temperature],
                     suffixes=[0],
-                    err=0.005
+                    err=0.005,
+                    **kwargs,
                     )[2]  # keep only pendf filename
-            errorr = sandy.read_formatted_file(outputs["tape33"])
+            errorrfile = outputs["tape33"]
+            if to_file:
+                basename = os.path.split(errorrfile)[1]
+                dest = os.path.join(os.getcwd(), basename)
+                shutil.move(errorrfile, dest)
+            errorr = sandy.Errorr.from_file(errorrfile)
         return errorr
