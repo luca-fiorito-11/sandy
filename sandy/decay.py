@@ -287,6 +287,41 @@ class DecayData():
                .reset_index(drop=True)[columns]
         return df
 
+    def get_chain_yields(self, **kwargs):
+        """
+        Extract chain fission yield matrix into a dataframe
+
+        Parameters
+        ----------
+        kwargs : `dict`
+            keyword arguments for method `get_decay_chains`
+
+        Returns
+        -------
+        `pandas.DataFrame`
+             associated to the given decay chains
+
+        Examples
+        --------
+        >>> zam = [10010, 10020, 10030, 10040]
+        >>> tape = sandy.get_endf6_file("jeff_33",'decay', zam)
+        >>> decay_data = DecayData.from_endf6(tape)
+        >>> decay_data.get_chain_yields()
+        ZAP	      10010	      10020	      10030	      10040	      20030
+        A					
+        1	1.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
+        2	0.00000e+00	1.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
+        3	0.00000e+00	0.00000e+00	1.00000e+00	0.00000e+00	1.00000e+00
+        4	0.00000e+00	0.00000e+00	1.00000e+00	1.00000e+00	0.00000e+00
+        """
+        chain = self.get_decay_chains(**kwargs)\
+                    .groupby('PARENT')['DAUGHTER'].value_counts().to_frame()\
+                    .rename(columns={'DAUGHTER': 'value'}).reset_index()
+        chain = chain[chain.DAUGHTER != 10]  # Erase neutrons
+        chain = chain.rename(columns={'PARENT': 'A', 'DAUGHTER': 'ZAP'})
+        chain['A'] = chain.A.apply(sandy.zam.expand_zam).apply(lambda x: x[1])
+        return chain.pivot_table(index='A', columns='ZAP', values='value').fillna(0)
+
     def get_bmatrix(self, **kwargs):
         """
         Extract B-matrix into dataframe.

@@ -213,7 +213,7 @@ class Fy():
                            dtype=int)
         return self.data.assign(Z=zam.Z, A=zam.A, M=zam.M)
 
-    def get_chain_fission_yields(self, zam, e):
+    def get_mass_chain_fission_yields(self, zam, e):
         """
         Obtain chain fission yields from the following model:
         ChY = S * IFY
@@ -235,18 +235,18 @@ class Fy():
         --------
         >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy','all')
         >>> nfpy = Fy.from_endf6(tape_nfpy)
-        >>> nfpy.get_chain_fission_yields(922350, 0.0253).loc[148]
+        >>> nfpy.get_mass_chain_fission_yields(922350, 0.0253).loc[148]
         0.0169029147
         """
         # Filter FY data:
         conditions = {'ZAM': zam, "E": e, 'MT': 454}
         fy_data = self._filters(conditions).data.set_index('ZAP').FY
         chain_data = self._filters({'ZAM': zam, "E": e})
-        S = chain_data.get_decay_chains_sensitivity()
+        S = chain_data.get_mass_chains_sensitivity()
         chain = S.dot(fy_data)
-        return chain.rename('chain fission yield')
+        return chain.rename('mass chain fission yield')
 
-    def get_decay_chains_sensitivity(self):
+    def get_mass_chains_sensitivity(self):
         """
         Obtain decay chains sensitivity matrix from `Fy` for a given zam and
         energy.
@@ -272,7 +272,7 @@ class Fy():
         >>> energy = 0.0253
         >>> conditions = {'ZAM': zam, 'E': energy}
         >>> nfpy = Fy.from_endf6(tape_nfpy)._filters(conditions)
-        >>> nfpy.get_decay_chains_sensitivity().loc[148,zap]
+        >>> nfpy.get_mass_chains_sensitivity().loc[148,zap]
         551480   1.00000e+00
         551490   0.00000e+00
         561480   1.00000e+00
@@ -503,7 +503,7 @@ class Fy():
         return Vx_prior.gls_update(S, Vy_extra, threshold=threshold).data
 
     def gls_update(self, zam, e, y_extra, Vy_extra,
-                   kind='chain', decay_data=None, threshold=None):
+                   kind='mass chain', decay_data=None, threshold=None):
         """
         Update IFY for a given zam, energy, decay_data and new CFY information.
 
@@ -564,9 +564,9 @@ class Fy():
         Vx_prior = fy_data.query('MT==454').DFY
         Vx_prior = sandy.CategoryCov.from_var(Vx_prior).data
         # Find the GLS varibles:
-        if kind == 'chain':
+        if kind == 'mass chain':
             model_sensitivity_object = self._filters(conditions)
-        elif kind == 'cumulative':
+        elif kind == 'cumulative' or 'chain yield':
             model_sensitivity_object = decay_data
         S = _gls_setup(model_sensitivity_object, kind)
         # Perform GLS:
@@ -796,8 +796,10 @@ def _gls_setup(model_sensitivity_object, kind):
     """
     if kind == 'cumulative':
         S = model_sensitivity_object.get_qmatrix()
-    elif kind == 'chain':
-        S = model_sensitivity_object.get_decay_chains_sensitivity()
+    elif kind == 'chain yield':
+        S = model_sensitivity_object.get_chain_yields()
+    elif kind == 'mass chain':
+        S = model_sensitivity_object.get_mass_chains_sensitivity()
     else:
         raise ValueError('Keyword argument "kind" is not valid')
     return S
