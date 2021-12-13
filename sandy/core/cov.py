@@ -786,8 +786,6 @@ class CategoryCov():
             2D covariance matrix for y_extra (MXM).
         S : 2D iterable
             Sensitivity matrix (MXN).
-        delta : 1D iterable
-            Perturbed vector minus non perturbed vector.
         threshold : `int`, optional
             Thereshold to avoid numerical fluctuations. The default is None.
 
@@ -811,6 +809,74 @@ class CategoryCov():
         A = self._gls_cov_sensitivity(S, Vy_extra, threshold=threshold).values
         Vx_post = Vx_prior - A.dot(Vx_prior)
         return self.__class__(pd.DataFrame(Vx_post, index=index, columns=columns))
+
+    def _constrained_ls_sensitivity(self, S, threshold=None):
+        """
+        Method to obtain sensitivity according to constrained Least-Squares
+
+        Parameters
+        ----------
+        S : 2D iterable
+            Sensitivity matrix (MXN).
+
+        Returns
+        -------
+        `pd.DataFrame`
+            constrained Least-Squares sensitivity.
+
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> sensitivity = CategoryCov.from_var([1, 1])
+        >>> sensitivity._constrained_ls_sensitivity(S)
+                      0	              1
+        0	-2.00000e+00	1.50000e+00
+        1	1.00000e+00	  -5.00000e-01
+        """
+        # Data in a appropiate format
+        Vx_prior = self.data.values
+        Vy_extra = pd.DataFrame(0, index=self.data.index,
+                                columns=self.data.columns)
+        S_ = pd.DataFrame(S)
+        index = S_.index
+        columns = S_.columns
+        # constrained Least Squares sensitivity
+        M = self._gls_M(S_, Vy_extra)
+        M_inv = sandy.CategoryCov(M).invert().data.values
+        sensitivity = M_inv.dot(S_.values).dot(Vx_prior)
+        if threshold is not None:
+            sensitivity[sensitivity < threshold] = 0
+        return pd.DataFrame(sensitivity, index=index, columns=columns)
+
+    def constrained_ls_update(self, S, threshold=None):
+        """
+        Perform constrained Least-Squares update for a given sensitivity.
+
+        Parameters
+        ----------
+        S : 2D iterable
+            Sensitivity matrix (MXN).
+        threshold : `int`, optional
+            Thereshold to avoid numerical fluctuations. The default is None.
+
+        Returns
+        -------
+        `CategoryCov`
+            Constrained Least-squares method apply to a CategoryCov object
+            for a given S.
+
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> var = sandy.CategoryCov.from_var([1, 1])
+        >>> var.constrained_ls_update(S)
+                     0            1
+        0  4.44089e-16 -3.55271e-15
+        1 -1.77636e-15  0.00000e+00
+        """
+        Vy_extra = pd.DataFrame(0, index=self.data.index,
+                                columns=self.data.columns)
+        return self.gls_update(S, Vy_extra, threshold=threshold)
 
     def sandwich(self, S, threshold=None):
         """

@@ -213,10 +213,9 @@ class Fy():
                            dtype=int)
         return self.data.assign(Z=zam.Z, A=zam.A, M=zam.M)
 
-    def get_mass_chain_fission_yields(self, zam, e):
+    def get_mass_chain(self, zam, e):
         """
-        Obtain chain fission yields from the following model:
-        ChY = S * IFY
+        Obtain mass chain from the following model: ChY = S * IFY
 
         Parameters
         ----------
@@ -229,13 +228,13 @@ class Fy():
         Returns
         -------
         `pandas.Series`
-            chain fission yields obtained from ChY = S * IFY
+            mass chain obtained from ChY = S * IFY
 
         Examples
         --------
         >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy','all')
         >>> nfpy = Fy.from_endf6(tape_nfpy)
-        >>> nfpy.get_mass_chain_fission_yields(922350, 0.0253).loc[148]
+        >>> nfpy.get_mass_chain(922350, 0.0253).loc[148]
         0.0169029147
         """
         # Filter FY data:
@@ -244,11 +243,11 @@ class Fy():
         chain_data = self._filters({'ZAM': zam, "E": e})
         S = chain_data.get_mass_chains_sensitivity()
         chain = S.dot(fy_data)
-        return chain.rename('mass chain fission yield')
+        return chain.rename('mass chain')
 
     def get_mass_chains_sensitivity(self):
         """
-        Obtain decay chains sensitivity matrix from `Fy` for a given zam and
+        Obtain mass chains sensitivity matrix from `Fy` for a given zam and
         energy.
 
         Parameters
@@ -262,7 +261,7 @@ class Fy():
         Returns
         -------
         decay_chains : `pandas.DataFrame`
-            decay chains sensitivity matrix
+            Mass chains sensitivity matrix
 
         Examples
         --------
@@ -272,7 +271,7 @@ class Fy():
         >>> energy = 0.0253
         >>> conditions = {'ZAM': zam, 'E': energy}
         >>> nfpy = Fy.from_endf6(tape_nfpy)._filters(conditions)
-        >>> nfpy.get_mass_chains_sensitivity().loc[148,zap]
+        >>> nfpy.get_mass_chains_sensitivity().loc[148, zap]
         551480   1.00000e+00
         551490   0.00000e+00
         561480   1.00000e+00
@@ -797,7 +796,7 @@ def _gls_setup(model_sensitivity_object, kind):
     if kind == 'cumulative':
         S = model_sensitivity_object.get_qmatrix()
     elif kind == 'chain yield':
-        S = model_sensitivity_object.get_chain_yields()
+        S = model_sensitivity_object.get_chain_yield_sensitivity()
     elif kind == 'mass chain':
         S = model_sensitivity_object.get_mass_chains_sensitivity()
     else:

@@ -287,7 +287,7 @@ class DecayData():
                .reset_index(drop=True)[columns]
         return df
 
-    def get_chain_yields(self, **kwargs):
+    def get_chain_yield_sensitivity(self, **kwargs):
         """
         Extract chain fission yield matrix into a dataframe
 
@@ -306,7 +306,7 @@ class DecayData():
         >>> zam = [10010, 10020, 10030, 10040]
         >>> tape = sandy.get_endf6_file("jeff_33",'decay', zam)
         >>> decay_data = DecayData.from_endf6(tape)
-        >>> decay_data.get_chain_yields()
+        >>> decay_data.get_chain_yield_sensitivity()
         ZAP	      10010	      10020	      10030	      10040	      20030
         A					
         1	1.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
