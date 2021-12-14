@@ -3,6 +3,7 @@ jupyterlab
 matplotlib >= 2.2.23
 numpy
 numpydoc
+numba
 pandas >= 1
 pytest >= 3.3
 pyyaml
