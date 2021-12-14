@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI unit tests
+name: CI
 
 # Controls when the workflow will run
 on:
@@ -19,9 +19,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        python-version: ["3.6"]
+
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+      - uses: "actions/setup-python@v2"
+        with:
+          python-version: "${{ matrix.python-version }}"
 
       # Run commands using the runners shell
       - name: clone and install njoy
@@ -32,7 +39,5 @@ jobs:
         run: pip install sphinx sphinx_rtd_theme codecov numpydoc coveralls pytest-cov nbval
       - name: install sandy's requirements
         run: pip install -r requirements.txt
-      - name: ls
-        run: ls
       - name: install sandy
         run: python setup.py install --user
