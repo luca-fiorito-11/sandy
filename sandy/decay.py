@@ -303,22 +303,25 @@ class DecayData():
 
         Examples
         --------
-        >>> zam = [10010, 10020, 10030, 10040]
+        >>> zam = [10010, 10020, 10030, 10040, 10050, 10060, 10070]
         >>> tape = sandy.get_endf6_file("jeff_33",'decay', zam)
         >>> decay_data = DecayData.from_endf6(tape)
         >>> decay_data.get_chain_yield_sensitivity()
-        ZAP	      10010	      10020	      10030	      10040	      20030
-        A					
-        1	1.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
-        2	0.00000e+00	1.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
-        3	0.00000e+00	0.00000e+00	1.00000e+00	0.00000e+00	1.00000e+00
-        4	0.00000e+00	0.00000e+00	1.00000e+00	1.00000e+00	0.00000e+00
+        ZAP	      10010	      10020	      10030	      10040	      10050	      10060	      10070
+        A							
+        1	1.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
+        2	0.00000e+00	1.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
+        3	0.00000e+00	0.00000e+00	1.00000e+00	1.00000e+00	1.00000e+00	1.00000e+00	0.00000e+00
+        5	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	1.00000e+00	1.00000e+00
         """
         chain = self.get_decay_chains(**kwargs)\
                     .groupby('PARENT')['DAUGHTER'].value_counts().to_frame()\
                     .rename(columns={'DAUGHTER': 'value'}).reset_index()
-        chain = chain[chain.DAUGHTER != 10]  # Erase neutrons
-        chain = chain.rename(columns={'PARENT': 'A', 'DAUGHTER': 'ZAP'})
+        chain = chain[chain.DAUGHTER != 10].rename(columns={'PARENT': 'ZAP', 'DAUGHTER': 'A'})
+        decay_nucleus = chain.ZAP[chain.duplicated(['ZAP'])].values
+        mask = (chain.ZAP.isin(decay_nucleus)) & (chain.A == chain.ZAP)
+        chain.loc[mask, 'value'] = 0
+        chain = chain[chain.value != 0]
         chain['A'] = chain.A.apply(sandy.zam.expand_zam).apply(lambda x: x[1])
         return chain.pivot_table(index='A', columns='ZAP', values='value').fillna(0)
 

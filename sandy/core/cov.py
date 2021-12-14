@@ -812,7 +812,8 @@ class CategoryCov():
 
     def _constrained_ls_sensitivity(self, S, threshold=None):
         """
-        Method to obtain sensitivity according to constrained Least-Squares
+        Method to obtain sensitivity according to constrained Least-Squares:
+        (S*Vx_prior*S.T)^(-1)*S*Vx_prior
 
         Parameters
         ----------
@@ -850,7 +851,8 @@ class CategoryCov():
 
     def constrained_ls_update(self, S, threshold=None):
         """
-        Perform constrained Least-Squares update for a given sensitivity.
+        Perform constrained Least-Squares update for a given sensitivity:
+        Vx_prior*S.T*(S*Vx_prior*S.T)^(-1)*S*Vx_prior
 
         Parameters
         ----------
