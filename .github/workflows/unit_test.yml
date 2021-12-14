@@ -35,4 +35,4 @@ jobs:
       - name: ls
         run: ls
       - name: install sandy
-        run: python setup.py develop
+        run: python setup.py install --user
