@@ -34,13 +34,5 @@ jobs:
         run: pip install -r requirements.txt
       - name: ls
         run: ls
-
-  install:
-    runs-on: ubuntu-latest
-    needs: build
-    
-    steps:
-      - uses: actions/checkout@v2
-
       - name: install sandy
         run: python setup.py install
