@@ -26,7 +26,11 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      # Runs a single command using the runners shell
+      # Run commands using the runners shell
+      - name: clone and install njoy
+        run: git clone https://github.com/njoy/NJOY2016.git && (cd NJOY2016 && mkdir build && cd build && cmake -DPython3_EXECUTABLE=$(which python3) .. && make)
+      - name: remove njoy tests from unit testing
+        run: rm -rf NJOY2016/tests
       - name: install general python dependencies
         run: pip install sphinx sphinx_rtd_theme codecov numpydoc coveralls pytest-cov nbval
       - name: install sandy's requirements
