@@ -286,7 +286,8 @@ def ishikawa_factor(S, Vx_prior, Vy_extra):
 def constrained_ls_update(x_prior, S, Vx_prior, threshold=None):
     """
     Perform Constrained Least-Squares update for a given variances, vectors
-    and sensitivity.
+    and sensitivity:
+    x_post = x_prior+(S.T * x_prior - x_prior * S.T)*(S*Vx_prior*S.T)^(-1)*S*Vx_prior
 
     Parameters
     ----------
