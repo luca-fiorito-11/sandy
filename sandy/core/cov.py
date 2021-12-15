@@ -370,8 +370,7 @@ class CategoryCov():
         --------
         >>> S = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
         >>> non_zero_index, reduce_matrix = S._reduce_size()
-        >>> non_zero_index
-        array([0, 1, 2], dtype=int64)
+        >>> assert non_zero_index.all() == np.array([0, 1, 2]).all()
         >>> reduce_matrix
                       0	          1	          2
         0	1.00000e+00	0.00000e+00	0.00000e+00
@@ -380,8 +379,7 @@ class CategoryCov():
 
         >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3])))
         >>> non_zero_index, reduce_matrix = S._reduce_size()
-        >>> non_zero_index
-        array([1, 2], dtype=int64)
+        >>> assert non_zero_index.all() == np.array([1, 2]).all()
         >>> reduce_matrix
                       1	          2
         1	2.00000e+00	0.00000e+00
@@ -623,7 +621,9 @@ class CategoryCov():
 
     def _gls_Vy_calc(self, S):
         """
-        2D calculated output using S.dot(Vx_prior).dot(S.T)
+        2D calculated output using
+        .. math::
+            S\cdot V_{x_{prior}}\cdot S^T
 
         Parameters
         ----------
@@ -651,9 +651,11 @@ class CategoryCov():
         Vy_calc = S_.dot(Vx_prior).dot(S_.T)
         return pd.DataFrame(Vy_calc, index=index, columns=index)
 
-    def _gls_M(self, S, Vy_extra):
+    def _gls_G(self, S, Vy_extra):
         """
-        2D calculated output using S.dot(Vx_prior).dot(S.T) + Vy_extra
+        2D calculated output using
+        .. math::
+            S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}
 
         Parameters
         ----------
@@ -665,7 +667,7 @@ class CategoryCov():
         Returns
         -------
         `pd.DataFrame`
-            Covariance matrix `M` calculated using
+            Covariance matrix `G` calculated using
             S.dot(Vx_prior).dot(S.T) + Vy_extra
 
         Example
@@ -673,7 +675,7 @@ class CategoryCov():
         >>> S = np.array([[1, 2], [3, 4]])
         >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = np.diag(pd.Series([1, 1]))
-        >>> sensitivity._gls_M(S, Vy)
+        >>> sensitivity._gls_G(S, Vy)
                     	0	      1
         0	6.00000e+00	1.10000e+01
         1	1.10000e+01	2.60000e+01
@@ -682,12 +684,48 @@ class CategoryCov():
         Vy_extra_ = sandy.CategoryCov(Vy_extra).data.values
         # GLS_sensitivity:
         Vy_calc = self._gls_Vy_calc(S).values
-        M = Vy_calc + Vy_extra_
-        return pd.DataFrame(M, index=index, columns=index)
+        G = Vy_calc + Vy_extra_
+        return pd.DataFrame(G, index=index, columns=index)
+
+    def _gls_G_inv(self, S, Vy_extra):
+        """
+        2D calculated output using
+        .. math::
+            (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1)
+
+        Parameters
+        ----------
+        S : 2D iterable
+            Sensitivity matrix (MXN).
+        Vy_extra : 2D iterable
+            2D covariance matrix for y_extra (MXM).
+
+        Returns
+        -------
+        `pd.DataFrame`
+            Covariance matrix `G_inv` calculated using
+            (S.dot(Vx_prior).dot(S.T) + Vy_extra)^-1
+
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
+        >>> Vy = np.diag(pd.Series([1, 1]))
+        >>> sensitivity._gls_G_inv(S, Vy)
+                      0	              1
+        0	7.42857e-01	    -3.14286e-01
+        1	-3.14286e-01	1.71429e-01
+        """
+        index = pd.DataFrame(Vy_extra).index
+        G = self._gls_G(S, Vy_extra).values
+        G_inv = sandy.CategoryCov(G).invert().data.values
+        return pd.DataFrame(G_inv, index=index, columns=index)
 
     def _gls_general_sensitivity(self, S, Vy_extra, threshold=None):
         """
         Method to obtain general sensitivity according to GLS
+        .. math::
+            V_{x_{prior}}\cdot S^T \cdot (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1)
 
         Parameters
         ----------
@@ -725,16 +763,61 @@ class CategoryCov():
         S_ = pd.DataFrame(S).values
         Vx_prior = self.data.values
         # GLS_sensitivity:
-        M = self._gls_M(S, Vy_extra).values
-        M_inv = sandy.CategoryCov(M).invert()
-        sensitivity = Vx_prior.dot(S_.T).dot(M_inv.data.values)
+        G_inv = self._gls_G_inv(S, Vy_extra).values
+        sensitivity = Vx_prior.dot(S_.T).dot(G_inv)
+        if threshold is not None:
+            sensitivity[sensitivity < threshold] = 0
+        return pd.DataFrame(sensitivity, index=index, columns=columns)
+
+    def _constrained_gls_sensitivity(self, S, threshold=None):
+        """
+        Method to obtain sensitivity according to constrained Least-Squares:
+        .. math::
+            (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1) \cdot S \cdot V_{x_{prior}}
+
+        Parameters
+        ----------
+        S : 2D iterable
+            Sensitivity matrix (MXN).
+
+        Returns
+        -------
+        `pd.DataFrame`
+            constrained Least-Squares sensitivity.
+
+        Notes
+        -----
+        ..note :: This method is equivalent to `_gls_general_sensitivity`
+        but for a constrained system
+
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> sensitivity = CategoryCov.from_var([1, 1])
+        >>> sensitivity._constrained_gls_sensitivity(S)
+                      0	              1
+        0	-2.00000e+00	1.50000e+00
+        1	1.00000e+00	  -5.00000e-01
+        """
+        # Data in a appropiate format
+        Vx_prior = self.data.values
+        Vy_extra = pd.DataFrame(0, index=self.data.index,
+                                columns=self.data.columns)
+        S_ = pd.DataFrame(S)
+        index = S_.index
+        columns = S_.columns
+        # constrained Least Squares sensitivity
+        G_inv = self._gls_G_inv(S, Vy_extra).values
+        sensitivity = G_inv.dot(S_.values).dot(Vx_prior)
         if threshold is not None:
             sensitivity[sensitivity < threshold] = 0
         return pd.DataFrame(sensitivity, index=index, columns=columns)
 
     def _gls_cov_sensitivity(self, S, Vy_extra, threshold=None):
         """
-        Method to obtain covariance sensitivity according to GLS
+        Method to obtain covariance sensitivity according to GLS:
+        .. math::
+            V_{x_{prior}}\cdot S^T \cdot (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1) \cdot S
 
         Parameters
         ----------
@@ -778,7 +861,9 @@ class CategoryCov():
 
     def gls_update(self, S, Vy_extra, threshold=None):
         """
-        Perform GlS update for a given variance and sensitivity.
+        Perform GlS update for a given variance and sensitivity:
+        .. math::
+            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S^T \cdot (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1) \cdot S \cdot V_{x_{prior}}
 
         Parameters
         ----------
@@ -810,49 +895,11 @@ class CategoryCov():
         Vx_post = Vx_prior - A.dot(Vx_prior)
         return self.__class__(pd.DataFrame(Vx_post, index=index, columns=columns))
 
-    def _constrained_ls_sensitivity(self, S, threshold=None):
-        """
-        Method to obtain sensitivity according to constrained Least-Squares:
-        (S*Vx_prior*S.T)^(-1)*S*Vx_prior
-
-        Parameters
-        ----------
-        S : 2D iterable
-            Sensitivity matrix (MXN).
-
-        Returns
-        -------
-        `pd.DataFrame`
-            constrained Least-Squares sensitivity.
-
-        Example
-        -------
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> sensitivity = CategoryCov.from_var([1, 1])
-        >>> sensitivity._constrained_ls_sensitivity(S)
-                      0	              1
-        0	-2.00000e+00	1.50000e+00
-        1	1.00000e+00	  -5.00000e-01
-        """
-        # Data in a appropiate format
-        Vx_prior = self.data.values
-        Vy_extra = pd.DataFrame(0, index=self.data.index,
-                                columns=self.data.columns)
-        S_ = pd.DataFrame(S)
-        index = S_.index
-        columns = S_.columns
-        # constrained Least Squares sensitivity
-        M = self._gls_M(S_, Vy_extra)
-        M_inv = sandy.CategoryCov(M).invert().data.values
-        sensitivity = M_inv.dot(S_.values).dot(Vx_prior)
-        if threshold is not None:
-            sensitivity[sensitivity < threshold] = 0
-        return pd.DataFrame(sensitivity, index=index, columns=columns)
-
-    def constrained_ls_update(self, S, threshold=None):
+    def constrained_gls_update(self, S, threshold=None):
         """
         Perform constrained Least-Squares update for a given sensitivity:
-        Vx_prior*S.T*(S*Vx_prior*S.T)^(-1)*S*Vx_prior
+        .. math::
+            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S^T \cdot (S\cdot V_{x_{prior}}\cdot S^T)^(-1) \cdot S \cdot V_{x_{prior}}
 
         Parameters
         ----------
@@ -867,14 +914,18 @@ class CategoryCov():
             Constrained Least-squares method apply to a CategoryCov object
             for a given S.
 
+        Notes
+        -----
+        ..note :: This method is equivalent to `gls_update` but for a
+        constrained system
+
         Example
         -------
         >>> S = np.array([[1, 2], [3, 4]])
         >>> var = sandy.CategoryCov.from_var([1, 1])
-        >>> var.constrained_ls_update(S)
-                     0            1
-        0  4.44089e-16 -3.55271e-15
-        1 -1.77636e-15  0.00000e+00
+        >>> var_update = var.constrained_gls_update(S).data
+        >>> assert var_update.max().all() <=1.0e-13
+        >>> assert var_update.min().all() >=-1.0e-13
         """
         Vy_extra = pd.DataFrame(0, index=self.data.index,
                                 columns=self.data.columns)

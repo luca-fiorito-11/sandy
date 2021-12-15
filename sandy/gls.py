@@ -13,7 +13,8 @@ __all__ = [
         "chi_individual",
         "chi_diag",
         "chi_square",
-        "ishikawa_factor"
+        "ishikawa_factor",
+        "constrained_ls_update"
         ]
 
 x_prior = [1, 2, 3]
@@ -27,6 +28,8 @@ N_e = 1
 def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, threshold=None):
     """
     Perform GlS update for a given variances, vectors and sensitivity.
+    .. math::
+        x_{post} = x_{prior} + V_{x_{prior}}\cdot S^T \cdot (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1) \cdot (y_{extra} - y_{calc})
 
     Parameters
     ----------
@@ -152,12 +155,12 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    M = Vx_prior_._gls_M(S, Vy_extra)
-    M = np.sqrt(np.diag(M))
+    G = Vx_prior_._gls_G(S, Vy_extra)
+    G = np.sqrt(np.diag(G))
     y_calc_ = _y_calc(x_prior, S).values
     y_extra_ = pd.Series(y_extra)
     delta = np.abs(y_extra_.values - y_calc_)
-    return pd.Series(delta / M, index=y_extra_.index)
+    return pd.Series(delta / G, index=y_extra_.index)
 
 
 def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
@@ -194,13 +197,12 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    M = Vx_prior_._gls_M(S, Vy_extra)
-    M_inv = sandy.CategoryCov(M).invert().data.values
-    M_inv = np.sqrt(np.diag(M_inv))
+    G_inv = Vx_prior_._gls_G_inv(S, Vy_extra).values
+    G_inv = np.sqrt(np.diag(G_inv))
     y_calc_ = _y_calc(x_prior, S).values
     y_extra_ = pd.Series(y_extra)
     delta = np.abs(y_extra_.values - y_calc_)
-    return pd.Series(delta / M_inv, index=y_extra_.index)
+    return pd.Series(delta / G_inv, index=y_extra_.index)
 
 
 def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
@@ -238,12 +240,11 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    M = Vx_prior_._gls_M(S, Vy_extra)
-    M_inv = sandy.CategoryCov(M).invert().data.values
+    G_inv = Vx_prior_._gls_G_inv(S, Vy_extra).values
     y_calc_ = _y_calc(x_prior, S).values
     y_extra_ = pd.Series(y_extra)
     delta = y_extra_.values - y_calc_
-    chi_square = delta.T.dot(M_inv) * delta / N_e
+    chi_square = delta.T.dot(G_inv) * delta / N_e
     return pd.Series(chi_square, index=y_extra_.index)
 
 
@@ -287,7 +288,8 @@ def constrained_ls_update(x_prior, S, Vx_prior, threshold=None):
     """
     Perform Constrained Least-Squares update for a given variances, vectors
     and sensitivity:
-    x_post = x_prior+(S.T * x_prior - x_prior * S.T)*(S*Vx_prior*S.T)^(-1)*S*Vx_prior
+    .. math::
+        x_{post} = x_{prior} + (S^T \cdot x_{prior} - x_{prior} \cdot S^T) \cdot (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1) \cdot S \cdot V_{x_{prior}}
 
     Parameters
     ----------
@@ -323,6 +325,6 @@ def constrained_ls_update(x_prior, S, Vx_prior, threshold=None):
     delta = delta.reindex(x_prior_.index)
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
     # Constrained Least-Square sensitivity
-    A = Vx_prior_._constrained_ls_sensitivity(S, threshold=threshold).values
+    A = Vx_prior_._constrained_gls_sensitivity(S, threshold=threshold).values
     x_post = x_prior_ + delta.dot(A)
     return x_post
