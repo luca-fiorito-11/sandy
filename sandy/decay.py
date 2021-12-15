@@ -303,27 +303,25 @@ class DecayData():
 
         Examples
         --------
-        >>> zam = [10010, 10020, 10030, 10040, 10050, 10060, 10070]
+        >>> zam = [10010, 10020, 10030, 10040, 10050, 10060, 922350]
         >>> tape = sandy.get_endf6_file("jeff_33",'decay', zam)
         >>> decay_data = DecayData.from_endf6(tape)
         >>> decay_data.get_chain_yield_sensitivity()
-        ZAP	      10010	      10020	      10030	      10040	      10050	      10060	      10070
+        ZAP	      10010	      10020	      10030	      10040	      10050	      10060	     922350
         A							
         1	1.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
         2	0.00000e+00	1.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
-        3	0.00000e+00	0.00000e+00	1.00000e+00	1.00000e+00	1.00000e+00	1.00000e+00	0.00000e+00
-        5	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	1.00000e+00	1.00000e+00
+        3	0.00000e+00	0.00000e+00	1.00000e+00	1.00000e+00	1.00000e+00	5.00000e-01	0.00000e+00
+        4	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	1.00000e+00
+        5	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	5.00000e-01	0.00000e+00
+        231	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	1.00000e+00
         """
-        chain = self.get_decay_chains(**kwargs)\
-                    .groupby('PARENT')['DAUGHTER'].value_counts().to_frame()\
-                    .rename(columns={'DAUGHTER': 'value'}).reset_index()
-        chain = chain[chain.DAUGHTER != 10].rename(columns={'PARENT': 'ZAP', 'DAUGHTER': 'A'})
-        decay_nucleus = chain.ZAP[chain.duplicated(['ZAP'])].values
-        mask = (chain.ZAP.isin(decay_nucleus)) & (chain.A == chain.ZAP)
-        chain.loc[mask, 'value'] = 0
-        chain = chain[chain.value != 0]
+        chain = self.get_decay_chains().iloc[:, 0:3]
+        chain = chain.loc[(chain.DAUGHTER != 10) & (chain.YIELD >= 0)]\
+                     .rename(columns={'PARENT': 'ZAP', 'DAUGHTER': 'A'})
+        chain.loc[chain.YIELD == 0, 'YIELD'] = 1
         chain['A'] = chain.A.apply(sandy.zam.expand_zam).apply(lambda x: x[1])
-        return chain.pivot_table(index='A', columns='ZAP', values='value').fillna(0)
+        return chain.pivot_table(index='A', columns='ZAP', values='YIELD').fillna(0)
 
     def get_bmatrix(self, **kwargs):
         """
