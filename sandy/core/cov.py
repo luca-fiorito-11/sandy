@@ -370,8 +370,7 @@ class CategoryCov():
         --------
         >>> S = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
         >>> non_zero_index, reduce_matrix = S._reduce_size()
-        >>> non_zero_index
-        array([0, 1, 2], dtype=int64)
+        >>> assert non_zero_index.all() == np.array([0, 1, 2]).all()
         >>> reduce_matrix
                       0	          1	          2
         0	1.00000e+00	0.00000e+00	0.00000e+00
@@ -380,8 +379,7 @@ class CategoryCov():
 
         >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3])))
         >>> non_zero_index, reduce_matrix = S._reduce_size()
-        >>> non_zero_index
-        array([1, 2], dtype=int64)
+        >>> assert non_zero_index.all() == np.array([1, 2]).all()
         >>> reduce_matrix
                       1	          2
         1	2.00000e+00	0.00000e+00
