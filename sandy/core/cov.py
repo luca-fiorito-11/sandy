@@ -924,8 +924,10 @@ class CategoryCov():
         >>> S = np.array([[1, 2], [3, 4]])
         >>> var = sandy.CategoryCov.from_var([1, 1])
         >>> var_update = var.constrained_gls_update(S).data
-        >>> assert var_update.max().all() <=1.0e-6
-        >>> assert var_update.min().all() >=-1.0e-6
+        >>> var_update
+        	0	1
+        0	4.44089e-16	-3.55271e-15
+        1	-1.77636e-15	0.00000e+00
         """
         Vy_extra = pd.DataFrame(0, index=self.data.index,
                                 columns=self.data.columns)
