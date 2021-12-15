@@ -14,7 +14,7 @@ __all__ = [
         "chi_diag",
         "chi_square",
         "ishikawa_factor",
-        "constrained_ls_update"
+        "constrained_gls_update"
         ]
 
 x_prior = [1, 2, 3]
@@ -29,7 +29,7 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, threshold=None):
     """
     Perform GlS update for a given variances, vectors and sensitivity.
     .. math::
-        x_{post} = x_{prior} + V_{x_{prior}}\cdot S^T \cdot (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1) \cdot (y_{extra} - y_{calc})
+        x_{post} = x_{prior} + V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^(-1) \cdot \left(y_{extra} - y_{calc}\right)
 
     Parameters
     ----------
@@ -284,12 +284,12 @@ def ishikawa_factor(S, Vx_prior, Vy_extra):
     return pd.Series(Vy_values / Vy_extra_, index=index)
 
 
-def constrained_ls_update(x_prior, S, Vx_prior, threshold=None):
+def constrained_gls_update(x_prior, S, Vx_prior, threshold=None):
     """
     Perform Constrained Least-Squares update for a given variances, vectors
     and sensitivity:
     .. math::
-        x_{post} = x_{prior} + (S^T \cdot x_{prior} - x_{prior} \cdot S^T) \cdot (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1) \cdot S \cdot V_{x_{prior}}
+        x_{post} = x_{prior} + \left(S.T \cdot x_{prior} - x_{prior} \cdot S.T\right) \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^(-1) \cdot S \cdot V_{x_{prior}}
 
     Parameters
     ----------
@@ -313,7 +313,7 @@ def constrained_ls_update(x_prior, S, Vx_prior, threshold=None):
     >>> S = np.array([[1, 2], [3, 4]])
     >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
     >>> x_prior = np.array([1, 2])
-    >>> constrained_ls_update(x_prior, S, Vx_prior)
+    >>> constrained_gls_update(x_prior, S, Vx_prior)
     0   -4.00000e+00
     1    5.50000e+00
     dtype: float64

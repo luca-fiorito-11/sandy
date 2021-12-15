@@ -370,7 +370,9 @@ class CategoryCov():
         --------
         >>> S = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
         >>> non_zero_index, reduce_matrix = S._reduce_size()
-        >>> assert non_zero_index.all() == np.array([0, 1, 2]).all()
+        >>> comparison = non_zero_index == np.array([0, 1, 2])
+        >>> equal_arrays = comparison.all()
+        >>> assert equal_arrays == True
         >>> reduce_matrix
                       0	          1	          2
         0	1.00000e+00	0.00000e+00	0.00000e+00
@@ -379,7 +381,9 @@ class CategoryCov():
 
         >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3])))
         >>> non_zero_index, reduce_matrix = S._reduce_size()
-        >>> assert non_zero_index.all() == np.array([1, 2]).all()
+        >>> comparison = non_zero_index == np.array([1, 2])
+        >>> equal_arrays = comparison.all()
+        >>> assert equal_arrays == True
         >>> reduce_matrix
                       1	          2
         1	2.00000e+00	0.00000e+00
@@ -623,7 +627,7 @@ class CategoryCov():
         """
         2D calculated output using
         .. math::
-            S\cdot V_{x_{prior}}\cdot S^T
+            S\cdot V_{x_{prior}}\cdot S.T
 
         Parameters
         ----------
@@ -655,7 +659,7 @@ class CategoryCov():
         """
         2D calculated output using
         .. math::
-            S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}
+            S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}
 
         Parameters
         ----------
@@ -691,7 +695,7 @@ class CategoryCov():
         """
         2D calculated output using
         .. math::
-            (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1)
+            \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^(-1)
 
         Parameters
         ----------
@@ -725,7 +729,7 @@ class CategoryCov():
         """
         Method to obtain general sensitivity according to GLS
         .. math::
-            V_{x_{prior}}\cdot S^T \cdot (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1)
+            V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^(-1)
 
         Parameters
         ----------
@@ -773,7 +777,7 @@ class CategoryCov():
         """
         Method to obtain sensitivity according to constrained Least-Squares:
         .. math::
-            (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1) \cdot S \cdot V_{x_{prior}}
+            \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^(-1) \cdot S \cdot V_{x_{prior}}
 
         Parameters
         ----------
@@ -817,7 +821,7 @@ class CategoryCov():
         """
         Method to obtain covariance sensitivity according to GLS:
         .. math::
-            V_{x_{prior}}\cdot S^T \cdot (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1) \cdot S
+            V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^(-1) \cdot S
 
         Parameters
         ----------
@@ -863,7 +867,7 @@ class CategoryCov():
         """
         Perform GlS update for a given variance and sensitivity:
         .. math::
-            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S^T \cdot (S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}})^(-1) \cdot S \cdot V_{x_{prior}}
+            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^(-1) \cdot S \cdot V_{x_{prior}}
 
         Parameters
         ----------
@@ -899,7 +903,7 @@ class CategoryCov():
         """
         Perform constrained Least-Squares update for a given sensitivity:
         .. math::
-            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S^T \cdot (S\cdot V_{x_{prior}}\cdot S^T)^(-1) \cdot S \cdot V_{x_{prior}}
+            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T\right)^(-1) \cdot S \cdot V_{x_{prior}}
 
         Parameters
         ----------
@@ -923,11 +927,8 @@ class CategoryCov():
         -------
         >>> S = np.array([[1, 2], [3, 4]])
         >>> var = sandy.CategoryCov.from_var([1, 1])
-        >>> var_update = var.constrained_gls_update(S).data
-        >>> var_update
-        	0	1
-        0	4.44089e-16	-3.55271e-15
-        1	-1.77636e-15	0.00000e+00
+        >>> var_update = var.constrained_gls_update(S).data.round(decimals=6)
+        >>> assert np.amax(var_update.values) == 0.0
         """
         Vy_extra = pd.DataFrame(0, index=self.data.index,
                                 columns=self.data.columns)

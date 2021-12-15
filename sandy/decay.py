@@ -289,13 +289,15 @@ class DecayData():
 
     def get_chain_yield_sensitivity(self, **kwargs):
         """
-        Extract chain fission yield matrix into a dataframe.Each column
-        represents a nucleus and the values in that column represent the
-        following: 1 (in the A of that nucleus if it is stable or in the A's
-        of the products in which it decays) and fraction (if that nucleus has
-        more than one path to decay, the value shown there is the probability
-        of it decaying along that path in the row containing the A of the final
-        nucleus).
+        Extract chain fission yield sensitivity matrix.
+        - Columns: nucleus represented by the ZAP (`Z*1000 + A*10 + M`).
+        - Index: Mass number(A)
+        - values: 1 (in the row (A) of that nucleus if it is stable or in the
+        mass number of the products in which it decays) or a fraction
+        (if that nucleus has more than one path to decay, the fraction
+        represent the probability of decaying along that path. As in the
+        previous case, the fraction is located in the mass number of the
+        final nucleus).
 
         Parameters
         ----------
