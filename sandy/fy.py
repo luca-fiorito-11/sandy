@@ -442,7 +442,7 @@ class Fy():
         data = pd.concat([data, data.loc[mask]]).drop_duplicates(keep=False)
         fy_data = fy_data.reindex(Q.columns).fillna(0)
         # Apply qmatrix
-        cfy_calc_values = Q.dot(fy_data).rename('FY').to_frame().reset_index().rename(columns={'DAUGHTER': 'ZAP'})
+        cfy_calc_values = Q.dot(fy_data).rename('FY').reset_index().rename(columns={'DAUGHTER': 'ZAP'})
         # Calculus in appropiate way:
         cfy_calc_values[['MAT', 'ZAM', 'MT', 'E', 'DFY']] = [mat, zam, 459, energy, 0]
         data = pd.concat([data, cfy_calc_values], ignore_index=True)
