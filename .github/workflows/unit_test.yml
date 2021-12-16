@@ -42,7 +42,5 @@ jobs:
         run: python setup.py install --user
       - name: pytest
         run: pytest --cov=sandy sandy
-      - name: coveralls
-        run: coveralls
       - name: make docs
         run: bash make_docs.sh html
