@@ -434,7 +434,7 @@ class Fy():
         data = self.data.copy()
         conditions = {'ZAM': zam, 'MT': 454, "E": energy}
         fy_data = self._filters(conditions).data
-        mat = fy_data.iloc[0, 0]
+        mat = fy_data.MAT.iloc[0]
         fy_data = fy_data.set_index('ZAP')['FY']
         Q = decay_data.get_qmatrix()
         # Put the data in a approppiate format:
