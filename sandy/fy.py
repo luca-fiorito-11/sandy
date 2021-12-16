@@ -215,7 +215,7 @@ class Fy():
 
     def get_mass_yield(self, zam, e):
         """
-        Obtain mass chain from the following model: ChY = S * IFY
+        Obtain mass yield from the following model: ChY = S * IFY
 
         Parameters
         ----------
@@ -228,7 +228,7 @@ class Fy():
         Returns
         -------
         `pandas.Series`
-            mass chain obtained from ChY = S * IFY
+            mass yield obtained from ChY = S * IFY
 
         Examples
         --------
@@ -243,11 +243,11 @@ class Fy():
         chain_data = self._filters({'ZAM': zam, "E": e})
         S = chain_data.get_mass_yield_sensitivity()
         chain = S.dot(fy_data)
-        return chain.rename('mass chain')
+        return chain.rename('mass yield')
 
     def get_mass_yield_sensitivity(self):
         """
-        Obtain mass chains sensitivity matrix from `Fy` for a given zam and
+        Obtain mass yield sensitivity matrix from `Fy` for a given zam and
         energy.
 
         Parameters
@@ -260,8 +260,8 @@ class Fy():
 
         Returns
         -------
-        decay_chains : `pandas.DataFrame`
-            Mass chains sensitivity matrix
+        mass_yield_sensitivity : `pandas.DataFrame`
+            Mass yield sensitivity matrix
 
         Examples
         --------
@@ -287,11 +287,14 @@ class Fy():
         # Filter FY data:
         fy_data = self.filter_by('MT', 454)._expand_zap()\
                       .set_index('A')[['ZAP']]
-        # Create decay_chains
+        # Create mass yield sensitivity
         groups = fy_data.groupby(fy_data.index)['ZAP'].value_counts()
         groups = groups.to_frame().rename(columns={'ZAP': 'value'}).reset_index()
-        decay_chains = groups.pivot_table(index='A', columns='ZAP', values='value', aggfunc="sum").fillna(0)
-        return decay_chains
+        mass_yield_sensitivity = groups.pivot_table(index='A',
+                                                    columns='ZAP',
+                                                    values='value',
+                                                    aggfunc="sum").fillna(0)
+        return mass_yield_sensitivity
 
     def custom_perturbation(self, zam, mt, e, zap, pert):
         """
@@ -438,7 +441,7 @@ class Fy():
         return self.__class__(new_data)
 
     def gls_cov_update(self, zam, e, Vy_extra,
-                       kind='chain', decay_data=None, threshold=None):
+                       kind='mass yield', decay_data=None, threshold=None):
         """
         Update the prior IFY covariance matrix using the GLS technique
         described in https://doi.org/10.1016/j.anucene.2015.10.027
@@ -457,11 +460,11 @@ class Fy():
         Vy_extra : 2D iterable.
             Extra Covariance matrix (MXM).
         kind : `str`, optional
-            Keyword for obtaining sensitivity. The default is 'chain'.
+            Keyword for obtaining sensitivity. The default is 'mass yield'.
         decay_data : `DecayData`, optional
             Object to change the model to CFY = Q*IFY, so the sensitivity (S)
             is Q. The default is None, so the model is ChY = ChY_sens*IFY and
-            the sensitivity is decay chains sensitivity.
+            the sensitivity is mass yield sensitivity.
         threshold : `int`, optional
             Optional argument to avoid numerical fluctuations or
             values so small that they do not have to be taken into
@@ -498,15 +501,15 @@ class Fy():
         Vx_prior = fy_data.query('MT==454').DFY
         Vx_prior = sandy.CategoryCov.from_var(Vx_prior)
         # Fix the S with the correct dimension:
-        if kind == 'chain':
+        if kind == 'mass yield':
             model_sensitivity_object = self._filters(conditions)
-        elif kind == 'cumulative':
+        elif kind == 'cumulative' or 'chain yield':
             model_sensitivity_object = decay_data
         S = _gls_setup(model_sensitivity_object, kind).loc[Vx_prior.data.index, Vx_prior.data.columns]
         return Vx_prior.gls_update(S, Vy_extra, threshold=threshold).data
 
     def gls_update(self, zam, e, y_extra, Vy_extra,
-                   kind='mass chain', decay_data=None, threshold=None):
+                   kind='mass yield', decay_data=None, threshold=None):
         """
         Update IFY for a given zam, energy, decay_data and new information.
         .. math::
@@ -527,11 +530,11 @@ class Fy():
             2D covariance matrix for y_extra (MXM).
         kind : `str`, optional
             Keyword for obtaining sensitivity. The
-            default is 'chain'.
+            default is 'mass yield'.
         decay_data : `DecayData`, optional
             Object to change the model to CFY = Q*IFY, so the sensitivity (S)
             is Q. The default is None, so the model is ChY = ChY_sens*IFY and
-            the sensitivity is decay chains sensitivity.
+            the sensitivity is mass yield sensitivity.
         threshold : `int`, optional
             Optional argument to avoid numerical fluctuations or
             values so small that they do not have to be taken into
@@ -571,7 +574,7 @@ class Fy():
         Vx_prior = fy_data.query('MT==454').DFY
         Vx_prior = sandy.CategoryCov.from_var(Vx_prior).data
         # Find the GLS varibles:
-        if kind == 'mass chain':
+        if kind == 'mass yield':
             model_sensitivity_object = self._filters(conditions)
         elif kind == 'cumulative' or 'chain yield':
             model_sensitivity_object = decay_data
@@ -805,7 +808,7 @@ def _gls_setup(model_sensitivity_object, kind):
         S = model_sensitivity_object.get_qmatrix()
     elif kind == 'chain yield':
         S = model_sensitivity_object.get_chain_yield_sensitivity()
-    elif kind == 'mass chain':
+    elif kind == 'mass yield':
         S = model_sensitivity_object.get_mass_yield_sensitivity()
     else:
         raise ValueError('Keyword argument "kind" is not valid')
