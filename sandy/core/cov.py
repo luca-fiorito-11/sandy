@@ -627,7 +627,9 @@ class CategoryCov():
         """
         2D calculated output using
         .. math::
+            $$
             S\cdot V_{x_{prior}}\cdot S.T
+            $$
 
         Parameters
         ----------
@@ -659,7 +661,9 @@ class CategoryCov():
         """
         2D calculated output using
         .. math::
+            $$
             S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}
+            $$
 
         Parameters
         ----------
@@ -695,7 +699,9 @@ class CategoryCov():
         """
         2D calculated output using
         .. math::
-            \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^(-1)
+            $$
+            \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1}
+            $$
 
         Parameters
         ----------
@@ -729,7 +735,9 @@ class CategoryCov():
         """
         Method to obtain general sensitivity according to GLS
         .. math::
-            V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^(-1)
+            $$
+            V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1}
+            $$
 
         Parameters
         ----------
@@ -777,7 +785,9 @@ class CategoryCov():
         """
         Method to obtain sensitivity according to constrained Least-Squares:
         .. math::
-            \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^(-1) \cdot S \cdot V_{x_{prior}}
+            $$
+            \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
+            $$
 
         Parameters
         ----------
@@ -821,7 +831,9 @@ class CategoryCov():
         """
         Method to obtain covariance sensitivity according to GLS:
         .. math::
-            V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^(-1) \cdot S
+            $$
+            V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S
+            $$
 
         Parameters
         ----------
@@ -867,7 +879,9 @@ class CategoryCov():
         """
         Perform GlS update for a given variance and sensitivity:
         .. math::
-            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^(-1) \cdot S \cdot V_{x_{prior}}
+            $$
+            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
+            $$
 
         Parameters
         ----------
@@ -903,7 +917,9 @@ class CategoryCov():
         """
         Perform constrained Least-Squares update for a given sensitivity:
         .. math::
-            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T\right)^(-1) \cdot S \cdot V_{x_{prior}}
+            $$
+            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T\right)^{-1} \cdot S \cdot V_{x_{prior}}
+            $$
 
         Parameters
         ----------

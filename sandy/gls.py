@@ -29,7 +29,9 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, threshold=None):
     """
     Perform GlS update for a given variances, vectors and sensitivity.
     .. math::
-        x_{post} = x_{prior} + V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^(-1) \cdot \left(y_{extra} - y_{calc}\right)
+        $$
+        x_{post} = x_{prior} + V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)
+        $$
 
     Parameters
     ----------
@@ -289,7 +291,9 @@ def constrained_gls_update(x_prior, S, Vx_prior, threshold=None):
     Perform Constrained Least-Squares update for a given variances, vectors
     and sensitivity:
     .. math::
-        x_{post} = x_{prior} + \left(S.T \cdot x_{prior} - x_{prior} \cdot S.T\right) \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^(-1) \cdot S \cdot V_{x_{prior}}
+        $$
+        x_{post} = x_{prior} + \left(S.T \cdot x_{prior} - x_{prior} \cdot S.T\right) \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
+        $$
 
     Parameters
     ----------

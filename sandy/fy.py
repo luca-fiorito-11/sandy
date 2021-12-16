@@ -213,7 +213,7 @@ class Fy():
                            dtype=int)
         return self.data.assign(Z=zam.Z, A=zam.A, M=zam.M)
 
-    def get_mass_chain(self, zam, e):
+    def get_mass_yield(self, zam, e):
         """
         Obtain mass chain from the following model: ChY = S * IFY
 
@@ -234,18 +234,18 @@ class Fy():
         --------
         >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy','all')
         >>> nfpy = Fy.from_endf6(tape_nfpy)
-        >>> nfpy.get_mass_chain(922350, 0.0253).loc[148]
+        >>> nfpy.get_mass_yield(922350, 0.0253).loc[148]
         0.0169029147
         """
         # Filter FY data:
         conditions = {'ZAM': zam, "E": e, 'MT': 454}
         fy_data = self._filters(conditions).data.set_index('ZAP').FY
         chain_data = self._filters({'ZAM': zam, "E": e})
-        S = chain_data.get_mass_chains_sensitivity()
+        S = chain_data.get_mass_yields_sensitivity()
         chain = S.dot(fy_data)
         return chain.rename('mass chain')
 
-    def get_mass_chains_sensitivity(self):
+    def get_mass_yields_sensitivity(self):
         """
         Obtain mass chains sensitivity matrix from `Fy` for a given zam and
         energy.
@@ -271,7 +271,7 @@ class Fy():
         >>> energy = 0.0253
         >>> conditions = {'ZAM': zam, 'E': energy}
         >>> nfpy = Fy.from_endf6(tape_nfpy)._filters(conditions)
-        >>> nfpy.get_mass_chains_sensitivity().loc[148, zap]
+        >>> nfpy.get_mass_yields_sensitivity().loc[148, zap]
         551480   1.00000e+00
         551490   0.00000e+00
         561480   1.00000e+00
@@ -442,6 +442,10 @@ class Fy():
         """
         Update the prior IFY covariance matrix using the GLS technique
         described in https://doi.org/10.1016/j.anucene.2015.10.027
+        .. math::
+            $$
+            V_{IFY_{post}} = V_{IFY_{prior}} - V_{IFY_{prior}}\cdot S.T \cdot \left(S\cdot V_{IFY_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{IFY_{prior}}
+            $$
 
         Parameters
         ----------
@@ -504,7 +508,11 @@ class Fy():
     def gls_update(self, zam, e, y_extra, Vy_extra,
                    kind='mass chain', decay_data=None, threshold=None):
         """
-        Update IFY for a given zam, energy, decay_data and new CFY information.
+        Update IFY for a given zam, energy, decay_data and new information.
+        .. math::
+            $$
+            IFY_{post} = IFY_{prior} + V_{IFY_{prior}}\cdot S.T \cdot \left(S\cdot V_{IFY_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)
+            $$
 
         Parameters
         ----------
