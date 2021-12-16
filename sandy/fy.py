@@ -241,11 +241,11 @@ class Fy():
         conditions = {'ZAM': zam, "E": e, 'MT': 454}
         fy_data = self._filters(conditions).data.set_index('ZAP').FY
         chain_data = self._filters({'ZAM': zam, "E": e})
-        S = chain_data.get_mass_yields_sensitivity()
+        S = chain_data.get_mass_yield_sensitivity()
         chain = S.dot(fy_data)
         return chain.rename('mass chain')
 
-    def get_mass_yields_sensitivity(self):
+    def get_mass_yield_sensitivity(self):
         """
         Obtain mass chains sensitivity matrix from `Fy` for a given zam and
         energy.
@@ -271,7 +271,7 @@ class Fy():
         >>> energy = 0.0253
         >>> conditions = {'ZAM': zam, 'E': energy}
         >>> nfpy = Fy.from_endf6(tape_nfpy)._filters(conditions)
-        >>> nfpy.get_mass_yields_sensitivity().loc[148, zap]
+        >>> nfpy.get_mass_yield_sensitivity().loc[148, zap]
         551480   1.00000e+00
         551490   0.00000e+00
         561480   1.00000e+00
@@ -806,7 +806,7 @@ def _gls_setup(model_sensitivity_object, kind):
     elif kind == 'chain yield':
         S = model_sensitivity_object.get_chain_yield_sensitivity()
     elif kind == 'mass chain':
-        S = model_sensitivity_object.get_mass_chains_sensitivity()
+        S = model_sensitivity_object.get_mass_yield_sensitivity()
     else:
         raise ValueError('Keyword argument "kind" is not valid')
     return S
