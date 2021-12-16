@@ -9,6 +9,12 @@ import sandy
 __author__ = "Aitor Bengoechea"
 __all__ = [
         "gls_update",
+        "_y_calc",
+        "chi_individual",
+        "chi_diag",
+        "chi_square",
+        "ishikawa_factor",
+        "constrained_gls_update"
         ]
 
 x_prior = [1, 2, 3]
@@ -19,10 +25,13 @@ Vy_extra = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 N_e = 1
 
 
-def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
-               reindex=False, threshold=None):
+def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, threshold=None):
     """
     Perform GlS update for a given variances, vectors and sensitivity.
+    .. math::
+        $$
+        x_{post} = x_{prior} + V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)
+        $$
 
     Parameters
     ----------
@@ -42,7 +51,7 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
     Returns
     -------
     `pd.Series`
-        GLS apply to a vector y given S, Vx_prior, Vy_extra, y_calc
+        GLS apply to a vector x_prior given S, Vx_prior, Vy_extra, y_calc
         and y_extra.
 
     Example
@@ -61,13 +70,12 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
     """
     # Model calculus:
     x_prior_ = pd.Series(x_prior)
-    S_ = pd.DataFrame(S)
-    S_ = S_.loc[:, x_prior.index]
+    S_ = pd.DataFrame(S).loc[:, x_prior_.index]
     y_calc_ = _y_calc(x_prior, S)
     y_extra_ = pd.Series(y_extra)
     y_calc_ = y_calc_.reindex(y_extra_.index)
     S_ = S_.loc[y_extra_.index, :]
-    # Data in a appropiate format
+    # Data in a appropriate format
     delta = y_extra_ - y_calc_
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
     # GLS update
@@ -118,7 +126,7 @@ def _y_calc(x_prior, S):
 
 def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
     """
-    Function to calculate individual chi-value measured in sigmas according to 
+    Function to calculate individual chi-value measured in sigmas according to
     https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
     (page 9, equation (4.2))
 
@@ -149,18 +157,18 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    M = Vx_prior_._gls_M(S, Vy_extra)
-    M = np.sqrt(np.diag(M))
+    G = Vx_prior_._gls_G(S, Vy_extra)
+    G = np.sqrt(np.diag(G))
     y_calc_ = _y_calc(x_prior, S).values
     y_extra_ = pd.Series(y_extra)
     delta = np.abs(y_extra_.values - y_calc_)
-    return pd.Series(delta / M, index=y_extra_.index)
+    return pd.Series(delta / G, index=y_extra_.index)
 
 
 def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
     """
     Function to calculate diagonal chi-value measured in sigmas
-    $\chi_{ind,i}$>>1 according to 
+    $\chi_{ind,i}$>>1 according to
     https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
     (page 9, equation (4.3))
 
@@ -191,18 +199,17 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    M = Vx_prior_._gls_M(S, Vy_extra)
-    M_inv = sandy.CategoryCov(M).invert().data.values
-    M_inv = np.sqrt(np.diag(M_inv))
+    G_inv = Vx_prior_._gls_G_inv(S, Vy_extra).values
+    G_inv = np.sqrt(np.diag(G_inv))
     y_calc_ = _y_calc(x_prior, S).values
     y_extra_ = pd.Series(y_extra)
     delta = np.abs(y_extra_.values - y_calc_)
-    return pd.Series(delta / M_inv, index=y_extra_.index)
+    return pd.Series(delta / G_inv, index=y_extra_.index)
 
 
 def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
     """
-    Function to calculate contribution to chi-square value according to 
+    Function to calculate contribution to chi-square value according to
     https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
     (page 10, equation (4.4))
 
@@ -235,18 +242,17 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    M = Vx_prior_._gls_M(S, Vy_extra)
-    M_inv = sandy.CategoryCov(M).invert().data.values
+    G_inv = Vx_prior_._gls_G_inv(S, Vy_extra).values
     y_calc_ = _y_calc(x_prior, S).values
     y_extra_ = pd.Series(y_extra)
     delta = y_extra_.values - y_calc_
-    chi_square = delta.T.dot(M_inv) * delta / N_e
+    chi_square = delta.T.dot(G_inv) * delta / N_e
     return pd.Series(chi_square, index=y_extra_.index)
 
 
 def ishikawa_factor(S, Vx_prior, Vy_extra):
     """
-    Function to obtain Ishikawa factor according to 
+    Function to obtain Ishikawa factor according to
     https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
     (page 10, equation (4.5))
 
@@ -278,3 +284,51 @@ def ishikawa_factor(S, Vx_prior, Vy_extra):
     Vy_extra_ = np.diag(pd.DataFrame(Vy_extra).values)
     index = pd.DataFrame(Vy_extra).index
     return pd.Series(Vy_values / Vy_extra_, index=index)
+
+
+def constrained_gls_update(x_prior, S, Vx_prior, threshold=None):
+    """
+    Perform Constrained Least-Squares update for a given variances, vectors
+    and sensitivity:
+    .. math::
+        $$
+        x_{post} = x_{prior} + \left(S.T \cdot x_{prior} - x_{prior} \cdot S.T\right) \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
+        $$
+
+    Parameters
+    ----------
+    x_prior: 1D iterable
+        Vector in which we are going to apply GLS (MX1)
+    S : 2D iterable
+        2D sensitivity of the model y=f(x) (MXN).
+    Vx_prior : 2D iterable
+        2D covariance matrix of x_prior (MXN).
+    threshold : `int`, optional
+            Thereshold to avoid numerical fluctuations. The default is None.
+
+    Returns
+    -------
+    x_post : `pandas.Series`
+        Constrained Least-Squares apply to a vector x_prior given S and
+        Vx_prior.
+
+    Example
+    -------
+    >>> S = np.array([[1, 2], [3, 4]])
+    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
+    >>> x_prior = np.array([1, 2])
+    >>> constrained_gls_update(x_prior, S, Vx_prior)
+    0   -4.00000e+00
+    1    5.50000e+00
+    dtype: float64
+    """
+    x_prior_ = pd.Series(x_prior)
+    S_ = pd.DataFrame(S).loc[:, x_prior_.index]
+    # Data in a appropriate format:
+    delta = _y_calc(x_prior, S_.T) - x_prior.dot(S_.T)
+    delta = delta.reindex(x_prior_.index)
+    Vx_prior_ = sandy.CategoryCov(Vx_prior)
+    # Constrained Least-Square sensitivity
+    A = Vx_prior_._constrained_gls_sensitivity(S, threshold=threshold).values
+    x_post = x_prior_ + delta.dot(A)
+    return x_post
