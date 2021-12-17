@@ -237,8 +237,7 @@ class sparse_cov:
          (1, 1)	25.0
          (1, 0)	11.0
         """
-        S_ = pd.DataFrame(S).values
-        S_ = sps.csr_matrix(S_)
+        S_ = sps.csr_matrix(pd.DataFrame(S).values)
         Vx_prior = self.data
         Vy_calc = S_.dot(Vx_prior).dot(S_.T)
         return Vy_calc
@@ -524,6 +523,54 @@ class sparse_cov:
         A = Vx_prior.dot(S_.T).dot(general_sens)
         Vx_post = Vx_prior - A.dot(Vx_prior)
         return self.__class__(Vx_post.toarray())
+
+    def sandwich(self, S, threshold=None):
+        """
+        Apply the sandwich formula to the sparse_cov object for a given
+        pandas.Series.
+
+        Parameters
+        ----------
+        S : 1D or 2D iterable
+            General sensitivities.
+
+        Returns
+        -------
+        `sparse_cov`
+            `sparse_cov` object to which we have applied sandwich
+            formula for a given pd.Series
+
+        Warnings
+        --------
+        The `sparse_cov` object and the sensitivity (S) must have the same
+        size.
+
+        Examples
+        --------
+        >>> S = pd.Series([1, 2, 3])
+        >>> var = sparse_cov.from_var(np.array([1, 2, 3]))
+        >>> print(var.sandwich(S).data)
+          (0, 0)	1.0
+          (1, 1)	8.0
+          (2, 2)	27.0
+
+        >>> S = pd.DataFrame(np.diag(np.array([1, 2, 3])), index=pd.Index([1, 2, 3]), columns=pd.Index([4, 5, 6]))
+        >>> var = pd.Series([1, 2, 3], index=pd.Index([1, 2, 3]))
+        >>> var = sparse_cov.from_var(var)
+        >>> print(var.sandwich(S).data)
+          (0, 0)	1.0
+          (1, 1)	8.0
+          (2, 2)	27.0
+        """
+        if pd.DataFrame(S).shape[1] == 1:
+            S_ = sparse_cov.from_var(S).data.toarray()
+            sandwich = self._gls_Vy_calc(S_)
+        else:
+            S_ = pd.DataFrame(S).T
+            sandwich = self._gls_Vy_calc(S_)
+        if threshold is not None:
+            sandwich[sandwich < threshold] = 0
+        return self.__class__(sandwich.toarray())
 
 def get_eig(cov, sort=True):
     try:
