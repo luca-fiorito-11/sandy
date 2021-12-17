@@ -8,6 +8,8 @@ import numpy as np
 import scipy
 import scipy.sparse as sps
 import scipy.sparse.linalg as spsl
+import matplotlib.pyplot as plt
+import seaborn as sns
 import sandy
 
 __author__ = "Aitor Bengoechea"
@@ -571,6 +573,92 @@ class sparse_cov:
         if threshold is not None:
             sandwich[sandwich < threshold] = 0
         return self.__class__(sandwich.toarray())
+
+    def plot_corr(self, ax, **kwargs):
+        add = {"cbar": True, "vmin": -1, "vmax": 1, "cmap": "RdBu"}
+        for k, v in kwargs.items():
+            add[k] = v
+        ax = sns.heatmap(self.corr, **add)
+        return plt.show()
+
+    @classmethod
+    def corr2cov(cls, corr, std, **kwargs):
+        """
+        Produce covariance matrix given correlation matrix and standard
+        deviation array.
+
+        Parameters
+        ----------
+        corr : 2d iterable
+            square 2D correlation matrix
+
+        std : 1d or 2d iterable
+            array of standard deviations
+
+        Returns
+        -------
+        `sandy.CategoryCov`
+            covariance matrix
+
+        Examples
+        --------
+        >>> S = pd.DataFrame(np.diag(np.array([1, 2, 3])), index=pd.Index([1, 2, 3]), columns=pd.Index([4, 5, 6]))
+        >>> var = pd.Series([1, 2, 3], index=pd.Index([1, 2, 3]))
+        >>> var = sparse_cov.from_var(var).data.toarray()
+        >>> print(sparse_cov.corr2cov(var, S).data)
+          (0, 0)	1.0
+          (1, 1)	8.0
+          (2, 2)	27.0
+        """
+        return cls.sandwich(sparse_cov(corr), std)
+
+    @classmethod
+    def from_csv(cls, file, **kwargs):
+        """
+        Read covariance matrix from csv file using `pandas.read_csv`.
+
+        Parameters
+        ----------
+        file: `str`
+            csv file containing covariance matrix (with or w/o indices and
+            columns)
+        kwargs: `dict`
+            keyword arguments to pass to `pd.read_csv`
+
+        Returns
+        -------
+        `CategoryCov`
+            object containing covariance matrix
+
+        Examples
+        --------
+        Read a 2x2 matrix from a string in csv format.
+        >>> from io import StringIO
+        >>> data = pd.DataFrame([[1, 0.4],[0.4, 1]])
+        >>> string = StringIO(data.to_csv())
+        >>> print(sparse_cov.from_csv(string, index_col=0).data)
+          (0, 0)	1.0
+          (0, 1)	0.4
+          (1, 0)	0.4
+          (1, 1)	1.0
+
+        Now use `pandas.MultiIndex` as `index` and `columns`.
+        This example represents the case of a cross section covariance matrix
+        for `MAT=9437`, `MT=18` and two energy points `[1e-5, 1e6]`.
+        >>> tuples = [(9437, 18, 1e-5), (9437, 18, 1e6)]
+        >>> index = pd.MultiIndex.from_tuples(tuples, names=("MAT", "MT", "E"))
+        >>> data = pd.DataFrame([[1, 0.4],[0.4, 1]])
+        >>> data.index = data.columns = index
+        >>> string = StringIO(data.to_csv())
+        >>> pos = [0, 1, 2]
+        >>> print(sparse_cov.from_csv(string, index_col=pos, header=pos).data)
+          (0, 0)	1.0
+          (0, 1)	0.4
+          (1, 0)	0.4
+          (1, 1)	1.0
+        """
+        df = pd.read_csv(file, **kwargs).values
+        return cls(df)
 
 def get_eig(cov, sort=True):
     try:
