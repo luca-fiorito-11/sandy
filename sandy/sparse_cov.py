@@ -404,10 +404,10 @@ class sparse_cov:
 
     def _gls_cov_sensitivity(self, S, Vy_extra, threshold=None):
         """
-        Method to obtain general sensitivity according to GLS
+        Method to obtain covariance sensitivity according to GLS:
         .. math::
             $$
-            V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1}
+            V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S
             $$
 
         Parameters
@@ -443,6 +443,87 @@ class sparse_cov:
             cov_sens[cov_sens < threshold] = 0
         return cov_sens
 
+    def gls_update(self, S, Vy_extra, threshold=None):
+        """
+        Perform constrained Least-Squares update for a given sensitivity:
+        .. math::
+            $$
+            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T\right)^{-1} \cdot S \cdot V_{x_{prior}}
+            $$
+
+        Parameters
+        ----------
+        S : 2D iterable
+            Sensitivity matrix (MXN).
+        threshold : `int`, optional
+            Thereshold to avoid numerical fluctuations. The default is None.
+
+        Returns
+        -------
+        `sparse_cov`
+            Constrained Least-squares method apply to a sparse_cov object
+            for a given S.
+
+        Notes
+        -----
+        ..note :: This method is equivalent to `gls_update` but for a
+        constrained system
+
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> var = sparse_cov.from_var([1, 1])
+        >>> Vy = np.diag(pd.Series([1, 1]))
+        >>> print(np.round(var.gls_update(S, Vy).data, 4))
+          (0, 0)	0.6
+          (0, 1)	-0.4
+          (1, 0)	-0.4
+          (1, 1)	0.3143
+        """
+        Vx_prior = self.data
+        A = self._gls_cov_sensitivity(S, Vy_extra, threshold=threshold)
+        Vx_post = Vx_prior - A.dot(Vx_prior)
+        return self.__class__(Vx_post.toarray())
+
+    def constrained_gls_update(self, S, threshold=None):
+        """
+        Perform constrained Least-Squares update for a given sensitivity:
+        .. math::
+            $$
+            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T\right)^{-1} \cdot S \cdot V_{x_{prior}}
+            $$
+
+        Parameters
+        ----------
+        S : 2D iterable
+            Sensitivity matrix (MXN).
+        threshold : `int`, optional
+            Thereshold to avoid numerical fluctuations. The default is None.
+
+        Returns
+        -------
+        `sparse_cov`
+            Constrained Least-squares method apply to a CategoryCov object
+            for a given S.
+
+        Notes
+        -----
+        ..note :: This method is equivalent to `gls_update` but for a
+        constrained system
+
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> var = sparse_cov.from_var([1, 1])
+        >>> comparison = abs(np.round(var.constrained_gls_update(S).data,1)).data.max() == 0
+        >>> assert comparison == True
+        """
+        Vx_prior = self.data
+        S_ = sps.csr_matrix(pd.DataFrame(S).values)
+        general_sens = self._constrained_gls_sensitivity(S, threshold=threshold)
+        A = Vx_prior.dot(S_.T).dot(general_sens)
+        Vx_post = Vx_prior - A.dot(Vx_prior)
+        return self.__class__(Vx_post.toarray())
 
 def get_eig(cov, sort=True):
     try:
