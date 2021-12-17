@@ -390,7 +390,7 @@ class Fy():
         new_data.loc[mask, 'FY'] = fy_calc.values
         return self.__class__(new_data)
 
-    def apply_qmatrix(self, zam, energy, decay_data, reindex=False):
+    def apply_qmatrix(self, zam, energy, decay_data, keep_ify_index=False):
         """
         Perform CFY = Q*IFY equation to calculate CFY in a given zam
         for a given energy and apply into the original data.
@@ -404,9 +404,9 @@ class Fy():
             Energy to which calculations are to be applied.
         decay_data : `sandy.DecayData`
             Radioactive nuclide data for several isotopes.
-        reindex : `boolean`, optional
+        keep_ify_index=False : `bool`, optional
             Option that allows you to output only the CFY results that were
-            part of the original `sandy.Fy` object.. The default is False.
+            part of the original `sandy.Fy` object. The default is False.
 
         Returns
         -------
@@ -437,7 +437,7 @@ class Fy():
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
-        >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, reindex=True)
+        >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, keep_ify_index=True)
         >>> npfy_pert.data[npfy_pert.data.MT == 459]
              MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
         3	9437	459	942390	591480	5.00000e+05	1.00000e-01	0.00000e+00
@@ -459,12 +459,9 @@ class Fy():
         fy_data = fy_data.reindex(Q.columns).fillna(0)
         # Apply qmatrix
         cfy_calc_values = Q.dot(fy_data).rename('FY')
-        if reindex is True:
-            cfy_calc_values = cfy_calc_values.reindex(index).fillna(0)\
-                                             .reset_index()\
-                                             .rename(columns={'DAUGHTER': 'ZAP'})
-        else:
-            cfy_calc_values = cfy_calc_values.reset_index().rename(columns={'DAUGHTER': 'ZAP'})
+        if keep_ify_index is True:
+            cfy_calc_values = cfy_calc_values.reindex(index).fillna(0)
+        cfy_calc_values = cfy_calc_values.reset_index().rename(columns={'DAUGHTER': 'ZAP'})
         # Calculus in appropiate way:
         cfy_calc_values[['MAT', 'ZAM', 'MT', 'E', 'DFY']] = [mat, zam, 459, energy, 0]
         data = pd.concat([data, cfy_calc_values], ignore_index=True)
