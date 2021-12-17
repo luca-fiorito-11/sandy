@@ -582,7 +582,7 @@ class sparse_cov:
         return plt.show()
 
     @classmethod
-    def corr2cov(cls, corr, std, **kwargs):
+    def corr2cov(cls, corr, std):
         """
         Produce covariance matrix given correlation matrix and standard
         deviation array.
@@ -659,6 +659,43 @@ class sparse_cov:
         """
         df = pd.read_csv(file, **kwargs).values
         return cls(df)
+
+    @classmethod
+    def random_corr(cls, size, correlations=True, seed=None, **kwargs):
+        """
+        >>> print(np.round(sparse_cov.random_corr(2, seed=1).data, 3))
+          (0, 0)	1.0
+          (0, 1)	0.441
+          (1, 0)	0.441
+          (1, 1)	1.0
+
+        >>> print(sparse_cov.random_corr(2, correlations=False, seed=1).data)
+          (0, 0)	1.0
+          (1, 1)	1.0
+        """
+        np.random.seed(seed=seed)
+        corr = np.eye(size)
+        if correlations:
+            offdiag = np.random.uniform(-1, 1, size**2).reshape(size, size)
+            up = np.triu(offdiag, 1)
+        else:
+            up = np.zeros([size, size])
+        corr += up + up.T
+        return cls(corr, **kwargs)
+
+    @classmethod
+    def random_cov(cls, size, stdmin=0.0, stdmax=1.0, correlations=True,
+                   seed=None):
+        """
+        >>> print(np.round(sparse_cov.random_cov(2, seed=1).data, 7))
+          (0, 0)	0.0215373
+          (0, 1)	0.0059713
+          (1, 0)	0.0059713
+          (1, 1)	0.0085264
+        """
+        corr = sparse_cov.random_corr(size, correlations=correlations, seed=seed)
+        std = np.random.uniform(stdmin, stdmax, size)
+        return cls.sandwich(corr, std)
 
 def get_eig(cov, sort=True):
     try:
