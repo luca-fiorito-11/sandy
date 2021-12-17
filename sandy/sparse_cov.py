@@ -336,7 +336,7 @@ class sparse_cov:
 
         Returns
         -------
-        `GLS`
+        `<2x2 sparse matrix of type '<class 'numpy.float64'>'`
             GLS sensitivity for a given Vy_extra and S.
 
         Example
@@ -358,6 +358,90 @@ class sparse_cov:
         if threshold is not None:
             sensitivity[sensitivity < threshold] = 0
         return sensitivity
+
+    def _constrained_gls_sensitivity(self, S, threshold=None):
+        """
+        Method to obtain sensitivity according to constrained Least-Squares:
+        .. math::
+            $$
+            \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
+            $$
+
+        Parameters
+        ----------
+        S : 2D iterable
+            Sensitivity matrix (MXN).
+
+        Returns
+        -------
+        `<2x2 sparse matrix of type '<class 'numpy.float64'>'`
+            constrained Least-Squares sensitivity.
+
+        Notes
+        -----
+        ..note :: This method is equivalent to `_gls_general_sensitivity`
+        but for a constrained system
+
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> sensitivity = sparse_cov.from_var([1, 1])
+        >>> print(np.round(sensitivity._constrained_gls_sensitivity(S), 2))
+          (0, 0)	-2.0
+          (1, 0)	1.0
+          (0, 1)	1.5
+          (1, 1)	-0.5
+        """
+        # Data in a appropiate format
+        Vx_prior = self.data
+        S_ = sps.csr_matrix(pd.DataFrame(S).values)
+        G_inv = spsl.inv(self._gls_Vy_calc(S).tocsc()) # If is slow, change to use self.invert
+        # constrained Least Squares sensitivity
+        sensitivity = G_inv.dot(S_).dot(Vx_prior)
+        if threshold is not None:
+            sensitivity[sensitivity < threshold] = 0
+        return sensitivity
+
+    def _gls_cov_sensitivity(self, S, Vy_extra, threshold=None):
+        """
+        Method to obtain general sensitivity according to GLS
+        .. math::
+            $$
+            V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1}
+            $$
+
+        Parameters
+        ----------
+        S : 2D iterable
+            Sensitivity matrix (MXN).
+        Vy_extra : 2D iterable
+            2D covariance matrix for y_extra (MXM).
+        threshold : `int`, optional
+            threshold to avoid numerical fluctuations. The default is None.
+
+        Returns
+        -------
+        `<2x2 sparse matrix of type '<class 'numpy.float64'>'`
+            GLS sensitivity for a given Vy_extra and S.
+
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> sensitivity = sparse_cov.from_var([1, 1])
+        >>> Vy = np.diag(pd.Series([1, 1]))
+        >>> print(np.round(sensitivity._gls_cov_sensitivity(S, Vy), 3))
+          (0, 0)	0.4
+          (0, 1)	0.4
+          (1, 0)	0.4
+          (1, 1)	0.686
+        """
+        S_ = sps.csr_matrix(pd.DataFrame(S).values)
+        general_sens = self._gls_general_sensitivity(S, Vy_extra,
+                                                     threshold=threshold)
+        cov_sens = general_sens.dot(S_)
+        if threshold is not None:
+            cov_sens[cov_sens < threshold] = 0
+        return cov_sens
 
 
 def get_eig(cov, sort=True):
