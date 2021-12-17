@@ -439,7 +439,7 @@ class Fy():
         Q = decay_data.get_qmatrix()
         # Put the data in a approppiate format:
         mask = (data.ZAM == zam) & (data.MT == 459) & (data.E == energy)
-        data = pd.concat([data, data.loc[mask]]).drop_duplicates(keep=False)
+        data = data.loc[~mask]
         fy_data = fy_data.reindex(Q.columns).fillna(0)
         # Apply qmatrix
         cfy_calc_values = Q.dot(fy_data).rename('FY').reset_index().rename(columns={'DAUGHTER': 'ZAP'})
