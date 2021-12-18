@@ -792,6 +792,7 @@ class CategoryCov():
         if sparse is True:
             Vy_calc = sps.csr_matrix(Vy_calc)
             Vy_extra_ = sps.csr_matrix(Vy_extra_)
+        # G calculation
         G = Vy_calc + Vy_extra_
         if sparse is True:
             G = G.toarray()
@@ -1021,6 +1022,7 @@ class CategoryCov():
         if sparse is True:
             general_sens = sps.csc_matrix(general_sens)
             S_ = sps.csr_matrix(S_)
+        # gls cov sensitivity
         cov_sens = general_sens.dot(S_)
         if sparse is True:
             cov_sens = cov_sens.toarray()
@@ -1028,7 +1030,7 @@ class CategoryCov():
             cov_sens[cov_sens < threshold] = 0
         return pd.DataFrame(cov_sens, index=index, columns=columns)
 
-    def gls_update(self, S, Vy_extra, threshold=None):
+    def gls_update(self, S, Vy_extra, sparse=False, threshold=None):
         """
         Perform GlS update for a given variance and sensitivity:
         .. math::
@@ -1042,6 +1044,8 @@ class CategoryCov():
             2D covariance matrix for y_extra (MXM).
         S : 2D iterable
             Sensitivity matrix (MXN).
+        sparse : `bool`, optional
+            Option to use sparse matrix for calculations. The default is False.
         threshold : `int`, optional
             Thereshold to avoid numerical fluctuations. The default is None.
 
@@ -1059,14 +1063,27 @@ class CategoryCov():
                      0            1
         0  6.00000e-01 -4.00000e-01
         1 -4.00000e-01  3.14286e-01
+        >>> var.gls_update(S, Vy, sparse=True)
+                     0            1
+        0  6.00000e-01 -4.00000e-01
+        1 -4.00000e-01  3.14286e-01
         """
         index, columns = self.data.index, self.data.columns
-        Vx_prior = self.data.values
-        A = self._gls_cov_sensitivity(S, Vy_extra, threshold=threshold).values
+        if sparse is True:
+            Vx_prior = self.to_sparse()
+            A = self._gls_cov_sensitivity(S, Vy_extra, sparse=sparse,
+                                          threshold=threshold)
+            A = sps.csr_matrix(A)
+        else:
+            Vx_prior = self.data.values
+            A = self._gls_cov_sensitivity(S, Vy_extra, threshold=threshold).values
+        # gls update
         Vx_post = Vx_prior - A.dot(Vx_prior)
+        if sparse is True:
+            Vx_post = Vx_post.toarray()
         return self.__class__(pd.DataFrame(Vx_post, index=index, columns=columns))
 
-    def constrained_gls_update(self, S, threshold=None):
+    def constrained_gls_update(self, S, sparse=False, threshold=None):
         """
         Perform constrained Least-Squares update for a given sensitivity:
         .. math::
@@ -1078,6 +1095,8 @@ class CategoryCov():
         ----------
         S : 2D iterable
             Sensitivity matrix (MXN).
+        sparse : `bool`, optional
+            Option to use sparse matrix for calculations. The default is False.
         threshold : `int`, optional
             Thereshold to avoid numerical fluctuations. The default is None.
 
@@ -1098,12 +1117,26 @@ class CategoryCov():
         >>> var = sandy.CategoryCov.from_var([1, 1])
         >>> var_update = var.constrained_gls_update(S).data.round(decimals=6)
         >>> assert np.amax(var_update.values) == 0.0
+        >>> var_update = var.constrained_gls_update(S, sparse=True).data.round(decimals=6)
+        >>> assert np.amax(var_update.values) == 0.0
         """
-        Vy_extra = pd.DataFrame(0, index=self.data.index,
-                                columns=self.data.columns)
-        return self.gls_update(S, Vy_extra, threshold=threshold)
+        index, columns = self.data.index, self.data.columns
+        if sparse is True:
+            Vx_prior = self.to_sparse()
+            S_ = sps.csr_matrix(pd.DataFrame(S).values)
+            general_sens = self._constrained_gls_sensitivity(S, sparse=sparse, 
+                                                             threshold=threshold)
+            general_sens = sps.csr_matrix(general_sens)
+            A = Vx_prior.dot(S_.T).dot(general_sens)
+            Vx_post = Vx_prior - A.dot(Vx_prior)
+            Vx_post = Vx_post.toarray()
+        else:
+            Vy_extra = pd.DataFrame(0, index=self.data.index,
+                                    columns=self.data.columns)
+            Vx_post = self.gls_update(S, Vy_extra, threshold=threshold).data.values
+        return self.__class__(pd.DataFrame(Vx_post, index=index, columns=columns))
 
-    def sandwich(self, S, threshold=None):
+    def sandwich(self, S, sparse=True, threshold=None):
         """
         Apply the sandwich formula to the CategoryCov object for a given
         pandas.Series.
@@ -1112,6 +1145,10 @@ class CategoryCov():
         ----------
         S : 1D or 2D iterable
             General sensitivities.
+        sparse : `bool`, optional
+            Option to use sparse matrix for calculations. The default is False.
+        threshold : `int`, optional
+            Thereshold to avoid numerical fluctuations. The default is None.
 
         Returns
         -------
@@ -1155,14 +1192,14 @@ class CategoryCov():
         2	0.00000e+00	0.00000e+00	2.70000e+01
         """
         if pd.DataFrame(S).shape[1] == 1:
-            C = self.data
-            sandwich = corr2cov(C, S)
+            S_ = sandy.CategoryCov.from_var(S, sparse=sparse).data
+            sandwich = self._gls_Vy_calc(S_)
         else:
             S_ = pd.DataFrame(S).T
             sandwich = self._gls_Vy_calc(S_)
         if threshold is not None:
             sandwich[sandwich < threshold] = 0
-        return sandwich
+        return self.__class__(sandwich)
 
     def plot_corr(self, ax, **kwargs):
         add = {"cbar": True, "vmin": -1, "vmax": 1, "cmap": "RdBu"}
