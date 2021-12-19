@@ -278,7 +278,7 @@ class CategoryCov():
     def size(self):
         return self.data.values.shape[0]
 
-    def eig(self, sort=True, sparse=False):
+    def eig(self, sort=True):
         """
         Extract eigenvalues and eigenvectors.
 
@@ -286,8 +286,6 @@ class CategoryCov():
         ----------
         sort : `bool`, optional, default is `True`
             flag to return sorted eigenvalues and eigenfunctions
-        sparse : `bool`, optional
-            Option to use sparse matrix for calculations. The default is False.
 
         Returns
         -------
@@ -309,24 +307,8 @@ class CategoryCov():
                     0            1
         0 7.07107e-01 -7.07107e-01
         1 7.07107e-01  7.07107e-01
-
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).eig(sparse=True)[0]
-        0   1.40000e+00
-        1   6.00000e-01
-        Name: eigenvalues, dtype: float64
-
-        >>> eigenfunctions = sandy.CategoryCov([[1, 0.4],[0.4, 1]]).eig(sparse=True)[1]
-        >>> np.round(eigenfunctions, 3)
-                    0            1
-        0 7.07000e-01 -7.07000e-01
-        1 7.07000e-01  7.07000e-01
         """
-        if sparse:
-            data = self.to_sparse()
-            eigen = get_eig_sparse(data, sort=sort)
-        else:
-            eigen = get_eig(self.data.values, sort=sort)
-        return eigen
+        return get_eig(self.data.values, sort=sort)
 
     @property
     def std(self):
@@ -590,7 +572,7 @@ class CategoryCov():
         array([[-1.        ,  0.        ],
                [-0.4       ,  0.91651514]])
         """
-        E, V = self.eig(sort=False, sparse=sparse)
+        E, V = self.eig(sort=False)
         E[E <= 0] = 0
         if sparse:
             M = sps.csr_matrix(V).dot(sps.diags(np.sqrt(E))).toarray()
@@ -752,7 +734,7 @@ class CategoryCov():
             Vy_calc = S_.dot(Vx_prior).dot(S_.T)
         return pd.DataFrame(Vy_calc, index=index, columns=index)
 
-    def _gls_G(self, S, Vy_extra, sparse=False):
+    def _gls_G(self, S, Vy_extra=None, sparse=False):
         """
         2D calculated output using
         .. math::
@@ -764,7 +746,7 @@ class CategoryCov():
         ----------
         S : 2D iterable
             Sensitivity matrix (MXN).
-        Vy_extra : 2D iterable
+        Vy_extra : 2D iterable, optional.
             2D covariance matrix for y_extra (MXM).
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
@@ -794,16 +776,19 @@ class CategoryCov():
         1	1.10000e+01	2.60000e+01
         """
         index = pd.DataFrame(Vy_extra).index  # Simetry of cov matrix
-        Vy_extra_ = sandy.CategoryCov(Vy_extra).data.values
         # GLS_sensitivity:
         Vy_calc = self._gls_Vy_calc(S, sparse=sparse).values
-        if sparse:
-            Vy_calc = sps.csr_matrix(Vy_calc)
-            Vy_extra_ = sps.csr_matrix(Vy_extra_)
-        # G calculation
-        G = Vy_calc + Vy_extra_
-        if sparse is True:
-            G = G.toarray()
+        if Vy_extra is not None:
+            Vy_extra_ = sandy.CategoryCov(Vy_extra).data.values
+            if sparse:
+                Vy_calc = sps.csr_matrix(Vy_calc)
+                Vy_extra_ = sps.csr_matrix(Vy_extra_)
+            # G calculation
+            G = Vy_calc + Vy_extra_
+            if sparse is True:
+                G = G.toarray()
+        else:
+            G = Vy_calc
         return pd.DataFrame(G, index=index, columns=index)
 
     def _gls_G_inv(self, S, Vy_extra=None, sparse=False):
@@ -974,9 +959,7 @@ class CategoryCov():
         else:
             Vx_prior = self.data.values
             S_ = S_.values
-            Vy_extra = pd.DataFrame(0, index=self.data.index,
-                                    columns=self.data.columns)
-            G_inv = self._gls_G_inv(S, Vy_extra=Vy_extra).values
+            G_inv = self._gls_G_inv(S).values
             # constrained Least Squares sensitivity
             sensitivity = G_inv.dot(S_).dot(Vx_prior)
         if threshold is not None:
@@ -1322,7 +1305,7 @@ class CategoryCov():
 
     def to_sparse(self, method='csr_matrix'):
         """
-        Method to extract categorycov values into a sparse matrix
+        Method to extract `CategoryCov` values into a sparse matrix
 
         Parameters
         ----------
@@ -1367,7 +1350,7 @@ class CategoryCov():
         elif method == 'lil_matrix':
             data_sp = sps.lil_matrix(data)
         else:
-            raise ValueError('The method not exist in scipy.sparse')
+            raise ValueError('The method does not exist in scipy.sparse')
         return data_sp
 
 class EnergyCov(CategoryCov):
@@ -1892,20 +1875,6 @@ def get_eig(cov, sort=True):
         E = E.iloc[idx].reset_index(drop=True)
         V = V.iloc[idx].reset_index(drop=True)
     return E, V
-
-
-def get_eig_sparse(cov, sort=True):
-    try:
-        E, V = sps.linalg.eig(cov)
-    except:
-        E, V = scipy.linalg.eig(cov.toarray())
-    E = pd.Series(E.real)
-    V = pd.DataFrame(V.real)
-    if sort:
-        idx = E.sort_values(ascending=False).index
-        E = E.iloc[idx].reset_index(drop=True)
-        V = V.iloc[idx].reset_index(drop=True)
-    return E.rename('eigenvalues'), V
 
 
 def print_matrix(size, triu_matrices):
