@@ -540,7 +540,7 @@ def _write_rdd(sec):
     --------
     Stable nuclide:
     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 551340)
-    >>> sec = sandy.sections.mf8.read_mf8(decay,1803,457)
+    >>> sec = sandy.sections.mf8.read_mf8(decay, 1803, 457)
     >>> text = _write_rdd(sec)
     >>> print(text[:1000])
      55134.0000 132.756000          0          0          0          51803 8457    1
@@ -559,7 +559,7 @@ def _write_rdd(sec):
 
     Unstable nuclide:
     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
-    >>> sec = sandy.sections.mf8.read_mf8(decay,3542,457)
+    >>> sec = sandy.sections.mf8.read_mf8(decay, 3542, 457)
     >>> text = _write_rdd(sec)
     >>> print(text[:1000])
      92235.0000 233.025000          0          0          0          63542 8457    1
@@ -575,6 +575,11 @@ def _write_rdd(sec):
      9670.00000 967.000000 0.00000000 0.00000000 0.00000000 0.000000003542 8457   11
      31580.0000 10.0000000          0          0         12          03542 8457   12
      4.00000000 0.00000000 3.000
+     
+     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
+     >>> sec = sandy.sections.mf8.read_mf8(decay, 3542, 457)
+     >>> text = _write_rdd(sec)
+     >>> assert(len(text) == len(decay.data[3542, 8, 457]))
     """
     if sec['NST'] == 1:
         lines = sandy.write_cont(sec["ZA"],
@@ -608,7 +613,7 @@ def _write_rdd(sec):
                                  )
         size_E = len(sec['E'])
         size_DE = len(sec['DE'])
-        add = [0]*(size_E + size_DE)
+        add = [0] * (size_E + size_DE)
         add[::2] = sec['E']
         add[1::2] = sec['DE']
         lines += sandy.write_list(
@@ -663,16 +668,48 @@ def _write_rdd(sec):
                         0,
                         list(discr.values())[1:],
                         )
-                if spectra['LCON'] != 0 and 'CONT' in list(sec['SPECTRA'][STYP].keys()):
-                    for RTYP, cont in spectra['CONT'].items():
-                        lines += sandy.write_tab1(
-                            cont['RTYP'],
-                            0.0,
-                            0,
-                            cont['LCOV'],
-                            cont['NBT'],
-                            cont['INT'],
-                            cont['E'][0],
-                            cont["RP"],
-                            )
-        return "\n".join(sandy.write_eol(lines, sec["MAT"], 8, sec["MT"]))
+            if spectra['LCON'] != 1 and 'CONT' not in list(sec['SPECTRA'][STYP].keys()) and 'ER' not in list(sec['SPECTRA'][STYP].keys()):
+                add = [spectra['FD'],
+                       spectra['DFD'],
+                       spectra['ERAV'],
+                       spectra['DERAV'],
+                       spectra['FC'],
+                       spectra['DFC'],
+                       ]
+                lines += sandy.write_list(
+                    0,
+                    STYP,
+                    spectra['LCON'],
+                    0,
+                    0,
+                    add
+                    )
+            if spectra['LCON'] != 0 and 'CONT' in list(sec['SPECTRA'][STYP].keys()):
+                if spectra['LCON'] < 2:
+                    add = [spectra['FD'],
+                           spectra['DFD'],
+                           spectra['ERAV'],
+                           spectra['DERAV'],
+                           spectra['FC'],
+                           spectra['DFC'],
+                           ]
+                    lines += sandy.write_list(
+                        0,
+                        STYP,
+                        spectra['LCON'],
+                        0,
+                        0,
+                        add
+                        )
+                for RTYP, cont in spectra['CONT'].items():
+                    lines += sandy.write_tab1(
+                        cont['RTYP'],
+                        0.0,
+                        0,
+                        cont['LCOV'],
+                        cont['NBT'],
+                        cont['INT'],
+                        cont['E'][0],
+                        cont["RP"],
+                        )
+    return "\n".join(sandy.write_eol(lines, sec["MAT"], 8, sec["MT"]))
