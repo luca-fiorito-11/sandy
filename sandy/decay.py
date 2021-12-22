@@ -15,7 +15,10 @@ from math import sqrt
 
 import numpy as np
 import pandas as pd
+from pandas.api.types import CategoricalDtype
 import scipy
+import scipy.sparse as sps
+import scipy.sparse.linalg as spsl
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import splu
 
@@ -383,19 +386,21 @@ class DecayData():
         561480 	0.00000e+00 	7.81380e-01 	6.88450e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
         561490 	0.00000e+00 	0.00000e+00 	3.11550e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
         """
-        B = self.get_decay_chains(**kwargs) \
-                .pivot_table(
-                        index="DAUGHTER",
-                        columns="PARENT",
-                        values="YIELD",
-                        aggfunc=np.sum,
-                        fill_value=0.0,
-                        )\
-                .astype(float)\
-                .fillna(0)
-        B_reindex = B.reindex(B.index.values, fill_value=0.0, axis=1)
-        np.fill_diagonal(B_reindex.values, 0)
-        return B_reindex
+        B_data = self.get_decay_chains(**kwargs)
+        index_sp = CategoricalDtype(sorted(B_data.DAUGHTER.unique()), ordered=True)
+        column_sp = CategoricalDtype(sorted(B_data.PARENT.unique()), ordered=True)
+        row = B_data.DAUGHTER.astype(index_sp).cat.codes
+        col = B_data.PARENT.astype(column_sp).cat.codes
+        sparse_matrix = sps.csr_matrix((B_data.YIELD, (row, col)),
+                                       shape=(index_sp.categories.size,
+                                       column_sp.categories.size))
+        B = pd.DataFrame(sparse_matrix.toarray(),
+                         index=index_sp.categories.set_names('DAUGHTER'),
+                         columns=column_sp.categories)
+        B = B.reindex(columns=index_sp.categories.set_names('PARENT'))\
+            .fillna(0)
+        np.fill_diagonal(B.values, 0)
+        return B
 
     def get_qmatrix(self, keep_neutrons=False, threshold=None, **kwargs):
         """
@@ -447,10 +452,13 @@ class DecayData():
                 B.drop(index=10, inplace=True)
             if 10 in B.columns:
                 B.drop(columns=10, inplace=True)
-        unit = np.identity(len(B))
-        C = unit - B.values
-        C_inv = splu(csc_matrix(C))
-        qmatrix = pd.DataFrame(C_inv.solve(unit), index=B.index, columns=B.columns)
+        index = B.index
+        columns = B.columns
+        B = sps.csc_matrix(B)
+        unit = sps.csc_matrix(sps.identity(B.shape[0]))
+        C = spsl.splu(sps.csc_matrix(unit-B))
+        qmatrix = pd.DataFrame(C.solve(unit.toarray()), index=index,
+                               columns=columns)
         if threshold is not None:
             qmatrix[qmatrix < threshold] = 0
         return qmatrix

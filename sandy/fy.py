@@ -427,11 +427,11 @@ class Fy():
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest)
         >>> npfy_pert.data[npfy_pert.data.MT == 459]
-             MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
-        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	0.00000e+00
-        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	0.00000e+00
-        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	0.00000e+00
-        6	9437	459	942390	621480	5.00000e+05	6.00000e-01	0.00000e+00
+             MAT	 MT	   ZAM	   ZAP	          E	         FY 	    DFY
+        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
+        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
+        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01
+        6	9437	459	942390	621480	5.00000e+05	6.00000e-01	1.00000e-01
 
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
@@ -439,10 +439,10 @@ class Fy():
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, keep_ify_index=True)
         >>> npfy_pert.data[npfy_pert.data.MT == 459]
-             MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
-        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	0.00000e+00
-        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	0.00000e+00
-        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	0.00000e+00
+             MAT	 MT	   ZAM	   ZAP	          E	         FY 	    DFY
+        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
+        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
+        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01
 
         """
         # Obtain the data:
@@ -450,6 +450,7 @@ class Fy():
         conditions = {'ZAM': zam, 'MT': 454, "E": energy}
         fy_data = self._filters(conditions).data
         mat = fy_data.MAT.iloc[0]
+        cov_data = fy_data.set_index('ZAP')['DFY']
         fy_data = fy_data.set_index('ZAP')['FY']
         index = fy_data.index
         Q = decay_data.get_qmatrix()
@@ -457,14 +458,20 @@ class Fy():
         mask = (data.ZAM == zam) & (data.MT == 459) & (data.E == energy)
         data = data.loc[~mask]
         fy_data = fy_data.reindex(Q.columns).fillna(0)
+        cov_data = cov_data.reindex(Q.columns).fillna(0)
+        cov_data = sandy.CategoryCov.from_var(cov_data)
         # Apply qmatrix
         cfy_calc_values = Q.dot(fy_data).rename('FY')
-        if keep_ify_index is True:
+        cov_calc_values = np.diag(cov_data._gls_Vy_calc(Q))
+        cov_calc_values = pd.Series(cov_calc_values, index=Q.index)
+        if keep_ify_index:
             cfy_calc_values = cfy_calc_values.reindex(index).fillna(0)
-        cfy_calc_values = cfy_calc_values.reset_index().rename(columns={'DAUGHTER': 'ZAP'})
+            cov_calc_values = cov_calc_values.reindex(index).fillna(0)
+        calc_values = cfy_calc_values.reset_index().rename(columns={'DAUGHTER': 'ZAP'})
+        calc_values['DFY'] = cov_calc_values.values
         # Calculus in appropiate way:
-        cfy_calc_values[['MAT', 'ZAM', 'MT', 'E', 'DFY']] = [mat, zam, 459, energy, 0]
-        data = pd.concat([data, cfy_calc_values], ignore_index=True)
+        calc_values[['MAT', 'ZAM', 'MT', 'E']] = [mat, zam, 459, energy]
+        data = pd.concat([data, calc_values], ignore_index=True)
         return self.__class__(data)
 
     def gls_cov_update(self, zam, e, Vy_extra,
@@ -532,7 +539,9 @@ class Fy():
             model_sensitivity_object = self._filters(conditions)
         elif kind == 'cumulative' or 'chain yield':
             model_sensitivity_object = decay_data
-        S = _gls_setup(model_sensitivity_object, kind).loc[Vx_prior.data.index, Vx_prior.data.columns]
+        S = _gls_setup(model_sensitivity_object, kind)\
+            .reindex(index=Vx_prior.data.index,
+                     columns=Vx_prior.data.columns).fillna(0)
         return Vx_prior.gls_update(S, Vy_extra, threshold=threshold).data
 
     def gls_update(self, zam, e, y_extra, Vy_extra,
