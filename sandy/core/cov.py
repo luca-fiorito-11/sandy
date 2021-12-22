@@ -478,7 +478,7 @@ class CategoryCov():
             cov[ni, nonzero_idxs] = cov_reduced[i]
         return cls(cov)
 
-    def invert(self, sparse=False):
+    def invert(self):
         """
         Method for calculating the inverse matrix.
 
@@ -507,35 +507,15 @@ class CategoryCov():
         0 0.00000e+00 0.00000e+00 0.00000e+00
         1 0.00000e+00 5.00000e-01 0.00000e+00
         2 0.00000e+00 0.00000e+00 3.33333e-01
-
-        >>> S = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
-        >>> np.round(S.invert(sparse=True).data,2)
-                    0           1           2
-        0 1.00000e+00 0.00000e+00 0.00000e+00
-        1 0.00000e+00 5.00000e-01 0.00000e+00
-        2 0.00000e+00 0.00000e+00 3.30000e-01
-
-        >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3])))
-        >>> S.invert(sparse=True)
-                    0           1           2
-        0 0.00000e+00 0.00000e+00 0.00000e+00
-        1 0.00000e+00 5.00000e-01 0.00000e+00
-        2 0.00000e+00 0.00000e+00 3.33333e-01
         """
         index, columns = self.data.index, self.data.columns
         M_nonzero_idxs, M_reduce = self._reduce_size()
-        if sparse:
-            cov = sps.csc_matrix(M_reduce.values)
-            lu = spsl.splu(cov)
-            eye = np.eye(cov.shape[0])
-            data = lu.solve(eye)
-            M_inv = CategoryCov._restore_size(M_nonzero_idxs, data,
-                                              len(self.data)).data
-        else:
-            unit = np.identity(len(M_reduce))
-            M_reduce_inv = spsl.splu(sps.csc_matrix(M_reduce)).solve(unit)
-            M_inv = CategoryCov._restore_size(M_nonzero_idxs, M_reduce_inv,
-                                              len(self.data)).data
+        cov = sps.csc_matrix(M_reduce.values)
+        lu = spsl.splu(cov)
+        eye = np.eye(cov.shape[0])
+        data = lu.solve(eye)
+        M_inv = CategoryCov._restore_size(M_nonzero_idxs, data,
+                                          len(self.data)).data
         M_inv = M_inv.reindex(index=index, columns=columns)
         return self.__class__(M_inv)
 
@@ -876,6 +856,14 @@ class CategoryCov():
                       0	              1
         0	7.42857e-01	    -3.14286e-01
         1	-3.14286e-01	1.71429e-01
+        >>> sensitivity._gls_G_inv(S, sparse=True)
+                      0	              1
+        0	6.25000e+00	-2.75000e+00
+        1	-2.75000e+00	1.25000e+00
+        >>> sensitivity._gls_G_inv(S)
+                      0	              1
+        0	6.25000e+00	-2.75000e+00
+        1	-2.75000e+00	1.25000e+00
         """
         if Vy_extra is not None:
             index = pd.DataFrame(Vy_extra).index
@@ -883,7 +871,7 @@ class CategoryCov():
         else:
             index = pd.DataFrame(S).index
             G = self._gls_Vy_calc(S, sparse=sparse).values
-        G_inv = sandy.CategoryCov(G).invert(sparse=sparse).data.values
+        G_inv = sandy.CategoryCov(G).invert().data.values
         return pd.DataFrame(G_inv, index=index, columns=index)
 
     def _gls_general_sensitivity(self, S, Vy_extra=None, sparse=False,
@@ -932,11 +920,19 @@ class CategoryCov():
                       3	              4
         1	-2.00000e-01	2.00000e-01
         2	2.28571e-01	    5.71429e-02
+        >>> sensitivity._gls_general_sensitivity(S, sparse=True)
+            	      3	              4
+        1	-2.00000e+00	1.00000e+00
+        2	1.50000e+00	-5.00000e-01
+        >>> sensitivity._gls_general_sensitivity(S)
+            	      3	              4
+        1	-2.00000e+00	1.00000e+00
+        2	1.50000e+00	-5.00000e-01
         """
         index, columns = pd.DataFrame(S).columns, pd.DataFrame(S).index
         S_ = pd.DataFrame(S).values
         # GLS_sensitivity:
-        G_inv = self._gls_G_inv(S, Vy_extra, sparse=sparse).values
+        G_inv = self._gls_G_inv(S, Vy_extra=Vy_extra, sparse=sparse).values
         if sparse:
             Vx_prior = self.to_sparse()
             S_ = sps.csr_matrix(S_)

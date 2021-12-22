@@ -10,6 +10,7 @@ import warnings
 
 import pandas as pd
 import numpy as np
+import scipy.sparse as sps
 
 import sandy
 from sandy.shared import expand_zam
@@ -336,7 +337,8 @@ class Fy():
         df.loc[mask, "FY"] = df[mask].squeeze().FY * (1 + pert)
         return self.__class__(df)
 
-    def apply_bmatrix(self, zam, e, decay_data):
+    def apply_bmatrix(self, zam, e, decay_data, sparse=False,
+                      keep_fy_index=False):
         """
         Perform IFY = (1-B)*CFY equation to calculate IFY in a given zam
         for a given energy and apply into the original data.
@@ -350,6 +352,9 @@ class Fy():
             Energy to which calculations are to be applied.
         decay_data : `sandy.DecayData`
             Radioactive nuclide data for several isotopes.
+        keep_fy_index=False : `bool`, optional
+            Option that allows you to output only the CFY results that were
+            part of the original `sandy.Fy` object. The default is False.
 
         Returns
         -------
@@ -369,28 +374,68 @@ class Fy():
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest)
-        >>> diff = npfy_pert.data[npfy_pert.data.FY != npfy.data.FY].FY
-        >>> comp = npfy_pert.data.query('ZAM==942390 & MT==454 & E==500e3').squeeze().FY
-        >>> assert comp.values.all() == diff.values.all()
+        >>> npfy_pert.data[npfy_pert.data.MT == 454]
+        	 MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
+        3	9437	454	942390	591480	5.00000e+05	8.00000e-01	4.00000e-02
+        4	9437	454	942390	591481	5.00000e+05	1.00000e+00	5.00000e-02
+        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	1.00000e-01
+        6	9437	454	942390	621480	5.00000e+05	-2.00000e-01	1.00000e-02 
 
+        >>> zam = [591480, 591481, 601480]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
+        >>> npfy = Fy(minimal_fytest_2)
+        >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
+        >>> npfy_pert.data[npfy_pert.data.MT == 454]
+             MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
+        3	9437	454	942390	591480	5.00000e+05	8.00000e-01	4.00000e-02
+        4	9437	454	942390	591481	5.00000e+05	1.00000e+00	5.00000e-02
+        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	1.00000e-01
         """
-        new_data = self.data.copy()
+        # Obtain the data:
+        data = self.data.copy()
         conditions = {'ZAM': zam, 'MT': 459, "E": e}
-        fy_data = self._filters(conditions).data.set_index('ZAP')['FY']
-        index = fy_data.index
+        fy_data = self._filters(conditions).data
+        mat = fy_data.MAT.iloc[0]
+        cov_data = fy_data.set_index('ZAP')['DFY']
+        fy_data = fy_data.set_index('ZAP')['FY']
+        if keep_fy_index:
+            original_index = fy_data.index
         B = decay_data.get_bmatrix()
-        fy_data = fy_data.reindex(B.columns).fillna(0)
+        # Put the data in a appropriate format:
+        index, columns = B.index, B.columns
         # Creating (1-B) matrix:
-        unit = np.identity(len(B))
-        C = unit - B.values
-        sensitivity = pd.DataFrame(C, index=B.index, columns=B.columns)
+        if sparse:
+            B = sps.csc_matrix(B)
+            unit = sps.csc_matrix(sps.identity(B.shape[0]))
+            C = unit - B
+            sensitivity = pd.DataFrame(C.toarray(), index=index, columns=columns)
+        else:
+            unit = np.identity(len(B))
+            C = unit - B.values
+            sensitivity = pd.DataFrame(C, index=index, columns=columns)
+        # Rest of the data
+        mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e)
+        fy_data = fy_data.reindex(columns).fillna(0)
+        data = data.loc[~mask]
+        fy_data = fy_data.reindex(columns).fillna(0)
+        cov_data = cov_data.reindex(columns).fillna(0)
+        cov_data = sandy.CategoryCov.from_var(cov_data)
         # Apply (1-B) matrix
-        fy_calc = sensitivity.dot(fy_data).loc[index]
-        mask = (new_data.ZAM == zam) & (new_data.MT == 454) & (new_data.E == e)
-        new_data.loc[mask, 'FY'] = fy_calc.values
-        return self.__class__(new_data)
+        ify_calc_values = sandy._y_calc(fy_data, sensitivity, sparse=sparse).rename('FY')
+        cov_calc_values = np.diag(cov_data._gls_Vy_calc(sensitivity, sparse=sparse))
+        cov_calc_values = pd.Series(cov_calc_values, index=sensitivity.index)
+        if keep_fy_index:
+            ify_calc_values = ify_calc_values.reindex(original_index).fillna(0)
+            cov_calc_values = cov_calc_values.reindex(original_index).fillna(0)
+        calc_values = ify_calc_values.reset_index().rename(columns={'DAUGHTER': 'ZAP'})
+        calc_values['DFY'] = cov_calc_values.values
+        # Calculus in appropiate way:
+        calc_values[['MAT', 'ZAM', 'MT', 'E']] = [mat, zam, 454, e]
+        data = pd.concat([data, calc_values], ignore_index=True)
+        return self.__class__(data)
 
-    def apply_qmatrix(self, zam, energy, decay_data, keep_ify_index=False):
+    def apply_qmatrix(self, zam, energy, decay_data, keep_fy_index=False):
         """
         Perform CFY = Q*IFY equation to calculate CFY in a given zam
         for a given energy and apply into the original data.
@@ -404,7 +449,7 @@ class Fy():
             Energy to which calculations are to be applied.
         decay_data : `sandy.DecayData`
             Radioactive nuclide data for several isotopes.
-        keep_ify_index=False : `bool`, optional
+        keep_fy_index=False : `bool`, optional
             Option that allows you to output only the CFY results that were
             part of the original `sandy.Fy` object. The default is False.
 
@@ -437,9 +482,21 @@ class Fy():
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
-        >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, keep_ify_index=True)
+        >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest)
         >>> npfy_pert.data[npfy_pert.data.MT == 459]
-             MAT	 MT	   ZAM	   ZAP	          E	         FY 	    DFY
+             MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
+        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
+        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
+        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01
+        6	9437	459	942390	621480	5.00000e+05	6.00000e-01	1.00000e-01
+
+        >>> zam = [591480, 591481, 601480]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
+        >>> npfy = Fy(minimal_fytest_2)
+        >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
+        >>> npfy_pert.data[npfy_pert.data.MT == 459]
+             MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
         3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
         4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
         5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01
@@ -452,7 +509,8 @@ class Fy():
         mat = fy_data.MAT.iloc[0]
         cov_data = fy_data.set_index('ZAP')['DFY']
         fy_data = fy_data.set_index('ZAP')['FY']
-        index = fy_data.index
+        if keep_fy_index:
+            original_index = fy_data.index
         Q = decay_data.get_qmatrix()
         # Put the data in a approppiate format:
         mask = (data.ZAM == zam) & (data.MT == 459) & (data.E == energy)
@@ -464,9 +522,9 @@ class Fy():
         cfy_calc_values = Q.dot(fy_data).rename('FY')
         cov_calc_values = np.diag(cov_data._gls_Vy_calc(Q))
         cov_calc_values = pd.Series(cov_calc_values, index=Q.index)
-        if keep_ify_index:
-            cfy_calc_values = cfy_calc_values.reindex(index).fillna(0)
-            cov_calc_values = cov_calc_values.reindex(index).fillna(0)
+        if keep_fy_index:
+            cfy_calc_values = cfy_calc_values.reindex(original_index).fillna(0)
+            cov_calc_values = cov_calc_values.reindex(original_index).fillna(0)
         calc_values = cfy_calc_values.reset_index().rename(columns={'DAUGHTER': 'ZAP'})
         calc_values['DFY'] = cov_calc_values.values
         # Calculus in appropiate way:
