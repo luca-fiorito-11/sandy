@@ -581,7 +581,7 @@ class CategoryCov():
         array([[-1.        ,  0.        ],
                [-0.4       ,  0.91651514]])
         """
-        E, V = self.eig(sort=False)
+        E, V = self.eig(sparse=sparse, sort=False)
         E[E <= 0] = 0
         if sparse:
             M = sps.csr_matrix(V).dot(sps.diags(np.sqrt(E))).toarray()
