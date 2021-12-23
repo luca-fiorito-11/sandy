@@ -23,7 +23,6 @@ __all__ = [
         "corr2cov",
         "random_corr",
         "random_cov",
-        "get_eig",
         ]
 
 S = np.array([[1, 1, 1],
@@ -334,10 +333,21 @@ class CategoryCov():
         """
         if sparse:
             cov = self.to_sparse()
-            eigen = get_eig(cov, sparse=sparse, sort=sort)
+            warnings.filterwarnings("ignore")
+            try:
+                E, V = spsl.eigs(cov)
+            except TypeError or ValueError:
+                E, V = scipy.linalg.eig(cov.toarray())
         else:
-            eigen = get_eig(self.data.values, sort=sort)
-        return eigen
+            cov = self.data
+            E, V = scipy.linalg.eig(cov)
+        E = pd.Series(E.real, name="eigenvalues")
+        V = pd.DataFrame(V.real)
+        if sort:
+            idx = E.sort_values(ascending=False).index
+            E = E.iloc[idx].reset_index(drop=True)
+            V = V.iloc[idx].reset_index(drop=True)
+        return E, V
 
     @property
     def std(self):
@@ -581,7 +591,7 @@ class CategoryCov():
         array([[-1.        ,  0.        ],
                [-0.4       ,  0.91651514]])
         """
-        E, V = self.eig(sort=False)
+        E, V = self.eig(sparse=sparse, sort=False)
         E[E <= 0] = 0
         if sparse:
             M = sps.csr_matrix(V).dot(sps.diags(np.sqrt(E))).toarray()
@@ -1905,24 +1915,6 @@ def random_cov(size, stdmin=0.0, stdmax=1.0, correlations=True, seed=None):
 def random_ctg_cov(index, stdmin=0.0, stdmax=1.0, correlations=True, seed=None):
     cov = random_cov(len(index), stdmin=stdmin, stdmax=stdmax, correlations=correlations, seed=seed)
     return pd.DataFrame(cov, index=index, columns=index)
-
-
-def get_eig(cov, sparse=False, sort=True):
-    if sparse:
-        warnings.filterwarnings("ignore")
-        try:
-            E, V = spsl.eigs(cov)
-        except TypeError or ValueError:
-            E, V = scipy.linalg.eig(cov.toarray())
-    else:
-        E, V = scipy.linalg.eig(cov)
-    E = pd.Series(E.real, name="eigenvalues")
-    V = pd.DataFrame(V.real)
-    if sort:
-        idx = E.sort_values(ascending=False).index
-        E = E.iloc[idx].reset_index(drop=True)
-        V = V.iloc[idx].reset_index(drop=True)
-    return E, V
 
 
 def print_matrix(size, triu_matrices):
