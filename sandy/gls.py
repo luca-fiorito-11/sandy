@@ -4,6 +4,9 @@ This module contains all classes and functions specific for processing GLS.
 """
 import pandas as pd
 import numpy as np
+import scipy
+import scipy.sparse as sps
+import scipy.sparse.linalg as spsl
 import sandy
 
 __author__ = "Aitor Bengoechea"
@@ -25,7 +28,8 @@ Vy_extra = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 N_e = 1
 
 
-def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, threshold=None):
+def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False,
+               threshold=None):
     """
     Perform GlS update for a given variances, vectors and sensitivity.
     .. math::
@@ -45,8 +49,10 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, threshold=None):
         2D sensitivity of the model y=f(x) (MXN).
     y_extra : 1D iterable
         1D extra info on output (NX1)
+    sparse : `bool`, optional
+        Option to use sparse matrix for calculations. The default is False.
     threshold : `int`, optional
-            Thereshold to avoid numerical fluctuations. The default is None.
+        Thereshold to avoid numerical fluctuations. The default is None.
 
     Returns
     -------
@@ -67,24 +73,36 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, threshold=None):
     1   4.85714e-01
     dtype: float64
 
+    >>> gls_update(y, S, Vx, Vy, x_p, sparse=True)
+    0   2.00000e-01
+    1   4.85714e-01
+    dtype: float64
     """
     # Model calculus:
     x_prior_ = pd.Series(x_prior)
-    S_ = pd.DataFrame(S).loc[:, x_prior_.index]
-    y_calc_ = _y_calc(x_prior, S)
+    S_ = pd.DataFrame(S).reindex(columns=x_prior_.index)
+    y_calc_ = _y_calc(x_prior, S, sparse=sparse)
     y_extra_ = pd.Series(y_extra)
     y_calc_ = y_calc_.reindex(y_extra_.index)
-    S_ = S_.loc[y_extra_.index, :]
+    S_ = S_.reindex(index=y_extra_.index)
     # Data in a appropriate format
     delta = y_extra_ - y_calc_
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
     # GLS update
-    A = Vx_prior_._gls_general_sensitivity(S_, Vy_extra, threshold).values
-    x_post = x_prior_ + A.dot(delta)
+    A = Vx_prior_._gls_general_sensitivity(S_, Vy_extra, sparse=sparse,
+                                           threshold=threshold).values
+    if sparse:
+        A = sps.csr_matrix(A)
+        index = x_prior_.index
+        x_prior_ = x_prior_.values
+        x_post = x_prior_ + A.dot(delta)
+        x_post = pd.Series(x_post, index=index)
+    else:
+        x_post = x_prior_ + A.dot(delta)
     return x_post
 
 
-def _y_calc(x_prior, S):
+def _y_calc(x_prior, S, sparse=False):
     """
     Perform model calculation in GLS.
 
@@ -94,6 +112,8 @@ def _y_calc(x_prior, S):
         Vector in which we are going to apply GLS (MX1).
     S : 2D iterable
         2D sensitivity of the model y=f(x) (MXN).
+    sparse : `bool`, optional
+        Option to use sparse matrix for calculations. The default is False.
 
     Returns
     -------
@@ -117,14 +137,26 @@ def _y_calc(x_prior, S):
     2    3
     3    6
     dtype: int64
+    >>> _y_calc(x_prior, S, sparse=True)
+    0    1
+    1    2
+    2    3
+    3    6
+    dtype: int64
     """
     S_ = pd.DataFrame(S)
     x_prior_ = pd.Series(x_prior).reindex(S_.columns).fillna(0)
-    y_calc = S_.dot(x_prior_)
+    if sparse:
+        index = S_.index
+        S_ = sps.csr_matrix(S_.values)
+        y_calc = S_.dot(x_prior_.values)
+        y_calc = pd.Series(y_calc, index=index)
+    else:
+        y_calc = S_.dot(x_prior_)
     return y_calc
 
 
-def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
+def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False):
     """
     Function to calculate individual chi-value measured in sigmas according to
     https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
@@ -142,6 +174,8 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
         2D covariance matrix for y_extra (MXN).
     y_extra : 1D iterable
         1D extra info on output (NX1).
+    sparse : `bool`, optional
+        Option to use sparse matrix for calculations. The default is False.
 
     Returns
     -------
@@ -155,17 +189,22 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
     2   5.00000e-01
     3   3.33333e-01
     dtype: float64
+    >>> chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=True)
+    1   1.00000e+00
+    2   5.00000e-01
+    3   3.33333e-01
+    dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    G = Vx_prior_._gls_G(S, Vy_extra)
+    G = Vx_prior_._gls_G(S, Vy_extra, sparse=sparse)
     G = np.sqrt(np.diag(G))
-    y_calc_ = _y_calc(x_prior, S).values
+    y_calc_ = _y_calc(x_prior, S, sparse=sparse).values
     y_extra_ = pd.Series(y_extra)
     delta = np.abs(y_extra_.values - y_calc_)
     return pd.Series(delta / G, index=y_extra_.index)
 
 
-def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
+def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False):
     """
     Function to calculate diagonal chi-value measured in sigmas
     $\chi_{ind,i}$>>1 according to
@@ -184,6 +223,8 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
         2D covariance matrix for y_extra (MXN).
     y_extra : 1D iterable
         1D extra info on output (NX1)
+    sparse : `bool`, optional
+        Option to use sparse matrix for calculations. The default is False.
 
     Returns
     -------
@@ -197,17 +238,22 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
     2   2.00000e+00
     3   3.00000e+00
     dtype: float64
+    >>> chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=True)
+    1   1.00000e+00
+    2   2.00000e+00
+    3   3.00000e+00
+    dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    G_inv = Vx_prior_._gls_G_inv(S, Vy_extra).values
+    G_inv = Vx_prior_._gls_G_inv(S, Vy_extra, sparse=sparse).values
     G_inv = np.sqrt(np.diag(G_inv))
-    y_calc_ = _y_calc(x_prior, S).values
+    y_calc_ = _y_calc(x_prior, S, sparse=sparse).values
     y_extra_ = pd.Series(y_extra)
     delta = np.abs(y_extra_.values - y_calc_)
     return pd.Series(delta / G_inv, index=y_extra_.index)
 
 
-def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
+def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e, sparse=False):
     """
     Function to calculate contribution to chi-square value according to
     https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
@@ -227,6 +273,8 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
         1D extra info on output (NX1)
     N_e : `int`
         Number of experimental values used in adjustment.
+    sparse : `bool`, optional
+        Option to use sparse matrix for calculations. The default is False.
 
     Returns
     -------
@@ -240,17 +288,22 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
     2   2.50000e-01
     3   1.11111e-01
     dtype: float64
+    >>> chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e, sparse=True)
+    1   1.00000e+00
+    2   2.50000e-01
+    3   1.11111e-01
+    dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    G_inv = Vx_prior_._gls_G_inv(S, Vy_extra).values
-    y_calc_ = _y_calc(x_prior, S).values
+    G_inv = Vx_prior_._gls_G_inv(S, Vy_extra, sparse=sparse).values
+    y_calc_ = _y_calc(x_prior, S, sparse=sparse).values
     y_extra_ = pd.Series(y_extra)
     delta = y_extra_.values - y_calc_
     chi_square = delta.T.dot(G_inv) * delta / N_e
     return pd.Series(chi_square, index=y_extra_.index)
 
 
-def ishikawa_factor(S, Vx_prior, Vy_extra):
+def ishikawa_factor(S, Vx_prior, Vy_extra, sparse=False):
     """
     Function to obtain Ishikawa factor according to
     https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
@@ -264,6 +317,8 @@ def ishikawa_factor(S, Vx_prior, Vy_extra):
         2D covariance matrix of x_prior (MXN).
     Vy_extra : 2D iterable
         2D covariance matrix for y_extra (MXN).
+    sparse : `bool`, optional
+        Option to use sparse matrix for calculations. The default is False.
 
     Returns
     -------
@@ -277,16 +332,21 @@ def ishikawa_factor(S, Vx_prior, Vy_extra):
     1   3.00000e+00
     2   8.00000e+00
     dtype: float64
+    >>> ishikawa_factor(S, Vx_prior, Vy_extra, sparse=True)
+    0   0.00000e+00
+    1   3.00000e+00
+    2   8.00000e+00
+    dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    Vy_calc = Vx_prior_._gls_Vy_calc(S)
+    Vy_calc = Vx_prior_._gls_Vy_calc(S, sparse=sparse)
     Vy_values = np.diag(Vy_calc)
     Vy_extra_ = np.diag(pd.DataFrame(Vy_extra).values)
     index = pd.DataFrame(Vy_extra).index
     return pd.Series(Vy_values / Vy_extra_, index=index)
 
 
-def constrained_gls_update(x_prior, S, Vx_prior, threshold=None):
+def constrained_gls_update(x_prior, S, Vx_prior, sparse=True, threshold=None):
     """
     Perform Constrained Least-Squares update for a given variances, vectors
     and sensitivity:
@@ -303,6 +363,8 @@ def constrained_gls_update(x_prior, S, Vx_prior, threshold=None):
         2D sensitivity of the model y=f(x) (MXN).
     Vx_prior : 2D iterable
         2D covariance matrix of x_prior (MXN).
+    sparse : `bool`, optional
+        Option to use sparse matrix for calculations. The default is False.
     threshold : `int`, optional
             Thereshold to avoid numerical fluctuations. The default is None.
 
@@ -321,14 +383,19 @@ def constrained_gls_update(x_prior, S, Vx_prior, threshold=None):
     0   -4.00000e+00
     1    5.50000e+00
     dtype: float64
+    >>> constrained_gls_update(x_prior, S, Vx_prior, sparse=True)
+    0   -4.00000e+00
+    1    5.50000e+00
+    dtype: float64
     """
     x_prior_ = pd.Series(x_prior)
-    S_ = pd.DataFrame(S).loc[:, x_prior_.index]
+    S_ = pd.DataFrame(S).reindex(columns=x_prior_.index)
     # Data in a appropriate format:
-    delta = _y_calc(x_prior, S_.T) - x_prior.dot(S_.T)
+    delta = _y_calc(x_prior, S_.T, sparse=sparse) - x_prior.dot(S_.T)
     delta = delta.reindex(x_prior_.index)
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
     # Constrained Least-Square sensitivity
-    A = Vx_prior_._constrained_gls_sensitivity(S, threshold=threshold).values
+    A = Vx_prior_._constrained_gls_sensitivity(S, sparse=sparse,
+                                               threshold=threshold).values
     x_post = x_prior_ + delta.dot(A)
     return x_post
