@@ -63,33 +63,30 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False,
     Example
     -------
     >>> S = [[1, 2], [3, 4]]
-    >>> y = pd.Series([1, 1])
-    >>> Vx = sandy.CategoryCov.from_var([1, 1]).data
-    >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
-    >>> x = [1, 1]
-    >>> x_p = [2, 2]
-    >>> gls_update(y, S, Vx, Vy, x_p)
+    >>> x_prior = pd.Series([1, 1])
+    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
+    >>> Vy_extra = pd.DataFrame([[1, 0], [0, 1]])
+    >>> y_extra = [2, 2]
+    >>> gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra)
     0   2.00000e-01
     1   4.85714e-01
     dtype: float64
 
-    >>> gls_update(y, S, Vx, Vy, x_p, sparse=True)
+    >>> gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=True)
     0   2.00000e-01
     1   4.85714e-01
     dtype: float64
     """
     # Put data in a appropiate format
     x_prior_ = pd.Series(x_prior)
-    S_ = pd.DataFrame(S).reindex(columns=x_prior_.index)
-    y_calc_ = _y_calc(x_prior, S, sparse=sparse)
+    S_ = pd.DataFrame(S).reindex(columns=x_prior_.index).fillna(0)
     y_extra_ = pd.Series(y_extra)
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
     # Model calculus:
-    S_ = pd.DataFrame(S).reindex(columns=x_prior_.index)
-    y_calc_ = _y_calc(x_prior, S, sparse=sparse)
+    y_calc_ = _y_calc(x_prior, S_, sparse=sparse)
     # Fix model calculus and extra information
-    y_calc_ = y_calc_.reindex(y_extra_.index)
-    S_ = S_.reindex(index=y_extra_.index)
+    y_calc_ = y_calc_.reindex(y_extra_.index).fillna(0)
+    S_ = S_.reindex(index=y_extra_.index).fillna(0)
     delta = y_extra_ - y_calc_
     # GLS update
     A = Vx_prior_._gls_general_sensitivity(S_, Vy_extra, sparse=sparse,
@@ -349,7 +346,7 @@ def ishikawa_factor(S, Vx_prior, Vy_extra, sparse=False):
     return pd.Series(Vy_values / Vy_extra_, index=index)
 
 
-def constrained_gls_update(x_prior, S, Vx_prior, sparse=True, threshold=None):
+def constrained_gls_update(x_prior, S, Vx_prior, sparse=False, threshold=None):
     """
     Perform Constrained Least-Squares update for a given variances, vectors
     and sensitivity:
@@ -392,13 +389,29 @@ def constrained_gls_update(x_prior, S, Vx_prior, sparse=True, threshold=None):
     dtype: float64
     """
     x_prior_ = pd.Series(x_prior)
-    S_ = pd.DataFrame(S).reindex(columns=x_prior_.index)
-    # Data in a appropriate format:
-    delta = _y_calc(x_prior, S_.T, sparse=sparse) - x_prior.dot(S_.T)
-    delta = delta.reindex(x_prior_.index)
+    original_index = x_prior_.index
+    S_ = pd.DataFrame(S).reindex(columns=x_prior_.index).fillna(0)
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    # Constrained Least-Square sensitivity
+    # Common calculation for sparse and no sparse:
+    y_calc = _y_calc(x_prior, S_.T, sparse=sparse)
+    index = y_calc.index
     A = Vx_prior_._constrained_gls_sensitivity(S, sparse=sparse,
                                                threshold=threshold).values
-    x_post = x_prior_ + delta.dot(A)
+    if sparse:
+        y_calc_sps = sps.coo_matrix(y_calc)
+        x_prior_sps = sps.coo_matrix(x_prior_)
+        S_sps = sps.csr_matrix(S_)
+        delta = y_calc_sps - x_prior_sps.dot(S_sps.T)
+        delta = pd.Series(delta.toarray()[0], index=index)
+    else:
+        delta = y_calc - x_prior.dot(S_.T)
+    # Data in a appropriate format:
+    delta = delta.reindex(original_index).fillna(0)
+    if sparse:
+        delta = sps.coo_matrix(delta)
+        A = sps.csr_matrix(A)
+        x_post = x_prior_sps + delta.dot(A)
+        x_post = pd.Series(x_post.toarray()[0], index=original_index)
+    else:
+        x_post = x_prior_ + delta.dot(A)
     return x_post

@@ -811,9 +811,10 @@ class CategoryCov():
         # GLS_sensitivity:
         Vy_calc = self._gls_Vy_calc(S, sparse=sparse)
         if Vy_extra is not None:
-            Vy_calc = Vy_calc.values
-            index = pd.DataFrame(Vy_extra).index  # Symmetry of cov matrix
-            Vy_extra_ = sandy.CategoryCov(Vy_extra).data.values
+            Vy_extra_ = sandy.CategoryCov(Vy_extra).data
+            index = Vy_extra_.index  # Symmetry of cov matrix
+            Vy_extra_ = Vy_extra_.values
+            Vy_calc = Vy_calc.reindex(index=index, columns=index).fillna(0).values
             if sparse:
                 Vy_calc = sps.csr_matrix(Vy_calc)
                 Vy_extra_ = sps.csr_matrix(Vy_extra_)
@@ -919,25 +920,25 @@ class CategoryCov():
         0	-2.00000e-01	2.00000e-01
         1	2.28571e-01	    5.71429e-02
 
-        >>> S = pd.DataFrame([[1, 2], [3, 4]], columns=[1, 2],index=[3, 4])
+        >>> S = pd.DataFrame([[1, 2], [3, 4]], index=[1, 2],columns=[3, 4])
         >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
         >>> sensitivity._gls_general_sensitivity(S, Vy_extra=Vy)
-                      3	              4
-        1	-2.00000e-01	2.00000e-01
-        2	2.28571e-01	    5.71429e-02
+                      1	              2
+        3	-2.00000e-01	2.00000e-01
+        4	2.28571e-01	    5.71429e-02
         >>> sensitivity._gls_general_sensitivity(S, Vy, sparse=True)
-                      3	              4
-        1	-2.00000e-01	2.00000e-01
-        2	2.28571e-01	    5.71429e-02
+                      1	              2
+        3	-2.00000e-01	2.00000e-01
+        4	2.28571e-01	    5.71429e-02
         >>> sensitivity._gls_general_sensitivity(S, sparse=True)
-            	      3	              4
-        1	-2.00000e+00	1.00000e+00
-        2	1.50000e+00	-5.00000e-01
+            	      1	              2
+        3	-2.00000e+00	1.00000e+00
+        4	1.50000e+00	-5.00000e-01
         >>> sensitivity._gls_general_sensitivity(S)
-            	      3	              4
-        1	-2.00000e+00	1.00000e+00
-        2	1.50000e+00	-5.00000e-01
+            	      1	              2
+        3	-2.00000e+00	1.00000e+00
+        4	1.50000e+00	-5.00000e-01
         """
         index, columns = pd.DataFrame(S).columns, pd.DataFrame(S).index
         S_ = pd.DataFrame(S).values
@@ -1051,17 +1052,17 @@ class CategoryCov():
         0	4.00000e-01	4.00000e-01
         1	4.00000e-01	6.85714e-01
 
-        >>> S = pd.DataFrame([[1, 2], [3, 4]], columns =[1, 2],index=[3, 4])
+        >>> S = pd.DataFrame([[1, 2], [3, 4]], index=[1, 2],columns=[3, 4])
         >>> var = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
         >>> var._gls_cov_sensitivity(S, Vy)
-                      1	          2
-        1	4.00000e-01	4.00000e-01
-        2	4.00000e-01	6.85714e-01
+                      3	          4
+        3	4.00000e-01	4.00000e-01
+        4	4.00000e-01	6.85714e-01
         >>> var._gls_cov_sensitivity(S, Vy)
-                      1	          2
-        1	4.00000e-01	4.00000e-01
-        2	4.00000e-01	6.85714e-01
+                      3	          4
+        3	4.00000e-01	4.00000e-01
+        4	4.00000e-01	6.85714e-01
         """
         index = columns = pd.DataFrame(S).columns
         S_ = pd.DataFrame(S).values
