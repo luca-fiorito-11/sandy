@@ -80,6 +80,8 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False,
     """
     # Put data in a appropiate format
     x_prior_ = pd.Series(x_prior)
+    S_ = pd.DataFrame(S).reindex(columns=x_prior_.index)
+    y_calc_ = _y_calc(x_prior, S, sparse=sparse)
     y_extra_ = pd.Series(y_extra)
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
     # Model calculus:
@@ -88,7 +90,6 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False,
     # Fix model calculus and extra information
     y_calc_ = y_calc_.reindex(y_extra_.index)
     S_ = S_.reindex(index=y_extra_.index)
-    # Delta calculation
     delta = y_extra_ - y_calc_
     # GLS update
     A = Vx_prior_._gls_general_sensitivity(S_, Vy_extra, sparse=sparse,
