@@ -99,6 +99,8 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False,
         x_post = pd.Series(x_post, index=index)
     else:
         x_post = x_prior_ + A.dot(delta)
+    if threshold is not None:
+        x_post[abs(x_post) < threshold] = 0
     return x_post
 
 
@@ -391,27 +393,27 @@ def constrained_gls_update(x_prior, S, Vx_prior, sparse=False, threshold=None):
     x_prior_ = pd.Series(x_prior)
     original_index = x_prior_.index
     S_ = pd.DataFrame(S).reindex(columns=x_prior_.index).fillna(0)
+    index = S_.index
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
     # Common calculation for sparse and no sparse:
-    y_calc = _y_calc(x_prior, S_.T, sparse=sparse)
-    index = y_calc.index
-    A = Vx_prior_._constrained_gls_sensitivity(S, sparse=sparse,
-                                               threshold=threshold).values
+    y_calc = _y_calc(x_prior, S_.T, sparse=sparse).reindex(index).fillna(0)
+    A = Vx_prior_._constrained_gls_sensitivity(S_, sparse=sparse,
+                                               threshold=threshold)
     if sparse:
-        y_calc_sps = sps.coo_matrix(y_calc)
         x_prior_sps = sps.coo_matrix(x_prior_)
         S_sps = sps.csr_matrix(S_)
-        delta = y_calc_sps - x_prior_sps.dot(S_sps.T)
-        delta = pd.Series(delta.toarray()[0], index=index)
+        diff = x_prior_sps.dot(S_sps.T)
+        diff = pd.Series(diff.toarray()[0], index=index)
     else:
-        delta = y_calc - x_prior.dot(S_.T)
-    # Data in a appropriate format:
-    delta = delta.reindex(original_index).fillna(0)
+        diff = x_prior_.dot(S_.T)
+    delta = y_calc - diff
     if sparse:
         delta = sps.coo_matrix(delta)
-        A = sps.csr_matrix(A)
+        A = sps.csr_matrix(A.values)
         x_post = x_prior_sps + delta.dot(A)
         x_post = pd.Series(x_post.toarray()[0], index=original_index)
     else:
         x_post = x_prior_ + delta.dot(A)
+    if threshold is not None:
+        x_post[abs(x_post) < threshold] = 0
     return x_post

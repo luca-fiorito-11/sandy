@@ -595,7 +595,7 @@ class Fy():
         data = pd.concat([data, calc_values], ignore_index=True)
         return self.__class__(data)
 
-    def gls_cov_update(self, zam, e, Vy_extra,
+    def gls_cov_update(self, zam, e, Vy_extra=None,
                        kind='mass yield', decay_data=None, sparse=False,
                        threshold=None):
         """
@@ -613,7 +613,7 @@ class Fy():
             applied.
         e : `float`
             Energy to which calculations are to be applied.
-        Vy_extra : 2D iterable.
+        Vy_extra : 2D iterable, optional
             Extra Covariance matrix (MXM).
         kind : `str`, optional
             Keyword for obtaining sensitivity. The default is 'mass yield'.
@@ -669,6 +669,13 @@ class Fy():
         591481	-1.67096e-03	 4.55502e-02	-4.34448e-04
         601480	-3.50901e-04	-4.34448e-04	 9.90877e-03
 
+        >>> npfy.gls_cov_update(942390, 500e3, kind='cumulative', decay_data=decay_fytest, threshold=1e-14)
+        ZAP	         591480	     591481	     601480
+        ZAP
+        591480	0.00000e+00	0.00000e+00	0.00000e+00
+        591481	0.00000e+00	0.00000e+00	0.00000e+00
+        601480	4.00000e-02	5.00000e-02	1.00000e-02
+
         >>> zam = [591480, 591481, 601480]
         >>> chain_var_extra = np.diag(pd.Series([1, 1, 1]))
         >>> index = pd.Index([147, 148, 149])
@@ -693,12 +700,26 @@ class Fy():
         591481	-1.81818e-03	 4.77273e-02	-4.54545e-04
         601480	-3.63636e-04	-4.54545e-04	 9.90909e-03
 
+        >>> npfy.gls_cov_update(942390, 500e3)
+        ZAP	          591480	      591481	      601480
+        ZAP
+        591480	 2.40000e-02	-2.00000e-02	-4.00000e-03
+        591481	-2.00000e-02	 2.50000e-02	-5.00000e-03
+        601480	-4.00000e-03	-5.00000e-03	 9.00000e-03        
+
         >>> npfy.gls_cov_update(942390, 500e3, chain_var_extra, sparse=True)
         ZAP	          591480	      591481	      601480
         ZAP
         591480	 3.85455e-02	-1.81818e-03	-3.63636e-04
         591481	-1.81818e-03	 4.77273e-02	-4.54545e-04
         601480	-3.63636e-04	-4.54545e-04	 9.90909e-03
+
+        >>> npfy.gls_cov_update(942390, 500e3, sparse=True)
+        ZAP	          591480	      591481	      601480
+        ZAP
+        591480	 2.40000e-02	-2.00000e-02	-4.00000e-03
+        591481	-2.00000e-02	 2.50000e-02	-5.00000e-03
+        601480	-4.00000e-03	-5.00000e-03	 9.00000e-03
         """
         # Divide the data type:
         conditions = {'ZAM': zam, "E": e}
@@ -711,13 +732,19 @@ class Fy():
             model_sensitivity_object = self._filters(conditions)
         elif kind == 'cumulative' or 'chain yield':
             model_sensitivity_object = decay_data
-        Vy_extra_ = pd.DataFrame(Vy_extra)
         S = _gls_setup(model_sensitivity_object, kind)\
-            .reindex( index=Vy_extra_.index,columns=Vx_prior.data.columns).fillna(0)
-        return Vx_prior.gls_update(S, Vy_extra_, sparse=sparse,
-                                   threshold=threshold).data
+            .reindex(columns=Vx_prior.data.columns).fillna(0)
+        if Vy_extra is not None:
+            Vy_extra_ = pd.DataFrame(Vy_extra)
+            S = S.reindex(index=Vy_extra_.index).fillna(0)
+            Vx_post = Vx_prior.gls_update(S, Vy_extra_, sparse=sparse,
+                                          threshold=threshold).data
+        else:
+            Vx_post = Vx_prior.constrained_gls_update(S, sparse=sparse,
+                                                      threshold=threshold).data
+        return Vx_post
 
-    def gls_update(self, zam, e, y_extra, Vy_extra,
+    def gls_update(self, zam, e, y_extra=None, Vy_extra=None,
                    kind='mass yield', decay_data=None, sparse=False,
                    threshold=None):
         """
@@ -734,9 +761,9 @@ class Fy():
             applied.
         e : `float`
             Energy to which calculations are to be applied.
-        y_extra : 1D iterable
+        y_extra : 1D iterable, optional
             New value of the vector.
-        Vy_extra : 2D iterable
+        Vy_extra : 2D iterable, optional
             2D covariance matrix for y_extra (MXM).
         kind : `str`, optional
             Keyword for obtaining sensitivity. The
@@ -785,11 +812,20 @@ class Fy():
         4  9437  454  942390  591481 5.00000e+05 1.78234e-01 4.55502e-02
         5  9437  454  942390  601480 5.00000e+05 2.96429e-01 9.90877e-03
 
+        >>> npfy.gls_update(942390, 500e3, kind='cumulative', decay_data=decay_fytest, threshold = 1e-14)
+            MAT   MT     ZAM     ZAP           E           FY         DFY
+        0  9437  459  942390  591480 5.00000e+05  8.00000e-01 4.00000e-02
+        1  9437  459  942390  591481 5.00000e+05  1.00000e+00 5.00000e-02
+        2  9437  459  942390  601480 5.00000e+05  2.00000e-01 1.00000e-02
+        3  9437  454  942390  591480 5.00000e+05  8.80000e-01 0.00000e+00
+        4  9437  454  942390  591481 5.00000e+05  1.10000e+00 0.00000e+00
+        5  9437  454  942390  601480 5.00000e+05 -9.48000e-01 1.00000e-02
+
         >>> index = pd.Index([147, 148, 149])
         >>> chain_extra = pd.Series([0, 0.1, 0.2], index=index)
         >>> chain_var_extra = np.diag(pd.Series([1, 1, 1]))
         >>> chain_var_extra = pd.DataFrame(chain_var_extra, index=index, columns=index)
-        >>> npfy.gls_update(942390, 500e3, chain_extra, chain_var_extra, decay_data=decay_fytest)
+        >>> npfy.gls_update(942390, 500e3, chain_extra, chain_var_extra)
             MAT   MT     ZAM     ZAP           E          FY         DFY
         0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
         1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
@@ -798,7 +834,7 @@ class Fy():
         4  9437  454  942390  591481 5.00000e+05 1.77273e-01 4.77273e-02
         5  9437  454  942390  601480 5.00000e+05 2.95455e-01 9.90909e-03
 
-        >>> npfy.gls_update(942390, 500e3, chain_extra, chain_var_extra, decay_data=decay_fytest, sparse=True)
+        >>> npfy.gls_update(942390, 500e3, chain_extra, chain_var_extra, sparse=True)
             MAT   MT     ZAM     ZAP           E          FY         DFY
         0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
         1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
@@ -826,11 +862,19 @@ class Fy():
             model_sensitivity_object = decay_data
         S = _gls_setup(model_sensitivity_object, kind)
         # Perform GLS:
-        x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
-                                  sparse=sparse, threshold=threshold)
-        Vx_post = self.gls_cov_update(zam, e, Vy_extra,
-                                      kind=kind, decay_data=decay_data,
+        if y_extra is None and Vy_extra is None:
+            x_post = sandy.constrained_gls_update(x_prior, S, Vx_prior,
+                                                  sparse=sparse,
+                                                  threshold=threshold)
+            Vx_post = self.gls_cov_update(zam, e, kind=kind,
+                                          decay_data=decay_data, sparse=sparse,
+                                          threshold=threshold)
+        else:
+            x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
                                       sparse=sparse, threshold=threshold)
+            Vx_post = self.gls_cov_update(zam, e, Vy_extra,
+                                          kind=kind, decay_data=decay_data,
+                                          sparse=sparse, threshold=threshold)
         # Results in appropriate format:
         calc_values = x_post.rename('FY').reset_index()
         calc_values['DFY'] = pd.Series(np.diag(Vx_post)).values

@@ -526,7 +526,7 @@ class CategoryCov():
         data = lu.solve(eye)
         M_inv = CategoryCov._restore_size(M_nonzero_idxs, data,
                                           len(self.data)).data
-        M_inv = M_inv.reindex(index=index, columns=columns)
+        M_inv = M_inv.reindex(index=index, columns=columns).fillna(0)
         return self.__class__(M_inv)
 
     def sampling(self, nsmp, seed=None):
@@ -820,7 +820,7 @@ class CategoryCov():
                 Vy_extra_ = sps.csr_matrix(Vy_extra_)
             # G calculation
             G = Vy_calc + Vy_extra_
-            if sparse is True:
+            if sparse:
                 G = G.toarray()
             G = pd.DataFrame(G, index=index, columns=index)
         else:
@@ -878,7 +878,7 @@ class CategoryCov():
         """
         if Vy_extra is not None:
             index = pd.DataFrame(Vy_extra).index
-            G = self._gls_G(S, Vy_extra, sparse=sparse).values
+            G = self._gls_G(S, Vy_extra=Vy_extra, sparse=sparse).values
         else:
             index = pd.DataFrame(S).index
             G = self._gls_Vy_calc(S, sparse=sparse).values
@@ -953,7 +953,7 @@ class CategoryCov():
             Vx_prior = self.data.values
             sensitivity = Vx_prior.dot(S_.T).dot(G_inv)
         if threshold is not None:
-            sensitivity[sensitivity < threshold] = 0
+            sensitivity[abs(sensitivity) < threshold] = 0
         return pd.DataFrame(sensitivity, index=index, columns=columns)
 
     def _constrained_gls_sensitivity(self, S, sparse=False, threshold=None):
@@ -1015,7 +1015,7 @@ class CategoryCov():
             # constrained Least Squares sensitivity
             sensitivity = G_inv.dot(S_).dot(Vx_prior)
         if threshold is not None:
-            sensitivity[sensitivity < threshold] = 0
+            sensitivity[abs(sensitivity) < threshold] = 0
         return pd.DataFrame(sensitivity, index=index, columns=columns)
 
     def _gls_cov_sensitivity(self, S, Vy_extra=None, sparse=False, threshold=None):
@@ -1077,7 +1077,7 @@ class CategoryCov():
         if sparse:
             cov_sens = cov_sens.toarray()
         if threshold is not None:
-            cov_sens[cov_sens < threshold] = 0
+            cov_sens[abs(cov_sens) < threshold] = 0
         return pd.DataFrame(cov_sens, index=index, columns=columns)
 
     def gls_update(self, S, Vy_extra=None, sparse=False, threshold=None):
@@ -1131,6 +1131,8 @@ class CategoryCov():
             Vx_prior = self.data.values
             # gls update
             Vx_post = Vx_prior - A.dot(Vx_prior)
+        if threshold is not None:
+            Vx_post[abs(Vx_post) < threshold] = 0
         return self.__class__(pd.DataFrame(Vx_post, index=index, columns=columns))
 
     def constrained_gls_update(self, S, sparse=False, threshold=None):
@@ -1170,12 +1172,7 @@ class CategoryCov():
         >>> var_update = var.constrained_gls_update(S, sparse=True).data.round(decimals=6)
         >>> assert np.amax(var_update.values) == 0.0
         """
-        if sparse:
-            Vy_extra = None
-        else:
-            Vy_extra = pd.DataFrame(0, index=self.data.index,
-                                    columns=self.data.columns)
-        return self.gls_update(S, Vy_extra=Vy_extra, sparse=sparse, threshold=threshold)
+        return self.gls_update(S, Vy_extra=None, sparse=sparse, threshold=threshold)
 
     def sandwich(self, S, sparse=True, threshold=None):
         """
