@@ -186,6 +186,11 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False):
 
     Example
     -------
+    >>> x_prior = [1, 2, 3]
+    >>> y_extra = pd.Series([2, 3, 4], index=[1, 2, 3])
+    >>> S = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3])
+    >>> Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
+    >>> Vy_extra = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3], columns=[1, 2, 3])
     >>> chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra)
     1   1.00000e+00
     2   5.00000e-01
@@ -198,10 +203,13 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    G = Vx_prior_._gls_G(S, Vy_extra, sparse=sparse)
-    G = np.sqrt(np.diag(G))
-    y_calc_ = _y_calc(x_prior, S, sparse=sparse).values
     y_extra_ = pd.Series(y_extra)
+    S_ = pd.DataFrame(S).reindex(columns=Vx_prior_.data.index).fillna(0)
+    y_calc_ = _y_calc(x_prior, S_, sparse=sparse)
+    S_ = S_.reindex(index=y_extra_.index).fillna(0)
+    y_calc_ = y_calc_.reindex(index=y_extra_.index).fillna(0).values
+    G = Vx_prior_._gls_G(S_, Vy_extra, sparse=sparse)
+    G = np.sqrt(np.diag(G))
     delta = np.abs(y_extra_.values - y_calc_)
     return pd.Series(delta / G, index=y_extra_.index)
 
@@ -235,6 +243,12 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False):
 
     Example
     -------
+    >>> x_prior = [1, 2, 3]
+    >>> y_extra = pd.Series([2, 3, 4], index=[1, 2, 3])
+    >>> S = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3])
+    >>> Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
+    >>> Vy_extra = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3], columns=[1, 2, 3])
+    >>> N_e = 1
     >>> chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra)
     1   1.00000e+00
     2   2.00000e+00
@@ -247,10 +261,13 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    G_inv = Vx_prior_._gls_G_inv(S, Vy_extra, sparse=sparse).values
-    G_inv = np.sqrt(np.diag(G_inv))
-    y_calc_ = _y_calc(x_prior, S, sparse=sparse).values
     y_extra_ = pd.Series(y_extra)
+    S_ = pd.DataFrame(S).reindex(columns=Vx_prior_.data.index).fillna(0)
+    y_calc_ = _y_calc(x_prior, S_, sparse=sparse)
+    S_ = S_.reindex(index=y_extra_.index).fillna(0)
+    y_calc_ = y_calc_.reindex(index=y_extra_.index).fillna(0).values
+    G_inv = Vx_prior_._gls_G_inv(S_, Vy_extra=Vy_extra, sparse=sparse).values
+    G_inv = np.sqrt(np.diag(G_inv))
     delta = np.abs(y_extra_.values - y_calc_)
     return pd.Series(delta / G_inv, index=y_extra_.index)
 
@@ -297,9 +314,11 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e, sparse=False):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    G_inv = Vx_prior_._gls_G_inv(S, Vy_extra, sparse=sparse).values
-    y_calc_ = _y_calc(x_prior, S, sparse=sparse).values
     y_extra_ = pd.Series(y_extra)
+    S_ = pd.DataFrame(S).reindex(columns=Vx_prior_.data.index,
+                                 index=y_extra_.index).fillna(0)
+    G_inv = Vx_prior_._gls_G_inv(S_, Vy_extra, sparse=sparse).values
+    y_calc_ = _y_calc(x_prior, S, sparse=sparse).values
     delta = y_extra_.values - y_calc_
     chi_square = delta.T.dot(G_inv) * delta / N_e
     return pd.Series(chi_square, index=y_extra_.index)
@@ -341,10 +360,13 @@ def ishikawa_factor(S, Vx_prior, Vy_extra, sparse=False):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    Vy_calc = Vx_prior_._gls_Vy_calc(S, sparse=sparse)
-    Vy_values = np.diag(Vy_calc)
-    Vy_extra_ = np.diag(pd.DataFrame(Vy_extra).values)
-    index = pd.DataFrame(Vy_extra).index
+    Vy_extra_ = pd.DataFrame(Vy_extra)
+    index = Vy_extra_.index
+    S_ = pd.DataFrame(S).reindex(columns=Vx_prior_.data.index,
+                                 index=index).fillna(0)
+    Vy_calc_ = Vx_prior_._gls_Vy_calc(S_, sparse=sparse)
+    Vy_values = np.diag(Vy_calc_)
+    Vy_extra_ = np.diag(Vy_extra_.values)
     return pd.Series(Vy_values / Vy_extra_, index=index)
 
 

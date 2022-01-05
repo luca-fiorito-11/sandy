@@ -812,7 +812,7 @@ class CategoryCov():
         Vy_calc = self._gls_Vy_calc(S, sparse=sparse)
         if Vy_extra is not None:
             Vy_extra_ = sandy.CategoryCov(Vy_extra).data
-            index = Vy_extra_.index  # Symmetry of cov matrix
+            index = pd.DataFrame(Vy_extra).index  # Symmetry of cov matrix
             Vy_extra_ = Vy_extra_.values
             Vy_calc = Vy_calc.reindex(index=index, columns=index).fillna(0).values
             if sparse:

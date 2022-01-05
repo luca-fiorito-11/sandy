@@ -618,9 +618,10 @@ class Fy():
         kind : `str`, optional
             Keyword for obtaining sensitivity. The default is 'mass yield'.
         decay_data : `DecayData`, optional
-            Object to change the model to CFY = Q*IFY, so the sensitivity (S)
-            is Q. The default is None, so the model is ChY = ChY_sens*IFY and
-            the sensitivity is mass yield sensitivity.
+            Object to change the model to CFY = Q*IFY or Ch_chain = S_chain*IFY,
+            so the sensitivity (S) is Q or S_chain. The default is None,
+            so the model is ChY = ChY_mass*IFY and the sensitivity is mass
+            yield sensitivity.
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
         threshold : `int`, optional
@@ -762,9 +763,10 @@ class Fy():
             Keyword for obtaining sensitivity. The
             default is 'mass yield'.
         decay_data : `DecayData`, optional
-            Object to change the model to CFY = Q*IFY, so the sensitivity (S)
-            is Q. The default is None, so the model is ChY = ChY_sens*IFY and
-            the sensitivity is mass yield sensitivity.
+            Object to change the model to CFY = Q*IFY or Ch_chain = S_chain*IFY,
+            so the sensitivity (S) is Q or S_chain. The default is None,
+            so the model is ChY = ChY_mass*IFY and the sensitivity is mass
+            yield sensitivity.
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
         threshold : `int`, optional
@@ -865,6 +867,104 @@ class Fy():
         calc_values[['MAT', 'ZAM', 'MT', 'E']] = [mat, zam, 454, e]
         data = pd.concat([data, calc_values], ignore_index=True)
         return self.__class__(data)
+
+    def ishikawa_factor(self, zam, e, Vy_extra,
+                        kind='mass yield', decay_data=None, sparse=False,
+                        threshold=None):
+        """
+        Ishikawa factor to determine whether the experiment from where we 
+        obtain model sensitivity is useful to reduce the IFY uncertainty
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which calculations are to be
+            applied.
+        e : `float`
+            Energy to which calculations are to be applied.
+        Vy_extra : 2D iterable
+            2D covariance matrix for y_extra (MXM).
+        kind : `str`, optional
+            Keyword for obtaining sensitivity. The
+            default is 'mass yield'.
+        decay_data : `DecayData`, optional
+            Object to change the model to CFY = Q*IFY or Ch_chain = S_chain*IFY,
+            so the sensitivity (S) is Q or S_chain. The default is None,
+            so the model is ChY = ChY_mass*IFY and the sensitivity is mass
+            yield sensitivity.
+        sparse : `bool`, optional
+            Option to use sparse matrix for calculations. The default is False.
+        threshold : `int`, optional
+            Optional argument to avoid numerical fluctuations or
+            values so small that they do not have to be taken into
+            account. The default is None.
+
+        Returns
+        -------
+        ishikawa : `pd.Series`
+            Ishikawa factor.
+
+        Results:
+        -------
+        Ishikawa factor << 1 :
+            The extra data is not so useful and the data is unchanged.
+        Ishikawa factor >> 1 :
+            The extra data very useful and the 'posteriori' covariance will
+            be reduced to the same level as the integral parameter covariance.
+        Ishikawa factor ~ 1 :
+            The experiment is useful and the 'posteriori'  covariance will be
+            reduced by approximately half
+
+        Examples
+        --------
+        >>> zam = [591480, 591481, 601480]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
+        >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1]))
+        >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
+        >>> npfy = sandy.Fy(minimal_fytest_2)
+        >>> npfy.ishikawa_factor(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest)
+        591480   4.00000e-02
+        591481   5.00000e-02
+        601480   1.00000e-01
+        dtype: float64
+        >>> npfy.ishikawa_factor(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest, sparse=True)
+        591480   4.00000e-02
+        591481   5.00000e-02
+        601480   1.00000e-01
+        dtype: float64
+
+        >>> A = [147, 148, 149]
+        >>> Chain_var_extra = np.diag(pd.Series([1, 1, 1]))
+        >>> Chain_var_extra = pd.DataFrame(Chain_var_extra, index=A, columns=A)
+        >>> npfy = sandy.Fy(minimal_fytest_2)
+        >>> npfy.ishikawa_factor(942390, 500e3, Chain_var_extra)
+        147   0.00000e+00
+        148   1.00000e-01
+        149   0.00000e+00
+        dtype: float64
+        >>> npfy.ishikawa_factor(942390, 500e3, Chain_var_extra, sparse=True)
+        147   0.00000e+00
+        148   1.00000e-01
+        149   0.00000e+00
+        dtype: float64
+        """
+        # Filter FY data:
+        conditions = {'ZAM': zam, "E": e}
+        fy_data = self._filters(conditions).data.set_index('ZAP')
+        Vx_prior = fy_data.query('MT==454').DFY
+        Vx_prior = sandy.CategoryCov.from_var(Vx_prior, sparse=sparse).data
+        # Find the GLS sensitivity:
+        if kind == 'mass yield':
+            model_sensitivity_object = self._filters(conditions)
+        elif kind == 'cumulative' or 'chain yield':
+            model_sensitivity_object = decay_data
+        S = _gls_setup(model_sensitivity_object, kind)
+        # Perform Ishikawa factor:
+        ishikawa = sandy.ishikawa_factor(S, Vx_prior, Vy_extra, sparse=sparse)
+        if threshold is not None:
+            ishikawa[abs(ishikawa) < threshold] = 0
+        return ishikawa
 
     def _filters(self, conditions):
         """
