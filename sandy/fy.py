@@ -254,13 +254,12 @@ class Fy():
 
     def get_chain_yield(self, zam, e, decay_data, sparse=False, **kwargs):
         """
-        Obtain mass yield from the following model: ChY = S * IFY
+        Obtain chain yield from the following model: ChY = S * IFY
 
         Parameters
         ----------
         zam : `int`
-            ZAM number of the material to which perturbations are to be
-            applied.
+            ZAM number of the material from chain yield is going to be obtained.
         e : `float`
             Energy of the fissioning system.
         decay_data : `sandy.DecayData`
@@ -273,7 +272,7 @@ class Fy():
         Returns
         -------
         `pandas.Series`
-            chain yield obtained from ChY = S * IFY
+            Chain yield obtained from ChY = S * IFY
 
         Examples
         --------
@@ -473,7 +472,7 @@ class Fy():
             C = unit - B.values
             sensitivity = pd.DataFrame(C, index=index, columns=columns)
         # Rest of the data
-        mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e) & (data.MAT == mat)
+        mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e)
         fy_data = fy_data.reindex(columns).fillna(0)
         data = data.loc[~mask]
         fy_data = fy_data.reindex(columns).fillna(0)
@@ -576,7 +575,7 @@ class Fy():
             original_index = fy_data.index
         Q = decay_data.get_qmatrix()
         # Put the data in a approppiate format:
-        mask = (data.ZAM == zam) & (data.MT == 459) & (data.E == energy) & (data.MAT == mat)
+        mask = (data.ZAM == zam) & (data.MT == 459) & (data.E == energy)
         data = data.loc[~mask]
         fy_data = fy_data.reindex(Q.columns).fillna(0)
         cov_data = cov_data.reindex(Q.columns).fillna(0)
@@ -836,7 +835,7 @@ class Fy():
         mat = fy_data.MAT.iloc[0]
         fy_data = fy_data.set_index('ZAP')[['MT', 'FY', 'DFY']]
         # Divide the data:
-        mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e) & (data.MAT == mat)
+        mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e)
         data = data.loc[~mask]
         x_prior = fy_data.query('MT==454').FY
         Vx_prior = fy_data.query('MT==454').DFY
