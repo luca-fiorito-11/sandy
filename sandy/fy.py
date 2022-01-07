@@ -906,7 +906,7 @@ class Fy():
         Results:
         -------
         Ishikawa factor << 1 :
-            The extra data is not so useful and the data is unchanged.
+            The extra data is not so useful and the data remain unchanged.
         Ishikawa factor >> 1 :
             The extra data very useful and the 'posteriori' covariance will
             be reduced to the same level as the integral parameter covariance.

@@ -184,6 +184,12 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False):
     `pd.Series`
         individual chi-value measured in sigmas.
 
+    Results:
+    -------
+    chi individual >> 1 :
+        Inconsistency may exist between |y_extra - y_calc| and covariance
+        matrix, S*Vx_prior*S.T, and Vy_extra.
+
     Example
     -------
     >>> x_prior = [1, 2, 3]
@@ -240,6 +246,12 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False):
     -------
     `pd.Series`
         diagonal chi-value measured in sigmas $\chi_{ind,i}$>>1
+
+    Results:
+    -------
+    chi diagonal >> 1 :
+        Inconsistency may exist between |y_extra - y_calc| and covariance
+        matrix, S*Vx_prior*S.T, and Vy_extra.
 
     Example
     -------
@@ -300,6 +312,11 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e, sparse=False):
     `pd.Series`
         contribution to chi-square value
 
+    Results:
+    -------
+    chi square < 0 :
+        The experiment is very effective in the adjustment.
+
     Example
     -------
     >>> chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e)
@@ -345,6 +362,17 @@ def ishikawa_factor(S, Vx_prior, Vy_extra, sparse=False):
     -------
     `pd.Series`
         Ishikawa factor.
+
+    Results:
+    -------
+    Ishikawa factor << 1 :
+        The extra data is not so useful and the data remain unchanged.
+    Ishikawa factor >> 1 :
+        The extra data very useful and the 'posteriori' covariance will
+        be reduced to the same level as the integral parameter covariance.
+    Ishikawa factor ~ 1 :
+        The experiment is useful and the 'posteriori'  covariance will be
+        reduced by approximately half
 
     Example
     -------
