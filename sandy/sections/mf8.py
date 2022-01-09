@@ -644,7 +644,7 @@ def _write_rdd(sec):
                                       0,
                                       [0]*6,
                                       )
-        elif sec['NST'] == 0:
+        if sec['NST'] == 0:
             lines = sandy.write_cont(sec["ZA"],
                                      sec["AWR"],
                                      sec['LIS'],
@@ -710,7 +710,7 @@ def _write_rdd(sec):
                             0,
                             list(discr.values())[1:],
                             )
-                elif spectra['LCON'] != 1 and 'CONT' not in sec['SPECTRA'][STYP].keys() and 'ER' not in sec['SPECTRA'][STYP].keys():
+                if spectra['LCON'] != 1 and 'CONT' not in sec['SPECTRA'][STYP].keys() and 'ER' not in sec['SPECTRA'][STYP].keys():
                     add = [
                         spectra['FD'],
                         spectra['DFD'],
@@ -727,7 +727,7 @@ def _write_rdd(sec):
                         0,
                         add
                         )
-                if spectra['LCON'] != 0 and 'CONT' in list(sec['SPECTRA'][STYP].keys()):
+                elif spectra['LCON'] != 0 and 'CONT' in sec['SPECTRA'][STYP].keys():
                     if spectra['LCON'] < 2:
                         add = [
                             spectra['FD'],
