@@ -9,6 +9,7 @@ import pytest  # used in docstrings
 import tempfile  # used in docstrings
 import yaml  # used in docstrings
 import h5py
+import copy
 from math import sqrt
 
 
@@ -99,7 +100,7 @@ class DecayData():
         for zam, data in self.data.items():
             if data["stable"]:
                 continue
-            for decay_mode in data["decay_modes"].values():
+            for key, decay_mode in data["decay_modes"]:
                 # number_del_neuts = f"{rdtp}".count("5")
                 daughters = decay_mode["decay_products"]
                 if 10 in daughters:
@@ -121,6 +122,7 @@ class DecayData():
         Parameters
         ----------
         with_uncertainty : `bool`, optional, default is 'True'
+            makes the method return lamdba and its uncertainty if set equal True
 
         Returns
         -------
@@ -134,8 +136,15 @@ class DecayData():
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> DC = sandy.DecayData.get_decayconstant(rdd)
         >>> print(DC)
-                   DLAMBDA      LAMBDA
-           922350 2.21715e-20 3.12085e-17
+                DLAMBDA      LAMBDA
+        922350 2.21715e-20 3.12085e-17
+
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", 942390)
+        >>> rdd = sandy.DecayData.from_endf6(endf6)
+        >>> DC = sandy.DecayData.get_decayconstant(rdd, False)
+        >>> print(DC)
+        942390   9.10900e-13
+        Name: LAMBDA, dtype: float64
         """
         decay_constant = {zam: {
              "LAMBDA": dic['decay_constant'],
@@ -147,6 +156,78 @@ class DecayData():
             return df
         else:
             return df.LAMBDA
+
+    def custom_perturbation_decayconstant(self, pert, zam):
+        """
+        Apply a custom perturbation to the decay constant for a given ZAM.
+
+        Parameters
+        ----------
+        pert : `float`
+            Perturbation coefficient as ratio value.
+        zam : `int`
+            ZAM number of the material to which perturbation is to be
+            applied.
+
+        Returns
+        -------
+        `sandy.decay.DecayData`
+            DacayData instance with given ZAM and decay constant perturbed.
+
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', [922350, 922380])
+        >>> rdd = sandy.DecayData.from_endf6(endf6)
+        >>> dc_pert = rdd.custom_perturbation_decayconstant(0.1, 922350)
+        >>> dc_pert.data
+        {922350: {'half_life': 2.22102e+16,
+          'decay_constant': 3.432935762018982e-17,
+          'decay_constant_uncertainty': 2.2171470275223715e-20,
+          'stable': False,
+          'spin': 3.5,
+          'parity': -1.0,
+          'decay_energy': {'beta': 50671.7,
+           'gamma': 163616.0,
+           'alpha': 4464600.0,
+           'total': 4678887.7},
+          'decay_energy_uncertainties': {'beta': 4291.63,
+           'gamma': 1708.01,
+           'alpha': 163255.0,
+           'total': 163320.33067324167},
+          'decay_modes': [('40x0',
+            {'decay_products': {902310: 1.0, 20040: 1.0},
+             'branching_ratio': 1.0,
+             'branching_ratio_uncertainty': 0.0001}),
+           ('60x0',
+            {'decay_products': {},
+             'branching_ratio': 7.2e-11,
+             'branching_ratio_uncertainty': 2.1e-11})]},
+         922380: {'half_life': 1.40996e+17,
+          'decay_constant': 4.916076913954618e-18,
+          'decay_constant_uncertainty': 3.3008662253228094e-21,
+          'stable': False,
+          'spin': 0.0,
+          'parity': 1.0,
+          'decay_energy': {'beta': 10208.3,
+           'gamma': 1100.17,
+           'alpha': 4258770.0,
+           'total': 4270078.47},
+          'decay_energy_uncertainties': {'beta': 851.158,
+           'gamma': 104.433,
+           'alpha': 29639.0,
+           'total': 29651.4029548764},
+          'decay_modes': [('40x0',
+            {'decay_products': {902340: 1.0, 20040: 1.0},
+             'branching_ratio': 0.999999,
+             'branching_ratio_uncertainty': 1e-08}),
+           ('60x0',
+            {'decay_products': {},
+             'branching_ratio': 5.46e-07,
+             'branching_ratio_uncertainty': 1e-08})]}}
+        """
+        pert_dc = copy.deepcopy(self.data)
+        pert_dc[zam]['decay_constant'] = pert_dc[zam]['decay_constant'] * (1 + pert)
+        return self.__class__(pert_dc)
 
     def get_decay_chains(self, skip_parents=False, **kwargs):
         """
@@ -191,7 +272,7 @@ class DecayData():
                 items.append(add)
             if nucl["stable"]:
                 continue
-            for decay_mode in nucl["decay_modes"].values():
+            for key, decay_mode in nucl["decay_modes"]:
                 br = decay_mode["branching_ratio"]
                 if "decay_products" not in decay_mode:
                     continue  # S.F.
@@ -209,6 +290,50 @@ class DecayData():
                .sort_values(by=["PARENT", "DAUGHTER"]) \
                .reset_index(drop=True)[columns]
         return df
+
+    def get_chain_yield_sensitivity(self, **kwargs):
+        """
+        Extract chain fission yield sensitivity matrix.
+        - Columns: nucleus represented by the ZAP (`Z*1000 + A*10 + M`).
+        - Index: Mass number(A)
+        - values: 1 (in the row (A) of that nucleus if it is stable or in the
+        mass number of the products in which it decays) or a fraction
+        (if that nucleus has more than one path to decay, the fraction
+        represent the probability of decaying along that path. As in the
+        previous case, the fraction is located in the mass number of the
+        final nucleus).
+
+        Parameters
+        ----------
+        kwargs : `dict`
+            keyword arguments for method `get_decay_chains`
+
+        Returns
+        -------
+        `pandas.DataFrame`
+             associated to the given decay chains
+
+        Examples
+        --------
+        >>> zam = [10010, 10020, 10030, 10040, 10050, 10060, 922350]
+        >>> tape = sandy.get_endf6_file("jeff_33",'decay', zam)
+        >>> decay_data = DecayData.from_endf6(tape)
+        >>> decay_data.get_chain_yield_sensitivity()
+        ZAP	      10010	      10020	      10030	      10040	      10050	      10060	     922350
+        A							
+        1	1.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
+        2	0.00000e+00	1.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
+        3	0.00000e+00	0.00000e+00	1.00000e+00	1.00000e+00	1.00000e+00	5.00000e-01	0.00000e+00
+        4	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	1.00000e+00
+        5	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	5.00000e-01	0.00000e+00
+        231	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	1.00000e+00
+        """
+        chain = self.get_decay_chains().iloc[:, 0:3]
+        chain = chain.loc[(chain.DAUGHTER != 10) & (chain.YIELD >= 0)]\
+                     .rename(columns={'PARENT': 'ZAP', 'DAUGHTER': 'A'})
+        chain.loc[chain.YIELD == 0, 'YIELD'] = 1
+        chain['A'] = chain.A.apply(sandy.zam.expand_zam).apply(lambda x: x[1])
+        return chain.pivot_table(index='A', columns='ZAP', values='YIELD').fillna(0)
 
     def get_bmatrix(self, **kwargs):
         """
@@ -430,8 +555,9 @@ class DecayData():
               gamma: 352.186
               total: 406.26712202318316
             decay_modes:
-              10x0:
-                branching_ratio: 1.0
+            - !!python/tuple
+              - 10x0
+              - branching_ratio: 1.0
                 branching_ratio_uncertainty: 0.0
                 decay_products:
                   280600: 1.0
@@ -493,8 +619,8 @@ class DecayData():
                 assert groups[zam]["decay_constant"] == 0
                 assert "DK" not in sec
                 continue
-            groups[zam]["decay_modes"] = {}
-            for key, dk in sec["DK"].items():
+            groups[zam]["decay_modes"] = []
+            for key, dk in sec["DK"]:
                 rtyp = key.split("x")[0]
                 residual_state = dk["RFS"]
                 decay_mode_data = {
@@ -506,7 +632,7 @@ class DecayData():
                         "branching_ratio": dk["BR"],
                         "branching_ratio_uncertainty": dk["DBR"],
                         }
-                groups[zam]["decay_modes"][key] = decay_mode_data
+                groups[zam]["decay_modes"].append((key, decay_mode_data))
         return cls(groups)
 
     @classmethod
