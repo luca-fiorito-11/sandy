@@ -4,9 +4,7 @@ This module contains all classes and functions specific for processing GLS.
 """
 import pandas as pd
 import numpy as np
-import scipy
 import scipy.sparse as sps
-import scipy.sparse.linalg as spsl
 import sandy
 
 __author__ = "Aitor Bengoechea"
@@ -31,7 +29,9 @@ N_e = 1
 def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False,
                threshold=None):
     """
-    Perform GlS update for a given variances, vectors and sensitivity.
+    Perform the GlS update of a prior vector, given its prior covariance
+    matrix, a lekelyhood matrix and additional info on the model obserbale
+    (both values and covariance matrix).
     .. math::
         $$
         x_{post} = x_{prior} + V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)
@@ -63,31 +63,31 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False,
     Example
     -------
     >>> S = [[1, 2], [3, 4]]
-    >>> y = pd.Series([1, 1])
-    >>> Vx = sandy.CategoryCov.from_var([1, 1]).data
-    >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
-    >>> x = [1, 1]
-    >>> x_p = [2, 2]
-    >>> gls_update(y, S, Vx, Vy, x_p)
+    >>> x_prior = pd.Series([1, 1])
+    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
+    >>> Vy_extra = pd.DataFrame([[1, 0], [0, 1]])
+    >>> y_extra = [2, 2]
+    >>> gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra)
     0   2.00000e-01
     1   4.85714e-01
     dtype: float64
 
-    >>> gls_update(y, S, Vx, Vy, x_p, sparse=True)
+    >>> gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=True)
     0   2.00000e-01
     1   4.85714e-01
     dtype: float64
     """
-    # Model calculus:
+    # Put data in a appropiate format
     x_prior_ = pd.Series(x_prior)
-    S_ = pd.DataFrame(S).reindex(columns=x_prior_.index)
-    y_calc_ = _y_calc(x_prior, S, sparse=sparse)
+    S_ = pd.DataFrame(S).reindex(columns=x_prior_.index).fillna(0)
     y_extra_ = pd.Series(y_extra)
-    y_calc_ = y_calc_.reindex(y_extra_.index)
-    S_ = S_.reindex(index=y_extra_.index)
-    # Data in a appropriate format
-    delta = y_extra_ - y_calc_
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
+    # Model calculus:
+    y_calc_ = _y_calc(x_prior, S_, sparse=sparse)
+    # Fix model calculus and extra information
+    y_calc_ = y_calc_.reindex(y_extra_.index).fillna(0)
+    S_ = S_.reindex(index=y_extra_.index).fillna(0)
+    delta = y_extra_ - y_calc_
     # GLS update
     A = Vx_prior_._gls_general_sensitivity(S_, Vy_extra, sparse=sparse,
                                            threshold=threshold).values
@@ -99,6 +99,8 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False,
         x_post = pd.Series(x_post, index=index)
     else:
         x_post = x_prior_ + A.dot(delta)
+    if threshold is not None:
+        x_post[abs(x_post) < threshold] = 0
     return x_post
 
 
@@ -182,8 +184,19 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False):
     `pd.Series`
         individual chi-value measured in sigmas.
 
+    Results:
+    -------
+    chi individual >> 1 :
+        Inconsistency may exist between |y_extra - y_calc| and covariance
+        matrix, S*Vx_prior*S.T, and Vy_extra.
+
     Example
     -------
+    >>> x_prior = [1, 2, 3]
+    >>> y_extra = pd.Series([2, 3, 4], index=[1, 2, 3])
+    >>> S = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3])
+    >>> Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
+    >>> Vy_extra = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3], columns=[1, 2, 3])
     >>> chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra)
     1   1.00000e+00
     2   5.00000e-01
@@ -196,10 +209,13 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    G = Vx_prior_._gls_G(S, Vy_extra, sparse=sparse)
-    G = np.sqrt(np.diag(G))
-    y_calc_ = _y_calc(x_prior, S, sparse=sparse).values
     y_extra_ = pd.Series(y_extra)
+    S_ = pd.DataFrame(S).reindex(columns=Vx_prior_.data.index).fillna(0)
+    y_calc_ = _y_calc(x_prior, S_, sparse=sparse)
+    S_ = S_.reindex(index=y_extra_.index).fillna(0)
+    y_calc_ = y_calc_.reindex(index=y_extra_.index).fillna(0).values
+    G = Vx_prior_._gls_G(S_, Vy_extra, sparse=sparse)
+    G = np.sqrt(np.diag(G))
     delta = np.abs(y_extra_.values - y_calc_)
     return pd.Series(delta / G, index=y_extra_.index)
 
@@ -231,8 +247,20 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False):
     `pd.Series`
         diagonal chi-value measured in sigmas $\chi_{ind,i}$>>1
 
+    Results:
+    -------
+    chi diagonal >> 1 :
+        Inconsistency may exist between |y_extra - y_calc| and covariance
+        matrix, S*Vx_prior*S.T, and Vy_extra.
+
     Example
     -------
+    >>> x_prior = [1, 2, 3]
+    >>> y_extra = pd.Series([2, 3, 4], index=[1, 2, 3])
+    >>> S = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3])
+    >>> Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
+    >>> Vy_extra = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3], columns=[1, 2, 3])
+    >>> N_e = 1
     >>> chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra)
     1   1.00000e+00
     2   2.00000e+00
@@ -245,10 +273,13 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    G_inv = Vx_prior_._gls_G_inv(S, Vy_extra, sparse=sparse).values
-    G_inv = np.sqrt(np.diag(G_inv))
-    y_calc_ = _y_calc(x_prior, S, sparse=sparse).values
     y_extra_ = pd.Series(y_extra)
+    S_ = pd.DataFrame(S).reindex(columns=Vx_prior_.data.index).fillna(0)
+    y_calc_ = _y_calc(x_prior, S_, sparse=sparse)
+    S_ = S_.reindex(index=y_extra_.index).fillna(0)
+    y_calc_ = y_calc_.reindex(index=y_extra_.index).fillna(0).values
+    G_inv = Vx_prior_._gls_G_inv(S_, Vy_extra=Vy_extra, sparse=sparse).values
+    G_inv = np.sqrt(np.diag(G_inv))
     delta = np.abs(y_extra_.values - y_calc_)
     return pd.Series(delta / G_inv, index=y_extra_.index)
 
@@ -281,6 +312,11 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e, sparse=False):
     `pd.Series`
         contribution to chi-square value
 
+    Results:
+    -------
+    chi square < 0 :
+        The experiment is very effective in the adjustment.
+
     Example
     -------
     >>> chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e)
@@ -295,9 +331,11 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e, sparse=False):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    G_inv = Vx_prior_._gls_G_inv(S, Vy_extra, sparse=sparse).values
-    y_calc_ = _y_calc(x_prior, S, sparse=sparse).values
     y_extra_ = pd.Series(y_extra)
+    S_ = pd.DataFrame(S).reindex(columns=Vx_prior_.data.index,
+                                 index=y_extra_.index).fillna(0)
+    G_inv = Vx_prior_._gls_G_inv(S_, Vy_extra, sparse=sparse).values
+    y_calc_ = _y_calc(x_prior, S, sparse=sparse).values
     delta = y_extra_.values - y_calc_
     chi_square = delta.T.dot(G_inv) * delta / N_e
     return pd.Series(chi_square, index=y_extra_.index)
@@ -325,6 +363,17 @@ def ishikawa_factor(S, Vx_prior, Vy_extra, sparse=False):
     `pd.Series`
         Ishikawa factor.
 
+    Results:
+    -------
+    Ishikawa factor << 1 :
+        The extra data is not so useful and the data remain unchanged.
+    Ishikawa factor >> 1 :
+        The extra data very useful and the 'posteriori' covariance will
+        be reduced to the same level as the integral parameter covariance.
+    Ishikawa factor ~ 1 :
+        The experiment is useful and the 'posteriori'  covariance will be
+        reduced by approximately half
+
     Example
     -------
     >>> ishikawa_factor(S, Vx_prior, Vy_extra)
@@ -339,14 +388,17 @@ def ishikawa_factor(S, Vx_prior, Vy_extra, sparse=False):
     dtype: float64
     """
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    Vy_calc = Vx_prior_._gls_Vy_calc(S, sparse=sparse)
-    Vy_values = np.diag(Vy_calc)
-    Vy_extra_ = np.diag(pd.DataFrame(Vy_extra).values)
-    index = pd.DataFrame(Vy_extra).index
+    Vy_extra_ = pd.DataFrame(Vy_extra)
+    index = Vy_extra_.index
+    S_ = pd.DataFrame(S).reindex(columns=Vx_prior_.data.index,
+                                 index=index).fillna(0)
+    Vy_calc_ = Vx_prior_._gls_Vy_calc(S_, sparse=sparse)
+    Vy_values = np.diag(Vy_calc_)
+    Vy_extra_ = np.diag(Vy_extra_.values)
     return pd.Series(Vy_values / Vy_extra_, index=index)
 
 
-def constrained_gls_update(x_prior, S, Vx_prior, sparse=True, threshold=None):
+def constrained_gls_update(x_prior, S, Vx_prior, sparse=False, threshold=None):
     """
     Perform Constrained Least-Squares update for a given variances, vectors
     and sensitivity:
@@ -389,13 +441,29 @@ def constrained_gls_update(x_prior, S, Vx_prior, sparse=True, threshold=None):
     dtype: float64
     """
     x_prior_ = pd.Series(x_prior)
-    S_ = pd.DataFrame(S).reindex(columns=x_prior_.index)
-    # Data in a appropriate format:
-    delta = _y_calc(x_prior, S_.T, sparse=sparse) - x_prior.dot(S_.T)
-    delta = delta.reindex(x_prior_.index)
+    original_index = x_prior_.index
+    S_ = pd.DataFrame(S).reindex(columns=x_prior_.index).fillna(0)
+    index = S_.index
     Vx_prior_ = sandy.CategoryCov(Vx_prior)
-    # Constrained Least-Square sensitivity
-    A = Vx_prior_._constrained_gls_sensitivity(S, sparse=sparse,
-                                               threshold=threshold).values
-    x_post = x_prior_ + delta.dot(A)
+    # Common calculation for sparse and no sparse:
+    y_calc = _y_calc(x_prior, S_.T, sparse=sparse).reindex(index).fillna(0)
+    A = Vx_prior_._constrained_gls_sensitivity(S_, sparse=sparse,
+                                               threshold=threshold)
+    if sparse:
+        x_prior_sps = sps.coo_matrix(x_prior_)
+        S_sps = sps.csr_matrix(S_)
+        diff = x_prior_sps.dot(S_sps.T)
+        diff = pd.Series(diff.toarray()[0], index=index)
+    else:
+        diff = x_prior_.dot(S_.T)
+    delta = y_calc - diff
+    if sparse:
+        delta = sps.coo_matrix(delta)
+        A = sps.csr_matrix(A.values)
+        x_post = x_prior_sps + delta.dot(A)
+        x_post = pd.Series(x_post.toarray()[0], index=original_index)
+    else:
+        x_post = x_prior_ + delta.dot(A)
+    if threshold is not None:
+        x_post[abs(x_post) < threshold] = 0
     return x_post

@@ -10,6 +10,7 @@ import warnings
 
 import pandas as pd
 import numpy as np
+import scipy.sparse as sps
 
 import sandy
 from sandy.shared import expand_zam
@@ -213,22 +214,64 @@ class Fy():
                            dtype=int)
         return self.data.assign(Z=zam.Z, A=zam.A, M=zam.M)
 
-    def get_mass_yield(self, zam, e):
+    def get_mass_yield(self, zam, e, sparse=False):
         """
-        Obtain mass yield from the following model: ChY = S * IFY
+        Obtain mass yields from the following model: ChY = S * IFY
 
         Parameters
         ----------
         zam : `int`
-            ZAM number of the material to which perturbations are to be
-            applied.
+            ZAM number of the fissioning nuclide.
         e : `float`
             Energy of the fissioning system.
+        sparse : `bool`, optional
+            Option to use sparse matrix for calculations. The default is False.
 
         Returns
         -------
         `pandas.Series`
             mass yield obtained from ChY = S * IFY
+
+        Examples
+        --------
+        >>> zam = [591480, 591481, 601480]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
+        >>> npfy = sandy.Fy(minimal_fytest_2)
+        >>> chain = npfy.get_chain_yield(942390, 500e3, decay_fytest).iloc[0].round(2) 
+        >>> assert chain == 0.6
+        >>> chain = npfy.get_chain_yield(942390, 500e3, decay_fytest, sparse=True).iloc[0].round(2) 
+        >>> assert chain == 0.6
+        """
+        # Filter FY data:
+        conditions = {'ZAM': zam, "E": e, 'MT': 454}
+        fy_data = self._filters(conditions).data.set_index('ZAP').FY
+        chain_data = self._filters({'ZAM': zam, "E": e})
+        S = chain_data.get_mass_yield_sensitivity()
+        chain = sandy._y_calc(fy_data, S, sparse=sparse)
+        return chain.rename('mass yield')
+
+    def get_chain_yield(self, zam, e, decay_data, sparse=False, **kwargs):
+        """
+        Obtain chain yields from the following model: ChY = S * IFY
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the fissioning nuclide.
+        e : `float`
+            Energy of the fissioning system.
+        decay_data : `sandy.DecayData`
+            Radioactive nuclide data from where to obtain chain sensitivities.
+        sparse : `bool`, optional
+            Option to use sparse matrix for calculations. The default is False.
+        kwargs : `dict`
+            keyword arguments for method `get_decay_chains`
+
+        Returns
+        -------
+        `pandas.Series`
+            Chain yield obtained from ChY = S * IFY
 
         Examples
         --------
@@ -240,28 +283,20 @@ class Fy():
         # Filter FY data:
         conditions = {'ZAM': zam, "E": e, 'MT': 454}
         fy_data = self._filters(conditions).data.set_index('ZAP').FY
-        chain_data = self._filters({'ZAM': zam, "E": e})
-        S = chain_data.get_mass_yield_sensitivity()
-        chain = S.dot(fy_data)
-        return chain.rename('mass yield')
+        S = decay_data. get_chain_yield_sensitivity(**kwargs)
+        chain = sandy._y_calc(fy_data, S, sparse=sparse)
+        return chain.rename('chain yield')
 
     def get_mass_yield_sensitivity(self):
         """
-        Obtain mass yield sensitivity matrix from `Fy` for a given zam and
-        energy.
-
-        Parameters
-        ----------
-        zam : `int`
-            ZAM number of the material to which perturbations are to be
-            applied.
-        e : `float`
-            Energy of the fissioning system.
+        Obtain the mass yield sensitivity matrix based only on the
+        information given in the `Fy` object (no decay data).
 
         Returns
         -------
         mass_yield_sensitivity : `pandas.DataFrame`
-            Mass yield sensitivity matrix
+            Mass yield sensitivity matrix. Mass number in index and ZAM of
+            fission products in columns.
 
         Examples
         --------
@@ -289,17 +324,20 @@ class Fy():
                       .set_index('A')[['ZAP']]
         # Create mass yield sensitivity
         groups = fy_data.groupby(fy_data.index)['ZAP'].value_counts()
-        groups = groups.to_frame().rename(columns={'ZAP': 'value'}).reset_index()
-        mass_yield_sensitivity = groups.pivot_table(index='A',
-                                                    columns='ZAP',
-                                                    values='value',
-                                                    aggfunc="sum").fillna(0)
+        groups = groups.to_frame()\
+                       .rename(columns={'ZAP': 'value'})\
+                       .reset_index()
+        mass_yield_sensitivity = groups.pivot_table(
+            index='A',
+            columns='ZAP',
+            values='value',
+            aggfunc="sum"
+            ).fillna(0)
         return mass_yield_sensitivity
 
     def custom_perturbation(self, zam, mt, e, zap, pert):
         """
-        Apply a custom perturbation in the fission yields identified by the mt,
-        for a given zam in a given energy and for a given product.
+        Apply a custom perturbation to a given fission yield.
 
         Parameters
         ----------
@@ -327,16 +365,17 @@ class Fy():
         --------
         >>> tape = sandy.get_endf6_file("jeff_33", 'nfpy', 'all')
         >>> nfpy = Fy.from_endf6(tape)
-        >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, 551370, -0.1)
+        >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, 551370, 0.9)
         >>> comp = nfpy_pert.data.query('ZAM==922350 & ZAP==551370 & MT==459 & E==0.0253').squeeze().FY
         >>> assert np.setdiff1d(nfpy_pert.data.values, nfpy.data.values) == comp
         """
         df = self.data.copy()
         mask = (df.ZAM == zam) & (df.ZAP == zap) & (df.MT == mt) & (df.E == e)
-        df.loc[mask, "FY"] = df[mask].squeeze().FY * (1 + pert)
+        df.loc[mask, "FY"] = df[mask].squeeze().FY * pert
         return self.__class__(df)
 
-    def apply_bmatrix(self, zam, e, decay_data):
+    def apply_bmatrix(self, zam, e, decay_data, sparse=False,
+                      keep_fy_index=False):
         """
         Perform IFY = (1-B)*CFY equation to calculate IFY in a given zam
         for a given energy and apply into the original data.
@@ -350,6 +389,9 @@ class Fy():
             Energy to which calculations are to be applied.
         decay_data : `sandy.DecayData`
             Radioactive nuclide data for several isotopes.
+        keep_fy_index=False : `bool`, optional
+            Option that allows you to output only the CFY results that were
+            part of the original `sandy.Fy` object. The default is False.
 
         Returns
         -------
@@ -369,28 +411,84 @@ class Fy():
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest)
-        >>> diff = npfy_pert.data[npfy_pert.data.FY != npfy.data.FY].FY
-        >>> comp = npfy_pert.data.query('ZAM==942390 & MT==454 & E==500e3').squeeze().FY
-        >>> assert comp.values.all() == diff.values.all()
+        >>> npfy_pert.data[npfy_pert.data.MT == 454]
+        	 MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
+        3	9437	454	942390	591480	5.00000e+05	8.00000e-01	4.00000e-02
+        4	9437	454	942390	591481	5.00000e+05	1.00000e+00	5.00000e-02
+        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	1.00000e-01
+        6	9437	454	942390	621480	5.00000e+05	-2.00000e-01	1.00000e-02 
 
+        >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, sparse=True)
+        >>> npfy_pert.data[npfy_pert.data.MT == 454]
+        	 MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
+        3	9437	454	942390	591480	5.00000e+05	8.00000e-01	4.00000e-02
+        4	9437	454	942390	591481	5.00000e+05	1.00000e+00	5.00000e-02
+        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	1.00000e-01
+        6	9437	454	942390	621480	5.00000e+05	-2.00000e-01	1.00000e-02
+        
+        >>> zam = [591480, 591481, 601480]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
+        >>> npfy = Fy(minimal_fytest_2)
+        >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
+        >>> npfy_pert.data[npfy_pert.data.MT == 454]
+             MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
+        3	9437	454	942390	591480	5.00000e+05	8.00000e-01	4.00000e-02
+        4	9437	454	942390	591481	5.00000e+05	1.00000e+00	5.00000e-02
+        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	1.00000e-01
+
+        >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, sparse=True, keep_fy_index=True)
+        >>> npfy_pert.data[npfy_pert.data.MT == 454]
+             MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
+        3	9437	454	942390	591480	5.00000e+05	8.00000e-01	4.00000e-02
+        4	9437	454	942390	591481	5.00000e+05	1.00000e+00	5.00000e-02
+        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	1.00000e-01
         """
-        new_data = self.data.copy()
+        # Obtain the data:
+        data = self.data.copy()
         conditions = {'ZAM': zam, 'MT': 459, "E": e}
-        fy_data = self._filters(conditions).data.set_index('ZAP')['FY']
-        index = fy_data.index
+        fy_data = self._filters(conditions).data
+        mat = fy_data.MAT.iloc[0]
+        cov_data = fy_data.set_index('ZAP')['DFY']
+        fy_data = fy_data.set_index('ZAP')['FY']
+        if keep_fy_index:
+            original_index = fy_data.index
         B = decay_data.get_bmatrix()
-        fy_data = fy_data.reindex(B.columns).fillna(0)
+        # Put the data in a appropriate format:
+        index, columns = B.index, B.columns
         # Creating (1-B) matrix:
-        unit = np.identity(len(B))
-        C = unit - B.values
-        sensitivity = pd.DataFrame(C, index=B.index, columns=B.columns)
+        if sparse:
+            B = sps.csc_matrix(B)
+            unit = sps.csc_matrix(sps.identity(B.shape[0]))
+            C = unit - B
+            sensitivity = pd.DataFrame(C.toarray(), index=index, columns=columns)
+        else:
+            unit = np.identity(len(B))
+            C = unit - B.values
+            sensitivity = pd.DataFrame(C, index=index, columns=columns)
+        # Rest of the data
+        mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e)
+        fy_data = fy_data.reindex(columns).fillna(0)
+        data = data.loc[~mask]
+        fy_data = fy_data.reindex(columns).fillna(0)
+        cov_data = cov_data.reindex(columns).fillna(0)
+        cov_data = sandy.CategoryCov.from_var(cov_data)
         # Apply (1-B) matrix
-        fy_calc = sensitivity.dot(fy_data).loc[index]
-        mask = (new_data.ZAM == zam) & (new_data.MT == 454) & (new_data.E == e)
-        new_data.loc[mask, 'FY'] = fy_calc.values
-        return self.__class__(new_data)
+        ify_calc_values = sandy._y_calc(fy_data, sensitivity, sparse=sparse).rename('FY')
+        cov_calc_values = np.diag(cov_data._gls_Vy_calc(sensitivity, sparse=sparse))
+        cov_calc_values = pd.Series(cov_calc_values, index=sensitivity.index)
+        if keep_fy_index:
+            ify_calc_values = ify_calc_values.reindex(original_index).fillna(0)
+            cov_calc_values = cov_calc_values.reindex(original_index).fillna(0)
+        calc_values = ify_calc_values.reset_index().rename(columns={'DAUGHTER': 'ZAP'})
+        calc_values['DFY'] = cov_calc_values.values
+        # Calculus in appropiate way:
+        calc_values[['MAT', 'ZAM', 'MT', 'E']] = [mat, zam, 454, e]
+        data = pd.concat([data, calc_values], ignore_index=True)
+        return self.__class__(data)
 
-    def apply_qmatrix(self, zam, energy, decay_data, keep_ify_index=False):
+    def apply_qmatrix(self, zam, energy, decay_data, sparse=False,
+                      keep_fy_index=False):
         """
         Perform CFY = Q*IFY equation to calculate CFY in a given zam
         for a given energy and apply into the original data.
@@ -404,7 +502,9 @@ class Fy():
             Energy to which calculations are to be applied.
         decay_data : `sandy.DecayData`
             Radioactive nuclide data for several isotopes.
-        keep_ify_index=False : `bool`, optional
+        sparse : `bool`, optional
+            Option to use sparse matrix for calculations. The default is False.
+        keep_fy_index=False : `bool`, optional
             Option that allows you to output only the CFY results that were
             part of the original `sandy.Fy` object. The default is False.
 
@@ -427,48 +527,71 @@ class Fy():
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest)
         >>> npfy_pert.data[npfy_pert.data.MT == 459]
-             MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
-        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	0.00000e+00
-        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	0.00000e+00
-        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	0.00000e+00
-        6	9437	459	942390	621480	5.00000e+05	6.00000e-01	0.00000e+00
+             MAT	 MT	   ZAM	   ZAP	          E	         FY 	    DFY
+        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
+        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
+        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01
+        6	9437	459	942390	621480	5.00000e+05	6.00000e-01	1.00000e-01
+
+        >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, sparse=True)
+        >>> npfy_pert.data[npfy_pert.data.MT == 459]
+             MAT	 MT	   ZAM	   ZAP	          E	         FY 	    DFY
+        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
+        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
+        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01
+        6	9437	459	942390	621480	5.00000e+05	6.00000e-01	1.00000e-01
 
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
-        >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, keep_ify_index=True)
+        >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
         >>> npfy_pert.data[npfy_pert.data.MT == 459]
              MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
-        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	0.00000e+00
-        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	0.00000e+00
-        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	0.00000e+00
+        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
+        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
+        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01
 
+        >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, sparse=True, keep_fy_index=True)
+        >>> npfy_pert.data[npfy_pert.data.MT == 459]
+             MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
+        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
+        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
+        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01        
         """
         # Obtain the data:
         data = self.data.copy()
         conditions = {'ZAM': zam, 'MT': 454, "E": energy}
         fy_data = self._filters(conditions).data
         mat = fy_data.MAT.iloc[0]
+        cov_data = fy_data.set_index('ZAP')['DFY']
         fy_data = fy_data.set_index('ZAP')['FY']
-        index = fy_data.index
+        if keep_fy_index:
+            original_index = fy_data.index
         Q = decay_data.get_qmatrix()
         # Put the data in a approppiate format:
         mask = (data.ZAM == zam) & (data.MT == 459) & (data.E == energy)
         data = data.loc[~mask]
         fy_data = fy_data.reindex(Q.columns).fillna(0)
+        cov_data = cov_data.reindex(Q.columns).fillna(0)
+        cov_data = sandy.CategoryCov.from_var(cov_data, sparse=sparse)
         # Apply qmatrix
-        cfy_calc_values = Q.dot(fy_data).rename('FY')
-        if keep_ify_index is True:
-            cfy_calc_values = cfy_calc_values.reindex(index).fillna(0)
-        cfy_calc_values = cfy_calc_values.reset_index().rename(columns={'DAUGHTER': 'ZAP'})
+        cfy_calc_values = sandy._y_calc(fy_data, Q, sparse=sparse).rename('FY')
+        cov_calc_values = np.diag(cov_data._gls_Vy_calc(Q, sparse=sparse))
+        cov_calc_values = pd.Series(cov_calc_values, index=Q.index)
+        if keep_fy_index:
+            cfy_calc_values = cfy_calc_values.reindex(original_index).fillna(0)
+            cov_calc_values = cov_calc_values.reindex(original_index).fillna(0)
+        calc_values = cfy_calc_values.reset_index().rename(columns={'DAUGHTER': 'ZAP'})
+        calc_values['DFY'] = cov_calc_values.values
         # Calculus in appropiate way:
-        cfy_calc_values[['MAT', 'ZAM', 'MT', 'E', 'DFY']] = [mat, zam, 459, energy, 0]
-        data = pd.concat([data, cfy_calc_values], ignore_index=True)
+        calc_values[['MAT', 'ZAM', 'MT', 'E']] = [mat, zam, 459, energy]
+        data = pd.concat([data, calc_values], ignore_index=True)
         return self.__class__(data)
 
-    def gls_cov_update(self, zam, e, Vy_extra,
-                       kind='mass yield', decay_data=None, threshold=None):
+    def gls_cov_update(self, zam, e, Vy_extra=None,
+                       kind='mass yield', decay_data=None, sparse=False,
+                       threshold=None):
         """
         Update the prior IFY covariance matrix using the GLS technique
         described in https://doi.org/10.1016/j.anucene.2015.10.027
@@ -484,14 +607,17 @@ class Fy():
             applied.
         e : `float`
             Energy to which calculations are to be applied.
-        Vy_extra : 2D iterable.
+        Vy_extra : 2D iterable, optional
             Extra Covariance matrix (MXM).
         kind : `str`, optional
             Keyword for obtaining sensitivity. The default is 'mass yield'.
         decay_data : `DecayData`, optional
-            Object to change the model to CFY = Q*IFY, so the sensitivity (S)
-            is Q. The default is None, so the model is ChY = ChY_sens*IFY and
-            the sensitivity is mass yield sensitivity.
+            Object to change the model to CFY = Q*IFY or Ch_chain = S_chain*IFY,
+            so the sensitivity (S) is Q or S_chain. The default is None,
+            so the model is ChY = ChY_mass*IFY and the sensitivity is mass
+            yield sensitivity.
+        sparse : `bool`, optional
+            Option to use sparse matrix for calculations. The default is False.
         threshold : `int`, optional
             Optional argument to avoid numerical fluctuations or
             values so small that they do not have to be taken into
@@ -511,32 +637,104 @@ class Fy():
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
-        >>> IFY_var_extra = np.diag(pd.Series([1, 1, 1]))
-        >>> IFY_var_extra = pd.DataFrame(IFY_var_extra, index=zam, columns=zam)
+        >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1, 1]))
+        >>> index = pd.Index([591480, 591481, 601480, 621480])
+        >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=index, columns=index)
         >>> npfy = Fy(minimal_fytest_2)
-        >>> npfy.gls_cov_update(942390, 500e3, IFY_var_extra, kind='cumulative', decay_data=decay_fytest)
+        >>> npfy.gls_cov_update(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest)
         ZAP	         591480	         591481	        601480
         ZAP
-        591480	3.71119e-02	    -1.67096e-03	 -3.50901e-04
-        591481	-1.67096e-03	4.55502e-02	     -4.34448e-04
-        601480	-3.50901e-04	-4.34448e-04	9.90877e-03
+        591480	 3.59798e-02   -3.07257e-03	   -6.45241e-04
+        591481	-3.07257e-03	4.38149e-02	   -7.98869e-04
+        601480	-6.45241e-04   -7.98869e-04	    9.83224e-03
+
+        >>> npfy.gls_cov_update(942390, 500e3, CFY_var_extra, kind='cumulative', sparse=True, decay_data=decay_fytest)
+        ZAP	         591480	         591481	        601480
+        ZAP
+        591480	 3.59798e-02   -3.07257e-03	   -6.45241e-04
+        591481	-3.07257e-03	4.38149e-02	   -7.98869e-04
+        601480	-6.45241e-04   -7.98869e-04	    9.83224e-03
+
+        >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1]))
+        >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
+        >>> npfy.gls_cov_update(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest)
+        ZAP	          591480	      591481	      601480
+        ZAP
+        591480	 3.71119e-02	-1.67096e-03	-3.50901e-04
+        591481	-1.67096e-03	 4.55502e-02	-4.34448e-04
+        601480	-3.50901e-04	-4.34448e-04	 9.90877e-03
+
+        >>> zam = [591480, 591481, 601480]
+        >>> chain_var_extra = np.diag(pd.Series([1, 1, 1]))
+        >>> index = pd.Index([147, 148, 149])
+        >>> chain_var_extra = pd.DataFrame(chain_var_extra, index=index, columns=index)
+        >>> npfy = sandy.Fy(minimal_fytest_2)
+        >>> npfy.gls_cov_update(942390, 500e3, chain_var_extra)
+        ZAP	          591480	      591481	      601480
+        ZAP
+        591480	 3.85455e-02	-1.81818e-03	-3.63636e-04
+        591481	-1.81818e-03	 4.77273e-02	-4.54545e-04
+        601480	-3.63636e-04	-4.54545e-04	 9.90909e-03
+
+        >>> zam = [591480, 591481, 601480]
+        >>> chain_var_extra = np.diag(pd.Series([1, 1, 1, 1]))
+        >>> index = pd.Index([147, 148, 149, 150])
+        >>> chain_var_extra = pd.DataFrame(chain_var_extra, index=index, columns=index)
+        >>> npfy = sandy.Fy(minimal_fytest_2)
+        >>> npfy.gls_cov_update(942390, 500e3, chain_var_extra)
+        ZAP	          591480	      591481	      601480
+        ZAP
+        591480	 3.85455e-02	-1.81818e-03	-3.63636e-04
+        591481	-1.81818e-03	 4.77273e-02	-4.54545e-04
+        601480	-3.63636e-04	-4.54545e-04	 9.90909e-03
+
+        >>> npfy.gls_cov_update(942390, 500e3)
+        ZAP	          591480	      591481	      601480
+        ZAP
+        591480	 2.40000e-02	-2.00000e-02	-4.00000e-03
+        591481	-2.00000e-02	 2.50000e-02	-5.00000e-03
+        601480	-4.00000e-03	-5.00000e-03	 9.00000e-03        
+
+        >>> npfy.gls_cov_update(942390, 500e3, chain_var_extra, sparse=True)
+        ZAP	          591480	      591481	      601480
+        ZAP
+        591480	 3.85455e-02	-1.81818e-03	-3.63636e-04
+        591481	-1.81818e-03	 4.77273e-02	-4.54545e-04
+        601480	-3.63636e-04	-4.54545e-04	 9.90909e-03
+
+        >>> npfy.gls_cov_update(942390, 500e3, sparse=True)
+        ZAP	          591480	      591481	      601480
+        ZAP
+        591480	 2.40000e-02	-2.00000e-02	-4.00000e-03
+        591481	-2.00000e-02	 2.50000e-02	-5.00000e-03
+        601480	-4.00000e-03	-5.00000e-03	 9.00000e-03
         """
         # Divide the data type:
         conditions = {'ZAM': zam, "E": e}
         fy_data = self._filters(conditions).data\
                       .set_index('ZAP')[['MT', 'DFY']]
         Vx_prior = fy_data.query('MT==454').DFY
-        Vx_prior = sandy.CategoryCov.from_var(Vx_prior)
+        Vx_prior = sandy.CategoryCov.from_var(Vx_prior, sparse=sparse)
         # Fix the S with the correct dimension:
         if kind == 'mass yield':
             model_sensitivity_object = self._filters(conditions)
         elif kind == 'cumulative' or 'chain yield':
             model_sensitivity_object = decay_data
-        S = _gls_setup(model_sensitivity_object, kind).loc[Vx_prior.data.index, Vx_prior.data.columns]
-        return Vx_prior.gls_update(S, Vy_extra, threshold=threshold).data
+        S = _gls_setup(model_sensitivity_object, kind)\
+            .reindex(columns=Vx_prior.data.columns).fillna(0)
+        if Vy_extra is not None:
+            Vy_extra_ = pd.DataFrame(Vy_extra)
+            S = S.reindex(index=Vy_extra_.index).fillna(0)
+            Vx_post = Vx_prior.gls_update(S, Vy_extra_, sparse=sparse,
+                                          threshold=threshold).data
+        else:
+            Vx_post = Vx_prior.constrained_gls_update(S, sparse=sparse,
+                                                      threshold=threshold).data
+        return Vx_post
 
-    def gls_update(self, zam, e, y_extra, Vy_extra,
-                   kind='mass yield', decay_data=None, threshold=None):
+    def gls_update(self, zam, e, y_extra=None, Vy_extra=None,
+                   kind='mass yield', decay_data=None, sparse=False,
+                   threshold=None):
         """
         Update IFY for a given zam, energy, decay_data and new information.
         .. math::
@@ -551,17 +749,20 @@ class Fy():
             applied.
         e : `float`
             Energy to which calculations are to be applied.
-        y_extra : 1D iterable
+        y_extra : 1D iterable, optional
             New value of the vector.
-        Vy_extra : 2D iterable
+        Vy_extra : 2D iterable, optional
             2D covariance matrix for y_extra (MXM).
         kind : `str`, optional
             Keyword for obtaining sensitivity. The
             default is 'mass yield'.
         decay_data : `DecayData`, optional
-            Object to change the model to CFY = Q*IFY, so the sensitivity (S)
-            is Q. The default is None, so the model is ChY = ChY_sens*IFY and
-            the sensitivity is mass yield sensitivity.
+            Object to change the model to CFY = Q*IFY or Ch_chain = S_chain*IFY,
+            so the sensitivity (S) is Q or S_chain. The default is None,
+            so the model is ChY = ChY_mass*IFY and the sensitivity is mass
+            yield sensitivity.
+        sparse : `bool`, optional
+            Option to use sparse matrix for calculations. The default is False.
         threshold : `int`, optional
             Optional argument to avoid numerical fluctuations or
             values so small that they do not have to be taken into
@@ -578,28 +779,62 @@ class Fy():
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
-        >>> IFY_extra = pd.Series([0, 0.1, 0.2], index=zam)
-        >>> IFY_var_extra = np.diag(pd.Series([1, 1, 1]))
-        >>> IFY_var_extra = pd.DataFrame(IFY_var_extra, index=zam, columns=zam)
+        >>> CFY_extra = pd.Series([0, 0.1, 0.2], index=zam)
+        >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1]))
+        >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
         >>> npfy = Fy(minimal_fytest_2)
-        >>> npfy.gls_update(942390, 500e3, IFY_extra, IFY_var_extra, kind='cumulative', decay_data=decay_fytest)
+        >>> npfy.gls_update(942390, 500e3, CFY_extra, CFY_var_extra, kind='cumulative', decay_data=decay_fytest)
             MAT   MT     ZAM     ZAP           E          FY         DFY
-        0  9437  454  942390  591480 5.00000e+05 8.24199e-02 4.00000e-02
-        1  9437  454  942390  591481 5.00000e+05 1.78234e-01 5.00000e-02
-        2  9437  454  942390  601480 5.00000e+05 2.96429e-01 1.00000e-02
-        3  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
-        4  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
-        5  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
+        0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
+        1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
+        2  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
+        3  9437  454  942390  591480 5.00000e+05 8.24199e-02 3.71119e-02
+        4  9437  454  942390  591481 5.00000e+05 1.78234e-01 4.55502e-02
+        5  9437  454  942390  601480 5.00000e+05 2.96429e-01 9.90877e-03
+
+        >>> npfy.gls_update(942390, 500e3, CFY_extra, CFY_var_extra, kind='cumulative', decay_data=decay_fytest, sparse=True)
+            MAT   MT     ZAM     ZAP           E          FY         DFY
+        0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
+        1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
+        2  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
+        3  9437  454  942390  591480 5.00000e+05 8.24199e-02 3.71119e-02
+        4  9437  454  942390  591481 5.00000e+05 1.78234e-01 4.55502e-02
+        5  9437  454  942390  601480 5.00000e+05 2.96429e-01 9.90877e-03
+
+        >>> index = pd.Index([147, 148, 149])
+        >>> chain_extra = pd.Series([0, 0.1, 0.2], index=index)
+        >>> chain_var_extra = np.diag(pd.Series([1, 1, 1]))
+        >>> chain_var_extra = pd.DataFrame(chain_var_extra, index=index, columns=index)
+        >>> npfy.gls_update(942390, 500e3, chain_extra, chain_var_extra)
+            MAT   MT     ZAM     ZAP           E          FY         DFY
+        0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
+        1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
+        2  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
+        3  9437  454  942390  591480 5.00000e+05 8.18182e-02 3.85455e-02
+        4  9437  454  942390  591481 5.00000e+05 1.77273e-01 4.77273e-02
+        5  9437  454  942390  601480 5.00000e+05 2.95455e-01 9.90909e-03
+
+        >>> npfy.gls_update(942390, 500e3, chain_extra, chain_var_extra, sparse=True)
+            MAT   MT     ZAM     ZAP           E          FY         DFY
+        0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
+        1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
+        2  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
+        3  9437  454  942390  591480 5.00000e+05 8.18182e-02 3.85455e-02
+        4  9437  454  942390  591481 5.00000e+05 1.77273e-01 4.77273e-02
+        5  9437  454  942390  601480 5.00000e+05 2.95455e-01 9.90909e-03
         """
-        data = self.data
+        data = self.data.copy()
         # Filter FY data:
         conditions = {'ZAM': zam, "E": e}
-        fy_data = self._filters(conditions).data\
-                      .set_index('ZAP')[['MT', 'FY', 'DFY']]
+        fy_data = self._filters(conditions).data
+        mat = fy_data.MAT.iloc[0]
+        fy_data = fy_data.set_index('ZAP')[['MT', 'FY', 'DFY']]
         # Divide the data:
+        mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e)
+        data = data.loc[~mask]
         x_prior = fy_data.query('MT==454').FY
         Vx_prior = fy_data.query('MT==454').DFY
-        Vx_prior = sandy.CategoryCov.from_var(Vx_prior).data
+        Vx_prior = sandy.CategoryCov.from_var(Vx_prior, sparse=sparse).data
         # Find the GLS varibles:
         if kind == 'mass yield':
             model_sensitivity_object = self._filters(conditions)
@@ -607,11 +842,123 @@ class Fy():
             model_sensitivity_object = decay_data
         S = _gls_setup(model_sensitivity_object, kind)
         # Perform GLS:
-        x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
-                                  threshold=threshold)
-        mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e)
-        data.loc[mask, 'FY'] = x_post.values
+        if y_extra is None and Vy_extra is None:
+            x_post = sandy.constrained_gls_update(x_prior, S, Vx_prior,
+                                                  sparse=sparse,
+                                                  threshold=threshold)
+            Vx_post = self.gls_cov_update(zam, e, kind=kind,
+                                          decay_data=decay_data, sparse=sparse,
+                                          threshold=threshold)
+        else:
+            x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
+                                      sparse=sparse, threshold=threshold)
+            Vx_post = self.gls_cov_update(zam, e, Vy_extra,
+                                          kind=kind, decay_data=decay_data,
+                                          sparse=sparse, threshold=threshold)
+        # Results in appropriate format:
+        calc_values = x_post.rename('FY').reset_index()
+        calc_values['DFY'] = pd.Series(np.diag(Vx_post)).values
+        calc_values[['MAT', 'ZAM', 'MT', 'E']] = [mat, zam, 454, e]
+        data = pd.concat([data, calc_values], ignore_index=True)
         return self.__class__(data)
+
+    def ishikawa_factor(self, zam, e, Vy_extra,
+                        kind='mass yield', decay_data=None, sparse=False,
+                        threshold=None):
+        """
+        Ishikawa factor to determine whether the experiment from where we
+        obtain model sensitivity is useful to reduce the IFY uncertainty
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which calculations are to be
+            applied.
+        e : `float`
+            Energy to which calculations are to be applied.
+        Vy_extra : 2D iterable
+            2D covariance matrix for y_extra (MXM).
+        kind : `str`, optional
+            Keyword for obtaining sensitivity. The
+            default is 'mass yield'.
+        decay_data : `DecayData`, optional
+            Object to change the model to CFY = Q*IFY or
+            Ch_chain = S_chain*IFY, so the sensitivity (S) is Q or S_chain.
+            The default is None, so the model is ChY = ChY_mass*IFY
+            and the sensitivity is mass yield sensitivity.
+        sparse : `bool`, optional
+            Option to use sparse matrix for calculations. The default is False.
+        threshold : `int`, optional
+            Optional argument to avoid numerical fluctuations or
+            values so small that they do not have to be taken into
+            account. The default is None.
+
+        Returns
+        -------
+        ishikawa : `pd.Series`
+            Ishikawa factor.
+
+        Results:
+        -------
+        Ishikawa factor << 1 :
+            The extra data is not so useful and the data remain unchanged.
+        Ishikawa factor >> 1 :
+            The extra data very useful and the 'posteriori' covariance will
+            be reduced to the same level as the integral parameter covariance.
+        Ishikawa factor ~ 1 :
+            The experiment is useful and the 'posteriori'  covariance will be
+            reduced by approximately half
+
+        Examples
+        --------
+        >>> zam = [591480, 591481, 601480]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
+        >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1]))
+        >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
+        >>> npfy = sandy.Fy(minimal_fytest_2)
+        >>> npfy.ishikawa_factor(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest)
+        591480   4.00000e-02
+        591481   5.00000e-02
+        601480   1.00000e-01
+        dtype: float64
+        >>> npfy.ishikawa_factor(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest, sparse=True)
+        591480   4.00000e-02
+        591481   5.00000e-02
+        601480   1.00000e-01
+        dtype: float64
+
+        >>> A = [147, 148, 149]
+        >>> Chain_var_extra = np.diag(pd.Series([1, 1, 1]))
+        >>> Chain_var_extra = pd.DataFrame(Chain_var_extra, index=A, columns=A)
+        >>> npfy = sandy.Fy(minimal_fytest_2)
+        >>> npfy.ishikawa_factor(942390, 500e3, Chain_var_extra)
+        147   0.00000e+00
+        148   1.00000e-01
+        149   0.00000e+00
+        dtype: float64
+        >>> npfy.ishikawa_factor(942390, 500e3, Chain_var_extra, sparse=True)
+        147   0.00000e+00
+        148   1.00000e-01
+        149   0.00000e+00
+        dtype: float64
+        """
+        # Filter FY data:
+        conditions = {'ZAM': zam, "E": e}
+        fy_data = self._filters(conditions).data.set_index('ZAP')
+        Vx_prior = fy_data.query('MT==454').DFY
+        Vx_prior = sandy.CategoryCov.from_var(Vx_prior, sparse=sparse).data
+        # Find the GLS sensitivity:
+        if kind == 'mass yield':
+            model_sensitivity_object = self._filters(conditions)
+        elif kind == 'cumulative' or 'chain yield':
+            model_sensitivity_object = decay_data
+        S = _gls_setup(model_sensitivity_object, kind)
+        # Perform Ishikawa factor:
+        ishikawa = sandy.ishikawa_factor(S, Vx_prior, Vy_extra, sparse=sparse)
+        if threshold is not None:
+            ishikawa[abs(ishikawa) < threshold] = 0
+        return ishikawa
 
     def _filters(self, conditions):
         """
@@ -798,14 +1145,6 @@ class Fy():
                 tab = self.energy_table(zam, by="ZAM", kind=kind)
                 tab.index *= 1e-6
                 tab.to_hdf(file, key, format="fixed")
-
-#    def _to_endf6(self, endf6):
-#        # to be written
-#        pass
-
-#    def _custom_perturbation(self, pert):
-#        # to be written
-#        pass
 
 
 def _gls_setup(model_sensitivity_object, kind):
