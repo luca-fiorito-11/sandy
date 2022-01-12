@@ -216,13 +216,12 @@ class Fy():
 
     def get_mass_yield(self, zam, e, sparse=False):
         """
-        Obtain mass yield from the following model: ChY = S * IFY
+        Obtain mass yields from the following model: ChY = S * IFY
 
         Parameters
         ----------
         zam : `int`
-            ZAM number of the material to which perturbations are to be
-            applied.
+            ZAM number of the fissioning nuclide.
         e : `float`
             Energy of the fissioning system.
         sparse : `bool`, optional
@@ -254,16 +253,16 @@ class Fy():
 
     def get_chain_yield(self, zam, e, decay_data, sparse=False, **kwargs):
         """
-        Obtain chain yield from the following model: ChY = S * IFY
+        Obtain chain yields from the following model: ChY = S * IFY
 
         Parameters
         ----------
         zam : `int`
-            ZAM number of the material from chain yield is going to be obtained.
+            ZAM number of the fissioning nuclide.
         e : `float`
             Energy of the fissioning system.
         decay_data : `sandy.DecayData`
-            Radioactive nuclide data from where obtain chain sensitivity.
+            Radioactive nuclide data from where to obtain chain sensitivities.
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
         kwargs : `dict`
@@ -290,21 +289,14 @@ class Fy():
 
     def get_mass_yield_sensitivity(self):
         """
-        Obtain mass yield sensitivity matrix from `Fy` for a given zam and
-        energy.
-
-        Parameters
-        ----------
-        zam : `int`
-            ZAM number of the material to which perturbations are to be
-            applied.
-        e : `float`
-            Energy of the fissioning system.
+        Obtain the mass yield sensitivity matrix based only on the
+        information given in the `Fy` object (no decay data).
 
         Returns
         -------
         mass_yield_sensitivity : `pandas.DataFrame`
-            Mass yield sensitivity matrix
+            Mass yield sensitivity matrix. Mass number in index and ZAM of
+            fission products in columns.
 
         Examples
         --------
@@ -332,17 +324,20 @@ class Fy():
                       .set_index('A')[['ZAP']]
         # Create mass yield sensitivity
         groups = fy_data.groupby(fy_data.index)['ZAP'].value_counts()
-        groups = groups.to_frame().rename(columns={'ZAP': 'value'}).reset_index()
-        mass_yield_sensitivity = groups.pivot_table(index='A',
-                                                    columns='ZAP',
-                                                    values='value',
-                                                    aggfunc="sum").fillna(0)
+        groups = groups.to_frame()\
+                       .rename(columns={'ZAP': 'value'})\
+                       .reset_index()
+        mass_yield_sensitivity = groups.pivot_table(
+            index='A',
+            columns='ZAP',
+            values='value',
+            aggfunc="sum"
+            ).fillna(0)
         return mass_yield_sensitivity
 
     def custom_perturbation(self, zam, mt, e, zap, pert):
         """
-        Apply a custom perturbation in the fission yields identified by the mt,
-        for a given zam in a given energy and for a given product.
+        Apply a custom perturbation to a given fission yield.
 
         Parameters
         ----------
@@ -370,13 +365,13 @@ class Fy():
         --------
         >>> tape = sandy.get_endf6_file("jeff_33", 'nfpy', 'all')
         >>> nfpy = Fy.from_endf6(tape)
-        >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, 551370, -0.1)
+        >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, 551370, 0.9)
         >>> comp = nfpy_pert.data.query('ZAM==922350 & ZAP==551370 & MT==459 & E==0.0253').squeeze().FY
         >>> assert np.setdiff1d(nfpy_pert.data.values, nfpy.data.values) == comp
         """
         df = self.data.copy()
         mask = (df.ZAM == zam) & (df.ZAP == zap) & (df.MT == mt) & (df.E == e)
-        df.loc[mask, "FY"] = df[mask].squeeze().FY * (1 + pert)
+        df.loc[mask, "FY"] = df[mask].squeeze().FY * pert
         return self.__class__(df)
 
     def apply_bmatrix(self, zam, e, decay_data, sparse=False,
@@ -871,7 +866,7 @@ class Fy():
                         kind='mass yield', decay_data=None, sparse=False,
                         threshold=None):
         """
-        Ishikawa factor to determine whether the experiment from where we 
+        Ishikawa factor to determine whether the experiment from where we
         obtain model sensitivity is useful to reduce the IFY uncertainty
 
         Parameters
@@ -887,10 +882,10 @@ class Fy():
             Keyword for obtaining sensitivity. The
             default is 'mass yield'.
         decay_data : `DecayData`, optional
-            Object to change the model to CFY = Q*IFY or Ch_chain = S_chain*IFY,
-            so the sensitivity (S) is Q or S_chain. The default is None,
-            so the model is ChY = ChY_mass*IFY and the sensitivity is mass
-            yield sensitivity.
+            Object to change the model to CFY = Q*IFY or
+            Ch_chain = S_chain*IFY, so the sensitivity (S) is Q or S_chain.
+            The default is None, so the model is ChY = ChY_mass*IFY
+            and the sensitivity is mass yield sensitivity.
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
         threshold : `int`, optional
@@ -1150,14 +1145,6 @@ class Fy():
                 tab = self.energy_table(zam, by="ZAM", kind=kind)
                 tab.index *= 1e-6
                 tab.to_hdf(file, key, format="fixed")
-
-#    def _to_endf6(self, endf6):
-#        # to be written
-#        pass
-
-#    def _custom_perturbation(self, pert):
-#        # to be written
-#        pass
 
 
 def _gls_setup(model_sensitivity_object, kind):

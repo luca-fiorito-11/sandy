@@ -4,9 +4,7 @@ This module contains all classes and functions specific for processing GLS.
 """
 import pandas as pd
 import numpy as np
-import scipy
 import scipy.sparse as sps
-import scipy.sparse.linalg as spsl
 import sandy
 
 __author__ = "Aitor Bengoechea"
@@ -31,7 +29,9 @@ N_e = 1
 def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False,
                threshold=None):
     """
-    Perform GlS update for a given variances, vectors and sensitivity.
+    Perform the GlS update of a prior vector, given its prior covariance
+    matrix, a lekelyhood matrix and additional info on the model obserbale
+    (both values and covariance matrix).
     .. math::
         $$
         x_{post} = x_{prior} + V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)
