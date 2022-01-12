@@ -44,6 +44,30 @@ def recursively_save_dict_contents_to_group(h5file, path, dic):
         elif isinstance(item, dict):
             newpath = f"{newentry}/"
             recursively_save_dict_contents_to_group(h5file, newpath, item)
+        elif isinstance(item, list):
+            newpath = f"{newentry}/"
+            recursively_save_list_contents_to_group(h5file, newpath, item)
+        else:
+            raise ValueError(f"Cannot save '{type(item)}' type")
+
+
+def recursively_save_list_contents_to_group(h5file, path, dic):
+    """
+    ....
+    """
+    dtypes = (np.ndarray, np.int64, np.float64, str, bytes, int, float)
+    for key, item in dic:
+        newentry = f"{path}{key}"
+        if isinstance(item, dtypes):
+            if newentry in h5file:
+                del h5file[newentry]
+            h5file[newentry] = item
+        elif isinstance(item, dict):
+            newpath = f"{newentry}/"
+            recursively_save_dict_contents_to_group(h5file, newpath, item)
+        elif isinstance(item, list):
+            newpath = f"{newentry}/"
+            recursively_save_list_contents_to_group(h5file, newpath, item)
         else:
             raise ValueError(f"Cannot save '{type(item)}' type")
 

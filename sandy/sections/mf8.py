@@ -52,8 +52,6 @@ def read_mf8(tape, mat, mt):
         out = _read_rdd(tape, mat)
     else:
         out = _read_nucl_prod(tape, mat, mt)
-#    else:
-#        raise ValueError(f"'MF={mf}/MT={mt}' not yet implemented")
     return out
 
 
@@ -234,20 +232,21 @@ def _read_rdd(tape, mat):
     --------
     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
     >>> rdd = sandy.sections.mf8.read_mf8(decay, 3542, 457)
-    >>> rdd['SPECTRA'][0]['ER'][19595.0]
-    {'DER': 4.0,
-    'RTYP': 4.0,
-    'TYPE': 0.0,
-    'RI': 0.00011,
-    'DRI': 2e-05,
-    'RIS': 0.0,
-    'DRIS': 0.0,
-    'RICC': 9670.0,
-    'DRICC': 967.0,
-    'RICK': 0.0,
-    'DRICK': 0.0,
-    'RICL': 0.0,
-    'DRICL': 0.0}
+    >>> rdd['SPECTRA'][0]['ER'][1]
+    {'ER': 31580.0,
+     'DER': 10.0,
+     'RTYP': 4.0,
+     'TYPE': 0.0,
+     'RI': 0.0003,
+     'DRI': 0.0001,
+     'RIS': 0.0,
+     'DRIS': 0.0,
+     'RICC': 690.0,
+     'DRICC': 69.69,
+     'RICK': 0.0,
+     'DRICK': 0.0,
+     'RICL': 502.0,
+     'DRICL': 50.702}
 
     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
     >>> rdd = sandy.sections.mf8.read_mf8(decay, 3542, 457)
@@ -314,7 +313,7 @@ def _read_rdd(tape, mat):
     # READ DECAY MODES
     ###########################
     if NDK > 0:
-        dk = {}
+        dk = []
         # Update list of decay modes when nuclide is radioactive
         for idk, data in enumerate(zip(*[iter(L.B)]*6)):
             # Decay Mode (Multiple particle decay is also allowed using
@@ -322,8 +321,6 @@ def _read_rdd(tape, mat):
             RTYP = str(data[0]).replace(".", "")
             # Isomeric state flag for daughter nuclide
             RFS = data[1]
-            residual_state = int(RFS)
-            key = f"{RTYP}x{residual_state}"
             decay = {
                 "RTYP": RTYP,
                 "RFS": RFS,
@@ -337,7 +334,7 @@ def _read_rdd(tape, mat):
                 # Uncertainty on branching ratio
                 "DBR": data[5],
                 }
-            dk[key] = decay
+            dk.append(decay)
         out["DK"] = dk
     ###########################
     # READ SPECTRA
@@ -366,12 +363,12 @@ def _read_rdd(tape, mat):
             spectra[STYP]["FC"] = L.B[4]
             spectra[STYP]["DFC"] = L.B[5]
             if LCON != 1:
-                discrete_spectrum = {}
+                discrete_spectrum = []
                 for ier in range(NER):
                     discr = {}
                     L, i = sandy.read_list(df, i)
                     # Discrete energy (eV) of radiation produced
-                    ER = L.C1
+                    discr['ER'] = L.C1
                     # Uncertainty on discrete energy
                     discr["DER"] = L.C2
                     # Number of entries given for each discrete energy (ER)
@@ -418,7 +415,7 @@ def _read_rdd(tape, mat):
                     if NT > 11:
                         # Uncertainty on RICL1
                         discr["DRICL"] = L.B[11]
-                    discrete_spectrum[ER] = discr
+                    discrete_spectrum.append(discr)
                 if discrete_spectrum:
                     spectra[STYP]["ER"] = discrete_spectrum
             if LCON != 0:
@@ -540,7 +537,7 @@ def _write_rdd(sec):
     --------
     Stable nuclide:
     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 551340)
-    >>> sec = sandy.sections.mf8.read_mf8(decay,1803,457)
+    >>> sec = sandy.sections.mf8.read_mf8(decay, 1803, 457)
     >>> text = _write_rdd(sec)
     >>> print(text[:1000])
      55134.0000 132.756000          0          0          0          51803 8457    1
@@ -559,7 +556,7 @@ def _write_rdd(sec):
 
     Unstable nuclide:
     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
-    >>> sec = sandy.sections.mf8.read_mf8(decay,3542,457)
+    >>> sec = sandy.sections.mf8.read_mf8(decay, 3542, 457)
     >>> text = _write_rdd(sec)
     >>> print(text[:1000])
      92235.0000 233.025000          0          0          0          63542 8457    1
@@ -575,104 +572,97 @@ def _write_rdd(sec):
      9670.00000 967.000000 0.00000000 0.00000000 0.00000000 0.000000003542 8457   11
      31580.0000 10.0000000          0          0         12          03542 8457   12
      4.00000000 0.00000000 3.000
+
+     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
+     >>> sec = sandy.sections.mf8.read_mf8(decay, 3542, 457)
+     >>> text = _write_rdd(sec)
+     >>> assert(len(text) == len(decay.data[3542, 8, 457]))
     """
-    if sec['NST'] == 1:
-        lines = sandy.write_cont(sec["ZA"],
-                                 sec["AWR"],
-                                 sec['LIS'],
-                                 sec['LISO'],
-                                 1,
-                                 0,
-                                 )
-        lines += sandy.write_list(0,
-                                  0,
-                                  0,
-                                  0,
-                                  0,
-                                  [0]*6,
-                                  )
-        lines += sandy.write_list(sec['SPI'],
-                                  sec['PAR'],
-                                  0,
-                                  0,
-                                  0,
-                                  [0]*6,
-                                  )
-    elif sec['NST'] == 0:
-        lines = sandy.write_cont(sec["ZA"],
-                                 sec["AWR"],
-                                 sec['LIS'],
-                                 sec['LISO'],
-                                 0,
-                                 len(sec['SPECTRA']),
-                                 )
+    lines = sandy.write_cont(
+        sec["ZA"],
+        sec["AWR"],
+        sec['LIS'],
+        sec['LISO'],
+        sec['NST'],
+        len(sec['SPECTRA']) if 'SPECTRA' in sec.keys() else 0,
+        )
+    if 'E' in sec:
         size_E = len(sec['E'])
         size_DE = len(sec['DE'])
-        add = [0]*(size_E + size_DE)
+        add = [0] * (size_E + size_DE)
         add[::2] = sec['E']
         add[1::2] = sec['DE']
-        lines += sandy.write_list(
-                            sec['HL'],
-                            sec['DHL'],
-                            0,
-                            0,
-                            0,
-                            add,
-                            )
-        NDK = len(sec['DK'])
+    else:
+        add = [0] * 6
+    lines += sandy.write_list(
+        sec['HL'] if 'HL' in sec.keys() else 0,
+        sec['DHL'] if 'DHL' in sec.keys() else 0,
+        0,
+        0,
+        0,
+        add,
+        )
+    if 'DK' in sec.keys():
         add = []
-        for key, decay_data in sec['DK'].items():
-            add.extend([int(decay_data['RTYP']),
-                        decay_data['RFS'],
-                        decay_data['Q'],
-                        decay_data['DQ'],
-                        decay_data['BR'],
-                        decay_data['DBR'],
-                        ])
-        lines += sandy.write_list(
-            sec['SPI'],
-            sec['PAR'],
-            0,
-            0,
-            NDK,
-            add,
-            )
+        NDK = len(sec['DK'])
+        for decay_data in sec['DK']:
+            add.extend([
+                int(decay_data['RTYP']),
+                decay_data['RFS'],
+                decay_data['Q'],
+                decay_data['DQ'],
+                decay_data['BR'],
+                decay_data['DBR'],
+                ])
+    else:
+        NDK = 0
+        add = [0] * 6
+    lines += sandy.write_list(
+        sec['SPI'],
+        sec['PAR'],
+        0,
+        0,
+        NDK,
+        add,
+        )
+    if 'SPECTRA' in sec.keys():
         for STYP, spectra in sec['SPECTRA'].items():
-            if spectra['LCON'] != 1 and 'ER' in list(sec['SPECTRA'][STYP].keys()):
-                add = [spectra['FD'],
-                       spectra['DFD'],
-                       spectra['ERAV'],
-                       spectra['DERAV'],
-                       spectra['FC'],
-                       spectra['DFC'],
-                       ]
-                lines += sandy.write_list(
-                    0,
-                    STYP,
-                    spectra['LCON'],
-                    0,
-                    len(spectra['ER']),
-                    add
-                    )
-                for ER, discr in spectra['ER'].items():
+            add = [
+                spectra['FD'],
+                spectra['DFD'],
+                spectra['ERAV'],
+                spectra['DERAV'],
+                spectra['FC'],
+                spectra['DFC'],
+                ]
+            lines += sandy.write_list(
+                0,
+                STYP,
+                spectra['LCON'],
+                0,
+                len(spectra['ER']) if 'ER' in spectra else 0,
+                add
+                )
+            if spectra['LCON'] != 1 and 'ER' in spectra:
+                for discr in spectra['ER']:
                     lines += sandy.write_list(
-                        ER,
+                        discr['ER'],
                         discr['DER'],
                         0,
                         0,
                         0,
-                        list(discr.values())[1:],
+                        list(discr.values())[2:],
                         )
-                if spectra['LCON'] != 0 and 'CONT' in list(sec['SPECTRA'][STYP].keys()):
-                    for RTYP, cont in spectra['CONT'].items():
-                        lines += sandy.write_tab1(
-                            cont['RTYP'],
-                            0.0,
-                            0,
-                            cont['LCOV'],
-                            cont['NBT'],
-                            cont['INT'],
-                            cont['E'][0],
-                            cont["RP"],
-                            )
-        return "\n".join(sandy.write_eol(lines, sec["MAT"], 8, sec["MT"]))
+            if spectra['LCON'] != 0 and 'CONT' in spectra.keys():
+                for RTYP, cont in spectra['CONT'].items():
+                    lines += sandy.write_tab1(
+                        cont['RTYP'],
+                        0.0,
+                        0,
+                        cont['LCOV'],
+                        cont['NBT'],
+                        cont['INT'],
+                        cont['E'][0],
+                        cont["RP"],
+                        )
+    return "\n".join(sandy.write_eol(lines, sec["MAT"], 8, sec["MT"]))

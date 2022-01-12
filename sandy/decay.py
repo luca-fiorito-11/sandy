@@ -15,10 +15,7 @@ from math import sqrt
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import CategoricalDtype
 import scipy
-import scipy.sparse as sps
-import scipy.sparse.linalg as spsl
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import splu
 
@@ -99,11 +96,28 @@ class DecayData():
         return sorted(self.data.keys())
 
     def get_pn(self):
+        """
+        Extract probability of neutron emission.
+
+        Returns
+        -------
+        `pandas.Series`
+            panda series with ZAM index and probability of neutrom emission
+
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", 391000)
+        >>> rdd = sandy.DecayData.from_endf6(endf6)
+        >>> rdd.get_pn()
+        ZAM
+        391000   1.00000e+00
+        Name: PN, dtype: float64
+        """
         pn = {}
         for zam, data in self.data.items():
             if data["stable"]:
                 continue
-            for decay_mode in data["decay_modes"].values():
+            for key, decay_mode in data["decay_modes"]:
                 # number_del_neuts = f"{rdtp}".count("5")
                 daughters = decay_mode["decay_products"]
                 if 10 in daughters:
@@ -120,12 +134,13 @@ class DecayData():
 
     def get_decayconstant(self, with_uncertainty=True):
         """
-        Extract decay constant and its uncertainty into dataframe.
+        Extract decay constant and its uncertainty into a dataframe.
 
         Parameters
         ----------
         with_uncertainty : `bool`, optional, default is 'True'
-            makes the method return lamdba and its uncertainty if set equal True
+            makes the method return decay constants and uncertainties
+            if set equal True, or else return only the decay constants
 
         Returns
         -------
@@ -167,7 +182,8 @@ class DecayData():
         Parameters
         ----------
         pert : `float`
-            Perturbation coefficient as ratio value.
+            Perturbation coefficient as a ratio value, e.g.,
+            1.0.5 fot a perturbation of +5%
         zam : `int`
             ZAM number of the material to which perturbation is to be
             applied.
@@ -181,10 +197,10 @@ class DecayData():
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', [922350, 922380])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
-        >>> dc_pert = rdd.custom_perturbation_decayconstant(0.1, 922350)
+        >>> dc_pert = rdd.custom_perturbation_decayconstant(1.05, 922350)
         >>> dc_pert.data
         {922350: {'half_life': 2.22102e+16,
-          'decay_constant': 3.432935762018982e-17,
+          'decay_constant': 3.2768932273817556e-17,
           'decay_constant_uncertainty': 2.2171470275223715e-20,
           'stable': False,
           'spin': 3.5,
@@ -197,12 +213,14 @@ class DecayData():
            'gamma': 1708.01,
            'alpha': 163255.0,
            'total': 163320.33067324167},
-          'decay_modes': {'40x0': {'decay_products': {902310: 1.0, 20040: 1.0},
-            'branching_ratio': 1.0,
-            'branching_ratio_uncertainty': 0.0001},
-           '60x0': {'decay_products': {},
-            'branching_ratio': 7.2e-11,
-            'branching_ratio_uncertainty': 2.1e-11}}},
+          'decay_modes': [('40',
+            {'decay_products': {902310: 1.0, 20040: 1.0},
+             'branching_ratio': 1.0,
+             'branching_ratio_uncertainty': 0.0001}),
+           ('60',
+            {'decay_products': {},
+             'branching_ratio': 7.2e-11,
+             'branching_ratio_uncertainty': 2.1e-11})]},
          922380: {'half_life': 1.40996e+17,
           'decay_constant': 4.916076913954618e-18,
           'decay_constant_uncertainty': 3.3008662253228094e-21,
@@ -217,20 +235,21 @@ class DecayData():
            'gamma': 104.433,
            'alpha': 29639.0,
            'total': 29651.4029548764},
-          'decay_modes': {'40x0': {'decay_products': {902340: 1.0, 20040: 1.0},
-            'branching_ratio': 0.999999,
-            'branching_ratio_uncertainty': 1e-08},
-           '60x0': {'decay_products': {},
-            'branching_ratio': 5.46e-07,
-            'branching_ratio_uncertainty': 1e-08}}}}
+          'decay_modes': [('40',
+            {'decay_products': {902340: 1.0, 20040: 1.0},
+             'branching_ratio': 0.999999,
+             'branching_ratio_uncertainty': 1e-08}),
+           ('60',
+            {'decay_products': {},
+             'branching_ratio': 5.46e-07,
+             'branching_ratio_uncertainty': 1e-08})]}}
         """
         pert_dc = copy.deepcopy(self.data)
-        pert_dc[zam]['decay_constant'] = pert_dc[zam]['decay_constant'] * (1 + pert)
+        pert_dc[zam]['decay_constant'] = pert_dc[zam]['decay_constant'] * pert
         return self.__class__(pert_dc)
 
     def get_decay_chains(self, skip_parents=False, **kwargs):
-        """
-        Extract decay chains into dataframe.
+        """Extract decay chains into dataframe.
 
         Parameters
         ----------
@@ -271,7 +290,7 @@ class DecayData():
                 items.append(add)
             if nucl["stable"]:
                 continue
-            for decay_mode in nucl["decay_modes"].values():
+            for key, decay_mode in nucl["decay_modes"]:
                 br = decay_mode["branching_ratio"]
                 if "decay_products" not in decay_mode:
                     continue  # S.F.
@@ -332,7 +351,8 @@ class DecayData():
                      .rename(columns={'PARENT': 'ZAP', 'DAUGHTER': 'A'})
         chain.loc[chain.YIELD == 0, 'YIELD'] = 1
         chain['A'] = chain.A.apply(sandy.zam.expand_zam).apply(lambda x: x[1])
-        return chain.pivot_table(index='A', columns='ZAP', values='YIELD').fillna(0)
+        return chain.pivot_table(index='A', columns='ZAP', values='YIELD') \
+                    .fillna(0)
 
     def get_bmatrix(self, **kwargs):
         """
@@ -386,21 +406,19 @@ class DecayData():
         561480 	0.00000e+00 	7.81380e-01 	6.88450e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
         561490 	0.00000e+00 	0.00000e+00 	3.11550e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
         """
-        B_data = self.get_decay_chains(**kwargs)
-        index_sp = CategoricalDtype(sorted(B_data.DAUGHTER.unique()), ordered=True)
-        column_sp = CategoricalDtype(sorted(B_data.PARENT.unique()), ordered=True)
-        row = B_data.DAUGHTER.astype(index_sp).cat.codes
-        col = B_data.PARENT.astype(column_sp).cat.codes
-        sparse_matrix = sps.csr_matrix((B_data.YIELD, (row, col)),
-                                       shape=(index_sp.categories.size,
-                                       column_sp.categories.size))
-        B = pd.DataFrame(sparse_matrix.toarray(),
-                         index=index_sp.categories.set_names('DAUGHTER'),
-                         columns=column_sp.categories)
-        B = B.reindex(columns=index_sp.categories.set_names('PARENT'))\
-            .fillna(0)
-        np.fill_diagonal(B.values, 0)
-        return B
+        B = self.get_decay_chains(**kwargs) \
+                .pivot_table(
+                        index="DAUGHTER",
+                        columns="PARENT",
+                        values="YIELD",
+                        aggfunc=np.sum,
+                        fill_value=0.0,
+                        )\
+                .astype(float)\
+                .fillna(0)
+        B_reindex = B.reindex(B.index.values, fill_value=0.0, axis=1)
+        np.fill_diagonal(B_reindex.values, 0)
+        return B_reindex
 
     def get_qmatrix(self, keep_neutrons=False, threshold=None, **kwargs):
         """
@@ -452,13 +470,14 @@ class DecayData():
                 B.drop(index=10, inplace=True)
             if 10 in B.columns:
                 B.drop(columns=10, inplace=True)
-        index = B.index
-        columns = B.columns
-        B = sps.csc_matrix(B)
-        unit = sps.csc_matrix(sps.identity(B.shape[0]))
-        C = spsl.splu(sps.csc_matrix(unit-B))
-        qmatrix = pd.DataFrame(C.solve(unit.toarray()), index=index,
-                               columns=columns)
+        unit = np.identity(len(B))
+        C = unit - B.values
+        C_inv = splu(csc_matrix(C))
+        qmatrix = pd.DataFrame(
+            C_inv.solve(unit),
+            index=B.index,
+            columns=B.columns,
+            )
         if threshold is not None:
             qmatrix[qmatrix < threshold] = 0
         return qmatrix
@@ -559,8 +578,9 @@ class DecayData():
               gamma: 352.186
               total: 406.26712202318316
             decay_modes:
-              10x0:
-                branching_ratio: 1.0
+            - !!python/tuple
+              - '10'
+              - branching_ratio: 1.0
                 branching_ratio_uncertainty: 0.0
                 decay_products:
                   280600: 1.0
@@ -622,9 +642,9 @@ class DecayData():
                 assert groups[zam]["decay_constant"] == 0
                 assert "DK" not in sec
                 continue
-            groups[zam]["decay_modes"] = {}
-            for key, dk in sec["DK"].items():
-                rtyp = key.split("x")[0]
+            groups[zam]["decay_modes"] = []
+            for dk in sec["DK"]:
+                rtyp = dk['RTYP']
                 residual_state = dk["RFS"]
                 decay_mode_data = {
                         "decay_products": get_decay_products(
@@ -635,7 +655,7 @@ class DecayData():
                         "branching_ratio": dk["BR"],
                         "branching_ratio_uncertainty": dk["DBR"],
                         }
-                groups[zam]["decay_modes"][key] = decay_mode_data
+                groups[zam]["decay_modes"].append((rtyp, decay_mode_data))
         return cls(groups)
 
     @classmethod
@@ -704,7 +724,7 @@ class DecayData():
 
         Then, make sure `sandy` reads it correctly
         >>> rdd.from_hdf5(path, "jeff_33")
-        {10010: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.5, 'stable': True}, 270600: {'decay_constant': 4.167050502344267e-09, 'decay_constant_uncertainty': 6.324352137605637e-13, 'decay_energy': {'alpha': 0.0, 'beta': 96522.0, 'gamma': 2503840.0, 'total': 2600362.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 202.529, 'gamma': 352.186, 'total': 406.26712202318316}, 'decay_modes': {'10x0': {'branching_ratio': 1.0, 'branching_ratio_uncertainty': 0.0, 'decay_products': {280600: 1.0}}}, 'half_life': 166340000.0, 'parity': 1.0, 'spin': 5.0, 'stable': False}, 280600: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.0, 'stable': True}}
+        {10010: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.5, 'stable': True}, 270600: {'decay_constant': 4.167050502344267e-09, 'decay_constant_uncertainty': 6.324352137605637e-13, 'decay_energy': {'alpha': 0.0, 'beta': 96522.0, 'gamma': 2503840.0, 'total': 2600362.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 202.529, 'gamma': 352.186, 'total': 406.26712202318316}, 'decay_modes': {10: {'branching_ratio': 1.0, 'branching_ratio_uncertainty': 0.0, 'decay_products': {280600: 1.0}}}, 'half_life': 166340000.0, 'parity': 1.0, 'spin': 5.0, 'stable': False}, 280600: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.0, 'stable': True}}
         >>> f.cleanup()
         """
         with h5py.File(filename, mode=mode) as h5file:
