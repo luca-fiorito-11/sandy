@@ -181,7 +181,7 @@ class DecayData():
         Parameters
         ----------
         pert : `float`
-            Perturbation coefficient as unit plus ratio value.
+            Perturbation coefficient as ratio value.
         zam : `int`
             ZAM number of the material to which perturbation is to be
             applied.
