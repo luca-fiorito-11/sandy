@@ -134,12 +134,13 @@ class DecayData():
 
     def get_decayconstant(self, with_uncertainty=True):
         """
-        Extract decay constant and its uncertainty into dataframe.
+        Extract decay constant and its uncertainty into a dataframe.
 
         Parameters
         ----------
         with_uncertainty : `bool`, optional, default is 'True'
-            makes the method return lamdba and its uncertainty if set equal True
+            makes the method return decay constants and uncertainties
+            if set equal True, or else return only the decay constants
 
         Returns
         -------
@@ -181,7 +182,8 @@ class DecayData():
         Parameters
         ----------
         pert : `float`
-            Perturbation coefficient as ratio value.
+            Perturbation coefficient as a ratio value, e.g.,
+            1.0.5 fot a perturbation of +5%
         zam : `int`
             ZAM number of the material to which perturbation is to be
             applied.
@@ -247,8 +249,7 @@ class DecayData():
         return self.__class__(pert_dc)
 
     def get_decay_chains(self, skip_parents=False, **kwargs):
-        """
-        Extract decay chains into dataframe.
+        """Extract decay chains into dataframe.
 
         Parameters
         ----------
@@ -350,7 +351,8 @@ class DecayData():
                      .rename(columns={'PARENT': 'ZAP', 'DAUGHTER': 'A'})
         chain.loc[chain.YIELD == 0, 'YIELD'] = 1
         chain['A'] = chain.A.apply(sandy.zam.expand_zam).apply(lambda x: x[1])
-        return chain.pivot_table(index='A', columns='ZAP', values='YIELD').fillna(0)
+        return chain.pivot_table(index='A', columns='ZAP', values='YIELD') \
+                    .fillna(0)
 
     def get_bmatrix(self, **kwargs):
         """
@@ -471,7 +473,11 @@ class DecayData():
         unit = np.identity(len(B))
         C = unit - B.values
         C_inv = splu(csc_matrix(C))
-        qmatrix = pd.DataFrame(C_inv.solve(unit), index=B.index, columns=B.columns)
+        qmatrix = pd.DataFrame(
+            C_inv.solve(unit),
+            index=B.index,
+            columns=B.columns,
+            )
         if threshold is not None:
             qmatrix[qmatrix < threshold] = 0
         return qmatrix

@@ -52,8 +52,6 @@ def read_mf8(tape, mat, mt):
         out = _read_rdd(tape, mat)
     else:
         out = _read_nucl_prod(tape, mat, mt)
-#    else:
-#        raise ValueError(f"'MF={mf}/MT={mt}' not yet implemented")
     return out
 
 
@@ -574,49 +572,51 @@ def _write_rdd(sec):
      9670.00000 967.000000 0.00000000 0.00000000 0.00000000 0.000000003542 8457   11
      31580.0000 10.0000000          0          0         12          03542 8457   12
      4.00000000 0.00000000 3.000
-     
+
      >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
      >>> sec = sandy.sections.mf8.read_mf8(decay, 3542, 457)
      >>> text = _write_rdd(sec)
      >>> assert(len(text) == len(decay.data[3542, 8, 457]))
     """
-    lines = sandy.write_cont(sec["ZA"],
-                         sec["AWR"],
-                         sec['LIS'],
-                         sec['LISO'],
-                         sec['NST'],
-                         len(sec['SPECTRA']) if 'SPECTRA' in sec.keys() else 0,
-                         )
-    if 'E' in sec.keys():
+    lines = sandy.write_cont(
+        sec["ZA"],
+        sec["AWR"],
+        sec['LIS'],
+        sec['LISO'],
+        sec['NST'],
+        len(sec['SPECTRA']) if 'SPECTRA' in sec.keys() else 0,
+        )
+    if 'E' in sec:
         size_E = len(sec['E'])
         size_DE = len(sec['DE'])
         add = [0] * (size_E + size_DE)
         add[::2] = sec['E']
         add[1::2] = sec['DE']
     else:
-        add = [0]*6
+        add = [0] * 6
     lines += sandy.write_list(
-                        sec['HL'] if 'HL' in sec.keys() else 0,
-                        sec['DHL'] if 'DHL' in sec.keys() else 0,
-                        0,
-                        0,
-                        0,
-                        add,
-                        )
-    add = []
+        sec['HL'] if 'HL' in sec.keys() else 0,
+        sec['DHL'] if 'DHL' in sec.keys() else 0,
+        0,
+        0,
+        0,
+        add,
+        )
     if 'DK' in sec.keys():
+        add = []
         NDK = len(sec['DK'])
         for decay_data in sec['DK']:
-            add.extend([int(decay_data['RTYP']),
-                        decay_data['RFS'],
-                        decay_data['Q'],
-                        decay_data['DQ'],
-                        decay_data['BR'],
-                        decay_data['DBR'],
-                        ])
+            add.extend([
+                int(decay_data['RTYP']),
+                decay_data['RFS'],
+                decay_data['Q'],
+                decay_data['DQ'],
+                decay_data['BR'],
+                decay_data['DBR'],
+                ])
     else:
         NDK = 0
-        add = [0]*6
+        add = [0] * 6
     lines += sandy.write_list(
         sec['SPI'],
         sec['PAR'],
@@ -640,10 +640,10 @@ def _write_rdd(sec):
                 STYP,
                 spectra['LCON'],
                 0,
-                len(spectra['ER']) if 'ER' in sec['SPECTRA'][STYP].keys() else 0,
+                len(spectra['ER']) if 'ER' in spectra else 0,
                 add
                 )
-            if spectra['LCON'] != 1 and 'ER' in sec['SPECTRA'][STYP].keys():
+            if spectra['LCON'] != 1 and 'ER' in spectra:
                 for discr in spectra['ER']:
                     lines += sandy.write_list(
                         discr['ER'],
@@ -653,7 +653,7 @@ def _write_rdd(sec):
                         0,
                         list(discr.values())[2:],
                         )
-            if spectra['LCON'] != 0 and 'CONT' in sec['SPECTRA'][STYP].keys():
+            if spectra['LCON'] != 0 and 'CONT' in spectra.keys():
                 for RTYP, cont in spectra['CONT'].items():
                     lines += sandy.write_tab1(
                         cont['RTYP'],
