@@ -183,7 +183,7 @@ class DecayData():
         ----------
         pert : `float`
             Perturbation coefficient as a ratio value, e.g.,
-            1.0.5 fot a perturbation of +5%
+            1.05 for a perturbation of +5%
         zam : `int`
             ZAM number of the material to which perturbation is to be
             applied.
@@ -249,7 +249,8 @@ class DecayData():
         return self.__class__(pert_dc)
 
     def get_decay_chains(self, skip_parents=False, **kwargs):
-        """Extract decay chains into dataframe.
+        """
+        Extract decay chains into dataframe.
 
         Parameters
         ----------
@@ -657,6 +658,59 @@ class DecayData():
                         }
                 groups[zam]["decay_modes"].append((rtyp, decay_mode_data))
         return cls(groups)
+
+    def to_endf6(self, endf6):
+        """
+        Update decay data in `Endf6` instance with those available in a
+        `DecayData` instance.
+
+        Parameters
+        ----------
+        `endf6` : `sandy.Endf6`
+            `Endf6` instance
+        Returns
+        -------
+        `sandy.Endf6`
+            `Endf6` instance with updated decay data
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33", "decay", 922350)
+        >>> rdd = sandy.DecayData.from_endf6(tape)
+        >>> new_tape = rdd.to_endf6(tape)
+        >>> new_tape
+        MAT   MF  MT
+        3542  1   451     9.223500+4 2.330250+2         -1          1  ...
+                  452     9.223500+4 2.330250+2          0          1  ...
+              8   457     92235.0000 233.025000          0          0  ...
+        dtype: object
+        """
+        data = endf6.data.copy()
+        tape = endf6.filter_by(listmf=[8], listmt=[457])
+        for (mat, mf, mt) in tape.keys:
+            sec = tape.read_section(mat, mf, mt)
+            zam = int(sec["ZA"] * 10 + sec["LISO"])
+            sec["HL"] = self.data[zam]['half_life']
+            sec["LAMBDA"] = self.data[zam]['decay_constant']
+            sec["DLAMBDA"] = self.data[zam]['decay_constant_uncertainty']
+            sec["NST"] = int(self.data[zam]['stable'])
+            sec["SPI"] = self.data[zam]['spin']
+            sec["PAR"] = self.data[zam]['parity']
+            sec["E"][0] = self.data[zam]['decay_energy']['beta']
+            sec["E"][1] = self.data[zam]['decay_energy']['gamma']
+            sec["E"][2] = self.data[zam]['decay_energy']['alpha']
+            sec["DE"][0] = self.data[zam]['decay_energy_uncertainties']['beta']
+            sec["DE"][1] = self.data[zam]['decay_energy_uncertainties']['gamma']
+            sec["DE"][2] = self.data[zam]['decay_energy_uncertainties']['alpha']
+            if 'DK' in sec.keys():
+                i = 0
+                for rtyp, dk in self.data[zam]['decay_modes']:
+                    sec['DK'][i]['RTYP'] = float(rtyp) / 10.0
+                    sec['DK'][i]['RFS'] = int(repr(list(dk['decay_products'])[0])[-1]) if dk['decay_products'] else 0
+                    sec['DK'][i]['BR'] = dk['branching_ratio']
+                    sec['DK'][i]['DBR'] = dk['branching_ratio_uncertainty']
+                    i += 1
+            data[mat, mf, mt] = sandy.write_mf8(sec)
+        return sandy.Endf6(data)
 
     @classmethod
     def from_hdf5(cls, filename, lib, zam=None):
