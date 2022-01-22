@@ -9,6 +9,7 @@ import seaborn as sns
 
 import sandy
 import scipy
+from scipy.linalg import cholesky
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import splu
 import pytest
@@ -388,7 +389,7 @@ class CategoryCov():
         2	0.00000e+00	3.00000e+00
         """
         nonzero_idxs = np.flatnonzero(np.diag(self.data))
-        cov_reduced = self.data.loc[nonzero_idxs, nonzero_idxs]
+        cov_reduced = self.data.iloc[nonzero_idxs, nonzero_idxs]
         return nonzero_idxs, cov_reduced
 
     @classmethod
@@ -479,43 +480,56 @@ class CategoryCov():
                              index=index, columns=columns)
         return self.__class__(M_inv)
 
-    def sampling(self, nsmp, seed=None):
+    def sampling(self, nsmp, mean=0, seed=None):
         """
-        Extract random samples from normali distribution centered in zero
-        and with given covariance matrix.
+        Extract random samples from normal distribution 
+        with given covariance matrix.
 
         Parameters
         ----------
         nsmp : `int`
             number of samples
+        mean : `float`, optional, default is `0`
+            center of the normal distribution
         seed : `int`, optional, default is `None`
             seed for the random number generator (by default use `numpy`
             dafault pseudo-random number generator)
 
         Returns
         -------
-        `sandy.Samples`
-            object containing samples
+        `pandas.DataFrame`
+            Dataframe with samples.
+            Index contains variable identifiers.
+            Columns contain sample numbers. 
 
         Examples
         --------
         Draw 3 sets of samples using custom seed.
         >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11)
-                     0            1
-        0 -1.74945e+00 -3.13159e+00
-        1  2.86073e-01  1.06836e-01
-        2  4.84565e-01 -9.91209e-02
+                     0            1            2
+        0  1.74945e+00 -2.86073e-01 -4.84565e-01
+        1 -1.73202e+00 -1.22022e-01 -4.86773e-01
+
+        Draw 3 sets of samples centered in 1.
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, mean=1, seed=11)
+                     0           1           2
+        0  2.74945e+00 7.13927e-01 5.15435e-01
+        1 -7.32025e-01 8.77978e-01 5.13227e-01
         """
         np.random.seed(seed=seed)
         dim = self.data.shape[0]
         y = np.random.randn(dim, nsmp)  # normal pdf
-        L = self.decompose()
-        samples = L.dot(y)
-        df = pd.DataFrame(samples,
-                          index=self.data.index,
-                          columns=list(range(nsmp)),
-                          )
-        return sandy.Samples(df.T)
+
+        # reduce/restore_size is done to:
+        #    1) apply if possible cholesky,
+        #    2) be compatible with previous results
+        nonzero_idxs, cov_small = self._reduce_size()
+        L_small = CategoryCov(cov_small).decompose()
+        L = self.__class__._restore_size(nonzero_idxs, L_small, dim).data
+
+        smp = L.dot(y) + mean
+        smp.index = self.data.index
+        return smp
 
     def decompose(self):
         """
@@ -532,11 +546,20 @@ class CategoryCov():
         array([[-1.        ,  0.        ],
                [-0.4       ,  0.91651514]])
         """
-        E, V = self.eig(sort=False)
-        E[E <= 0] = 0
-        M = V.values.dot(np.diag(np.sqrt(E.values)))
-        Q, R = scipy.linalg.qr(M.T)
-        return R.T
+        try:
+            L = cholesky(
+                self.data,
+                lower=True,
+                overwrite_a=False,
+                check_finite=False,
+                )
+        except np.linalg.linalg.LinAlgError:
+            E, V = self.eig(sort=False)
+            E[E <= 0] = 0
+            M = V.values.dot(np.diag(np.sqrt(E.values)))
+            Q, R = scipy.linalg.qr(M.T)
+            L = R.T
+        return L
 
     @classmethod
     def from_var(cls, var):

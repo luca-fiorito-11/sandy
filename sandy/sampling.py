@@ -753,7 +753,12 @@ def extract_samples(ftape, covtape):
         covtype = covtape.get_file_format()
         xscov = XsCov.from_errorr(covtape) if covtype == "errorr" else XsCov.from_endf6(covtape)
         if not xscov.empty:
-            PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
+            PertXs = sandy.CategoryCov(xscov).sampling(
+                init.samples,
+                mean=1,
+                seed=init.seed33,
+                )
+            #PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
             if init.debug:
                 PertXs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
     return ftape, covtape, PertNubar, PertXs, PertLpc, PertEdistr, PertFy
@@ -817,6 +822,7 @@ def sampling(iargs=None):
             pxs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
     else:
         covtape = read_formatted_file(init.cov) if init.cov else ftape
+        return extract_samples(ftape, covtape)
         ftape, covtape, pnu, pxs, plpc, pchi, pfy = extract_samples(ftape, covtape)
     df = {}
     if pnu.empty and pxs.empty and plpc.empty and pchi.empty and pfy.empty:
