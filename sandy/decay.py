@@ -132,6 +132,66 @@ class DecayData():
         series.index.name = "ZAM"
         return series
 
+    def get_br(self, with_uncertainty=True):
+        """
+        Extract branching ratio and its uncertainty into a dataframe.
+
+        Parameters
+        ----------
+        with_uncertainty : `bool`, optional, default is 'True'
+            makes the method return branching ratios and uncertainties
+            if set equal True, or else return only the branching ratios
+
+        Returns
+        -------
+        `pandas.DataFrame`
+            dataframe with branching ratio and associated uncertainty or
+            dataframe with branching ratio
+
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942400, 922350])
+        >>> rdd = sandy.DecayData.from_endf6(endf6)
+        >>> BR = rdd.get_br()
+        >>> print(BR)
+                                    BR         DBR
+        ZAM    RTYP                               
+        922350 4.00000e+00 1.00000e+00 1.00000e-04
+               6.00000e+00 7.20000e-11 2.10000e-11
+        942400 4.00000e+00 1.00000e+00 0.00000e+00
+               6.00000e+00 5.70000e-08 2.00000e-09
+
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942400, 922350])
+        >>> rdd = sandy.DecayData.from_endf6(endf6)
+        >>> BR = rdd.get_br(False)
+        >>> print(BR)
+                                    BR
+        ZAM    RTYP                   
+        922350 4.00000e+00 1.00000e+00
+               6.00000e+00 7.20000e-11
+        942400 4.00000e+00 1.00000e+00
+               6.00000e+00 5.70000e-08
+        """
+        br = []
+        ZAM = []
+        RTYP = []
+        for zam, dic in self.data.items():
+            for rtyp, dk in dic['decay_modes']:
+                br.append([
+                    dk['branching_ratio'],
+                    dk['branching_ratio_uncertainty'],
+                    ])
+                RTYP.append(float(rtyp) / 10)
+                ZAM.append(zam)
+        tuples = list(zip(* [ZAM,
+                             RTYP]))
+        idx = pd.MultiIndex.from_tuples(tuples, names=['ZAM', 'RTYP'])
+        df = pd.DataFrame(br, index=idx, columns=['BR', 'DBR'])
+        if with_uncertainty:
+            return df
+        else:
+            return df.drop(['DBR'], axis=1)
+
     def get_decayconstant(self, with_uncertainty=True):
         """
         Extract decay constant and its uncertainty into a dataframe.
