@@ -144,9 +144,9 @@ class DecayData():
 
         Returns
         -------
-        `pandas.DataFrame`
-            dataframe with branching ratio and associated uncertainty or
-            dataframe with branching ratio
+        `pandas.DataFrame` or `pandas.Series`
+            dataframe with branching ratio and associated uncertainty
+            series with branching ratio if with_uncertainty = False
 
         Examples
         --------
@@ -154,23 +154,23 @@ class DecayData():
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> BR = rdd.get_br()
         >>> print(BR)
-                                    BR         DBR
-        ZAM    RTYP                               
-        922350 4.00000e+00 1.00000e+00 1.00000e-04
-               6.00000e+00 7.20000e-11 2.10000e-11
-        942400 4.00000e+00 1.00000e+00 0.00000e+00
-               6.00000e+00 5.70000e-08 2.00000e-09
+                             BR         DBR
+        ZAM    RTYP                        
+        922350 4.0  1.00000e+00 1.00000e-04
+               6.0  7.20000e-11 2.10000e-11
+        942400 4.0  1.00000e+00 0.00000e+00
+               6.0  5.70000e-08 2.00000e-09
 
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942400, 922350])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> BR = rdd.get_br(False)
         >>> print(BR)
-                                    BR
-        ZAM    RTYP                   
-        922350 4.00000e+00 1.00000e+00
-               6.00000e+00 7.20000e-11
-        942400 4.00000e+00 1.00000e+00
-               6.00000e+00 5.70000e-08
+        ZAM     RTYP
+        922350  4.0    1.00000e+00
+                6.0    7.20000e-11
+        942400  4.0    1.00000e+00
+                6.0    5.70000e-08
+        Name: BR, dtype: float64
         """
         br = []
         ZAM = []
@@ -181,16 +181,16 @@ class DecayData():
                     dk['branching_ratio'],
                     dk['branching_ratio_uncertainty'],
                     ])
-                RTYP.append(float(rtyp) / 10)
+                RTYP.append(rtyp)
                 ZAM.append(zam)
-        tuples = list(zip(* [ZAM,
-                             RTYP]))
+        tuples = zip(* [ZAM,
+                        RTYP])
         idx = pd.MultiIndex.from_tuples(tuples, names=['ZAM', 'RTYP'])
         df = pd.DataFrame(br, index=idx, columns=['BR', 'DBR'])
         if with_uncertainty:
             return df
         else:
-            return df.drop(['DBR'], axis=1)
+            return df.BR
 
     def get_decayconstant(self, with_uncertainty=True):
         """
@@ -273,11 +273,11 @@ class DecayData():
            'gamma': 1708.01,
            'alpha': 163255.0,
            'total': 163320.33067324167},
-          'decay_modes': [('40',
+          'decay_modes': [('4.0',
             {'decay_products': {902310: 1.0, 20040: 1.0},
              'branching_ratio': 1.0,
              'branching_ratio_uncertainty': 0.0001}),
-           ('60',
+           ('6.0',
             {'decay_products': {},
              'branching_ratio': 7.2e-11,
              'branching_ratio_uncertainty': 2.1e-11})]},
@@ -295,11 +295,11 @@ class DecayData():
            'gamma': 104.433,
            'alpha': 29639.0,
            'total': 29651.4029548764},
-          'decay_modes': [('40',
+          'decay_modes': [('4.0',
             {'decay_products': {902340: 1.0, 20040: 1.0},
              'branching_ratio': 0.999999,
              'branching_ratio_uncertainty': 1e-08}),
-           ('60',
+           ('6.0',
             {'decay_products': {},
              'branching_ratio': 5.46e-07,
              'branching_ratio_uncertainty': 1e-08})]}}
@@ -640,7 +640,7 @@ class DecayData():
               total: 406.26712202318316
             decay_modes:
             - !!python/tuple
-              - '10'
+              - '1.0'
               - branching_ratio: 1.0
                 branching_ratio_uncertainty: 0.0
                 decay_products:
@@ -764,7 +764,7 @@ class DecayData():
             if 'DK' in sec.keys():
                 i = 0
                 for rtyp, dk in self.data[zam]['decay_modes']:
-                    sec['DK'][i]['RTYP'] = float(rtyp) / 10.0
+                    sec['DK'][i]['RTYP'] = float(rtyp)
                     sec['DK'][i]['RFS'] = int(repr(list(dk['decay_products'])[0])[-1]) if dk['decay_products'] else 0
                     sec['DK'][i]['BR'] = dk['branching_ratio']
                     sec['DK'][i]['DBR'] = dk['branching_ratio_uncertainty']
@@ -838,7 +838,7 @@ class DecayData():
 
         Then, make sure `sandy` reads it correctly
         >>> rdd.from_hdf5(path, "jeff_33")
-        {10010: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.5, 'stable': True}, 270600: {'decay_constant': 4.167050502344267e-09, 'decay_constant_uncertainty': 6.324352137605637e-13, 'decay_energy': {'alpha': 0.0, 'beta': 96522.0, 'gamma': 2503840.0, 'total': 2600362.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 202.529, 'gamma': 352.186, 'total': 406.26712202318316}, 'decay_modes': {10: {'branching_ratio': 1.0, 'branching_ratio_uncertainty': 0.0, 'decay_products': {280600: 1.0}}}, 'half_life': 166340000.0, 'parity': 1.0, 'spin': 5.0, 'stable': False}, 280600: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.0, 'stable': True}}
+        {10010: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.5, 'stable': True}, 270600: {'decay_constant': 4.167050502344267e-09, 'decay_constant_uncertainty': 6.324352137605637e-13, 'decay_energy': {'alpha': 0.0, 'beta': 96522.0, 'gamma': 2503840.0, 'total': 2600362.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 202.529, 'gamma': 352.186, 'total': 406.26712202318316}, 'decay_modes': {1.0: {'branching_ratio': 1.0, 'branching_ratio_uncertainty': 0.0, 'decay_products': {280600: 1.0}}}, 'half_life': 166340000.0, 'parity': 1.0, 'spin': 5.0, 'stable': False}, 280600: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.0, 'stable': True}}
         >>> f.cleanup()
         """
         with h5py.File(filename, mode=mode) as h5file:
@@ -1027,7 +1027,7 @@ def get_decay_products(rtyp, zam, meta=0, br=1.):
     neutrons = 0.
     protons = 0.
     alphas = 0.
-    for dectyp in map(int, rtyp):
+    for dectyp in map(int, rtyp.replace(".", "")):
         daughter, n, h, a = expand_decay_type(daughter, dectyp)
         neutrons += n
         protons += h
