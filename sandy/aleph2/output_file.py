@@ -32,8 +32,9 @@ table_header = "\n".join((
     "\*\-\-\- Table (?P<table_number>[0-9\s]{2}) \-\-\- (?P<table_name>.*?)\*",
     "\*" * 80,
 ))
-
 material_header = "\*\*\*\*\*   Material (?P<material_number>[0-9\s]{7})\n"
+element_header = "\*\*\*\*\*   Per element.*\n"
+contributor_header = "Main contributors.*\n\n\n"
 
 table_footer = "^\s+Total"
 
@@ -274,6 +275,21 @@ class OutputFile():
         data = match.group("data")
         return np.array([float(x) for x in data.split()])
 
+    def parse_tables(self):
+        data = {}
+        inp, rest = re.split(summary_header, self.text, maxsplit=1)
+        tab_items = re.split(table_header, rest)
+        summary, tab_items = tab_items[0], tab_items[1:]
+        tab_numbers = map(int, tab_items[0::3])
+        tab_titles = map(lambda x: x.strip(), tab_items[1::3])
+        tab_texts = tab_items[2::3]
+        tab_zipped = zip(tab_numbers, tab_titles, tab_texts)
+        for num, title, tab_txt in tab_zipped:
+            if num > 7:
+                break
+            data[num] = Table(num, title, tab_txt)
+        self.data = data
+
     def get_table(self, table_number):
         """
         For a specified table number, return a dictionary of tables
@@ -333,6 +349,98 @@ class OutputFile():
         return cls(string)
 
 
+class Table():
+
+    def __repr__(self):
+        return f"ALEPH-2 table: {self.title}"
+
+    def __init__(self, num, title, text):
+        self.number = num
+        self.title = title
+        self.text = text
+        self.materials = self._get_tables()
+
+    def _get_tables(self):
+        out = {}
+        mat_items = re.split(material_header, self.text)[1:]
+        mat_number = map(int, mat_items[0::2])
+        mat_texts = mat_items[1::2]
+        mat_zipped = zip(mat_number, mat_texts)
+        for mat, mat_txt in mat_zipped:
+            if self.number == 1 or self.number == 2:
+                SubTable = namedtuple(
+                    f"Table{self.number}",
+                    "by_nuclide by_element",
+                    )
+                content, rest = re.split(
+                    table_footer,
+                    mat_txt,
+                    maxsplit=1,
+                    flags=re.MULTILINE,
+                    )
+                df1 = parse_table_nuclide(content, index="ZAM")
+                content = re.split(
+                    element_header,
+                    rest,
+                    maxsplit=1,
+                    flags=re.MULTILINE,
+                    )[1]
+                df2 = parse_table_element(content)
+                df = SubTable(df1, df2)
+            elif self.number == 3 or self.number == 4:
+                SubTable = namedtuple(
+                    f"Table{self.number}",
+                    "by_nuclide abs_contributors rel_contributors",
+                    )
+                content, rest = re.split(
+                    table_footer,
+                    mat_txt,
+                    maxsplit=1,
+                    flags=re.MULTILINE,
+                    )
+                df1 = parse_table_nuclide(content, index="ZAM")
+                absol, rel = re.split(
+                    contributor_header,
+                    rest,
+                    maxsplit=2,
+                    flags=re.MULTILINE,
+                    )[1:]
+                df2 = parse_table_contributor(absol)
+                df3 = parse_table_contributor(rel)
+                df = SubTable(df1, df2, df3)
+            elif self.number == 5 or self.number == 6 or self.number == 7:
+                SubTable = namedtuple(
+                    f"Table{self.number}",
+                    "by_nuclide by_energy count",
+                    )
+                content, rest = re.split(
+                    table_footer,
+                    mat_txt,
+                    maxsplit=1,
+                    flags=re.MULTILINE,
+                    )
+                df1 = parse_table_nuclide(content, index="ZAM")
+                rest = "\n".join(rest.splitlines()[5:])
+                content, rest = re.split(
+                    table_footer,
+                    rest,
+                    maxsplit=1,
+                    flags=re.MULTILINE,
+                    )
+                df2 = parse_table_energy(content)
+                rest = "\n".join(rest.splitlines()[6:])
+                content, rest = re.split(
+                    table_footer,
+                    rest,
+                    maxsplit=1,
+                    flags=re.MULTILINE,
+                    )
+                df3 = parse_table_nuclide(content, index="ZAM")
+                df = SubTable(df1, df2, df3)
+            out[mat] = df
+        return out
+
+
 def parse_output_for_tables(text, index="ZAM"):
     if index == "ZAM":
         index_col = 1
@@ -355,7 +463,7 @@ def parse_output_for_tables(text, index="ZAM"):
         table_name = y.strip()
         mat_items = re.split(material_header, z)[1:]
         mat_dct = {}
-        for i, j in zip(mat_items[::2], mat_items[1::2]):
+        for i, j in zip(mat_items[::2], mat_items[1::2]):  # N_MAT + TEXT
             mat_number = int(i)
             content = re.split(table_footer, j, flags=re.MULTILINE)[0]
             lines = content.splitlines()
@@ -393,6 +501,160 @@ def parse_output_for_tables(text, index="ZAM"):
             "materials": mat_dct,
             }
     return dct
+
+
+def parse_table_nuclide(text, index="ZAM", **kwargs):
+    index_col = 1 if index.lower() == "zam" else 0
+    begin = 3
+    lines = text.splitlines()
+    string = io.StringIO(lines[0])
+    columns = pd.read_csv(
+        string,
+        sep="\s+",
+        header=None,
+        index_col=0,
+        ).iloc[:, 1:].squeeze()
+    if len(lines[begin:]) == 0:
+        df = pd.DataFrame(columns=columns)
+    else:
+        string = io.StringIO("\n".join(lines[begin:]))
+        df = pd.read_csv(
+            string,
+            sep="\s+",
+            header=None,
+            index_col=index_col,
+            ).iloc[:, 1:]
+    df.index.name = index
+    df.columns = columns
+    return df.T
+
+
+def parse_table_energy(text, index="Energy", **kwargs):
+    index_col = 0
+    begin = 2
+    lines = text.splitlines()
+    string = io.StringIO(lines[0])
+    columns = pd.read_csv(
+        string,
+        sep="\s+",
+        header=None,
+        index_col=0,
+        ).iloc[:, 1:].squeeze()
+    if len(lines[begin:]) == 0:
+        df = pd.DataFrame(columns=columns)
+    else:
+        string = io.StringIO("\n".join(lines[begin:]))
+        df = pd.read_csv(
+            string,
+            sep="\s+",
+            header=None,
+            index_col=index_col,
+            )
+    df.index.name = index
+    df.columns = columns
+    return df.T
+
+
+def parse_table_element(text, index="Element", **kwargs):
+    index_col = 1
+    begin = 2
+    lines = text.splitlines()
+    string = io.StringIO(lines[0])
+    columns = pd.read_csv(
+        string,
+        sep="\s+",
+        header=None,
+        index_col=0,
+        ).iloc[:, 1:].squeeze()
+    if len(lines[begin:]) == 0:
+        df = pd.DataFrame(columns=columns)
+    else:
+        string = io.StringIO("\n".join(lines[begin:]))
+        df = pd.read_csv(
+            string,
+            sep="\s+",
+            header=None,
+            index_col=index_col,
+            ).iloc[:, 1:]
+    df.index.name = index
+    df.columns = columns
+    return df.T
+
+
+def parse_table_contributor(text, index="Main contributor", **kwargs):
+    index_col = 0
+    begin = 1
+    lines = text.splitlines()
+    string = io.StringIO(lines[0])
+    columns = pd.read_csv(
+        string,
+        sep="\s+",
+        header=None,
+        index_col=0,
+        ).iloc[:, 1:].squeeze()
+    if len(lines[begin:]) == 0:
+        df = pd.DataFrame(columns=columns)
+    else:
+        string = io.StringIO("\n".join(lines[begin:]))
+        df = pd.read_csv(
+            string,
+            sep="\s+",
+            header=None,
+            index_col=index_col,
+            )
+    df.columns = columns
+    df.index.name = df.columns.name
+    df.columns.name = index
+    return df
+
+
+def parse_table(text, index="ZAM"):
+    """
+    Given the text of a ALEPH-2 output table, either expressing
+    time-energy dependence or time-nuclide dependence, convert the tabulated
+    values into a dataframe.
+
+    Parameters
+    ----------
+    text : `str`
+        string containing the text of a ALEPH-2 output table.
+    index : `str`, optional, default is `"ZAM"`
+        index of the dataframe. If the output values are tabulated as a
+        function of energy, then `index` **must** be `"Energy"`. Else the
+        `index` can be either `"ZAM"` or others. In the first case the ZAM
+        number will be used as row index. In the second case The Z-SYM-Am
+        identifier will be used.
+
+    Returns
+    -------
+    df : `pandas.DataFrame`
+        dataframe with time-energy or time-nuclide dependent outputs.
+
+    """
+    begin = 3
+    index_col = 0
+    if index == "ZAM":
+        index_col = 1
+    elif index == "Energy":
+        begin = 2
+    lines = text.splitlines()
+    string = io.StringIO(lines[0])
+    columns = pd.read_csv(
+        string,
+        sep="\s+",
+        header=None,
+        index_col=0,
+        ).iloc[:, 1:].squeeze()
+    string = io.StringIO("\n".join(lines[begin:]))
+    df = pd.read_csv(
+        string,
+        sep="\s+",
+        header=None,
+        index_col=index_col,
+        ).iloc[:, 1:]
+    df.index.name = index
+    df.columns = columns
+    return df
 
 
 def _search_pattern_cells(text):
