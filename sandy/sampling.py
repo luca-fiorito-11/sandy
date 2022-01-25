@@ -691,7 +691,11 @@ def extract_samples(ftape, covtape):
     if 31 in init.mf and 31 in ftape.mf:
         nubarcov = XsCov.from_endf6(covtape.filter_by(listmat=init.mat, listmf=[31], listmt=init.mt))
         if not nubarcov.empty:
-            PertNubar = nubarcov.get_samples(init.samples, eig=init.eig)
+            PertNubar = sandy.CategoryCov(nubarcov).sampling(
+                init.samples,
+                mean=1,
+                seed=init.seed31,
+                )
             if init.debug:
                 PertNubar.to_csv("perts_mf31.csv")
     # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
@@ -699,7 +703,11 @@ def extract_samples(ftape, covtape):
     if 35 in init.mf and 35 in ftape.mf:
         edistrcov = ftape.get_edistr_cov()
         if not edistrcov.empty:
-            PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
+            PertEdistr = sandy.CategoryCov(edistrcov).sampling(
+                init.samples,
+                mean=0,
+                seed=init.seed35,
+                )
             if init.debug:
                 PertEdistr.to_csv("perts_mf35.csv")
     # EXTRACT PERTURBATIONS FROM LPC COV FILE
@@ -707,9 +715,15 @@ def extract_samples(ftape, covtape):
     if 34 in init.mf and 34 in covtape.mf:
         lpccov = ftape.get_lpc_cov()
         if not lpccov.empty:
-            if init.max_polynomial:
-                lpccov = lpccov.filter_p(init.max_polynomial)
-            PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
+            # filter matrix based on requeted polynomial order
+            lpccov = sandy.CategoryCov(lpccov)
+            mask = lpccov.data.index.get_level_values("L") <= init.max_polynomial
+            lpccov.data = lpccov.data.iloc[mask, mask]
+            PertLpc = lpccov.sampling(
+                init.samples,
+                mean=1,
+                seed=init.seed34,
+                )
             if init.debug:
                 PertLpc.to_csv("perts_mf34.csv")
     # EXTRACT XS PERTURBATIONS FROM COV FILE
@@ -729,26 +743,8 @@ def extract_samples(ftape, covtape):
                 raise sandy.Error("More than one MAT number was found")
             endf6 = sandy.Endf6.from_file(init.file)
             covtape = endf6.get_errorr(init.njoy)
-        
-            
-                
-
-#            with tempfile.TemporaryDirectory() as td:
-#                outputs = njoy.process(init.file, broadr=False, thermr=False, 
-#                                       unresr=False, heatr=False, gaspr=False, 
-#                                       purr=False, errorr=init.errorr, acer=False,
-#                                       wdir=td, keep_pendf=True, exe=init.njoy,
-#                                       temperatures=[0], suffixes=[0], err=0.005)[2]
-#                ptape = read_formatted_file(outputs["tape30"])
-#                if init.debug: shutil.move(outputs["tape30"],  os.path.join(init.outdir, "tape30"))
-#                if init.errorr:
-#                    covtape = read_formatted_file(outputs["tape33"]) # WARNING: by doing this we delete the original covtape
-#                    if init.debug: shutil.move(outputs["tape33"],  os.path.join(init.outdir, "tape33"))
-#            ftape = ftape.delete_sections((None, 3, None)). \
-#                          add_sections(ptape.filter_by(listmf=[3])). \
-#                          add_sections(ptape.filter_by(listmf=[1], listmt=[451]))
-
-        listmt = sorted(set(init.mt + [451])) # ERRORR needs MF1/MT451 to get the energy grid
+        # ERRORR needs MF1/MT451 to get the energy grid
+        listmt = sorted(set(init.mt + [451]))
         covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmt)
         covtype = covtape.get_file_format()
         xscov = XsCov.from_errorr(covtape) if covtype == "errorr" else XsCov.from_endf6(covtape)

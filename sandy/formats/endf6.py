@@ -14,6 +14,7 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 
+import sandy
 from sandy.formats.records import read_cont
 from sandy.formats import (mf1,
         mf3,
@@ -848,6 +849,8 @@ class Endf6(_BaseFile):
         self.EHRES = 0
         self.THNMAX = - self.EHRES if self.EHRES != 0 else 1.0E6
 
+
+        
 
 
 class Errorr(_BaseFile):

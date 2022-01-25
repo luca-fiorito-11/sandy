@@ -268,9 +268,10 @@ class CategoryCov():
 
     @data.setter
     def data(self, data):
-        self._data = pd.DataFrame(data, dtype=float)
-        if not len(data.shape) == 2 and data.shape[0] == data.shape[1]:
+        df = pd.DataFrame(data, dtype=float)
+        if not len(df.shape) == 2 and df.shape[0] == df.shape[1]:
             raise TypeError("covariance matrix must have two dimensions")
+        self._data = df
 
     @property
     def size(self):
@@ -1365,62 +1366,6 @@ class EnergyCov(CategoryCov):
         cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
         cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
         return cls(cov, index=evalues_r, columns=evalues_c)
-
-
-class GlobalCov(CategoryCov):
-
-    @classmethod
-    def from_list(cls, iterable):
-        """
-        Extract global cross section/nubar covariance matrix from iterables 
-        of `EnergyCovs`.
-        
-        Parameters
-        ----------
-        iterable : iterable
-            list of tuples/lists/iterables with content `[mat, mt, mat1, mt1, EnergyCov]`
-        
-        Returns
-        -------
-        `XsCov` or `pandas.DataFrame`
-            global cross section/nubar covariance matrix (empty dataframe if no covariance matrix was found)
-        """
-        columns = ["KEYS_ROWS", "KEYS_COLS", "COV"]
-        # Reindex the cross-reaction matrices
-        covs = pd.DataFrame.from_records(iterable).set_axis(columns, axis=1).set_index(columns[:-1]).COV
-        for (keys_rows,keys_cols), cov in covs.iteritems():
-            if keys_rows == keys_cols: # diagonal terms
-                if cov.data.shape[0] != cov.data.shape[1]:
-                    raise SandyError("non-symmetric covariance matrix for ({}, {})".format(keys_rows, keys_cols))
-                if not np.allclose(cov.data, cov.data.T):
-                    raise SandyError("non-symmetric covariance matrix for ({}, {})".format(keys_rows, keys_cols))
-            else: # off-diagonal terms
-                condition1 = (keys_rows,keys_rows) in covs.index
-                condition2 = (keys_cols,keys_cols) in covs.index
-                if not (condition1 and condition2):
-                    covs[keys_rows,keys_cols] = np.nan
-                    logging.warn("skip covariance matrix for ({}, {})".format(keys_rows, keys_cols))
-                    continue
-                ex = covs[keys_rows,keys_rows].data.index.values
-                ey = covs[keys_cols,keys_cols].data.columns.values
-                covs[keys_rows,keys_cols] = cov.change_grid(ex, ey)
-        covs.dropna(inplace=True)
-        if covs.empty:
-            logging.warn("covariance matrix is empty")
-            return pd.DataFrame()
-        # Create index for global matrix
-        rows_levels = covs.index.levels[0]
-        indexlist = [(*keys,e) for keys in rows_levels for e in covs[(keys,keys)].data.index.values]
-        index = pd.MultiIndex.from_tuples(indexlist, names=cls.labels)
-        # Create global matrix
-        matrix = np.zeros((len(index),len(index)))
-        for (keys_rows,keys_cols), cov in covs.iteritems():
-            ix = index.get_loc(keys_rows)
-            ix1 = index.get_loc(keys_cols)
-            matrix[ix.start:ix.stop,ix1.start:ix1.stop] = cov.data
-            if keys_rows != keys_cols:
-                matrix[ix1.start:ix1.stop,ix.start:ix.stop] = cov.data.T
-        return cls(matrix, index=index, columns=index)
 
 
 def corr2cov(corr, s):

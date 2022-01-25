@@ -1508,7 +1508,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
                     verbose=verbose,
                     temperatures=[temperature],
                     suffixes=[0],
-                    err=0.005,
+                    err=err,
                     **kwargs,
                     )[2]  # keep only pendf filename
             errorrfile = outputs["tape33"]
@@ -1518,3 +1518,16 @@ If you want to process 0K cross sections use `temperature=0.1`.
                 shutil.move(errorrfile, dest)
             errorr = sandy.Errorr.from_file(errorrfile)
         return errorr
+    
+    def sample_mf31(self, samples, mean=1, seed=None, to_csv=False):
+        from sandy.formats.utils import XsCov
+        nubarcov = XsCov.from_endf6(self.filter_by(listmf=[31]))
+        if not nubarcov.empty:
+            PertNubar = sandy.CategoryCov(nubarcov).sampling(
+                samples,
+                mean=mean,
+                seed=seed,
+                )
+            if to_csv:
+                PertNubar.to_csv("perts_mf31.csv")
+        return PertNubar

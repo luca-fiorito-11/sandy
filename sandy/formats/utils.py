@@ -1094,7 +1094,7 @@ class EdistrCov(BaseCov):
         df = self.loc[(mat, mt ,elo, ehi), (mat1, mt1, elo1, ehi1)]
         return EnergyCov(df)    
 
-    def get_samples(self, nsmp, **kwargs):
+    def get_samples(self, nsmp, seed=None, **kwargs):
         """Draw samples from probability distribution centered in 0 and with
         absolute covariance in EdistrCov instance.
         
@@ -1102,13 +1102,16 @@ class EdistrCov(BaseCov):
         ----------
         nsmp : `int`
             number of samples
+        seed : `int`, optional, default is None
+            seed used for the sampling.
+            Default is random
         
         Returns
         -------
         `sandy.EdistrSamples`
         """
         cov = self.to_matrix()
-        frame = pd.DataFrame(cov.sampling(nsmp), index=self.index, columns=range(1,nsmp+1))
+        frame = pd.DataFrame(cov.sampling(nsmp, seed=seed), index=self.index, columns=range(1,nsmp+1))
         frame.columns.name = 'SMP'
         if "eig" in kwargs:
             if kwargs["eig"] > 0:
@@ -1389,7 +1392,7 @@ class LpcCov(BaseCov):
         lpccov = self.iloc[mask, mask]
         return LpcCov(lpccov)
 
-    def get_samples(self, nsmp, **kwargs):
+    def get_samples(self, nsmp, seed=None, **kwargs):
         """Draw samples from probability distribution centered in 1 and with
         relative covariance in LpcCov instance.
         
@@ -1397,13 +1400,16 @@ class LpcCov(BaseCov):
         ----------
         nsmp : `int`
             number of samples
+        seed : `int`, optional, default is None
+            seed used for the sampling.
+            Default is random
         
         Returns
         -------
         `sandy.LpcSamples`
         """
         cov = self.to_matrix()
-        frame = pd.DataFrame(cov.sampling(nsmp) + 1, index=self.index, columns=range(1,nsmp+1))
+        frame = pd.DataFrame(cov.sampling(nsmp, seed=seed) + 1, index=self.index, columns=range(1,nsmp+1))
         if "eig" in kwargs:
             if kwargs["eig"] > 0:
                 eigs = cov.eig()[0]
