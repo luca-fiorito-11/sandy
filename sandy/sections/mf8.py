@@ -609,7 +609,7 @@ def _write_rdd(sec):
         NDK = len(sec['DK'])
         for decay_data in sec['DK']:
             add.extend([
-                float(decay_data['RTYP']),
+                int(decay_data['RTYP']),
                 decay_data['RFS'],
                 decay_data['Q'],
                 decay_data['DQ'],
