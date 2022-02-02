@@ -126,12 +126,56 @@ class Lpc():
         .. note:: The primary function of this method is to make sure that
                   the filtered dataframe is still returned as a `Lpc`
                   object.
+
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33",'xs',[922350, 922380])
+        >>> LPC = sandy.Lpc.from_endf6(tape)
+        >>> comp = LPC.filter_by('MAT', 9228).data.index.get_level_values(0) == 9228
+        >>> assert comp.all() == True
+
+        >>> comp = LPC.filter_by('MT', 2).data.index.get_level_values(1) == 2
+        >>> assert comp.all() == True
+
+        >>> comp = LPC.filter_by('E', 1e-05).data.index.get_level_values(2) == 1e-05
+        >>> assert comp.all() == True
         """
-        condition = self.data.index.get_level_values(key) == value
-        out = self.data[condition]
+        info = {'MAT': 0, 'MT': 1, 'E': 2}
+        condition = self.data.index.get_level_values(info[key]) == value
+        out = self.data.copy()[condition]
         if out.empty:
             raise sandy.Error("applied filter returned empty dataframe")
         return self.__class__(out)
+
+    def _filters(self, conditions):
+        """
+        Apply several condition to source data and return filtered results.
+
+        Parameters
+        ----------
+        conditions : `dict`
+            Conditions to apply, where the key is any label present in the
+            columns of `data` and the value is filtering condition.
+
+        Returns
+        -------
+        `sandy.Lpc`
+            filtered object
+
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33",'xs',[922350, 922380])
+        >>> LPC = sandy.Lpc.from_endf6(tape)
+        >>> LPC._filters({'MT': 2, 'E': 1e-05}).data.index
+        MultiIndex([(9228, 2, 1e-05),
+                    (9237, 2, 1e-05)],
+                   names=['MAT', 'MT', 'E'])
+        """
+        conditions = dict(conditions)
+        out = self
+        for keys, values in conditions.items():
+            out = out.filter_by(keys, values)
+        return out
 
     def custom_perturbation(self, mat, mt, p, pert, inplace=False):
         """
@@ -155,6 +199,25 @@ class Lpc():
         -------
         `Lpc`
             lpc instance with given series polynomial coefficient perturbed
+
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922350)
+        >>> LPC = sandy.Lpc.from_endf6(tape)
+        >>> mat= 9228
+        >>> mt=  2
+        >>> p = 1 
+        >>> pert= sandy.Pert([1, 1.05], index=[1.00000e+03, 5.00000e+03])
+        >>> pert = LPC.custom_perturbation(mat, mt, p, pert)._filters({'MAT': mat, 'MT':2}).data.loc[:,1].iloc[0:5]
+        >>> data = LPC._filters({'MAT': mat, 'MT':2}).data.loc[:,1].iloc[0:5]
+        >>> (pert/data).fillna(0)
+        MAT   MT  E          
+        9228  2   1.00000e-05   0.00000e+00
+                  1.00000e+03   1.00000e+00
+                  2.00000e+03   1.05000e+00
+                  5.00000e+03   1.05000e+00
+                  1.00000e+04   1.00000e+00
+        Name: 1, dtype: float64
         """
         eg = self.data.loc[(mat, mt)].index.values
         enew = np.union1d(eg, pert.right.index.values)
