@@ -229,7 +229,8 @@ class Lpc():
         else:
             return Lpc(u_lpc.data)
 
-    def reshape(self, eg, selected_mat=None, selected_mt=None, inplace=False):
+    def reshape(self, eg, selected_mat=None, selected_mt=None, inplace=False,
+                kind='slinear'):
         """
         Linearly interpolate Legendre polynomial coefficients
         over new grid structure.
@@ -244,6 +245,12 @@ class Lpc():
             MT number for which the reshape will apply (all MT by default)
         inplace : `bool`, optional, default is `False`
             flag to activate inplace replacement
+        kind: `str` or `int`, optional
+            Specifies the kind of interpolation as a string or as an integer
+            specifying the order of the spline interpolator to use. The string
+            has to be one of ‘linear’, ‘nearest’, ‘nearest-up’, ‘zero’,
+            ‘slinear’, ‘quadratic’, ‘cubic’, ‘previous’, or ‘next’. By default
+            is ‘slinear’.
 
         Returns
         -------
@@ -254,6 +261,19 @@ class Lpc():
         --------
         The new Legendre polynomial coefficients are tabulated over the
         union between the old and the given energy grid
+
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922350)
+        >>> LPC = sandy.Lpc.from_endf6(tape)
+        >>> eg = np.array([1, 2])
+        >>> LPC.reshape(eg).data.reset_index()[['E', 1, 2]].head()
+        P	          E	          1	          2
+        0	1.00000e-05	0.00000e+00	0.00000e+00
+        1	1.00000e+00	1.13380e-06	2.53239e-09
+        2	2.00000e+00	2.26761e-06	5.06481e-09
+        3	1.00000e+03	1.13381e-03	2.53242e-06
+        4	2.00000e+03	2.93552e-03	1.59183e-05
         """
         listdf = []
         for (mat, mt), df in self.data.groupby(["MAT", "MT"]):
@@ -270,7 +290,8 @@ class Lpc():
             valsnew = sandy.shared.reshape_differential(
                 df.index.values,
                 df.values,
-                enew
+                enew,
+                kind=kind
                 )
             dfnew = pd.DataFrame(valsnew, index=enew, columns=df.columns) \
                       .reset_index(drop=False)
@@ -341,9 +362,45 @@ class Lpc():
         """
         Return tabulated angular distribution for given MAT, MT and energy
         point.
+
+        Parameters
+        ----------
+        mat : `int`
+            MAT material number
+        mt : `int`
+            MT reaction number
+        e : `int`
+            Tabulated energy point.
+        cosines : 1D iterable
+            Points to evaluate a Legendre series.
+
+        Raises
+        ------
+        NotImplementedError
+            Energy is higher than the maximun tabulated energy for that MAT
+            and MT or energy is lower than the minimun tabulated energy for
+            that MAT and MT.
+
+        Returns
+        -------
+        `pd.Series`
+            Tabulated angular distribution.
+
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922350)
+        >>> LPC = sandy.Lpc.from_endf6(tape)
+        >>> cosines=np.linspace(-1, 1, 43)
+        >>> LPC._to_tab(9228, 2, 2.20000e+07, cosines).head()
+        -1.00000e+00   4.78051e-03
+        -9.52381e-01   5.27317e-03
+        -9.04762e-01   5.44566e-03
+        -8.57143e-01   5.86857e-03
+        -8.09524e-01   4.54522e-03
+        Name: (9228, 2, 22000000.0), dtype: float64
         """
-        from numpy.polynomial import legendre
-        sec = self.loc[mat, mt]
+        cosines_ = pd.Series(cosines).values
+        sec = self.data.loc[mat, mt]
         if (e < min(sec.index)) | (e > max(sec.index)):
             raise NotImplementedError("Energy is out of range")
         if e not in sec.index:
@@ -351,15 +408,38 @@ class Lpc():
             sec = sec.reindex(eg).interpolate(method="slinear")
         coeff = sec.loc[e].dropna()
         c = (coeff.index.values*2+1)/2 * coeff.values
-        adistr = legendre.legval(cosines, c)
+        adistr = legendre.legval(cosines_, c)
         return pd.Series(adistr, index=cosines, name=(mat, mt, e))
 
     def _add_points(self, extra_points):
         """
         Add additional entries to Lpc incoming energies.
+        
+        Parameters
+        ----------
+        extra_points : 1D iterable
+            Extra energy points.
+
+        Returns
+        -------
+        `sandy.Lpc`
+            New energy grid.
+
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922350)
+        >>> LPC = sandy.Lpc.from_endf6(tape)
+        >>> LPC._add_points([1,2]).data.iloc[:,:2].head()
+		                      P	          0	          1
+         MAT   MT	          E		
+        9228	2	1.00000e-05	1.00000e+00	0.00000e+00
+                    1.00000e+00	1.00000e+00	1.13380e-06
+                    2.00000e+00	1.00000e+00	2.26761e-06
+                    1.00000e+03	1.00000e+00	1.13381e-03
+                    2.00000e+03	1.00000e+00	2.93552e-03
         """
         points = np.array(sorted(extra_points))
-        frame = self.copy()
+        frame = self.data.copy()
         List = []
         for (mat, mt),df in frame.groupby(["MAT","MT"]):
             rdf = df.loc[mat, mt]
@@ -389,7 +469,7 @@ class Lpc():
 
         Returns
         -------
-        sandy.Lpc
+        `sandy.Lpc`
         """
         frame = self.copy()
         for (mat, mt), _ in self.groupby(["MAT", "MT"]):
