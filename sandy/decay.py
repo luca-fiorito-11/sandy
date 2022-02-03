@@ -732,6 +732,7 @@ class DecayData():
         -------
         `sandy.Endf6`
             `Endf6` instance with updated decay data
+
         Examples
         --------
         >>> tape = sandy.get_endf6_file("jeff_33", "decay", 922350)
@@ -764,7 +765,7 @@ class DecayData():
             if 'DK' in sec.keys():
                 i = 0
                 for rtyp, dk in self.data[zam]['decay_modes']:
-                    sec['DK'][i]['RTYP'] = float(rtyp[0] + '.' + rtyp[1:])
+                    sec['DK'][i]['RTYP'] = rtyp
                     sec['DK'][i]['RFS'] = int(repr(list(dk['decay_products'])[0])[-1]) if dk['decay_products'] else 0
                     sec['DK'][i]['BR'] = dk['branching_ratio']
                     sec['DK'][i]['DBR'] = dk['branching_ratio_uncertainty']
