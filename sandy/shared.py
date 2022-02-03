@@ -222,7 +222,7 @@ def pad_from_beginning_fast(vals, maxlen):
     return matrix
 
 
-def reshape_differential(x, y, xnew, kind="slinear"):
+def reshape_differential(x, y, xnew):
     """
     Linearly interpolate array over new energy grid structure.
 
@@ -236,11 +236,6 @@ def reshape_differential(x, y, xnew, kind="slinear"):
         new energy grid
     y : `numpy.ndarray` with at least two entries and same length as `x`
         array to interpolate
-    kind: `str` or `int`, optional
-        Specifies the kind of interpolation as a string or as an integer
-        specifying the order of the spline interpolator to use. The string has
-        to be one of ‘linear’, ‘nearest’, ‘nearest-up’, ‘zero’, ‘slinear’,
-        ‘quadratic’, ‘cubic’, ‘previous’, or ‘next’. By default is ‘slinear’.
 
     Returns
     -------
@@ -251,7 +246,7 @@ def reshape_differential(x, y, xnew, kind="slinear"):
             x, y,
             axis=0,
             copy=False,
-            kind=kind,
+            kind="slinear",
             bounds_error=False,
             fill_value=0.,
             assume_sorted=True,

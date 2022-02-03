@@ -177,7 +177,7 @@ class Lpc():
             out = out.filter_by(keys, values)
         return out
 
-    def custom_perturbation(self, mat, mt, p, pert, inplace=False):
+    def custom_perturbation(self, mat, mt, p, pert):
         """
         Apply a custom perturbation (energy dependent) to a given
         Legendre polynomial coefficient.
@@ -192,8 +192,6 @@ class Lpc():
             order of the Legendre polynomial coefficient
         pert : `sandy.Pert`
             tabulated perturbations
-        inplace : `bool`, optional, default is `False`
-            flag to activate inplace replacement
 
         Returns
         -------
@@ -224,13 +222,9 @@ class Lpc():
         u_lpc = self.reshape(enew, selected_mat=mat, selected_mt=mt)
         u_pert = pert.reshape(enew)
         u_lpc.data.loc[(mat, mt)][p] *= u_pert.right.values
-        if inplace:
-            self.data = u_lpc.data
-        else:
-            return Lpc(u_lpc.data)
+        return Lpc(u_lpc.data)
 
-    def reshape(self, eg, selected_mat=None, selected_mt=None, inplace=False,
-                kind='slinear'):
+    def reshape(self, eg, selected_mat=None, selected_mt=None):
         """
         Linearly interpolate Legendre polynomial coefficients
         over new grid structure.
@@ -243,14 +237,6 @@ class Lpc():
             MAT number for which the reshape will apply (all MAT by default)
         selected_mt : `int`, optional, default is `None`
             MT number for which the reshape will apply (all MT by default)
-        inplace : `bool`, optional, default is `False`
-            flag to activate inplace replacement
-        kind: `str` or `int`, optional
-            Specifies the kind of interpolation as a string or as an integer
-            specifying the order of the spline interpolator to use. The string
-            has to be one of ‘linear’, ‘nearest’, ‘nearest-up’, ‘zero’,
-            ‘slinear’, ‘quadratic’, ‘cubic’, ‘previous’, or ‘next’. By default
-            is ‘slinear’.
 
         Returns
         -------
@@ -291,7 +277,6 @@ class Lpc():
                 df.index.values,
                 df.values,
                 enew,
-                kind=kind
                 )
             dfnew = pd.DataFrame(valsnew, index=enew, columns=df.columns) \
                       .reset_index(drop=False)
@@ -300,10 +285,7 @@ class Lpc():
             dfnew.set_index(self._indexnames, inplace=True)
             listdf.append(dfnew)
         data = pd.concat(listdf, axis=0)
-        if inplace:
-            self.data = data
-        else:
-            return Lpc(data)
+        return Lpc(data)
 
     def to_endf6(self, endf6):
         """
