@@ -10,6 +10,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
+import tables as tb
+import os
 
 import sandy
 import pytest
@@ -488,14 +490,19 @@ class CategoryCov():
             cov[ni, nonzero_idxs] = cov_reduced[i]
         return cls(cov)
 
-    def invert(self):
+    def invert(self, rows=None):
         """
         Method for calculating the inverse matrix.
 
         Parameters
         ----------
-        sparse : `bool`, optional
-            Option to use sparse matrix for calculations. The default is False.
+        tables : `bool`, optional
+            Option to use row calculation for matrix calculations. The
+            default is False.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
 
         Returns
         -------
@@ -517,13 +524,24 @@ class CategoryCov():
         0 0.00000e+00 0.00000e+00 0.00000e+00
         1 0.00000e+00 5.00000e-01 0.00000e+00
         2 0.00000e+00 0.00000e+00 3.33333e-01
+
+        >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3])))
+        >>> S.invert(rows=1)
+                    0           1           2
+        0 0.00000e+00 0.00000e+00 0.00000e+00
+        1 0.00000e+00 5.00000e-01 0.00000e+00
+        2 0.00000e+00 0.00000e+00 3.33333e-01
         """
-        index, columns = self.data.index, self.data.columns
+        index = self.data.index.astype('category')
+        columns = self.data.columns.astype('category')
         M_nonzero_idxs, M_reduce = self._reduce_size()
         cov = sps.csc_matrix(M_reduce.values)
-        lu = spsl.splu(cov)
-        eye = np.eye(cov.shape[0])
-        data = lu.solve(eye)
+        if rows is not None:
+            data = sparse_tables_inv(cov, rows=rows)
+        else:
+            lu = spsl.splu(cov)
+            eye = np.eye(cov.shape[0])
+            data = lu.solve(eye)
         M_inv = CategoryCov._restore_size(M_nonzero_idxs, data,
                                           len(self.data)).data
         M_inv = M_inv.reindex(index=index, columns=columns).fillna(0)
@@ -567,7 +585,7 @@ class CategoryCov():
                           )
         return sandy.Samples(df.T)
 
-    def decompose(self, sparse=False):
+    def decompose(self, sparse=False, rows=None):
         """
         Extract lower triangular matrix `L` for which `L*L^T == COV`.
 
@@ -575,6 +593,10 @@ class CategoryCov():
         ----------
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
 
         Returns
         -------
@@ -583,17 +605,23 @@ class CategoryCov():
 
         Example
         -------
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).decompose()
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).decompose().round(2)
         array([[-1.        ,  0.        ],
-               [-0.4       ,  0.91651514]])
+               [-0.4       ,  0.92]])
 
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).decompose(sparse=True)
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).decompose(sparse=True).round(2)
         array([[-1.        ,  0.        ],
-               [-0.4       ,  0.91651514]])
+               [-0.4       ,  0.92]])
+
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).decompose(rows=1).round(2)
+        array([[-1.  ,  0.  ],
+               [-0.4 ,  0.92]], dtype=float32)
         """
         E, V = self.eig(sparse=sparse, sort=False)
         E[E <= 0] = 0
-        if sparse:
+        if rows is not None:
+            M = sparse_tables_dot(V, sps.diags(np.sqrt(E))).toarray()
+        elif sparse:
             M = sps.csr_matrix(V).dot(sps.diags(np.sqrt(E))).toarray()
         else:
             M = V.values.dot(np.diag(np.sqrt(E.values)))
@@ -647,12 +675,13 @@ class CategoryCov():
         2 0.00000e+00 0.00000e+00 3.00000e+00
         """
         var_ = pd.Series(var)
+        index = var_.index.astype('category')
         if sparse:
             cov_values = sps.diags(var_.values).toarray()
         else:
             cov_values = np.diag(var_)
         cov = pd.DataFrame(cov_values,
-                           index=var_.index, columns=var_.index)
+                           index=index, columns=index)
         return cls(cov)
 
     @classmethod
@@ -705,7 +734,7 @@ class CategoryCov():
         var = std_ * std_
         return CategoryCov.from_var(var, sparse=sparse)
 
-    def _gls_Vy_calc(self, S, sparse=False):
+    def _gls_Vy_calc(self, S, sparse=False, rows=None):
         """
         2D calculated output using
         .. math::
@@ -719,6 +748,10 @@ class CategoryCov():
             Sensitivity matrix (MXN).
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
 
         Returns
         -------
@@ -735,16 +768,22 @@ class CategoryCov():
         0	5.00000e+00	1.10000e+01
         1	1.10000e+01	2.50000e+01
 
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
         >>> sensitivity._gls_Vy_calc(S, sparse=True)
                       0	          1
         0	5.00000e+00	1.10000e+01
         1	1.10000e+01	2.50000e+01
+
+        >>> sensitivity._gls_Vy_calc(S, rows=1)
+                      0	          1
+        0	5.00000e+00	1.10000e+01
+        1	1.10000e+01	2.50000e+01
         """
-        index = pd.DataFrame(S).index
+        index = pd.DataFrame(S).index.astype('category')
         S_ = pd.DataFrame(S).values
-        if sparse:
+        if rows is not None:
+            Vy_calc = sparse_tables_dot_multiple([S_, self.data.values,
+                                                  S_.T])
+        elif sparse:
             S_ = sps.csr_matrix(S_)
             Vx_prior = self.to_sparse()
             Vy_calc = S_.dot(Vx_prior).dot(S_.T).toarray()
@@ -753,7 +792,7 @@ class CategoryCov():
             Vy_calc = S_.dot(Vx_prior).dot(S_.T)
         return pd.DataFrame(Vy_calc, index=index, columns=index)
 
-    def _gls_G(self, S, Vy_extra=None, sparse=False):
+    def _gls_G(self, S, Vy_extra=None, sparse=False, rows=None):
         """
         2D calculated output using
         .. math::
@@ -769,6 +808,10 @@ class CategoryCov():
             2D covariance matrix for y_extra (MXM).
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
 
         Returns
         -------
@@ -786,48 +829,53 @@ class CategoryCov():
         0	6.00000e+00	1.10000e+01
         1	1.10000e+01	2.60000e+01
 
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
-        >>> Vy = np.diag(pd.Series([1, 1]))
         >>> sensitivity._gls_G(S, Vy, sparse=True)
                     	0	      1
         0	6.00000e+00	1.10000e+01
         1	1.10000e+01	2.60000e+01
 
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
+        >>> sensitivity._gls_G(S, Vy, rows=1)
+                    	0	      1
+        0	6.00000e+00	1.10000e+01
+        1	1.10000e+01	2.60000e+01
+
         >>> sensitivity._gls_G(S)
                       0	          1
         0	5.00000e+00	1.10000e+01
         1	1.10000e+01	2.50000e+01
 
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
         >>> sensitivity._gls_G(S, sparse=True)
+                      0	          1
+        0	5.00000e+00	1.10000e+01
+        1	1.10000e+01	2.50000e+01
+
+        >>> sensitivity._gls_G(S, rows=1)
                       0	          1
         0	5.00000e+00	1.10000e+01
         1	1.10000e+01	2.50000e+01
         """
         # GLS_sensitivity:
-        Vy_calc = self._gls_Vy_calc(S, sparse=sparse)
+        Vy_calc = self._gls_Vy_calc(S, sparse=sparse, rows=rows)
         if Vy_extra is not None:
+            # Data in a appropriate format
             Vy_extra_ = sandy.CategoryCov(Vy_extra).data
-            index = pd.DataFrame(Vy_extra).index  # Symmetry of cov matrix
+            index = pd.DataFrame(Vy_extra).index.astype('category')
             Vy_extra_ = Vy_extra_.values
             Vy_calc = Vy_calc.reindex(index=index, columns=index).fillna(0).values
-            if sparse:
+            # Calculations:
+            if sparse or rows is not None:
                 Vy_calc = sps.csr_matrix(Vy_calc)
                 Vy_extra_ = sps.csr_matrix(Vy_extra_)
             # G calculation
             G = Vy_calc + Vy_extra_
-            if sparse:
+            if sparse or rows is not None:
                 G = G.toarray()
             G = pd.DataFrame(G, index=index, columns=index)
         else:
             G = Vy_calc
         return G
 
-    def _gls_G_inv(self, S, Vy_extra=None, sparse=False):
+    def _gls_G_inv(self, S, Vy_extra=None, sparse=False, rows=None):
         """
         2D calculated output using
         .. math::
@@ -843,6 +891,10 @@ class CategoryCov():
             2D covariance matrix for y_extra (MXM).
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
 
         Returns
         -------
@@ -856,37 +908,46 @@ class CategoryCov():
         >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = np.diag(pd.Series([1, 1]))
         >>> sensitivity._gls_G_inv(S, Vy)
-                      0	              1
-        0	7.42857e-01	    -3.14286e-01
+                       0	          1
+        0	 7.42857e-01   -3.14286e-01
         1	-3.14286e-01	1.71429e-01
 
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
-        >>> Vy = np.diag(pd.Series([1, 1]))
         >>> sensitivity._gls_G_inv(S, Vy, sparse=True)
                       0	              1
-        0	7.42857e-01	    -3.14286e-01
+        0	 7.42857e-01   -3.14286e-01
         1	-3.14286e-01	1.71429e-01
+
+        >>> sensitivity._gls_G_inv(S, Vy, rows=1)
+                       0	          1
+        0	 7.42857e-01   -3.14286e-01
+        1	-3.14286e-01	1.71429e-01
+
         >>> sensitivity._gls_G_inv(S, sparse=True)
-                      0	              1
-        0	6.25000e+00	-2.75000e+00
-        1	-2.75000e+00	1.25000e+00
+                      0	               1
+        0	 6.25000e+00	-2.75000e+00
+        1	-2.75000e+00	 1.25000e+00
+
         >>> sensitivity._gls_G_inv(S)
-                      0	              1
-        0	6.25000e+00	-2.75000e+00
-        1	-2.75000e+00	1.25000e+00
+                      0	               1
+        0	 6.25000e+00	-2.75000e+00
+        1	-2.75000e+00	 1.25000e+00
+
+        >>> sensitivity._gls_G_inv(S, rows=1)
+                      0	               1
+        0	 6.25000e+00	-2.75000e+00
+        1	-2.75000e+00	 1.25000e+00
         """
         if Vy_extra is not None:
-            index = pd.DataFrame(Vy_extra).index
-            G = self._gls_G(S, Vy_extra=Vy_extra, sparse=sparse).values
+            index = pd.DataFrame(Vy_extra).index.astype('category')
+            G = self._gls_G(S, Vy_extra=Vy_extra, sparse=sparse, rows=rows).values
         else:
-            index = pd.DataFrame(S).index
-            G = self._gls_Vy_calc(S, sparse=sparse).values
-        G_inv = sandy.CategoryCov(G).invert().data.values
+            index = pd.DataFrame(S).index.astype('category')
+            G = self._gls_Vy_calc(S, sparse=sparse, rows=rows).values
+        G_inv = sandy.CategoryCov(G).invert(rows=rows).data.values
         return pd.DataFrame(G_inv, index=index, columns=index)
 
     def _gls_general_sensitivity(self, S, Vy_extra=None, sparse=False,
-                                 threshold=None):
+                                 rows=None, threshold=None):
         """
         Method to obtain general sensitivity according to GLS
         .. math::
@@ -902,6 +963,10 @@ class CategoryCov():
             2D covariance matrix for y_extra (MXM).
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
         threshold : `int`, optional
             threshold to avoid numerical fluctuations. The default is None.
 
@@ -926,27 +991,44 @@ class CategoryCov():
         >>> sensitivity._gls_general_sensitivity(S, Vy_extra=Vy)
                       1	              2
         3	-2.00000e-01	2.00000e-01
-        4	2.28571e-01	    5.71429e-02
-        >>> sensitivity._gls_general_sensitivity(S, Vy, sparse=True)
+        4	 2.28571e-01	5.71429e-02
+
+        >>> sensitivity._gls_general_sensitivity(S, Vy_extra=Vy, sparse=True)
                       1	              2
         3	-2.00000e-01	2.00000e-01
-        4	2.28571e-01	    5.71429e-02
+        4	 2.28571e-01	5.71429e-02
+
+        >>> sensitivity._gls_general_sensitivity(S, Vy_extra=Vy, rows=1)
+                      1	              2
+        3	-2.00000e-01	2.00000e-01
+        4	 2.28571e-01	5.71429e-02
+
         >>> sensitivity._gls_general_sensitivity(S, sparse=True)
-            	      1	              2
-        3	-2.00000e+00	1.00000e+00
-        4	1.50000e+00	-5.00000e-01
+            	       1	           2
+        3	-2.00000e+00	 1.00000e+00
+        4	 1.50000e+00	-5.00000e-01
+
         >>> sensitivity._gls_general_sensitivity(S)
-            	      1	              2
-        3	-2.00000e+00	1.00000e+00
-        4	1.50000e+00	-5.00000e-01
+            	       1	           2
+        3	-2.00000e+00	 1.00000e+00
+        4	 1.50000e+00	-5.00000e-01
+
+        >>> sensitivity._gls_general_sensitivity(S, rows=1)
+            	       1	           2
+        3	-2.00000e+00	 1.00000e+00
+        4	 1.50000e+00	-5.00000e-01
         """
-        index, columns = pd.DataFrame(S).columns, pd.DataFrame(S).index
+        index = pd.DataFrame(S).columns.astype('category')
+        columns = pd.DataFrame(S).index.astype('category')
         S_ = pd.DataFrame(S).values
         # GLS_sensitivity:
-        G_inv = self._gls_G_inv(S, Vy_extra=Vy_extra, sparse=sparse).values
-        if sparse:
+        G_inv = self._gls_G_inv(S, Vy_extra=Vy_extra, sparse=sparse, rows=rows).values
+        if rows is not None:
+            sensitivity = sparse_tables_dot_multiple([self.data.values, S_.T,
+                                                      G_inv])
+        elif sparse:
             Vx_prior = self.to_sparse()
-            S_ = sps.csr_matrix(S_)
+            S_ = sps.csc_matrix(S_)
             G_inv = sps.csc_matrix(G_inv)
             sensitivity = Vx_prior.dot(S_.T).dot(G_inv).toarray()
         else:
@@ -956,7 +1038,8 @@ class CategoryCov():
             sensitivity[abs(sensitivity) < threshold] = 0
         return pd.DataFrame(sensitivity, index=index, columns=columns)
 
-    def _constrained_gls_sensitivity(self, S, sparse=False, threshold=None):
+    def _constrained_gls_sensitivity(self, S, sparse=False, rows=None,
+                                     threshold=None):
         """
         Method to obtain sensitivity according to constrained Least-Squares:
         .. math::
@@ -970,6 +1053,10 @@ class CategoryCov():
             Sensitivity matrix (MXN).
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
         threshold : `int`, optional
             threshold to avoid numerical fluctuations. The default is None.
 
@@ -990,20 +1077,29 @@ class CategoryCov():
         >>> sensitivity._constrained_gls_sensitivity(S)
                       0	              1
         0	-2.00000e+00	1.50000e+00
-        1	1.00000e+00	  -5.00000e-01
+        1	 1.00000e+00   -5.00000e-01
+
         >>> sensitivity._constrained_gls_sensitivity(S, sparse=True)
                       0	              1
         0	-2.00000e+00	1.50000e+00
-        1	1.00000e+00	  -5.00000e-01
+        1	 1.00000e+00   -5.00000e-01
+
+        >>> sensitivity._constrained_gls_sensitivity(S, rows=1)
+                      0	              1
+        0	-2.00000e+00	1.50000e+00
+        1	 1.00000e+00   -5.00000e-01
         """
         # Data in a appropiate format
         S_ = pd.DataFrame(S)
-        index = S_.index
-        columns = S_.columns
-        if sparse:
-            Vx_prior = self.to_sparse()
-            S_ = sps.csr_matrix(S_.values)
-            G_inv = self._gls_G_inv(S, sparse=sparse).values
+        index = S_.index.astype('category')
+        columns = S_.columns.astype('category')
+        G_inv = self._gls_G_inv(S, sparse=sparse, rows=rows).values
+        if rows is not None:
+            sensitivity = sparse_tables_dot_multiple([G_inv, S_,
+                                                      self.data.values])
+        elif sparse:
+            Vx_prior = self.to_sparse(method='csc_matrix')
+            S_ = sps.csc_matrix(S_.values)
             G_inv = sps.csr_matrix(G_inv)
             # constrained Least Squares sensitivity
             sensitivity = G_inv.dot(S_).dot(Vx_prior)
@@ -1011,14 +1107,14 @@ class CategoryCov():
         else:
             Vx_prior = self.data.values
             S_ = S_.values
-            G_inv = self._gls_G_inv(S).values
             # constrained Least Squares sensitivity
             sensitivity = G_inv.dot(S_).dot(Vx_prior)
         if threshold is not None:
             sensitivity[abs(sensitivity) < threshold] = 0
         return pd.DataFrame(sensitivity, index=index, columns=columns)
 
-    def _gls_cov_sensitivity(self, S, Vy_extra=None, sparse=False, threshold=None):
+    def _gls_cov_sensitivity(self, S, Vy_extra=None, sparse=False,
+                             rows=None, threshold=None):
         """
         Method to obtain covariance sensitivity according to GLS:
         .. math::
@@ -1034,6 +1130,10 @@ class CategoryCov():
             2D covariance matrix for y_extra (MXM).
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
         threshold : `int`, optional
             threshold to avoid numerical fluctuations. The default is None.
 
@@ -1059,28 +1159,36 @@ class CategoryCov():
                       3	          4
         3	4.00000e-01	4.00000e-01
         4	4.00000e-01	6.85714e-01
-        >>> var._gls_cov_sensitivity(S, Vy)
+
+        >>> var._gls_cov_sensitivity(S, Vy, sparse=True)
+                      3	          4
+        3	4.00000e-01	4.00000e-01
+        4	4.00000e-01	6.85714e-01
+
+        >>> var._gls_cov_sensitivity(S, Vy, rows=1)
                       3	          4
         3	4.00000e-01	4.00000e-01
         4	4.00000e-01	6.85714e-01
         """
-        index = columns = pd.DataFrame(S).columns
+        index = columns = pd.DataFrame(S).columns.astype('category')
         S_ = pd.DataFrame(S).values
         general_sens = self._gls_general_sensitivity(S, Vy_extra=Vy_extra,
-                                                     sparse=sparse,
+                                                     sparse=sparse, rows=rows,
                                                      threshold=threshold).values
-        if sparse:
-            general_sens = sps.csc_matrix(general_sens)
-            S_ = sps.csr_matrix(S_)
-        # gls cov sensitivity
-        cov_sens = general_sens.dot(S_)
-        if sparse:
-            cov_sens = cov_sens.toarray()
+        if rows is not None:
+            cov_sens = sparse_tables_dot(general_sens, S_).toarray()
+        elif sparse:
+            general_sens = sps.csr_matrix(general_sens)
+            S_ = sps.csc_matrix(S_)
+            cov_sens = general_sens.dot(S_).toarray()
+        else:
+            cov_sens = general_sens.dot(S_)
         if threshold is not None:
             cov_sens[abs(cov_sens) < threshold] = 0
         return pd.DataFrame(cov_sens, index=index, columns=columns)
 
-    def gls_update(self, S, Vy_extra=None, sparse=False, threshold=None):
+    def gls_update(self, S, Vy_extra=None, sparse=False, rows=None,
+                   threshold=None):
         """
         Perform GlS update for a given variance and sensitivity:
         .. math::
@@ -1096,6 +1204,10 @@ class CategoryCov():
             Sensitivity matrix (MXN).
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
         threshold : `int`, optional
             Thereshold to avoid numerical fluctuations. The default is None.
 
@@ -1113,16 +1225,28 @@ class CategoryCov():
                      0            1
         0  6.00000e-01 -4.00000e-01
         1 -4.00000e-01  3.14286e-01
+
         >>> var.gls_update(S, Vy, sparse=True)
                      0            1
         0  6.00000e-01 -4.00000e-01
         1 -4.00000e-01  3.14286e-01
+
+        >>> var.gls_update(S, Vy, rows=1)
+                     0            1
+        0  6.00000e-01 -4.00000e-01
+        1 -4.00000e-01  3.14286e-01
         """
-        index, columns = self.data.index, self.data.columns
+        index, columns = self.data.index, self.data.columns.astype('category')
         A = self._gls_cov_sensitivity(S, Vy_extra=Vy_extra, sparse=sparse,
-                                      threshold=threshold).values
-        if sparse:
-            Vx_prior = self.to_sparse()
+                                      rows=rows, threshold=threshold).values
+        if rows is not None:
+            Vx_prior = self.to_sparse(method='csc_matrix')
+            diff = sparse_tables_dot(A, Vx_prior)
+            # gls update
+            Vx_post = Vx_prior - diff
+            Vx_post = Vx_post.toarray()
+        elif sparse:
+            Vx_prior = self.to_sparse(method='csc_matrix')
             A = sps.csr_matrix(A)
             # gls update
             Vx_post = Vx_prior - A.dot(Vx_prior)
@@ -1135,7 +1259,8 @@ class CategoryCov():
             Vx_post[abs(Vx_post) < threshold] = 0
         return self.__class__(pd.DataFrame(Vx_post, index=index, columns=columns))
 
-    def constrained_gls_update(self, S, sparse=False, threshold=None):
+    def constrained_gls_update(self, S, sparse=False, rows=None,
+                               threshold=None):
         """
         Perform constrained Least-Squares update for a given sensitivity:
         .. math::
@@ -1149,6 +1274,10 @@ class CategoryCov():
             Sensitivity matrix (MXN).
         sparse : `bool`, optional
             Option to use sparse matrix for calculations. The default is False.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
         threshold : `int`, optional
             Thereshold to avoid numerical fluctuations. The default is None.
 
@@ -1169,10 +1298,14 @@ class CategoryCov():
         >>> var = sandy.CategoryCov.from_var([1, 1])
         >>> var_update = var.constrained_gls_update(S).data.round(decimals=6)
         >>> assert np.amax(var_update.values) == 0.0
+
         >>> var_update = var.constrained_gls_update(S, sparse=True).data.round(decimals=6)
         >>> assert np.amax(var_update.values) == 0.0
+
+        >>> var_update = var.constrained_gls_update(S, rows=1).data.round(decimals=6)
+        >>> assert np.amax(var_update.values) == 0.0
         """
-        return self.gls_update(S, Vy_extra=None, sparse=sparse, threshold=threshold)
+        return self.gls_update(S, Vy_extra=None, sparse=sparse, rows=rows, threshold=threshold)
 
     def sandwich(self, S, sparse=True, threshold=None):
         """
@@ -1247,7 +1380,7 @@ class CategoryCov():
         return ax
 
     @classmethod
-    def corr2cov(cls, corr, std, **kwargs):
+    def corr2cov(cls, corr, std, sparse=False, rows=None, **kwargs):
         """
         Produce covariance matrix given correlation matrix and standard
         deviation array.
@@ -1256,9 +1389,14 @@ class CategoryCov():
         ----------
         corr : 2d `numpy.ndarray`
             square 2D correlation matrix
-
         std : 1d `numpy.ndarray`
             array of standard deviations
+        sparse : `bool`, optional
+            Option to use sparse matrix for calculations. The default is False.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
 
         Returns
         -------
@@ -1401,6 +1539,74 @@ class CategoryCov():
         else:
             raise ValueError('The method does not exist in scipy.sparse')
         return data_sp
+
+    def get_L(self, sparse=False, rows=None):
+        """
+        Extract lower triangular matrix `L` for which `L*L^T == self`.
+        
+        Parameters
+        ----------
+        sparse : `bool`, optional
+            Option to use sparse matrix for calculations. The default is False.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
+
+        Returns
+        -------
+        `pandas.DataFrame`
+            Cholesky descomposition low triangular matrix.
+
+        Examples
+        --------
+        >>> a = np.array([[4, 12, -16], [12, 37, -43], [-16, -43, 98]])
+        >>> sandy.CategoryCov(a).get_L()
+                      0	          1	          2
+        0	2.00000e+00	0.00000e+00	0.00000e+00
+        1	6.00000e+00	1.00000e+00	0.00000e+00
+        2  -8.00000e+00	5.00000e+00	3.00000e+00
+
+        >>> sandy.CategoryCov(a).get_L(sparse=True)
+                      0	          1	          2
+        0	2.00000e+00	0.00000e+00	0.00000e+00
+        1	6.00000e+00	1.00000e+00	0.00000e+00
+        2  -8.00000e+00	5.00000e+00	3.00000e+00
+
+        >>> sandy.CategoryCov(a).get_L(rows=1)
+                      0	          1	          2
+        0	2.00000e+00	0.00000e+00	0.00000e+00
+        1	6.00000e+00	1.00000e+00	0.00000e+00
+        2  -8.00000e+00	5.00000e+00	3.00000e+00
+        """
+        index = self.data.index.astype('category')
+        columns = self.data.columns.astype('category')
+        if rows is not None:
+            L = sparse_tables_cholesky(self.data.values, rows=rows)
+        elif sparse:
+            values = self.to_sparse(method='csc_matrix')
+            LU = spsl.splu(values, diag_pivot_thresh=0)
+            diagonal = LU.U.diagonal()
+            diagonal[diagonal < 0] = 0
+            L = LU.L.dot(sps.diags(np.sqrt(diagonal))).toarray()
+        else:
+            values = self.data.values
+            try:
+                L = scipy.linalg.cholesky(
+                        values,
+                        lower=True,
+                        overwrite_a=False,
+                        check_finite=False
+                        )
+            except np.linalg.linalg.LinAlgError:
+                E, V = self.eig()
+                E[E <= 0] = 0
+                Esqrt = np.diag(np.sqrt(E))
+                M = V.dot(Esqrt)
+                Q, R = scipy.linalg.qr(M.T)
+                L = R.T
+        return pd.DataFrame(L, index=index, columns=columns)
+
 
 class EnergyCov(CategoryCov):
     """
@@ -1815,7 +2021,7 @@ class GlobalCov(CategoryCov):
         return cls(matrix, index=index, columns=index)
 
 
-def corr2cov(corr, s):
+def corr2cov(corr, s, sparse=False, rows=None):
     """
     Produce covariance matrix given correlation matrix and standard
     deviation array.
@@ -1824,9 +2030,14 @@ def corr2cov(corr, s):
     ----------
     corr : 2d iterable
         square 2D correlation matrix
-
     s : 1d iterable
         1D iterable with information of standard deviations
+    sparse : `bool`, optional
+        Option to use sparse matrix for calculations. The default is False.
+    rows : `int`, optional
+        Option to use row calculation for matrix calculations. This option
+        defines the number of lines to be taken into account in each loop.
+        The default is None.
 
     Returns
     -------
@@ -1844,6 +2055,20 @@ def corr2cov(corr, s):
     2  12   0  45  0
     3   0   0   0  0
 
+    >>> corr2cov(var, S, sparse=True)
+        0   1   2  3
+    0   1   0   6  0
+    1   0  12   0  0
+    2  12   0  45  0
+    3   0   0   0  0
+
+    >>> corr2cov(var, S, rows=1)
+                0           1           2           3
+    0 1.00000e+00 0.00000e+00 6.00000e+00 0.00000e+00
+    1 0.00000e+00 1.20000e+01 0.00000e+00 0.00000e+00
+    2 1.20000e+01 0.00000e+00 4.50000e+01 0.00000e+00
+    3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+
     >>> S = np.array([1, 2, 3])
     >>> var = np.array([[1, 0, 2], [0, 3, 0], [4, 0, 5]])
     >>> corr2cov(var, S)
@@ -1851,23 +2076,223 @@ def corr2cov(corr, s):
     0   1   0   6
     1   0  12   0
     2  12   0  45
+
+    >>> corr2cov(var, S, sparse=True)
+        0   1   2
+    0   1   0   6
+    1   0  12   0
+    2  12   0  45
+
+    >>> corr2cov(var, S, rows=1)
+                0           1           2
+    0 1.00000e+00 0.00000e+00 6.00000e+00
+    1 0.00000e+00 1.20000e+01 0.00000e+00
+    2 1.20000e+01 0.00000e+00 4.50000e+01
     """
     s_ = pd.Series(s)
     corr_ = pd.DataFrame(corr)
     dim = corr_.values.shape[0]
+    index = s_.index.astype('category')
     if len(s_) > dim:
         raise TypeError("The shape of the variables is not correct")
     # Create s diagonal matrix
     if len(s_) != dim:
         # Increase the size of s to the size of corr by filling it with zeros.
         dim_ext = dim - len(s)
+        index = corr_.index.astype('category')
+        columns = corr_.index.astype('category')
         S = np.pad(np.diag(s_), ((0, dim_ext), (0, dim_ext)))
-        S = pd.DataFrame(S, index=corr_.index, columns=corr_.columns)
+        S = pd.DataFrame(S, index=index, columns=columns)
     else:
-        S = pd.DataFrame(np.diag(s_), index=s_.index, columns=s_.index)
-        corr_ = pd.DataFrame(corr_.values, index=s_.index, columns=s_.index)
-    return S.T.dot(corr_).dot(S)
+        S = pd.DataFrame(np.diag(s_), index=index, columns=index)
+        corr_ = pd.DataFrame(corr_.values, index=index, columns=index)
+    if rows is not None:
+        index = S.columns.astype('category')
+        cov_values = sparse_tables_dot_multiple([S.T, corr_, S], rows=rows)
+        cov = pd.DataFrame(cov_values, index=index, columns=index)
+    elif sparse:
+        index = S.columns.astype('category')
+        S_sps = sps.csr_matrix(S.values)
+        corr_sps = sps.csc_matrix(corr_.values)
+        cov_values = S_sps.T.dot(corr_sps).dot(S_sps)
+        cov = pd.DataFrame(cov_values.toarray(), index=index, columns=index)
+    else:
+        cov = S.T.dot(corr_).dot(S)
+    return cov
 
+
+def sparse_tables_dot(a, b, rows=1000):
+    """
+    Function to perform multiplications between matrices stored on local
+    disk instead of memory.
+
+    Parameters
+    ----------
+    a : 2D iterable
+        Matrix.
+    b : 2D iterable
+        Matrix.
+    rows : `int`, optional.
+        Number of rows to be calculated in each loop. The default is 1000.
+
+    Returns
+    -------
+    dot_product : "scipy.sparse.csc_matrix"
+        The multiplication of 2 matrix.
+    """
+    a_ = sps.csr_matrix(a)
+    b_ = sps.csc_matrix(b)
+    l, n = a_.shape[0], b_.shape[1]
+    f = tb.open_file('dot.h5', 'w')
+    filters = tb.Filters(complevel=5, complib='blosc')
+    out_data = f.create_earray(f.root, 'data', tb.Float32Atom(), shape=(0,),
+                               filters=filters)
+    out_indices = f.create_earray(f.root, 'indices', tb.Int32Atom(), shape=(0,),
+                                  filters=filters)
+    out_indptr = f.create_earray(f.root, 'indptr', tb.Int32Atom(), shape=(0,),
+                                 filters=filters)
+    out_indptr.append(np.array([0]))
+    max_indptr = 0
+    for i in range(0, l, rows):
+        res = a_[i:min(i+rows, l), :].dot(b_)
+        out_data.append(res.data)
+        indices = res.indices
+        indptr = res.indptr
+        out_indices.append(indices)
+        out_indptr.append(max_indptr+indptr[1:])
+        max_indptr += indices.shape[0]
+        f.flush()
+    dot_product = sps.csr_matrix((f.root.data[:], f.root.indices[:],
+                                  f.root.indptr[:]), shape=(l, n))
+    f.close()
+    os.remove('dot.h5')
+    return dot_product
+
+
+def sparse_tables_dot_multiple(matrix_list, rows=1000):
+    """
+    Function to perform multiplications between matrices stored on local
+    disk instead of memory.
+
+    Parameters
+    ----------
+    matrix_list : 1D iterables
+        Iterable with the matrix inside
+    rows : `int`, optional.
+        Number of rows to be calculated in each loop. The default is 1000.
+
+    Returns
+    -------
+    matrix : "scipy.sparse.csc_matrix"
+        Result of the multiplication of 2 matrix.
+
+    Example
+    -------
+    >>> S = np.array([[1, 2], [3, 4]])
+    >>> sensitivity = sandy.CategoryCov.from_var([1, 1]).data.values
+    >>> sparse_tables_dot_multiple([S, sensitivity, S.T], 1)
+    array([[ 5., 11.],
+           [11., 25.]], dtype=float32)
+    """
+    matrix = matrix_list[0]
+    for b in matrix_list[1::]:
+        intermediate_matrix = sparse_tables_dot(matrix, b, rows)
+        matrix = intermediate_matrix
+    return matrix.toarray()
+
+
+def sparse_tables_inv(a, rows=1000):
+    """
+    Function to perform matrix inversion stored on local
+    disk instead of memory.
+
+    Parameters
+    ----------
+    a : 2D iterable
+        Matrix to be inverted.
+    rows : `int`, optional.
+        Number of rows to be calculated in each loop. The default is 1000.
+
+    Returns
+    -------
+    invert_matrix : "numpy.ndarray"
+        The inverted matrix.
+
+    Example
+    -------
+    >>> S = sandy.CategoryCov(np.diag(np.array([1, 2, 3]))).data.values
+    >>> sandy.cov.sparse_tables_inv(S, 1).round(2)
+    array([[1.  , 0.  , 0.  ],
+           [0.  , 0.5 , 0.  ],
+           [0.  , 0.  , 0.33]], dtype=float32)
+    """
+    a_ = sps.csc_matrix(a)
+    l, n = a_.shape[0], a_.shape[1]
+    LU = spsl.splu(a_)
+    f = tb.open_file('inv.h5', 'w')
+    filters = tb.Filters(complevel=5, complib='blosc')
+    out_data = f.create_carray(f.root, 'data', tb.Float32Atom(),
+                               shape=(l, n), filters=filters)
+    Identity = np.hsplit(sps.diags([1], shape=a_.shape).toarray(), l/rows)
+    j = 0
+    for i in range(0, l, rows):
+        I_split = Identity[j]
+        tmpResult = LU.solve(I_split)
+        out_data[:, i:min(i+rows, l)] = tmpResult
+        f.flush()
+        j += 1
+    invert_matrix = sps.csr_matrix(out_data).toarray()
+    f.close()
+    os.remove('inv.h5')
+    return invert_matrix
+
+
+def sparse_tables_cholesky(a, rows=1000):
+    """
+    Function to perform cholesky descomposition stored on local
+    disk instead of memory.
+
+    Parameters
+    ----------
+    a : 2D iterable
+        Matrix to be inverted.
+    rows : `int`, optional.
+        Number of rows to be calculated in each loop. The default is 1000.
+
+    Returns
+    -------
+    low_triang_matrix : "numpy.ndarray"
+        Cholesky descomposition low triangular matrix.
+
+    Examples
+    --------
+    >>> a = np.array([[4, 12, -16], [12, 37, -43], [-16, -43, 98]])
+    >>> sandy.cov.sparse_tables_cholesky(a, rows=1)
+    array([[ 2.,  0.,  0.],
+           [ 6.,  1.,  0.],
+           [-8.,  5.,  3.]], dtype=float32)
+    """
+    a_ = sps.csc_matrix(a)
+    l, n = a_.shape[0], a_.shape[1]
+    LU = spsl.splu(a_, diag_pivot_thresh=0)
+    f = tb.open_file('cholesky.h5', 'w')
+    filters = tb.Filters(complevel=5, complib='blosc')
+    out_data = f.create_carray(f.root, 'data', tb.Float32Atom(),
+                               shape=(l, n), filters=filters)
+    diagonal = LU.U.diagonal()
+    diagonal[diagonal < 0] = 0
+    diagonal_matrix = np.hsplit(sps.diags(np.sqrt(diagonal)).toarray(), l/rows)
+    j = 0
+    for i in range(0, l, rows):
+        diagonal_split = diagonal_matrix[j]
+        tmpResult = LU.L.dot(diagonal_split)
+        out_data[:, i:min(i+rows, l)] = tmpResult
+        f.flush()
+        j += 1
+    low_triang_matrix = sps.csr_matrix(out_data).toarray()
+    f.close()
+    os.remove('cholesky.h5')
+    return low_triang_matrix
 
 def triu_matrix(arr, size):
     """
