@@ -338,8 +338,8 @@ class CategoryCov():
         1   1.00000e+00
         Name: std, dtype: float64
         """
-        cov = self.data.values
-        std = np.sqrt(np.diag(cov))
+        cov = self.to_sparse().diagonal()
+        std = np.sqrt(cov)
         return pd.Series(std, index=self.data.index, name="std")
 
     @property
@@ -547,9 +547,10 @@ class CategoryCov():
         np.random.seed(seed=seed)
         dim = self.data.shape[0]
         y = np.random.randn(dim, nsmp)  # normal pdf
-        L = self.decompose()
+        y = sps.csc_matrix(y)
+        L = sps.csr_matrix(self.decompose())
         samples = L.dot(y)
-        df = pd.DataFrame(samples,
+        df = pd.DataFrame(samples.toarray(),
                           index=self.data.index,
                           columns=list(range(nsmp)),
                           )
@@ -931,7 +932,7 @@ class CategoryCov():
             sensitivity[abs(sensitivity) < threshold] = 0
         return pd.DataFrame(sensitivity, index=index, columns=columns)
 
-    def _constrained_gls_sensitivity(self, S, rows=None,
+    def _gls_constrained_sensitivity(self, S, rows=None,
                                      threshold=None):
         """
         Method to obtain sensitivity according to constrained Least-Squares:
@@ -965,12 +966,12 @@ class CategoryCov():
         -------
         >>> S = np.array([[1, 2], [3, 4]])
         >>> sensitivity = CategoryCov.from_var([1, 1])
-        >>> sensitivity._constrained_gls_sensitivity(S)
+        >>> sensitivity._gls_constrained_sensitivity(S)
                       0	              1
         0	-2.00000e+00	1.50000e+00
         1	 1.00000e+00   -5.00000e-01
 
-        >>> sensitivity._constrained_gls_sensitivity(S, rows=1)
+        >>> sensitivity._gls_constrained_sensitivity(S, rows=1)
                       0	              1
         0	-2.00000e+00	1.50000e+00
         1	 1.00000e+00   -5.00000e-01

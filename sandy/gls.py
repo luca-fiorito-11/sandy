@@ -496,7 +496,7 @@ def constrained_gls_update(x_prior, S, Vx_prior, rows=None, threshold=None):
     x_prior_ = x_prior_.reindex(union_index).fillna(0)
     # Common Model calculation for sparse and no sparse:
     y_calc = _y_calc(x_prior, S_.T).reindex(index).fillna(0)
-    A = Vx_prior_._constrained_gls_sensitivity(S_, rows=rows,
+    A = Vx_prior_._gls_constrained_sensitivity(S_, rows=rows,
                                                threshold=threshold)
     # Constrained gls calculations
     x_prior_sps = sps.coo_matrix(x_prior_)
