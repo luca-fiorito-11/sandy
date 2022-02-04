@@ -272,6 +272,10 @@ class CategoryCov():
         self._data = pd.DataFrame(data, dtype=float)
         if not len(data.shape) == 2 and data.shape[0] == data.shape[1]:
             raise TypeError("covariance matrix must have two dimensions")
+        if (np.diag(data) >= 0).all() is False:
+            raise TypeError("covariance matrix must have positive variance")
+        if (data.values == data.values.T).all() is False:
+            raise TypeError("covariance matrix must be symmetric")
 
     @property
     def size(self):
@@ -562,8 +566,6 @@ class CategoryCov():
 
         Parameters
         ----------
-        sparse : `bool`, optional
-            Option to use sparse matrix for calculations. The default is False.
         rows : `int`, optional
             Option to use row calculation for matrix calculations. This option
             defines the number of lines to be taken into account in each loop.
@@ -582,7 +584,7 @@ class CategoryCov():
 
         >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).decompose(rows=1).round(2)
         array([[-1.  ,  0.  ],
-               [-0.4 ,  0.92]], dtype=float32)
+               [-0.4 ,  0.92]])
         """
         E, V = self.eig(sort=False)
         E[E <= 0] = 0
@@ -631,10 +633,9 @@ class CategoryCov():
         >>> assert type(sandy.CategoryCov.from_var([1, 2, 3])) is sandy.CategoryCov
         """
         var_ = pd.Series(var)
-        index = var_.index
         cov_values = sps.diags(var_.values).toarray()
         cov = pd.DataFrame(cov_values,
-                           index=index, columns=index)
+                           index=var_.index, columns=var_.index)
         return cls(cov)
 
     @classmethod
@@ -690,8 +691,6 @@ class CategoryCov():
         ----------
         S : 2D iterable
             Sensitivity matrix (MXN).
-        sparse : `bool`, optional
-            Option to use sparse matrix for calculations. The default is False.
         rows : `int`, optional
             Option to use row calculation for matrix calculations. This option
             defines the number of lines to be taken into account in each loop.
@@ -756,24 +755,24 @@ class CategoryCov():
         Example
         -------
         >>> S = np.array([[1, 2], [3, 4]])
-        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
+        >>> cov = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = np.diag(pd.Series([1, 1]))
-        >>> sensitivity._gls_G(S, Vy)
+        >>> cov._gls_G(S, Vy)
                     	0	      1
         0	6.00000e+00	1.10000e+01
         1	1.10000e+01	2.60000e+01
 
-        >>> sensitivity._gls_G(S, Vy, rows=1)
+        >>> cov._gls_G(S, Vy, rows=1)
                     	0	      1
         0	6.00000e+00	1.10000e+01
         1	1.10000e+01	2.60000e+01
 
-        >>> sensitivity._gls_G(S)
+        >>> cov._gls_G(S)
                       0	          1
         0	5.00000e+00	1.10000e+01
         1	1.10000e+01	2.50000e+01
 
-        >>> sensitivity._gls_G(S, rows=1)
+        >>> cov._gls_G(S, rows=1)
                       0	          1
         0	5.00000e+00	1.10000e+01
         1	1.10000e+01	2.50000e+01
@@ -1235,7 +1234,7 @@ class CategoryCov():
         return ax
 
     @classmethod
-    def corr2cov(cls, corr, std, rows=None, **kwargs):
+    def corr2cov(cls, corr, std, **kwargs):
         """
         Produce covariance matrix given correlation matrix and standard
         deviation array.
@@ -1246,17 +1245,23 @@ class CategoryCov():
             square 2D correlation matrix
         std : 1d `numpy.ndarray`
             array of standard deviations
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
 
         Returns
         -------
         `sandy.CategoryCov`
             covariance matrix
+
+        Examples
+        --------
+        >>> S = np.array([1, 2, 3])
+        >>> var = np.array([[1, 0, 2], [0, 3, 0], [2, 0, 1]])
+        >>> sandy.CategoryCov.corr2cov(var, S)
+                    0           1           2
+        0 1.00000e+00 0.00000e+00 6.00000e+00
+        1 0.00000e+00 1.20000e+01 0.00000e+00
+        2 6.00000e+00 0.00000e+00 9.00000e+00
         """
-        return cls(corr2cov(corr, std, rows=rows), **kwargs)
+        return cls(corr2cov(corr, std), **kwargs)
 
     @classmethod
     @cov33csv
@@ -1850,7 +1855,7 @@ class GlobalCov(CategoryCov):
         return cls(matrix, index=index, columns=index)
 
 
-def corr2cov(corr, s, rows=None):
+def corr2cov(corr, s):
     """
     Produce covariance matrix given correlation matrix and standard
     deviation array.
@@ -1874,62 +1879,20 @@ def corr2cov(corr, s, rows=None):
     Examples
     --------
     >>> S = np.array([1, 2, 3])
-    >>> var = np.array([[1, 0, 2, 0], [0, 3, 0, 0], [4, 0, 5, 0], [0, 0, 0, 0]])
+    >>> var = np.array([[1, 0, 2], [0, 3, 0], [2, 0, 1]])
     >>> corr2cov(var, S)
-        0   1   2  3
-    0   1   0   6  0
-    1   0  12   0  0
-    2  12   0  45  0
-    3   0   0   0  0
-
-    >>> corr2cov(var, S, rows=1)
-                0           1           2           3
-    0 1.00000e+00 0.00000e+00 6.00000e+00 0.00000e+00
-    1 0.00000e+00 1.20000e+01 0.00000e+00 0.00000e+00
-    2 1.20000e+01 0.00000e+00 4.50000e+01 0.00000e+00
-    3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-
-    >>> S = np.array([1, 2, 3])
-    >>> var = np.array([[1, 0, 2], [0, 3, 0], [4, 0, 5]])
-    >>> corr2cov(var, S)
-        0   1   2
-    0   1   0   6
-    1   0  12   0
-    2  12   0  45
-
-    >>> corr2cov(var, S, rows=1)
-                0           1           2
-    0 1.00000e+00 0.00000e+00 6.00000e+00
-    1 0.00000e+00 1.20000e+01 0.00000e+00
-    2 1.20000e+01 0.00000e+00 4.50000e+01
+        0   1  2
+     0  1   0  6
+     1  0  12  0
+     2  6   0  9
     """
     s_ = pd.Series(s)
+    S = pd.DataFrame(np.diag(s_.values), index=s_.index, columns=s_.index)
     corr_ = pd.DataFrame(corr)
-    dim = corr_.values.shape[0]
-    index = s_.index
-    if len(s_) > dim:
-        raise TypeError("The shape of the variables is not correct")
-    # Create s diagonal matrix
-    if len(s_) != dim:
-        # Increase the size of s to the size of corr by filling it with zeros.
-        dim_ext = dim - len(s)
-        index = corr_.index
-        columns = corr_.index
-        S = np.pad(np.diag(s_), ((0, dim_ext), (0, dim_ext)))
-        S = pd.DataFrame(S, index=index, columns=columns)
-    else:
-        S = pd.DataFrame(np.diag(s_), index=index, columns=index)
-        corr_ = pd.DataFrame(corr_.values, index=index, columns=index)
-    if rows is not None:
-        index = S.columns
-        cov_values = sparse_tables_dot_multiple([S.T, corr_, S], rows=rows)
-        cov = pd.DataFrame(cov_values, index=index, columns=index)
-    else:
-        index = S.columns
-        S_sps = sps.csr_matrix(S.values)
-        corr_sps = sps.csc_matrix(corr_.values)
-        cov_values = S_sps.T.dot(corr_sps).dot(S_sps)
-        cov = pd.DataFrame(cov_values.toarray(), index=index, columns=index)
+    S_sps = sps.csr_matrix(S.values)
+    corr_sps = sps.csc_matrix(corr_.values)
+    cov_values = S_sps.T.dot(corr_sps).dot(S_sps)
+    cov = pd.DataFrame(cov_values.toarray(), index=s_.index, columns=s_.index)
     return cov
 
 
@@ -1957,11 +1920,11 @@ def sparse_tables_dot(a, b, rows=1000):
     l, n = a_.shape[0], b_.shape[1]
     f = tb.open_file('dot.h5', 'w')
     filters = tb.Filters(complevel=5, complib='blosc')
-    out_data = f.create_earray(f.root, 'data', tb.Float32Atom(), shape=(0,),
+    out_data = f.create_earray(f.root, 'data', tb.Float64Atom(), shape=(0,),
                                filters=filters)
-    out_indices = f.create_earray(f.root, 'indices', tb.Int32Atom(), shape=(0,),
+    out_indices = f.create_earray(f.root, 'indices', tb.Int64Atom(), shape=(0,),
                                   filters=filters)
-    out_indptr = f.create_earray(f.root, 'indptr', tb.Int32Atom(), shape=(0,),
+    out_indptr = f.create_earray(f.root, 'indptr', tb.Int64Atom(), shape=(0,),
                                  filters=filters)
     out_indptr.append(np.array([0]))
     max_indptr = 0
@@ -2004,7 +1967,7 @@ def sparse_tables_dot_multiple(matrix_list, rows=1000):
     >>> sensitivity = sandy.CategoryCov.from_var([1, 1]).data.values
     >>> sparse_tables_dot_multiple([S, sensitivity, S.T], 1)
     array([[ 5., 11.],
-           [11., 25.]], dtype=float32)
+           [11., 25.]])
     """
     matrix = matrix_list[0]
     for b in matrix_list[1::]:
@@ -2036,14 +1999,14 @@ def sparse_tables_inv(a, rows=1000):
     >>> sandy.cov.sparse_tables_inv(S, 1).round(2)
     array([[1.  , 0.  , 0.  ],
            [0.  , 0.5 , 0.  ],
-           [0.  , 0.  , 0.33]], dtype=float32)
+           [0.  , 0.  , 0.33]])
     """
     a_ = sps.csc_matrix(a)
     l, n = a_.shape[0], a_.shape[1]
     LU = spsl.splu(a_)
     f = tb.open_file('inv.h5', 'w')
     filters = tb.Filters(complevel=5, complib='blosc')
-    out_data = f.create_carray(f.root, 'data', tb.Float32Atom(),
+    out_data = f.create_carray(f.root, 'data', tb.Float64Atom(),
                                shape=(l, n), filters=filters)
     Identity = np.hsplit(sps.diags([1], shape=a_.shape).toarray(), l/rows)
     j = 0
@@ -2082,14 +2045,14 @@ def sparse_tables_cholesky(a, rows=1000):
     >>> sandy.cov.sparse_tables_cholesky(a, rows=1)
     array([[ 2.,  0.,  0.],
            [ 6.,  1.,  0.],
-           [-8.,  5.,  3.]], dtype=float32)
+           [-8.,  5.,  3.]])
     """
     a_ = sps.csc_matrix(a)
     l, n = a_.shape[0], a_.shape[1]
     LU = spsl.splu(a_, diag_pivot_thresh=0)
     f = tb.open_file('cholesky.h5', 'w')
     filters = tb.Filters(complevel=5, complib='blosc')
-    out_data = f.create_carray(f.root, 'data', tb.Float32Atom(),
+    out_data = f.create_carray(f.root, 'data', tb.Float64Atom(),
                                shape=(l, n), filters=filters)
     diagonal = LU.U.diagonal()
     diagonal[diagonal < 0] = 0

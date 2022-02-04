@@ -27,8 +27,8 @@ Vy_extra = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 N_e = 1
 
 
-def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, sparse=False,
-               rows=None, threshold=None):
+def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, rows=None,
+               threshold=None):
     """
     Perform the GlS update of a prior vector, given its prior covariance
     matrix, a lekelyhood matrix and additional info on the model obserbale
