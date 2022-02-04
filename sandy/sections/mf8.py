@@ -189,7 +189,7 @@ def _read_fy(tape, mat, mt):
     i = 0
     C, i = sandy.read_cont(df, i)
     add = {
-            "ZAM": int(C.C1*10),
+            "ZA": int(C.C1),
             "AWR": C.C2,
             }
     out.update(add)
@@ -461,7 +461,7 @@ def _write_fy(sec):
     >>> sec = sandy.sections.mf8.read_mf8(nfpy, 9228, 454)
     >>> text = _write_fy(sec)
     >>> print(text[:1000])
-     922350.000 233.025000          3          0          0          09228 8454    1
+     92235.0000 233.025000          3          0          0          09228 8454    1
      2.530000-2 0.00000000          2          0       3932        9839228 8454    2
      1001.00000 0.00000000 1.711000-5 2.948300-6 1002.00000 0.000000009228 8454    3
      8.400000-6 2.438900-6 1003.00000 0.00000000 1.080000-4 5.863500-69228 8454    4
@@ -480,7 +480,7 @@ def _write_fy(sec):
     >>> sec = sandy.sections.mf8.read_mf8(nfpy, 9228, 459)
     >>> text = _write_fy(sec)
     >>> print(text[:1000])
-     922350.000 233.025000          3          0          0          09228 8459    1
+     92235.0000 233.025000          3          0          0          09228 8459    1
      2.530000-2 0.00000000          2          0       3932        9839228 8459    2
      1001.00000 0.00000000 1.711000-5 1.847900-6 1002.00000 0.000000009228 8459    3
      8.400000-6 1.503600-6 1003.00000 0.00000000 1.080000-4 3.996000-69228 8459    4
@@ -495,7 +495,7 @@ def _write_fy(sec):
      5012.00000 0.00000000 2.522
     """
     LE = len(sec["E"])
-    lines = sandy.write_cont(sec["ZAM"], sec["AWR"], LE, 0, 0, 0)
+    lines = sandy.write_cont(sec["ZA"], sec["AWR"], LE, 0, 0, 0)
     for E, FY_information in sec['E'].items():
         interp = FY_information['INTERP']
         energy_data = FY_information['ZAP']
