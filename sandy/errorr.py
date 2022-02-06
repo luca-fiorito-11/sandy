@@ -18,25 +18,51 @@ class Errorr(_FormattedFile):
     """
     
     def get_energy_grid(self, mat=None):
+        """
+        
+
+        Parameters
+        ----------
+        mat : `int`, optional
+            MAT number. The default is None.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
         mat_ = mat if mat else self.mat[0]
         mf1 = read_mf1(self, mat_)
         return mf1["EG"]
 
-        
-
     def get_xs(self, mat, mt):
         """
-        
+        Obtain for a given mat and mt the xs values across the energy grid.
+
         Parameters
         ----------
-        mat : TYPE
-            DESCRIPTION.
-        mt : TYPE
-            DESCRIPTION.
+        mat : `int`
+            MAT number
+        mt : `int`
+            MT number
+
         Returns
         -------
-        xs : TYPE
-            DESCRIPTION.
+        xs : `pd.Series`
+            For a given mat and mt, the xs values in the energy grid.
+
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> err = endf6.get_errorr(ek=sandy.energy_grids.CASMO12)
+        >>> err.get_xs(125, 102).head()
+        (1e-05, 0.413994]      1.63409e-01
+        (0.413994, 0.531579]   7.69936e-02
+        (0.531579, 0.625062]   6.95520e-02
+        (0.625062, 0.68256]    6.53664e-02
+        (0.68256, 0.833681]    6.07520e-02
+        Name: (125, 102), dtype: float64
         """
         mf1 = read_mf1(self, mat)
         mf3 = read_mf3(self, mat, mt)
@@ -46,13 +72,28 @@ class Errorr(_FormattedFile):
     
     def get_cov(self):
         """
-        Extract cross section/nubar covariance from `Errorr` instance.
-        
+        Extract cross section/nubar covariance from `Errorr` instance. 
+
         Returns
         -------
-        `sandy CategoryCov`
+        data : `sandy CategoryCov`
             xs/nubar covariance matrix for all cross section/nubar
-            MAT/MT in ERRORR file
+            MAT/MT in ERRORR file.
+
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> err = endf6.get_errorr(ek=sandy.energy_grids.CASMO12)
+        >>> err.get_cov().iloc[:5, :5]
+        	    MAT1	    125
+                MT1	        1
+                E1	        1.00000e-05	4.13994e-01	5.31579e-01	6.25062e-01	6.82560e-01
+        MAT	MT	E					
+        125	1	1.00000e-05	8.67776e-06	8.69254e-06	8.69382e-06	8.69454e-06	8.69533e-06
+                4.13994e-01	8.69254e-06	8.71885e-06	8.72113e-06	8.72241e-06	8.72382e-06
+                5.31579e-01	8.69382e-06	8.72113e-06	8.72349e-06	8.72482e-06	8.72629e-06
+                6.25062e-01	8.69454e-06	8.72241e-06	8.72482e-06	8.72618e-06	8.72767e-06
+                6.82560e-01	8.69533e-06	8.72382e-06	8.72629e-06	8.72767e-06	8.72920e-06
         """
         eg = self.get_energy_grid()
         data = []
@@ -80,6 +121,8 @@ class Errorr(_FormattedFile):
             index=["MAT", "MT", "E"],
             columns=["MAT1", "MT1", "E1"],
             values="VAL",
+            fill_value=0,
+            aggfunc=np.sum
             )
         return data
 
