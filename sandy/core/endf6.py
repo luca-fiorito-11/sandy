@@ -1274,9 +1274,9 @@ class Endf6(_FormattedFile):
             If not given, stop the processing after RECONR (before BROADR).
         njoy : `str`, optional, default is `None`
             NJOY executable, if `None` search in the system path.
-        to_file : `bool`, optional, default is `False`
-            flag to write processed PENDF data to file.
-            The name of the PENDF file is defined by an internal routine.
+        to_file : `str`, optional, default is `None`
+            if not `None` write processed ERRORR data to file.
+            The name of the PENDF file is the keyword argument.
         verbose : `bool`, optional, default is `False`
             flag to print NJOY input file to screen before running the
             executable.
@@ -1315,6 +1315,12 @@ class Endf6(_FormattedFile):
 
         >>> pendf.kind
         'pendf'
+
+        Test `to_file`
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> out = endf6.get_pendf(to_file="out.pendf")
+        >>> assert os.path.isfile('out.pendf')
+
         """
         if float(temperature) == 0:
             kwargs["broadr"] = False
@@ -1341,11 +1347,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
                 **kwargs,
                 )
             pendffile = outputs["tape30"]
-            if to_file:
-                basename = os.path.split(pendffile)[1]
-                dest = os.path.join(os.getcwd(), basename)
-                shutil.move(pendffile, dest)
             pendf = Endf6.from_file(pendffile)
+            if to_file:
+                shutil.move(pendffile, to_file)
         return pendf
 
     def merge_pendf(self, pendf):
@@ -1397,7 +1401,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         The new file is also a pendf.
         >>> merged.kind
         'pendf'
-        """
+                """
         if pendf.kind != "pendf":
             raise sandy.Error("given file is not a pendf")
         section_3_endf6 = self.filter_by(listmf=[3]).data
@@ -1410,7 +1414,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
     def get_errorr(self,
                    temperature=0,
                    njoy=None,
-                   to_file=False,
+                   to_file=None,
                    verbose=False,
                    err=0.005,
                    **kwargs,
@@ -1425,9 +1429,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
             If not given, stop the processing after RECONR (before BROADR).
         njoy : `str`, optional, default is `None`
             NJOY executable, if `None` search in the system path.
-        to_file : `bool`, optional, default is `False`
-            flag to write processed PENDF data to file.
-            The name of the PENDF file is defined by an internal routine.
+        to_file : `str`, optional, default is `None`
+            if not `None` write processed ERRORR data to file.
+            The name of the ERRORR file is the keyword argument.
         verbose : `bool`, optional, default is `False`
             flag to print NJOY input file to screen before running the
             executable.
@@ -1488,8 +1492,13 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Test output type
         >>> assert isinstance(out, sandy.Errorr)
 
-        Test ign and ek
+        Test `ign` and `ek`
         >>> assert out.get_xs(125, 1).size == 12
+        
+        Test `to_file`
+        >>> out = endf6.get_errorr(to_file="out.err")
+        >>> assert os.path.isfile('out.err')
+        
         """
         if float(temperature) == 0:
             kwargs["broadr"] = False
@@ -1512,11 +1521,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
                     **kwargs,
                     )[2]  # keep only pendf filename
             errorrfile = outputs["tape33"]
-            if to_file:
-                basename = os.path.split(errorrfile)[1]
-                dest = os.path.join(os.getcwd(), basename)
-                shutil.move(errorrfile, dest)
             errorr = sandy.Errorr.from_file(errorrfile)
+            if to_file:
+                shutil.move(errorrfile, to_file)
         return errorr
     
     def sample_mf31(self, samples, mean=1, seed=None, to_csv=False):

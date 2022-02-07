@@ -1,9 +1,9 @@
 h5py
 jupyterlab
 matplotlib >= 2.2.23
-numba
 numpy
 numpydoc
+numba
 pandas >= 1
 pytest >= 3.3
 pyyaml
