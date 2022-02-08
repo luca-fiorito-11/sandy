@@ -709,13 +709,13 @@ class CategoryCov():
         Example
         -------
         >>> S = np.array([[1, 2], [3, 4]])
-        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
-        >>> sensitivity._gls_Vy_calc(S)
+        >>> cov = sandy.CategoryCov.from_var([1, 1])
+        >>> cov._gls_Vy_calc(S)
                       0	          1
         0	5.00000e+00	1.10000e+01
         1	1.10000e+01	2.50000e+01
 
-        >>> sensitivity._gls_Vy_calc(S, rows=1)
+        >>> cov._gls_Vy_calc(S, rows=1)
                       0	          1
         0	5.00000e+00	1.10000e+01
         1	1.10000e+01	2.50000e+01
@@ -827,24 +827,24 @@ class CategoryCov():
         Example
         -------
         >>> S = np.array([[1, 2], [3, 4]])
-        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
+        >>> cov = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = np.diag(pd.Series([1, 1]))
-        >>> sensitivity._gls_G_inv(S, Vy)
+        >>> cov._gls_G_inv(S, Vy)
                        0	          1
         0	 7.42857e-01   -3.14286e-01
         1	-3.14286e-01	1.71429e-01
 
-        >>> sensitivity._gls_G_inv(S, Vy, rows=1)
+        >>> cov._gls_G_inv(S, Vy, rows=1)
                        0	          1
         0	 7.42857e-01   -3.14286e-01
         1	-3.14286e-01	1.71429e-01
 
-        >>> sensitivity._gls_G_inv(S)
+        >>> cov._gls_G_inv(S)
                       0	               1
         0	 6.25000e+00	-2.75000e+00
         1	-2.75000e+00	 1.25000e+00
 
-        >>> sensitivity._gls_G_inv(S, rows=1)
+        >>> cov._gls_G_inv(S, rows=1)
                       0	               1
         0	 6.25000e+00	-2.75000e+00
         1	-2.75000e+00	 1.25000e+00
@@ -855,10 +855,7 @@ class CategoryCov():
         else:
             index = pd.DataFrame(S).index
             G = self._gls_Vy_calc(S, rows=rows).values
-        if rows is not None:
-            G_inv = sparse_tables_inv(G, rows=rows)
-        else:
-            G_inv = sparse_tables_inv(G, rows=G.shape[0])
+        G_inv = sandy.CategoryCov(G).invert(rows=rows).data.values
         return pd.DataFrame(G_inv, index=index, columns=index)
 
     def _gls_general_sensitivity(self, S, Vy_extra=None,
@@ -891,32 +888,32 @@ class CategoryCov():
         Example
         -------
         >>> S = np.array([[1, 2], [3, 4]])
-        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
+        >>> cov = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = np.diag(pd.Series([1, 1]))
-        >>> sensitivity._gls_general_sensitivity(S, Vy)
+        >>> cov._gls_general_sensitivity(S, Vy)
                       0	              1
         0	-2.00000e-01	2.00000e-01
         1	2.28571e-01	    5.71429e-02
 
         >>> S = pd.DataFrame([[1, 2], [3, 4]], index=[1, 2],columns=[3, 4])
-        >>> sensitivity = sandy.CategoryCov.from_var([1, 1])
+        >>> cov = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
-        >>> sensitivity._gls_general_sensitivity(S, Vy_extra=Vy)
+        >>> cov._gls_general_sensitivity(S, Vy_extra=Vy)
                       1	              2
         3	-2.00000e-01	2.00000e-01
         4	 2.28571e-01	5.71429e-02
 
-        >>> sensitivity._gls_general_sensitivity(S, Vy_extra=Vy, rows=1)
+        >>> cov._gls_general_sensitivity(S, Vy_extra=Vy, rows=1)
                       1	              2
         3	-2.00000e-01	2.00000e-01
         4	 2.28571e-01	5.71429e-02
 
-        >>> sensitivity._gls_general_sensitivity(S)
+        >>> cov._gls_general_sensitivity(S)
             	       1	           2
         3	-2.00000e+00	 1.00000e+00
         4	 1.50000e+00	-5.00000e-01
 
-        >>> sensitivity._gls_general_sensitivity(S, rows=1)
+        >>> cov._gls_general_sensitivity(S, rows=1)
             	       1	           2
         3	-2.00000e+00	 1.00000e+00
         4	 1.50000e+00	-5.00000e-01
@@ -971,13 +968,13 @@ class CategoryCov():
         Example
         -------
         >>> S = np.array([[1, 2], [3, 4]])
-        >>> sensitivity = CategoryCov.from_var([1, 1])
-        >>> sensitivity._gls_constrained_sensitivity(S)
+        >>> cov = CategoryCov.from_var([1, 1])
+        >>> cov._gls_constrained_sensitivity(S)
                       0	              1
         0	-2.00000e+00	1.50000e+00
         1	 1.00000e+00   -5.00000e-01
 
-        >>> sensitivity._gls_constrained_sensitivity(S, rows=1)
+        >>> cov._gls_constrained_sensitivity(S, rows=1)
                       0	              1
         0	-2.00000e+00	1.50000e+00
         1	 1.00000e+00   -5.00000e-01
@@ -1031,22 +1028,22 @@ class CategoryCov():
         Example
         -------
         >>> S = np.array([[1, 2], [3, 4]])
-        >>> var = sandy.CategoryCov.from_var([1, 1])
+        >>> cov = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = np.diag(pd.Series([1, 1]))
-        >>> var._gls_cov_sensitivity(S, Vy)
+        >>> cov._gls_cov_sensitivity(S, Vy)
                       0	          1
         0	4.00000e-01	4.00000e-01
         1	4.00000e-01	6.85714e-01
 
         >>> S = pd.DataFrame([[1, 2], [3, 4]], index=[1, 2],columns=[3, 4])
-        >>> var = sandy.CategoryCov.from_var([1, 1])
+        >>> cov = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
-        >>> var._gls_cov_sensitivity(S, Vy)
+        >>> cov._gls_cov_sensitivity(S, Vy)
                       3	          4
         3	4.00000e-01	4.00000e-01
         4	4.00000e-01	6.85714e-01
 
-        >>> var._gls_cov_sensitivity(S, Vy, rows=1)
+        >>> cov._gls_cov_sensitivity(S, Vy, rows=1)
                       3	          4
         3	4.00000e-01	4.00000e-01
         4	4.00000e-01	6.85714e-01
@@ -1096,14 +1093,14 @@ class CategoryCov():
         Example
         -------
         >>> S = np.array([[1, 2], [3, 4]])
-        >>> var = sandy.CategoryCov.from_var([1, 1])
+        >>> cov = sandy.CategoryCov.from_var([1, 1])
         >>> Vy = np.diag(pd.Series([1, 1]))
-        >>> var.gls_update(S, Vy)
+        >>> cov.gls_update(S, Vy)
                      0            1
         0  6.00000e-01 -4.00000e-01
         1 -4.00000e-01  3.14286e-01
 
-        >>> var.gls_update(S, Vy, rows=1)
+        >>> cov.gls_update(S, Vy, rows=1)
                      0            1
         0  6.00000e-01 -4.00000e-01
         1 -4.00000e-01  3.14286e-01
@@ -1161,12 +1158,12 @@ class CategoryCov():
         Example
         -------
         >>> S = np.array([[1, 2], [3, 4]])
-        >>> var = sandy.CategoryCov.from_var([1, 1])
-        >>> var_update = var.constrained_gls_update(S).data.round(decimals=6)
-        >>> assert np.amax(var_update.values) == 0.0
+        >>> cov = sandy.CategoryCov.from_var([1, 1])
+        >>> cov_update = cov.constrained_gls_update(S).data.round(decimals=6)
+        >>> assert np.amax(cov_update.values) == 0.0
 
-        >>> var_update = var.constrained_gls_update(S, rows=1).data.round(decimals=6)
-        >>> assert np.amax(var_update.values) == 0.0
+        >>> cov_update = cov.constrained_gls_update(S, rows=1).data.round(decimals=6)
+        >>> assert np.amax(cov_update.values) == 0.0
         """
         return self.gls_update(S, Vy_extra=None, rows=rows, threshold=threshold)
 
@@ -1973,8 +1970,8 @@ def sparse_tables_dot_multiple(matrix_list, rows=1000):
     Example
     -------
     >>> S = np.array([[1, 2], [3, 4]])
-    >>> sensitivity = sandy.CategoryCov.from_var([1, 1]).data.values
-    >>> sparse_tables_dot_multiple([S, sensitivity, S.T], 1)
+    >>> cov = sandy.CategoryCov.from_var([1, 1]).data.values
+    >>> sparse_tables_dot_multiple([S, cov, S.T], 1)
     array([[ 5., 11.],
            [11., 25.]])
     """
