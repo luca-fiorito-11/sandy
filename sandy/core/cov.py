@@ -260,10 +260,13 @@ class CategoryCov():
         -----
         ..note :: In the future, another tests will be implemented to check
         that the covariance matrix is symmetric and have positive variances.
+        ..note :: 
 
         Examples
         --------
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array[1])
+        >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array([[1, 2], [3, -4]]))
+        >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array([[1, 2], [3, 4]]))
         """
         return self._data
 
@@ -272,9 +275,10 @@ class CategoryCov():
         self._data = pd.DataFrame(data, dtype=float)
         if not len(data.shape) == 2 and data.shape[0] == data.shape[1]:
             raise TypeError("covariance matrix must have two dimensions")
-        if (np.diag(data) >= 0).all() is False:
+        if not (np.diag(data) >= 0).all():
             raise TypeError("covariance matrix must have positive variance")
-        if (data.values == data.values.T).all() is False:
+        # Round to avoid numerical fluctuations
+        if not (data.values.round(14) == data.values.T.round(14)).all():
             raise TypeError("covariance matrix must be symmetric")
 
     @property
@@ -851,7 +855,10 @@ class CategoryCov():
         else:
             index = pd.DataFrame(S).index
             G = self._gls_Vy_calc(S, rows=rows).values
-        G_inv = sandy.CategoryCov(G).invert(rows=rows).data.values
+        if rows is not None:
+            G_inv = sparse_tables_inv(G, rows=rows)
+        else:
+            G_inv = sparse_tables_inv(G, rows=G.shape[0])
         return pd.DataFrame(G_inv, index=index, columns=index)
 
     def _gls_general_sensitivity(self, S, Vy_extra=None,
@@ -1245,6 +1252,8 @@ class CategoryCov():
             square 2D correlation matrix
         std : 1d `numpy.ndarray`
             array of standard deviations
+        kwargs: `dict`
+            keyword arguments to pass to `data` method.
 
         Returns
         -------
