@@ -265,7 +265,7 @@ class CategoryCov():
         Examples
         --------
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array[1])
-        >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array([[1, 2], [3, -4]]))
+        >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array([[1, 2], [2, -4]]))
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array([[1, 2], [3, 4]]))
         """
         return self._data
