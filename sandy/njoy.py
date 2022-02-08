@@ -592,7 +592,7 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 
 
 def _errorr_input(endfin, pendfin, errorrout, mat,
-                  ign=2, ek=[1e-5, 2e7],
+                  ign=2, ek=None,
                   iwt=2,
                   temp=NJOY_TEMPERATURES[0],
                   iprint=False,
@@ -670,6 +670,8 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     2 /
     1.00000e-02 1.00000e+03 2.00000e+05 /
     """
+    if ek is not None:
+        ign = 1
     text = ["errorr"]
     text += [f"{endfin:d} {pendfin:d} 0 {errorrout:d} 0 /"]
     printflag = int(iprint)

@@ -19,7 +19,7 @@ class Errorr(_FormattedFile):
     
     def get_energy_grid(self, mat=None):
         """
-        
+        Obtaining the energy grid. 
 
         Parameters
         ----------
@@ -117,14 +117,30 @@ class Errorr(_FormattedFile):
                        .rename("VAL") \
                        .reset_index()
                 data.append(df)
-        data = pd.concat(data).pivot_table(
-            index=["MAT", "MT", "E"],
-            columns=["MAT1", "MT1", "E1"],
-            values="VAL",
+        data = pd.concat(data)
+        return sandy.CategoryCov(data)
+
+
+def segmented_pivot_table(data, rows=10000000, index=["MAT", "MT", "E"], 
+                          columns=["MAT1", "MT1", "E1"], values='VAL'
+                          ):
+    size = data.shape[0]
+    pivot_matrix = pd.DataFrame()
+    for i in range(0, size, rows):
+        partial_pivot = data[i: min(i+rows, size)].pivot_table(
+            index=index,
+            columns=columns,
+            values=values,
             fill_value=0,
-            aggfunc=np.sum
+            aggfunc=np.sum,
             )
-        return data
+        pivot_matrix = pd.concat([pivot_matrix, partial_pivot]).fillna(0)
+    pivot_matrix = pivot_matrix.groupby(pivot_matrix.index).sum()
+    pivot_matrix.index = pd.MultiIndex.from_tuples(
+        pivot_matrix.index,
+        name=index,
+        )
+    return pivot_matrix
 
 
 def read_mf1(tape, mat):
