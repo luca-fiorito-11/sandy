@@ -412,8 +412,8 @@ class DecayData():
                      .rename(columns={'PARENT': 'ZAP', 'DAUGHTER': 'A'})
         chain.loc[chain.YIELD == 0, 'YIELD'] = 1
         chain['A'] = chain.A.apply(sandy.zam.expand_zam).apply(lambda x: x[1])
-        return chain.pivot_table(index='A', columns='ZAP', values='YIELD') \
-                    .fillna(0)
+        return chain.pivot_table(index='A', columns='ZAP', values='YIELD',
+                                 aggfunc=np.sum, fill_value=0).astype(float).fillna(0)
 
     def get_bmatrix(self, **kwargs):
         """
