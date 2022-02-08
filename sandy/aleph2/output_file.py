@@ -220,7 +220,7 @@ class OutputFile():
             dictionary of ALEPH-2 output sections.
         """
         if not hasattr(self, "_data"):
-            msg = "tables were not parsed, run first 'parse_output'"
+            msg = "tables were not parsed, run first 'parse_tables'"
             raise AttributeError(msg)
         return self._data
 
@@ -285,8 +285,8 @@ class OutputFile():
         tab_texts = tab_items[2::3]
         tab_zipped = zip(tab_numbers, tab_titles, tab_texts)
         for num, title, tab_txt in tab_zipped:
-            if num > 7:
-                break
+            if num > 8 and num != 11:
+                continue
             data[num] = Table(num, title, tab_txt)
         self.data = data
 
@@ -437,6 +437,53 @@ class Table():
                     )
                 df3 = parse_table_nuclide(content, index="ZAM")
                 df = SubTable(df1, df2, df3)
+            elif self.number == 8:
+                SubTable = namedtuple(
+                    f"Table{self.number}",
+                    "by_energy by_nuclide",
+                    )
+                content, rest = re.split(
+                    table_footer,
+                    mat_txt,
+                    maxsplit=1,
+                    flags=re.MULTILINE,
+                    )
+                df1 = parse_table_energy(content)
+                rest = "\n".join(rest.splitlines()[6:])
+                content, rest = re.split(
+                    table_footer,
+                    rest,
+                    maxsplit=1,
+                    flags=re.MULTILINE,
+                    )
+                df2 = parse_table_nuclide(content, index="ZAM")
+                df = SubTable(df1, df2)
+            elif self.number == 11:
+                SubTable = namedtuple(
+                    f"Table{self.number}",
+                    "by_energy by_nuclide",
+                    )
+                content, rest = re.split(
+                    table_footer,
+                    mat_txt,
+                    maxsplit=1,
+                    flags=re.MULTILINE,
+                    )
+                df1 = parse_table_energy(content)
+                rest = "\n".join(rest.splitlines()[4:])
+                content, rest = re.split(
+                    table_footer,
+                    rest,
+                    maxsplit=1,
+                    flags=re.MULTILINE,
+                    )
+                content = content[:40] + "BR NUBAR" + content[40:]
+                df2 = parse_table_nuclide(content, index="ZAM", data_row=2).iloc[2:]
+                df2.index = df2.index.astype(float)
+                df = SubTable(df1, df2)
+                # Type A and Type B are treated as different materials
+                if mat in out:
+                    mat *= 1000  # this is Type B
             out[mat] = df
         return out
 
@@ -503,9 +550,9 @@ def parse_output_for_tables(text, index="ZAM"):
     return dct
 
 
-def parse_table_nuclide(text, index="ZAM", **kwargs):
+def parse_table_nuclide(text, index="ZAM", data_row=3, **kwargs):
     index_col = 1 if index.lower() == "zam" else 0
-    begin = 3
+    begin = data_row
     lines = text.splitlines()
     string = io.StringIO(lines[0])
     columns = pd.read_csv(
