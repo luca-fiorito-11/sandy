@@ -672,6 +672,8 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     """
     if ek is not None:
         ign = 1
+    else:
+        ek = [1e-5, 2e7]
     text = ["errorr"]
     text += [f"{endfin:d} {pendfin:d} 0 {errorrout:d} 0 /"]
     printflag = int(iprint)

@@ -681,7 +681,56 @@ class CategoryCov():
         """
         std_ = pd.Series(std)
         var = std_ * std_
-        return CategoryCov.from_var(var)
+        return cls.from_var(var)
+
+    @classmethod
+    def from_stack(cls, data_stack, rows = 10000000,
+                   index=["MAT", "MT", "E"], columns=["MAT1", "MT1", "E1"],
+                   values='VAL', kind='upper'):
+        """
+        Create a covariance matrix from a stacked dataframe.
+
+        Parameters
+        ----------
+        data_stack : `pd.Dataframe`
+            Stacked dataframe.
+        rows : `int`, optional
+            Number of rows to take into account into each loop. The default
+            is 10000000.
+        index : 1D iterable, optional
+            Index of the final covariance matrix. The default is
+            ["MAT", "MT", "E"].
+        columns : 1D iterable, optional
+            Columns of the final covariance matrix. The default is
+            ["MAT1", "MT1", "E1"].
+        values : `str`, optional
+            Name of the column where the values are located. The default is
+            'VAL'.
+        kind : `str`, optional
+            Select if the stack data represents upper or lower triangular
+            matrix. The default is 'upper.
+
+        Returns
+        -------
+        `sandy.CategoryCov`
+            Covarinace matrix.
+
+        Examples
+        --------
+        >>> S = pd.DataFrame(np.array([[1, 1, 1], [0, 2, 1], [0, 0, 1]]))
+        >>> S = S.stack().reset_index().rename(columns = {'level_0': 'dim1', 'level_1': 'dim2', 0: 'cov'})
+        >>> sandy.CategoryCov.from_stack(S, index=['dim1'], columns=['dim2'], values='cov', kind='upper')
+        dim2           0           1           2
+        dim1                                    
+        0    1.00000e+00 1.00000e+00 1.00000e+00
+        1    1.00000e+00 2.00000e+00 1.00000e+00
+        2    1.00000e+00 1.00000e+00 1.00000e+00
+        """
+        cov = segmented_pivot_table(data_stack, rows=rows, index=index,
+                                    columns=columns, values=values)
+        # Impose the symmetry
+        cov = triu_matrix(cov, kind=kind)
+        return cls(cov)
 
     def _gls_Vy_calc(self, S, rows=None):
         """
@@ -2075,28 +2124,114 @@ def sparse_tables_cholesky(a, rows=1000):
     os.remove('cholesky.h5')
     return low_triang_matrix
 
-def triu_matrix(arr, size):
+
+def segmented_pivot_table(data_stack, rows = 10000000,
+                          index=["MAT", "MT", "E"],
+                          columns=["MAT1", "MT1", "E1"], values='VAL'):
     """
-    Given the upper triangular values of a **square symmetric** matrix in
-    an array, return the full matrix.
+    Create a pivot table from a stacked dataframe.
 
     Parameters
     ----------
-    arr : 1d `numpy.ndarray`
-        array with the upper triangular values of the matrix
-    size : `int`
-        dimension of the matrix
+    data_stack : `pd.Dataframe`
+        Stacked dataframe.
+    rows : `int`, optional
+        Number of rows to take into account into each loop. The default
+        is 10000000.
+    index : 1D iterable, optional
+        Index of the final covariance matrix. The default is
+        ["MAT", "MT", "E"].
+    columns : 1D iterable, optional
+        Columns of the final covariance matrix. The default is
+        ["MAT1", "MT1", "E1"].
+    values : `str`, optional
+        Name of the column where the values are located. The default is 'VAL'.
 
     Returns
     -------
-    2d `numpy.ndarray`
-        reconstructed 2d-array with symmetric matrix
+    pivot_matrix : `pd.DataFrame`
+        Covariance matrix created from a stacked data
+
+    Examples
+    --------
+    >>> S = pd.DataFrame(np.array([[1, 1, 1], [0, 2, 1], [0, 0, 1]]))
+    >>> S = S.stack().reset_index().rename(columns = {'level_0': 'dim1', 'level_1': 'dim2', 0: 'cov'})
+    >>> sandy.cov.segmented_pivot_table(S, index=['dim1'], columns=['dim2'], values='cov')
+    dim2	0	1	2
+    dim1
+       0	1	1	1
+       1	0	2	1
+       2	0	0	1
     """
-    matrix = np.zeros([size, size])
-    indices = np.triu_indices(size)
-    matrix[indices] = arr
-    matrix += np.triu(matrix, 1).T
-    return matrix
+    size = data_stack.shape[0]
+    pivot_matrix = pd.DataFrame()
+    for i in range(0, size, rows):
+        partial_pivot = data_stack[i: min(i+rows, size)].pivot_table(
+            index=index,
+            columns=columns,
+            values=values,
+            fill_value=0,
+            aggfunc=np.sum,
+            )
+        pivot_matrix = pd.concat([pivot_matrix, partial_pivot]).fillna(0)           
+    # Because the default axis to concatenate is the 0, some duplicate
+    # index appear with null values. With this groupby, the duplicate axis
+    # disappear, keeping the original values.
+    pivot_matrix = pivot_matrix.groupby(pivot_matrix.index).sum()
+    if len(index) >= 2:
+        # Groupby transform multiindex structure into a tuple. This line
+        # reverse the transformation.
+        pivot_matrix.index = pd.MultiIndex.from_tuples(
+            pivot_matrix.index,
+            name=index,
+            )
+    return pivot_matrix
+
+def triu_matrix(matrix, kind='upper'):
+    """
+    Given the upper or lower triangular matrix , return the full symmetric
+    matrix.
+
+    Parameters
+    ----------
+    matrix : 2d iterable
+        Upper triangular matrix
+    kind : `str`, optional
+        Select if matrix variable is upper or lower triangular matrix. The
+        default is 'upper'
+
+    Returns
+    -------
+    `pd.Dataframe`
+        reconstructed symmetric matrix
+
+    Examples
+    --------
+    >>> S = pd.DataFrame(np.array([[1, 2, 1], [0, 2, 4], [0, 0, 3]]))
+    >>> triu_matrix(S)
+    	0	1	2
+    0	1	2	1
+    1	2	2	4
+    2	1	4	3
+
+    >>> S = pd.DataFrame(np.array([[1, 2, 1], [2, 2, 4], [0, 0, 3]]))
+    >>> triu_matrix(S)
+    	0	1	2
+    0	1	2	1
+    1	2	2	4
+    2	1	4	3
+    """
+    matrix_ = pd.DataFrame(matrix)
+    index = matrix_.index
+    columns = matrix_.columns
+    values = matrix_.values
+    if kind == 'upper':    
+        index_lower = np.tril_indices(matrix_.shape[0], -1)
+        values[index_lower] = values.T[index_lower]
+    elif kind == 'lower':
+        index_upper = np.triu_indices(matrix_.shape[0], 1)
+        values[index_upper] = values.T[index_upper]
+    return pd.DataFrame(values, index=index, columns=columns)
 
 
 def random_corr(size, correlations=True, seed=None):

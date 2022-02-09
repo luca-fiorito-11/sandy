@@ -92,13 +92,16 @@ class Errorr(_FormattedFile):
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> err = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, err=1)
-        >>> err.get_cov().data.iloc[:5]
-        	        MAT	         MT	          E	       MAT1	        MT1	         E1	        VAL
-        0	1.25000e+02	1.00000e+00	1.00000e-05	1.25000e+02	1.00000e+00	1.00000e-05	8.82899e-06
-        1	1.25000e+02	1.00000e+00	1.00000e-05	1.25000e+02	1.00000e+00	3.00000e-02	8.65234e-06
-        2	1.25000e+02	1.00000e+00	1.00000e-05	1.25000e+02	1.00000e+00	5.80000e-02	8.60908e-06
-        3	1.25000e+02	1.00000e+00	1.00000e-05	1.25000e+02	1.00000e+00	1.40000e-01	8.58043e-06
-        4	1.25000e+02	1.00000e+00	1.00000e-05	1.25000e+02	1.00000e+00	2.80000e-01	8.57036e-06
+        >>> err.get_cov().data.iloc[:5, :5]
+                MAT1	125
+                MT1	1
+                E1	1.00000e-05	3.00000e-02	5.80000e-02	1.40000e-01	2.80000e-01
+        MAT	MT	E					
+        125	1	1.00000e-05	8.82899e-06	8.65234e-06	8.60908e-06	8.58043e-06	8.57036e-06
+                3.00000e-02	8.65234e-06	8.65909e-06	8.66074e-06	8.66183e-06	8.66221e-06
+                5.80000e-02	8.60908e-06	8.66074e-06	8.67339e-06	8.68176e-06	8.68471e-06
+                1.40000e-01	8.58043e-06	8.66183e-06	8.68176e-06	8.69497e-06	8.69961e-06
+                2.80000e-01	8.57036e-06	8.66221e-06	8.68471e-06	8.69961e-06	8.70484e-06
         """
         eg = self.get_energy_grid()
         data = []
@@ -123,60 +126,7 @@ class Errorr(_FormattedFile):
                        .reset_index()
                 data.append(df)
         data = pd.concat(data)
-        return sandy.CategoryCov(data) # Tiene que ir from_stack
-
-
-def from_stack(data_stack, rows=10000000, index=["MAT", "MT", "E"],
-                          columns=["MAT1", "MT1", "E1"], values='VAL'
-                          ):
-    """
-    Create a pivot table from a stacked dataframe.
-
-    Parameters
-    ----------
-    data_stack : `pd.Dataframe`
-        Stacked dataframe.
-    rows : `int`, optional
-        Number of rows to take into account into each loop. The default
-        is 10000000.
-    index : 1D iterable, optional
-        Index of the final covariance matrix. The default is
-        ["MAT", "MT", "E"].
-    columns : 1D iterable, optional
-        Columns of the final covariance matrix. The default is
-        ["MAT1", "MT1", "E1"].
-    values : `str`, optional
-        Name of the column where the values are located. The default is 'VAL'.
-
-    Returns
-    -------
-    pivot_matrix : `pd.DataFrame`
-        Covariance matrix created from a stacked data
-
-    """
-    size = data_stack.shape[0]
-    pivot_matrix = pd.DataFrame()
-    for i in range(0, size, rows):
-        partial_pivot = data_stack[i: min(i+rows, size)].pivot_table(
-            index=index,
-            columns=columns,
-            values=values,
-            fill_value=0,
-            aggfunc=np.sum,
-            )
-        pivot_matrix = pd.concat([pivot_matrix, partial_pivot]).fillna(0)
-    # Because the default axis to concatenate is the 0, some duplicate
-    # index appear with null values. With this groupby, the duplicate axis
-    # disappear, keeping the original values.
-    pivot_matrix = pivot_matrix.groupby(pivot_matrix.index).sum()
-    if len(index) >= 2:
-        # Groupby transform multiindex structure into a tuple. This line
-        # reverse the transformation.
-        pivot_matrix.index = pd.MultiIndex.from_tuples(
-            pivot_matrix.index,
-            name=index,
-            )
-    return pivot_matrix
+        return sandy.CategoryCov.from_stack(data)
 
 
 def read_mf1(tape, mat):
