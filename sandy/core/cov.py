@@ -33,6 +33,15 @@ S = np.array([[1, 1, 1],
 var = np.array([[0, 0, 0],
                 [0, 2, 0],
                 [0, 0, 3]])
+minimal_covtest = pd.DataFrame(
+    [[9437, 2, 1e-2, 9437, 2, 1e-2, 0.02],
+     [9437, 2, 2e5, 9437, 2, 2e5, 0.09],
+     [9437, 2, 1e-2, 9437, 102, 1e-2, 0.04],
+     [9437, 2, 2e5, 9437, 102, 2e5, 0.05],
+     [9437, 102, 1e-2, 9437, 102, 1e-2, 0.01],
+     [9437, 102, 2e5, 9437, 102, 2e5, 0.01]],
+    columns=["MAT", "MT", "E", "MAT1", "MT1", 'E1', "VAL"]
+    )
 
 
 def cov33csv(func):
@@ -684,9 +693,8 @@ class CategoryCov():
         return cls.from_var(var)
 
     @classmethod
-    def from_stack(cls, data_stack, rows = 10000000,
-                   index=["MAT", "MT", "E"], columns=["MAT1", "MT1", "E1"],
-                   values='VAL', kind='upper'):
+    def from_stack(cls, data_stack, index, columns, values, rows=10000000,
+                   kind='upper'):
         """
         Create a covariance matrix from a stacked dataframe.
 
@@ -694,18 +702,15 @@ class CategoryCov():
         ----------
         data_stack : `pd.Dataframe`
             Stacked dataframe.
+        index : 1D iterable, optional
+            Index of the final covariance matrix.
+        columns : 1D iterable, optional
+            Columns of the final covariance matrix.
+        values : `str`, optional
+            Name of the column where the values are located.
         rows : `int`, optional
             Number of rows to take into account into each loop. The default
             is 10000000.
-        index : 1D iterable, optional
-            Index of the final covariance matrix. The default is
-            ["MAT", "MT", "E"].
-        columns : 1D iterable, optional
-            Columns of the final covariance matrix. The default is
-            ["MAT1", "MT1", "E1"].
-        values : `str`, optional
-            Name of the column where the values are located. The default is
-            'VAL'.
         kind : `str`, optional
             Select if the stack data represents upper or lower triangular
             matrix. The default is 'upper.
@@ -719,18 +724,27 @@ class CategoryCov():
         --------
         >>> S = pd.DataFrame(np.array([[1, 1, 1], [0, 2, 1], [0, 0, 1]]))
         >>> S = S.stack().reset_index().rename(columns = {'level_0': 'dim1', 'level_1': 'dim2', 0: 'cov'})
+        >>> S = S[S['cov'] != 0]
         >>> sandy.CategoryCov.from_stack(S, index=['dim1'], columns=['dim2'], values='cov', kind='upper')
         dim2           0           1           2
         dim1                                    
         0    1.00000e+00 1.00000e+00 1.00000e+00
         1    1.00000e+00 2.00000e+00 1.00000e+00
         2    1.00000e+00 1.00000e+00 1.00000e+00
+
+        >>> sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT", "MT", "E"], columns=["MAT1", "MT1", "E1"], values='VAL').data
+        	        MAT1	    9437
+                    MT1	        2	                    102
+                    E1	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
+        MAT	   MT	E				
+        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
+              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
         """
         cov = segmented_pivot_table(data_stack, rows=rows, index=index,
                                     columns=columns, values=values)
-        # Impose the symmetry
-        cov = triu_matrix(cov, kind=kind)
-        return cls(cov)
+        return triu_matrix(cov, kind=kind)
 
     def _gls_Vy_calc(self, S, rows=None):
         """
@@ -2179,7 +2193,7 @@ def segmented_pivot_table(data_stack, rows = 10000000,
     # disappear, keeping the original values.
     pivot_matrix = pivot_matrix.groupby(pivot_matrix.index).sum()
     if len(index) >= 2:
-        # Groupby transform multiindex structure into a tuple. This line
+        # Groupby transforms multiindex structure into a tuple. This line
         # reverse the transformation.
         pivot_matrix.index = pd.MultiIndex.from_tuples(
             pivot_matrix.index,
@@ -2208,18 +2222,35 @@ def triu_matrix(matrix, kind='upper'):
     Examples
     --------
     >>> S = pd.DataFrame(np.array([[1, 2, 1], [0, 2, 4], [0, 0, 3]]))
-    >>> triu_matrix(S)
-    	0	1	2
-    0	1	2	1
-    1	2	2	4
-    2	1	4	3
+    >>> triu_matrix(S).data
+                0           1           2
+    0 1.00000e+00 2.00000e+00 1.00000e+00
+    1 2.00000e+00 2.00000e+00 4.00000e+00
+    2 1.00000e+00 4.00000e+00 3.00000e+00
 
+    Suppose that upper triangular matrix part is symmetric parcially symmetric:
     >>> S = pd.DataFrame(np.array([[1, 2, 1], [2, 2, 4], [0, 0, 3]]))
-    >>> triu_matrix(S)
-    	0	1	2
-    0	1	2	1
-    1	2	2	4
-    2	1	4	3
+    >>> triu_matrix(S).data
+                0           1           2
+    0 1.00000e+00 2.00000e+00 1.00000e+00
+    1 2.00000e+00 2.00000e+00 4.00000e+00
+    2 1.00000e+00 4.00000e+00 3.00000e+00
+
+    Test for lower triangular matrix:
+    >>> S = pd.DataFrame(np.array([[3, 0, 0], [5, 2, 0], [1, 2, 1]]))
+    >>> triu_matrix(S, kind='lower').data
+                0           1           2
+    0 3.00000e+00 5.00000e+00 1.00000e+00
+    1 5.00000e+00 2.00000e+00 2.00000e+00
+    2 1.00000e+00 2.00000e+00 1.00000e+00
+    
+    Suppose that lower triangular matrix part is symmetric parcially symmetric:
+    >>> S = pd.DataFrame(np.array([[3, 5, 0], [5, 2, 0], [1, 2, 1]]))
+    >>> triu_matrix(S, kind='lower').data
+                0           1           2
+    0 3.00000e+00 5.00000e+00 1.00000e+00
+    1 5.00000e+00 2.00000e+00 2.00000e+00
+    2 1.00000e+00 2.00000e+00 1.00000e+00
     """
     matrix_ = pd.DataFrame(matrix)
     index = matrix_.index
@@ -2231,7 +2262,7 @@ def triu_matrix(matrix, kind='upper'):
     elif kind == 'lower':
         index_upper = np.triu_indices(matrix_.shape[0], 1)
         values[index_upper] = values.T[index_upper]
-    return pd.DataFrame(values, index=index, columns=columns)
+    return CategoryCov(pd.DataFrame(values, index=index, columns=columns))
 
 
 def random_corr(size, correlations=True, seed=None):

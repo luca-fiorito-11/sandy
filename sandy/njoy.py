@@ -653,7 +653,7 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     0 33 /
 
     Test argument `ign`
-    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, ign=1))
+    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, ek=[1e-5, 2e7]))
     errorr
     20 21 0 22 0 /
     9237 1 2 0 1 /
@@ -672,8 +672,6 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     """
     if ek is not None:
         ign = 1
-    else:
-        ek = [1e-5, 2e7]
     text = ["errorr"]
     text += [f"{endfin:d} {pendfin:d} 0 {errorrout:d} 0 /"]
     printflag = int(iprint)
