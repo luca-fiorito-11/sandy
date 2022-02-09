@@ -2197,7 +2197,7 @@ def segmented_pivot_table(data_stack, rows = 10000000,
         # reverse the transformation.
         pivot_matrix.index = pd.MultiIndex.from_tuples(
             pivot_matrix.index,
-            name=index,
+            names=index,
             )
     return pivot_matrix
 

@@ -127,7 +127,9 @@ class Errorr(_FormattedFile):
                        .reset_index()
                 data.append(df)
         data = pd.concat(data)
-        return sandy.CategoryCov.from_stack(data)
+        return sandy.CategoryCov.from_stack(data, index=["MAT", "MT", "E"],
+                                            columns=["MAT1", "MT1", "E1"],
+                                            values='VAL')
 
 
 def read_mf1(tape, mat):
