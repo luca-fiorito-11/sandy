@@ -2139,9 +2139,7 @@ def sparse_tables_cholesky(a, rows=1000):
     return low_triang_matrix
 
 
-def segmented_pivot_table(data_stack, rows = 10000000,
-                          index=["MAT", "MT", "E"],
-                          columns=["MAT1", "MT1", "E1"], values='VAL'):
+def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):
     """
     Create a pivot table from a stacked dataframe.
 
@@ -2149,17 +2147,15 @@ def segmented_pivot_table(data_stack, rows = 10000000,
     ----------
     data_stack : `pd.Dataframe`
         Stacked dataframe.
+    index : 1D iterable, optional
+        Index of the final covariance matrix.
+    columns : 1D iterable, optional
+        Columns of the final covariance matrix.
+    values : `str`, optional
+        Name of the column where the values are located.
     rows : `int`, optional
         Number of rows to take into account into each loop. The default
         is 10000000.
-    index : 1D iterable, optional
-        Index of the final covariance matrix. The default is
-        ["MAT", "MT", "E"].
-    columns : 1D iterable, optional
-        Columns of the final covariance matrix. The default is
-        ["MAT1", "MT1", "E1"].
-    values : `str`, optional
-        Name of the column where the values are located. The default is 'VAL'.
 
     Returns
     -------
@@ -2228,8 +2224,8 @@ def triu_matrix(matrix, kind='upper'):
     1 2.00000e+00 2.00000e+00 4.00000e+00
     2 1.00000e+00 4.00000e+00 3.00000e+00
 
-    Suppose that upper triangular matrix part is symmetric parcially symmetric:
-    >>> S = pd.DataFrame(np.array([[1, 2, 1], [2, 2, 4], [0, 0, 3]]))
+    Overwrite the lower triangular part of the matrix:
+    >>> S = pd.DataFrame(np.array([[1, 2, 1], [-8, 2, 4], [-6, -5, 3]]))
     >>> triu_matrix(S).data
                 0           1           2
     0 1.00000e+00 2.00000e+00 1.00000e+00
@@ -2244,8 +2240,8 @@ def triu_matrix(matrix, kind='upper'):
     1 5.00000e+00 2.00000e+00 2.00000e+00
     2 1.00000e+00 2.00000e+00 1.00000e+00
     
-    Suppose that lower triangular matrix part is symmetric parcially symmetric:
-    >>> S = pd.DataFrame(np.array([[3, 5, 0], [5, 2, 0], [1, 2, 1]]))
+    Overwrite the upper triangular part of the matrix:
+    >>> S = pd.DataFrame(np.array([[3, 5, -9], [5, 2, 8], [1, 2, 1]]))
     >>> triu_matrix(S, kind='lower').data
                 0           1           2
     0 3.00000e+00 5.00000e+00 1.00000e+00
