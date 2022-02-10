@@ -16,36 +16,129 @@ class Errorr(_FormattedFile):
     """
     Container for ERRORR file text grouped by MAT, MF and MT numbers.
     """
-
-    def get_xs(self, mat, mt):
+    
+    def get_energy_grid(self, mat=None):
         """
-        
+        Obtaining the energy grid. 
 
         Parameters
         ----------
-        mat : TYPE
-            DESCRIPTION.
-        mt : TYPE
-            DESCRIPTION.
+        mat : `int`, optional
+            MAT number. The default is None.
 
         Returns
         -------
-        xs : TYPE
-            DESCRIPTION.
+        `np.array`
+            The energy grid of the `sandy.Errorr` object.
 
+        Examples
+        --------
+        >>> endf6_2 = sandy.get_endf6_file("jeff_33", "xs", 942410)
+        >>> err = endf6_2.get_errorr(ek=sandy.energy_grids.CASMO12, err=1)
+        >>> err.get_energy_grid()
+        array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
+               3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
+               8.2100e+05, 2.2310e+06, 1.0000e+07])
+        """
+        mat_ = mat if mat else self.mat[0]
+        mf1 = read_mf1(self, mat_)
+        return mf1["EG"]
+
+    def get_xs(self, mat, mt):
+        """
+        Obtain for a given mat and mt the xs values across the energy grid.
+
+        Parameters
+        ----------
+        mat : `int`
+            MAT number
+        mt : `int`
+            MT number
+
+        Returns
+        -------
+        xs : `pd.Series`
+            For a given mat and mt, the xs values in the energy grid.
+
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> err = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, err=1)
+        >>> err.get_xs(125, 102).head()
+        (1e-05, 0.03]   6.17622e-01
+        (0.03, 0.058]   2.62307e-01
+        (0.058, 0.14]   1.77108e-01
+        (0.14, 0.28]    1.21068e-01
+        (0.28, 0.35]    1.01449e-01
+        Name: (125, 102), dtype: float64
         """
         mf1 = read_mf1(self, mat)
         mf3 = read_mf3(self, mat, mt)
         index = pd.IntervalIndex.from_breaks(mf1["EG"])
         xs = pd.Series(mf3["XS"], index=index, name=(mat, mt))
         return xs
+    
+    def get_cov(self):
+        """
+        Extract cross section/nubar covariance from `Errorr` instance. 
+
+        Returns
+        -------
+        data : `sandy CategoryCov`
+            xs/nubar covariance matrix for all cross section/nubar
+            MAT/MT in ERRORR file.
+
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> err = endf6.get_errorr(ek=[1e-2, 1e1, 2e7], err=1)
+        >>> err.get_cov().data
+                MAT1    125
+                MT1	    1	                                2	                                102
+                E1	    1.00000e-02	1.00000e+01	2.00000e+07	1.00000e-02	1.00000e+01	2.00000e+07	1.00000e-02	1.00000e+01	2.00000e+07
+        MAT	 MT	E									
+        125	  1	        1.00000e-02	8.74838e-06	4.62556e-05	0.00000e+00	8.76101e-06	4.62566e-05	0.00000e+00	1.07035e-06	5.58627e-07	0.00000e+00
+                        1.00000e+01	4.62556e-05	2.47644e-04	0.00000e+00	4.63317e-05	2.47650e-04	0.00000e+00	7.58742e-09	1.49541e-06	0.00000e+00
+                        2.00000e+07	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
+              2	        1.00000e-02	8.76101e-06	4.63317e-05	0.00000e+00	8.77542e-06	4.63327e-05	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
+                        1.00000e+01	4.62566e-05	2.47650e-04	0.00000e+00	4.63327e-05	2.47655e-04	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
+                        2.00000e+07	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
+            102	        1.00000e-02	1.07035e-06	7.58742e-09	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	6.51764e-04	3.40163e-04	0.00000e+00
+                        1.00000e+01	5.58627e-07	1.49541e-06	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	3.40163e-04	6.70431e-02	0.00000e+00
+                        2.00000e+07	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
+        """
+        eg = self.get_energy_grid()
+        data = []
+        for mat, mf, mt in self.filter_by(listmf=[31, 33]).data:
+            mf33 = sandy.errorr.read_mf33(self, mat, mt)
+            for mt1, cov in mf33["COVS"].items():
+                # add zero row and column at the end of the matrix
+                # (this must be done for ERRORR covariance matrices)
+                cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                idx = pd.MultiIndex.from_product(
+                    [[mat], [mt], eg],
+                    names=["MAT", "MT", "E"],
+                    )
+                idx1 = pd.MultiIndex.from_product(
+                    [[mat], [mt1], eg],
+                    names=["MAT1", "MT1", "E1"],
+                    )
+                df = pd.DataFrame(cov, index=idx, columns=idx1) \
+                       .stack(level=["MAT1", "MT1", "E1"]) \
+                       .rename("VAL") \
+                       .reset_index()
+                data.append(df)
+        data = pd.concat(data)
+        return sandy.CategoryCov.from_stack(data, index=["MAT", "MT", "E"],
+                                            columns=["MAT1", "MT1", "E1"],
+                                            values='VAL')
 
 
 def read_mf1(tape, mat):
     """
     Parse MAT/MF=1/MT=451 section from `sandy.Errorr` object and return
     structured content in nested dcitionaries.
-
     Parameters
     ----------
     tape : `sandy.Errorr`
@@ -54,7 +147,6 @@ def read_mf1(tape, mat):
         MAT number
     mt : `int`
         MT number
-
     Returns
     -------
     out : `dict`
@@ -88,7 +180,6 @@ def read_mf3(tape, mat, mt):
     """
     Parse MAT/MF=33/MT section from `sandy.Errorr` object and return
     structured content in nested dcitionaries.
-
     Parameters
     ----------
     tape : `sandy.Errorr`
@@ -97,7 +188,6 @@ def read_mf3(tape, mat, mt):
         MAT number
     mt : `int`
         MT number
-
     Returns
     -------
     out : `dict`
@@ -123,7 +213,6 @@ def read_mf33(tape, mat, mt):
     """
     Parse MAT/MF=33/MT section from `sandy.Errorr` object and return
     structured content in nested dcitionaries.
-
     Parameters
     ----------
     tape : `sandy.Errorr`
@@ -132,7 +221,6 @@ def read_mf33(tape, mat, mt):
         MAT number
     mt : `int`
         MT number
-
     Returns
     -------
     out : `dict`

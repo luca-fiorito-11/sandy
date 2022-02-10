@@ -1517,7 +1517,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
                     verbose=verbose,
                     temperatures=[temperature],
                     suffixes=[0],
-                    err=0.005,
+                    err=err,
                     **kwargs,
                     )[2]  # keep only pendf filename
             errorrfile = outputs["tape33"]
