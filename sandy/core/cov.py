@@ -722,17 +722,21 @@ class CategoryCov():
 
         Examples
         --------
-        >>> S = pd.DataFrame(np.array([[1, 1, 1], [0, 2, 1], [0, 0, 1]]))
+        If the stack data represents the covariance matrix:
+        >>> S = pd.DataFrame(np.array([[1, 1, 1], [1, 2, 1], [1, 1, 1]]))
         >>> S = S.stack().reset_index().rename(columns = {'level_0': 'dim1', 'level_1': 'dim2', 0: 'cov'})
         >>> S = S[S['cov'] != 0]
-        >>> sandy.CategoryCov.from_stack(S, index=['dim1'], columns=['dim2'], values='cov', kind='upper')
+        >>> sandy.CategoryCov.from_stack(S, index=['dim1'], columns=['dim2'], values='cov', kind='all')
         dim2           0           1           2
         dim1                                    
         0    1.00000e+00 1.00000e+00 1.00000e+00
         1    1.00000e+00 2.00000e+00 1.00000e+00
         2    1.00000e+00 1.00000e+00 1.00000e+00
 
-        >>> sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT", "MT", "E"], columns=["MAT1", "MT1", "E1"], values='VAL').data
+        If the stack data represents only the upper triangular part of the
+        covariance matrix:
+        >>> test_1 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT", "MT", "E"], columns=["MAT1", "MT1", "E1"], values='VAL').data
+        >>> test_1
         	        MAT1	    9437
                     MT1	        2	                    102
                     E1	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
@@ -741,10 +745,52 @@ class CategoryCov():
                     2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
               102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
                     2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
+
+        >>> test_2 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT", "MT", "E"], columns=["MAT1", "MT1", "E1"], values='VAL', rows=1).data
+        >>> test_2
+        	        MAT1	    9437
+                    MT1	        2	                    102
+                    E1	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
+        MAT	   MT	E				
+        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
+              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
+
+        >>> assert (test_1 == test_2).all().all()
+
+        If the stack data represents only the lower triangular part of the
+        covariance matrix:
+        >>> test_1 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT1", "MT1", "E1"], columns=["MAT", "MT", "E"], values='VAL', kind="lower").data
+        >>> test_1
+        	        MAT	        9437
+                    MT	        2	                    102
+                    E	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
+        MAT1  MT1	E1				
+        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
+              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
+
+        >>> test_2 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT1", "MT1", "E1"], columns=["MAT", "MT", "E"], values='VAL', kind="lower", rows=1).data
+        >>> test_2
+        	        MAT 	    9437
+                    MT	        2	                    102
+                    E	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
+        MAT1  MT1	E1				
+        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
+              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
+
+        >>> assert (test_1 == test_2).all().all()
         """
         cov = segmented_pivot_table(data_stack, rows=rows, index=index,
                                     columns=columns, values=values)
-        return triu_matrix(cov, kind=kind)
+        if kind == 'all':
+            return cls(cov)
+        else:
+            return triu_matrix(cov, kind=kind)
 
     def _gls_Vy_calc(self, S, rows=None):
         """
