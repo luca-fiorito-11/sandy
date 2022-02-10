@@ -592,7 +592,7 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 
 
 def _errorr_input(endfin, pendfin, errorrout, mat,
-                  ign=2, ek=[1e-5, 2e7],
+                  ign=2, ek=None,
                   iwt=2,
                   temp=NJOY_TEMPERATURES[0],
                   iprint=False,
@@ -613,7 +613,7 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     ign : `int`, optional
         neutron group option (default is 2, csewg 239-group structure)
     ek : iterable, optional
-        derived cross section energy bounds (default is `[1e-5, 2e7]`)
+        derived cross section energy bounds (default is None)
     iwt : `int`, optional
         weight function option (default is 2, constant)
     temp : `float`, optional
@@ -653,15 +653,14 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     0 33 /
 
     Test argument `ign`
-    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, ign=1))
+    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237))
     errorr
     20 21 0 22 0 /
-    9237 1 2 0 1 /
+    9237 2 2 0 1 /
     0 293.6 /
     0 33 /
-    1 /
-    1.00000e-05 2.00000e+07 /
-    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, ign=1, ek=[1e-2, 1e3, 2e5]))
+
+    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, ek=[1e-2, 1e3, 2e5]))
     errorr
     20 21 0 22 0 /
     9237 1 2 0 1 /
@@ -669,7 +668,16 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     0 33 /
     2 /
     1.00000e-02 1.00000e+03 2.00000e+05 /
+
+    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, ign=3))
+    errorr
+    20 21 0 22 0 /
+    9237 3 2 0 1 /
+    0 293.6 /
+    0 33 /
     """
+    if ek is not None:
+        ign = 1
     text = ["errorr"]
     text += [f"{endfin:d} {pendfin:d} 0 {errorrout:d} 0 /"]
     printflag = int(iprint)
