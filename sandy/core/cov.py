@@ -2218,6 +2218,13 @@ def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):
        0	1	1	1
        1	0	2	1
        2	0	0	1
+
+    >>> sandy.cov.segmented_pivot_table(S, index=['dim1'], columns=['dim2'], values='cov', rows=1)
+    dim2	0	        1	        2
+    dim1
+       0    1.00000e+00 1.00000e+00 1.00000e+00
+       1    0.00000e+00 2.00000e+00 1.00000e+00
+       2    0.00000e+00 0.00000e+00 1.00000e+00
     """
     size = data_stack.shape[0]
     pivot_matrix = []
