@@ -10,6 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
+import logging
 import tables as tb
 import os
 
@@ -283,12 +284,15 @@ class CategoryCov():
     def data(self, data):
         self._data = pd.DataFrame(data, dtype=float)
         if not len(data.shape) == 2 and data.shape[0] == data.shape[1]:
-            raise TypeError("covariance matrix must have two dimensions")
+            raise TypeError("Covariance matrix must have two dimensions")
         if not (np.diag(data) >= 0).all():
-            raise TypeError("covariance matrix must have positive variance")
+            raise TypeError("Covariance matrix must have positive variance")
         # Round to avoid numerical fluctuations
         if not (data.values.round(14) == data.values.T.round(14)).all():
-            raise TypeError("covariance matrix must be symmetric")
+            raise TypeError("Covariance matrix must be symmetric")
+        correlation = sps.triu(sps.csr_matrix(data.values), k=1)
+        if not correlation.max() <= 1 and correlation.min() >= -1:
+            logging.warning('Correlation coefficients are not between [-1, 1]')
 
     @property
     def size(self):
