@@ -659,6 +659,7 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     9237 2 2 0 1 /
     0 293.6 /
     0 33 /
+
     >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, ek=[1e-2, 1e3, 2e5]))
     errorr
     20 21 0 22 0 /
@@ -667,6 +668,13 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     0 33 /
     2 /
     1.00000e-02 1.00000e+03 2.00000e+05 /
+
+    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, ign=3))
+    errorr
+    20 21 0 22 0 /
+    9237 3 2 0 1 /
+    0 293.6 /
+    0 33 /
     """
     if ek is not None:
         ign = 1

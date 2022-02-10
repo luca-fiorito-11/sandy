@@ -2174,7 +2174,7 @@ def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):
        2	0	0	1
     """
     size = data_stack.shape[0]
-    pivot_matrix = pd.DataFrame()
+    pivot_matrix = []
     for i in range(0, size, rows):
         partial_pivot = data_stack[i: min(i+rows, size)].pivot_table(
             index=index,
@@ -2183,7 +2183,8 @@ def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):
             fill_value=0,
             aggfunc=np.sum,
             )
-        pivot_matrix = pd.concat([pivot_matrix, partial_pivot]).fillna(0)           
+        pivot_matrix.append(partial_pivot)
+    pivot_matrix = pd.concat(pivot_matrix).fillna(0)
     # Because the default axis to concatenate is the 0, some duplicate
     # index appear with null values. With this groupby, the duplicate axis
     # disappear, keeping the original values.
