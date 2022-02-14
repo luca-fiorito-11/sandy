@@ -538,7 +538,7 @@ class CategoryCov():
         M_inv = M_inv.reindex(index=index, columns=columns).fillna(0)
         return self.__class__(M_inv)
 
-    def sampling(self, nsmp, seed=None):
+    def sampling(self, nsmp, seed=None, rows=None):
         """
         Extract random samples from normali distribution centered in zero
         and with given covariance matrix.
@@ -550,6 +550,10 @@ class CategoryCov():
         seed : `int`, optional, default is `None`
             seed for the random number generator (by default use `numpy`
             dafault pseudo-random number generator)
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
 
         Returns
         -------
@@ -561,56 +565,27 @@ class CategoryCov():
         Draw 3 sets of samples using custom seed.
         >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11)
                      0            1
-        0 -1.74945e+00 -3.13159e+00
-        1  2.86073e-01  1.06836e-01
-        2  4.84565e-01 -9.91209e-02
+        0  1.74945e+00 -1.73202e+00
+        1 -2.86073e-01 -1.22022e-01
+        2 -4.84565e-01 -4.86773e-01
+
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, rows=1)
+                     0            1
+        0  1.74945e+00 -1.73202e+00
+        1 -2.86073e-01 -1.22022e-01
+        2 -4.84565e-01 -4.86773e-01
         """
         np.random.seed(seed=seed)
         dim = self.data.shape[0]
         y = np.random.randn(dim, nsmp)  # normal pdf
         y = sps.csc_matrix(y)
-        L = sps.csr_matrix(self.decompose())
+        L = sps.csr_matrix(self.get_L(rows=rows))
         samples = L.dot(y)
         df = pd.DataFrame(samples.toarray(),
                           index=self.data.index,
                           columns=list(range(nsmp)),
                           )
         return sandy.Samples(df.T)
-
-    def decompose(self, rows=None):
-        """
-        Extract lower triangular matrix `L` for which `L*L^T == COV`.
-
-        Parameters
-        ----------
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
-
-        Returns
-        -------
-        `numpy.ndarray`
-            lower triangular matrix
-
-        Example
-        -------
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).decompose().round(2)
-        array([[-1.        ,  0.        ],
-               [-0.4       ,  0.92]])
-
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).decompose(rows=1).round(2)
-        array([[-1.  ,  0.  ],
-               [-0.4 ,  0.92]])
-        """
-        E, V = self.eig(sort=False)
-        E[E <= 0] = 0
-        if rows is not None:
-            M = sparse_tables_dot(V, sps.diags(np.sqrt(E))).toarray()
-        else:
-            M = sps.csr_matrix(V).dot(sps.diags(np.sqrt(E))).toarray()
-        Q, R = scipy.linalg.qr(M.T)
-        return R.T
 
     @classmethod
     def from_var(cls, var):
@@ -1520,7 +1495,7 @@ class CategoryCov():
     def get_L(self, rows=None):
         """
         Extract lower triangular matrix `L` for which `L*L^T == self`.
-        
+    
         Parameters
         ----------
         rows : `int`, optional
