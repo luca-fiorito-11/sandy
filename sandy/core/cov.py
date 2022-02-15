@@ -539,7 +539,7 @@ class CategoryCov():
 
     def sampling(self, nsmp, seed=None, rows=None):
         """
-        Extract random samples from normali distribution centered in zero
+        Extract random samples from normal distribution centered in zero
         and with given covariance matrix.
 
         Parameters
@@ -1506,7 +1506,7 @@ class CategoryCov():
     def get_L(self, rows=None):
         """
         Extract lower triangular matrix `L` for which `L*L^T == self`.
-    
+
         Parameters
         ----------
         rows : `int`, optional
@@ -1602,6 +1602,7 @@ class CategoryCov():
                 V_inv = sps.csr_matrix(sparse_tables_inv(V, rows=V.shape[0]))
                 positive_matrix = V.dot(E).dot(V_inv).toarray()
         return positive_matrix
+
 
 class EnergyCov(CategoryCov):
     """
@@ -2362,6 +2363,32 @@ def triu_matrix(matrix, kind='upper'):
 
 
 def sample_distribution(dim, nsmp, seed=None, kind='normal'):
+    """
+    Select the distribution of the random samples.
+
+    Parameters
+    ----------
+    dim : `int`
+        Dimension of the matrix from where we obtain the samples.
+    nsmp : `int`
+        number of samples
+    seed : `int`, optional, default is `None`
+        seed for the random number generator (by default use `numpy`
+        dafault pseudo-random number generator)
+    kind : `str`, optional
+        Random numbers distribution. The default is 'normal'.
+
+    Returns
+    -------
+    y : `np.array`
+        Numpy array with the random numbers.
+
+    Examples
+    --------
+    >>> sandy.cov.sample_distribution(2, 3, seed=11)
+    array([[ 1.74945474, -0.286073  , -0.48456513],
+           [-2.65331856, -0.00828463, -0.31963136]])
+    """
     np.random.seed(seed=seed)
     if kind == 'normal':
         y = np.random.randn(dim, nsmp)
