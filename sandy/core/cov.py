@@ -290,9 +290,6 @@ class CategoryCov():
         # Round to avoid numerical fluctuations
         if not (data.values.round(14) == data.values.T.round(14)).all():
             raise TypeError("Covariance matrix must be symmetric")
-        correlation = sps.triu(sps.csr_matrix(data.values), k=1)
-        if not correlation.max() <= 1 and correlation.min() >= -1:
-            logging.warning('Correlation coefficients are not between [-1, 1]')
 
     @property
     def size(self):
@@ -385,6 +382,8 @@ class CategoryCov():
             coeff = np.true_divide(1, self.std.values)
             coeff[~ np.isfinite(coeff)] = 0   # -inf inf NaN
         corr = np.multiply(np.multiply(cov, coeff).T, coeff)
+        if not corr.max() <= 1 and corr.min() >= -1:
+            logging.warning('Correlation coefficients are not between [-1, 1]')
         return pd.DataFrame(corr,
                             index=self.data.index,
                             columns=self.data.columns,
@@ -574,10 +573,22 @@ class CategoryCov():
         0  1.74945e+00 -1.73202e+00
         1 -2.86073e-01 -1.22022e-01
         2 -4.84565e-01 -4.86773e-01
+
+        >>> sample = sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(1000000, seed=11)
+        >>> sample.data.cov()
+        	          0	          1
+        0	9.98662e-01	3.99513e-01
+        1	3.99513e-01	9.98232e-01
+
+        Small negative eigenvalue:
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11)
+                     0            1
+        0  1.89299e+00 -3.06292e+00
+        1 -3.09544e-01  5.00852e-01
+        2 -5.24321e-01  8.48369e-01
         """
-        np.random.seed(seed=seed)
         dim = self.data.shape[0]
-        y = np.random.randn(dim, nsmp)  # normal pdf
+        y = sample_distribution(dim, nsmp, seed=seed)
         y = sps.csc_matrix(y)
         L = sps.csr_matrix(self.get_L(rows=rows))
         samples = L.dot(y)
@@ -1522,19 +1533,75 @@ class CategoryCov():
         0	2.00000e+00	0.00000e+00	0.00000e+00
         1	6.00000e+00	1.00000e+00	0.00000e+00
         2  -8.00000e+00	5.00000e+00	3.00000e+00
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L()
+                       0   	          1
+        0	 1.08204e+00	0.00000e+00
+        1	-1.75078e+00	0.00000e+00
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(rows=1)
+                       0   	          1
+        0	 1.08204e+00	0.00000e+00
+        1	-1.75078e+00	0.00000e+00
         """
         index = self.data.index
         columns = self.data.columns
+        # Negative eigenvalues approximation for Cholesky decomposition:
+        values = self._cholesky_aproximation(rows=rows)
         if rows is not None:
-            L = sparse_tables_cholesky(self.data.values, rows=rows)
+            L = sparse_tables_cholesky(values, rows=rows)
         else:
-            values = self.to_sparse(method='csc_matrix')
-            LU = spsl.splu(values, diag_pivot_thresh=0)
-            diagonal = LU.U.diagonal()
-            diagonal[diagonal < 0] = 0
-            L = LU.L.dot(sps.diags(np.sqrt(diagonal))).toarray()
+            L = sparse_tables_cholesky(values, rows=values.shape[0])
         return pd.DataFrame(L, index=index, columns=columns)
 
+    def _cholesky_aproximation(self, rows=None):
+        """
+        Transform covariance matrix into a positive define matrix by replacing
+        the negative eigenvalues to zero.
+
+        Parameters
+        ----------
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
+
+        Returns
+        -------
+        positive_matrix : `np.array`
+            Positive define matrix.
+
+        Examples
+        --------
+        Positive define matrix:
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]])._cholesky_aproximation()
+        array([[1. , 0.4],
+               [0.4, 1. ]])
+
+        Negative define matrix:
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]])._cholesky_aproximation().round(3)
+        array([[ 1.171, -1.894],
+               [-1.894,  3.065]])
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]])._cholesky_aproximation(rows=2).round(3)
+        array([[ 1.171, -1.894],
+               [-1.894,  3.065]])
+        """
+        E, V = self.eig(sort=False)
+        if (E >= 0).all():
+            positive_matrix = self.data.values
+        else:
+            E[E <= 0] = 0
+            E = sandy.CategoryCov.from_var(E).to_sparse(method='csc_matrix')
+            V = sps.csr_matrix(V)
+            if rows is not None:
+                V_inv = sparse_tables_inv(V, rows=rows)
+                positive_matrix = sparse_tables_dot_multiple([V, E, V_inv],
+                                                             rows=rows)
+            else:
+                V_inv = sps.csr_matrix(sparse_tables_inv(V, rows=V.shape[0]))
+                positive_matrix = V.dot(E).dot(V_inv).toarray()
+        return positive_matrix
 
 class EnergyCov(CategoryCov):
     """
@@ -2292,6 +2359,13 @@ def triu_matrix(matrix, kind='upper'):
         index_upper = np.triu_indices(matrix_.shape[0], 1)
         values[index_upper] = values.T[index_upper]
     return CategoryCov(pd.DataFrame(values, index=index, columns=columns))
+
+
+def sample_distribution(dim, nsmp, seed=None, kind='normal'):
+    np.random.seed(seed=seed)
+    if kind == 'normal':
+        y = np.random.randn(dim, nsmp)
+    return y
 
 
 def random_corr(size, correlations=True, seed=None):
