@@ -537,7 +537,7 @@ class CategoryCov():
         M_inv = M_inv.reindex(index=index, columns=columns).fillna(0)
         return self.__class__(M_inv)
 
-    def sampling(self, nsmp, seed=None, rows=None):
+    def sampling(self, nsmp, seed=None, rows=None, kind='normal'):
         """
         Extract random samples from normal distribution centered in zero
         and with given covariance matrix.
@@ -553,6 +553,8 @@ class CategoryCov():
             Option to use row calculation for matrix calculations. This option
             defines the number of lines to be taken into account in each loop.
             The default is None.
+        kind : `str`, optional
+            Random numbers distribution. The default is 'normal'.
 
         Returns
         -------
@@ -588,7 +590,7 @@ class CategoryCov():
         2 -5.24321e-01  8.48369e-01
         """
         dim = self.data.shape[0]
-        y = sample_distribution(dim, nsmp, seed=seed)
+        y = sample_distribution(dim, nsmp, seed=seed, kind=kind)
         y = sps.csc_matrix(y)
         L = sps.csr_matrix(self.get_L(rows=rows))
         samples = L.dot(y)
