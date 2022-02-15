@@ -2390,6 +2390,8 @@ def sample_distribution(dim, nsmp, seed=None, kind='normal'):
     >>> sandy.cov.sample_distribution(2, 3, seed=11)
     array([[ 1.74945474, -0.286073  , -0.48456513],
            [-2.65331856, -0.00828463, -0.31963136]])
+    >>> sandy.cov.sample_distribution(2, 1000000, seed=11).mean().round(5)
+    0.00025
     """
     np.random.seed(seed=seed)
     if kind == 'normal':
