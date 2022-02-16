@@ -16,10 +16,10 @@ class Errorr(_FormattedFile):
     """
     Container for ERRORR file text grouped by MAT, MF and MT numbers.
     """
-    
+
     def get_energy_grid(self, mat=None):
         """
-        Obtaining the energy grid. 
+        Obtaining the energy grid.
 
         Parameters
         ----------
@@ -77,10 +77,10 @@ class Errorr(_FormattedFile):
         index = pd.IntervalIndex.from_breaks(mf1["EG"])
         xs = pd.Series(mf3["XS"], index=index, name=(mat, mt))
         return xs
-    
+
     def get_cov(self):
         """
-        Extract cross section/nubar covariance from `Errorr` instance. 
+        Extract cross section/nubar covariance from `Errorr` instance.
 
         Returns
         -------

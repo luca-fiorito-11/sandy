@@ -1549,12 +1549,12 @@ class CategoryCov():
         index = self.data.index
         columns = self.data.columns
         # Ensure matrix is positive define:
-        values = self._to_positive(rows=rows)
+        values = self.to_positive(rows=rows).data.values
         rows_ = values.shape[0] if rows is None else rows
         L = sparse_tables_cholesky(values, rows=rows_)
         return pd.DataFrame(L, index=index, columns=columns)
 
-    def _to_positive(self, rows=None):
+    def to_positive(self, rows=None):
         """
         Transform covariance matrix into a positive define matrix by replacing
         the negative eigenvalues to zero.
@@ -1574,25 +1574,27 @@ class CategoryCov():
         Examples
         --------
         Positive define matrix:
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]])._to_positive()
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).to_positive().data.values
         array([[1. , 0.4],
                [0.4, 1. ]])
 
         Negative define matrix:
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]])._to_positive().round(3)
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).to_positive().data.values.round(3)
         array([[ 1.171, -1.894],
                [-1.894,  3.065]])
 
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]])._to_positive(rows=2).round(3)
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).to_positive(rows=2).data.values.round(3)
         array([[ 1.171, -1.894],
                [-1.894,  3.065]])
         """
         E, V = self.eig(sort=False)
+        index = self.data.index
+        columns = self.data.columns
         if (E >= 0).all():
             positive_matrix = self.data.values
         else:
-            logging.warning('Relative importance of changed eigenvalues:'
-                            + str((abs(E[E < 0])/E.max()).values) + '%')
+            logging.warning('Importance of the largest changed eigenvalue: '
+                            + str(abs(E[E < 0].min())/E.max()) + '%')
             E[E <= 0] = 0
             E = sandy.CategoryCov.from_var(E).to_sparse(method='csc_matrix')
             V = sps.csr_matrix(V)
@@ -1600,7 +1602,9 @@ class CategoryCov():
             V_inv = sparse_tables_inv(V, rows=rows_)
             positive_matrix = sparse_tables_dot_multiple([V, E, V_inv],
                                                          rows=rows_)
-        return positive_matrix
+        positive_matrix = pd.DataFrame(positive_matrix, index=index,
+                                       columns=columns)
+        return sandy.CategoryCov(positive_matrix)
 
 
 class EnergyCov(CategoryCov):
