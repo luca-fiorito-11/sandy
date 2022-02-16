@@ -537,7 +537,7 @@ class CategoryCov():
         M_inv = M_inv.reindex(index=index, columns=columns).fillna(0)
         return self.__class__(M_inv)
 
-    def sampling(self, nsmp, seed=None, rows=None, kind='normal'):
+    def sampling(self, nsmp, seed=None, rows=None, pdf='normal'):
         """
         Extract random samples from normal distribution centered in zero
         and with given covariance matrix.
@@ -553,7 +553,7 @@ class CategoryCov():
             Option to use row calculation for matrix calculations. This option
             defines the number of lines to be taken into account in each loop.
             The default is None.
-        kind : `str`, optional
+        pdf : `str`, optional
             Random numbers distribution. The default is 'normal'.
 
         Returns
@@ -590,7 +590,7 @@ class CategoryCov():
         2 -5.24321e-01  8.48369e-01
         """
         dim = self.data.shape[0]
-        y = sample_distribution(dim, nsmp, seed=seed, kind=kind)
+        y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf)
         y = sps.csc_matrix(y)
         L = sps.csr_matrix(self.get_L(rows=rows))
         samples = L.dot(y)
@@ -1548,15 +1548,13 @@ class CategoryCov():
         """
         index = self.data.index
         columns = self.data.columns
-        # Negative eigenvalues approximation for Cholesky decomposition:
-        values = self._cholesky_aproximation(rows=rows)
-        if rows is not None:
-            L = sparse_tables_cholesky(values, rows=rows)
-        else:
-            L = sparse_tables_cholesky(values, rows=values.shape[0])
+        # Ensure matrix is positive define:
+        values = self._to_positive(rows=rows)
+        rows_ = values.shape[0] if rows is None else rows
+        L = sparse_tables_cholesky(values, rows=rows_)
         return pd.DataFrame(L, index=index, columns=columns)
 
-    def _cholesky_aproximation(self, rows=None):
+    def _to_positive(self, rows=None):
         """
         Transform covariance matrix into a positive define matrix by replacing
         the negative eigenvalues to zero.
@@ -1576,16 +1574,16 @@ class CategoryCov():
         Examples
         --------
         Positive define matrix:
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]])._cholesky_aproximation()
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]])._to_positive()
         array([[1. , 0.4],
                [0.4, 1. ]])
 
         Negative define matrix:
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]])._cholesky_aproximation().round(3)
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]])._to_positive().round(3)
         array([[ 1.171, -1.894],
                [-1.894,  3.065]])
 
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]])._cholesky_aproximation(rows=2).round(3)
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]])._to_positive(rows=2).round(3)
         array([[ 1.171, -1.894],
                [-1.894,  3.065]])
         """
@@ -1593,16 +1591,15 @@ class CategoryCov():
         if (E >= 0).all():
             positive_matrix = self.data.values
         else:
+            logging.warning('Relative importance of changed eigenvalues:'
+                            + str((abs(E[E < 0])/E.max()).values) + '%')
             E[E <= 0] = 0
             E = sandy.CategoryCov.from_var(E).to_sparse(method='csc_matrix')
             V = sps.csr_matrix(V)
-            if rows is not None:
-                V_inv = sparse_tables_inv(V, rows=rows)
-                positive_matrix = sparse_tables_dot_multiple([V, E, V_inv],
-                                                             rows=rows)
-            else:
-                V_inv = sps.csr_matrix(sparse_tables_inv(V, rows=V.shape[0]))
-                positive_matrix = V.dot(E).dot(V_inv).toarray()
+            rows_ = E.shape[0] if rows is None else rows
+            V_inv = sparse_tables_inv(V, rows=rows_)
+            positive_matrix = sparse_tables_dot_multiple([V, E, V_inv],
+                                                         rows=rows_)
         return positive_matrix
 
 
@@ -2364,7 +2361,7 @@ def triu_matrix(matrix, kind='upper'):
     return CategoryCov(pd.DataFrame(values, index=index, columns=columns))
 
 
-def sample_distribution(dim, nsmp, seed=None, kind='normal'):
+def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
     """
     Select the distribution of the random samples.
 
@@ -2377,7 +2374,7 @@ def sample_distribution(dim, nsmp, seed=None, kind='normal'):
     seed : `int`, optional, default is `None`
         seed for the random number generator (by default use `numpy`
         dafault pseudo-random number generator)
-    kind : `str`, optional
+    pdf : `str`, optional
         Random numbers distribution. The default is 'normal'.
 
     Returns
@@ -2394,7 +2391,7 @@ def sample_distribution(dim, nsmp, seed=None, kind='normal'):
     0.00025
     """
     np.random.seed(seed=seed)
-    if kind == 'normal':
+    if pdf == 'normal':
         y = np.random.randn(dim, nsmp)
     return y
 
