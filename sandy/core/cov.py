@@ -10,6 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
+import logging
 import tables as tb
 import os
 
@@ -283,12 +284,12 @@ class CategoryCov():
     def data(self, data):
         self._data = pd.DataFrame(data, dtype=float)
         if not len(data.shape) == 2 and data.shape[0] == data.shape[1]:
-            raise TypeError("covariance matrix must have two dimensions")
+            raise TypeError("Covariance matrix must have two dimensions")
         if not (np.diag(data) >= 0).all():
-            raise TypeError("covariance matrix must have positive variance")
+            raise TypeError("Covariance matrix must have positive variance")
         # Round to avoid numerical fluctuations
         if not (data.values.round(14) == data.values.T.round(14)).all():
-            raise TypeError("covariance matrix must be symmetric")
+            raise TypeError("Covariance matrix must be symmetric")
 
     @property
     def size(self):
@@ -381,6 +382,8 @@ class CategoryCov():
             coeff = np.true_divide(1, self.std.values)
             coeff[~ np.isfinite(coeff)] = 0   # -inf inf NaN
         corr = np.multiply(np.multiply(cov, coeff).T, coeff)
+        if not corr.max() <= 1 and corr.min() >= -1:
+            logging.warning('Correlation coefficients are not between [-1, 1]')
         return pd.DataFrame(corr,
                             index=self.data.index,
                             columns=self.data.columns,
@@ -534,9 +537,9 @@ class CategoryCov():
         M_inv = M_inv.reindex(index=index, columns=columns).fillna(0)
         return self.__class__(M_inv)
 
-    def sampling(self, nsmp, seed=None):
+    def sampling(self, nsmp, seed=None, rows=None, pdf='normal'):
         """
-        Extract random samples from normali distribution centered in zero
+        Extract random samples from normal distribution centered in zero
         and with given covariance matrix.
 
         Parameters
@@ -546,6 +549,12 @@ class CategoryCov():
         seed : `int`, optional, default is `None`
             seed for the random number generator (by default use `numpy`
             dafault pseudo-random number generator)
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
+        pdf : `str`, optional
+            Random numbers distribution. The default is 'normal'.
 
         Returns
         -------
@@ -557,56 +566,39 @@ class CategoryCov():
         Draw 3 sets of samples using custom seed.
         >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11)
                      0            1
-        0 -1.74945e+00 -3.13159e+00
-        1  2.86073e-01  1.06836e-01
-        2  4.84565e-01 -9.91209e-02
+        0  1.74945e+00 -1.73202e+00
+        1 -2.86073e-01 -1.22022e-01
+        2 -4.84565e-01 -4.86773e-01
+
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, rows=1)
+                     0            1
+        0  1.74945e+00 -1.73202e+00
+        1 -2.86073e-01 -1.22022e-01
+        2 -4.84565e-01 -4.86773e-01
+
+        >>> sample = sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(1000000, seed=11)
+        >>> sample.data.cov()
+        	          0	          1
+        0	9.98662e-01	3.99513e-01
+        1	3.99513e-01	9.98232e-01
+
+        Small negative eigenvalue:
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11)
+                     0            1
+        0  1.89299e+00 -3.06292e+00
+        1 -3.09544e-01  5.00852e-01
+        2 -5.24321e-01  8.48369e-01
         """
-        np.random.seed(seed=seed)
         dim = self.data.shape[0]
-        y = np.random.randn(dim, nsmp)  # normal pdf
+        y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf)
         y = sps.csc_matrix(y)
-        L = sps.csr_matrix(self.decompose())
+        L = sps.csr_matrix(self.get_L(rows=rows))
         samples = L.dot(y)
         df = pd.DataFrame(samples.toarray(),
                           index=self.data.index,
                           columns=list(range(nsmp)),
                           )
         return sandy.Samples(df.T)
-
-    def decompose(self, rows=None):
-        """
-        Extract lower triangular matrix `L` for which `L*L^T == COV`.
-
-        Parameters
-        ----------
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
-
-        Returns
-        -------
-        `numpy.ndarray`
-            lower triangular matrix
-
-        Example
-        -------
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).decompose().round(2)
-        array([[-1.        ,  0.        ],
-               [-0.4       ,  0.92]])
-
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).decompose(rows=1).round(2)
-        array([[-1.  ,  0.  ],
-               [-0.4 ,  0.92]])
-        """
-        E, V = self.eig(sort=False)
-        E[E <= 0] = 0
-        if rows is not None:
-            M = sparse_tables_dot(V, sps.diags(np.sqrt(E))).toarray()
-        else:
-            M = sps.csr_matrix(V).dot(sps.diags(np.sqrt(E))).toarray()
-        Q, R = scipy.linalg.qr(M.T)
-        return R.T
 
     @classmethod
     def from_var(cls, var):
@@ -1516,7 +1508,7 @@ class CategoryCov():
     def get_L(self, rows=None):
         """
         Extract lower triangular matrix `L` for which `L*L^T == self`.
-        
+
         Parameters
         ----------
         rows : `int`, optional
@@ -1543,18 +1535,76 @@ class CategoryCov():
         0	2.00000e+00	0.00000e+00	0.00000e+00
         1	6.00000e+00	1.00000e+00	0.00000e+00
         2  -8.00000e+00	5.00000e+00	3.00000e+00
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L()
+                       0   	          1
+        0	 1.08204e+00	0.00000e+00
+        1	-1.75078e+00	0.00000e+00
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(rows=1)
+                       0   	          1
+        0	 1.08204e+00	0.00000e+00
+        1	-1.75078e+00	0.00000e+00
         """
         index = self.data.index
         columns = self.data.columns
-        if rows is not None:
-            L = sparse_tables_cholesky(self.data.values, rows=rows)
-        else:
-            values = self.to_sparse(method='csc_matrix')
-            LU = spsl.splu(values, diag_pivot_thresh=0)
-            diagonal = LU.U.diagonal()
-            diagonal[diagonal < 0] = 0
-            L = LU.L.dot(sps.diags(np.sqrt(diagonal))).toarray()
+        # Ensure matrix is positive define:
+        values = self.to_positive(rows=rows).data.values
+        rows_ = values.shape[0] if rows is None else rows
+        L = sparse_tables_cholesky(values, rows=rows_)
         return pd.DataFrame(L, index=index, columns=columns)
+
+    def to_positive(self, rows=None):
+        """
+        Transform covariance matrix into a positive define matrix by replacing
+        the negative eigenvalues to zero.
+
+        Parameters
+        ----------
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
+
+        Returns
+        -------
+        positive_matrix : `np.array`
+            Positive define matrix.
+
+        Examples
+        --------
+        Positive define matrix:
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).to_positive().data.values
+        array([[1. , 0.4],
+               [0.4, 1. ]])
+
+        Negative define matrix:
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).to_positive().data.values.round(3)
+        array([[ 1.171, -1.894],
+               [-1.894,  3.065]])
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).to_positive(rows=2).data.values.round(3)
+        array([[ 1.171, -1.894],
+               [-1.894,  3.065]])
+        """
+        E, V = self.eig(sort=False)
+        index = self.data.index
+        columns = self.data.columns
+        if (E >= 0).all():
+            positive_matrix = self.data.values
+        else:
+            logging.warning('Importance of the largest changed eigenvalue: '
+                            + str(abs(E[E < 0].min())/E.max()) + '%')
+            E[E <= 0] = 0
+            E = sandy.CategoryCov.from_var(E).to_sparse(method='csc_matrix')
+            V = sps.csr_matrix(V)
+            rows_ = E.shape[0] if rows is None else rows
+            V_inv = sparse_tables_inv(V, rows=rows_)
+            positive_matrix = sparse_tables_dot_multiple([V, E, V_inv],
+                                                         rows=rows_)
+        positive_matrix = pd.DataFrame(positive_matrix, index=index,
+                                       columns=columns)
+        return self.__class__(positive_matrix)
 
 
 class EnergyCov(CategoryCov):
@@ -2313,6 +2363,41 @@ def triu_matrix(matrix, kind='upper'):
         index_upper = np.triu_indices(matrix_.shape[0], 1)
         values[index_upper] = values.T[index_upper]
     return CategoryCov(pd.DataFrame(values, index=index, columns=columns))
+
+
+def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
+    """
+    Select the distribution of the random samples.
+
+    Parameters
+    ----------
+    dim : `int`
+        Dimension of the matrix from where we obtain the samples.
+    nsmp : `int`
+        number of samples
+    seed : `int`, optional, default is `None`
+        seed for the random number generator (by default use `numpy`
+        dafault pseudo-random number generator)
+    pdf : `str`, optional
+        Random numbers distribution. The default is 'normal'.
+
+    Returns
+    -------
+    y : `np.array`
+        Numpy array with the random numbers.
+
+    Examples
+    --------
+    >>> sandy.cov.sample_distribution(2, 3, seed=11)
+    array([[ 1.74945474, -0.286073  , -0.48456513],
+           [-2.65331856, -0.00828463, -0.31963136]])
+    >>> sandy.cov.sample_distribution(2, 1000000, seed=11).mean().round(5)
+    0.00025
+    """
+    np.random.seed(seed=seed)
+    if pdf == 'normal':
+        y = np.random.randn(dim, nsmp)
+    return y
 
 
 def random_corr(size, correlations=True, seed=None):
