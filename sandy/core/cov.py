@@ -1604,7 +1604,7 @@ class CategoryCov():
                                                          rows=rows_)
         positive_matrix = pd.DataFrame(positive_matrix, index=index,
                                        columns=columns)
-        return sandy.CategoryCov(positive_matrix)
+        return self.__class__(positive_matrix)
 
 
 class EnergyCov(CategoryCov):
