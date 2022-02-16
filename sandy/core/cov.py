@@ -382,7 +382,7 @@ class CategoryCov():
             coeff = np.true_divide(1, self.std.values)
             coeff[~ np.isfinite(coeff)] = 0   # -inf inf NaN
         corr = np.multiply(np.multiply(cov, coeff).T, coeff)
-        if not corr.max() <= 1 and corr.min() >= -1:
+        if not corr.max() >= 1 and corr.min() <= -1:
             logging.warning('Correlation coefficients are not between [-1, 1]')
         return pd.DataFrame(corr,
                             index=self.data.index,
@@ -526,12 +526,8 @@ class CategoryCov():
         columns = self.data.columns
         M_nonzero_idxs, M_reduce = self._reduce_size()
         cov = sps.csc_matrix(M_reduce.values)
-        if rows is not None:
-            data = sparse_tables_inv(cov, rows=rows)
-        else:
-            lu = spsl.splu(cov)
-            eye = np.eye(cov.shape[0])
-            data = lu.solve(eye)
+        rows_ = cov.shape[0] if rows is None else rows
+        data = sparse_tables_inv(cov, rows=rows_)
         M_inv = CategoryCov._restore_size(M_nonzero_idxs, data,
                                           len(self.data)).data
         M_inv = M_inv.reindex(index=index, columns=columns).fillna(0)
@@ -823,13 +819,9 @@ class CategoryCov():
         """
         index = pd.DataFrame(S).index
         S_ = pd.DataFrame(S).values
-        if rows is not None:
-            Vy_calc = sparse_tables_dot_multiple([S_, self.data.values,
-                                                  S_.T])
-        else:
-            S_ = sps.csr_matrix(S_)
-            Vx_prior = self.to_sparse()
-            Vy_calc = S_.dot(Vx_prior).dot(S_.T).toarray()
+        rows_ = S_.shape[0] if rows is None else rows
+        Vy_calc = sparse_tables_dot_multiple([S_, self.data.values,
+                                              S_.T], rows=rows_)
         return pd.DataFrame(Vy_calc, index=index, columns=index)
 
     def _gls_G(self, S, Vy_extra=None, rows=None):
@@ -1024,14 +1016,9 @@ class CategoryCov():
         S_ = pd.DataFrame(S).values
         # GLS_sensitivity:
         G_inv = self._gls_G_inv(S, Vy_extra=Vy_extra, rows=rows).values
-        if rows is not None:
-            sensitivity = sparse_tables_dot_multiple([self.data.values, S_.T,
-                                                      G_inv])
-        else:
-            Vx_prior = self.to_sparse()
-            S_ = sps.csc_matrix(S_)
-            G_inv = sps.csc_matrix(G_inv)
-            sensitivity = Vx_prior.dot(S_.T).dot(G_inv).toarray()
+        rows_ = S_.shape[0] if rows is None else rows
+        sensitivity = sparse_tables_dot_multiple([self.data.values, S_.T,
+                                                  G_inv], rows=rows_)
         if threshold is not None:
             sensitivity[abs(sensitivity) < threshold] = 0
         return pd.DataFrame(sensitivity, index=index, columns=columns)
@@ -1085,16 +1072,10 @@ class CategoryCov():
         index = S_.index
         columns = S_.columns
         G_inv = self._gls_G_inv(S, rows=rows).values
-        if rows is not None:
-            sensitivity = sparse_tables_dot_multiple([G_inv, S_,
-                                                      self.data.values])
-        else:
-            Vx_prior = self.to_sparse(method='csc_matrix')
-            S_ = sps.csc_matrix(S_.values)
-            G_inv = sps.csr_matrix(G_inv)
-            # constrained Least Squares sensitivity
-            sensitivity = G_inv.dot(S_).dot(Vx_prior)
-            sensitivity = sensitivity.toarray()
+        rows_ = S_.shape[0] if rows is None else rows
+        sensitivity = sparse_tables_dot_multiple([G_inv, S_,
+                                                 self.data.values],
+                                                 rows=rows_)
         if threshold is not None:
             sensitivity[abs(sensitivity) < threshold] = 0
         return pd.DataFrame(sensitivity, index=index, columns=columns)
@@ -1154,12 +1135,8 @@ class CategoryCov():
         general_sens = self._gls_general_sensitivity(S, Vy_extra=Vy_extra,
                                                      rows=rows,
                                                      threshold=threshold).values
-        if rows is not None:
-            cov_sens = sparse_tables_dot(general_sens, S_).toarray()
-        else:
-            general_sens = sps.csr_matrix(general_sens)
-            S_ = sps.csc_matrix(S_)
-            cov_sens = general_sens.dot(S_).toarray()
+        rows_ = S_.shape[0] if rows is None else rows
+        cov_sens = sparse_tables_dot(general_sens, S_, rows=rows_).toarray()
         if threshold is not None:
             cov_sens[abs(cov_sens) < threshold] = 0
         return pd.DataFrame(cov_sens, index=index, columns=columns)
@@ -1209,18 +1186,12 @@ class CategoryCov():
         index, columns = self.data.index, self.data.columns
         A = self._gls_cov_sensitivity(S, Vy_extra=Vy_extra,
                                       rows=rows, threshold=threshold).values
-        if rows is not None:
-            Vx_prior = self.to_sparse(method='csc_matrix')
-            diff = sparse_tables_dot(A, Vx_prior)
-            # gls update
-            Vx_post = Vx_prior - diff
-            Vx_post = Vx_post.toarray()
-        else:
-            Vx_prior = self.to_sparse(method='csc_matrix')
-            A = sps.csr_matrix(A)
-            # gls update
-            Vx_post = Vx_prior - A.dot(Vx_prior)
-            Vx_post = Vx_post.toarray()
+        rows_ = self.data.shape[0] if rows is None else rows
+        Vx_prior = self.to_sparse(method='csc_matrix')
+        diff = sparse_tables_dot(A, Vx_prior, rows=rows_)
+        # gls update
+        Vx_post = Vx_prior - diff
+        Vx_post = Vx_post.toarray()
         if threshold is not None:
             Vx_post[abs(Vx_post) < threshold] = 0
         return self.__class__(pd.DataFrame(Vx_post, index=index, columns=columns))
@@ -1268,7 +1239,7 @@ class CategoryCov():
         """
         return self.gls_update(S, Vy_extra=None, rows=rows, threshold=threshold)
 
-    def sandwich(self, S, threshold=None):
+    def sandwich(self, S, rows=None, threshold=None):
         """
         Apply the sandwich formula to the CategoryCov object for a given
         pandas.Series.
@@ -1277,6 +1248,10 @@ class CategoryCov():
         ----------
         S : 1D or 2D iterable
             General sensitivities.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
         threshold : `int`, optional
             Thereshold to avoid numerical fluctuations. The default is None.
 
@@ -1323,10 +1298,10 @@ class CategoryCov():
         """
         if pd.DataFrame(S).shape[1] == 1:
             S_ = sandy.CategoryCov.from_var(S).data
-            sandwich = self._gls_Vy_calc(S_)
+            sandwich = self._gls_Vy_calc(S_, rows=rows)
         else:
             S_ = pd.DataFrame(S).T
-            sandwich = self._gls_Vy_calc(S_)
+            sandwich = self._gls_Vy_calc(S_, rows=rows)
         if threshold is not None:
             sandwich[sandwich < threshold] = 0
         return self.__class__(sandwich)
@@ -2136,7 +2111,7 @@ def sparse_tables_dot_multiple(matrix_list, rows=1000):
     """
     matrix = matrix_list[0]
     for b in matrix_list[1::]:
-        intermediate_matrix = sparse_tables_dot(matrix, b, rows)
+        intermediate_matrix = sparse_tables_dot(matrix, b, rows=rows)
         matrix = intermediate_matrix
     return matrix.toarray()
 
