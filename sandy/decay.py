@@ -126,11 +126,49 @@ class DecayData():
         series.index.name = "ZAM"
         return series
 
-    def get_halflives(self):
-        thalf = {k: v["half_life"] for k, v in self.data.items()}
-        series = pd.Series(thalf, name="T1/2")
-        series.index.name = "ZAM"
-        return series
+    def get_halflives(self, with_uncertainty=True):
+        """
+        Extract half life and its uncertainty into a dataframe.
+
+        Parameters
+        ----------
+        with_uncertainty : `bool`, optional, default is 'True'
+            makes the method return half lives and uncertainties
+            if set equal True, or else return only the half lives
+
+        Returns
+        -------
+        `pandas.DataFrame` or `pandas.Series`
+            dataframe with half life and associated uncertainty
+            series with half life if with_uncertainty = False
+
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942400, 922350])
+        >>> rdd = sandy.DecayData.from_endf6(endf6)
+        >>> HL = rdd.get_halflives()
+        >>> print(HL)
+                        HL         DHL
+        922350 2.22102e+16 1.57788e+13
+        942400 2.07108e+11 1.57785e+08
+
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942400, 922350])
+        >>> rdd = sandy.DecayData.from_endf6(endf6)
+        >>> HL = rdd.get_halflives(False)
+        >>> print(HL)
+        922350   2.22102e+16
+        942400   2.07108e+11
+        Name: HL, dtype: float64
+        """
+        thalf = {zam: {
+             "HL": dic['half_life'],
+             "DHL": dic['half_life_uncertainty'],
+             } for zam, dic in self.data.items()}
+        df = pd.DataFrame(thalf).T
+        if with_uncertainty:
+            return df
+        else:
+            return df.HL
 
     def get_br(self, with_uncertainty=True):
         """
@@ -260,6 +298,7 @@ class DecayData():
         >>> dc_pert = rdd.custom_perturbation_decayconstant(1.05, 922350)
         >>> dc_pert.data
         {922350: {'half_life': 2.22102e+16,
+          'half_life_uncertainty': 15778800000000.0,
           'decay_constant': 3.2768932273817556e-17,
           'decay_constant_uncertainty': 2.2171470275223715e-20,
           'stable': False,
@@ -282,6 +321,7 @@ class DecayData():
              'branching_ratio': 7.2e-11,
              'branching_ratio_uncertainty': 2.1e-11})]},
          922380: {'half_life': 1.40996e+17,
+          'half_life_uncertainty': 94670800000000.0,
           'decay_constant': 4.916076913954618e-18,
           'decay_constant_uncertainty': 3.3008662253228094e-21,
           'stable': False,
@@ -622,6 +662,7 @@ class DecayData():
               gamma: 0.0
               total: 0.0
             half_life: 0.0
+            half_life_uncertainty: 0.0
             parity: 1.0
             spin: 0.5
             stable: true
@@ -646,6 +687,7 @@ class DecayData():
                 decay_products:
                   280600: 1.0
             half_life: 166340000.0
+            half_life_uncertainty: 25245.5
             parity: 1.0
             spin: 5.0
             stable: false
@@ -663,6 +705,7 @@ class DecayData():
               gamma: 0.0
               total: 0.0
             half_life: 0.0
+            half_life_uncertainty: 0.0
             parity: 1.0
             spin: 0.0
             stable: true
@@ -679,6 +722,7 @@ class DecayData():
                 logging.info(f"reading 'ZAM={zam}'...")
             groups[zam] = {
                     "half_life": sec["HL"],
+                    "half_life_uncertainty": sec["DHL"],
                     "decay_constant": sec["LAMBDA"],
                     "decay_constant_uncertainty": sec["DLAMBDA"],
                     "stable": bool(sec["NST"]),
@@ -839,7 +883,7 @@ class DecayData():
 
         Then, make sure `sandy` reads it correctly
         >>> rdd.from_hdf5(path, "jeff_33")
-        {10010: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.5, 'stable': True}, 270600: {'decay_constant': 4.167050502344267e-09, 'decay_constant_uncertainty': 6.324352137605637e-13, 'decay_energy': {'alpha': 0.0, 'beta': 96522.0, 'gamma': 2503840.0, 'total': 2600362.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 202.529, 'gamma': 352.186, 'total': 406.26712202318316}, 'decay_modes': {10: {'branching_ratio': 1.0, 'branching_ratio_uncertainty': 0.0, 'decay_products': {280600: 1.0}}}, 'half_life': 166340000.0, 'parity': 1.0, 'spin': 5.0, 'stable': False}, 280600: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'parity': 1.0, 'spin': 0.0, 'stable': True}}
+        {10010: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'half_life_uncertainty': 0.0, 'parity': 1.0, 'spin': 0.5, 'stable': True}, 270600: {'decay_constant': 4.167050502344267e-09, 'decay_constant_uncertainty': 6.324352137605637e-13, 'decay_energy': {'alpha': 0.0, 'beta': 96522.0, 'gamma': 2503840.0, 'total': 2600362.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 202.529, 'gamma': 352.186, 'total': 406.26712202318316}, 'decay_modes': {10: {'branching_ratio': 1.0, 'branching_ratio_uncertainty': 0.0, 'decay_products': {280600: 1.0}}}, 'half_life': 166340000.0, 'half_life_uncertainty': 25245.5, 'parity': 1.0, 'spin': 5.0, 'stable': False}, 280600: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0, 'total': 0.0}, 'half_life': 0.0, 'half_life_uncertainty': 0.0, 'parity': 1.0, 'spin': 0.0, 'stable': True}}
         >>> f.cleanup()
         """
         with h5py.File(filename, mode=mode) as h5file:
