@@ -360,8 +360,7 @@ class CategoryCov():
         std = np.sqrt(cov)
         return pd.Series(std, index=self.data.index, name="std")
 
-    @property
-    def corr(self):
+    def get_corr(self):
         """
         Extract correlation matrix.
 
@@ -372,7 +371,7 @@ class CategoryCov():
 
         Examples
         --------
-        >>> sandy.CategoryCov([[4, 2.4],[2.4, 9]]).corr
+        >>> sandy.CategoryCov([[4, 2.4],[2.4, 9]]).get_corr()
                     0           1
         0 1.00000e+00 4.00000e-01
         1 4.00000e-01 1.00000e+00
@@ -382,8 +381,6 @@ class CategoryCov():
             coeff = np.true_divide(1, self.std.values)
             coeff[~ np.isfinite(coeff)] = 0   # -inf inf NaN
         corr = np.multiply(np.multiply(cov, coeff).T, coeff)
-        if not corr.max() >= 1 and corr.min() <= -1:
-            logging.warning('Correlation coefficients are not between [-1, 1]')
         return pd.DataFrame(corr,
                             index=self.data.index,
                             columns=self.data.columns,
@@ -1307,10 +1304,26 @@ class CategoryCov():
         return self.__class__(sandwich)
 
     def plot_corr(self, ax, **kwargs):
+        """
+        Plot correlation matrix as a color-encoded matrix.
+
+        Parameters
+        ----------
+        ax : `matplotlib Axes`
+            Axes in which to draw the plot, otherwise use the currently-active
+            Axes.
+        kwargs : `dict`
+            keyword arguments for seaborn heatmap plot.
+
+        Returns
+        -------
+        ax : `matplotlib Axes`
+            Axes object with the heatmap.
+        """
         add = {"cbar": True, "vmin": -1, "vmax": 1, "cmap": "RdBu"}
         for k, v in kwargs.items():
             add[k] = v
-        ax = sns.heatmap(self.corr, ax=ax, **add)
+        ax = sns.heatmap(self.get_corr(), ax=ax, **add)
         return ax
 
     @classmethod
