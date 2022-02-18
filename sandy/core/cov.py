@@ -324,13 +324,14 @@ class CategoryCov():
                     0            1
         0 7.07107e-01 -7.07107e-01
         1 7.07107e-01  7.07107e-01
+        
+        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922350)
+        >>> Cov = sandy.XsCov.from_endf6(endf6)
+        >>> Cov = sandy.CategoryCov(Cov)
+        >>> len(Cov.eig()[0])
+        295
         """
-        cov = self.to_sparse()
-        warnings.filterwarnings("ignore")
-        try:
-            E, V = spsl.eigs(cov)
-        except TypeError or ValueError:
-            E, V = scipy.linalg.eig(cov.toarray())
+        E, V = scipy.linalg.eig(self.data)
         E = pd.Series(E.real, name="eigenvalues")
         V = pd.DataFrame(V.real)
         if sort:
