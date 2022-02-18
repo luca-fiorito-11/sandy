@@ -324,12 +324,24 @@ class CategoryCov():
                     0            1
         0 7.07107e-01 -7.07107e-01
         1 7.07107e-01  7.07107e-01
-        
-        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922350)
-        >>> Cov = sandy.XsCov.from_endf6(endf6)
+
+        >>> Cov = sandy.random_cov(50,seed=11)
         >>> Cov = sandy.CategoryCov(Cov)
         >>> len(Cov.eig()[0])
-        295
+        50
+
+        >>> Cov = sandy.random_cov(3,seed=1)
+        >>> sandy.CategoryCov(Cov).eig()[0]
+        0    8.49942e-01
+        1    1.18850e-01
+        2   -3.32188e-02
+        Name: eigenvalues, dtype: float64
+
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> err = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, err=1)
+        >>> Cov = err.get_cov()
+        >>> len(Cov.eig()[0]), Cov.data.shape
+        (39, (39, 39))
         """
         E, V = scipy.linalg.eig(self.data)
         E = pd.Series(E.real, name="eigenvalues")
