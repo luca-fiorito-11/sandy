@@ -325,7 +325,8 @@ class CategoryCov():
         0 7.07107e-01 -7.07107e-01
         1 7.07107e-01  7.07107e-01
 
-        >>> Cov = sandy.CategoryCov.random_cov(50,seed=11)
+        >>> Cov = sandy.random_cov(50,seed=11)
+        >>> Cov = sandy.CategoryCov(Cov)
         >>> assert len(Cov.eig()[0]) == Cov.data.shape[0]
 
         >>> Cov = sandy.random_cov(3,seed=1)
@@ -338,8 +339,7 @@ class CategoryCov():
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> err = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, err=1)
         >>> Cov = err.get_cov()
-        >>> len(Cov.eig()[0]), Cov.data.shape
-        (39, (39, 39))
+        >>> assert len(Cov.eig()[0]) == Cov.data.shape[0]
         """
         E, V = scipy.linalg.eig(self.data)
         E = pd.Series(E.real, name="eigenvalues")
@@ -397,15 +397,15 @@ class CategoryCov():
                             columns=self.data.columns,
                             )
 
-    def _reduce_size(self, toll=1e-14):
+    def _reduce_size(self, tolerance=1e-20):
         """
         Reduces the size of the matrix, erasing the zero values.
 
         Parameters
         ----------
-        toll : `float`
+        tolerance : `float`
             threshold beyond which the eigenvalues are considered to be zero,
-            default is 1e-14
+            default is 1e-20
 
         Returns
         -------
@@ -438,8 +438,8 @@ class CategoryCov():
         2	0.00000e+00	3.00000e+00
         """
         E = self.eig(sort=False)[0]
-        nonzero_idxs = np.where(abs(E) > toll)[0]
-        cov_reduced = self.data.loc[nonzero_idxs, nonzero_idxs]
+        nonzero_idxs = np.where(abs(E) >= tolerance)[0]
+        cov_reduced = self.data.iloc[nonzero_idxs, nonzero_idxs]
         return nonzero_idxs, cov_reduced
 
     @classmethod
