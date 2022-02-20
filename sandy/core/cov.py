@@ -151,7 +151,7 @@ class _Cov(np.ndarray):
         nonzero_idxs = np.flatnonzero(np.diag(self))
         cov_reduced = self[nonzero_idxs][:, nonzero_idxs]
         return nonzero_idxs, cov_reduced
-
+        
     @classmethod
     def _restore_size(cls, nonzero_idxs, cov_reduced, dim):
         """
@@ -397,15 +397,9 @@ class CategoryCov():
                             columns=self.data.columns,
                             )
 
-    def _reduce_size(self, tolerance=1e-20):
+    def _reduce_size(self):
         """
         Reduces the size of the matrix, erasing the zero values.
-
-        Parameters
-        ----------
-        tolerance : `float`
-            threshold beyond which the eigenvalues are considered to be zero,
-            default is 1e-20
 
         Returns
         -------
@@ -433,12 +427,11 @@ class CategoryCov():
         >>> equal_arrays = comparison.all()
         >>> assert equal_arrays == True
         >>> reduce_matrix
-                      1	          2
-        1	2.00000e+00	0.00000e+00
-        2	0.00000e+00	3.00000e+00
+                    1           2
+        1 2.00000e+00 0.00000e+00
+        2 0.00000e+00 3.00000e+00
         """
-        E = self.eig(sort=False)[0]
-        nonzero_idxs = np.where(abs(E) >= tolerance)[0]
+        nonzero_idxs = np.flatnonzero(np.diag(self.data))
         cov_reduced = self.data.iloc[nonzero_idxs, nonzero_idxs]
         return nonzero_idxs, cov_reduced
 
@@ -479,9 +472,9 @@ class CategoryCov():
         >>> M_nonzero_idxs, M_reduce = S._reduce_size()
         >>> M_reduce[::] = 1
         >>> M_reduce
-                      1	          2
-        1	1.00000e+00	1.00000e+00
-        2	1.00000e+00	1.00000e+00
+                    1           2
+        1 1.00000e+00 1.00000e+00
+        2 1.00000e+00 1.00000e+00
 
         >>> sandy.CategoryCov._restore_size(M_nonzero_idxs, M_reduce.values, len(S.data))
                     0           1           2           3
