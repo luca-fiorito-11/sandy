@@ -44,6 +44,14 @@ from sandy.libraries import (
     DECAY_FILES_ENDFB_80_IAEA,
     URL_DECAY_JEFF_33_IAEA,
     DECAY_FILES_JEFF_33_IAEA,
+    URL_TSL_ENDFB_71_IAEA,
+    TSL_FILES_ENDFB_71_IAEA,
+    URL_TSL_ENDFB_80_IAEA,
+    TSL_FILES_ENDFB_80_IAEA,
+    URL_TSL_JEFF_33_IAEA,
+    TSL_FILES_JEFF_33_IAEA,
+    URL_TSL_JENDL_40U_IAEA,
+    TSL_FILES_JENDL_40U_IAEA,
     )
 
 
@@ -81,6 +89,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * `'endfb_71'`
             * `'jeff_33'`
             * `'endfb_80'`
+        for 'tsl'
+            * `'endfb_71'`
+            * `'jeff_33'`
+            * `'endfb_80'`
+            * `'jendl_40u`
     kind : `str`
         nuclear data type:
             * `xs` is a standard neutron-induced nuclear data file
@@ -168,6 +181,22 @@ def get_endf6_file(library, kind, zam, to_file=False):
 
     Import a list of Decay Data for JEFF-3.3.
     >>> tape = sandy.get_endf6_file("jeff_33", 'decay', [380900, 551370, 541350])
+    >>> assert type(tape) is sandy.Endf6
+
+    Thermal Neutron Scattering Data from ENDF/B-VII.1. ('all' is tested also)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'tsl', [1, 2, 3])
+    >>> assert type(tape) is sandy.Endf6
+
+    Thermal Neutron Scattering Data from ENDF/B-VIII.0. ('all' is tested also)
+    >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', [1, 2, 3])
+    >>> assert type(tape) is sandy.Endf6
+
+    Thermal Neutron Scattering Data from JEFF-3.3. ('all' is tested also)
+    >>> tape = sandy.get_endf6_file("jeff_33", 'tsl', [1, 2, 3])
+    >>> assert type(tape) is sandy.Endf6
+
+    Thermal Neutron Scattering Data from JENDL-4.0u ('all' is tested also)
+    >>> tape = sandy.get_endf6_file("jendl_40u", 'tsl', [1, 2, 3])
     >>> assert type(tape) is sandy.Endf6
 
 #    Checked, but the test takes too long(~10 min), that's why it is commented.
@@ -258,6 +287,33 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jeff_33":
             url = URL_DECAY_JEFF_33_IAEA
             files = DECAY_FILES_JEFF_33_IAEA
+        else:
+            raise ValueError(
+                f"""library '{library}' is not available.
+                Available libraries are: {available_libs}
+                """
+                    )
+
+    elif kind == 'tsl':
+        available_libs = (
+            "endfb_71".upper(),
+            "endfb_80".upper(),
+            "jeff_33".upper(),
+            "jendl_40u".upper(),
+            )
+        library_ = library.lower()
+        if library_ == "endfb_71":
+            url = URL_TSL_ENDFB_71_IAEA
+            files = TSL_FILES_ENDFB_71_IAEA
+        elif library_ == "endfb_80":
+            url = URL_TSL_ENDFB_80_IAEA
+            files = TSL_FILES_ENDFB_80_IAEA
+        elif library_ == "jeff_33":
+            url = URL_TSL_JEFF_33_IAEA
+            files = TSL_FILES_JEFF_33_IAEA
+        elif library_ == "jendl_40u":
+            url = URL_TSL_JENDL_40U_IAEA
+            files = TSL_FILES_JENDL_40U_IAEA
         else:
             raise ValueError(
                 f"""library '{library}' is not available.
