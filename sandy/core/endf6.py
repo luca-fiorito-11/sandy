@@ -177,10 +177,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * `'jendl_40u`
     kind : `str`
         nuclear data type:
-            * `xs` is a standard neutron-induced nuclear data file
+            * 'xs' is a standard neutron-induced nuclear data file
             * 'nfpy' is a Neutron-Induced Fission Product Yields nuclear data
               file
             * 'decay' is a Radioactive Decay Data nuclear data file
+            * 'tsl' is a Thermal Neutron Scattering Data file
     zam : `int` or 'all' or iterable
         zam = 'int' (individual nuclides) or iterable (group of nuclides)
             ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
