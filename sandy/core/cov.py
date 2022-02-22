@@ -151,7 +151,7 @@ class _Cov(np.ndarray):
         nonzero_idxs = np.flatnonzero(np.diag(self))
         cov_reduced = self[nonzero_idxs][:, nonzero_idxs]
         return nonzero_idxs, cov_reduced
-        
+
     @classmethod
     def _restore_size(cls, nonzero_idxs, cov_reduced, dim):
         """
@@ -1498,7 +1498,7 @@ class CategoryCov():
         0 2.15373e-02 5.97134e-03
         1 5.97134e-03 8.52642e-03
         """
-        corr = random_corr(size, correlations=correlations , seed=seed)
+        corr = random_corr(size, correlations=correlations, seed=seed)
         std = np.random.uniform(stdmin, stdmax, size)
         return cls.corr2cov(corr, std, **kwargs)
 
@@ -2451,8 +2451,7 @@ def random_corr(size, correlations=True, seed=None):
     np.random.seed(seed=seed)
     corr = np.eye(size)
     if correlations:
-        offdiag = np.random.uniform(-1, 1, size**2).reshape(size, size)
-        up = np.triu(offdiag, 1)
+        up = np.triu(np.random.uniform(-1, 1, size**2).reshape(size, size), 1)
     else:
         up = np.zeros([size, size])
     corr += up + up.T
@@ -2460,9 +2459,9 @@ def random_corr(size, correlations=True, seed=None):
 
 
 def random_cov(size, stdmin=0.0, stdmax=1.0, correlations=True, seed=None):
-        corr = random_corr(size, correlations=correlations , seed=seed)
-        std = np.random.uniform(stdmin, stdmax, size)
-        return corr2cov(corr, std)
+    corr = random_corr(size, correlations=correlations , seed=seed)
+    std = np.random.uniform(stdmin, stdmax, size)
+    return corr2cov(corr, std)
 
 
 def random_ctg_cov(index, stdmin=0.0, stdmax=1.0, correlations=True, seed=None):
