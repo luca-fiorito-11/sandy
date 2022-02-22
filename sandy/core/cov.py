@@ -307,6 +307,7 @@ class CategoryCov():
         tolerance : `float`, optional, default is `None`
             truncation proportional to the magnitude of the largest positive eigenvalue,
             e.g. 1000 to cut all the eigenvalues 1000 times lower than the largest eigenvalue
+            or np.inf to cut all the eigenvalues lower than zero
 
         Returns
         -------
@@ -330,6 +331,16 @@ class CategoryCov():
         
         >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).eig(tolerance=10)[0]
         0   1.01098e+00
+        1   0.00000e+00
+        Name: eigenvalues, dtype: float64
+        
+        >>> sandy.CategoryCov([[1, 2], [2, 1]]).eig()[0]
+        0    3.00000e+00
+        1   -1.00000e+00
+        Name: eigenvalues, dtype: float64
+        
+        >>> sandy.CategoryCov([[1, 2], [2, 1]]).eig(tolerance=np.inf)[0]
+        0   3.00000e+00
         1   0.00000e+00
         Name: eigenvalues, dtype: float64
 
