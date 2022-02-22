@@ -10,8 +10,9 @@ import os
 from functools import reduce
 from tempfile import TemporaryDirectory
 import logging
-from urllib.request import urlopen, Request
+from urllib.request import urlopen, Request, urlretrieve
 from zipfile import ZipFile
+import re
 
 
 import pandas as pd
@@ -64,6 +65,86 @@ __all__ = [
 pd.options.display.float_format = '{:.5e}'.format
 
 
+def get_tsl_index(library):
+    """
+    Obtain the index information available in the library web page.
+
+    Parameters
+    ----------
+    library : `str`
+        nuclear data library. Available libraries are:
+        for 'tsl'
+            * `'endfb_71'`
+            * `'jeff_33'`
+            * `'endfb_80'`
+            * `'jendl_40u`
+
+    Raises
+    ------
+    ValueError
+        if library is not among available selection.
+
+    Example
+    ------
+    >>> sandy.endf6.get_tsl_index("jendl_40u")
+     Lib:         JENDL-4.0
+     Library:     JENDL-4.0 Japanese evaluated nuclear data library, 2010
+     Sub-library: NSUB=12      Thermal Neutron Scattering Data
+    --------------------------------------------------------------------------------
+       #)  KEY Material     Lab.         Date         Authors
+    --------------------------------------------------------------------------------
+       1)    1 1-H(H2O)     LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0001_h(h2o).zip 412Kb
+       2)    2 1-Para-H     LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0002_para-H.zip 91Kb 
+       3)    3 1-Ortho-H    LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0003_ortho-H.zip 96Kb
+       4)    7 1-H(ZrH)     LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0007_h(zrh).zip 448Kb
+       5)   11 1-D(D2O)     GA           EVAL-DEC69   KOPPEL,HOUSTON                     20.MeV   tsl_0011_D(D2O).zip 235Kb
+       6)   12 1-Para-D     LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0012_para-d.zip 92Kb 
+       7)   13 1-Ortho-D    LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0013_ortho-d.zip 93Kb
+       8)   26 4-Be-metal   LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0026_bemetal.zip 419Kb
+       9)   27 4-BeO        LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0027_beo.zip 483Kb   
+      10)   31 6-Graphite   LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0031_graphite.zip 397Kb
+      11)   33 6-l-CH4      LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0033_l-ch4.zip 50Kb  
+      12)   34 6-s-CH4      LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0034_s-ch4.zip 42Kb  
+      13)   37 6-H(CH2)     GA           EVAL-DEC69   KOPPEL,HOUSTON,SPREVAK             20.MeV   tsl_0037_H(CH2).zip 72Kb 
+      14)   40 6-BENZINE    GA           EVAL-DEC69   KOPPEL,HOUSTON,BORGONOVI           20.MeV   tsl_0040_BENZINE.zip 236Kb
+      15)   58 40-Zr(ZrH)   LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0058_zr(zrh).zip 201Kb
+    --------------------------------------------------------------------------------
+    Total: Materials:15 Size:11Mb Compressed:4Mb
+    """
+    available_libs = (
+            "endfb_71".upper(),
+            "endfb_80".upper(),
+            "jeff_33".upper(),
+            "jendl_40u".upper(),
+            )
+    library_ = library.lower()
+    if library_ == "endfb_71":
+        index = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VII.1/tsl-index.htm"
+    elif library_ == "endfb_80":
+        index = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VIII.0/tsl-index.htm"
+    elif library_ == "jeff_33":
+        index = "https://www-nds.iaea.org/public/download-endf/JEFF-3.3/tsl-index.htm"
+    elif library_ == "jendl_40u":
+        index = "https://www-nds.iaea.org/public/download-endf/JENDL-4.0u2-20160106/tsl-index.htm"
+    else:
+        raise ValueError(
+            f"""library '{library}' is not available.
+            Available libraries are: {available_libs}
+            """
+            )
+    user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'
+    headers = {'User-Agent': user_agent, }
+    request = Request(index, None, headers)
+    response = urlopen(request)
+    data = response.read().decode("utf-8")
+    # Remove html style:
+    data = data[data.find('<pre>')+5:data.find('</pre>')]
+    data = re.sub(r'">tsl\S+', '', data)
+    data = re.sub(r'<a href="tsl/', '', data)
+    print(data.replace('MAT', 'KEY'))
+    return
+
+
 def get_endf6_file(library, kind, zam, to_file=False):
     """
     Given a library and a nuclide import the corresponding ENDF-6 nuclear
@@ -89,7 +170,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * `'endfb_71'`
             * `'jeff_33'`
             * `'endfb_80'`
-        for 'tsl'
+        for 'tsl' (read the note)
             * `'endfb_71'`
             * `'jeff_33'`
             * `'endfb_80'`
@@ -118,6 +199,12 @@ def get_endf6_file(library, kind, zam, to_file=False):
 
     ValueError
         if when you select 'xs', you select zam = 'all'
+
+    Notes
+    -----
+    .. note:: In the `kind='tls` option, instead of the zam, integers are used.
+              If you need help, the `get_tsl_index` function contains all the
+              necessary information for the correct choice of these integers.
 
     Returns
     -------
