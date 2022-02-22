@@ -178,7 +178,8 @@ class _Cov(np.ndarray):
         return cov
 
     def sampling(self, nsmp, seed=None):
-        """Extract random samples from the covariance matrix, either using
+        """
+        Extract random samples from the covariance matrix, either using
         the cholesky or the eigenvalue decomposition.
 
         Parameters
@@ -295,7 +296,7 @@ class CategoryCov():
     def size(self):
         return self.data.values.shape[0]
 
-    def eig(self, sort=True):
+    def eig(self, sort=True, tolerance=None):
         """
         Extract eigenvalues and eigenvectors.
 
@@ -303,6 +304,9 @@ class CategoryCov():
         ----------
         sort : `bool`, optional, default is `True`
             flag to return sorted eigenvalues and eigenfunctions
+        tolerance : `float`, optional, default is `None`
+            truncation proportional to the magnitude of the largest positive eigenvalue,
+            e.g. 1000 to cut all the eigenvalues 1000 times lower than the largest eigenvalue
 
         Returns
         -------
@@ -314,32 +318,40 @@ class CategoryCov():
         Examples
         --------
         Extract eigenvalues of covariance matrix.
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).eig()[0]
+        >>> sandy.CategoryCov([[1, 0.4], [0.4, 1]]).eig()[0]
         0   1.40000e+00
         1   6.00000e-01
         Name: eigenvalues, dtype: float64
+        
+        >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).eig()[0]
+        0   1.01098e+00
+        1   8.90228e-02
+        Name: eigenvalues, dtype: float64
+        
+        >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).eig(tolerance=10)[0]
+        0   1.01098e+00
+        1   0.00000e+00
+        Name: eigenvalues, dtype: float64
 
-        Extract eigenfunctions of covariance matrix.
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).eig()[1]
-                    0            1
-        0 7.07107e-01 -7.07107e-01
-        1 7.07107e-01  7.07107e-01
-
-        >>> Cov = sandy.random_cov(50,seed=11)
-        >>> Cov = sandy.CategoryCov(Cov)
+        >>> Cov = sandy.CategoryCov.random_cov(50,seed=11)
         >>> assert len(Cov.eig()[0]) == Cov.data.shape[0]
 
-        >>> Cov = sandy.random_cov(3,seed=1)
-        >>> sandy.CategoryCov(Cov).eig()[0]
-        0    1.33823e-01
-        1    2.08573e-02
-        2   -6.24761e-19
+        >>> sandy.CategoryCov([[1, 0.2, 0.1], [0.2, 2, 0], [0.1, 0, 3]]).eig()[0]
+        0   3.00509e+00
+        1   2.03815e+00
+        2   9.56764e-01
         Name: eigenvalues, dtype: float64
 
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> err = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, err=1)
         >>> Cov = err.get_cov()
         >>> assert len(Cov.eig()[0]) == Cov.data.shape[0]
+
+        Extract eigenfunctions of covariance matrix.
+        >>> sandy.CategoryCov([[1, 0.4], [0.4, 1]]).eig()[1]
+                    0            1
+        0 7.07107e-01 -7.07107e-01
+        1 7.07107e-01  7.07107e-01
         """
         E, V = scipy.linalg.eig(self.data)
         E = pd.Series(E.real, name="eigenvalues")
@@ -348,6 +360,9 @@ class CategoryCov():
             idx = E.sort_values(ascending=False).index
             E = E.iloc[idx].reset_index(drop=True)
             V = V.iloc[idx].reset_index(drop=True)
+        if tolerance:
+            indx = np.where(E.values < E.max() / tolerance)
+            E.values[indx] = 0
         return E, V
 
     @property
@@ -428,6 +443,16 @@ class CategoryCov():
         >>> assert equal_arrays == True
         >>> reduce_matrix
                     1           2
+        1 2.00000e+00 0.00000e+00
+        2 0.00000e+00 3.00000e+00
+
+        >>> S = sandy.CategoryCov(pd.DataFrame({'a':[0, 0, 0], 'b':[0, 2, 0], 'c':[0, 0, 3]}))
+        >>> non_zero_index, reduce_matrix = S._reduce_size()
+        >>> comparison = non_zero_index == np.array([1, 2])
+        >>> equal_arrays = comparison.all()
+        >>> assert equal_arrays == True
+        >>> reduce_matrix
+                    b           c
         1 2.00000e+00 0.00000e+00
         2 0.00000e+00 3.00000e+00
         """
@@ -1442,7 +1467,8 @@ class CategoryCov():
         return cls(corr, **kwargs)
 
     @classmethod
-    def random_cov(cls, size, seed=None):
+    def random_cov(cls, size, stdmin=0.0, stdmax=1.0, correlations=True,
+                   seed=None, **kwargs):
         """
         Construct a covariance matrix with random values
 
@@ -1450,6 +1476,12 @@ class CategoryCov():
         ----------
         size : `int`
             Dimension of the original matrix
+        stdmin : `float`, default is 0
+            minimum value of the uniform standard deviation vector
+        stdmax : `float`, default is 1
+            maximum value of the uniform standard deviation vector
+        correlation : `bool`, default is True
+            flag to insert the random correlations in the covariance matrix
         seed : `int`, optional, default is `None`
             seed for the random number generator (by default use `numpy`
             dafault pseudo-random number generator)
@@ -1463,13 +1495,12 @@ class CategoryCov():
         --------
         >>> sandy.CategoryCov.random_cov(2, seed=1)
                     0           1
-        0 4.59962e-02 4.58318e-02
-        1 4.58318e-02 4.56679e-02
+        0 2.15373e-02 5.97134e-03
+        1 5.97134e-03 8.52642e-03
         """
-        np.random.seed(seed)
-        matrix = scipy.random.rand(size, size)
-        cov = np.cov(matrix)
-        return cls(cov)
+        corr = random_corr(size, correlations=correlations , seed=seed)
+        std = np.random.uniform(stdmin, stdmax, size)
+        return cls.corr2cov(corr, std, **kwargs)
 
     def to_sparse(self, method='csr_matrix'):
         """
@@ -2420,18 +2451,18 @@ def random_corr(size, correlations=True, seed=None):
     np.random.seed(seed=seed)
     corr = np.eye(size)
     if correlations:
-        up = np.triu(np.random.uniform(-1, 1, size**2).reshape(size, size), 1)
+        offdiag = np.random.uniform(-1, 1, size**2).reshape(size, size)
+        up = np.triu(offdiag, 1)
     else:
         up = np.zeros([size, size])
     corr += up + up.T
     return corr
 
 
-def random_cov(size, seed=None):
-    np.random.seed(seed)
-    matrix = scipy.random.rand(size, size)
-    cov = np.cov(matrix)
-    return cov
+def random_cov(size, stdmin=0.0, stdmax=1.0, correlations=True, seed=None):
+        corr = random_corr(size, correlations=correlations , seed=seed)
+        std = np.random.uniform(stdmin, stdmax, size)
+        return corr2cov(corr, std)
 
 
 def random_ctg_cov(index, stdmin=0.0, stdmax=1.0, correlations=True, seed=None):
