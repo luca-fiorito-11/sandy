@@ -408,7 +408,7 @@ class CategoryCov():
         >>> ek = sandy.energy_grids.CASMO12
         >>> err = endf6.get_errorr(ek=ek, err=1)
         >>> cov = err.get_cov()
-        >>> cov.eig()[0].sort_values(ascending=False).head(10)
+        >>> cov.eig()[0].sort_values(ascending=False).head(7)
         0    3.66411e-01
         1    7.05311e-03
         2    1.55346e-03
@@ -416,9 +416,6 @@ class CategoryCov():
         4    1.81374e-05
         5    1.81078e-06
         6    1.26691e-07
-        7    6.03618e-10
-        8    4.74727e-11
-        11   6.46354e-12
         Name: eigenvalues, dtype: float64
         
         >>> assert not (cov.eig()[0] >= 0).all()
