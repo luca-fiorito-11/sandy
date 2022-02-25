@@ -458,7 +458,7 @@ class CategoryCov():
 
     def _reduce_size(self):
         """
-        Reduces the size of the matrix, erasing the zero values.
+        Reduces the size of the covariance matrix, erasing the zero values.
 
         Returns
         -------
@@ -489,14 +489,12 @@ class CategoryCov():
         b 2.00000e+00 0.00000e+00
         c 0.00000e+00 3.00000e+00
         """
-        nonzero_idxs = np.flatnonzero(np.diag(self.data))
-        cov_reduced = self.data.iloc[nonzero_idxs, nonzero_idxs]
-        return nonzero_idxs, cov_reduced
+        return reduce_size(self.data)
 
     @classmethod
     def _restore_size(cls, nonzero_idxs, cov_reduced, dim):
         """
-        Restore the size of the matrix
+        Restore the size of the covariance matrix.
 
         Parameters
         ----------
@@ -541,9 +539,7 @@ class CategoryCov():
         2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
         3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
         """
-        cov = np.zeros((dim, dim))
-        for i, ni in enumerate(nonzero_idxs):
-            cov[ni, nonzero_idxs] = cov_reduced[i]
+        cov = restore_size(nonzero_idxs, cov_reduced, dim)
         return cls(cov)
 
     def invert(self, rows=None):
@@ -599,7 +595,8 @@ class CategoryCov():
         M_inv = M_inv.reindex(index=index, columns=columns).fillna(0)
         return self.__class__(M_inv)
 
-    def sampling(self, nsmp, seed=None, rows=None, pdf='normal'):
+    def sampling(self, nsmp, seed=None, rows=None, pdf='normal',
+                 tolerance=None, threshold=None):
         """
         Extract random samples from normal distribution centered in zero
         and with given covariance matrix.
@@ -617,6 +614,10 @@ class CategoryCov():
             The default is None.
         pdf : `str`, optional
             Random numbers distribution. The default is 'normal'.
+        tolerance : `float`, optional, default is `None`
+            replace all eigenvalues smaller than a given tolerance with zeros.
+        threshold : `int`, optional
+            threshold to avoid numerical fluctuations. The default is None.
 
         Returns
         -------
@@ -628,35 +629,42 @@ class CategoryCov():
         Draw 3 sets of samples using custom seed.
         >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11)
                      0            1
-        0  1.74945e+00 -1.73202e+00
-        1 -2.86073e-01 -1.22022e-01
-        2 -4.84565e-01 -4.86773e-01
+        0 -1.74945e+00 -3.13159e+00
+        1  2.86073e-01  1.06836e-01
+        2  4.84565e-01 -9.91209e-02
 
         >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, rows=1)
                      0            1
-        0  1.74945e+00 -1.73202e+00
-        1 -2.86073e-01 -1.22022e-01
-        2 -4.84565e-01 -4.86773e-01
+        0 -1.74945e+00 -3.13159e+00
+        1  2.86073e-01  1.06836e-01
+        2  4.84565e-01 -9.91209e-02
 
         >>> sample = sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(1000000, seed=11)
         >>> sample.data.cov()
-        	          0	          1
-        0	9.98662e-01	3.99513e-01
-        1	3.99513e-01	9.98232e-01
+                    0           1
+        0 9.98662e-01 3.99417e-01
+        1 3.99417e-01 9.98156e-01
 
         Small negative eigenvalue:
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11)
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11, tolerance=0)
                      0            1
-        0  1.89299e+00 -3.06292e+00
-        1 -3.09544e-01  5.00852e-01
-        2 -5.24321e-01  8.48369e-01
+        0 -1.89299e+00  3.06292e+00
+        1  3.09544e-01 -5.00852e-01
+        2  5.24321e-01 -8.48369e-01
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, tolerance=0).data.cov()
+        	           0	           1
+        0	 1.16925e+00	-1.89189e+00
+        1	-1.89189e+00	 3.06115e+00
         """
         dim = self.data.shape[0]
         y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf)
         y = sps.csc_matrix(y)
-        L = sps.csr_matrix(self.get_L(rows=rows))
-        samples = L.dot(y)
-        df = pd.DataFrame(samples.toarray(),
+        L = sps.csr_matrix(self.get_L(rows=rows, tolerance=tolerance))
+        samples = L.dot(y).toarray()
+        if threshold is not None:
+            samples[abs(samples) < threshold] = 0
+        df = pd.DataFrame(samples,
                           index=self.data.index,
                           columns=list(range(nsmp)),
                           )
@@ -1585,7 +1593,7 @@ class CategoryCov():
             raise ValueError('The method does not exist in scipy.sparse')
         return data_sp
 
-    def get_L(self, rows=None):
+    def get_L(self, rows=None, tolerance=None, threshold=None):
         """
         Extract lower triangular matrix `L` for which `L*L^T == self`.
 
@@ -1595,6 +1603,10 @@ class CategoryCov():
             Option to use row calculation for matrix calculations. This option
             defines the number of lines to be taken into account in each loop.
             The default is None.
+        tolerance : `float`, optional, default is `None`
+            replace all eigenvalues smaller than a given tolerance with zeros.
+        threshold : `int`, optional
+            Thereshold to avoid numerical fluctuations. The default is None.
 
         Returns
         -------
@@ -1605,86 +1617,29 @@ class CategoryCov():
         --------
         >>> a = np.array([[4, 12, -16], [12, 37, -43], [-16, -43, 98]])
         >>> sandy.CategoryCov(a).get_L()
-                      0	          1	          2
-        0	2.00000e+00	0.00000e+00	0.00000e+00
-        1	6.00000e+00	1.00000e+00	0.00000e+00
-        2  -8.00000e+00	5.00000e+00	3.00000e+00
-
-        >>> sandy.CategoryCov(a).get_L(rows=1)
-                      0	          1	          2
-        0	2.00000e+00	0.00000e+00	0.00000e+00
-        1	6.00000e+00	1.00000e+00	0.00000e+00
-        2  -8.00000e+00	5.00000e+00	3.00000e+00
-
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L()
-                       0   	          1
-        0	 1.08204e+00	0.00000e+00
-        1	-1.75078e+00	0.00000e+00
-
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(rows=1)
-                       0   	          1
-        0	 1.08204e+00	0.00000e+00
-        1	-1.75078e+00	0.00000e+00
+                       0	          1	          2
+        0	-2.00000e+00	0.00000e+00	0.00000e+00
+        1	-6.00000e+00	1.00000e+00	0.00000e+00
+        2	 8.00000e+00	5.00000e+00	3.00000e+00
         """
         index = self.data.index
         columns = self.data.columns
-        # Ensure matrix is positive define:
-        values = self.to_positive(rows=rows).data.values
-        rows_ = values.shape[0] if rows is None else rows
-        L = sparse_tables_cholesky(values, rows=rows_)
+        # Reduces the size of the matrix, erasing the zero values
+        nonzero_idxs, cov_reduced = self._reduce_size()
+        # Obtain the eigenvalues and eigenvectors:
+        E, V = sandy.CategoryCov(cov_reduced).eig(tolerance=tolerance)
+        E = sandy.CategoryCov.from_var(np.sqrt(E)).data.values
+        # Construct the matrix:
+        rows_ = cov_reduced.shape[0] if rows is None else rows
+        A = sandy.cov.sparse_tables_dot(V, E, rows=rows_).T.toarray()
+        # QR decomposition:
+        Q, R = scipy.linalg.qr(A)
+        L_redu = R.T
+        # Original size
+        L = restore_size(nonzero_idxs, L_redu, len(self.data)).values
+        if threshold is not None:
+            L[abs(L) < threshold] = 0
         return pd.DataFrame(L, index=index, columns=columns)
-
-    def to_positive(self, rows=None):
-        """
-        Transform covariance matrix into a positive define matrix by replacing
-        the negative eigenvalues to zero.
-
-        Parameters
-        ----------
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
-
-        Returns
-        -------
-        positive_matrix : `np.array`
-            Positive define matrix.
-
-        Examples
-        --------
-        Positive define matrix:
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).to_positive().data.values
-        array([[1. , 0.4],
-               [0.4, 1. ]])
-
-        Negative define matrix:
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).to_positive().data.values.round(3)
-        array([[ 1.171, -1.894],
-               [-1.894,  3.065]])
-
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).to_positive(rows=2).data.values.round(3)
-        array([[ 1.171, -1.894],
-               [-1.894,  3.065]])
-        """
-        E, V = self.eig()
-        index = self.data.index
-        columns = self.data.columns
-        if (E >= 0).all():
-            positive_matrix = self.data.values
-        else:
-            logging.warning('Importance of the largest changed eigenvalue: '
-                            + str(abs(E[E < 0].min())/E.max()) + '%')
-            E[E < 0] = 0
-            E = sandy.CategoryCov.from_var(E).to_sparse(method='csc_matrix')
-            V = sps.csr_matrix(V)
-            rows_ = E.shape[0] if rows is None else rows
-            V_inv = sparse_tables_inv(V, rows=rows_)
-            positive_matrix = sparse_tables_dot_multiple([V, E, V_inv],
-                                                         rows=rows_)
-        positive_matrix = pd.DataFrame(positive_matrix, index=index,
-                                       columns=columns)
-        return self.__class__(positive_matrix)
 
 
 class EnergyCov(CategoryCov):
@@ -2478,6 +2433,87 @@ def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
     if pdf == 'normal':
         y = np.random.randn(dim, nsmp)
     return y
+
+
+def reduce_size(data):
+    """
+    Reduces the size of the matrix, erasing the zero values.
+
+    Parameters
+    ----------
+    data : 'pd.DataFrame'
+        Matrix to be reduced.
+
+    Returns
+    -------
+    nonzero_idxs : `numpy.ndarray`
+        The indices of the diagonal that are not null.
+    cov_reduced : `pandas.DataFrame`
+        The reduced matrix.
+
+    Examples
+    --------
+    >>> S = pd.DataFrame(np.diag(np.array([1, 2, 3])))
+    >>> non_zero_index, reduce_matrix = reduce_size(S)
+    >>> assert reduce_matrix.equals(S)
+    >>> assert (non_zero_index == range(3)).all()
+
+    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3])))
+    >>> non_zero_index, reduce_matrix = reduce_size(S)
+    >>> assert (non_zero_index == np.array([1, 2])).all()
+    >>> reduce_matrix
+      1 2
+    1 2 0
+    2 0 3
+
+    >>> S.index = S.columns = ["a", "b", "c"]
+    >>> non_zero_index, reduce_matrix = reduce_size(S)
+    >>> reduce_matrix
+      b c
+    b 2 0
+    c 0 3
+    """
+    data_ = pd.DataFrame(data)
+    nonzero_idxs = np.flatnonzero(np.diag(data_))
+    cov_reduced = data_.iloc[nonzero_idxs, nonzero_idxs]
+    return nonzero_idxs, cov_reduced
+
+
+def restore_size(nonzero_idxs, mat_reduced, dim):
+    """
+    Restore the size of a matrix.
+
+    Parameters
+    ----------
+    nonzero_idxs : `numpy.ndarray`
+        The indices of the diagonal that are not null.
+    mat_reduced : `numpy.ndarray`
+        The reduced matrix.
+    dim : `int`
+        Dimension of the original matrix.
+
+    Returns
+    -------
+    mat : `pd.DataFrame`
+        Matrix of specified dimensions.
+
+    Examples
+    --------
+    >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3, 0])))
+    >>> M_nonzero_idxs, M_reduce = S._reduce_size()
+    >>> M_reduce[::] = 1
+    >>> restore_size(M_nonzero_idxs, M_reduce.values, len(S.data))
+                0           1           2           3
+    0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+    1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+    2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+    3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+
+    """
+    mat = np.zeros((dim, dim))
+    for i, ni in enumerate(nonzero_idxs):
+        mat[ni, nonzero_idxs] = mat_reduced[i]
+    return pd.DataFrame(mat)
 
 
 def random_corr(size, correlations=True, seed=None):
