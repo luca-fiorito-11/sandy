@@ -116,9 +116,9 @@ def _read_elastic_scattering(tape, mat, mt):
         add_2 = {
             "LT": LT,
             "NBT": C.NBT,  # Number of different pairs alpha S
-            "EINT": C.x,  # Value of alpha
             "S": C.y,
             }
+        add["EINT"] = C.x  # Energy array, constant
         add_temp[temp] = add_2
         for j in range(LT):
             C, i = sandy.read_list(df, i)
@@ -218,9 +218,9 @@ def _read_incoherent_inelastic(tape, mat, mt):
             add_2 = {
                 "LT": LT,
                 "NBT": T.NBT,  # Number of different pairs alpha S
-                "alpha": T.x,  # Value of alpha
                 "S": T.y,
                 }
+            add["alpha"] = T.x  # Alpha values, constant values
             add_temp[temp] = add_2
             for z in range(LT):
                 C, i = sandy.read_list(df, i)
