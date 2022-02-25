@@ -2136,54 +2136,6 @@ def sparse_tables_inv(a, rows=1000):
     return invert_matrix
 
 
-def sparse_tables_cholesky(a, rows=1000):
-    """
-    Function to perform cholesky descomposition stored on local
-    disk instead of memory.
-
-    Parameters
-    ----------
-    a : 2D iterable
-        Matrix to be inverted.
-    rows : `int`, optional.
-        Number of rows to be calculated in each loop. The default is 1000.
-
-    Returns
-    -------
-    low_triang_matrix : "numpy.ndarray"
-        Cholesky descomposition low triangular matrix.
-
-    Examples
-    --------
-    >>> a = np.array([[4, 12, -16], [12, 37, -43], [-16, -43, 98]])
-    >>> sandy.cov.sparse_tables_cholesky(a, rows=1)
-    array([[ 2.,  0.,  0.],
-           [ 6.,  1.,  0.],
-           [-8.,  5.,  3.]])
-    """
-    a_ = sps.csc_matrix(a)
-    l, n = a_.shape[0], a_.shape[1]
-    LU = spsl.splu(a_, diag_pivot_thresh=0)
-    f = tb.open_file('cholesky.h5', 'w')
-    filters = tb.Filters(complevel=5, complib='blosc')
-    out_data = f.create_carray(f.root, 'data', tb.Float64Atom(),
-                               shape=(l, n), filters=filters)
-    diagonal = LU.U.diagonal()
-    diagonal[diagonal < 0] = 0
-    diagonal_matrix = np.hsplit(sps.diags(np.sqrt(diagonal)).toarray(), l/rows)
-    j = 0
-    for i in range(0, l, rows):
-        diagonal_split = diagonal_matrix[j]
-        tmpResult = LU.L.dot(diagonal_split)
-        out_data[:, i:min(i+rows, l)] = tmpResult
-        f.flush()
-        j += 1
-    low_triang_matrix = sps.csr_matrix(out_data).toarray()
-    f.close()
-    os.remove('cholesky.h5')
-    return low_triang_matrix
-
-
 def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):
     """
     Create a pivot table from a stacked dataframe.
