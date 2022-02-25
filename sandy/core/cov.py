@@ -456,91 +456,6 @@ class CategoryCov():
             columns=self.data.columns,
             )
 
-    def _reduce_size(self):
-        """
-        Reduces the size of the covariance matrix, erasing the zero values.
-
-        Returns
-        -------
-        nonzero_idxs : `numpy.ndarray`
-            The indices of the diagonal that are not null.
-        cov_reduced : `pandas.DataFrame`
-            The reduced matrix.
-
-        Examples
-        --------
-        >>> S = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
-        >>> non_zero_index, reduce_matrix = S._reduce_size()
-        >>> assert reduce_matrix.equals(S.data)
-        >>> assert (non_zero_index == range(3)).all()
-
-        >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3])))
-        >>> non_zero_index, reduce_matrix = S._reduce_size()
-        >>> assert (non_zero_index == np.array([1, 2])).all()
-        >>> reduce_matrix
-                    1           2
-        1 2.00000e+00 0.00000e+00
-        2 0.00000e+00 3.00000e+00
-
-        >>> S.data.index = S.data.columns = ["a", "b", "c"]
-        >>> non_zero_index, reduce_matrix = S._reduce_size()
-        >>> reduce_matrix
-                    b           c
-        b 2.00000e+00 0.00000e+00
-        c 0.00000e+00 3.00000e+00
-        """
-        return reduce_size(self.data)
-
-    @classmethod
-    def _restore_size(cls, nonzero_idxs, cov_reduced, dim):
-        """
-        Restore the size of the covariance matrix.
-
-        Parameters
-        ----------
-        nonzero_idxs : `numpy.ndarray`
-            The indices of the diagonal that are not null.
-        cov_reduced : `numpy.ndarray`
-            The reduced matrix.
-        dim : `int`
-            Dimension of the original matrix.
-
-        Returns
-        -------
-        cov : `CategoryCov`
-            Matrix of specified dimensions.
-
-        Notes
-        -----
-        ..notes:: This method was developed to be used after calling
-                  `_reduce_size`.
-
-        Examples
-        --------
-        >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3, 0])))
-        >>> S
-                    0           1           2           3
-        0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-        1 0.00000e+00 2.00000e+00 0.00000e+00 0.00000e+00
-        2 0.00000e+00 0.00000e+00 3.00000e+00 0.00000e+00
-        3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-
-        >>> M_nonzero_idxs, M_reduce = S._reduce_size()
-        >>> M_reduce[::] = 1
-        >>> M_reduce
-                    1           2
-        1 1.00000e+00 1.00000e+00
-        2 1.00000e+00 1.00000e+00
-
-        >>> sandy.CategoryCov._restore_size(M_nonzero_idxs, M_reduce.values, len(S.data))
-                    0           1           2           3
-        0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-        1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
-        2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
-        3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-        """
-        cov = restore_size(nonzero_idxs, cov_reduced, dim)
-        return cls(cov)
 
     def invert(self, rows=None):
         """
@@ -586,12 +501,11 @@ class CategoryCov():
         """
         index = self.data.index
         columns = self.data.columns
-        M_nonzero_idxs, M_reduce = self._reduce_size()
+        M_nonzero_idxs, M_reduce = reduce_size(self.data)
         cov = sps.csc_matrix(M_reduce.values)
         rows_ = cov.shape[0] if rows is None else rows
         data = sparse_tables_inv(cov, rows=rows_)
-        M_inv = CategoryCov._restore_size(M_nonzero_idxs, data,
-                                          len(self.data)).data
+        M_inv = restore_size(M_nonzero_idxs, data, len(self.data))
         M_inv = M_inv.reindex(index=index, columns=columns).fillna(0)
         return self.__class__(M_inv)
 
@@ -1625,7 +1539,7 @@ class CategoryCov():
         index = self.data.index
         columns = self.data.columns
         # Reduces the size of the matrix, erasing the zero values
-        nonzero_idxs, cov_reduced = self._reduce_size()
+        nonzero_idxs, cov_reduced = reduce_size(self.data)
         # Obtain the eigenvalues and eigenvectors:
         E, V = sandy.CategoryCov(cov_reduced).eig(tolerance=tolerance)
         E = sandy.CategoryCov.from_var(np.sqrt(E)).data.values
@@ -2497,12 +2411,17 @@ def restore_size(nonzero_idxs, mat_reduced, dim):
     mat : `pd.DataFrame`
         Matrix of specified dimensions.
 
+    Notes
+    -----
+    ..notes:: This funtion was developed to be used after using
+              `reduce_size`.
+
     Examples
     --------
-    >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3, 0])))
-    >>> M_nonzero_idxs, M_reduce = S._reduce_size()
+    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3, 0])))
+    >>> M_nonzero_idxs, M_reduce = reduce_size(S)
     >>> M_reduce[::] = 1
-    >>> restore_size(M_nonzero_idxs, M_reduce.values, len(S.data))
+    >>> restore_size(M_nonzero_idxs, M_reduce.values, len(S))
                 0           1           2           3
     0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
     1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
