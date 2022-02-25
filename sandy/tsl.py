@@ -74,7 +74,7 @@ class Tsl():
                 if LTHR == 1:  # Coherent elastic scattering
                     add = {'E': sec["EINT"]}
                     add_2 = {}
-                    for temp, S in sec['temperature'].items():
+                    for temp, S in sec['T'].items():
                         add_2[temp] = {'S': S['S']}
                     add['T'] = add_2
                     data['elastic coherent'] = add
@@ -90,7 +90,7 @@ class Tsl():
                     'alpha': sec["alpha"]
                 }
                 add_2 = {}
-                for beta, temp_info in sec['beta/temperature'].items():
+                for beta, temp_info in sec['beta/T'].items():
                     add_3 = {}
                     for temp, S_info in temp_info.items():
                         add_3[temp] = {'S': S_info['S']}

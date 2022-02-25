@@ -90,7 +90,7 @@ def _read_elastic_scattering(tape, mat, mt):
 
     Coherent
     >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26)
-    >>> sandy.sections.mf7._read_elastic_scattering(tls, 26, 2)['temperature'].keys()
+    >>> sandy.sections.mf7._read_elastic_scattering(tls, 26, 2)['T'].keys()
     dict_keys([296.0, 400.0, 500.0, 600.0, 700.0, 800.0, 1000.0, 1200.0])
     """
     df = tape._get_section_df(mat, mf, mt)
@@ -128,7 +128,7 @@ def _read_elastic_scattering(tape, mat, mt):
                 "S": C.B,
                 }
             add_temp[temp] = add_2
-        add['temperature'] = add_temp
+        add['T'] = add_temp
     if LTHR == 2:  # Incoherent
         C, i = sandy.read_tab1(df, i)
         add = {
@@ -169,11 +169,11 @@ def _read_incoherent_inelastic(tape, mat, mt):
     [6.153875, 197.6285, 8.93478, 5.000001, 0.0, 1.0]
 
     Temperature for the first beta:
-    >>> dict['beta/temperature'][0.0].keys()
+    >>> dict['beta/T'][0.0].keys()
     dict_keys([296.0, 400.0, 500.0, 600.0, 700.0, 800.0, 1000.0, 1200.0])
 
     Effective temperature:
-    >>> dict['effective temp'][0]['T_eff']
+    >>> dict['effective T'][0]['T_eff']
     array([ 433.3817,  506.3929,  586.9472,  673.3305,  763.3208,  855.6755,
            1044.799 , 1237.451 ])
     """
@@ -231,7 +231,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
                     }
                 add_temp[temp] = add_2
             add_beta[b] = add_temp
-        add['beta/temperature'] = add_beta
+        add['beta/T'] = add_beta
         add_efective_temp = {}
         C, i = sandy.read_tab1(df, i)
         add_2.update({
@@ -241,7 +241,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
                 "T_eff": C.y,
                 })
         add_efective_temp[0] = add_2
-        add['effective temp'] = add_efective_temp
+        add['effective T'] = add_efective_temp
         if NS > 1 and B[6] != 0:
             add_2.update({
                 "NR": C.NBT,
@@ -249,7 +249,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
                 "TINT": C.x,
                 "T_eff": C.y,
                 })
-            add['effective temp'][1] = add_2
+            add['effective T'][1] = add_2
             if NS > 2 and B[12] != 0:
                 add_2.update({
                     "NR": C.NBT,
@@ -257,7 +257,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
                     "TINT": C.x,
                     "T_eff": C.y,
                     })
-                add['effective temp'][2] = add_2
+                add['effective T'][2] = add_2
             if NS > 3 and B[18] != 0:
                 add_2.update({
                     "NR": C.NBT,
@@ -265,6 +265,6 @@ def _read_incoherent_inelastic(tape, mat, mt):
                     "TINT": C.x,
                     "T_eff": C.y,
                     })
-                add['effective temp'][3] = add_2
+                add['effective T'][3] = add_2
         out.update(add)
     return out
