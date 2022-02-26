@@ -1507,7 +1507,7 @@ class CategoryCov():
             raise ValueError('The method does not exist in scipy.sparse')
         return data_sp
 
-    def get_L(self, rows=None, tolerance=None, threshold=None):
+    def get_L(self, rows=None, tolerance=None):
         """
         Extract lower triangular matrix `L` for which `L*L^T == self`.
 
@@ -1519,8 +1519,6 @@ class CategoryCov():
             The default is None.
         tolerance : `float`, optional, default is `None`
             replace all eigenvalues smaller than a given tolerance with zeros.
-        threshold : `int`, optional
-            Thereshold to avoid numerical fluctuations. The default is None.
 
         Returns
         -------
@@ -1529,12 +1527,51 @@ class CategoryCov():
 
         Examples
         --------
+        Positive define matrix:
         >>> a = np.array([[4, 12, -16], [12, 37, -43], [-16, -43, 98]])
         >>> sandy.CategoryCov(a).get_L()
                        0	          1	          2
         0	-2.00000e+00	0.00000e+00	0.00000e+00
         1	-6.00000e+00	1.00000e+00	0.00000e+00
         2	 8.00000e+00	5.00000e+00	3.00000e+00
+
+        >>> sandy.CategoryCov(a).get_L(tolerance=0)
+                       0	          1	          2
+        0	-2.00000e+00	0.00000e+00	0.00000e+00
+        1	-6.00000e+00	1.00000e+00	0.00000e+00
+        2	 8.00000e+00	5.00000e+00	3.00000e+00
+
+        >>> sandy.CategoryCov(a).get_L(rows=1)
+                       0	          1	          2
+        0	-2.00000e+00	0.00000e+00	0.00000e+00
+        1	-6.00000e+00	1.00000e+00	0.00000e+00
+        2	 8.00000e+00	5.00000e+00	3.00000e+00
+
+        Matrix with negative eigenvalues
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(rows=1, tolerance=0)
+                       0	          1
+        0	-1.08204e+00	0.00000e+00
+        1	 1.75078e+00	0.00000e+00
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(tolerance=0)
+                       0	          1
+        0	-1.08204e+00	0.00000e+00
+        1	 1.75078e+00	0.00000e+00
+
+        Decomposition test:
+        >>> L = sandy.CategoryCov(a).get_L()
+        >>> L.dot(L.T)
+                       0	           1	           2
+        0	 4.00000e+00	 1.20000e+01	-1.60000e+01
+        1	 1.20000e+01	 3.70000e+01	-4.30000e+01
+        2	-1.60000e+01	-4.30000e+01	 9.80000e+01
+
+        Matrix with negative eigenvalues, tolerance of 0:
+        >>> L = sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(rows=1, tolerance=0)
+        >>> L.dot(L.T)
+        	           0	           1
+        0	 1.17082e+00	-1.89443e+00
+        1	-1.89443e+00	 3.06525e+00
         """
         index = self.data.index
         columns = self.data.columns
@@ -1542,7 +1579,7 @@ class CategoryCov():
         nonzero_idxs, cov_reduced = reduce_size(self.data)
         # Obtain the eigenvalues and eigenvectors:
         E, V = sandy.CategoryCov(cov_reduced).eig(tolerance=tolerance)
-        E = sandy.CategoryCov.from_var(np.sqrt(E)).data.values
+        E = sps.diags(np.sqrt(E)).toarray()
         # Construct the matrix:
         rows_ = cov_reduced.shape[0] if rows is None else rows
         A = sandy.cov.sparse_tables_dot(V, E, rows=rows_).T.toarray()
@@ -1551,8 +1588,6 @@ class CategoryCov():
         L_redu = R.T
         # Original size
         L = restore_size(nonzero_idxs, L_redu, len(self.data)).values
-        if threshold is not None:
-            L[abs(L) < threshold] = 0
         return pd.DataFrame(L, index=index, columns=columns)
 
 
@@ -2380,6 +2415,15 @@ def restore_size(nonzero_idxs, mat_reduced, dim):
     2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
     3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
 
+    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3, 0])), index=[1, 2, 3, 4], columns=[5, 6, 7, 8])
+    >>> M_nonzero_idxs, M_reduce = reduce_size(S)
+    >>> M_reduce[::] = 1
+    >>> restore_size(M_nonzero_idxs, M_reduce.values, len(S))
+                0           1           2           3
+    0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+    1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+    2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+    3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
     """
     mat = np.zeros((dim, dim))
     for i, ni in enumerate(nonzero_idxs):
