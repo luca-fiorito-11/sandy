@@ -510,7 +510,7 @@ class CategoryCov():
         return self.__class__(M_inv)
 
     def sampling(self, nsmp, seed=None, rows=None, pdf='normal',
-                 tolerance=0, threshold=None):
+                 tolerance=None, threshold=None):
         """
         Extract random samples from normal distribution centered in zero
         and with given covariance matrix.
@@ -528,7 +528,7 @@ class CategoryCov():
             The default is None.
         pdf : `str`, optional
             Random numbers distribution. The default is 'normal'.
-        tolerance : `float`, optional, default is 0
+        tolerance : `float`, optional, default is `None`
             replace all eigenvalues smaller than a given tolerance with zeros.
         threshold : `int`, optional
             threshold to avoid numerical fluctuations. The default is None.
@@ -1507,7 +1507,7 @@ class CategoryCov():
             raise ValueError('The method does not exist in scipy.sparse')
         return data_sp
 
-    def get_L(self, rows=None, tolerance=0):
+    def get_L(self, rows=None, tolerance=None):
         """
         Extract lower triangular matrix `L` for which `L*L^T == self`.
 
@@ -1517,7 +1517,7 @@ class CategoryCov():
             Option to use row calculation for matrix calculations. This option
             defines the number of lines to be taken into account in each loop.
             The default is None.
-        tolerance : `float`, optional, default is 0
+        tolerance : `float`, optional, default is `None`
             replace all eigenvalues smaller than a given tolerance with zeros.
 
         Returns
