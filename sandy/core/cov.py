@@ -1547,11 +1547,6 @@ class CategoryCov():
         1	-6.00000e+00	1.00000e+00	0.00000e+00
         2	 8.00000e+00	5.00000e+00	3.00000e+00
 
-        >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).get_L(tolerance=0.1)
-                       0	          1
-        0	-1.09714e-01	0.00000e+00
-        1	-9.99470e-01	0.00000e+00
-
         Matrix with negative eigenvalues
         >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(rows=1, tolerance=0)
                        0	          1
