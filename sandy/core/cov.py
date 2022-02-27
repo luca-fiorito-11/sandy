@@ -330,15 +330,15 @@ class CategoryCov():
         ----------
         tolerance : `float`, optional, default is `None`
             replace all eigenvalues smaller than a given tolerance with zeros.
-            The replacement comnidtion is implemented as,
+            The replacement condition is implemented as:
 
             .. math::
                 $$
-                \\fract{e_i}{e_{MAX}} < tolerance
+                \frac{e_i}{e_{MAX}} < tolerance
                 $$
 
-            Then, a `tolerance=1e-3` will replace all eignevalues 
-            1000 times smaller smaller than the largest eigenvalue.
+            Then, a `tolerance=1e-3` will replace all eignevalues
+            1000 times smaller than the largest eigenvalue.
             A `tolerance=0` will replace all negative eigenvalues.
 
         Returns
@@ -510,7 +510,7 @@ class CategoryCov():
         return self.__class__(M_inv)
 
     def sampling(self, nsmp, seed=None, rows=None, pdf='normal',
-                 tolerance=None, threshold=None):
+                 tolerance=0, threshold=None):
         """
         Extract random samples from normal distribution centered in zero
         and with given covariance matrix.
@@ -528,7 +528,7 @@ class CategoryCov():
             The default is None.
         pdf : `str`, optional
             Random numbers distribution. The default is 'normal'.
-        tolerance : `float`, optional, default is `None`
+        tolerance : `float`, optional, default is 0
             replace all eigenvalues smaller than a given tolerance with zeros.
         threshold : `int`, optional
             threshold to avoid numerical fluctuations. The default is None.
@@ -1507,7 +1507,7 @@ class CategoryCov():
             raise ValueError('The method does not exist in scipy.sparse')
         return data_sp
 
-    def get_L(self, rows=None, tolerance=None):
+    def get_L(self, rows=None, tolerance=0):
         """
         Extract lower triangular matrix `L` for which `L*L^T == self`.
 
@@ -1517,7 +1517,7 @@ class CategoryCov():
             Option to use row calculation for matrix calculations. This option
             defines the number of lines to be taken into account in each loop.
             The default is None.
-        tolerance : `float`, optional, default is `None`
+        tolerance : `float`, optional, default is 0
             replace all eigenvalues smaller than a given tolerance with zeros.
 
         Returns
@@ -1546,6 +1546,11 @@ class CategoryCov():
         0	-2.00000e+00	0.00000e+00	0.00000e+00
         1	-6.00000e+00	1.00000e+00	0.00000e+00
         2	 8.00000e+00	5.00000e+00	3.00000e+00
+
+        >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).get_L(tolerance=0.1)
+                       0	          1
+        0	-1.09714e-01	0.00000e+00
+        1	-9.99470e-01	0.00000e+00
 
         Matrix with negative eigenvalues
         >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(rows=1, tolerance=0)
