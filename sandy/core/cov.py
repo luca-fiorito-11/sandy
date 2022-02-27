@@ -337,7 +337,7 @@ class CategoryCov():
                 \frac{e_i}{e_{MAX}} < tolerance
                 $$
 
-            Then, a `tolerance=1e-3` will replace all eignevalues
+            Then, a `tolerance=1e-3` will replace all eigenvalues
             1000 times smaller than the largest eigenvalue.
             A `tolerance=0` will replace all negative eigenvalues.
 
