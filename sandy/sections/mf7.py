@@ -18,7 +18,10 @@ MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
 import sandy
 
 __author__ = "Aitor Bengoechea"
-
+__all__ = [
+        "read_mf7",
+        "write_mf7",
+        ]
 
 mf = 7
 
@@ -47,6 +50,25 @@ def read_mf7(tape, mat, mt):
     elif mt == 4:
         out = _read_incoherent_inelastic(tape, mat, mt)
     return out
+
+
+def write_mf7(sec):
+    """
+    Write MT section for MF7
+
+    Parameters
+    ----------
+    sec : 'dict'
+        Multiline string reproducing the content of a ENDF-6 section.
+
+    Returns
+    -------
+    `str`
+    """
+    if sec["MT"] == 2:
+        return _write_elastic_scattering(sec)
+    elif sec["MT"] == 4:
+        return _write_inelastic_scattering(sec)
 
 
 def _read_elastic_scattering(tape, mat, mt):
@@ -116,6 +138,7 @@ def _read_elastic_scattering(tape, mat, mt):
         add_2 = {
             "LT": LT,
             "NBT": C.NBT,  # Number of different pairs alpha S
+            "INT": C.INT,
             "S": C.y,
             }
         add["EINT"] = C.x  # Energy array, constant
@@ -191,6 +214,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
             "LAT": C.L2,
             "LASYM": C.N1
             }
+    out.update(add)
     C, i = sandy.read_list(df, i)
     NS = C.N2
     B = C.B
@@ -217,6 +241,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
             LT = T.L1  # Temperature flag
             add_2 = {
                 "LT": LT,
+                "INT": T.INT,
                 "NBT": T.NBT,  # Number of different pairs alpha S
                 "S": T.y,
                 }
@@ -234,7 +259,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
         add['beta/T'] = add_beta
         add_efective_temp = {}
         C, i = sandy.read_tab1(df, i)
-        add_2.update({
+        add_2 = ({
                 "NR": C.NBT,
                 "NP": C.INT,
                 "TINT": C.x,
@@ -242,24 +267,27 @@ def _read_incoherent_inelastic(tape, mat, mt):
                 })
         add_efective_temp[0] = add_2
         add['effective T'] = add_efective_temp
-        if NS > 1 and B[6] != 0:
-            add_2.update({
+        if NS > 1 and B[6] == 0:
+            C, i = sandy.read_tab1(df, i)
+            add_2 = ({
                 "NR": C.NBT,
                 "NP": C.INT,
                 "TINT": C.x,
                 "T_eff": C.y,
                 })
             add['effective T'][1] = add_2
-            if NS > 2 and B[12] != 0:
-                add_2.update({
+            if NS > 2 and B[12] == 0:
+                C, i = sandy.read_tab1(df, i)
+                add_2 = ({
                     "NR": C.NBT,
                     "NP": C.INT,
                     "TINT": C.x,
                     "T_eff": C.y,
                     })
                 add['effective T'][2] = add_2
-            if NS > 3 and B[18] != 0:
-                add_2.update({
+            if NS > 3 and B[18] == 0:
+                C, i = sandy.read_tab1(df, i)
+                add_2 = ({
                     "NR": C.NBT,
                     "NP": C.INT,
                     "TINT": C.x,
@@ -268,3 +296,153 @@ def _read_incoherent_inelastic(tape, mat, mt):
                 add['effective T'][3] = add_2
         out.update(add)
     return out
+
+
+def _write_elastic_scattering(sec):
+    """
+    Given the content of MF7 for elastic scattering as nested dictionaries,
+    write it to string.
+
+    Parameters
+    ----------
+    sec : 'dict'
+        Multiline string reproducing the content of a ENDF-6 section.
+
+    Returns
+    -------
+    `str`
+        Multiline string reproducing the content of a ENDF-6 section.
+
+    Examples
+    --------
+    Coherent elastic scattering:
+    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+    >>> sec = sandy.sections.mf7._read_elastic_scattering(tls, 26, 2)
+    >>> assert len(_write_elastic_scattering(sec)) == len(tls.data[(26, 7, 2)])
+
+    This test is also check:
+    >>> #assert print(_write_elastic_scattering(sec)) == print(tls.data[(26, 7, 2)])
+
+    Incoherent elastic scattering:
+    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 10)
+    >>> sec = sandy.sections.mf7._read_elastic_scattering(tls, 10, 2)
+    >>> print(_write_elastic_scattering(sec))
+     110.000000 9.992800-1          2          0          0          0  10 7  2    1
+     80.3178400 0.00000000          0          0          1          9  10 7  2    2
+              9          2                                              10 7  2    3
+     115.000000 14.7037200 188.150000 19.1224000 208.150000 20.3789200  10 7  2    4
+     228.150000 21.6526100 233.150000 21.9735500 248.150000 22.9420500  10 7  2    5
+     253.150000 23.2667100 268.150000 24.2459100 273.150000 24.5739800  10 7  2    6
+    """
+    if sec['LTHR'] == 1:
+        lines = sandy.write_cont(sec["ZA"],
+                                 sec["AWR"],
+                                 sec['LTHR'],
+                                 0,
+                                 0,
+                                 0)
+        diff = list(sec['T'].keys())[0]
+        for T, T_info in sec['T'].items():
+            if T == diff:
+                lines += sandy.write_tab1(T,
+                                          0,
+                                          T_info['LT'],
+                                          0,
+                                          T_info['NBT'],
+                                          T_info['INT'],
+                                          sec['EINT'],
+                                          T_info['S'])
+            else:
+                lines += sandy.write_list(T,
+                                          0,
+                                          T_info['LI'],
+                                          0,
+                                          0,
+                                          T_info['S'])
+    elif sec['LTHR'] == 2:
+        lines = sandy.write_cont(sec["ZA"], sec["AWR"], sec['LTHR'], 0, 0, 0)
+        lines += sandy.write_tab1(sec['SB'],
+                                  0,
+                                  0,
+                                  0,
+                                  sec['NBT'],
+                                  sec['INT'],
+                                  sec['TINT'],
+                                  sec['W'])
+    return "\n".join(sandy.write_eol(lines, sec["MAT"], 7, sec["MT"]))
+
+
+def _write_inelastic_scattering(sec):
+    """
+    Given the content of MF7 for inelastic scattering as nested dictionaries,
+    write it to string.
+
+    Parameters
+    ----------
+    sec : 'dict'
+        Multiline string reproducing the content of a ENDF-6 section.
+
+    Returns
+    -------
+    `str`
+        Multiline string reproducing the content of a ENDF-6 section.
+
+    Examples
+    --------
+    Incoherent inelastic scattering:
+    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+    >>> sec = sandy.sections.mf7._read_incoherent_inelastic(tls, 26, 4)
+    >>> assert len(_write_inelastic_scattering(sec)) == len(tls.data[(26, 7, 4)])
+
+    This test is also check: 
+    >>> # assert print(_write_inelastic_scattering(sec)) == print(tls.data[(26, 7, 4)])
+    """
+    lines = sandy.write_cont(sec["ZA"],
+                             sec["AWR"],
+                             0,
+                             sec["LAT"],
+                             sec["LASYM"],
+                             0)
+    lines += sandy.write_list(0,
+                              0,
+                              sec['LLN'],
+                              0,
+                              sec['NS'],
+                              sec['BN'])
+    if sec['BN'][0] != 0:
+        lines += sandy.write_tab2(0,
+                                  0,
+                                  0,
+                                  0,
+                                  sec['NR'],
+                                  sec['NP'],
+                                  sec['BINT'])
+        for beta, beta_info in sec['beta/T'].items():
+            diff_T = list(beta_info.keys())[0]
+            for T, T_info in beta_info.items():
+                if diff_T == T:
+                    lines += sandy.write_tab1(T,
+                                              beta,
+                                              T_info['LT'],
+                                              0,
+                                              T_info['NBT'],
+                                              T_info['INT'],
+                                              sec['alpha'],
+                                              T_info['S'])
+                else:
+                    lines += sandy.write_list(T,
+                                              beta,
+                                              T_info['LI'],
+                                              0,
+                                              0,
+                                              T_info['S'])
+        for T_eff_numb, T_eff_info in sec['effective T'].items():
+            lines += sandy.write_tab1(0,
+                                      0,
+                                      0,
+                                      0,
+                                      T_eff_info['NR'],
+                                      T_eff_info['NP'],
+                                      T_eff_info['TINT'],
+                                      T_eff_info['T_eff'])
+    return "\n".join(sandy.write_eol(lines, sec["MAT"], 7, sec["MT"]))
