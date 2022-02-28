@@ -330,15 +330,15 @@ class CategoryCov():
         ----------
         tolerance : `float`, optional, default is `None`
             replace all eigenvalues smaller than a given tolerance with zeros.
-            The replacement comnidtion is implemented as,
+            The replacement condition is implemented as:
 
             .. math::
                 $$
-                \\fract{e_i}{e_{MAX}} < tolerance
+                \frac{e_i}{e_{MAX}} < tolerance
                 $$
 
-            Then, a `tolerance=1e-3` will replace all eignevalues 
-            1000 times smaller smaller than the largest eigenvalue.
+            Then, a `tolerance=1e-3` will replace all eigenvalues
+            1000 times smaller than the largest eigenvalue.
             A `tolerance=0` will replace all negative eigenvalues.
 
         Returns
