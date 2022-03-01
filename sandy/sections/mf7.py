@@ -28,7 +28,7 @@ mf = 7
 
 def read_mf7(tape, mat, mt):
     """
-    Parse MAT/MF=MAT/8 section from `sandy.Endf6` object and return
+    Parse MAT/MF=MAT/7 section from `sandy.Endf6` object and return
     structured content in nested dcitionaries.
 
     Parameters
@@ -99,7 +99,7 @@ def _read_elastic_scattering(tape, mat, mt):
     {'MAT': 10,
      'MF': 7,
      'MT': 2,
-     'ZA': 110,
+     'ZA': 110.0,
      'AWR': 0.99928,
      'LTHR': 2,
      'SB': 80.31784,
@@ -125,7 +125,7 @@ def _read_elastic_scattering(tape, mat, mt):
     C, i = sandy.read_cont(df, i)
     LTHR = C.L1
     add = {
-        "ZA": int(C.C1),
+        "ZA": C.C1,
         "AWR": C.C2,
         "LTHR": LTHR,
         }
@@ -209,7 +209,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
     i = 0
     C, i = sandy.read_cont(df, i)
     add = {
-            "ZA": int(C.C1),
+            "ZA": C.C1,
             "AWR": C.C2,
             "LAT": C.L2,
             "LASYM": C.N1
@@ -257,6 +257,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
                 add_temp[temp] = add_2
             add_beta[b] = add_temp
         add['beta/T'] = add_beta
+        # Effective temperature:
         add_efective_temp = {}
         C, i = sandy.read_tab1(df, i)
         add_2 = ({
@@ -267,7 +268,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
                 })
         add_efective_temp[0] = add_2
         add['effective T'] = add_efective_temp
-        if NS > 1 and B[6] == 0:
+        if NS >= 1 and B[6] == 0:
             C, i = sandy.read_tab1(df, i)
             add_2 = ({
                 "NR": C.NBT,
@@ -276,23 +277,23 @@ def _read_incoherent_inelastic(tape, mat, mt):
                 "T_eff": C.y,
                 })
             add['effective T'][1] = add_2
-            if NS > 2 and B[12] == 0:
+            if NS >= 2 and B[12] == 0:
                 C, i = sandy.read_tab1(df, i)
                 add_2 = ({
-                    "NR": C.NBT,
-                    "NP": C.INT,
-                    "TINT": C.x,
-                    "T_eff": C.y,
-                    })
+                        "NR": C.NBT,
+                        "NP": C.INT,
+                        "TINT": C.x,
+                        "T_eff": C.y,
+                        })
                 add['effective T'][2] = add_2
-            if NS > 3 and B[18] == 0:
+            if NS == 3 and B[18] == 0:
                 C, i = sandy.read_tab1(df, i)
                 add_2 = ({
-                    "NR": C.NBT,
-                    "NP": C.INT,
-                    "TINT": C.x,
-                    "T_eff": C.y,
-                    })
+                        "NR": C.NBT,
+                        "NP": C.INT,
+                        "TINT": C.x,
+                        "T_eff": C.y,
+                        })
                 add['effective T'][3] = add_2
         out.update(add)
     return out

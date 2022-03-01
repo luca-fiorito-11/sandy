@@ -39,7 +39,7 @@ class Tsl():
 
         Returns
         -------
-        `dict`
+        `sandy.Tsl`
             structured container divided into the 3 reaction of the tsl files:
             elastic coherent scattering, elastic incoherent scattering and
             inelastic incoherent scattering.
@@ -220,3 +220,85 @@ class Tsl():
         elif kind == 'inelastic incoherent':
             S = self._S_inelastic_incoherent()
         return pd.concat(S)
+
+    def to_endf6(self, endf6):
+        """
+        Update S matrixs in `Endf6` instance with those available in a
+        `Tsl` instance.
+
+        Parameters
+        ----------
+        `endf6` : `sandy.Endf6`
+            `Endf6` instance
+
+        Notes
+        -----
+        .. note:: The user can only add new energy grids in the coherent
+                  elastic scattering. For the moment, add new temperatures is
+                  not allow.
+        .. note:: The user can only add new alpha grids in the incoherent
+                  inelastic scattering. For the moment, add new temperatures
+                  and beta values is not allow.
+
+        Returns
+        -------
+        `sandy.Endf6`
+            `Endf6` instance with updated S matrixs and Deby-Waller function
+
+        Examples
+        --------
+        Incoherent elastic scattering
+        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 10)
+        >>> from_endf = sandy.sections.mf7.read_mf7(tape, 10, 2)
+        >>> text = sandy.sections.mf7.write_mf7(from_endf)
+        >>> tsl = sandy.Tsl.from_endf6(tape)
+        >>> new_tape = tsl.to_endf6(tape)
+        >>> new_from_endf = sandy.sections.mf7.read_mf7(tape, 10, 2)
+        >>> new_text = sandy.sections.mf7.write_mf7(new_from_endf)
+        >>> assert new_text == text
+
+        Coherent elastic scattering
+        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+        >>> from_endf = sandy.sections.mf7.read_mf7(tape, 26, 2)
+        >>> text = sandy.sections.mf7.write_mf7(from_endf)
+        >>> tsl = sandy.Tsl.from_endf6(tape)
+        >>> new_tape = tsl.to_endf6(tape)
+        >>> new_from_endf = sandy.sections.mf7.read_mf7(tape, 26, 2)
+        >>> new_text = sandy.sections.mf7.write_mf7(new_from_endf)
+        >>> assert new_text == text
+
+        Incoherent inelastic scattering
+        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+        >>> from_endf = sandy.sections.mf7.read_mf7(tape, 26, 4)
+        >>> text = sandy.sections.mf7.write_mf7(from_endf)
+        >>> tsl = sandy.Tsl.from_endf6(tape)
+        >>> new_tape = tsl.to_endf6(tape)
+        >>> new_from_endf = sandy.sections.mf7.read_mf7(tape, 26, 4)
+        >>> new_text = sandy.sections.mf7.write_mf7(new_from_endf)
+        >>> assert new_text == text
+        """
+        data_endf6 = endf6.data.copy()
+        tape = endf6.filter_by(listmf=[7], listmt=[2, 4])
+        for (mat, mf, mt) in tape.keys:
+            sec = tape.read_section(mat, mf, mt)
+            if mt == 2:
+                LTHR = sec['LTHR']
+                if LTHR == 1:
+                    obj_data = self.data['elastic coherent']
+                    sec["EINT"] = obj_data['E']
+                    for temp, S_info in sec['T'].items():
+                        sec['T'][temp]['S'] = obj_data['T'][temp]['S']
+                elif LTHR == 2:
+                    obj_data = self.data['elastic incoherent']
+                    sec['SB'] = obj_data['characteristic bound xs']
+                    sec['TINT'] = obj_data['T']
+                    sec['W'] = obj_data['Debye-Waller']
+            elif mt == 4:
+                obj_data = self.data['inelastic incoherent']
+                sec['alpha'] = obj_data['alpha']
+                for beta, beta_info in sec['beta/T'].items():
+                    obj_beta = obj_data['beta'][beta]
+                    for temp, temp_info in beta_info.items():
+                        sec['beta/T'][beta][temp]['S'] = obj_beta['T'][temp]['S']
+            data_endf6[(mat, mf, mt)] = sandy.write_mf7(sec)
+        return sandy.Endf6(data_endf6)
