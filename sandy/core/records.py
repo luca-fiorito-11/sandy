@@ -327,9 +327,40 @@ def write_int(x):
 
 
 def line_numbers(length, istart=1):
+    """
+    Line number creator
+
+    Parameters
+    ----------
+    length : 'int'
+        Number of lines.
+    istart : 'int', optional
+        Number from where start counting. The default is 1.
+
+    Returns
+    -------
+    ilines : `list`
+        List containing the number of each line.
+
+    Examples
+    --------
+    >>> np.array(line_numbers(1.0e6)).max()
+    99999
+    >>> np.array(line_numbers(1.0e6+1)).min()
+    1
+    >>> np.array(line_numbers(1.0e4+1)).max()
+    10001.0
+    """
     iend = istart + length
-    ilines = np.arange(istart, iend)
-    return np.where(ilines < 100000, ilines, ilines-99999).tolist()
+    if length < 100000:
+        ilines = np.arange(istart, iend).tolist()
+    else:
+        arr = np.arange(istart, 100000).astype(int).tolist()
+        ilines = arr*(int(length//len(arr)))
+        if len(ilines) != length:
+            diff = length - len(ilines)
+            ilines += arr[0:int(diff)]
+    return ilines
 
 
 def write_line(string, mat, mf, mt, iline):

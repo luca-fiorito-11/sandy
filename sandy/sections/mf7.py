@@ -10,7 +10,7 @@ object with a dictionary-like structure.
 The content object can be accessed using most of the keywords specified in
 the ENDF6 manual for this specific MF section.
 
-Function `write_mf8` writes a content object for a MF7/MT section into a
+Function `write_mf7` writes a content object for a MF7/MT section into a
 string.
 MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
 """
@@ -73,7 +73,7 @@ def write_mf7(sec):
 
 def _read_elastic_scattering(tape, mat, mt):
     """
-    Parse MAT/MF=MAT/8 section for tsl from `sandy.Endf6` object
+    Parse MAT/MF=MAT/7 section for tsl from `sandy.Endf6` object
     and return structured content in nested dictionaries for elastic coherent
     and incoherent scattering.
 
@@ -136,30 +136,30 @@ def _read_elastic_scattering(tape, mat, mt):
         temp = C.C1  # Temperature
         LT = C.L1  # Temperature flag
         add_2 = {
-            "LT": LT,
+            "LT": LT,  # Flag for temperature dependence
             "NBT": C.NBT,  # Number of different pairs alpha S
-            "INT": C.INT,
-            "S": C.y,
+            "INT": C.INT,  # Number of Bragg edges
+            "S": C.y,  # S matrix values for a all the energy but only 1 temp
             }
         add["EINT"] = C.x  # Energy array, constant
         add_temp[temp] = add_2
         for j in range(LT):
             C, i = sandy.read_list(df, i)
-            temp = C.C1
+            temp = C.C1 # Temperature
             add_2 = {
-                "LI": C.L1,
-                "S": C.B,
+                "LI": C.L1,  # Flag indicating how to interpolate
+                "S": C.B,  # S matrix values for energy array but only 1 temp
                 }
             add_temp[temp] = add_2
         add['T'] = add_temp
-    if LTHR == 2:  # Incoherent
+    elif LTHR == 2:  # Incoherent
         C, i = sandy.read_tab1(df, i)
         add = {
-            'SB': C.C1,
+            'SB': C.C1,  # characteristic bound cross section (barns)
             'NBT': C.NBT,
             'INT': C.INT,
-            'TINT': C.x,
-            'W': C.y
+            'TINT': C.x,  # Temperature array
+            'W': C.y  # Debye-Waller integral divided by the atomic mass(eV^-1)
             }
     out.update(add)
     return out
@@ -167,7 +167,7 @@ def _read_elastic_scattering(tape, mat, mt):
 
 def _read_incoherent_inelastic(tape, mat, mt):
     """
-    Parse MAT/MF=MAT/8 section for tsl from `sandy.Endf6` object
+    Parse MAT/MF=MAT/7 section for tsl from `sandy.Endf6` object
     and return structured content in nested dictionaries for incoherent
     inelastic scattering.
 
@@ -211,25 +211,25 @@ def _read_incoherent_inelastic(tape, mat, mt):
     add = {
             "ZA": C.C1,
             "AWR": C.C2,
-            "LAT": C.L2,
-            "LASYM": C.N1
+            "LAT": C.L2, # Flag indicating which temperature has been used to compute alpha and beta
+            "LASYM": C.N1  # Symmetry or asymmetry of S matrix
             }
     out.update(add)
     C, i = sandy.read_list(df, i)
     NS = C.N2
     B = C.B
     add = {
-        'LLN': C.L1,
-        'NS': NS,
-        'BN': C.B,
+        'LLN': C.L1,  # S values form: direct or ln(S)
+        'NS': NS,  # Number of non-principal scattering atom types
+        'BN': C.B,  # List of constants
         }
     out.update(add)
     if B[0] != 0:
         C, i = sandy.read_tab2(df, i)
         add = {
-                'NR': C.NZ,
-                'NP': C.NBT,
-                'BINT': C.INT,
+                'NR': C.NZ,  # Number of interpolation ranges for alpha and beta
+                'NP': C.NBT,  # Number of alphas
+                'BINT': C.INT,  # Interpolation schemes used.
         }
         Num_beta = C.NBT[0]
         add_beta = {}
@@ -240,10 +240,10 @@ def _read_incoherent_inelastic(tape, mat, mt):
             b = T.C2  # beta
             LT = T.L1  # Temperature flag
             add_2 = {
-                "LT": LT,
-                "INT": T.INT,
+                "LT": LT,  # Temperature flag
+                "INT": T.INT,  # Number of interpolation ranges
                 "NBT": T.NBT,  # Number of different pairs alpha S
-                "S": T.y,
+                "S": T.y,  # S matrix values for all alpha in a given beta and temp 
                 }
             add["alpha"] = T.x  # Alpha values, constant values
             add_temp[temp] = add_2
@@ -251,8 +251,8 @@ def _read_incoherent_inelastic(tape, mat, mt):
                 C, i = sandy.read_list(df, i)
                 temp = C.C1  # Temperature
                 add_2 = {
-                    "LI": C.L1,
-                    "S": C.B,
+                    "LI": C.L1,  # Flag indicating how to interpolate
+                    "S": C.B,  # S matrix values for all alpha in a given beta and temp
                     }
                 add_temp[temp] = add_2
             add_beta[b] = add_temp
@@ -261,38 +261,38 @@ def _read_incoherent_inelastic(tape, mat, mt):
         add_efective_temp = {}
         C, i = sandy.read_tab1(df, i)
         add_2 = ({
-                "NR": C.NBT,
-                "NP": C.INT,
-                "TINT": C.x,
-                "T_eff": C.y,
+                "NR": C.NBT,  # Number of interpolation ranges for alpha and beta
+                "NP": C.INT,  # Number of temperatures
+                "TINT": C.x,  # temperatures
+                "T_eff": C.y,  # Table of effective temperatures (K) for the shortcollision-time approximation
                 })
         add_efective_temp[0] = add_2
         add['effective T'] = add_efective_temp
         if NS >= 1 and B[6] == 0:
             C, i = sandy.read_tab1(df, i)
             add_2 = ({
-                "NR": C.NBT,
-                "NP": C.INT,
-                "TINT": C.x,
-                "T_eff": C.y,
+                "NR": C.NBT,  # Number of interpolation ranges for alpha and beta
+                "NP": C.INT,  # Number of temperatures
+                "TINT": C.x,  # temperatures (K)
+                "T_eff": C.y,  # Table of effective temperatures (K) for the shortcollision-time approximation
                 })
             add['effective T'][1] = add_2
             if NS >= 2 and B[12] == 0:
                 C, i = sandy.read_tab1(df, i)
                 add_2 = ({
-                        "NR": C.NBT,
-                        "NP": C.INT,
-                        "TINT": C.x,
-                        "T_eff": C.y,
+                        "NR": C.NBT,  # Number of interpolation ranges for alpha and beta
+                        "NP": C.INT,  # Number of temperatures
+                        "TINT": C.x,  # temperatures
+                        "T_eff": C.y,  # Table of effective temperatures (K) for the shortcollision-time approximation
                         })
                 add['effective T'][2] = add_2
             if NS == 3 and B[18] == 0:
                 C, i = sandy.read_tab1(df, i)
                 add_2 = ({
-                        "NR": C.NBT,
-                        "NP": C.INT,
-                        "TINT": C.x,
-                        "T_eff": C.y,
+                        "NR": C.NBT,  # Number of interpolation ranges for alpha and beta
+                        "NP": C.INT,  # Number of temperatures
+                        "TINT": C.x,  # temperatures (K)
+                        "T_eff": C.y,  # Table of effective temperatures (K) for the shortcollision-time approximation
                         })
                 add['effective T'][3] = add_2
         out.update(add)
@@ -307,7 +307,7 @@ def _write_elastic_scattering(sec):
     Parameters
     ----------
     sec : 'dict'
-        Multiline string reproducing the content of a ENDF-6 section.
+        Content of the ENDF-6 tape structured as nested `dict`.
 
     Returns
     -------
@@ -320,9 +320,6 @@ def _write_elastic_scattering(sec):
     >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26)
     >>> sec = sandy.sections.mf7._read_elastic_scattering(tls, 26, 2)
     >>> assert len(_write_elastic_scattering(sec)) == len(tls.data[(26, 7, 2)])
-
-    This test is also check:
-    >>> #assert print(_write_elastic_scattering(sec)) == print(tls.data[(26, 7, 2)])
 
     Incoherent elastic scattering:
     >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 10)
@@ -381,7 +378,7 @@ def _write_inelastic_scattering(sec):
     Parameters
     ----------
     sec : 'dict'
-        Multiline string reproducing the content of a ENDF-6 section.
+        Content of the ENDF-6 tape structured as nested `dict`.
 
     Returns
     -------
@@ -394,9 +391,6 @@ def _write_inelastic_scattering(sec):
     >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26)
     >>> sec = sandy.sections.mf7._read_incoherent_inelastic(tls, 26, 4)
     >>> assert len(_write_inelastic_scattering(sec)) == len(tls.data[(26, 7, 4)])
-
-    This test is also check: 
-    >>> # assert print(_write_inelastic_scattering(sec)) == print(tls.data[(26, 7, 4)])
     """
     lines = sandy.write_cont(sec["ZA"],
                              sec["AWR"],
