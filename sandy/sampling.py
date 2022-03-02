@@ -761,9 +761,9 @@ def extract_samples(ftape, covtape):
 
 def sampling_csv33(ftape, csv):
     cov = sandy.CategoryCov.from_csv(csv)
-    return sandy.XsCov(cov).get_samples(
-            init.samples,
-            eig=init.eig,
+    return cov.get_samples(
+            init.samples,  # nsmp
+            tolerance=0,
             seed=init.seed33
             )
 
