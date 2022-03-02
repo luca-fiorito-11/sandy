@@ -465,11 +465,10 @@ def _sampling_mp(ismp, skip_title=False, skip_fend=False):
     mat = tape.mat[0]
     newtape = Endf6(tape.copy())
     extra_points = np.logspace(-5, 7, init.energy_sequence)
-    if not pxs.data.empty:
+    if not pxs.empty:
         xs = newtape.get_xs()
         if not xs.empty:
-            ind = ismp - 1
-            xspert = xs.perturb(pxs.data.iloc[ind])
+            xspert = xs.perturb(pxs[ismp])
             newtape = newtape.update_xs(xspert)
     if not pnu.empty:
         nubar = newtape.get_nubar()
@@ -754,10 +753,7 @@ def extract_samples(ftape, covtape):
         covtype = covtape.get_file_format()
         xscov = XsCov.from_errorr(covtape) if covtype == "errorr" else XsCov.from_endf6(covtape)
         if not xscov.empty:
-            PertXs = sandy.CategoryCov(xscov).sampling(
-                                                        init.samples,
-                                                        tolerance=0,
-                                                        seed=init.seed33)
+            PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
             if init.debug:
                 PertXs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
     return ftape, covtape, PertNubar, PertXs, PertLpc, PertEdistr, PertFy
@@ -823,7 +819,7 @@ def sampling(iargs=None):
         covtape = read_formatted_file(init.cov) if init.cov else ftape
         ftape, covtape, pnu, pxs, plpc, pchi, pfy = extract_samples(ftape, covtape)
     df = {}
-    if pnu.empty and pxs.data.empty and plpc.empty and pchi.empty and pfy.empty:
+    if pnu.empty and pxs.empty and plpc.empty and pchi.empty and pfy.empty:
         logging.warn("no covariance section was selected/found")
         return ftape, covtape, df
     # APPLY PERTURBATIONS BY MAT
