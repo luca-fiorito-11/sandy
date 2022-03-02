@@ -373,5 +373,5 @@ def write_eol(lines, mat, mf, mt, istart=1):
     This function does not check if the strings are in ENDF-6 format
     or longer than 66 characters.
     """
-    ilines = line_numbers(len(lines), istart=istart)
+    ilines = line_numbers(len(lines))
     return [write_line(string, mat, mf, mt, iline) for string, iline in zip(lines, ilines)]
