@@ -26,6 +26,7 @@ __all__ = [
         "corr2cov",
         "random_corr",
         "random_cov",
+        "sample_distribution",
         ]
 
 S = np.array([[1, 1, 1],
@@ -509,11 +510,11 @@ class CategoryCov():
         M_inv = M_inv.reindex(index=index, columns=columns).fillna(0)
         return self.__class__(M_inv)
 
-    def get_perturbation_coeff(self, nsmp, seed=None, rows=None, pdf='normal',
+    def sampling(self, nsmp, seed=None, rows=None, pdf='normal',
                                tolerance=None, relative=True):
         """
-        Extract perturbation coefficients according to chosed distribution with
-        covariance from given covariance matrix (self).
+        Extract perturbation coefficients according to chosen distribution with
+        covariance from given covariance matrix.
         The samples' mean will be 1 or 0 depending on `relative` kwarg.
 
         Parameters
@@ -548,62 +549,62 @@ class CategoryCov():
         Examples
         --------
         Draw 3 sets of samples using custom seed:
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).get_perturbation_coeff(3, seed=11)
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11)
                      0            1
         0 -7.49455e-01 -2.13159e+00
         1  1.28607e+00  1.10684e+00
         2  1.48457e+00  9.00879e-01
 
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).get_perturbation_coeff(3, seed=11, rows=1)
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, rows=1)
                      0            1
         0 -7.49455e-01 -2.13159e+00
         1  1.28607e+00  1.10684e+00
         2  1.48457e+00  9.00879e-01
 
-        >>> sample = sandy.CategoryCov([[1, 0.4],[0.4, 1]]).get_perturbation_coeff(1000000, seed=11)
+        >>> sample = sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(1000000, seed=11)
         >>> sample.data.cov()
                     0           1
         0 9.98662e-01 3.99417e-01
         1 3.99417e-01 9.98156e-01
 
         Small negative eigenvalue:
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_perturbation_coeff(3, seed=11, tolerance=0)
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11, tolerance=0)
                      0           1
         0 -8.92988e-01 4.06292e+00
         1  1.30954e+00 4.99148e-01
         2  1.52432e+00 1.51631e-01
 
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_perturbation_coeff(1000000, seed=11, tolerance=0).data.cov()
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, tolerance=0).data.cov()
                      0            1
         0  1.16925e+00 -1.89189e+00
         1 -1.89189e+00  3.06115e+00
 
         Custom distribution:
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_perturbation_coeff(3, seed=11, pdf='lognormal', tolerance=0)
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11, pdf='lognormal', tolerance=0)
                      0           1
         0 -1.20108e+00 4.56142e+00
         1  1.47908e+00 2.24836e-01
         2  1.57092e+00 7.62269e-02
 
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_perturbation_coeff(3, seed=11, pdf='uniform', tolerance=0)
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11, pdf='uniform', tolerance=0)
                     0            1
         0 2.19845e+00 -9.39131e-01
         1 2.80116e+00 -1.91433e+00
         2 1.13787e+00  7.76924e-01
 
         `relative` kwarg usage:
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_perturbation_coeff(1000000, seed=11, pdf='uniform', tolerance=0, relative=True).data.mean(axis=0)
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=True).data.mean(axis=0)
         0   1.00205e+00
         1   9.96685e-01
         dtype: float64
 
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_perturbation_coeff(1000000, seed=11, pdf='uniform', tolerance=0, relative=False).data.mean(axis=0)
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=False).data.mean(axis=0)
         0    2.04904e-03
         1   -3.31541e-03
         dtype: float64
         """
         dim = self.data.shape[0]
-        y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf)
+        y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf) - 1
         y = sps.csc_matrix(y)
         L = sps.csr_matrix(self.get_L(rows=rows, tolerance=tolerance))
         samples = L.dot(y).toarray()
@@ -2335,7 +2336,7 @@ def triu_matrix(matrix, kind='upper'):
 def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
     """
     Extract random samples according to the chosen distribution with standard
-    deviation=1 and mean=0.
+    deviation=1 and mean=1.
 
     Parameters
     ----------
@@ -2361,37 +2362,58 @@ def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
     Examples
     --------
     >>> sandy.cov.sample_distribution(2, 3, seed=11)
-    array([[ 1.74945474, -0.286073  , -0.48456513],
-           [-2.65331856, -0.00828463, -0.31963136]])
+    array([[ 2.74945474,  0.713927  ,  0.51543487],
+           [-1.65331856,  0.99171537,  0.68036864]])
 
     >>> sandy.cov.sample_distribution(2, 3, seed=11, pdf='lognormal')
-    array([[ 2.03418551, -0.44275205, -0.5276337 ],
-           [-0.92235485, -0.29775364, -0.45810561]])
+    array([[3.03418551, 0.55724795, 0.4723663 ],
+           [0.07764515, 0.70224636, 0.54189439]])
 
     >>> sandy.cov.sample_distribution(2, 3, seed=11, pdf='uniform')
-    array([[-1.10757829, -1.66458659, -0.12741476],
-           [ 0.77919399, -0.27642282, -0.05048201]])
+    array([[-0.10757829, -0.66458659,  0.87258524],
+           [ 1.77919399,  0.72357718,  0.94951799]])
 
     >>> sandy.cov.sample_distribution(2, 1000000, seed=11).mean().round(5)
-    0.00025
+    1.00025
 
     >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='lognormal').mean().round(5)
-    -0.00047
+    0.99953
 
     >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='uniform').mean().round(5)
-    -0.00115
+    0.99885
+
+    >>> sandy.cov.sample_distribution(2, 1000000, seed=11).std().round(5)
+    0.99919
+
+    >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='lognormal').std().round(5)
+    0.99756
+
+    >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='uniform').std().round(5)
+    1.00038
+
+    >>> np.corrcoef(sandy.cov.sample_distribution(2, 1000000, seed=11)).round(5)
+    array([[1.e+00, 5.e-05],
+           [5.e-05, 1.e+00]])
+
+    >>> np.corrcoef(sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='lognormal')).round(5)
+    array([[ 1.0e+00, -2.6e-04],
+           [-2.6e-04,  1.0e+00]])
+
+    >>> np.corrcoef(sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='uniform')).round(5)
+    array([[ 1.0e+00, -9.2e-04],
+           [-9.2e-04,  1.0e+00]])
     """
     np.random.seed(seed=seed)
     if pdf == 'normal':
-        y = np.random.randn(dim, nsmp)
+        y = np.random.randn(dim, nsmp) + 1
     elif pdf == 'lognormal':
         sl = ml = 1  # target std and mean of lognormal distribution
         mn = 2 * np.log(ml) - .5 * np.log(sl**2 + np.exp(2 * np.log(ml)))
         sn = np.sqrt(2 * (np.log(ml) - mn))
-        y = np.random.lognormal(mn, sn, (dim, nsmp)) - ml
+        y = np.random.lognormal(mn, sn, (dim, nsmp))
     elif pdf == 'uniform':
         a = np.sqrt(12) / 2
-        y = np.random.uniform(-a, a, (dim, nsmp))
+        y = np.random.uniform(-a, a, (dim, nsmp)) + 1
     return y
 
 
