@@ -465,10 +465,11 @@ def _sampling_mp(ismp, skip_title=False, skip_fend=False):
     mat = tape.mat[0]
     newtape = Endf6(tape.copy())
     extra_points = np.logspace(-5, 7, init.energy_sequence)
-    if not pxs.empty:
+    if not pxs.data.empty:
         xs = newtape.get_xs()
         if not xs.empty:
-            xspert = xs.perturb(pxs[ismp])
+            ind = ismp - 1
+            xspert = xs.perturb(pxs.data.iloc[ind])
             newtape = newtape.update_xs(xspert)
     if not pnu.empty:
         nubar = newtape.get_nubar()
@@ -822,7 +823,7 @@ def sampling(iargs=None):
         covtape = read_formatted_file(init.cov) if init.cov else ftape
         ftape, covtape, pnu, pxs, plpc, pchi, pfy = extract_samples(ftape, covtape)
     df = {}
-    if pnu.empty and pxs.empty and plpc.empty and pchi.empty and pfy.empty:
+    if pnu.empty and pxs.data.empty and plpc.empty and pchi.empty and pfy.empty:
         logging.warn("no covariance section was selected/found")
         return ftape, covtape, df
     # APPLY PERTURBATIONS BY MAT

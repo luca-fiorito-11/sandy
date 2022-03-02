@@ -305,7 +305,7 @@ class Xs(pd.DataFrame):
                     P = P.where(P<2, 2.0)
                 elif method == 1:
                     P = P.where((P>0) & (P<2), 1.0)
-                xs = frame[mat,mt].multiply(P, axis="index")
+                xs = frame[mat,mt].multiply(P.rename((mat, mt)), axis="index")
                 frame[mat,mt] = xs
         return Xs(frame).reconstruct_sums()
 
