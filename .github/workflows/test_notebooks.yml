@@ -46,6 +46,7 @@ jobs:
           jupyter nbconvert --to notebook --execute notebook_h1_xs_cov_matrix.ipynb --output executed_notebooks
       - name: Pushes to another repository
         id: push_directory
+        uses: luca-fiorito-11/sandy@develop
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
