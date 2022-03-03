@@ -43,8 +43,8 @@ jobs:
           git clone https://github.com/luca-fiorito-11/sandy_notebooks.git
           cd sandy_notebooks
           mkdir executed_notebooks
-          cd executed_notebooks
-          jupyter nbconvert --to notebook --execute ../notebook_h1_xs_cov_matrix.ipynb --ExecutePreprocessor.kernel_name='python3' --output notebook_h1_xs_cov_matrix_executed
+          jupyter nbconvert --to notebook --execute notebook_h1_xs_cov_matrix.ipynb --ExecutePreprocessor.kernel_name='python3' --output notebook_h1_xs_cov_matrix_executed
+          mv notebook_h1_xs_cov_matrix_executed.ipynb executed_notebooks/
       - name: Pushes to another repository
         id: push_directory
         uses: cpina/github-action-push-to-another-repository@main
