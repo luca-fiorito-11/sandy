@@ -39,4 +39,19 @@ jobs:
       - name: install sandy
         run: python setup.py install --user
       - name: run notebooks
-        run: git clone https://github.com/luca-fiorito-11/sandy_notebooks.git && cd sandy_notebooks && pytest notebook_h1_xs_cov_matrix.ipynb
+        run: |
+          git clone https://github.com/luca-fiorito-11/sandy_notebooks.git
+          cd sandy_notebooks
+          mkdir executed_notebooks
+          jupyter nbconvert --to notebook --execute notebook_h1_xs_cov_matrix.ipynb --output executed_notebooks
+      - name: Pushes to another repository
+        id: push_directory
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: sandy_notebooks/executed_notebooks/
+          destination-github-username: 'luca-fiorito-11'
+          destination-repository-name: 'push_test2'
+          user-email: lucafiorito@gmail.com
+          commit-message: pushing notebooks...
+          target-branch: develop
