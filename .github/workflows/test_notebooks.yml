@@ -10,9 +10,6 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-    inputs:
-        tags:
-          description: 'Test scenario tags'  
 
 env:
   NJOY: ${GITHUB_WORKSPACE}/NJOY2016/build/njoy
