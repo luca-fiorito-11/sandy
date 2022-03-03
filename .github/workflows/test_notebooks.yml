@@ -50,7 +50,7 @@ jobs:
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
-          source-directory: executed_notebooks/
+          source-directory: notebooks/executed_notebooks/
           destination-github-username: 'luca-fiorito-11'
           destination-repository-name: 'sandy_notebooks'
           user-email: lucafiorito.11@gmail.com
