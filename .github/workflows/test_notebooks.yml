@@ -39,4 +39,4 @@ jobs:
       - name: install sandy
         run: python setup.py install --user
       - name: run notebooks
-        run: git clone https://github.com/luca-fiorito-11/sandy_notebooks.git && cd sandy_notebooks && pytest
+        run: git clone https://github.com/luca-fiorito-11/sandy_notebooks.git && cd sandy_notebooks && pytest notebook_h1_xs_cov_matrix.ipynb
