@@ -347,11 +347,15 @@ def line_numbers(length):
     >>> np.array(line_numbers(1.0e6+1)).min()
     1
     >>> np.array(line_numbers(1.0e4+1)).max()
-    10002
+    10001
+    >>> len(sandy.records.line_numbers(1.0e6))
+    1000000
+    >>> len(sandy.records.line_numbers(1.0e6+1))
+    1000001
     """
     iend = 1 + length
     ilines = np.tile(np.arange(1, 1e5, dtype=int), int(iend//99999)+1)
-    return ilines[:int(iend)].tolist()
+    return ilines[:int(length)].tolist()
 
 
 def write_line(string, mat, mf, mt, iline):
