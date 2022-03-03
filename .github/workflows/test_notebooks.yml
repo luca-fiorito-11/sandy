@@ -40,20 +40,19 @@ jobs:
         run: python setup.py install --user
       - name: run notebooks
         run: |
-          git clone https://github.com/luca-fiorito-11/sandy_notebooks.git
-          cd sandy_notebooks
+          cd notebooks
           mkdir executed_notebooks
-          jupyter nbconvert --to notebook --execute notebook_h1_xs_cov_matrix.ipynb --ExecutePreprocessor.kernel_name='python3' --output notebook_h1_xs_cov_matrix_executed
-          mv notebook_h1_xs_cov_matrix_executed.ipynb executed_notebooks/
+          jupyter nbconvert --to notebook --execute *.ipynb --ExecutePreprocessor.kernel_name='python3' --inplace
+          mv *.ipynb executed_notebooks/
       - name: Pushes to another repository
         id: push_directory
         uses: cpina/github-action-push-to-another-repository@main
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
-          source-directory: sandy_notebooks/executed_notebooks/
+          source-directory: executed_notebooks/
           destination-github-username: 'luca-fiorito-11'
-          destination-repository-name: 'push_test2'
+          destination-repository-name: 'sandy_notebooks'
           user-email: lucafiorito.11@gmail.com
           commit-message: pushing notebooks...
-          target-branch: develop
+          target-branch: executed_notebooks
