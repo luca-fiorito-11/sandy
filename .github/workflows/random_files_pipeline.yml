@@ -6,7 +6,7 @@ on:
       library:
         description: 'ND library'
         required: true
-        default: 'jeff_33' 
+        default: 'JEFF-3.3' 
         type: choice
         options:
         - ENDF/B-7.1
@@ -59,7 +59,11 @@ jobs:
         run: pip install -r requirements.txt
       - name: install sandy
         run: python setup.py install --user
-      - name: aa
+      - name: produce random files
         run: |
           python .github/workflows/random_files_pipeline.py ${{ github.event.inputs.library }} ${{ github.event.inputs.nuclide }} ${{ github.event.inputs.temperature }} ${{ github.event.inputs.format }} ${{ github.event.inputs.samples }}
 
+      - uses: actions/upload-artifact@v3
+        with:
+          name: random_files
+          path: random_files
