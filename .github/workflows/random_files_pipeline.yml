@@ -9,8 +9,8 @@ on:
         default: 'JEFF-3.3' 
         type: choice
         options:
-        - ENDF/B-7.1
-        - ENDF/B-8.0
+        - ENDFB-7.1
+        - ENDFB-8.0
         - JEFF-3.2
         - JEFF-3.3
         - JENDL-4.0u
