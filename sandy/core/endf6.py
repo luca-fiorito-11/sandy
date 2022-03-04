@@ -1525,3 +1525,29 @@ If you want to process 0K cross sections use `temperature=0.1`.
             if to_file:
                 shutil.move(errorrfile, to_file)
         return errorr
+
+    def get_gendf(self,
+                  temperature=0,
+                  **kwargs):
+        if float(temperature) == 0:
+            kwargs["broadr"] = False
+            kwargs["thermr"] = False
+            kwargs["gaspr"] = False
+            kwargs["heatr"] = False
+            kwargs["purr"] = False
+            kwargs["unresr"] = False
+            kwargs["acer"] = False
+            kwargs["errorr"] = False
+
+        with TemporaryDirectory() as td:
+            endf6file = os.path.join(td, "endf6_file")
+            self.to_file(endf6file)
+            outputs = sandy.njoy.process(
+                    endf6file,
+                    verbose=verbose,
+                    temperatures=[temperature],
+                    suffixes=[0],
+                    err=err,
+                    **kwargs,
+                    )[2]  # keep only pendf filename
+        return

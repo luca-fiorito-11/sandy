@@ -691,6 +691,19 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     return "\n".join(text) + "\n"
 
 
+def _groupr_input(endfin, pendfin, mat,
+                  ign=2, igg=0, iwt=2, lord=0,
+                  temp=NJOY_TEMPERATURES[0],
+                  iprint=False):
+    text = ["groupr"]
+    text += [f"{endfin:d} {pendfin:d} 0 0 /"]
+    printflag = int(iprint)
+    text += [f"{mat:d} {ign:d} {igg:d} {iwt:d} {lord:d} 10e10 {printflag:d} /"]
+    text += ["/"]
+    text += ["{temp:.1f} /"]
+    return "\n".join(text) + "\n"
+
+
 def _run_njoy(text, inputs, outputs, exe=None):
     """
     Run njoy executable for given input.
@@ -748,6 +761,7 @@ def process(
         gaspr=True,
         purr=True,
         errorr=False,
+        groupr=False,
         acer=True,
         wdir="",
         dryrun=False,
@@ -902,6 +916,9 @@ def process(
                 wdir,
                 f"{outprefix}{tag}{suff}.errorr",
                 )
+    if groupr:
+        # No se si estará bien
+        text += _errorr_input(-e, -p, o, **kwargs)
     if acer:
         for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
             a = 50 + i
