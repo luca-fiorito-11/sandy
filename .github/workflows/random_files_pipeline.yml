@@ -65,5 +65,6 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: random_files
+          name: ${{ github.actor }}_${{github.event.inputs.library }}_${{ github.event.inputs.nuclide }}${{ github.event.inputs.temperature }}_${{ github.event.inputs.format }}_${{ github.event.inputs.samples }}
           path: random_files
+          retention-days: 1
