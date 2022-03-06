@@ -1528,6 +1528,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
     def get_gendf(self,
                   temperature=0,
+                  to_file=None,
                   verbose=False,
                   **kwargs):
         if float(temperature) == 0:
@@ -1551,4 +1552,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
                     suffixes=[0],
                     **kwargs,
                     )[2]  # keep only pendf filename
-        return
+            gendf_file = outputs["tape33"]
+            gendf = sandy.Errorr.from_file(gendf_file)
+            if to_file:
+                shutil.move(gendf_file, to_file)
+        return gendf

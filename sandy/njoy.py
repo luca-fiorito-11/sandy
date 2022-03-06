@@ -694,13 +694,15 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
 def _groupr_input(endfin, pendfin, mat,
                   ign=2, igg=0, iwt=2, lord=0,
                   temp=NJOY_TEMPERATURES[0],
-                  iprint=False):
+                  iprint=False,
+                  **kwargs):
     text = ["groupr"]
     text += [f"{endfin:d} {pendfin:d} 0 0 /"]
     printflag = int(iprint)
     text += [f"{mat:d} {ign:d} {igg:d} {iwt:d} {lord:d} 10e10 {printflag:d} /"]
     text += ["/"]
-    text += ["{temp:.1f} /"]
+    text += [f"{temp:.1f} /"]
+    text += ["0 /"]
     return "\n".join(text) + "\n"
 
 
@@ -918,7 +920,7 @@ def process(
                 )
     if groupr:
         # No se si estará bien
-        text += _errorr_input(-e, -p, o, **kwargs)
+        text += _groupr_input(-e, -p, **kwargs)
     if acer:
         for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
             a = 50 + i
