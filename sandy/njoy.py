@@ -331,8 +331,8 @@ def _broadr_input(endfin, pendfin, pendfout, mat,
     ntemps = len(temperatures)
     text += [f"{mat:d} {ntemps:d} 0 0 0. /"]
     text += [f"{err} /"]
-    text += [" ".join(map("{:.1f}".format, temperatures)) + " /"]
-    text += ["0 /"]
+    text += [" ".join(map("{:.1f}".format, temperatures)) + "/"]
+    text += ["0/"]
     return "\n".join(text) + "\n"
 
 
@@ -691,18 +691,56 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     return "\n".join(text) + "\n"
 
 
-def _groupr_input(endfin, pendfin, mat,
-                  ign=2, igg=0, iwt=2, lord=0,
-                  temp=NJOY_TEMPERATURES[0],
+def _groupr_input(endfin, pendfin, pendfout, mat,
+                  ign=2, igg=0, iwt=2, lord=0, nsigz=1,
+                  temp=NJOY_TEMPERATURES,
                   iprint=False,
                   **kwargs):
+    """
+    Write GROUPR input
+
+    Parameters
+    ----------
+    endfin : `int`
+        tape number for input ENDF-6 file
+    pendfin : `int`
+        tape number for input PENDF file
+    pendfout : `int`
+        tape number for output PENDF file
+    mat : `int`
+        MAT number
+    ign : `int`, optional
+        neutron group option (default is 2, csewg 239-group structure)
+    igg : `int`, optional
+        gamma group option. (default is 0, no structure)
+    iwt : `int`, optional
+        weight function option (default is 2, constant)
+    lord : TYPE, optional
+        Legendre order. The default is 0.
+    nsigz : TYPE, optional
+        Number of sigma zeroes. The default is 1.
+    temp : terable of `float`
+        iterable of temperature values in K (default is 293.6 K)
+    iprint : `bool`, optional
+        print option (default is `False`)
+
+    Returns
+    -------
+    `str`
+        groupr input text
+
+    """
     text = ["groupr"]
-    text += [f"{endfin:d} {pendfin:d} 0 0 /"]
+    text += [f"{endfin:d} {pendfin:d} 0 {pendfout:d} /"]
+    ntemp = len(temp)
     printflag = int(iprint)
-    text += [f"{mat:d} {ign:d} {igg:d} {iwt:d} {lord:d} 10e10 {printflag:d} /"]
+    text += [f"{mat:d} {ign:d} {igg:d} {iwt:d} {lord:d} {ntemp:d} {nsigz:d} {printflag:d} /"]
     text += ["/"]
-    text += [f"{temp:.1f} /"]
-    text += ["0 /"]
+    text += [" ".join(map("{:.1f}".format, temp)) + "/"]
+    text += ["1e+10/"]
+    text += ["3/"]
+    text += ["0/"]
+    text += ["0/"]
     return "\n".join(text) + "\n"
 
 
@@ -908,6 +946,16 @@ def process(
             wdir,
             f"{outprefix}{tag}.pendf",
             )
+    if groupr:
+        o = p + 1
+        text += _groupr_input(-e, -p, -o, **kwargs)
+        p = o
+        o = 35
+        text += _moder_input(-p, o)
+        outputs[f"tape{o}"] = join(
+            wdir,
+            f"{outprefix}{tag}.gendf",
+            )
     if errorr:
         for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
             o = 33 + i
@@ -918,9 +966,6 @@ def process(
                 wdir,
                 f"{outprefix}{tag}{suff}.errorr",
                 )
-    if groupr:
-        # No se si estará bien
-        text += _groupr_input(-e, -p, **kwargs)
     if acer:
         for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
             a = 50 + i
