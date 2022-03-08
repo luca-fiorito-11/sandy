@@ -331,8 +331,8 @@ def _broadr_input(endfin, pendfin, pendfout, mat,
     ntemps = len(temperatures)
     text += [f"{mat:d} {ntemps:d} 0 0 0. /"]
     text += [f"{err} /"]
-    text += [" ".join(map("{:.1f}".format, temperatures)) + "/"]
-    text += ["0/"]
+    text += [" ".join(map("{:.1f}".format, temperatures)) + " /"]
+    text += ["0 /"]
     return "\n".join(text) + "\n"
 
 

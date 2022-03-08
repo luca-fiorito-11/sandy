@@ -1500,7 +1500,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         >>> assert os.path.isfile('out.err')
         
         """
-        if float(temperature) != 0:
+        if float(temperature) == 0:
             kwargs["broadr"] = False
             kwargs["thermr"] = False
             kwargs["gaspr"] = False
