@@ -1598,8 +1598,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
         -21 -22 -23 /
         9443 1 0 0 0. /
         0.005 /
-        293.6/
-        0/
+        293.6 /
+        0 /
         groupr
         -21 -23 0 -24 /
         9443 2 0 2 0 1 1 0 /
