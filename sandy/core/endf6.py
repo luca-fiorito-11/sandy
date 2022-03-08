@@ -1634,7 +1634,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
                     **kwargs,
                     )[2]  # keep only gendf filename
             gendf_file = outputs["tape35"]
-            gendf = sandy.Errorr.from_file(gendf_file)
+            groupr = sandy.Groupr.from_file(gendf_file)
             if to_file:
                 shutil.move(gendf_file, to_file)
-        return gendf
+        return groupr
