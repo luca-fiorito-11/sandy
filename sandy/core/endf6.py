@@ -1529,6 +1529,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
     def get_gendf(self,
                   temperature=293.6,
                   njoy=None,
+                  errorr=False,
                   to_file=None,
                   verbose=False,
                   err=0.005,
@@ -1538,14 +1539,14 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         Parameters
         ----------
-        temperature : `float`, optional, default is `0`.
+        temperature : `float`, optional, default is `293.6`.
             temperature of the cross sections in K.
             If not given, stop the processing after RECONR (before BROADR).
         njoy : `str`, optional, default is `None`
             NJOY executable, if `None` search in the system path.
         to_file : `str`, optional, default is `None`
             if not `None` write processed ERRORR data to file.
-            The name of the ERRORR file is the keyword argument.
+            The name of the GENDF file is the keyword argument.
         verbose : `bool`, optional, default is `False`
             flag to print NJOY input file to screen before running the
             executable.
@@ -1566,16 +1567,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
         ---------------------
         ign : `int`, optional
             neutron group option (default is 2, csewg 239-group structure)
-        igg : `int`, optional
-            gamma group option. (default is 0, no structure)
         iwt : `int`, optional
             weight function option (default is 2, constant)
-        lord : TYPE, optional
-            Legendre order. The default is 0.
-        nsigz : TYPE, optional
-            Number of sigma zeroes. The default is 1.
-        iprint : `bool`, optional
-            print option (default is `False`)
+        sigz : iterable of `float`
+            sigma zero values. The default is 1.0e10.
 
         Returns
         -------
@@ -1584,33 +1579,160 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         Examples
         --------
-        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 942410)
+        Default temperature test:
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> out = endf6.get_gendf(verbose=True)
         moder
         20 -21 /
         reconr
         -21 -22 /
         'sandy runs njoy'/
-        9443 0 0 /
+        125 0 0 /
         0.005 0. /
         0/
         broadr
         -21 -22 -23 /
-        9443 1 0 0 0. /
+        125 1 0 0 0. /
         0.005 /
         293.6 /
         0 /
         groupr
         -21 -23 0 -24 /
-        9443 2 0 2 0 1 1 0 /
+        125 2 0 2 0 1 1 0 /
         /
         293.6/
-        1e+10/
+        10000000000.0/
         3/
         0/
         0/
         moder
-        -24 35 /
+        -24 32 /
+        stop
+
+        Test various sigz:
+        >>> out = endf6.get_gendf(verbose=True, sigz=[1.0e10, 1.0e10])
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 2 0 2 0 1 2 0 /
+        /
+        293.6/
+        10000000000.0 10000000000.0/
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        Test iwt:
+        >>> out = endf6.get_gendf(verbose=True, iwt=3)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 2 0 3 0 1 1 0 /
+        /
+        293.6/
+        10000000000.0/
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        Test ign:
+        >>> out = endf6.get_gendf(verbose=True, ign=3)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 3 0 2 0 1 1 0 /
+        /
+        293.6/
+        10000000000.0/
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        Test `to_file`
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> out = endf6.get_errorr(to_file="out.gendf")
+        >>> assert os.path.isfile('out.gendf')
+
+        Error and groupr:
+        >>> out = endf6.get_gendf(verbose=True, temperature=300.0, errorr=True)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        300.0 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 2 0 2 0 1 1 0 /
+        /
+        300.0/
+        10000000000.0/
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        errorr
+        -21 -23 0 33 0 /
+        125 2 2 0 1 /
+        0 300.0 /
+        0 33 /
         stop
         """
         kwargs["thermr"] = False
@@ -1619,7 +1741,6 @@ If you want to process 0K cross sections use `temperature=0.1`.
         kwargs["purr"] = False
         kwargs["unresr"] = False
         kwargs["acer"] = False
-        kwargs["errorr"] = False
         kwargs["keep_pendf"] = False
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
@@ -1628,12 +1749,14 @@ If you want to process 0K cross sections use `temperature=0.1`.
                     endf6file,
                     groupr=True,
                     broadr=True,
+                    errorr=errorr,
                     verbose=verbose,
                     err=err,
                     temperatures=[temperature],
+                    suffixes=[0],
                     **kwargs,
                     )[2]  # keep only gendf filename
-            gendf_file = outputs["tape35"]
+            gendf_file = outputs["tape32"]
             groupr = sandy.Groupr.from_file(gendf_file)
             if to_file:
                 shutil.move(gendf_file, to_file)

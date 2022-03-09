@@ -692,8 +692,8 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
 
 
 def _groupr_input(endfin, pendfin, pendfout, mat,
-                  ign=2, igg=0, iwt=2, lord=0, nsigz=1,
-                  temp=NJOY_TEMPERATURES,
+                  ign=2, igg=0, iwt=2, lord=0, sigz=[1e+10],
+                  temp=NJOY_TEMPERATURES[0],
                   iprint=False,
                   **kwargs):
     """
@@ -715,11 +715,11 @@ def _groupr_input(endfin, pendfin, pendfout, mat,
         gamma group option. (default is 0, no structure)
     iwt : `int`, optional
         weight function option (default is 2, constant)
-    lord : TYPE, optional
+    lord : `int`, optional
         Legendre order. The default is 0.
-    nsigz : TYPE, optional
-        Number of sigma zeroes. The default is 1.
-    temp : terable of `float`
+    sigz : iterable of `float`
+        sigma zero values. The default is 1.0e10.
+    temp : iterable of `float`
         iterable of temperature values in K (default is 293.6 K)
     iprint : `bool`, optional
         print option (default is `False`)
@@ -732,12 +732,12 @@ def _groupr_input(endfin, pendfin, pendfout, mat,
     """
     text = ["groupr"]
     text += [f"{endfin:d} {pendfin:d} 0 {pendfout:d} /"]
-    ntemp = len(temp)
+    nsigz = len(sigz)
     printflag = int(iprint)
-    text += [f"{mat:d} {ign:d} {igg:d} {iwt:d} {lord:d} {ntemp:d} {nsigz:d} {printflag:d} /"]
+    text += [f"{mat:d} {ign:d} {igg:d} {iwt:d} {lord:d} 1 {nsigz:d} {printflag:d} /"]
     text += ["/"]
-    text += [" ".join(map("{:.1f}".format, temp)) + "/"]
-    text += ["1e+10/"]
+    text += [f"{temp:.1f}/"]
+    text += [" ".join(map("{:.1f}".format, sigz)) + "/"]
     text += ["3/"]
     text += ["0/"]
     text += ["0/"]
@@ -947,11 +947,11 @@ def process(
             f"{outprefix}{tag}.pendf",
             )
     if groupr:
-        o = p + 1
-        text += _groupr_input(-e, -p, -o, **kwargs)
-        p = o
-        o = 35
-        text += _moder_input(-p, o)
+        v = p + 1
+        kwargs["temp"] = temperatures[0]
+        text += _groupr_input(-e, -p, -v, **kwargs)
+        o = 32
+        text += _moder_input(-v, o)
         outputs[f"tape{o}"] = join(
             wdir,
             f"{outprefix}{tag}.gendf",
