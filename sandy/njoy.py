@@ -591,7 +591,7 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
     return "\n".join(text) + "\n"
 
 
-def _errorr_input(endfin, pendfin, errorrout, mat,
+def _errorr_input(endfin, pendfin, errorrout, mat, ngout=0,
                   ign=2, ek=None,
                   iwt=2,
                   temp=NJOY_TEMPERATURES[0],
@@ -606,6 +606,8 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
         tape number for input ENDF-6 file
     pendfin : `int`
         tape number for input PENDF file
+    ngout : `int`
+        tape number for input GENDF file (default is 0, no gendf tape)
     errorrout : `int`
         tape number for output ERRORR file
     mat : `int`
@@ -624,7 +626,7 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     Returns
     -------
     `str`
-        acer input text
+        errorr input text
 
     Examples
     --------
@@ -679,7 +681,7 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     if ek is not None:
         ign = 1
     text = ["errorr"]
-    text += [f"{endfin:d} {pendfin:d} 0 {errorrout:d} 0 /"]
+    text += [f"{endfin:d} {pendfin:d} {ngout:d} {errorrout:d} 0 /"]
     printflag = int(iprint)
     text += [f"{mat:d} {ign:d} {iwt:d} {printflag:d} 1 /"]
     text += [f"{printflag:d} {temp:.1f} /"]
@@ -729,6 +731,55 @@ def _groupr_input(endfin, pendfin, pendfout, mat,
     `str`
         groupr input text
 
+    Examples
+    --------
+    Default test without keyword arguments
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237))
+    groupr
+    20 21 0 22 /
+    9237 2 0 2 0 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    3/
+    0/
+    0/
+
+    Test argument `temp`
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9440, temp=600))
+    groupr
+    20 21 0 22 /
+    9440 2 0 2 0 1 1 0 /
+    /
+    600.0/
+    10000000000.0/
+    3/
+    0/
+    0/
+
+    Test argument `iwt`
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, iwt=6))
+    groupr
+    20 21 0 22 /
+    9237 2 0 6 0 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    3/
+    0/
+    0/
+
+    Test argument `ign`
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, ign=3))
+    groupr
+    20 21 0 22 /
+    9237 3 0 2 0 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    3/
+    0/
+    0/
     """
     text = ["groupr"]
     text += [f"{endfin:d} {pendfin:d} 0 {pendfout:d} /"]
@@ -846,6 +897,8 @@ def process(
         option to run module gapr
     purr : `bool`, optional, default is `True`
         option to run module purr
+    groupr : `bool`, optional, default is `False`
+        option to run module groupr
     errorr : `bool`, optional, default is `False`
         option to run module errorr
     acer : `bool`, optional, default is `True`
@@ -951,12 +1004,17 @@ def process(
         kwargs["temp"] = temperatures[0]
         text += _groupr_input(-e, -p, -v, **kwargs)
         o = 32
-        text += _moder_input(-v, o)
+        if errorr is False:
+            text += _moder_input(-v, o)
         outputs[f"tape{o}"] = join(
             wdir,
             f"{outprefix}{tag}.gendf",
             )
     if errorr:
+        if groupr:
+            kwargs["ngout"] = -v
+            p = 0
+            outputs = {}
         for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
             o = 33 + i
             kwargs["temp"] = temp
