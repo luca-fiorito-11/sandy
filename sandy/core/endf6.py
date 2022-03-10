@@ -60,6 +60,7 @@ __author__ = "Luca Fiorito"
 __all__ = [
         "Endf6",
         "get_endf6_file",
+        "get_tsl_index",
         ]
 
 pd.options.display.float_format = '{:.5e}'.format
@@ -271,19 +272,19 @@ def get_endf6_file(library, kind, zam, to_file=False):
     >>> tape = sandy.get_endf6_file("jeff_33", 'decay', [380900, 551370, 541350])
     >>> assert type(tape) is sandy.Endf6
 
-    Thermal Neutron Scattering Data from ENDF/B-VII.1. ('all' is tested also)
+    Thermal Neutron Scattering Data from ENDF/B-VII.1.
     >>> tape = sandy.get_endf6_file("endfb_71", 'tsl', [1, 2, 3])
     >>> assert type(tape) is sandy.Endf6
 
-    Thermal Neutron Scattering Data from ENDF/B-VIII.0. ('all' is tested also)
+    Thermal Neutron Scattering Data from ENDF/B-VIII.0.
     >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', [1, 2, 3])
     >>> assert type(tape) is sandy.Endf6
 
-    Thermal Neutron Scattering Data from JEFF-3.3. ('all' is tested also)
+    Thermal Neutron Scattering Data from JEFF-3.3.
     >>> tape = sandy.get_endf6_file("jeff_33", 'tsl', [1, 2, 3])
     >>> assert type(tape) is sandy.Endf6
 
-    Thermal Neutron Scattering Data from JENDL-4.0u ('all' is tested also)
+    Thermal Neutron Scattering Data from JENDL-4.0u
     >>> tape = sandy.get_endf6_file("jendl_40u", 'tsl', [1, 2, 3])
     >>> assert type(tape) is sandy.Endf6
 
