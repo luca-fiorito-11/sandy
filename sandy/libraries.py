@@ -14661,3 +14661,115 @@ DECAY_FILES_JEFF_33_IAEA = {
     1102731: "decay_3851_110-Ds-273M.dat",
     1112720: "decay_3852_111-Rg-272.dat",
 }
+
+# Thermal Neutron Scattering Data for ENDF-B-VII.1 from the IAEA website
+URL_TSL_ENDFB_71_IAEA = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VII.1/tsl/"
+TSL_FILES_ENDFB_71_IAEA = {
+    1: "tsl_0001_H(H2O).dat",
+    2: "tsl_0002_para-H.dat",
+    3: "tsl_0003_ortho-H.dat",
+    7: "tsl_0007_H(ZrH).dat",
+    11: "tsl_0011_D(D2O).dat",
+    12: "tsl_0012_para-d.dat",
+    13: "tsl_0013_ortho-d.dat",
+    26: "tsl_0026_Bemetal.dat",
+    27: "tsl_0027_Be(BeO).dat",
+    31: "tsl_0031_graphite.dat",
+    33: "tsl_0033_l-ch4.dat",
+    34: "tsl_0034_s-ch4.dat",
+    37: "tsl_0037_H(CH2).dat",
+    40: "tsl_0040_BENZINE.dat",
+    46: "tsl_0046_O(BeO).dat",
+    47: "tsl_0047_SIO2.dat",
+    48: "tsl_0048_U(UO2).dat",
+    53: "tsl_0053_13-Al-27.dat",
+    56: "tsl_0056_26-Fe-56.dat",
+    58: "tsl_0058_Zr(ZrH).dat",
+    75: "tsl_0075_O(UO2).dat",
+}
+
+# Thermal Neutron Scattering Data for ENDF-B-VIII.0 from the IAEA website
+URL_TSL_ENDFB_80_IAEA = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VIII.0/tsl/"
+TSL_FILES_ENDFB_80_IAEA = {
+    1: "tsl_0001_H(H2O).dat",
+    2: "tsl_0002_para-H.dat",
+    3: "tsl_0003_ortho-H.dat",
+    5: "tsl_0005_H(YH2).dat",
+    7: "tsl_0007_H(ZrH).dat",
+    10: "tsl_0010_H(ice-Ih).dat",
+    11: "tsl_0011_D(D2O).dat",
+    12: "tsl_0012_para-d.dat",
+    13: "tsl_0013_ortho-d.dat",
+    26: "tsl_0026_Be-metal.dat",
+    27: "tsl_0027_Be(BeO).dat",
+    30: "tsl_0030_Graphite.dat",
+    31: "tsl_0031_10PGraphit.dat",
+    32: "tsl_0032_30PGraphit.dat",
+    33: "tsl_0033_l-ch4.dat",
+    34: "tsl_0034_s-ch4.dat",
+    37: "tsl_0037_H(CH2).dat",
+    39: "tsl_0039_H(Lucite).dat",
+    40: "tsl_0040_BENZINE.dat",
+    43: "tsl_0043_Si(3C-SiC).dat",
+    44: "tsl_0044_C(3C-SiC).dat",
+    46: "tsl_0046_O(BeO).dat",
+    47: "tsl_0047_SiO2alpha.dat",
+    48: "tsl_0048_U(UO2).dat",
+    49: "tsl_0049_SiO2beta.dat",
+    50: "tsl_0050_O(ice-Ih).dat",
+    51: "tsl_0051_O(D2O).dat",
+    53: "tsl_0053_13-Al-27.dat",
+    55: "tsl_0055_Y(YH2).dat",
+    56: "tsl_0056_26-Fe-56.dat",
+    58: "tsl_0058_Zr(ZrH).dat",
+    71: "tsl_0071_N(UN)L.dat",
+    72: "tsl_0072_U(UN)L.dat",
+    75: "tsl_0075_O(UO2).dat",
+}
+
+
+# Thermal Neutron Scattering Data for JENDL-4.0 from the IAEA website
+URL_TSL_JENDL_40U_IAEA = "https://www-nds.iaea.org/public/download-endf/JENDL-4.0u2-20160106/tsl/"
+TSL_FILES_JENDL_40U_IAEA = {
+    1: "tsl_0001_h(h2o).dat",
+    2: "tsl_0002_para-H.dat",
+    3: "tsl_0003_ortho-H.dat",
+    7: "tsl_0007_h(zrh).dat",
+    11: "tsl_0011_D(D2O).dat",
+    12: "tsl_0012_para-d.dat",
+    13: "tsl_0013_ortho-d.dat",
+    26: "tsl_0026_bemetal.dat",
+    27: "tsl_0027_beo.dat",
+    31: "tsl_0031_graphite.dat",
+    33: "tsl_0033_l-ch4.dat",
+    34: "tsl_0034_s-ch4.dat",
+    37: "tsl_0037_H(CH2).dat",
+    40: "tsl_0040_BENZINE.dat",
+    58: "tsl_0058_zr(zrh).dat",
+}
+
+
+# Thermal Neutron Scattering Data for JEFF-3.3 from the IAEA website
+URL_TSL_JEFF_33_IAEA = "https://www-nds.iaea.org/public/download-endf/JEFF-3.3/tsl/"
+TSL_FILES_JEFF_33_IAEA = {
+    1: "tsl_0001_H(H2O).dat",
+    2: "tsl_0002_para-H.dat",
+    3: "tsl_0003_ortho-H.dat",
+    7: "tsl_0007_H(ZrH).dat",
+    8: "tsl_0008_H(Cah2).dat",
+    10: "tsl_0010_H(ICE).dat",
+    11: "tsl_0011_D(D2O).dat",
+    12: "tsl_0012_para-D.dat",
+    13: "tsl_0013_ortho-D.dat",
+    26: "tsl_0026_4-Be.dat",
+    31: "tsl_0031_Graphite.dat",
+    37: "tsl_0037_H(CH2).dat",
+    38: "tsl_0038_Mesi-PhII.dat",
+    42: "tsl_0042_Tolue-PhII.dat",
+    48: "tsl_0048_O(Al2O3).dat",
+    51: "tsl_0051_O(D2O).dat",
+    52: "tsl_0052_24-Mg.dat",
+    59: "tsl_0059_Si.dat",
+    60: "tsl_0060_Al(Al2O3).dat",
+    61: "tsl_0061_Ca(CaH2).dat",
+}
