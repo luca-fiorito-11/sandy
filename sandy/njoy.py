@@ -1032,7 +1032,7 @@ def process(
         text += _moder_input(99, -p)
     else:
         text += _reconr_input(-e, -p, **kwargs)
-    if broadr and groupr is False:
+    if broadr:
         o = p + 1
         text += _broadr_input(-e, -p, -o, **kwargs)
         p = o
@@ -1069,9 +1069,6 @@ def process(
         for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
             kwargs["temp"] = temp
             kwargs["suff"] = suff = f".{suff}"
-            o = p + 1 + i
-            text += _broadr_input(-e, -p, -o, **kwargs)
-            p = o
             g = o + 1 + i
             text += _groupr_input(-e, -p, -g, **kwargs)
             o = 32 + i
