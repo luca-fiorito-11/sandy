@@ -1032,7 +1032,7 @@ def process(
         text += _moder_input(99, -p)
     else:
         text += _reconr_input(-e, -p, **kwargs)
-    if broadr:
+    if broadr and groupr is False:
         o = p + 1
         text += _broadr_input(-e, -p, -o, **kwargs)
         p = o
@@ -1065,18 +1065,23 @@ def process(
             wdir,
             f"{outprefix}{tag}.pendf",
             )
-    if groupr:
-        g = p + 1
-        kwargs["temp"] = temperatures[0]
-        text += _groupr_input(-e, -p, -g, **kwargs)
-        o = 32
-        if errorr is False:
+    if groupr and errorr is False:
+        for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
+            kwargs["temp"] = temp
+            kwargs["suff"] = suff = f".{suff}"
+            o = p + 1 + i
+            text += _broadr_input(-e, -p, -o, **kwargs)
+            p = o
+            g = o + 1 + i
+            text += _groupr_input(-e, -p, -g, **kwargs)
+            o = 32 + i
             text += _moder_input(-g, o)
-        outputs[f"tape{o}"] = join(
-            wdir,
-            f"{outprefix}{tag}.gendf",
-            )
+            outputs[f"tape{o}"] = join(
+                wdir,
+                f"{outprefix}{tag}{suff}.gendf",
+                )
     if errorr:
+        g = p+1
         p_ = 0 if groupr else p
         g_ = g if groupr else 0
         outputs = {}
@@ -1084,6 +1089,8 @@ def process(
             o = 33 + i
             kwargs["temp"] = temp
             kwargs["suff"] = suff = f".{suff}"
+            if groupr:
+                text += _groupr_input(-e, -p, -g_, **kwargs)
             text += _errorr_input(-e, -p_, -g_, o, **kwargs)
             outputs[f"tape{o}"] = join(
                 wdir,

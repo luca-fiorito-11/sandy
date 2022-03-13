@@ -1645,7 +1645,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         stop
-        
+
         Test output type
         >>> assert isinstance(out, sandy.Errorr)
 
@@ -1655,9 +1655,6 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Test `to_file`
         >>> out = endf6.get_errorr(to_file="out.err")
         >>> assert os.path.isfile('out.err')
-
-
-        Parameters for groupr:
 
         Test groupr and errorr:
         >>> out = endf6.get_errorr(verbose=True, groupr=True)
