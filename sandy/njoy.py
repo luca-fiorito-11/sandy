@@ -785,7 +785,19 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    test energy grid:
+    Test argument `igg`:
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, igg=3))
+    groupr
+    20 21 0 22 /
+    9237 2 3 2 0 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    3/
+    0/
+    0/
+    
+    Test argument `ek`:
     >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ek=[1e-2, 1e3, 2e5]))
     groupr
     20 21 0 0 /
@@ -799,7 +811,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    test gamma energy grid:
+    Test argument `ep`:
     >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ep=[1e-2, 1e3, 2e5]))
     groupr
     20 21 0 0 /
@@ -809,6 +821,18 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     10000000000.0/
     2 /
     1.00000e-02 1.00000e+03 2.00000e+05 /
+    3/
+    0/
+    0/
+
+    Test argument `lord`
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, lord=3))
+    groupr
+    20 21 0 0 /
+    22 9237 0 2 3 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
     3/
     0/
     0/

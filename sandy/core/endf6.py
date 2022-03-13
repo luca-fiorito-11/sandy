@@ -1595,6 +1595,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
         ---------------------
         ign : `int`, optional
             neutron group option (default is 2, csewg 239-group structure)
+        ek : iterable, optional
+            derived cross section energy bounds (default is `[1e-5, 2e7]`)
         iwt : `int`, optional
             weight function option (default is 2, constant)
         sigz : iterable of `float`
@@ -1620,13 +1622,13 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Notes
         -----
         .. note:: method arguments are consistent with those of `get_pendf`.
-                      
+        .. note:: parameters for groupr are the same as for errorr
 
         Examples
         --------
         Test verbose keyword
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> out = endf6.get_errorr(ign=1, ek=sandy.energy_grids.CASMO12, verbose=True)
+        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, verbose=True)
         moder
         20 -21 /
         reconr
@@ -1653,6 +1655,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Test `to_file`
         >>> out = endf6.get_errorr(to_file="out.err")
         >>> assert os.path.isfile('out.err')
+
+
+        Parameters for groupr:
 
         Test groupr and errorr:
         >>> out = endf6.get_errorr(verbose=True, groupr=True)
@@ -1681,7 +1686,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         stop
 
         Test groupr and errorr for neutron energy grids:
-        >>> out = endf6.get_errorr(ign=1, ek=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
+        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
         moder
         20 -21 /
         reconr
@@ -1710,8 +1715,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         stop
 
-        Test groupr and errorr for neutron and proton energy grids:
-        >>> out = endf6.get_errorr(ign=1, ek=sandy.energy_grids.CASMO12, ep=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
+        Test groupr and errorr for neutron and photons energy grids:
+        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, ep=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
         moder
         20 -21 /
         reconr
@@ -1795,7 +1800,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
             flag to print NJOY input file to screen before running the
             executable.
         broadr : `bool`, optional, default is `True`
-            option to generate gendf file with doppler broaden
+            option to generate gendf file with Doppler-broadened cross sections
         **kwargs : `dict`
             keyword argument to pass to `sandy.njoy.process`.
 
@@ -1854,6 +1859,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
         moder
         -24 32 /
         stop
+
+        Test for parameters of groupr:
 
         Test various sigz:
         >>> out = endf6.get_gendf(verbose=True, sigz=[1.0e10, 1e2])
@@ -1969,101 +1976,6 @@ If you want to process 0K cross sections use `temperature=0.1`.
         /
         293.6/
         10000000000.0/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        3/
-        0/
-        0/
-        moder
-        -24 32 /
-        stop   
-
-        Test with energy grids for neutrons
-        >>> out = endf6.get_gendf(ign=1, ek=sandy.energy_grids.CASMO12, verbose=True)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        broadr
-        -21 -22 -23 /
-        125 1 0 0 0. /
-        0.005 /
-        293.6 /
-        0 /
-        groupr
-        -21 -23 0 -24 /
-        125 1 0 2 0 1 1 0 /
-        /
-        293.6/
-        10000000000.0/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        3/
-        0/
-        0/
-        moder
-        -24 32 /
-        stop
-
-        Test energy grids for gammas:
-        >>> out = endf6.get_gendf(verbose=True, ep=sandy.energy_grids.CASMO12)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        broadr
-        -21 -22 -23 /
-        125 1 0 0 0. /
-        0.005 /
-        293.6 /
-        0 /
-        groupr
-        -21 -23 0 -24 /
-        125 2 1 2 0 1 1 0 /
-        /
-        293.6/
-        10000000000.0/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        3/
-        0/
-        0/
-        moder
-        -24 32 /
-        stop
-
-        Energy grids for gammas and protons
-        >>> out = endf6.get_gendf(verbose=True, ek=sandy.energy_grids.CASMO12, ep=sandy.energy_grids.CASMO12)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        broadr
-        -21 -22 -23 /
-        125 1 0 0 0. /
-        0.005 /
-        293.6 /
-        0 /
-        groupr
-        -21 -23 0 -24 /
-        125 1 1 2 0 1 1 0 /
-        /
-        293.6/
-        10000000000.0/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         3/
