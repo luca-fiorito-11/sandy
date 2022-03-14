@@ -1561,6 +1561,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
                    njoy=None,
                    to_file=None,
                    verbose=False,
+                   groupr=False,
                    err=0.005,
                    **kwargs,
                    ):
@@ -1580,6 +1581,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
         verbose : `bool`, optional, default is `False`
             flag to print NJOY input file to screen before running the
             executable.
+        groupr : `bool`, optional, default is `False`
+            option to generate covariances from a multigroup cross section
         **kwargs : `dict`
             keyword argument to pass to `sandy.njoy.process`.
 
@@ -1587,6 +1590,17 @@ If you want to process 0K cross sections use `temperature=0.1`.
         ---------------------
         err : `float`, optional
             reconstruction tolerance (default is 0.005)
+
+        Parameters for GROUPR
+        ---------------------
+        ign : `int`, optional
+            neutron group option (default is 2, csewg 239-group structure)
+        ek : iterable, optional
+            derived cross section energy bounds (default is `[1e-5, 2e7]`)
+        iwt : `int`, optional
+            weight function option (default is 2, constant)
+        sigz : iterable of `float`
+            sigma zero values. The default is 1.0e10.
 
         Parameters for ERRORR
         ---------------------
@@ -1608,13 +1622,13 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Notes
         -----
         .. note:: method arguments are consistent with those of `get_pendf`.
-                      
+        .. note:: parameters for groupr are the same as for errorr
 
         Examples
         --------
         Test verbose keyword
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> out = endf6.get_errorr(ign=1, ek=sandy.energy_grids.CASMO12, verbose=True)
+        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, verbose=True)
         moder
         20 -21 /
         reconr
@@ -1623,8 +1637,6 @@ If you want to process 0K cross sections use `temperature=0.1`.
         125 0 0 /
         0.005 0. /
         0/
-        moder
-        -22 30 /
         errorr
         -21 -22 0 33 0 /
         125 1 2 0 1 /
@@ -1633,7 +1645,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         stop
-        
+
         Test output type
         >>> assert isinstance(out, sandy.Errorr)
 
@@ -1643,7 +1655,94 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Test `to_file`
         >>> out = endf6.get_errorr(to_file="out.err")
         >>> assert os.path.isfile('out.err')
-        
+
+        Test groupr and errorr:
+        >>> out = endf6.get_errorr(verbose=True, groupr=True)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        groupr
+        -21 -22 0 -23 /
+        125 2 0 2 0 1 1 0 /
+        /
+        0.0/
+        10000000000.0/
+        3/
+        0/
+        0/
+        errorr
+        -21 0 -23 33 0 /
+        125 2 2 0 1 /
+        0 0.0 /
+        0 33 /
+        stop
+
+        Test groupr and errorr for neutron energy grids:
+        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        groupr
+        -21 -22 0 -23 /
+        125 1 0 2 0 1 1 0 /
+        /
+        0.0/
+        10000000000.0/
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        3/
+        0/
+        0/
+        errorr
+        -21 0 -23 33 0 /
+        125 1 2 0 1 /
+        0 0.0 /
+        0 33 /
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        stop
+
+        Test groupr and errorr for neutron and photons energy grids:
+        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, ep=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        groupr
+        -21 -22 0 -23 /
+        125 1 1 2 0 1 1 0 /
+        /
+        0.0/
+        10000000000.0/
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        3/
+        0/
+        0/
+        errorr
+        -21 0 -23 33 0 /
+        125 1 2 0 1 /
+        0 0.0 /
+        0 33 /
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        stop
         """
         if float(temperature) == 0:
             kwargs["broadr"] = False
@@ -1652,6 +1751,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
             kwargs["heatr"] = False
             kwargs["purr"] = False
             kwargs["unresr"] = False
+            kwargs['keep_pendf'] = False
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
             self.to_file(endf6file)
@@ -1663,6 +1763,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
                     temperatures=[temperature],
                     suffixes=[0],
                     err=err,
+                    groupr=groupr,
                     **kwargs,
                     )[2]  # keep only pendf filename
             errorrfile = outputs["tape33"]
@@ -1670,3 +1771,240 @@ If you want to process 0K cross sections use `temperature=0.1`.
             if to_file:
                 shutil.move(errorrfile, to_file)
         return errorr
+
+    def get_gendf(self,
+                  temperature=293.6,
+                  njoy=None,
+                  to_file=None,
+                  verbose=False,
+                  broadr=True,
+                  err=0.005,
+                  **kwargs):
+        """
+        Process `Endf6` instance into a Gendf file using NJOY.
+
+        Parameters
+        ----------
+        temperature : `float`, optional, default is `293.6`.
+            temperature of the cross sections in K.
+            If not given, stop the processing after RECONR (before BROADR).
+        njoy : `str`, optional, default is `None`
+            NJOY executable, if `None` search in the system path.
+        to_file : `str`, optional, default is `None`
+            if not `None` write processed GENDF data to file.
+            The name of the GENDF file is the keyword argument.
+        verbose : `bool`, optional, default is `False`
+            flag to print NJOY input file to screen before running the
+            executable.
+        broadr : `bool`, optional, default is `True`
+            option to generate gendf file with Doppler-broadened cross sections
+        **kwargs : `dict`
+            keyword argument to pass to `sandy.njoy.process`.
+
+        Parameters for RECONR
+        ---------------------
+        err : `float`, optional
+            reconstruction tolerance (default is 0.005)
+
+        Parameters for BROADR
+        ---------------------
+        err : `float`
+            tolerance (default is 0.001)
+
+        Parameters for GROUPR
+        ---------------------
+        ign : `int`, optional
+            neutron group option (default is 2, csewg 239-group structure)
+        iwt : `int`, optional
+            weight function option (default is 2, constant)
+        sigz : iterable of `float`
+            sigma zero values. The default is 1.0e10.
+
+        Returns
+        -------
+        gendf : `sandy.Gendf`
+            Gendf object
+
+        Examples
+        --------
+        Default temperature test:
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> out = endf6.get_gendf(verbose=True)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 2 0 2 0 1 1 0 /
+        /
+        293.6/
+        10000000000.0/
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        Test for parameters of groupr:
+
+        Test various sigz:
+        >>> out = endf6.get_gendf(verbose=True, sigz=[1.0e10, 1e2])
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 2 0 2 0 1 2 0 /
+        /
+        293.6/
+        10000000000.0 100.0/
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        Test iwt:
+        >>> out = endf6.get_gendf(verbose=True, iwt=3)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 2 0 3 0 1 1 0 /
+        /
+        293.6/
+        10000000000.0/
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        Test ign:
+        >>> out = endf6.get_gendf(verbose=True, ign=3)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 3 0 2 0 1 1 0 /
+        /
+        293.6/
+        10000000000.0/
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        Test `to_file`
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> out = endf6.get_gendf(to_file="out.gendf")
+        >>> assert os.path.isfile('out.gendf')
+
+        Test energy grid:
+        >>> out = endf6.get_gendf(verbose=True, ek=sandy.energy_grids.CASMO12)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 1 0 2 0 1 1 0 /
+        /
+        293.6/
+        10000000000.0/
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+        """
+        kwargs["thermr"] = False
+        kwargs["gaspr"] = False
+        kwargs["heatr"] = False
+        kwargs["purr"] = False
+        kwargs["unresr"] = False
+        kwargs["acer"] = False
+        kwargs["keep_pendf"] = False
+        kwargs['errorr'] = False
+        with TemporaryDirectory() as td:
+            endf6file = os.path.join(td, "endf6_file")
+            self.to_file(endf6file)
+            outputs = sandy.njoy.process(
+                    endf6file,
+                    groupr=True,
+                    broadr=broadr,
+                    verbose=verbose,
+                    temperatures=[temperature],
+                    suffixes=[0],
+                    err=err,
+                    **kwargs,
+                    )[2]  # keep only gendf filename
+            gendf_file = outputs["tape32"]
+            groupr = sandy.Groupr.from_file(gendf_file)
+            if to_file:
+                shutil.move(gendf_file, to_file)
+        return groupr
