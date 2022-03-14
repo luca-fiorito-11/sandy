@@ -186,6 +186,11 @@ class DecayData():
             dataframe with branching ratio and associated uncertainty
             series with branching ratio if with_uncertainty = False
 
+        Raises
+        ------
+        `sandy.Error`
+            if no branching ratio is found
+
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942400, 922350])
@@ -214,6 +219,8 @@ class DecayData():
         ZAM = []
         RTYP = []
         for zam, dic in self.data.items():
+            if 'decay_modes' not in dic.keys():
+                raise sandy.Error("no branching ratio is found")
             for rtyp, dk in dic['decay_modes']:
                 br.append([
                     dk['branching_ratio'],
@@ -229,6 +236,78 @@ class DecayData():
             return df
         else:
             return df.BR
+
+    def get_decay_energy(self, with_uncertainty=True):
+        """
+        Extract decay energy and its uncertainty into a dataframe.
+
+        Parameters
+        ----------
+        with_uncertainty : `bool`, optional, default is 'True'
+            makes the method return decay energies and uncertainties
+            if set equal True, or else return only the decay energies
+
+        Returns
+        -------
+        `pandas.DataFrame` or `pandas.Series`
+            dataframe with decay energy and associated uncertainty
+            series with decay energy if with_uncertainty = False
+
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942400, 922350])
+        >>> rdd = sandy.DecayData.from_endf6(endf6)
+        >>> DE = rdd.get_decay_energy()
+        >>> print(DE)
+                              BE  Uncertainty
+        922350 alpha 4.46460e+06  1.63255e+05
+               beta  5.06717e+04  4.29163e+03
+               gamma 1.63616e+05  1.70801e+03
+               total 4.67889e+06  1.63320e+05
+        942400 alpha 5.24303e+06  3.63881e+04
+               beta  1.11164e+04  9.02572e+02
+               gamma 1.36292e+03  1.33403e+02
+               total 5.25551e+06  3.63995e+04
+
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942400, 922350])
+        >>> rdd = sandy.DecayData.from_endf6(endf6)
+        >>> DE = rdd.get_decay_energy(False)
+        >>> print(DE)
+        922350  alpha   4.46460e+06
+                beta    5.06717e+04
+                gamma   1.63616e+05
+                total   4.67889e+06
+        942400  alpha   5.24303e+06
+                beta    1.11164e+04
+                gamma   1.36292e+03
+                total   5.25551e+06
+        Name: BE, dtype: float64
+        """
+        DecayEnergy = []
+        DecayEnergyUncertainty = []
+        ZAM = []
+        for zam, dic in self.data.items():
+            DecayEnergy.extend([
+                dic['decay_energy']['alpha'],
+                dic['decay_energy']['beta'],
+                dic['decay_energy']['gamma'],
+                dic['decay_energy']['total'],
+                ])
+            DecayEnergyUncertainty.extend([
+                dic['decay_energy_uncertainties']['alpha'],
+                dic['decay_energy_uncertainties']['beta'],
+                dic['decay_energy_uncertainties']['gamma'],
+                dic['decay_energy_uncertainties']['total'],
+                ])
+            ZAM.append(zam)
+        name = ['alpha', 'beta', 'gamma', 'total']
+        df = pd.DataFrame(zip(DecayEnergy, DecayEnergyUncertainty),
+                          index=pd.MultiIndex.from_product([ZAM, name]),
+                          columns=['BE', 'Uncertainty'])
+        if with_uncertainty:
+            return df
+        else:
+            return df.BE
 
     def get_decayconstant(self, with_uncertainty=True):
         """
