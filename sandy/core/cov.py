@@ -10,6 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
+import logging
 import tables as tb
 import os
 
@@ -25,6 +26,7 @@ __all__ = [
         "corr2cov",
         "random_corr",
         "random_cov",
+        "sample_distribution",
         ]
 
 S = np.array([[1, 1, 1],
@@ -177,7 +179,8 @@ class _Cov(np.ndarray):
         return cov
 
     def sampling(self, nsmp, seed=None):
-        """Extract random samples from the covariance matrix, either using
+        """
+        Extract random samples from the covariance matrix, either using
         the cholesky or the eigenvalue decomposition.
 
         Parameters
@@ -230,14 +233,19 @@ class _Cov(np.ndarray):
 class CategoryCov():
     """
 
-    Attributes
+    Properties
     ----------
     data
         covariance matrix as a dataframe
+    size
+        first dimension of the ocvariance matrix
     std
-        series of standard deviations
-    corr
-        correlation matrix
+        `pd.Series` of standard deviations
+
+    Methods
+    -------
+    get_corr
+        extract correlation matrix from covariance matrix
     """
 
     def __repr__(self):
@@ -283,60 +291,16 @@ class CategoryCov():
     def data(self, data):
         self._data = pd.DataFrame(data, dtype=float)
         if not len(data.shape) == 2 and data.shape[0] == data.shape[1]:
-            raise TypeError("covariance matrix must have two dimensions")
+            raise TypeError("Covariance matrix must have two dimensions")
         if not (np.diag(data) >= 0).all():
-            raise TypeError("covariance matrix must have positive variance")
+            raise TypeError("Covariance matrix must have positive variance")
         # Round to avoid numerical fluctuations
         if not (data.values.round(14) == data.values.T.round(14)).all():
-            raise TypeError("covariance matrix must be symmetric")
+            raise TypeError("Covariance matrix must be symmetric")
 
     @property
     def size(self):
         return self.data.values.shape[0]
-
-    def eig(self, sort=True):
-        """
-        Extract eigenvalues and eigenvectors.
-
-        Parameters
-        ----------
-        sort : `bool`, optional, default is `True`
-            flag to return sorted eigenvalues and eigenfunctions
-
-        Returns
-        -------
-        `Pandas.Series`
-            real part of eigenvalues sorted in descending order
-        `pandas.DataFrame`
-            matrix of eigenvectors
-
-        Examples
-        --------
-        Extract eigenvalues of covariance matrix.
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).eig()[0]
-        0   1.40000e+00
-        1   6.00000e-01
-        Name: eigenvalues, dtype: float64
-
-        Extract eigenfunctions of covariance matrix.
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).eig()[1]
-                    0            1
-        0 7.07107e-01 -7.07107e-01
-        1 7.07107e-01  7.07107e-01
-        """
-        cov = self.to_sparse()
-        warnings.filterwarnings("ignore")
-        try:
-            E, V = spsl.eigs(cov)
-        except TypeError or ValueError:
-            E, V = scipy.linalg.eig(cov.toarray())
-        E = pd.Series(E.real, name="eigenvalues")
-        V = pd.DataFrame(V.real)
-        if sort:
-            idx = E.sort_values(ascending=False).index
-            E = E.iloc[idx].reset_index(drop=True)
-            V = V.iloc[idx].reset_index(drop=True)
-        return E, V
 
     @property
     def std(self):
@@ -359,8 +323,114 @@ class CategoryCov():
         std = np.sqrt(cov)
         return pd.Series(std, index=self.data.index, name="std")
 
-    @property
-    def corr(self):
+    def eig(self, tolerance=None):
+        """
+        Extract eigenvalues and eigenvectors.
+
+        Parameters
+        ----------
+        tolerance : `float`, optional, default is `None`
+            replace all eigenvalues smaller than a given tolerance with zeros.
+            The replacement condition is implemented as:
+
+            .. math::
+                $$
+                \frac{e_i}{e_{MAX}} < tolerance
+                $$
+
+            Then, a `tolerance=1e-3` will replace all eigenvalues
+            1000 times smaller than the largest eigenvalue.
+            A `tolerance=0` will replace all negative eigenvalues.
+
+        Returns
+        -------
+        `Pandas.Series`
+            array of eigenvalues
+        `pandas.DataFrame`
+            matrix of eigenvectors
+
+        Notes
+        -----
+        .. note:: only the real part of the eigenvalues is preserved
+        
+        .. note:: the discussion associated to the implementeation
+                  of this algorithm is available [here](https://github.com/luca-fiorito-11/sandy/discussions/135)
+
+        Examples
+        --------
+        Extract eigenvalues of correlation matrix.
+        >>> sandy.CategoryCov([[1, 0.4], [0.4, 1]]).eig()[0]
+        0   1.40000e+00
+        1   6.00000e-01
+        Name: eigenvalues, dtype: float64
+
+        Extract eigenvectors of correlation matrix.
+        >>> sandy.CategoryCov([[1, 0.4], [0.4, 1]]).eig()[1]
+                    0            1
+        0 7.07107e-01 -7.07107e-01
+        1 7.07107e-01  7.07107e-01
+        
+        Extract eigenvalues of covariance matrix.
+        >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).eig()[0]
+        0   8.90228e-02
+        1   1.01098e+00
+        Name: eigenvalues, dtype: float64
+        
+        Set up a tolerance.
+        >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).eig(tolerance=0.1)[0]
+        0   0.00000e+00
+        1   1.01098e+00
+        Name: eigenvalues, dtype: float64
+        
+        Test with negative eigenvalues.
+        >>> sandy.CategoryCov([[1, 2], [2, 1]]).eig()[0]
+        0    3.00000e+00
+        1   -1.00000e+00
+        Name: eigenvalues, dtype: float64
+        
+        Replace negative eigenvalues.
+        >>> sandy.CategoryCov([[1, 2], [2, 1]]).eig(tolerance=0)[0]
+        0   3.00000e+00
+        1   0.00000e+00
+        Name: eigenvalues, dtype: float64
+
+        Check output size.
+        >>> cov = sandy.CategoryCov.random_cov(50, seed=11)
+        >>> assert cov.eig()[0].size == cov.data.shape[0] == 50
+
+        >>> sandy.CategoryCov([[1, 0.2, 0.1], [0.2, 2, 0], [0.1, 0, 3]]).eig()[0]
+        0   9.56764e-01
+        1   2.03815e+00
+        2   3.00509e+00
+        Name: eigenvalues, dtype: float64
+
+        Real test on H1 file
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> ek = sandy.energy_grids.CASMO12
+        >>> err = endf6.get_errorr(ek=ek, err=1)
+        >>> cov = err.get_cov()
+        >>> cov.eig()[0].sort_values(ascending=False).head(7)
+        0    3.66411e-01
+        1    7.05311e-03
+        2    1.55346e-03
+        3    1.60175e-04
+        4    1.81374e-05
+        5    1.81078e-06
+        6    1.26691e-07
+        Name: eigenvalues, dtype: float64
+        
+        >>> assert not (cov.eig()[0] >= 0).all()
+        
+        >>> assert (cov.eig(tolerance=0)[0] >= 0).all()
+        """
+        E, V = scipy.linalg.eig(self.data)
+        E = pd.Series(E.real, name="eigenvalues")
+        V = pd.DataFrame(V.real)
+        if tolerance is not None:
+            E[E/E.max() < tolerance] = 0
+        return E, V
+
+    def get_corr(self):
         """
         Extract correlation matrix.
 
@@ -371,7 +441,7 @@ class CategoryCov():
 
         Examples
         --------
-        >>> sandy.CategoryCov([[4, 2.4],[2.4, 9]]).corr
+        >>> sandy.CategoryCov([[4, 2.4],[2.4, 9]]).get_corr()
                     0           1
         0 1.00000e+00 4.00000e-01
         1 4.00000e-01 1.00000e+00
@@ -381,101 +451,12 @@ class CategoryCov():
             coeff = np.true_divide(1, self.std.values)
             coeff[~ np.isfinite(coeff)] = 0   # -inf inf NaN
         corr = np.multiply(np.multiply(cov, coeff).T, coeff)
-        return pd.DataFrame(corr,
-                            index=self.data.index,
-                            columns=self.data.columns,
-                            )
+        return pd.DataFrame(
+            corr,
+            index=self.data.index,
+            columns=self.data.columns,
+            )
 
-    def _reduce_size(self):
-        """
-        Reduces the size of the matrix, erasing the null values.
-
-        Returns
-        -------
-        nonzero_idxs : `numpy.ndarray`
-            The indices of the diagonal that are not null.
-        cov_reduced : `pandas.DataFrame`
-            The reduced matrix.
-
-        Examples
-        --------
-        >>> S = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
-        >>> non_zero_index, reduce_matrix = S._reduce_size()
-        >>> comparison = non_zero_index == np.array([0, 1, 2])
-        >>> equal_arrays = comparison.all()
-        >>> assert equal_arrays == True
-        >>> reduce_matrix
-                      0	          1	          2
-        0	1.00000e+00	0.00000e+00	0.00000e+00
-        1	0.00000e+00	2.00000e+00	0.00000e+00
-        2	0.00000e+00	0.00000e+00	3.00000e+00
-
-        >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3])))
-        >>> non_zero_index, reduce_matrix = S._reduce_size()
-        >>> comparison = non_zero_index == np.array([1, 2])
-        >>> equal_arrays = comparison.all()
-        >>> assert equal_arrays == True
-        >>> reduce_matrix
-                      1	          2
-        1	2.00000e+00	0.00000e+00
-        2	0.00000e+00	3.00000e+00
-        """
-        nonzero_idxs = np.flatnonzero(np.diag(self.data))
-        cov_reduced = self.data.loc[nonzero_idxs, nonzero_idxs]
-        return nonzero_idxs, cov_reduced
-
-    @classmethod
-    def _restore_size(cls, nonzero_idxs, cov_reduced, dim):
-        """
-        Restore the size of the matrix
-
-        Parameters
-        ----------
-        nonzero_idxs : `numpy.ndarray`
-            The indices of the diagonal that are not null.
-        cov_reduced : `numpy.ndarray`
-            The reduced matrix.
-        dim : `int`
-            Dimension of the original matrix.
-
-        Returns
-        -------
-        cov : `CategoryCov`
-            Matrix of specified dimensions.
-
-        Notes
-        -----
-        ..notes:: This method was developed to be used after calling
-                  `_reduce_size`.
-
-        Examples
-        --------
-        >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3, 0])))
-        >>> S
-                    0           1           2           3
-        0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-        1 0.00000e+00 2.00000e+00 0.00000e+00 0.00000e+00
-        2 0.00000e+00 0.00000e+00 3.00000e+00 0.00000e+00
-        3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-
-        >>> M_nonzero_idxs, M_reduce = S._reduce_size()
-        >>> M_reduce[::] = 1
-        >>> M_reduce
-                      1	          2
-        1	1.00000e+00	1.00000e+00
-        2	1.00000e+00	1.00000e+00
-
-        >>> sandy.CategoryCov._restore_size(M_nonzero_idxs, M_reduce.values, len(S.data))
-                    0           1           2           3
-        0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-        1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
-        2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
-        3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-        """
-        cov = np.zeros((dim, dim))
-        for i, ni in enumerate(nonzero_idxs):
-            cov[ni, nonzero_idxs] = cov_reduced[i]
-        return cls(cov)
 
     def invert(self, rows=None):
         """
@@ -521,31 +502,43 @@ class CategoryCov():
         """
         index = self.data.index
         columns = self.data.columns
-        M_nonzero_idxs, M_reduce = self._reduce_size()
+        M_nonzero_idxs, M_reduce = reduce_size(self.data)
         cov = sps.csc_matrix(M_reduce.values)
-        if rows is not None:
-            data = sparse_tables_inv(cov, rows=rows)
-        else:
-            lu = spsl.splu(cov)
-            eye = np.eye(cov.shape[0])
-            data = lu.solve(eye)
-        M_inv = CategoryCov._restore_size(M_nonzero_idxs, data,
-                                          len(self.data)).data
+        rows_ = cov.shape[0] if rows is None else rows
+        data = sparse_tables_inv(cov, rows=rows_)
+        M_inv = restore_size(M_nonzero_idxs, data, len(self.data))
         M_inv = M_inv.reindex(index=index, columns=columns).fillna(0)
         return self.__class__(M_inv)
 
-    def sampling(self, nsmp, seed=None):
+    def sampling(self, nsmp, seed=None, rows=None, pdf='normal',
+                               tolerance=None, relative=True):
         """
-        Extract random samples from normali distribution centered in zero
-        and with given covariance matrix.
+        Extract perturbation coefficients according to chosen distribution with
+        covariance from given covariance matrix.
+        The samples' mean will be 1 or 0 depending on `relative` kwarg.
 
         Parameters
         ----------
         nsmp : `int`
-            number of samples
+            number of samples.
         seed : `int`, optional, default is `None`
             seed for the random number generator (by default use `numpy`
-            dafault pseudo-random number generator)
+            dafault pseudo-random number generator).
+        rows : `int`, optional, default is `None`
+            option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+        pdf : `str`, optional, default is 'normal'
+            random numbers distribution.
+            Available distributions are:
+                * `'normal'`
+                * `'uniform'`
+        tolerance : `float`, optional, default is `None`
+            replace all eigenvalues smaller than a given tolerance with zeros.
+        relative : `bool`, optional, default is `True`
+            flag to switch between relative and absolute covariance matrix
+            handling
+                * `True`: samples' mean will be 1
+                * `False`: samples' mean will be 0
 
         Returns
         -------
@@ -554,59 +547,71 @@ class CategoryCov():
 
         Examples
         --------
-        Draw 3 sets of samples using custom seed.
+        Draw 3 sets of samples using custom seed:
         >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11)
                      0            1
-        0 -1.74945e+00 -3.13159e+00
-        1  2.86073e-01  1.06836e-01
-        2  4.84565e-01 -9.91209e-02
+        0 -7.49455e-01 -2.13159e+00
+        1  1.28607e+00  1.10684e+00
+        2  1.48457e+00  9.00879e-01
+
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, rows=1)
+                     0            1
+        0 -7.49455e-01 -2.13159e+00
+        1  1.28607e+00  1.10684e+00
+        2  1.48457e+00  9.00879e-01
+
+        >>> sample = sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(1000000, seed=11)
+        >>> sample.data.cov()
+                    0           1
+        0 9.98662e-01 3.99417e-01
+        1 3.99417e-01 9.98156e-01
+
+        Small negative eigenvalue:
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11, tolerance=0)
+                     0           1
+        0 -8.92988e-01 4.06292e+00
+        1  1.30954e+00 4.99148e-01
+        2  1.52432e+00 1.51631e-01
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, tolerance=0).data.cov()
+                     0            1
+        0  1.16925e+00 -1.89189e+00
+        1 -1.89189e+00  3.06115e+00
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11, pdf='uniform', tolerance=0)
+                    0            1
+        0 2.19845e+00 -9.39131e-01
+        1 2.80116e+00 -1.91433e+00
+        2 1.13787e+00  7.76924e-01
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0).data.cov()
+                     0            1
+        0  1.17131e+00 -1.89522e+00
+        1 -1.89522e+00  3.06654e+00
+
+        `relative` kwarg usage:
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=True).data.mean(axis=0)
+        0   1.00205e+00
+        1   9.96685e-01
+        dtype: float64
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=False).data.mean(axis=0)
+        0    2.04904e-03
+        1   -3.31541e-03
+        dtype: float64
         """
-        np.random.seed(seed=seed)
         dim = self.data.shape[0]
-        y = np.random.randn(dim, nsmp)  # normal pdf
+        y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf)
         y = sps.csc_matrix(y)
-        L = sps.csr_matrix(self.decompose())
-        samples = L.dot(y)
-        df = pd.DataFrame(samples.toarray(),
+        L = sps.csr_matrix(self.get_L(rows=rows, tolerance=tolerance))
+        samples = L.dot(y).toarray()
+        if relative:
+            samples += 1  # mean=1, to be multiplied by best estimate
+        df = pd.DataFrame(samples,
                           index=self.data.index,
                           columns=list(range(nsmp)),
                           )
         return sandy.Samples(df.T)
-
-    def decompose(self, rows=None):
-        """
-        Extract lower triangular matrix `L` for which `L*L^T == COV`.
-
-        Parameters
-        ----------
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
-
-        Returns
-        -------
-        `numpy.ndarray`
-            lower triangular matrix
-
-        Example
-        -------
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).decompose().round(2)
-        array([[-1.        ,  0.        ],
-               [-0.4       ,  0.92]])
-
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).decompose(rows=1).round(2)
-        array([[-1.  ,  0.  ],
-               [-0.4 ,  0.92]])
-        """
-        E, V = self.eig(sort=False)
-        E[E <= 0] = 0
-        if rows is not None:
-            M = sparse_tables_dot(V, sps.diags(np.sqrt(E))).toarray()
-        else:
-            M = sps.csr_matrix(V).dot(sps.diags(np.sqrt(E))).toarray()
-        Q, R = scipy.linalg.qr(M.T)
-        return R.T
 
     @classmethod
     def from_var(cls, var):
@@ -831,13 +836,9 @@ class CategoryCov():
         """
         index = pd.DataFrame(S).index
         S_ = pd.DataFrame(S).values
-        if rows is not None:
-            Vy_calc = sparse_tables_dot_multiple([S_, self.data.values,
-                                                  S_.T])
-        else:
-            S_ = sps.csr_matrix(S_)
-            Vx_prior = self.to_sparse()
-            Vy_calc = S_.dot(Vx_prior).dot(S_.T).toarray()
+        rows_ = S_.shape[0] if rows is None else rows
+        Vy_calc = sparse_tables_dot_multiple([S_, self.data.values,
+                                              S_.T], rows=rows_)
         return pd.DataFrame(Vy_calc, index=index, columns=index)
 
     def _gls_G(self, S, Vy_extra=None, rows=None):
@@ -1032,14 +1033,9 @@ class CategoryCov():
         S_ = pd.DataFrame(S).values
         # GLS_sensitivity:
         G_inv = self._gls_G_inv(S, Vy_extra=Vy_extra, rows=rows).values
-        if rows is not None:
-            sensitivity = sparse_tables_dot_multiple([self.data.values, S_.T,
-                                                      G_inv])
-        else:
-            Vx_prior = self.to_sparse()
-            S_ = sps.csc_matrix(S_)
-            G_inv = sps.csc_matrix(G_inv)
-            sensitivity = Vx_prior.dot(S_.T).dot(G_inv).toarray()
+        rows_ = S_.shape[0] if rows is None else rows
+        sensitivity = sparse_tables_dot_multiple([self.data.values, S_.T,
+                                                  G_inv], rows=rows_)
         if threshold is not None:
             sensitivity[abs(sensitivity) < threshold] = 0
         return pd.DataFrame(sensitivity, index=index, columns=columns)
@@ -1093,16 +1089,10 @@ class CategoryCov():
         index = S_.index
         columns = S_.columns
         G_inv = self._gls_G_inv(S, rows=rows).values
-        if rows is not None:
-            sensitivity = sparse_tables_dot_multiple([G_inv, S_,
-                                                      self.data.values])
-        else:
-            Vx_prior = self.to_sparse(method='csc_matrix')
-            S_ = sps.csc_matrix(S_.values)
-            G_inv = sps.csr_matrix(G_inv)
-            # constrained Least Squares sensitivity
-            sensitivity = G_inv.dot(S_).dot(Vx_prior)
-            sensitivity = sensitivity.toarray()
+        rows_ = S_.shape[0] if rows is None else rows
+        sensitivity = sparse_tables_dot_multiple([G_inv, S_,
+                                                 self.data.values],
+                                                 rows=rows_)
         if threshold is not None:
             sensitivity[abs(sensitivity) < threshold] = 0
         return pd.DataFrame(sensitivity, index=index, columns=columns)
@@ -1162,12 +1152,8 @@ class CategoryCov():
         general_sens = self._gls_general_sensitivity(S, Vy_extra=Vy_extra,
                                                      rows=rows,
                                                      threshold=threshold).values
-        if rows is not None:
-            cov_sens = sparse_tables_dot(general_sens, S_).toarray()
-        else:
-            general_sens = sps.csr_matrix(general_sens)
-            S_ = sps.csc_matrix(S_)
-            cov_sens = general_sens.dot(S_).toarray()
+        rows_ = S_.shape[0] if rows is None else rows
+        cov_sens = sparse_tables_dot(general_sens, S_, rows=rows_).toarray()
         if threshold is not None:
             cov_sens[abs(cov_sens) < threshold] = 0
         return pd.DataFrame(cov_sens, index=index, columns=columns)
@@ -1217,18 +1203,12 @@ class CategoryCov():
         index, columns = self.data.index, self.data.columns
         A = self._gls_cov_sensitivity(S, Vy_extra=Vy_extra,
                                       rows=rows, threshold=threshold).values
-        if rows is not None:
-            Vx_prior = self.to_sparse(method='csc_matrix')
-            diff = sparse_tables_dot(A, Vx_prior)
-            # gls update
-            Vx_post = Vx_prior - diff
-            Vx_post = Vx_post.toarray()
-        else:
-            Vx_prior = self.to_sparse(method='csc_matrix')
-            A = sps.csr_matrix(A)
-            # gls update
-            Vx_post = Vx_prior - A.dot(Vx_prior)
-            Vx_post = Vx_post.toarray()
+        rows_ = self.data.shape[0] if rows is None else rows
+        Vx_prior = self.to_sparse(method='csc_matrix')
+        diff = sparse_tables_dot(A, Vx_prior, rows=rows_)
+        # gls update
+        Vx_post = Vx_prior - diff
+        Vx_post = Vx_post.toarray()
         if threshold is not None:
             Vx_post[abs(Vx_post) < threshold] = 0
         return self.__class__(pd.DataFrame(Vx_post, index=index, columns=columns))
@@ -1276,7 +1256,7 @@ class CategoryCov():
         """
         return self.gls_update(S, Vy_extra=None, rows=rows, threshold=threshold)
 
-    def sandwich(self, S, threshold=None):
+    def sandwich(self, S, rows=None, threshold=None):
         """
         Apply the sandwich formula to the CategoryCov object for a given
         pandas.Series.
@@ -1285,6 +1265,10 @@ class CategoryCov():
         ----------
         S : 1D or 2D iterable
             General sensitivities.
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
         threshold : `int`, optional
             Thereshold to avoid numerical fluctuations. The default is None.
 
@@ -1331,19 +1315,35 @@ class CategoryCov():
         """
         if pd.DataFrame(S).shape[1] == 1:
             S_ = sandy.CategoryCov.from_var(S).data
-            sandwich = self._gls_Vy_calc(S_)
+            sandwich = self._gls_Vy_calc(S_, rows=rows)
         else:
             S_ = pd.DataFrame(S).T
-            sandwich = self._gls_Vy_calc(S_)
+            sandwich = self._gls_Vy_calc(S_, rows=rows)
         if threshold is not None:
             sandwich[sandwich < threshold] = 0
         return self.__class__(sandwich)
 
     def plot_corr(self, ax, **kwargs):
+        """
+        Plot correlation matrix as a color-encoded matrix.
+
+        Parameters
+        ----------
+        ax : `matplotlib Axes`
+            Axes in which to draw the plot, otherwise use the currently-active
+            Axes.
+        kwargs : `dict`
+            keyword arguments for seaborn heatmap plot.
+
+        Returns
+        -------
+        ax : `matplotlib Axes`
+            Axes object with the heatmap.
+        """
         add = {"cbar": True, "vmin": -1, "vmax": 1, "cmap": "RdBu"}
         for k, v in kwargs.items():
             add[k] = v
-        ax = sns.heatmap(self.corr, ax=ax, **add)
+        ax = sns.heatmap(self.get_corr(), ax=ax, **add)
         return ax
 
     @classmethod
@@ -1454,6 +1454,29 @@ class CategoryCov():
     def random_cov(cls, size, stdmin=0.0, stdmax=1.0, correlations=True,
                    seed=None, **kwargs):
         """
+        Construct a covariance matrix with random values
+
+        Parameters
+        ----------
+        size : `int`
+            Dimension of the original matrix
+        stdmin : `float`, default is 0
+            minimum value of the uniform standard deviation vector
+        stdmax : `float`, default is 1
+            maximum value of the uniform standard deviation vector
+        correlation : `bool`, default is True
+            flag to insert the random correlations in the covariance matrix
+        seed : `int`, optional, default is `None`
+            seed for the random number generator (by default use `numpy`
+            dafault pseudo-random number generator)
+
+        Returns
+        -------
+        `CategoryCov`
+            object containing covariance matrix
+
+        Examples
+        --------
         >>> sandy.CategoryCov.random_cov(2, seed=1)
                     0           1
         0 2.15373e-02 5.97134e-03
@@ -1513,16 +1536,18 @@ class CategoryCov():
             raise ValueError('The method does not exist in scipy.sparse')
         return data_sp
 
-    def get_L(self, rows=None):
+    def get_L(self, rows=None, tolerance=None):
         """
         Extract lower triangular matrix `L` for which `L*L^T == self`.
-        
+
         Parameters
         ----------
         rows : `int`, optional
             Option to use row calculation for matrix calculations. This option
             defines the number of lines to be taken into account in each loop.
             The default is None.
+        tolerance : `float`, optional, default is `None`
+            replace all eigenvalues smaller than a given tolerance with zeros.
 
         Returns
         -------
@@ -1531,29 +1556,67 @@ class CategoryCov():
 
         Examples
         --------
+        Positive define matrix:
         >>> a = np.array([[4, 12, -16], [12, 37, -43], [-16, -43, 98]])
         >>> sandy.CategoryCov(a).get_L()
-                      0	          1	          2
-        0	2.00000e+00	0.00000e+00	0.00000e+00
-        1	6.00000e+00	1.00000e+00	0.00000e+00
-        2  -8.00000e+00	5.00000e+00	3.00000e+00
+                       0	          1	          2
+        0	-2.00000e+00	0.00000e+00	0.00000e+00
+        1	-6.00000e+00	1.00000e+00	0.00000e+00
+        2	 8.00000e+00	5.00000e+00	3.00000e+00
+
+        >>> sandy.CategoryCov(a).get_L(tolerance=0)
+                       0	          1	          2
+        0	-2.00000e+00	0.00000e+00	0.00000e+00
+        1	-6.00000e+00	1.00000e+00	0.00000e+00
+        2	 8.00000e+00	5.00000e+00	3.00000e+00
 
         >>> sandy.CategoryCov(a).get_L(rows=1)
-                      0	          1	          2
-        0	2.00000e+00	0.00000e+00	0.00000e+00
-        1	6.00000e+00	1.00000e+00	0.00000e+00
-        2  -8.00000e+00	5.00000e+00	3.00000e+00
+                       0	          1	          2
+        0	-2.00000e+00	0.00000e+00	0.00000e+00
+        1	-6.00000e+00	1.00000e+00	0.00000e+00
+        2	 8.00000e+00	5.00000e+00	3.00000e+00
+
+        Matrix with negative eigenvalues
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(rows=1, tolerance=0)
+                       0	          1
+        0	-1.08204e+00	0.00000e+00
+        1	 1.75078e+00	0.00000e+00
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(tolerance=0)
+                       0	          1
+        0	-1.08204e+00	0.00000e+00
+        1	 1.75078e+00	0.00000e+00
+
+        Decomposition test:
+        >>> L = sandy.CategoryCov(a).get_L()
+        >>> L.dot(L.T)
+                       0	           1	           2
+        0	 4.00000e+00	 1.20000e+01	-1.60000e+01
+        1	 1.20000e+01	 3.70000e+01	-4.30000e+01
+        2	-1.60000e+01	-4.30000e+01	 9.80000e+01
+
+        Matrix with negative eigenvalues, tolerance of 0:
+        >>> L = sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(rows=1, tolerance=0)
+        >>> L.dot(L.T)
+        	           0	           1
+        0	 1.17082e+00	-1.89443e+00
+        1	-1.89443e+00	 3.06525e+00
         """
         index = self.data.index
         columns = self.data.columns
-        if rows is not None:
-            L = sparse_tables_cholesky(self.data.values, rows=rows)
-        else:
-            values = self.to_sparse(method='csc_matrix')
-            LU = spsl.splu(values, diag_pivot_thresh=0)
-            diagonal = LU.U.diagonal()
-            diagonal[diagonal < 0] = 0
-            L = LU.L.dot(sps.diags(np.sqrt(diagonal))).toarray()
+        # Reduces the size of the matrix, erasing the zero values
+        nonzero_idxs, cov_reduced = reduce_size(self.data)
+        # Obtain the eigenvalues and eigenvectors:
+        E, V = sandy.CategoryCov(cov_reduced).eig(tolerance=tolerance)
+        E = sps.diags(np.sqrt(E)).toarray()
+        # Construct the matrix:
+        rows_ = cov_reduced.shape[0] if rows is None else rows
+        A = sandy.cov.sparse_tables_dot(V, E, rows=rows_).T.toarray()
+        # QR decomposition:
+        Q, R = scipy.linalg.qr(A)
+        L_redu = R.T
+        # Original size
+        L = restore_size(nonzero_idxs, L_redu, len(self.data)).values
         return pd.DataFrame(L, index=index, columns=columns)
 
 
@@ -2086,7 +2149,7 @@ def sparse_tables_dot_multiple(matrix_list, rows=1000):
     """
     matrix = matrix_list[0]
     for b in matrix_list[1::]:
-        intermediate_matrix = sparse_tables_dot(matrix, b, rows)
+        intermediate_matrix = sparse_tables_dot(matrix, b, rows=rows)
         matrix = intermediate_matrix
     return matrix.toarray()
 
@@ -2135,54 +2198,6 @@ def sparse_tables_inv(a, rows=1000):
     f.close()
     os.remove('inv.h5')
     return invert_matrix
-
-
-def sparse_tables_cholesky(a, rows=1000):
-    """
-    Function to perform cholesky descomposition stored on local
-    disk instead of memory.
-
-    Parameters
-    ----------
-    a : 2D iterable
-        Matrix to be inverted.
-    rows : `int`, optional.
-        Number of rows to be calculated in each loop. The default is 1000.
-
-    Returns
-    -------
-    low_triang_matrix : "numpy.ndarray"
-        Cholesky descomposition low triangular matrix.
-
-    Examples
-    --------
-    >>> a = np.array([[4, 12, -16], [12, 37, -43], [-16, -43, 98]])
-    >>> sandy.cov.sparse_tables_cholesky(a, rows=1)
-    array([[ 2.,  0.,  0.],
-           [ 6.,  1.,  0.],
-           [-8.,  5.,  3.]])
-    """
-    a_ = sps.csc_matrix(a)
-    l, n = a_.shape[0], a_.shape[1]
-    LU = spsl.splu(a_, diag_pivot_thresh=0)
-    f = tb.open_file('cholesky.h5', 'w')
-    filters = tb.Filters(complevel=5, complib='blosc')
-    out_data = f.create_carray(f.root, 'data', tb.Float64Atom(),
-                               shape=(l, n), filters=filters)
-    diagonal = LU.U.diagonal()
-    diagonal[diagonal < 0] = 0
-    diagonal_matrix = np.hsplit(sps.diags(np.sqrt(diagonal)).toarray(), l/rows)
-    j = 0
-    for i in range(0, l, rows):
-        diagonal_split = diagonal_matrix[j]
-        tmpResult = LU.L.dot(diagonal_split)
-        out_data[:, i:min(i+rows, l)] = tmpResult
-        f.flush()
-        j += 1
-    low_triang_matrix = sps.csr_matrix(out_data).toarray()
-    f.close()
-    os.remove('cholesky.h5')
-    return low_triang_matrix
 
 
 def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):
@@ -2315,6 +2330,165 @@ def triu_matrix(matrix, kind='upper'):
     return CategoryCov(pd.DataFrame(values, index=index, columns=columns))
 
 
+def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
+    """
+    Extract random samples according to the chosen distribution with standard
+    deviation=1 and mean=0.
+
+    Parameters
+    ----------
+    dim : `int`
+        Dimension of the matrix from where we obtain the samples.
+    nsmp : `int`
+        number of samples.
+    seed : `int`, optional, default is `None`
+        seed for the random number generator (by default use `numpy`
+        dafault pseudo-random number generator).
+    pdf : `str`, optional
+        Random numbers distribution. The default is 'normal'
+        Available distributions are:
+            * `'normal'`
+            * `'uniform'`
+
+    Returns
+    -------
+    y : `np.array`
+        Numpy array with the random numbers.
+
+    Examples
+    --------
+    >>> sandy.cov.sample_distribution(2, 3, seed=11)
+    array([[ 1.74945474, -0.286073  , -0.48456513],
+           [-2.65331856, -0.00828463, -0.31963136]])
+
+    >>> sandy.cov.sample_distribution(2, 3, seed=11, pdf='uniform')
+    array([[-1.10757829, -1.66458659, -0.12741476],
+           [ 0.77919399, -0.27642282, -0.05048201]])
+
+    >>> sandy.cov.sample_distribution(2, 1000000, seed=11).mean().round(5)
+    0.00025
+
+    >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='uniform').mean().round(5)
+    -0.00115
+
+    >>> sandy.cov.sample_distribution(2, 1000000, seed=11).std().round(5)
+    0.99919
+
+    >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='uniform').std().round(5)
+    1.00038
+
+    >>> np.corrcoef(sandy.cov.sample_distribution(2, 1000000, seed=11)).round(5)
+    array([[1.e+00, 5.e-05],
+           [5.e-05, 1.e+00]])
+
+    >>> np.corrcoef(sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='uniform')).round(5)
+    array([[ 1.0e+00, -9.2e-04],
+           [-9.2e-04,  1.0e+00]])
+    """
+    np.random.seed(seed=seed)
+    if pdf == 'normal':
+        y = np.random.randn(dim, nsmp)
+    elif pdf == 'uniform':
+        a = np.sqrt(12) / 2
+        y = np.random.uniform(-a, a, (dim, nsmp))
+    return y
+
+
+def reduce_size(data):
+    """
+    Reduces the size of the matrix, erasing the zero values.
+
+    Parameters
+    ----------
+    data : 'pd.DataFrame'
+        Matrix to be reduced.
+
+    Returns
+    -------
+    nonzero_idxs : `numpy.ndarray`
+        The indices of the diagonal that are not null.
+    cov_reduced : `pandas.DataFrame`
+        The reduced matrix.
+
+    Examples
+    --------
+    >>> S = pd.DataFrame(np.diag(np.array([1, 2, 3])))
+    >>> non_zero_index, reduce_matrix = reduce_size(S)
+    >>> assert reduce_matrix.equals(S)
+    >>> assert (non_zero_index == range(3)).all()
+
+    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3])))
+    >>> non_zero_index, reduce_matrix = reduce_size(S)
+    >>> assert (non_zero_index == np.array([1, 2])).all()
+    >>> reduce_matrix
+      1 2
+    1 2 0
+    2 0 3
+
+    >>> S.index = S.columns = ["a", "b", "c"]
+    >>> non_zero_index, reduce_matrix = reduce_size(S)
+    >>> reduce_matrix
+      b c
+    b 2 0
+    c 0 3
+    """
+    data_ = pd.DataFrame(data)
+    nonzero_idxs = np.flatnonzero(np.diag(data_))
+    cov_reduced = data_.iloc[nonzero_idxs, nonzero_idxs]
+    return nonzero_idxs, cov_reduced
+
+
+def restore_size(nonzero_idxs, mat_reduced, dim):
+    """
+    Restore the size of a matrix.
+
+    Parameters
+    ----------
+    nonzero_idxs : `numpy.ndarray`
+        The indices of the diagonal that are not null.
+    mat_reduced : `numpy.ndarray`
+        The reduced matrix.
+    dim : `int`
+        Dimension of the original matrix.
+
+    Returns
+    -------
+    mat : `pd.DataFrame`
+        Matrix of specified dimensions.
+
+    Notes
+    -----
+    ..notes:: This funtion was developed to be used after using
+              `reduce_size`.
+
+    Examples
+    --------
+    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3, 0])))
+    >>> M_nonzero_idxs, M_reduce = reduce_size(S)
+    >>> M_reduce[::] = 1
+    >>> restore_size(M_nonzero_idxs, M_reduce.values, len(S))
+                0           1           2           3
+    0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+    1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+    2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+    3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+
+    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3, 0])), index=[1, 2, 3, 4], columns=[5, 6, 7, 8])
+    >>> M_nonzero_idxs, M_reduce = reduce_size(S)
+    >>> M_reduce[::] = 1
+    >>> restore_size(M_nonzero_idxs, M_reduce.values, len(S))
+                0           1           2           3
+    0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+    1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+    2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+    3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+    """
+    mat = np.zeros((dim, dim))
+    for i, ni in enumerate(nonzero_idxs):
+        mat[ni, nonzero_idxs] = mat_reduced[i]
+    return pd.DataFrame(mat)
+
+
 def random_corr(size, correlations=True, seed=None):
     np.random.seed(seed=seed)
     corr = np.eye(size)
@@ -2327,7 +2501,7 @@ def random_corr(size, correlations=True, seed=None):
 
 
 def random_cov(size, stdmin=0.0, stdmax=1.0, correlations=True, seed=None):
-    corr = random_corr(size, correlations=correlations, seed=seed)
+    corr = random_corr(size, correlations=correlations , seed=seed)
     std = np.random.uniform(stdmin, stdmax, size)
     return corr2cov(corr, std)
 
