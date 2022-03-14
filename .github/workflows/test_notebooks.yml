@@ -7,8 +7,6 @@ on:
   - cron:  '30 14 * * 1,3,5'
 
   workflow_run:
-    workflows: ["notebook CI"]
-    types: [requested]
     branches:
       - 'develop'
 
