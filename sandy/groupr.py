@@ -177,12 +177,14 @@ def read_mf1(tape, mat):
     --------
     >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
     >>> groupr = endf6.get_gendf(verborse=True, ek=sandy.energy_grids.CASMO12)
-    >>> sandy.groupr.read_mf1(groupr, 125)
+    >>> mf1 = sandy.groupr.read_mf1(groupr, 125)
+    >>> mf1['AWR'] = round(mf1['AWR'], 3)
+    >>> mf1
     {'MAT': 125,
      'MF': 1,
      'MT': 451,
      'ZA': 1001.0,
-     'AWR': 0.9991673,
+     'AWR': 0.999,
      'LRP': -1,
      'TEMPIN': 293.6,
      'TITLE': [0.0],
