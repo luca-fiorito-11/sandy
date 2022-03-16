@@ -187,11 +187,6 @@ class DecayData():
             dataframe with decay mode, branching ratio and associated uncertainty or
             dataframe with decay mode and branching ratio if with_uncertainty = False
 
-        Raises
-        ------
-        `sandy.Error`
-            if no branching ratio is found
-
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942400, 922350])
