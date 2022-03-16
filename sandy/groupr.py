@@ -36,6 +36,10 @@ class Groupr(_FormattedFile):
         >>> groupr = endf6.get_gendf(verborse=True)
         >>> len(groupr.get_n_energy_grid())
         241
+
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> groupr = endf6.get_gendf(verborse=True, ek=casmo12)
+        >>> groupr.get_n_energy_grid()
         """
         mat_ = mat if mat else self.mat[0]
         mf1 = read_mf1(self, mat_)

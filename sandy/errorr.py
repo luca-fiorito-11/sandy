@@ -46,7 +46,7 @@ class Errorr(_FormattedFile):
 
     def get_xs(self):
         """
-        Obtain for a given mat and mt the xs values across the energy grid.
+        Obtain the xs values across the energy grid.
 
         Returns
         -------
