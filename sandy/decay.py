@@ -183,9 +183,9 @@ class DecayData():
 
         Returns
         -------
-        `pandas.DataFrame` or `pandas.Series`
-            dataframe with branching ratio and associated uncertainty or
-            series with branching ratio if with_uncertainty = False
+        `pandas.DataFrame`
+            dataframe with decay mode, branching ratio and associated uncertainty or
+            dataframe with decay mode and branching ratio if with_uncertainty = False
 
         Raises
         ------
@@ -207,22 +207,22 @@ class DecayData():
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942400, 922350])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> rdd.get_branching_ratio(False)
-        ZAM
-        922350   1.00000e+00
-        922350   7.20000e-11
-        942400   1.00000e+00
-        942400   5.70000e-08
-        Name: BR, dtype: float64
+               RTYP          BR
+        ZAM                    
+        922350   40 1.00000e+00
+        922350   60 7.20000e-11
+        942400   40 1.00000e+00
+        942400   60 5.70000e-08
         
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942400, 10010, 922350])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> rdd.get_branching_ratio(False)
-        ZAM
-        922350   1.00000e+00
-        922350   7.20000e-11
-        942400   1.00000e+00
-        942400   5.70000e-08
-        Name: BR, dtype: float64
+               RTYP          BR
+        ZAM                    
+        922350   40 1.00000e+00
+        922350   60 7.20000e-11
+        942400   40 1.00000e+00
+        942400   60 5.70000e-08
         """
         br = []
         zam = []
@@ -243,7 +243,7 @@ class DecayData():
         if with_uncertainty:
             return df
         else:
-            return df.BR
+            return df[['RTYP','BR']]
 
     def get_decay_energy(self, with_uncertainty=True):
         """
@@ -257,9 +257,9 @@ class DecayData():
 
         Returns
         -------
-        `pandas.DataFrame` or `pandas.Series`
+        `pandas.DataFrame`
             dataframe with decay energy and associated uncertainty or
-            series with decay energy if with_uncertainty = False
+            dataframe with decay energy if with_uncertainty = False
 
         Examples
         --------
@@ -278,14 +278,14 @@ class DecayData():
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942400, 922350])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> rdd.get_decay_energy(False)
-        ZAM
-        922350   4.46460e+06
-        922350   5.06717e+04
-        922350   1.63616e+05
-        942400   5.24303e+06
-        942400   1.11164e+04
-        942400   1.36292e+03
-        Name: E, dtype: float64
+                 type           E
+        ZAM                      
+        922350  alpha 4.46460e+06
+        922350   beta 5.06717e+04
+        922350  gamma 1.63616e+05
+        942400  alpha 5.24303e+06
+        942400   beta 1.11164e+04
+        942400  gamma 1.36292e+03
         """
         decay_energy = []
         decay_energy_uncertainty = []
@@ -311,7 +311,7 @@ class DecayData():
         if with_uncertainty:
             return df
         else:
-            return df.E
+            return df[['type','E']]
 
     def get_decay_constant(self, with_uncertainty=True):
         """
