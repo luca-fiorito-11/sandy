@@ -1744,6 +1744,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         stop
         """
+        temperature = 0 if temperature is None else temperature
         if float(temperature) == 0:
             kwargs["broadr"] = False
             kwargs["thermr"] = False
