@@ -728,7 +728,7 @@ def extract_samples(ftape, covtape):
                 # Limit imposed by running ERRORR to get covariance matrices
                 raise sandy.Error("More than one MAT number was found")
             endf6 = sandy.Endf6.from_file(init.file)
-            covtape = endf6.get_errorr(init.njoy)
+            covtape = endf6.get_errorr(njoy=init.njoy)
         
             
                 
