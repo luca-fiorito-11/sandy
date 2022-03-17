@@ -17,7 +17,7 @@ class Errorr(_FormattedFile):
     Container for ERRORR file text grouped by MAT, MF and MT numbers.
     """
 
-    def get_energy_grid(self, mat=None):
+    def get_energy_grid(self, **kwargs):
         """
         Obtaining the energy grid.
 
@@ -39,8 +39,13 @@ class Errorr(_FormattedFile):
         array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
                3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
                8.2100e+05, 2.2310e+06, 1.0000e+07])
+
+        >>> err.get_energy_grid(mat=9443)
+        array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
+               3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
+               8.2100e+05, 2.2310e+06, 1.0000e+07])
         """
-        mat_ = mat if mat else self.mat[0]
+        mat_ = kwargs.get('mat', self.mat[0])
         mf1 = read_mf1(self, mat_)
         return mf1["EG"]
 

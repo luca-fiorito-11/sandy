@@ -20,11 +20,6 @@ class Groupr(_FormattedFile):
         """
         Obtaining neutrons energy grid.
 
-        Parameters
-        ----------
-        mat : `int`, optional
-            MAT number. The default is None.
-
         Returns
         -------
         `np.array`
@@ -38,21 +33,19 @@ class Groupr(_FormattedFile):
         241
 
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> groupr = endf6.get_gendf(verborse=True, ek=casmo12)
+        >>> groupr = endf6.get_gendf(verborse=True, ek=sandy.energy_grids.CASMO12)
         >>> groupr.get_n_energy_grid()
+        array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
+               3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
+               8.2100e+05, 2.2310e+06, 1.0000e+07])
         """
         mat_ = mat if mat else self.mat[0]
         mf1 = read_mf1(self, mat_)
         return mf1["EGN"]
 
-    def get_g_energy_grid(self, mat=None):
+    def get_g_energy_grid(self, **kwargs):
         """
         Obtain photons energy grid.
-
-        Parameters
-        ----------
-        mat : `int`, optional
-            MAT number. The default is None.
 
         Returns
         -------
@@ -67,19 +60,24 @@ class Groupr(_FormattedFile):
         array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
                3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
                8.2100e+05, 2.2310e+06, 1.0000e+07])
+
+        >>> groupr.get_g_energy_grid(mat=125)
+        array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
+               3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
+               8.2100e+05, 2.2310e+06, 1.0000e+07])
         """
-        mat_ = mat if mat else self.mat[0]
+        mat_ = kwargs.get('mat', self.mat[0])
         mf1 = read_mf1(self, mat_)
         return mf1["EGG"]
 
     def get_xs(self):
         """
-        Get multigroup cross sections
+        Get multigroup neutron cross sections
 
         Returns
         -------
         xs : `sandy.Xs`
-            group to group cross sections
+            multigroup cross sections
 
         Examples
         --------
@@ -115,13 +113,13 @@ class Groupr(_FormattedFile):
         data = pd.concat(data, axis=1).fillna(0)
         return sandy.Xs(data)
 
-    def get_flux(self):
+    def get_flux(self, **kwargs):
         """
         The flux of the multigroup approach
 
         Returns
         -------
-        flux : `pd.DataFrame`
+        flux : `pd.Series`
             Dataframe containing the flux.
 
         Examples
@@ -129,32 +127,43 @@ class Groupr(_FormattedFile):
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> groupr = endf6.get_gendf(verborse=True, ek=sandy.energy_grids.CASMO12)
         >>> groupr.get_flux()
-        MAT	                    125
-        MT	                    1	        2	        102
-        E			
-        (1e-05, 0.03]	        2.99900e-02	2.99900e-02	2.99900e-02
-        (0.03, 0.058]	        2.80000e-02	2.80000e-02	2.80000e-02
-        (0.058, 0.14]	        8.20000e-02	8.20000e-02	8.20000e-02
-        (0.14, 0.28]	        1.40000e-01	1.40000e-01	1.40000e-01
-        (0.28, 0.35]	        7.00000e-02	7.00000e-02	7.00000e-02
-        (0.35, 0.625]	        2.75000e-01	2.75000e-01	2.75000e-01
-        (0.625, 4.0]	        3.37500e+00	3.37500e+00	3.37500e+00
-        (4.0, 48.052]	        4.40520e+01	4.40520e+01	4.40520e+01
-        (48.052, 5530.0]	    5.48195e+03	5.48195e+03	5.48195e+03
-        (5530.0, 821000.0]	    8.15470e+05	8.15470e+05	8.15470e+05
-        (821000.0, 2231000.0]	1.41000e+06	1.41000e+06	1.41000e+06
-        (2231000.0, 10000000.0]	7.76900e+06	7.76900e+06	7.76900e+06
+        (1e-05, 0.03]             2.99900e-02
+        (0.03, 0.058]             2.80000e-02
+        (0.058, 0.14]             8.20000e-02
+        (0.14, 0.28]              1.40000e-01
+        (0.28, 0.35]              7.00000e-02
+        (0.35, 0.625]             2.75000e-01
+        (0.625, 4.0]              3.37500e+00
+        (4.0, 48.052]             4.40520e+01
+        (48.052, 5530.0]          5.48195e+03
+        (5530.0, 821000.0]        8.15470e+05
+        (821000.0, 2231000.0]     1.41000e+06
+        (2231000.0, 10000000.0]   7.76900e+06
+        Name: iwt, dtype: float64
+
+        >>> groupr.get_flux(mat=125, mt=2)
+        (1e-05, 0.03]             2.99900e-02
+        (0.03, 0.058]             2.80000e-02
+        (0.058, 0.14]             8.20000e-02
+        (0.14, 0.28]              1.40000e-01
+        (0.28, 0.35]              7.00000e-02
+        (0.35, 0.625]             2.75000e-01
+        (0.625, 4.0]              3.37500e+00
+        (4.0, 48.052]             4.40520e+01
+        (48.052, 5530.0]          5.48195e+03
+        (5530.0, 821000.0]        8.15470e+05
+        (821000.0, 2231000.0]     1.41000e+06
+        (2231000.0, 10000000.0]   7.76900e+06
+        Name: iwt, dtype: float64
         """
         data = []
-        for mat, mf, mt in self.filter_by(listmf=[3]).data:
-            mf1 = sandy.groupr.read_mf1(self, mat)
-            egn = pd.IntervalIndex.from_breaks(mf1["EGN"])
-            mf3 = sandy.groupr.read_mf3(self, mat, mt)
-            flux = np.array([x["DATA"][0].tolist() for x in mf3["GROUPS"]]).T
-            columns = pd.MultiIndex.from_tuples([(mat, mt)], names=["MAT", "MT"])
-            index = pd.Index(egn, name= "E")
-            data.append(pd.DataFrame(flux, index=index, columns=columns))
-        flux = pd.concat(data, axis=1)
+        mat_ = kwargs.get('mat', self.mat[0])
+        mt_ = kwargs.get('mt', 1)
+        mf3 = read_mf3(self, mat_, mt_)
+        mf1 = read_mf1(self, mat_)
+        data = np.array([x["DATA"][0].tolist() for x in mf3["GROUPS"]]).T
+        index = pd.IntervalIndex.from_breaks(mf1["EGN"])
+        flux = pd.Series(data, index=index, name="iwt")
         return flux
 
 
@@ -281,11 +290,11 @@ def read_mf3(tape, mat, mt):
     for ig in range(NGN):
         L, i = sandy.read_list(df, i)
         add = {
-            "TEMPIN": L.C1,
-            "NG2": L.L1,
-            "IG2LO": L.L2,
-            "IG": L.N2,
-            "DATA": np.array(L.B),
+            "TEMPIN": L.C1,  # Material temperature (Kelvin)
+            "NG2": L.L1,  # Number of secondary positions
+            "IG2LO": L.L2,  # Index to lowest zero group
+            "IG": L.N2,  # Group index
+            "DATA": np.array(L.B),  # Array containing the flux and the xs
             }
         groups.append(add)
     out["GROUPS"] = groups
