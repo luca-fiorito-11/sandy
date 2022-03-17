@@ -16,7 +16,8 @@ class Groupr(_FormattedFile):
     """
     Container for groupr information grouped by MAT, MF and MT numbers.
     """
-    def get_n_energy_grid(self, mat=None):
+
+    def get_n_energy_grid(self, **kwargs):
         """
         Obtaining neutrons energy grid.
 
@@ -39,7 +40,7 @@ class Groupr(_FormattedFile):
                3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
                8.2100e+05, 2.2310e+06, 1.0000e+07])
         """
-        mat_ = mat if mat else self.mat[0]
+        mat_ = kwargs.get('mat', self.mat[0])
         mf1 = read_mf1(self, mat_)
         return mf1["EGN"]
 
@@ -70,7 +71,7 @@ class Groupr(_FormattedFile):
         mf1 = read_mf1(self, mat_)
         return mf1["EGG"]
 
-    def get_xs(self):
+    def get_xs(self, **kwargs):
         """
         Get multigroup neutron cross sections
 
@@ -101,9 +102,10 @@ class Groupr(_FormattedFile):
         (2231000.0, 10000000.0] 1.52409e+00 1.52406e+00 3.44005e-05
         """
         data = []
+        mat_ = kwargs.get('mat', self.mat[0])
+        mf1 = read_mf1(self, mat_)
+        egn = pd.IntervalIndex.from_breaks(mf1["EGN"])
         for mat, mf, mt in self.filter_by(listmf=[3]).data:
-            mf1 = sandy.groupr.read_mf1(self, mat)
-            egn = pd.IntervalIndex.from_breaks(mf1["EGN"])
             mf3 = sandy.groupr.read_mf3(self, mat, mt)
             xs = np.array([x["DATA"][1].tolist() for x in mf3["GROUPS"]]).T
             columns = pd.MultiIndex.from_tuples([(mat, mt)],
