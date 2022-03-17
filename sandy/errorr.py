@@ -17,7 +17,7 @@ class Errorr(_FormattedFile):
     Container for ERRORR file text grouped by MAT, MF and MT numbers.
     """
 
-    def get_energy_grid(self, mat=None):
+    def get_energy_grid(self, **kwargs):
         """
         Obtaining the energy grid.
 
@@ -39,21 +39,19 @@ class Errorr(_FormattedFile):
         array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
                3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
                8.2100e+05, 2.2310e+06, 1.0000e+07])
+
+        >>> err.get_energy_grid(mat=9443)
+        array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
+               3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
+               8.2100e+05, 2.2310e+06, 1.0000e+07])
         """
-        mat_ = mat if mat else self.mat[0]
+        mat_ = kwargs.get('mat', self.mat[0])
         mf1 = read_mf1(self, mat_)
         return mf1["EG"]
 
-    def get_xs(self, mat, mt):
+    def get_xs(self):
         """
-        Obtain for a given mat and mt the xs values across the energy grid.
-
-        Parameters
-        ----------
-        mat : `int`
-            MAT number
-        mt : `int`
-            MT number
+        Obtain the xs values across the energy grid.
 
         Returns
         -------
@@ -64,19 +62,34 @@ class Errorr(_FormattedFile):
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> err = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, err=1)
-        >>> err.get_xs(125, 102).head()
-        (1e-05, 0.03]   6.17622e-01
-        (0.03, 0.058]   2.62307e-01
-        (0.058, 0.14]   1.77108e-01
-        (0.14, 0.28]    1.21068e-01
-        (0.28, 0.35]    1.01449e-01
-        Name: (125, 102), dtype: float64
+        >>> err.get_xs()
+        MAT                     125                        
+        MT                      1           2           102
+        E                                                          
+        (1e-05, 0.03]           2.10540e+01 2.04363e+01 6.17622e-01
+        (0.03, 0.058]           2.06986e+01 2.04363e+01 2.62307e-01
+        (0.058, 0.14]           2.06134e+01 2.04363e+01 1.77108e-01
+        (0.14, 0.28]            2.05574e+01 2.04363e+01 1.21068e-01
+        (0.28, 0.35]            2.05377e+01 2.04363e+01 1.01449e-01
+        (0.35, 0.625]           2.05156e+01 2.04363e+01 7.93598e-02
+        (0.625, 4.0]            2.04756e+01 2.04360e+01 3.95521e-02
+        (4.0, 48.052]           2.04452e+01 2.04328e+01 1.23376e-02
+        (48.052, 5530.0]        2.00727e+01 2.00714e+01 1.31829e-03
+        (5530.0, 821000.0]      8.05810e+00 8.05804e+00 6.41679e-05
+        (821000.0, 2231000.0]   3.48867e+00 3.48863e+00 3.54246e-05
+        (2231000.0, 10000000.0] 1.52409e+00 1.52406e+00 3.44005e-05
         """
-        mf1 = read_mf1(self, mat)
-        mf3 = read_mf3(self, mat, mt)
-        index = pd.IntervalIndex.from_breaks(mf1["EG"])
-        xs = pd.Series(mf3["XS"], index=index, name=(mat, mt))
-        return xs
+        data = []
+        for mat, mf, mt in self.filter_by(listmf=[3]).data:
+            mf1 = sandy.errorr.read_mf1(self, mat)
+            egn = pd.IntervalIndex.from_breaks(mf1["EG"])
+            mf3 = sandy.errorr.read_mf3(self, mat, mt)
+            columns = pd.MultiIndex.from_tuples([(mat, mt)],
+                                                names=["MAT", "MT"])
+            index = pd.Index(egn, name="E")
+            data.append(pd.DataFrame(mf3["XS"], index=index, columns=columns))
+        data = pd.concat(data, axis=1).fillna(0)
+        return sandy.Xs(data)
 
     def get_cov(self):
         """

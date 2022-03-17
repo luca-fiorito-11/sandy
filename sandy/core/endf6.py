@@ -1650,7 +1650,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         >>> assert isinstance(out, sandy.Errorr)
 
         Test `ign` and `ek`
-        >>> assert out.get_xs(125, 1).size == 12
+        >>> assert out.get_xs().data[(125, 1)].size == 12
         
         Test `to_file`
         >>> out = endf6.get_errorr(to_file="out.err")
