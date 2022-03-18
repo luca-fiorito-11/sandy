@@ -184,40 +184,40 @@ class DecayData():
         Returns
         -------
         `pandas.DataFrame`
-            dataframe with decay mode, branching ratio and associated uncertainty or
-            dataframe with decay mode and branching ratio if with_uncertainty = False
+            dataframe with rtyp, branching ratio and associated uncertainty or
+            dataframe with rtyp and branching ratio if with_uncertainty = False
 
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942410, 922350])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> rdd.get_branching_ratio()
-               decay mode          BR         DBR
-        ZAM                                      
-        922350      alpha 1.00000e+00 1.00000e-04
-        922350         SF 7.20000e-11 2.10000e-11
-        942410      alpha 2.44000e-05 0.00000e+00
-        942410       beta 9.99976e-01 0.00000e+00
+               RTYP          BR         DBR
+        ZAM                                
+        922350   40 1.00000e+00 1.00000e-04
+        922350   60 7.20000e-11 2.10000e-11
+        942410   40 2.44000e-05 0.00000e+00
+        942410   10 9.99976e-01 0.00000e+00
 
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942410, 922350])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> rdd.get_branching_ratio(False)
-               decay mode          BR
-        ZAM                          
-        922350      alpha 1.00000e+00
-        922350         SF 7.20000e-11
-        942410      alpha 2.44000e-05
-        942410       beta 9.99976e-01
-        
+               RTYP          BR
+        ZAM                    
+        922350   40 1.00000e+00
+        922350   60 7.20000e-11
+        942410   40 2.44000e-05
+        942410   10 9.99976e-01
+
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942410, 10010, 922350])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> rdd.get_branching_ratio(False)
-               decay mode          BR
-        ZAM                          
-        922350      alpha 1.00000e+00
-        922350         SF 7.20000e-11
-        942410      alpha 2.44000e-05
-        942410       beta 9.99976e-01
+               RTYP          BR
+        ZAM                    
+        922350   40 1.00000e+00
+        922350   60 7.20000e-11
+        942410   40 2.44000e-05
+        942410   10 9.99976e-01
         """
         br = []
         zam = []
@@ -225,7 +225,7 @@ class DecayData():
             try:
                 for rtyp, dk in dic['decay_modes']:
                     br.append([
-                        rtyp2decaymode(rtyp),
+                        rtyp,
                         dk['branching_ratio'],
                         dk['branching_ratio_uncertainty'],
                         ])
@@ -233,12 +233,12 @@ class DecayData():
             except:
                 logging.warn(f"no branching ratio is found for {z}")
                 pass
-            df = pd.DataFrame(br, columns=['decay mode','BR', 'DBR'], index=zam)
+            df = pd.DataFrame(br, columns=['RTYP','BR', 'DBR'], index=zam)
             df.index.name = "ZAM"
         if with_uncertainty:
             return df
         else:
-            return df[['decay mode','BR']]
+            return df[['RTYP','BR']]
 
     def get_decay_energy(self, with_uncertainty=True):
         """
@@ -1184,28 +1184,3 @@ def rdd2hdf(e6file, h5file, lib):
     endf6 = sandy.Endf6.from_file(e6file)
     logging.info(f"adding RDD to '{lib}' in '{h5file}'")
     DecayData.from_endf6(endf6, verbose=True).to_hdf5(h5file, lib)
-
-
-def rtyp2decaymode(rtyp):
-    decay_mode = []
-    if rtyp == '100':
-        decay_mode = f"unknown decay mode"
-    else:
-        for dectyp in map(int, rtyp):
-            if dectyp == 0:
-                pass
-            elif dectyp == 1:
-                decay_mode.append('beta')
-            elif dectyp == 2:
-                decay_mode.append('e.c. and/or e+ emission')
-            elif dectyp == 3:
-                decay_mode.append('IT')
-            elif dectyp == 4:
-                decay_mode.append('alpha')
-            elif dectyp == 5:
-                decay_mode.append('n emission')
-            elif dectyp == 6:
-                decay_mode.append('SF')
-            elif dectyp == 7:
-                decay_mode.append('p emission')
-    return str(decay_mode)[1:-1].replace("'", "")
