@@ -117,16 +117,35 @@ class Groupr(_FormattedFile):
         (5530.0, 821000.0]      8.05819e+00
         (821000.0, 2231000.0]   3.48869e+00
         (2231000.0, 10000000.0] 1.52409e+00
+
+        >>> groupr.get_xs(mt=[1, 2])
+        MAT                             125            
+        MT                                1           2
+        E                                              
+        (1e-05, 0.03]           4.74500e+01 4.68507e+01
+        (0.03, 0.058]           2.66592e+01 2.64039e+01
+        (0.058, 0.14]           2.33852e+01 2.32133e+01
+        (0.14, 0.28]            2.18356e+01 2.17186e+01
+        (0.28, 0.35]            2.13559e+01 2.12616e+01
+        (0.35, 0.625]           2.10611e+01 2.09845e+01
+        (0.625, 4.0]            2.06169e+01 2.05790e+01
+        (4.0, 48.052]           2.04594e+01 2.04475e+01
+        (48.052, 5530.0]        2.00729e+01 2.00716e+01
+        (5530.0, 821000.0]      8.05819e+00 8.05812e+00
+        (821000.0, 2231000.0]   3.48869e+00 3.48866e+00
+        (2231000.0, 10000000.0] 1.52409e+00 1.52406e+00
         """
         data = []
         mat_ = kwargs.get('mat', self.mat[0])
         mf1 = read_mf1(self, mat_)
         egn = pd.IntervalIndex.from_breaks(mf1["EGN"])
         listmt_ = kwargs.get('mt', range(1, 10000))
+        listmt_ = [listmt_] if isinstance(listmt_, int) else listmt_
         listmat_ = kwargs.get('mat', range(1, 10000))
+        listmat_ = [listmat_] if isinstance(listmat_, int) else listmat_
         for mat, mf, mt in self.filter_by(listmf=[3],
-                                          listmt=[listmt_],
-                                          listmat=[listmat_]).data:
+                                          listmt=listmt_,
+                                          listmat=listmat_).data:
             mf3 = sandy.groupr.read_mf3(self, mat, mt)
             xs = np.array([x["DATA"][1].tolist() for x in mf3["GROUPS"]]).T
             columns = pd.MultiIndex.from_tuples([(mat, mt)],
