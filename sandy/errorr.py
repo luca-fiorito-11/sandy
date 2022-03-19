@@ -49,7 +49,7 @@ class Errorr(_FormattedFile):
         mf1 = read_mf1(self, mat_)
         return mf1["EG"]
 
-    def get_xs(self):
+    def get_xs(self, **kwargs):
         """
         Obtain the xs values across the energy grid.
 
@@ -78,9 +78,49 @@ class Errorr(_FormattedFile):
         (5530.0, 821000.0]      8.05810e+00 8.05804e+00 6.41679e-05
         (821000.0, 2231000.0]   3.48867e+00 3.48863e+00 3.54246e-05
         (2231000.0, 10000000.0] 1.52409e+00 1.52406e+00 3.44005e-05
+
+        >>> err.get_xs(mt=[1, 2])
+        MAT                             125            
+        MT                                1           2
+        E                                              
+        (1e-05, 0.03]           2.10540e+01 2.04363e+01
+        (0.03, 0.058]           2.06986e+01 2.04363e+01
+        (0.058, 0.14]           2.06134e+01 2.04363e+01
+        (0.14, 0.28]            2.05574e+01 2.04363e+01
+        (0.28, 0.35]            2.05377e+01 2.04363e+01
+        (0.35, 0.625]           2.05156e+01 2.04363e+01
+        (0.625, 4.0]            2.04756e+01 2.04360e+01
+        (4.0, 48.052]           2.04452e+01 2.04328e+01
+        (48.052, 5530.0]        2.00727e+01 2.00714e+01
+        (5530.0, 821000.0]      8.05810e+00 8.05804e+00
+        (821000.0, 2231000.0]   3.48867e+00 3.48863e+00
+        (2231000.0, 10000000.0] 1.52409e+00 1.52406e+00
+
+        >>> err.get_xs(mt=1)
+        MAT                             125
+        MT                                1
+        E                                  
+        (1e-05, 0.03]           2.10540e+01
+        (0.03, 0.058]           2.06986e+01
+        (0.058, 0.14]           2.06134e+01
+        (0.14, 0.28]            2.05574e+01
+        (0.28, 0.35]            2.05377e+01
+        (0.35, 0.625]           2.05156e+01
+        (0.625, 4.0]            2.04756e+01
+        (4.0, 48.052]           2.04452e+01
+        (48.052, 5530.0]        2.00727e+01
+        (5530.0, 821000.0]      8.05810e+00
+        (821000.0, 2231000.0]   3.48867e+00
+        (2231000.0, 10000000.0] 1.52409e+00
         """
         data = []
-        for mat, mf, mt in self.filter_by(listmf=[3]).data:
+        listmt_ = kwargs.get('mt', range(1, 10000))
+        listmt_ = [listmt_] if isinstance(listmt_, int) else listmt_
+        listmat_ = kwargs.get('mat', range(1, 10000))
+        listmat_ = [listmat_] if isinstance(listmat_, int) else listmat_
+        for mat, mf, mt in self.filter_by(listmf=[3],
+                                          listmt=listmt_,
+                                          listmat=listmat_).data:
             mf1 = sandy.errorr.read_mf1(self, mat)
             egn = pd.IntervalIndex.from_breaks(mf1["EG"])
             mf3 = sandy.errorr.read_mf3(self, mat, mt)
