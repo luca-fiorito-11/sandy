@@ -222,7 +222,7 @@ class DecayData():
         br = []
         zam = []
         for z, dic in self.data.items():
-            try:
+            if 'decay_modes' in dic.keys():
                 for rtyp, dk in dic['decay_modes']:
                     br.append([
                         rtyp,
@@ -230,7 +230,7 @@ class DecayData():
                         dk['branching_ratio_uncertainty'],
                         ])
                     zam.append(z)
-            except:
+            else:
                 logging.warn(f"no branching ratio is found for {z}")
                 pass
             df = pd.DataFrame(br, columns=['RTYP','BR', 'DBR'], index=zam)
