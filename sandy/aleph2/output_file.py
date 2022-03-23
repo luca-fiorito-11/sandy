@@ -38,19 +38,19 @@ contributor_header = "Main contributors.*\n\n\n"
 
 table_footer = "^\s+Total"
 
-PATTERN_TIMEKEFF = re.compile("\s+Global neutronics parameters\n\s+\-+\n\s+Time\s+\(days\)\s+(?P<data>.*?)\n")
+PATTERN_TIMEKEFF = re.compile("\s+Global neutronics parameters\n\s+\-+\n\s+Time\s+\((?P<unit>[a-z]+)\)\s+(?P<data>.*?)\n")
 PATTERN_BURNUP = re.compile("^\sFuel burnup \(MWd/kg HM\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
 PATTERN_KEFF = re.compile("^\s+Keff  eff. mult. factor\s+(?P<data>.*?)$", flags=re.MULTILINE)
 PATTERN_DKEFF = re.compile("^\s+Relative std. deviation\s+(?P<data>.*?)$", flags=re.MULTILINE)
 
-PATTERN_BEGIN = re.compile("\s+Irradiated materials\n\s+\-{20}")
-PATTERN_END = re.compile("\s+\*{28}\n\s+\* Total over all materials \*\n\s+\*{28}")
+PATTERN_MAT_BEGIN = re.compile("\s+Irradiated materials\n\s+\-{20}")
+PATTERN_MAT_END = re.compile("\s+\*{28}\n\s+\* Total over all materials \*\n\s+\*{28}")
 
 PATTERN_MATERIAL = re.compile("^\*{5}\s+Material\s+(?P<mat>.*?)$", flags=re.MULTILINE)
 PATTERN_CELLS = re.compile("\n\n\s+Cells\s+=\s+(?P<data>(?:[0-9, ]+\n)+)\n")
 PATTERN_VOLUME = re.compile("^\s+Volumes \(cm3\)\s+=\s+(?P<data>.*?) $", flags=re.MULTILINE)
 
-PATTERN_TIME = re.compile("^\s+Time\s+\(days\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_TIME = re.compile("^\s+Time\s+\((?P<unit>[a-z]+)\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
 PATTERN_WDENSITY = re.compile("^\s+Density\s+\(g/cm3\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
 PATTERN_ADENSITY = re.compile("^\s+Density\s+\(at/\(b\*cm\)\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
 PATTERN_TEMPERATURE = re.compile("^\s+Temperature\s+\(K\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
@@ -131,71 +131,18 @@ class OutputFile():
     def __init__(self, text):
         self.text = text
 
-    def parse_output(self, table_index="ZAM"):
-        self.data = parse_output_for_tables(self.text, index=table_index)
-
     @property
     def summary(self):
         """
-        Returns
-        -------
-        `str`
-            summary of the ALEPH-2 output (first output section before the
-                                           tables).
+        Summary string of the ALEPH-2 output, i.e., the first output section
+        before the tables.
         """
-        return self.data[0]
-
-    def get_burnup(self):
-        """
-        Returns
-        -------
-        `pandas.Series`
-            series with time-dependent burnup.
-        """
-        mats = self.get_materials()
-        bu = pd.DataFrame({
-            m: mat.burnup for m, mat in mats.items()
-            if hasattr(mat, "burnup")
-            })
-        days = self.get_time()
-        bu.index = pd.Index(days, name="days")
-        bu.columns.name = "material"
-        return bu
-
-    def get_cumulative_burnup(self):
-        """
-        Returns
-        -------
-        `pandas.Series`
-            series with time-dependent cumulative burnup.
-        """
-        mats = self.get_materials()
-        bu = pd.DataFrame({
-            m: mat.cumulative_burnup for m, mat in mats.items()
-            if hasattr(mat, "cumulative_burnup")
-            })
-        days = self.get_time()
-        bu.index = pd.Index(days, name="days")
-        bu.columns.name = "material"
-        return bu
-
-    @property
-    def keff(self):
-        """
-        Returns
-        -------
-        `pandas.DataFrame`
-        dataframe with time-dependent keff and associated statistical
-        error
-        """
-        keff = self.get_keff()
-        dkeff = self.get_keff_staterr()
-        days = self.get_time()
-        index = pd.Index(days, name="days")
-        return pd.DataFrame({
-            "keff": keff,
-            "staterr": dkeff,
-            }, index=index)
+        data = {}
+        # This is the same implementation as in `parse_tables`
+        inp, rest = re.split(summary_header, self.text, maxsplit=1)
+        tab_items = re.split(table_header, rest)
+        summary, tab_items = tab_items[0], tab_items[1:]
+        return summary
 
     @property
     def data(self):
@@ -229,51 +176,47 @@ class OutputFile():
         self._data = data
 
     def get_materials(self):
-        if not hasattr(self, "_data"):
-            self.parse_output()
-        text = self.summary
-        text = PATTERN_BEGIN.split(text, maxsplit=1)[1]
-        text = PATTERN_END.split(text, maxsplit=1)[0]
-        return parse_materials_output(text)
-
-    def get_time(self):
         """
-        Get array of irradiation/decay time steps (in days).
+        Extract neutronics/burnup calculated results available in the ALEPH
+        summary and group them by material.
 
         Returns
         -------
-        `numpy.ndarray` of `float` values
-            array of time values.
+        `AlephMaterials`
+            dictionary of ALEPH materials with neutronics/burnup calculated
+            results (available from the ALEPH summary).
+
         """
-        match = PATTERN_TIMEKEFF.search(self.summary)
-        data = match.group("data")
-        return np.array([float(x) for x in data.split()])
+        text = self.summary
+        text = PATTERN_MAT_BEGIN.split(text, maxsplit=1)[1]
+        text = PATTERN_MAT_END.split(text, maxsplit=1)[0]
+        return parse_materials_output(text)
 
     def get_keff(self):
         """
-        Get array of keff values.
+        Get dataframe with time-dependent keff and uncertainty.
 
         Returns
         -------
-        `numpy.ndarray` of `float` values
-            array of keff values.
+        `pd.DataFrame`
+            dataframe with keff and uncertainty as columns, time as rows
         """
-        match = PATTERN_KEFF.search(self.summary)
+        summary =  self.summary
+        match = PATTERN_KEFF.search(summary)
         data = match.group("data")
-        return np.array([float(x) for x in data.split()])
-
-    def get_keff_staterr(self):
-        """
-        Get array of keff statistical errors.
-
-        Returns
-        -------
-        `numpy.ndarray` of `float` values
-            array of keff statistical errors.
-        """
-        match = PATTERN_DKEFF.search(self.summary)
+        keff = np.array([float(x) for x in data.split()])
+        match = PATTERN_DKEFF.search(summary)
         data = match.group("data")
-        return np.array([float(x) for x in data.split()])
+        dkeff = np.array([float(x) for x in data.split()])
+        match = PATTERN_TIMEKEFF.search(summary)
+        data = match.group("data")
+        time = np.array([float(x) for x in data.split()])
+        unit = match.group("unit")
+        index = pd.Index(time, name=f"time [{unit}]")
+        return pd.DataFrame({
+            "KEFF": keff,
+            "DKEFF": dkeff,
+            }, index=index)
 
     def parse_tables(self):
         data = {}
@@ -305,7 +248,7 @@ class OutputFile():
         `dict`
             dictionary of tables.
         """
-        return self.data[table_number]["materials"]
+        return AlephMaterials(self.data[table_number].materials)
 
     @classmethod
     def from_string(cls, string):
@@ -486,6 +429,12 @@ class Table():
                     mat *= 1000  # this is Type B
             out[mat] = df
         return out
+
+
+class AlephMaterials(dict):
+
+    def __repr__(self):
+        return {x: f"ALEPH material {x}" for x in self.keys()}.__repr__()
 
 
 def parse_output_for_tables(text, index="ZAM"):
@@ -712,13 +661,13 @@ def _search_pattern_cells(text):
     return list(map(int, cells))
 
 
-def _search_pattern_float(text, pattern):
-    data = pattern.search(text).group("data")
+def _search_pattern_float(text, pattern, group="data"):
+    data = pattern.search(text).group(group)
     return float(data)
 
 
-def _search_pattern_flist(text, pattern):
-    data = pattern.search(text).group("data").split()
+def _search_pattern_flist(text, pattern, group="data"):
+    data = pattern.search(text).group(group).split()
     return list(map(float, data))
 
 
@@ -729,116 +678,74 @@ def parse_materials_output(text):
         cells = _search_pattern_cells(v)
         volume = _search_pattern_float(v, PATTERN_VOLUME)
         time = _search_pattern_flist(v, PATTERN_TIME)
+        time_unit = PATTERN_TIME.search(text).group("unit")
         wdensity = _search_pattern_flist(v, PATTERN_WDENSITY)
         adensity = _search_pattern_flist(v, PATTERN_ADENSITY)
         temperature = _search_pattern_flist(v, PATTERN_TEMPERATURE)
         src = _search_pattern_flist(v, PATTERN_SOURCE)
         nflux = _search_pattern_flist(v, PATTERN_NFLUX)
         power = _search_pattern_flist(v, PATTERN_POWER)
+        material = {
+            "ID": mat_number,
+            "cells": cells,
+            "volume": volume,
+            "time": pd.Series(
+                time,
+                name=f"time [{time_unit}]",
+                ),
+            "weight_density": pd.Series(
+                wdensity,
+                index=time,
+                name="weight density [g/cm3]",
+                ),
+            "atomic_density": pd.Series(
+                adensity,
+                index=time,
+                name="atomic density [g/cm/b]",
+                ),
+            "temperature": pd.Series(
+                temperature,
+                index=time,
+                name="temperature [K]",
+                ),
+            "source_strength": pd.Series(
+                src,
+                index=time,
+                name="source strength [part/s]",
+                ),
+            "neutron_flux": pd.Series(
+                nflux,
+                index=time,
+                name="neutron flux [n/cm2/s]",
+                ),
+            "thermal_power": pd.Series(
+                power,
+                index=time,
+                name="thermal power [MW]",
+                ),
+            }
         if PATTERN_FISSIONS.search(v):
-            burnup = _search_pattern_flist(v, PATTERN_BURNUP)
-            cumburnup = itertools.accumulate(burnup)
-            totburnup = _search_pattern_float(v, PATTERN_TOTBURNUP)
-            fissions = _search_pattern_flist(v, PATTERN_FISSIONS)
-            totfissions = _search_pattern_float(v, PATTERN_TOTFISSIONS)
-            material = FissMat(
-                ID=mat_number,
-                cells=cells,
-                volume=volume,
-                time=pd.Series(
-                    time,
-                    name="time [days]",
-                    ),
-                weight_density=pd.Series(
-                    wdensity,
-                    index=time,
-                    name="weight density [g/cm3]",
-                    ),
-                atomic_density=pd.Series(
-                    adensity,
-                    index=time,
-                    name="atomic density [g/cm/b]",
-                    ),
-                temperature=pd.Series(
-                    temperature,
-                    index=time,
-                    name="temperature [K]",
-                    ),
-                source_strenght=pd.Series(
-                    src,
-                    index=time,
-                    name="source strength [part/s]",
-                    ),
-                neutron_flux=pd.Series(
-                    nflux,
-                    index=time,
-                    name="neutron flux [n/cm2/s]",
-                    ),
-                power=pd.Series(
-                    power,
-                    index=time,
-                    name="thermal power [MW]",
-                    ),
-                burnup=pd.Series(
-                    burnup,
-                    index=time,
-                    name="burnup [GWd/tHM]",
-                    ),
-                cumulative_burnup=pd.Series(
-                    cumburnup,
-                    index=time,
-                    name="cumulative burnup [GWd/tHM]",
-                    ),
-                total_burnup=totburnup,
-                fissions=pd.Series(
-                    fissions,
-                    index=time,
-                    name="fissions [#]",
-                    ),
-                total_fissions=totfissions,
-            )
-        else:
-            material = Mat(
-                ID=mat_number,
-                cells=cells,
-                volume=volume,
-                time=pd.Series(
-                    time,
-                    name="time [days]",
-                    ),
-                weight_density=pd.Series(
-                    wdensity,
-                    index=time,
-                    name="weight density [g/cm3]",
-                    ),
-                atomic_density=pd.Series(
-                    adensity,
-                    index=time,
-                    name="atomic density [g/cm/b]",
-                    ),
-                temperature=pd.Series(
-                    temperature,
-                    index=time,
-                    name="temperature [K]",
-                    ),
-                source_streght=pd.Series(
-                    src,
-                    index=time,
-                    name="source strength [part/s]",
-                    ),
-                neutron_flux=pd.Series(
-                    nflux,
-                    index=time,
-                    name="neutron flux [n/cm2/s]",
-                    ),
-                power=pd.Series(
-                    power,
-                    index=time,
-                    name="thermal power [MW]",
-                    ),
-                )
+            material.update({
+            "burnup": pd.Series(
+                burnup,
+                index=time,
+                name="burnup [GWd/tHM]",
+                ),
+            "cumulative_burnup": pd.Series(
+                cumburnup,
+                index=time,
+                name="cumulative burnup [GWd/tHM]",
+                ),
+            "total_burnup": totburnup,
+            "fissions": pd.Series(
+                fissions,
+                index=time,
+                name="fissions [#]",
+                ),
+            "total_fissions": totfissions,
+            })
         materials[mat_number] = material
-    return materials
+    return AlephMaterials(materials)
 
 
 def read_output(file):
