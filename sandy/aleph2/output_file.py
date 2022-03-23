@@ -96,13 +96,6 @@ class OutputFile():
     ----------
     data : `dict`
         dictionary of ALEPH-2 output sections
-    burnup : `pandas.Series`
-        series with time-dependent burnup
-    cumulative_burnup : `pandas.Sereis`
-        series with time-dependent cumulative burnup
-    keff : `pandas. DataFrame`
-        dataframe with time-dependent keff and associated statistical
-        error
     summary : `str`
         summary of the ALEPH-2 output (first output section before the tables)
     text : `str`
@@ -114,18 +107,18 @@ class OutputFile():
         initialize object reading ALEPH-2 output from file
     from_string
         initialize object reading ALEPH-2 output from string
-    get_burnup
-        get array of burnup values
     get_keff
-        get array of keff values
-    get_keff_staterr
-        get array of keff statistical errors
+        get dataframe with time-dependent keff and associated statistical
+        error
+    get_materials
+        extract neutronics/burnup calculated results available in the ALEPH
+        summary and group them by material
     get_table
         for a specified table number, return a dictionary of tables
         indexed by material number
-    get_time
-        get array of irradiation/decay time steps (in days)
     parse_tables
+        parse ALEPH-2 output file, extract output tables and store them
+        in attribute `data`.
     """
 
     def __init__(self, text):
@@ -219,6 +212,15 @@ class OutputFile():
             }, index=index)
 
     def parse_tables(self):
+        """
+        Parse ALEPH-2 output file, extract output tables and store them
+        in attribute `data`.
+
+        Returns
+        -------
+        None.
+
+        """
         data = {}
         inp, rest = re.split(summary_header, self.text, maxsplit=1)
         tab_items = re.split(table_header, rest)
