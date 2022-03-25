@@ -139,7 +139,8 @@ class DecayData():
         Returns
         -------
         `HalfLife`
-            object containing half life and associated uncertainty
+            object containing half life and associated uncertainty or
+            only half life if with_uncertainty = False
 
         Notes
         -----
@@ -256,83 +257,6 @@ class DecayData():
             return BranchingRatio(df)
         else:
             return BranchingRatio(df.BR)
-        """
-        Update the value of the branching ratio for a given ZAM and RTYP.
-
-        Parameters
-        ----------
-        new_br : `float`
-            update value of the branching ratio to replace the previous one.
-        zam : `int`
-            ZAM number of the material to which perturbation is to be
-            applied.
-        rtyp : `str`
-            Mode of decay of the nuclide in its LIS state.
-
-        Returns
-        -------
-        `sandy.decay.DecayData`
-            DacayData instance with given ZAM and branching ratio updated.
-
-        Examples
-        --------
-        >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', [922350, 922380])
-        >>> rdd = sandy.DecayData.from_endf6(endf6)
-        >>> br_pert = rdd.change_branching_ratio(0.95, 922350, '40')
-        >>> br_pert.data
-        {922350: {'half_life': 2.22102e+16,
-          'half_life_uncertainty': 15778800000000.0,
-          'decay_constant': 3.120850692744529e-17,
-          'decay_constant_uncertainty': 2.2171470275223715e-20,
-          'stable': False,
-          'spin': 3.5,
-          'parity': -1.0,
-          'decay_energy': {'beta': 50671.7, 'gamma': 163616.0, 'alpha': 4464600.0},
-          'decay_energy_uncertainties': {'beta': 4291.63,
-           'gamma': 1708.01,
-           'alpha': 163255.0},
-          'decay_modes': [('40',
-            {'decay_products': {902310: 1.0, 20040: 1.0},
-             'branching_ratio': 0.95,
-             'branching_ratio_uncertainty': 0.0001}),
-           ('60',
-            {'decay_products': {},
-             'branching_ratio': 7.2e-11,
-             'branching_ratio_uncertainty': 2.1e-11})]},
-         922380: {'half_life': 1.40996e+17,
-          'half_life_uncertainty': 94670800000000.0,
-          'decay_constant': 4.916076913954618e-18,
-          'decay_constant_uncertainty': 3.3008662253228094e-21,
-          'stable': False,
-          'spin': 0.0,
-          'parity': 1.0,
-          'decay_energy': {'beta': 10208.3, 'gamma': 1100.17, 'alpha': 4258770.0},
-          'decay_energy_uncertainties': {'beta': 851.158,
-           'gamma': 104.433,
-           'alpha': 29639.0},
-          'decay_modes': [('40',
-            {'decay_products': {902340: 1.0, 20040: 1.0},
-             'branching_ratio': 0.999999,
-             'branching_ratio_uncertainty': 1e-08}),
-           ('60',
-            {'decay_products': {},
-             'branching_ratio': 5.46e-07,
-             'branching_ratio_uncertainty': 1e-08})]}}
-
-        >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', 10010)
-        >>> rdd = sandy.DecayData.from_endf6(endf6)
-        >>> br_pert = rdd.change_branching_ratio(0.95, 10010, '40')
-        """
-        pert_br = copy.deepcopy(self.data)
-        if 'decay_modes' in pert_br[zam].keys():
-            for i in range(len(pert_br[zam]['decay_modes'])):
-                if rtyp == pert_br[zam]['decay_modes'][i][0]:
-                    pert_br[zam]['decay_modes'][i][1]['branching_ratio'] = pert_br[zam]['decay_modes'][i][1]['branching_ratio'] * new_br
-        else:
-            logging.warn(f"no branching ratio is found for {zam}")
-            pass
-        return self.__class__(pert_br)
-
 
     def get_decay_energy(self, with_uncertainty=True):
         """
