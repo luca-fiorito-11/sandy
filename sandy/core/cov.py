@@ -2361,8 +2361,8 @@ def triu_matrix(matrix, kind='upper'):
 
 def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
     """
-    Extract random samples according to the chosen distribution with standard
-    deviation=1 and mean=1.
+    Extract random independent and identically distributed samples according to
+    the chosen distribution with standard deviation=1 and mean=1.
 
     Parameters
     ----------
@@ -2384,7 +2384,19 @@ def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
     -------
     y : `np.array`
         Numpy array with the random numbers.
-
+        
+    Notes
+    -----
+    .. note:: the implementation of the lognormal distribution sampling is
+            performed with the following equations:
+            ..math::
+                $$
+                \mu_{LN} = \exp(\mu_N + \frac{\sigma_N^2}{2})\\
+                \sigma_{LN} = \sqrt{[\exp(2\mu_N + 2\sigma_N^2) - \exp(2\mu_N + \sigma_N^2)]}
+                $$
+            More details can be found in reference: https://linkinghub.elsevier.com/retrieve/pii/S0168900213008450
+                                                    DOI: 10.1016/J.NIMA.2013.06.025
+   
     Examples
     --------
     >>> sandy.cov.sample_distribution(2, 3, seed=11)
@@ -2436,9 +2448,9 @@ def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
         a = np.sqrt(12) / 2
         y = np.random.uniform(-a, a, (dim, nsmp)) + 1
     elif pdf == 'lognormal':
-        sl = ml = 1
-        mn = 2 * np.log(ml) - .5 * np.log(sl**2 + np.exp(2 * np.log(ml)))
-        sn = np.sqrt(2 * (np.log(ml) - mn))
+        sl = ml = 1 # target mean and standard deviation of the lognormal distribution
+        mn = 2 * np.log(ml) - .5 * np.log(sl**2 + np.exp(2 * np.log(ml))) # required mean of the corresponding normal distibution (note reference in the docstring)
+        sn = np.sqrt(2 * (np.log(ml) - mn)) # required standard deviation of the corresponding normal distibution (note reference in the docstring)
         y = np.random.lognormal(mn, sn, (dim, nsmp))
     return y
 
