@@ -665,119 +665,70 @@ def parse(iargs=None):
     return init
 
 
-def extract_samples(ftape, covtape):
-    """
-    Draw samples using all covariance sections in the given tape.
-    """
+def _fy_pert(ftape):
     global init
-    # EXTRACT FY PERTURBATIONS FROM COV FILE
     PertFy = pd.DataFrame()
-    if 8 in covtape.mf and 454 in ftape.mt:
-        fy = ftape.get_fy(listmat=init.mat, listmt=init.mt)
-        if not fy.empty:
-            index = fy.index.to_frame(index=False)
-            dfperts = []
-            for mat,dfmat in index.groupby("MAT"):
-                for mt,dfmt in dfmat.groupby("MT"):
-                    for e,dfe in dfmt.groupby("E"):
-                        fycov = fy.get_cov(mat, mt, e)
-                        pert = fycov.get_samples(init.samples, eig=0)
-                        dfperts.append(pert)
-            PertFy = FySamples(pd.concat(dfperts))
-            if init.debug:
-                PertFy.to_csv("perts_mf8.csv")
-    # EXTRACT NUBAR PERTURBATIONS FROM ENDF6 FILE
+    fy = ftape.get_fy(listmat=init.mat, listmt=init.mt)
+    if not fy.empty:
+        index = fy.index.to_frame(index=False)
+        dfperts = []
+        for mat,dfmat in index.groupby("MAT"):
+            for mt,dfmt in dfmat.groupby("MT"):
+                for e,dfe in dfmt.groupby("E"):
+                    fycov = fy.get_cov(mat, mt, e)
+                    pert = fycov.get_samples(init.samples, eig=0)
+                    dfperts.append(pert)
+        PertFy = FySamples(pd.concat(dfperts))
+        if init.debug:
+            PertFy.to_csv("perts_mf8.csv")
+    return PertFy
+
+def _nubar_pert(covtape):
+    global init
     PertNubar = pd.DataFrame()
-    if 31 in init.mf and 31 in ftape.mf:
-        nubarcov = XsCov.from_endf6(covtape.filter_by(listmat=init.mat, listmf=[31], listmt=init.mt))
-        if not nubarcov.empty:
-            PertNubar = nubarcov.get_samples(init.samples, eig=init.eig)
-            if init.debug:
-                PertNubar.to_csv("perts_mf31.csv")
-    # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
+    nubarcov = XsCov.from_endf6(covtape.filter_by(listmat=init.mat, listmf=[31], listmt=init.mt))
+    if not nubarcov.empty:
+        PertNubar = nubarcov.get_samples(init.samples, eig=init.eig)
+        if init.debug:
+            PertNubar.to_csv("perts_mf31.csv")
+    return PertNubar
+
+def _edist_pert(ftape):
+    global init
     PertEdistr = pd.DataFrame()
-    if 35 in init.mf and 35 in ftape.mf:
-        edistrcov = ftape.get_edistr_cov()
-        if not edistrcov.empty:
-            PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
-            if init.debug:
-                PertEdistr.to_csv("perts_mf35.csv")
-    # EXTRACT PERTURBATIONS FROM LPC COV FILE
+    edistrcov = ftape.get_edistr_cov()
+    if not edistrcov.empty:
+        PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
+        if init.debug:
+            PertEdistr.to_csv("perts_mf35.csv")
+    return PertEdistr
+
+def _lpc_pert(ftape):
+    global init
     PertLpc = pd.DataFrame()
-    if 34 in init.mf and 34 in covtape.mf:
-        lpccov = ftape.get_lpc_cov()
-        if not lpccov.empty:
-            if init.max_polynomial:
-                lpccov = lpccov.filter_p(init.max_polynomial)
-            PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
-            if init.debug:
-                PertLpc.to_csv("perts_mf34.csv")
-    # EXTRACT XS PERTURBATIONS FROM COV FILE
-    PertXs = pd.DataFrame()
-    if 33 in init.mf and 33 in covtape.mf:
-        # This part is to get the pendf file
-        if ftape.get_file_format() == "endf6":
-            endf6 = sandy.Endf6.from_file(init.file)
-            pendf = endf6.get_pendf(njoy=init.njoy)
-            with tempfile.TemporaryDirectory() as td:
-                dst = os.path.join(td, "merged")
-                endf6.merge_pendf(pendf).to_file(dst)
-                ftape = read_formatted_file(dst)
-        if init.errorr:
-            if len(ftape.mat) > 1:
-                # Limit imposed by running ERRORR to get covariance matrices
-                raise sandy.Error("More than one MAT number was found")
-            endf6 = sandy.Endf6.from_file(init.file)
-            covtape = endf6.get_errorr(njoy=init.njoy)
-        
-            
-                
+    lpccov = ftape.get_lpc_cov()
+    if not lpccov.empty:
+        if init.max_polynomial:
+            lpccov = lpccov.filter_p(init.max_polynomial)
+        PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
+        if init.debug:
+            PertLpc.to_csv("perts_mf34.csv")
+    return PertLpc
 
-#            with tempfile.TemporaryDirectory() as td:
-#                outputs = njoy.process(init.file, broadr=False, thermr=False, 
-#                                       unresr=False, heatr=False, gaspr=False, 
-#                                       purr=False, errorr=init.errorr, acer=False,
-#                                       wdir=td, keep_pendf=True, exe=init.njoy,
-#                                       temperatures=[0], suffixes=[0], err=0.005)[2]
-#                ptape = read_formatted_file(outputs["tape30"])
-#                if init.debug: shutil.move(outputs["tape30"],  os.path.join(init.outdir, "tape30"))
-#                if init.errorr:
-#                    covtape = read_formatted_file(outputs["tape33"]) # WARNING: by doing this we delete the original covtape
-#                    if init.debug: shutil.move(outputs["tape33"],  os.path.join(init.outdir, "tape33"))
-#            ftape = ftape.delete_sections((None, 3, None)). \
-#                          add_sections(ptape.filter_by(listmf=[3])). \
-#                          add_sections(ptape.filter_by(listmf=[1], listmt=[451]))
+def _ftape(ftape):
+    if ftape.get_file_format() == "endf6":
+        endf6 = sandy.Endf6.from_file(init.file)
+        pendf = endf6.get_pendf(njoy=init.njoy)
+        with tempfile.TemporaryDirectory() as td:
+            dst = os.path.join(td, "merged")
+            endf6.merge_pendf(pendf).to_file(dst)
+            ftape_ = read_formatted_file(dst)
+    else:
+        ftape_ = ftape
+    return ftape_
 
-        listmt = sorted(set(init.mt + [451])) # ERRORR needs MF1/MT451 to get the energy grid
-        covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmt)
-        xscov = XsCov(covtape.get_cov().data) if isinstance(covtape, sandy.errorr.Errorr) else XsCov.from_endf6(covtape)
-        if not xscov.empty:
-            PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
-            if init.debug:
-                PertXs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
-    return ftape, covtape, PertNubar, PertXs, PertLpc, PertEdistr, PertFy
-
-
-def sampling_csv33(ftape, csv):
-    cov = sandy.CategoryCov.from_csv(csv)
-    return sandy.XsCov(cov).get_samples(
-            init.samples,
-            eig=init.eig,
-            seed=init.seed33
-            )
-
-
-def sampling(iargs=None):
-    """
-    Construct multivariate normal distributions with a unit vector for 
-    mean and with relative covariances taken from the evaluated files.
-    Perturbation factors are sampled with the same multigroup structure of 
-    the covariance matrix, and are applied to the pointwise data to produce 
-    the perturbed files.
-    """
-    global init, pnu, pxs, plpc, pchi, pfy, tape
-    init = parse(iargs)
-    ftape = read_formatted_file(init.file)
+def get_covtape(ftape):
+    global init 
     if init.cov33csv:
         logging.warning("found argument '--cov33csv', will skip any other"
                         " covariance")
@@ -786,42 +737,70 @@ def sampling(iargs=None):
                     index_col=[0, 1, 2],
                     header=[0, 1, 2],
                     )
-        covtape = xscov = sandy.XsCov(catcov.data)
-        # This part is to get the pendf file
-        if ftape.get_file_format() == "endf6":
-            endf6 = sandy.Endf6.from_file(init.file)
-            pendf = endf6.get_pendf(njoy=init.njoy)
-            with tempfile.TemporaryDirectory() as td:
-                dst = os.path.join(td, "merged")
-                endf6.merge_pendf(pendf).to_file(dst)
-                ftape = read_formatted_file(dst)
-#        if ftape.get_file_format() == "endf6":
-#            with tempfile.TemporaryDirectory() as td:
-#                outputs = njoy.process(init.file, broadr=False, thermr=False, 
-#                                       unresr=False, heatr=False, gaspr=False, 
-#                                       purr=False, errorr=init.errorr, acer=False,
-#                                       wdir=td, keep_pendf=True, exe=init.njoy,
-#                                       temperatures=[0], suffixes=[0], err=0.005)[2]
-#                ptape = read_formatted_file(outputs["tape30"])
-#                if init.debug:
-#                    shutil.move(outputs["tape30"],  os.path.join(init.outdir, "tape30"))
-#            ftape = ftape.delete_sections((None, 3, None)). \
-#                          add_sections(ptape.filter_by(listmf=[3])). \
-#                          add_sections(ptape.filter_by(listmf=[1], listmt=[451]))
-        pxs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
-        cn = sandy.Samples(pxs).condition_number
-        print(f"Condition number : {cn:>15}")
-        pnu = plpc = pchi = pfy = pd.DataFrame()
-        if init.debug:
-            pxs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
+        covtape = sandy.XsCov(catcov.data)
     else:
         covtape = read_formatted_file(init.cov) if init.cov else ftape
-        ftape, covtape, pnu, pxs, plpc, pchi, pfy = extract_samples(ftape, covtape)
-    df = {}
-    if pnu.empty and pxs.empty and plpc.empty and pchi.empty and pfy.empty:
-        logging.warn("no covariance section was selected/found")
-        return ftape, covtape, df
-    # APPLY PERTURBATIONS BY MAT
+    return covtape
+
+def _covtape(ftape, covtape):
+    global init
+    if init.errorr:
+        if len(ftape.mat) > 1:
+            # Limit imposed by running ERRORR to get covariance matrices
+            raise sandy.Error("More than one MAT number was found")
+        endf6 = sandy.Endf6.from_file(init.file)
+        covtape_ = endf6.get_errorr(njoy=init.njoy)
+    else:
+        covtape_ = covtape
+    return covtape_
+
+def _xs_pert(covtape):
+    global init
+    if init.cov33csv:
+        PertXs = _xs_pert_cov33(covtape)
+    else:
+        PertXs = pd.DataFrame()
+        listmt = sorted(set(init.mt + [451])) # ERRORR needs MF1/MT451 to get the energy grid
+        covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmt)
+        xscov = XsCov(covtape.get_cov().data) if isinstance(covtape, sandy.errorr.Errorr) else XsCov.from_endf6(covtape)
+        if not xscov.empty:
+            PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
+            if init.debug:
+                PertXs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
+    return PertXs
+
+def _xs_pert_cov33(covtape):
+    xscov = covtape 
+    # This part is to get the pendf file
+    pxs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
+    cn = sandy.Samples(pxs).condition_number
+    print(f"Condition number : {cn:>15}")
+    if init.debug:
+        pxs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
+    return pxs
+
+def extract_samples(ftape, covtape):
+    """
+    Draw samples using all covariance sections in the given tape.
+    """
+    global init
+    # EXTRACT XS PERTURBATIONS FROM COV FILE
+    covtape = _covtape(ftape, covtape)
+    PertXs = _xs_pert(covtape) if 33 in init.mf and 33 in covtape.mf else pd.DataFrame()
+    return ftape, covtape, PertXs
+
+
+def sampling_csv33(csv):
+    cov = sandy.CategoryCov.from_csv(csv)
+    return sandy.XsCov(cov).get_samples(
+            init.samples,
+            eig=init.eig,
+            seed=init.seed33
+            )
+
+
+def _pert_by_mat(ftape, df):
+    global init, tape
     for imat, (mat, tape) in enumerate(sorted(ftape.groupby('MAT'))):
         skip_title = False if imat == 0 else True
         skip_fend = False if imat == len(ftape.mat) - 1 else True
@@ -843,7 +822,9 @@ def sampling(iargs=None):
             pool.close()
             pool.join()
         df.update({mat: outs})
-    # DUMP TO FILES
+    return df
+
+def _df_to_file(df):
     frame = pd.DataFrame(df)
     frame.index.name = "SMP"
     frame.columns.name = "MAT"
@@ -854,6 +835,36 @@ def sampling(iargs=None):
         with open(output, 'w') as f:
             for mat,dfmat in dfsmp.groupby("MAT"):
                 f.write(frame[ismp,mat])
+    return
+
+def sampling(iargs=None):
+    """
+    Construct multivariate normal distributions with a unit vector for 
+    mean and with relative covariances taken from the evaluated files.
+    Perturbation factors are sampled with the same multigroup structure of 
+    the covariance matrix, and are applied to the pointwise data to produce 
+    the perturbed files.
+    """
+    global init, pnu, pxs, plpc, pchi, pfy, tape
+    init = parse(iargs)
+    ftape = read_formatted_file(init.file)
+    covtape = get_covtape(ftape)
+    # Perturbed files:
+    pnu = _nubar_pert(covtape) if 31 in init.mf and 31 in ftape.mf and init.cov33csv is None else pd.DataFrame()
+    plpc = _lpc_pert(ftape) if 34 in init.mf and 34 in covtape.mf and init.cov33csv is None else pd.DataFrame()
+    pchi = _edist_pert(ftape) if 35 in init.mf and 35 in ftape.mf and init.cov33csv is None else pd.DataFrame()
+    pfy = _fy_pert(ftape) if 8 in covtape.mf and 454 in ftape.mt and init.cov33csv is None else pd.DataFrame()
+    ftape = _ftape(ftape)
+    covtape = _covtape(ftape, covtape) if init.cov33csv is None else covtape
+    pxs = _xs_pert(covtape)
+    df = {}
+    if pnu.empty and pxs.empty and plpc.empty and pchi.empty and pfy.empty:
+        logging.warn("no covariance section was selected/found")
+        return ftape, covtape, df
+    # APPLY PERTURBATIONS BY MAT
+    df = _pert_by_mat(ftape, df)
+    # DUMP TO FILES
+    _df_to_file(df)
     # PRODUCE ACE FILES
     if init.acer:
         seq = range(1, init.samples + 1)
@@ -866,136 +877,6 @@ def sampling(iargs=None):
             pool.close()
             pool.join()
     return ftape, covtape, df
-
-
-
-
-    pdb.set_trace()
-    df = {}
-    if init.fission_yields:
-        # EXTRACT FY PERTURBATIONS FROM COV FILE
-        fy = ftape.get_fy(listmat=init.mat, listmt=init.mt)
-        if fy.empty:
-            logging.warn("no fission yield section was selected/found")
-            return
-        index = fy.index.to_frame(index=False)
-        dfperts = []
-        for mat,dfmat in index.groupby("MAT"):
-            for mt,dfmt in dfmat.groupby("MT"):
-                for e,dfe in dfmt.groupby("E"):
-                    fycov = fy.get_cov(mat, mt, e)
-                    pert = fycov.get_samples(init.samples, eig=0)
-                    dfperts.append(pert)
-        PertFy = FySamples(pd.concat(dfperts))
-        if init.debug: PertFy.to_csv("perts_mf8.csv")
-        # DELETE LOCAL VARIABLES
-        for k in locals().keys():
-            del locals()[k]
-        # APPLY PERTURBATIONS BY MAT
-        for imat,(mat, tape) in enumerate(sorted(ftape.groupby('MAT'))):
-            skip_title = False if imat == 0 else True
-            skip_fend = False if imat == ftape.index.get_level_values("MAT").unique().size -1 else True
-            tape = Endf6(tape)
-            kw = dict(skip_title=skip_title, skip_fend=skip_fend)
-            if mat not in init.mat:
-                out = tape.write_string(**kw)
-                outs = {i : out for i in range(1,init.samples+1)}
-            else:
-                if init.processes == 1:
-                    outs = {i : _sampling_fy_mp(i, **kw) for i in range(1,init.samples+1)}
-                else:
-                    pool = mp.Pool(processes=init.processes)
-                    outs = {i : pool.apply_async(_sampling_fy_mp, (i,), kw) for i in range(1,init.samples+1)}
-                    outs = {i : out.get() for i,out in outs.items()}
-                    pool.close()
-                    pool.join()
-            df.update({ mat : outs })
-    else:
-        # EXTRACT NUBAR PERTURBATIONS FROM ENDF6 FILE
-        PertNubar = pd.DataFrame()
-        if 31 in init.mf and 31 in ftape.mf:
-            nubarcov = XsCov.from_endf6(covtape.filter_by(listmat=init.mat, listmf=[31], listmt=listmt))
-            if not nubarcov.empty:
-                PertNubar = nubarcov.get_samples(init.samples, eig=init.eig)
-                if init.debug:
-                    PertNubar.to_csv("perts_mf31.csv")
-        # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
-        PertEdistr = pd.DataFrame()
-        if 35 in init.mf and 35 in ftape.mf:
-            edistrcov = ftape.get_edistr_cov()
-            if not edistrcov.empty:
-                PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
-                if init.debug:
-                    PertEdistr.to_csv("perts_mf35.csv")
-        # EXTRACT PERTURBATIONS FROM LPC COV FILE
-        PertLpc = pd.DataFrame()
-        if 34 in init.mf and 34 in covtape.mf:
-            lpccov = ftape.get_lpc_cov()
-            if not lpccov.empty:
-                if init.max_polynomial:
-                    lpccov = lpccov.filter_p(init.max_polynomial)
-                PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
-                if init.debug:
-                    PertLpc.to_csv("perts_mf34.csv")
-        # EXTRACT XS PERTURBATIONS FROM COV FILE
-        PertXs = pd.DataFrame()
-        if 33 in init.mf and 33 in covtape.mf:
-            if init.errorr and len(ftape.mat) > 1: # Limit imposed by running ERRORR to get covariance matrices
-                raise SandyError("More than one MAT number was found")
-            if ftape.get_file_format() == "endf6":
-                with tempfile.TemporaryDirectory() as td:
-                    outputs = njoy.process(init.file, broadr=False, thermr=False, 
-                                           unresr=False, heatr=False, gaspr=False, 
-                                           purr=False, errorr=init.errorr, acer=False,
-                                           wdir=td, keep_pendf=True,
-                                           temperatures=[0], suffixes=[0], err=0.005)[2]
-                    ptape = read_formatted_file(outputs["tape30"])
-                    if init.errorr:
-                        covtape = read_formatted_file(outputs["tape33"]) # WARNING: by doing this we delete the original covtape
-                ftape = ftape.delete_sections((None, 3, None)). \
-                              add_sections(ptape.filter_by(listmf=[3])). \
-                              add_sections(ptape.filter_by(listmf=[1], listmt=[451]))
-            listmterr = init.mt if init.mt is None else [451].extend(init.mt) # ERRORR needs MF1/MT451 to get the energy grid
-            covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmterr)
-            covtype = covtape.get_file_format()
-            xscov = XsCov.from_errorr(covtape) if covtype == "errorr" else XsCov.from_endf6(covtape)
-            if not xscov.empty:
-                PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
-                if init.debug:
-                    PertXs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
-        if PertLpc.empty and PertEdistr.empty and PertXs.empty and PertNubar.empty:
-            sys.exit("no covariance section was selected/found")
-            return
-        pdb.set_trace()
-        # DELETE LOCAL VARIABLES
-        for k in locals().keys():
-            del locals()[k]
-        # APPLY PERTURBATIONS BY MAT
-        for imat,(mat, tape) in enumerate(sorted(ftape.groupby('MAT'))):
-            skip_title = False if imat == 0 else True
-            skip_fend = False if imat == ftape.index.get_level_values("MAT").unique().size -1 else True
-            tape = Endf6(tape)
-            kw = dict(skip_title=skip_title, skip_fend=skip_fend)
-            if init.processes == 1:
-                outs = {i : _sampling_mp(i, **kw) for i in range(1,init.samples+1)}
-            else:
-                pool = mp.Pool(processes=init.processes)
-                outs = {i : pool.apply_async(_sampling_mp, (i,), kw) for i in range(1,init.samples+1)}
-                outs = {i : out.get() for i,out in outs.items()}
-                pool.close()
-                pool.join()
-            df.update({ mat : outs })
-    # DUMP TO FILES
-    frame = pd.DataFrame(df)
-    frame.index.name = "SMP"
-    frame.columns.name = "MAT"
-    frame = frame.stack()
-    outname = init.outname if init.outname else os.path.split(init.file)[1]
-    for ismp,dfsmp in frame.groupby("SMP"):
-        output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
-        with open(output, 'w') as f:
-            for mat,dfmat in dfsmp.groupby("MAT"):
-                f.write(frame[ismp,mat])
 
 
 def run():
