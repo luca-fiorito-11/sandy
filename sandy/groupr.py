@@ -134,6 +134,25 @@ class Groupr(_FormattedFile):
         (5530.0, 821000.0]      8.05819e+00 8.05812e+00
         (821000.0, 2231000.0]   3.48869e+00 3.48866e+00
         (2231000.0, 10000000.0] 1.52409e+00 1.52406e+00
+
+        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922350)
+        >>> groupr = endf6.get_gendf(ek=sandy.energy_grids.CASMO12)
+        >>> groupr.get_xs(mt=[4, 5])
+        MAT                            9228            
+        MT                                4           5
+        E                                              
+        (1e-05, 0.03]           0.00000e+00 0.00000e+00
+        (0.03, 0.058]           0.00000e+00 0.00000e+00
+        (0.058, 0.14]           0.00000e+00 0.00000e+00
+        (0.14, 0.28]            0.00000e+00 0.00000e+00
+        (0.28, 0.35]            0.00000e+00 0.00000e+00
+        (0.35, 0.625]           0.00000e+00 0.00000e+00
+        (0.625, 4.0]            0.00000e+00 0.00000e+00
+        (4.0, 48.052]           0.00000e+00 0.00000e+00
+        (48.052, 5530.0]        8.60022e-07 3.41812e-08
+        (5530.0, 821000.0]      1.22176e+00 7.72174e-04
+        (821000.0, 2231000.0]   1.94841e+00 1.17248e-02
+        (2231000.0, 10000000.0] 1.40637e+00 7.49994e-03
         """
         data = []
         mat_ = kwargs.get('mat', self.mat[0])
@@ -147,11 +166,13 @@ class Groupr(_FormattedFile):
                                           listmt=listmt_,
                                           listmat=listmat_).data:
             mf3 = sandy.groupr.read_mf3(self, mat, mt)
-            xs = np.array([x["DATA"][1].tolist() for x in mf3["GROUPS"]]).T
+            lowest_range = mf3["GROUPS"][0]["IG"] - 1
+            xs = np.array([x["DATA"][1].tolist() for x in mf3["GROUPS"]])
+            xs = np.insert(xs, [0]*lowest_range, 0) if lowest_range != 0 else xs
             columns = pd.MultiIndex.from_tuples([(mat, mt)],
                                                 names=["MAT", "MT"])
             index = pd.Index(egn, name="E")
-            data.append(pd.DataFrame(xs, index=index, columns=columns))
+            data.append(pd.DataFrame(xs.T, index=index, columns=columns))
         data = pd.concat(data, axis=1).fillna(0)
         return sandy.Xs(data)
 
@@ -200,12 +221,13 @@ class Groupr(_FormattedFile):
         """
         data = []
         mat_ = kwargs.get('mat', self.mat[0])
-        mt_ = kwargs.get('mt', 1)
+        mt_ = 1
         mf3 = read_mf3(self, mat_, mt_)
         mf1 = read_mf1(self, mat_)
-        data = np.array([x["DATA"][0].tolist() for x in mf3["GROUPS"]]).T
+        lowest_range = mf3["GROUPS"][0]["IG"] - 1
+        data = np.array([x["DATA"][0].tolist() for x in mf3["GROUPS"]])
         index = pd.IntervalIndex.from_breaks(mf1["EGN"])
-        flux = pd.Series(data, index=index, name="iwt")
+        flux = pd.Series(data.T, index=index, name="iwt")
         return flux
 
 
@@ -329,7 +351,17 @@ def read_mf3(tape, mat, mt):
     }
     out.update(add)
     groups = []
-    for ig in range(NGN):
+    L, i = sandy.read_list(df, i)
+    add = {
+            "TEMPIN": L.C1,  # Material temperature (Kelvin)
+            "NG2": L.L1,  # Number of secondary positions
+            "IG2LO": L.L2,  # Index to lowest zero group
+            "IG": L.N2,  # Group index
+            "DATA": np.array(L.B),  # Array containing the flux and the xs
+            }
+    groups.append(add)
+    NGN_file = NGN - L.N2
+    for ig in range(NGN_file):
         L, i = sandy.read_list(df, i)
         add = {
             "TEMPIN": L.C1,  # Material temperature (Kelvin)
