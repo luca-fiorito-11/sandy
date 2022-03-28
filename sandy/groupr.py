@@ -218,32 +218,14 @@ class Groupr(_FormattedFile):
         (821000.0, 2231000.0]     1.41000e+06
         (2231000.0, 10000000.0]   7.76900e+06
         Name: iwt, dtype: float64
-
-        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922350)
-        >>> groupr = endf6.get_gendf(ek=sandy.energy_grids.CASMO12)
-        >>> groupr.get_flux(mt=4)
-        (1e-05, 0.03]             0.00000e+00
-        (0.03, 0.058]             0.00000e+00
-        (0.058, 0.14]             0.00000e+00
-        (0.14, 0.28]              0.00000e+00
-        (0.28, 0.35]              0.00000e+00
-        (0.35, 0.625]             0.00000e+00
-        (0.625, 4.0]              0.00000e+00
-        (4.0, 48.052]             0.00000e+00
-        (48.052, 5530.0]          5.48195e+03
-        (5530.0, 821000.0]        8.15470e+05
-        (821000.0, 2231000.0]     1.41000e+06
-        (2231000.0, 10000000.0]   7.76900e+06
-        Name: iwt, dtype: float64
         """
         data = []
         mat_ = kwargs.get('mat', self.mat[0])
-        mt_ = kwargs.get('mt', 1)
+        mt_ = 1
         mf3 = read_mf3(self, mat_, mt_)
         mf1 = read_mf1(self, mat_)
         lowest_range = mf3["GROUPS"][0]["IG"] - 1
         data = np.array([x["DATA"][0].tolist() for x in mf3["GROUPS"]])
-        data = np.insert(data, [0]*lowest_range, 0) if lowest_range != 0 else data
         index = pd.IntervalIndex.from_breaks(mf1["EGN"])
         flux = pd.Series(data.T, index=index, name="iwt")
         return flux
