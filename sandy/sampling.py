@@ -300,7 +300,7 @@ class SamplingManager():
             default options.
         """
         description = """Produce perturbed files containing sampled parameters
-        that represent the information\nstored in the evaluated nuclear data 
+        that represent the information\nstored in the evaluated nuclear data
         covariances"""
         parser = argparse.ArgumentParser(
                             prog="sandy",
@@ -460,6 +460,24 @@ def _process_into_ace(ismp):
 
 
 def _sampling_mp(ismp, skip_title=False, skip_fend=False):
+    """
+    Create the samples according to the perturbed information.
+
+    Parameters
+    ----------
+    ismp : `int`
+        Number of samples.
+    skip_title : `bool`, optional
+        Do not write the title. The default is False.
+    skip_fend : `bool`, optional
+        Do not write the last FEND line. The default is False.
+
+    Returns
+    -------
+    `str`
+        update `Endf6` and write them into string.
+
+    """
     global init, pnu, pxs, plpc, pchi, pfy, tape
     t0 = time.time()
     mat = tape.mat[0]
@@ -666,15 +684,29 @@ def parse(iargs=None):
 
 
 def _fy_pert(ftape):
+    """
+    Perturb fission yields if the ftape file contains fy data.
+
+    Parameters
+    ----------
+    ftape : `sandy.formats.endf6.Endf6`
+        File with the nucleus information.
+
+    Returns
+    -------
+    PertFy : `sandy.formats.utils.FySamples`
+        Perturbed fission yields data. If no fy data is introduce, returns an
+        empty `pd.DataFrame`.
+    """
     global init
     PertFy = pd.DataFrame()
     fy = ftape.get_fy(listmat=init.mat, listmt=init.mt)
     if not fy.empty:
         index = fy.index.to_frame(index=False)
         dfperts = []
-        for mat,dfmat in index.groupby("MAT"):
-            for mt,dfmt in dfmat.groupby("MT"):
-                for e,dfe in dfmt.groupby("E"):
+        for mat, dfmat in index.groupby("MAT"):
+            for mt, dfmt in dfmat.groupby("MT"):
+                for e, dfe in dfmt.groupby("E"):
                     fycov = fy.get_cov(mat, mt, e)
                     pert = fycov.get_samples(init.samples, eig=0)
                     dfperts.append(pert)
@@ -683,17 +715,50 @@ def _fy_pert(ftape):
             PertFy.to_csv("perts_mf8.csv")
     return PertFy
 
+
 def _nubar_pert(covtape):
+    """
+    Perturb nubar if the covtape file contains MF=31 information.
+
+    Parameters
+    ----------
+    covtape : `sandy.formats.endf6.Endf6`
+        Covariance information
+
+    Returns
+    -------
+    PertNubar : `pd.DataFrame`
+        Dataframe containing all the information of the perturbed nubar.
+
+    """
     global init
     PertNubar = pd.DataFrame()
-    nubarcov = XsCov.from_endf6(covtape.filter_by(listmat=init.mat, listmf=[31], listmt=init.mt))
+    nubarcov = XsCov.from_endf6(covtape.filter_by(listmat=init.mat,
+                                                  listmf=[31],
+                                                  listmt=init.mt))
     if not nubarcov.empty:
         PertNubar = nubarcov.get_samples(init.samples, eig=init.eig)
         if init.debug:
             PertNubar.to_csv("perts_mf31.csv")
     return PertNubar
 
+
 def _edist_pert(ftape):
+    """
+    Draw samples for energy distributions from probability distribution
+    centered in 0 and with absolute covariance in EdistrCov instance.
+
+    Parameters
+    ----------
+    ftape : `sandy.formats.endf6.Endf6`
+        File with the nucleus information.
+
+    Returns
+    -------
+    PertEdistr : `sandy.EdistrSamples`
+        Samples for Tabulated energy distributions.
+
+    """
     global init
     PertEdistr = pd.DataFrame()
     edistrcov = ftape.get_edistr_cov()
@@ -703,7 +768,23 @@ def _edist_pert(ftape):
             PertEdistr.to_csv("perts_mf35.csv")
     return PertEdistr
 
+
 def _lpc_pert(ftape):
+    """
+    Draw samples for Legendre polynomial coefficients from probability
+    distribution centered in 1 and with relative covariance in LpcCov instance.
+
+    Parameters
+    ----------
+    ftape : `sandy.formats.endf6.Endf6`
+        File with the nucleus information.
+
+    Returns
+    -------
+    PertLpc : `sandy.LpcSamples`
+        Samples for Legendre Polynomial coefficients
+
+    """
     global init
     PertLpc = pd.DataFrame()
     lpccov = ftape.get_lpc_cov()
@@ -715,7 +796,21 @@ def _lpc_pert(ftape):
             PertLpc.to_csv("perts_mf34.csv")
     return PertLpc
 
-def _ftape(ftape):
+
+def get_pendf(ftape):
+    """
+    Get the pendf file from `endf6` file.
+
+    Parameters
+    ----------
+    ftape : `sandy.formats.endf6.Endf6`
+        File with the nucleus information.
+
+    Returns
+    -------
+    ftape_ : `sandy.formats.endf6.Endf6`
+        Pointwise endf6 file.
+    """
     if ftape.get_file_format() == "endf6":
         endf6 = sandy.Endf6.from_file(init.file)
         pendf = endf6.get_pendf(njoy=init.njoy)
@@ -727,8 +822,31 @@ def _ftape(ftape):
         ftape_ = ftape
     return ftape_
 
+
 def get_covtape(ftape):
-    global init 
+    """
+    Put covariance information in the appropiate format.
+
+    Parameters
+    ----------
+    ftape : `sandy.formats.endf6.Endf6`
+        File with the nucleus information.
+
+    Returns
+    -------
+    if a file containing xs/nubar covariances in csv is given:
+        covtape : `sandy.XsCov`
+            Covariance information.
+
+    if a file containing covariances is given:
+        covtape : `sandy.formats.errorr.Errorr` or `sandy.formats.groupr.Groupr`
+            Covariance information.
+
+    else:
+        covtape : `sandy.formats.endf6.Endf6`
+            No Covariance information is given so ftape is return.
+    """
+    global init
     if init.cov33csv:
         logging.warning("found argument '--cov33csv', will skip any other"
                         " covariance")
@@ -742,7 +860,32 @@ def get_covtape(ftape):
         covtape = read_formatted_file(init.cov) if init.cov else ftape
     return covtape
 
+
 def _covtape(ftape, covtape):
+    """
+    If errorr option is pased in the command line, tranform covtape into a
+    covariance matrix processed with NJOY ERRORR module
+
+    Parameters
+    ----------
+    ftape : `sandy.formats.endf6.Endf6`
+        File with the nucleus information.
+    covtape : `sandy.formats.errorr.Errorr` or `sandy.formats.groupr.Groupr` or
+              `sandy.formats.endf6.Endf6` or `sandy.formats.endf6.Endf6`
+        Covariance information.
+
+    Raises
+    ------
+    sandy
+        Raise an error if more thant one MAT number is introduce and the
+        errorr option is available.
+
+    Returns
+    -------
+    covtape_ : `sandy.Errorr`
+        Container for ERRORR file.
+
+    """
     global init
     if init.errorr:
         if len(ftape.mat) > 1:
@@ -754,14 +897,31 @@ def _covtape(ftape, covtape):
         covtape_ = covtape
     return covtape_
 
+
 def _xs_pert(covtape):
+    """
+    
+
+    Parameters
+    ----------
+    covtape : `sandy.formats.errorr.Errorr` or `sandy.formats.groupr.Groupr` or
+              `sandy.formats.endf6.Endf6` or `sandy.formats.endf6.Endf6`
+        Covariance information.
+
+    Returns
+    -------
+    PertXs : `pd.DataFrame`
+        Dataframe with the extract perturbations from global
+        cross section/nubar covariance matrix.
+
+    """
     global init
     if init.cov33csv:
         PertXs = _xs_pert_cov33(covtape)
     else:
         PertXs = pd.DataFrame()
-        listmt = sorted(set(init.mt + [451])) # ERRORR needs MF1/MT451 to get the energy grid
-        covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmt)
+        listmt = sorted(set(init.mt + [451]))  # ERRORR needs MF1/MT451 to get the energy grid
+        covtape = covtape.filter_by(listmat=init.mat, listmf=[1, 33], listmt=listmt)
         xscov = XsCov(covtape.get_cov().data) if isinstance(covtape, sandy.errorr.Errorr) else XsCov.from_endf6(covtape)
         if not xscov.empty:
             PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
@@ -769,8 +929,23 @@ def _xs_pert(covtape):
                 PertXs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
     return PertXs
 
+
 def _xs_pert_cov33(covtape):
-    xscov = covtape 
+    """
+    Extract perturbations from global cross section/nubar covariance matrix
+
+    Parameters
+    ----------
+    covtape : `sandy.XsCov`
+        DESCRIPTION.
+
+    Returns
+    -------
+    pxs : `pd.DataFrame`
+        DataFrame containing the perturbed xs.
+
+    """
+    xscov = covtape
     # This part is to get the pendf file
     pxs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
     cn = sandy.Samples(pxs).condition_number
@@ -779,18 +954,24 @@ def _xs_pert_cov33(covtape):
         pxs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
     return pxs
 
-def extract_samples(ftape, covtape):
-    """
-    Draw samples using all covariance sections in the given tape.
-    """
-    global init
-    # EXTRACT XS PERTURBATIONS FROM COV FILE
-    covtape = _covtape(ftape, covtape)
-    PertXs = _xs_pert(covtape) if 33 in init.mf and 33 in covtape.mf else pd.DataFrame()
-    return ftape, covtape, PertXs
-
 
 def sampling_csv33(csv):
+    """
+    Obtain the xs samples from a covariance matrix store in csv format.
+
+    Parameters
+    ----------
+    csv : `str`
+        csv file containing covariance matrix (with or w/o indices and
+        columns)
+
+    Returns
+    -------
+    `pd.DataFrame`
+        extract perturbed samples from global cross section/nubar covariance
+        matrix.
+
+    """
     cov = sandy.CategoryCov.from_csv(csv)
     return sandy.XsCov(cov).get_samples(
             init.samples,
@@ -799,8 +980,23 @@ def sampling_csv33(csv):
             )
 
 
-def _pert_by_mat(ftape, df):
+def pert_by_mat(ftape):
+    """
+    Perturb all the MAT numbers in ftape.
+
+    Parameters
+    ----------
+    ftape : `sandy.formats.endf6.Endf6`
+        File with the nucleus information.
+
+    Returns
+    -------
+    df : `dict`
+        Dictionary with the samples.
+
+    """
     global init, tape
+    df = {}
     for imat, (mat, tape) in enumerate(sorted(ftape.groupby('MAT'))):
         skip_title = False if imat == 0 else True
         skip_fend = False if imat == len(ftape.mat) - 1 else True
@@ -824,25 +1020,58 @@ def _pert_by_mat(ftape, df):
         df.update({mat: outs})
     return df
 
-def _df_to_file(df):
+
+def df_to_file(df):
+    """
+    Write text files for each sample.
+
+    Parameters
+    ----------
+    df : `pd.DataFrame`
+        Dataframe wiht the samples.
+
+    Returns
+    -------
+    Write in the output folder a file for each sample.
+
+    """
     frame = pd.DataFrame(df)
     frame.index.name = "SMP"
     frame.columns.name = "MAT"
     frame = frame.stack()
     outname = init.outname if init.outname else os.path.split(init.file)[1]
-    for ismp,dfsmp in frame.groupby("SMP"):
+    for ismp, dfsmp in frame.groupby("SMP"):
         output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
         with open(output, 'w') as f:
-            for mat,dfmat in dfsmp.groupby("MAT"):
-                f.write(frame[ismp,mat])
+            for mat, dfmat in dfsmp.groupby("MAT"):
+                f.write(frame[ismp, mat])
     return
+
+
+def get_ace_files():
+    """
+    Obtain ace files if the option is in the command line arguments.
+    """
+    global init
+    if init.acer:
+        seq = range(1, init.samples + 1)
+        if init.processes == 1:
+            for i in seq:
+                _process_into_ace(i)
+        else:
+            pool = mp.Pool(processes=init.processes)
+            outs = {i: pool.apply_async(_process_into_ace, (i,)) for i in seq}
+            pool.close()
+            pool.join()
+    return
+
 
 def sampling(iargs=None):
     """
-    Construct multivariate normal distributions with a unit vector for 
+    Construct multivariate normal distributions with a unit vector for
     mean and with relative covariances taken from the evaluated files.
-    Perturbation factors are sampled with the same multigroup structure of 
-    the covariance matrix, and are applied to the pointwise data to produce 
+    Perturbation factors are sampled with the same multigroup structure of
+    the covariance matrix, and are applied to the pointwise data to produce
     the perturbed files.
     """
     global init, pnu, pxs, plpc, pchi, pfy, tape
@@ -854,28 +1083,19 @@ def sampling(iargs=None):
     plpc = _lpc_pert(ftape) if 34 in init.mf and 34 in covtape.mf and init.cov33csv is None else pd.DataFrame()
     pchi = _edist_pert(ftape) if 35 in init.mf and 35 in ftape.mf and init.cov33csv is None else pd.DataFrame()
     pfy = _fy_pert(ftape) if 8 in covtape.mf and 454 in ftape.mt and init.cov33csv is None else pd.DataFrame()
-    ftape = _ftape(ftape)
+    ftape = get_pendf(ftape)
     covtape = _covtape(ftape, covtape) if init.cov33csv is None else covtape
     pxs = _xs_pert(covtape)
-    df = {}
+    # Check the covariance
     if pnu.empty and pxs.empty and plpc.empty and pchi.empty and pfy.empty:
         logging.warn("no covariance section was selected/found")
-        return ftape, covtape, df
-    # APPLY PERTURBATIONS BY MAT
-    df = _pert_by_mat(ftape, df)
+        return ftape, covtape, {}
+    # Apply perturbations by MAT
+    df = pert_by_mat(ftape)
     # DUMP TO FILES
-    _df_to_file(df)
-    # PRODUCE ACE FILES
-    if init.acer:
-        seq = range(1, init.samples + 1)
-        if init.processes == 1:
-            for i in seq:
-                _process_into_ace(i)
-        else:
-            pool = mp.Pool(processes=init.processes)
-            outs = {i: pool.apply_async(_process_into_ace, (i,)) for i in seq}
-            pool.close()
-            pool.join()
+    df_to_file(df)
+    # Produce ACE files
+    get_ace_files()
     return ftape, covtape, df
 
 
