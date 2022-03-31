@@ -593,8 +593,8 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 
 def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
                   ign=2, ek=None,
-                  iwt=2,
-                  temp=NJOY_TEMPERATURES[0],
+                  iwt=2, iread=0,
+                  temp=NJOY_TEMPERATURES[0], mfcov=33,
                   iprint=False,
                   **kwargs):
     """
@@ -620,6 +620,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         weight function option (default is 2, constant)
     temp : `float`, optional
         temperature in K (default is 293.6 K)
+    mfcov : `int`
+        endf covariance file (default is 33)
     iprint : `bool`, optional
         print option (default is `False`)
 
@@ -677,6 +679,38 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     9237 3 2 0 1 /
     0 293.6 /
     0 33 /
+
+    Test nubar:
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=31))
+    errorr
+    20 21 0 22 0 /
+    9237 2 2 0 1 /
+    0 293.6 /
+    0 31 /
+
+    Test mubar:
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=34))
+    errorr
+    20 21 0 22 0 /
+    9237 2 2 0 1 /
+    0 293.6 /
+    0 34 /
+
+    Test chi:
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=35))
+    errorr
+    20 21 0 22 0 /
+    9237 2 2 0 1 /
+    0 293.6 /
+    0 35 /
+
+    Test radioactive nuclide production:
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=40))
+    errorr
+    20 21 0 22 0 /
+    9237 2 2 0 1 /
+    0 293.6 /
+    0 40 /
     """
     ign_ = 1 if ek is not None else ign
     text = ["errorr"]
@@ -684,7 +718,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     printflag = int(iprint)
     text += [f"{mat:d} {ign_:d} {iwt:d} {printflag:d} 1 /"]
     text += [f"{printflag:d} {temp:.1f} /"]
-    text += ["0 33 /"]
+    text += [f"0 {mfcov} /"]
     if ign_ == 1:
         nk = len(ek) - 1
         text += [f"{nk} /"]
@@ -836,6 +870,44 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     3/
     0/
     0/
+
+    Test mubar:
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, mfcov=34))
+    groupr
+    20 21 0 22 /
+    9237 2 0 2 0 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    3/
+    3 251 ’mubar’ /
+    0/
+    0/
+
+    Test chi:
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, mfcov=35))
+    groupr
+    20 21 0 22 /
+    9237 2 0 2 0 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    3/
+    5 18 ’chi’ /
+    0/
+    0/
+
+    Test radioactive nuclide production:
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, mfcov=40))
+    groupr
+    20 21 0 22 /
+    9237 2 0 2 0 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    10/
+    0/
+    0/ 
     """
     ign_ = 1 if ek is not None else ign
     igg_ = 1 if ep is not None else igg
@@ -855,7 +927,14 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         pk = len(ep) - 1
         text += [f"{pk} /"]
         text += [" ".join(map("{:.5e}".format, ep)) + " /"]
-    text += ["3/"]
+    if kwargs.get("mfcov", 1) == 40:
+        text += ["10/"]
+    else:
+        text += ["3/"]
+    if kwargs.get("mfcov", 1) == 34:
+        text += ["3 251 ’mubar’ /"]
+    elif kwargs.get("mfcov", 1) == 35:
+        text += ["5 18 ’chi’ /"]
     text += ["0/"]
     text += ["0/"]
     return "\n".join(text) + "\n"
