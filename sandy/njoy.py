@@ -593,7 +593,7 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 
 def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
                   ign=2, ek=None,
-                  iwt=2, iread=0,
+                  iwt=2, relative=True,
                   temp=NJOY_TEMPERATURES[0], mfcov=33,
                   iprint=False,
                   **kwargs):
@@ -618,10 +618,12 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         derived cross section energy bounds (default is None)
     iwt : `int`, optional
         weight function option (default is 2, constant)
+    relative: `bool`
+        Covariance form (default is True, so the values are relative)
     temp : `float`, optional
         temperature in K (default is 293.6 K)
     mfcov : `int`
-        endf covariance file (default is 33)
+        endf covariance file to be processed (default is 33)
     iprint : `bool`, optional
         print option (default is `False`)
 
@@ -711,12 +713,21 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     9237 2 2 0 1 /
     0 293.6 /
     0 40 /
+
+    Test relative:
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, relative=False))
+    errorr
+    20 21 0 22 0 /
+    9237 2 2 0 0 /
+    0 293.6 /
+    0 33 /
     """
+    irelco = 0 if relative is False else 1
     ign_ = 1 if ek is not None else ign
     text = ["errorr"]
     text += [f"{endfin:d} {pendfin:d} {gendfin:d} {errorrout:d} 0 /"]
     printflag = int(iprint)
-    text += [f"{mat:d} {ign_:d} {iwt:d} {printflag:d} 1 /"]
+    text += [f"{mat:d} {ign_:d} {iwt:d} {printflag:d} {irelco} /"]
     text += [f"{printflag:d} {temp:.1f} /"]
     text += [f"0 {mfcov} /"]
     if ign_ == 1:
@@ -730,7 +741,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
                   ign=2, ek=None, igg=0,  ep=None,
                   iwt=2, lord=0, sigz=[1e+10],
                   temp=NJOY_TEMPERATURES[0],
-                  iprint=False,
+                  iprint=False, nubar=False, mubar=False, chi=False,
+                  nuclide_production=False,
                   **kwargs):
     """
     Write GROUPR input
@@ -762,6 +774,14 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     temp : iterable of `float`
         iterable of temperature values in K (default is 293.6 K)
     iprint : `bool`, optional
+        print option (default is `False`)
+    nubar : `bool`, optional
+        print option (default is `False`)
+    mubar : `bool`, optional
+        print option (default is `False`)
+    chi : `bool`, optional
+        print option (default is `False`)
+    nuclide_production : `bool`, optional
         print option (default is `False`)
 
     Returns
@@ -872,7 +892,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test mubar:
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, mfcov=34))
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, mubar=True))
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
@@ -885,7 +905,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test chi:
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, mfcov=35))
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, chi=True))
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
@@ -893,18 +913,20 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     293.6/
     10000000000.0/
     3/
+    5/
     5 18 ’chi’ /
     0/
     0/
 
     Test radioactive nuclide production:
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, mfcov=40))
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, nuclide_production=True))
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
     /
     293.6/
     10000000000.0/
+    3/
     10/
     0/
     0/ 
@@ -927,14 +949,14 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         pk = len(ep) - 1
         text += [f"{pk} /"]
         text += [" ".join(map("{:.5e}".format, ep)) + " /"]
-    if kwargs.get("mfcov", 1) == 40:
-        text += ["10/"]
-    else:
-        text += ["3/"]
-    if kwargs.get("mfcov", 1) == 34:
+    text += ["3/"]
+    if mubar:
         text += ["3 251 ’mubar’ /"]
-    elif kwargs.get("mfcov", 1) == 35:
+    if chi:
+        text += ["5/"]
         text += ["5 18 ’chi’ /"]
+    if nuclide_production:
+        text += ["10/"]
     text += ["0/"]
     text += ["0/"]
     return "\n".join(text) + "\n"
@@ -1162,16 +1184,42 @@ def process(
         g_ = g if groupr else 0
         outputs = {}
         for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
-            o = 33 + i
             kwargs["temp"] = temp
             kwargs["suff"] = suff = f".{suff}"
             if groupr:
                 text += _groupr_input(-e, -p, -g_, **kwargs)
-            text += _errorr_input(-e, -p_, -g_, o, **kwargs)
-            outputs[f"tape{o}"] = join(
-                wdir,
-                f"{outprefix}{tag}{suff}.errorr",
-                )
+            if kwargs['nubar']:
+                o = 31 + i * 5
+                kwargs['mfcov'] = mfcov = 31
+                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
+                outputs[f"tape{o}"] = join(
+                    wdir,
+                    f"{outprefix}{tag}{suff}_{mfcov}.errorr",
+                    )
+            if kwargs['xs']:
+                o = 33 + i * 5
+                kwargs['mfcov'] = mfcov = 33
+                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
+                outputs[f"tape{o}"] = join(
+                    wdir,
+                    f"{outprefix}{tag}{suff}_{mfcov}.errorr",
+                    )
+            if kwargs['chi']:
+                o = 35 + i * 5
+                kwargs['mfcov'] = mfcov = 35
+                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
+                outputs[f"tape{o}"] = join(
+                    wdir,
+                    f"{outprefix}{tag}{suff}_{mfcov}.errorr",
+                    )
+            if kwargs['mubar']:
+                o = 34 + i * 5
+                kwargs['mfcov'] = mfcov = 34
+                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
+                outputs[f"tape{o}"] = join(
+                    wdir,
+                    f"{outprefix}{tag}{suff}_{mfcov}.errorr",
+                    )
     if acer:
         for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
             a = 50 + i

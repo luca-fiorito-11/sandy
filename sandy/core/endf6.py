@@ -1681,6 +1681,14 @@ If you want to process 0K cross sections use `temperature=0.1`.
             weight function option (default is 2, constant)
         sigz : iterable of `float`
             sigma zero values. The default is 1.0e10.
+        nubar : `bool`, optional
+            print option (default is `False`)
+        mubar : `bool`, optional
+            print option (default is `False`)
+        chi : `bool`, optional
+            print option (default is `False`)
+        nuclide_production : `bool`, optional
+            print option (default is `False`)
 
         Parameters for ERRORR
         ---------------------
@@ -1690,8 +1698,14 @@ If you want to process 0K cross sections use `temperature=0.1`.
             derived cross section energy bounds (default is `[1e-5, 2e7]`)
         iwt : `int`, optional
             weight function option (default is 2, constant)
-        mfcov : `int`
-            endf covariance file (default is 33)
+        nubar : `bool`, optional
+            print option (default is `False`)
+        mubar : `bool`, optional
+            print option (default is `False`)
+        chi : `bool`, optional
+            print option (default is `False`)
+        nuclide_production : `bool`, optional
+            print option (default is `False`)
 
         Returns
         -------
@@ -1705,6 +1719,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
         -----
         .. note:: method arguments are consistent with those of `get_pendf`.
         .. note:: parameters for groupr are the same as for errorr
+        .. note:: NJOY's errorr module WILL produce a MF35 covariance tape
+        if the errorr module called before the errorr call to produce a MF34
 
         Examples
         --------
@@ -1826,162 +1842,16 @@ If you want to process 0K cross sections use `temperature=0.1`.
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         stop
 
-        Nubar:
-        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922350)
-        >>> out = endf6.get_errorr(verbose=True, mfcov=31)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        9228 0 0 /
-        0.005 0. /
-        0/
-        groupr
-        -21 -22 0 -23 /
-        9228 2 0 2 0 1 1 0 /
-        /
-        0.0/
-        10000000000.0/
-        3/
-        0/
-        0/
-        errorr
-        -21 0 -23 33 0 /
-        9228 2 2 0 1 /
-        0 0.0 /
-        0 31 /
-        stop
-
-        >>> out = endf6.get_errorr(verbose=True, mfcov=31, temperature=300.0)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        9228 0 0 /
-        0.005 0. /
-        0/
-        broadr
-        -21 -22 -23 /
-        9228 1 0 0 0. /
-        0.005 /
-        300.0 /
-        0 /
-        groupr
-        -21 -23 0 -24 /
-        9228 2 0 2 0 1 1 0 /
-        /
-        300.0/
-        10000000000.0/
-        3/
-        0/
-        0/
-        errorr
-        -21 0 -24 33 0 /
-        9228 2 2 0 1 /
-        0 300.0 /
-        0 31 /
-        stop
-
-        >>> out = endf6.get_errorr(verbose=True, mfcov=31, ek=sandy.energy_grids.CASMO12)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        9228 0 0 /
-        0.005 0. /
-        0/
-        groupr
-        -21 -22 0 -23 /
-        9228 1 0 2 0 1 1 0 /
-        /
-        0.0/
-        10000000000.0/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        3/
-        0/
-        0/
-        errorr
-        -21 0 -23 33 0 /
-        9228 1 2 0 1 /
-        0 0.0 /
-        0 31 /
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        stop
-
-        Mubar:
+        U-238 test:
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
-        >>> out = endf6.get_errorr(verbose=True, mfcov=34)
+        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, verbose=True, err=1)
         moder
         20 -21 /
         reconr
         -21 -22 /
         'sandy runs njoy'/
         9237 0 0 /
-        0.005 0. /
-        0/
-        groupr
-        -21 -22 0 -23 /
-        9237 2 0 2 0 1 1 0 /
-        /
-        0.0/
-        10000000000.0/
-        3/
-        3 251 ’mubar’ /
-        0/
-        0/
-        errorr
-        -21 0 -23 33 0 /
-        9237 2 2 0 1 /
-        0 0.0 /
-        0 34 /
-        stop
-
-        >>> out = endf6.get_errorr(verbose=True, mfcov=34, temperature=300.0)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        9237 0 0 /
-        0.005 0. /
-        0/
-        broadr
-        -21 -22 -23 /
-        9237 1 0 0 0. /
-        0.005 /
-        300.0 /
-        0 /
-        groupr
-        -21 -23 0 -24 /
-        9237 2 0 2 0 1 1 0 /
-        /
-        300.0/
-        10000000000.0/
-        3/
-        3 251 ’mubar’ /
-        0/
-        0/
-        errorr
-        -21 0 -24 33 0 /
-        9237 2 2 0 1 /
-        0 300.0 /
-        0 34 /
-        stop
-
-
-        >>> out = endf6.get_errorr(verbose=True, mfcov=34, ek=sandy.energy_grids.CASMO12)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        9237 0 0 /
-        0.005 0. /
+        1 0. /
         0/
         groupr
         -21 -22 0 -23 /
@@ -1993,108 +1863,40 @@ If you want to process 0K cross sections use `temperature=0.1`.
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         3/
         3 251 ’mubar’ /
+        5/
+        5 18 ’chi’ /
         0/
         0/
         errorr
+        -21 0 -23 31 0 /
+        9237 1 2 0 1 /
+        0 0.0 /
+        0 31 /
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        errorr
         -21 0 -23 33 0 /
+        9237 1 2 0 1 /
+        0 0.0 /
+        0 33 /
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        errorr
+        -21 0 -23 35 0 /
+        9237 1 2 0 1 /
+        0 0.0 /
+        0 35 /
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        errorr
+        -21 0 -23 34 0 /
         9237 1 2 0 1 /
         0 0.0 /
         0 34 /
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        stop
-
-        Chi:
-        >>> out = endf6.get_errorr(verbose=True, mfcov=35)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        9237 0 0 /
-        0.005 0. /
-        0/
-        groupr
-        -21 -22 0 -23 /
-        9237 2 0 2 0 1 1 0 /
-        /
-        0.0/
-        10000000000.0/
-        3/
-        5 18 ’chi’ /
-        0/
-        0/
-        errorr
-        -21 0 -23 33 0 /
-        9237 2 2 0 1 /
-        0 0.0 /
-        0 35 /
-        stop
-
-        >>> out = endf6.get_errorr(verbose=True, mfcov=35, temperature=300.0)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        9237 0 0 /
-        0.005 0. /
-        0/
-        broadr
-        -21 -22 -23 /
-        9237 1 0 0 0. /
-        0.005 /
-        300.0 /
-        0 /
-        groupr
-        -21 -23 0 -24 /
-        9237 2 0 2 0 1 1 0 /
-        /
-        300.0/
-        10000000000.0/
-        3/
-        5 18 ’chi’ /
-        0/
-        0/
-        errorr
-        -21 0 -24 33 0 /
-        9237 2 2 0 1 /
-        0 300.0 /
-        0 35 /
-        stop
-
-
-        >>> out = endf6.get_errorr(verbose=True, mfcov=35, ek=sandy.energy_grids.CASMO12)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        9237 0 0 /
-        0.005 0. /
-        0/
-        groupr
-        -21 -22 0 -23 /
-        9237 1 0 2 0 1 1 0 /
-        /
-        0.0/
-        10000000000.0/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        3/
-        5 18 ’chi’ /
-        0/
-        0/
-        errorr
-        -21 0 -23 33 0 /
-        9237 1 2 0 1 /
-        0 0.0 /
-        0 35 /
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         stop
         """
-        groupr_need = [31, 34, 35, 40]
         if float(temperature) == 0:
             kwargs["thermr"] = False
             kwargs["gaspr"] = False
@@ -2109,7 +1911,16 @@ If you want to process 0K cross sections use `temperature=0.1`.
             kwargs["purr"] = kwargs.get("purr", False)
             kwargs["unresr"] = kwargs.get("unresr", False)
             kwargs['keep_pendf'] = kwargs.get('keep_pendf', False)
-        groupr_ = True if kwargs.get("mfcov", 1) in groupr_need else groupr
+        endf6_cov_mt = self.to_series().index.get_level_values("MF")\
+                           .intersection([31, 33, 34, 35])
+        kwargs['nubar'] = True if 31 in endf6_cov_mt else False
+        kwargs['xs'] = True if 33 in endf6_cov_mt else False
+        kwargs['mubar'] = True if 34 in endf6_cov_mt else False
+        kwargs['chi'] = True if 35 in endf6_cov_mt else False
+        if kwargs.get("nubar") or kwargs.get("chi"):
+            groupr_ = True
+        else:
+            groupr_ = groupr
         kwargs["broadr"] = True if float(temperature) != 0 else kwargs.get("broadr", False)
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
@@ -2127,6 +1938,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
                     )[2]  # keep only pendf filename
             errorrfile = outputs["tape33"]
             errorr = sandy.Errorr.from_file(errorrfile)
+            del outputs["tape33"]
+            for tape, errorrfile in outputs.items():
+                errorr = errorr.merge(sandy.Errorr.from_file(errorrfile))
             if to_file:
                 shutil.move(errorrfile, to_file)
         return errorr
@@ -2178,6 +1992,14 @@ If you want to process 0K cross sections use `temperature=0.1`.
             weight function option (default is 2, constant)
         sigz : iterable of `float`
             sigma zero values. The default is 1.0e10.
+        nubar : `bool`, optional
+            print option (default is `False`)
+        mubar : `bool`, optional
+            print option (default is `False`)
+        chi : `bool`, optional
+            print option (default is `False`)
+        nuclide_production : `bool`, optional
+            print option (default is `False`)
 
         Returns
         -------
@@ -2340,6 +2162,41 @@ If you want to process 0K cross sections use `temperature=0.1`.
         moder
         -24 32 /
         stop
+
+        Test U-238:
+        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
+        >>> out = endf6.get_gendf(ek=sandy.energy_grids.CASMO12, verbose=True, err=1)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        9237 0 0 /
+        1 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        9237 1 0 0 0. /
+        1 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        9237 1 0 2 0 1 1 0 /
+        /
+        293.6/
+        10000000000.0/
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        3/
+        3 251 ’mubar’ /
+        5/
+        5 18 ’chi’ /
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
         """
         kwargs["thermr"] = False
         kwargs["gaspr"] = False
@@ -2349,6 +2206,12 @@ If you want to process 0K cross sections use `temperature=0.1`.
         kwargs["acer"] = False
         kwargs["keep_pendf"] = False
         kwargs['errorr'] = False
+        endf6_cov_mt = self.to_series().index.get_level_values("MF")\
+                           .intersection([31, 33, 34, 35])
+        kwargs['nubar'] = True if 31 in endf6_cov_mt else False
+        kwargs['xs'] = True if 33 in endf6_cov_mt else False
+        kwargs['mubar'] = True if 34 in endf6_cov_mt else False
+        kwargs['chi'] = True if 35 in endf6_cov_mt else False
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
             self.to_file(endf6file)
