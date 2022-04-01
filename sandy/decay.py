@@ -964,7 +964,7 @@ class _DecayBase():
         >>> assert e_new.data.E[922350]['alpha'] == e.data.E[922350]['alpha'] * 1.05
 
         >>> br = rdd.get_branching_ratio(with_uncertainty=False)
-        >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 40, "RFS": 0, "PERT": 1.05}]).set_index(["ZAM", "RTYP"])
+        >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 40, "RFS": 0, "PERT": 1.05}]).set_index(["ZAM", "RTYP", "RFS"])
         >>> br_new = br.custom_perturbation(pert)
         >>> assert br_new.data.BR[922350][40][0] == br.data.BR[922350][40][0] * 1.05
 
@@ -1057,7 +1057,7 @@ class BranchingRatio(_DecayBase):
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", 922350)
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> br = rdd.get_branching_ratio(with_uncertainty=False)
-        >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 40, "RFS": 0, "PERT": 1.05}]).set_index(["ZAM","RTYP"])
+        >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 40, "RFS": 0, "PERT": 1.05}]).set_index(["ZAM", "RTYP", "RFS"])
         >>> br_new = br.custom_perturbation(pert)
         >>> rdd_updated = br_new.to_decaydata(rdd)
         >>> assert rdd_updated.data[922350]['decay_modes'][(40, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==40").BR.values
@@ -1081,7 +1081,7 @@ class BranchingRatio(_DecayBase):
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> br = rdd.get_branching_ratio(with_uncertainty=False)
         >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 40, "RFS": 0, "PERT": 1.05}, \
-                                 {"ZAM": 942410, "RTYP": 40, "RFS": 0, "PERT": 1.02}]).set_index(["ZAM","RTYP"])
+                                 {"ZAM": 942410, "RTYP": 40, "RFS": 0, "PERT": 1.02}]).set_index(["ZAM","RTYP", "RFS"])
         >>> br_new = br.custom_perturbation(pert)
         >>> rdd_updated =br_new.to_decaydata(rdd)
         >>> assert rdd_updated.data[922350]['decay_modes'][(40, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==40").BR.values
@@ -1094,7 +1094,7 @@ class BranchingRatio(_DecayBase):
         >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 40, "RFS": 0, "PERT": 1.05}, \
                                  {"ZAM": 922350, "RTYP": 60, "RFS": 0, "PERT": 0.95}, \
                                  {"ZAM": 942410, "RTYP": 40, "RFS": 0, "PERT": 1.02}, \
-                                 {"ZAM": 942410, "RTYP": 10, "RFS": 0, "PERT": 0.99}]).set_index(["ZAM","RTYP"])
+                                 {"ZAM": 942410, "RTYP": 10, "RFS": 0, "PERT": 0.99}]).set_index(["ZAM", "RTYP", "RFS"])
         >>> br_new = br.custom_perturbation(pert)
         >>> rdd_updated = br_new.to_decaydata(rdd)
         >>> assert rdd_updated.data[922350]['decay_modes'][(40, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==40").BR.values
