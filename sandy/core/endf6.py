@@ -2042,7 +2042,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
             del outputs[next(iter(outputs))]
             for tape, errorrfile in outputs.items():
                 errorr = errorr.merge(sandy.Errorr.from_file(errorrfile))
-                shutil.move(errorrfile, to_file)
+                if to_file:
+                    shutil.move(errorrfile, to_file)
         return errorr
 
     def get_gendf(self,
