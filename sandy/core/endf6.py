@@ -1643,6 +1643,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
                    verbose=False,
                    groupr=False,
                    err=0.005,
+                   nubar=True,
+                   mubar=True,
+                   chi=True,
+                   xs=True,
                    **kwargs,
                    ):
         """
@@ -1650,19 +1654,29 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         Parameters
         ----------
+        chi : `bool`, optional
+            Proccess the chi covariance (default is `True`)
+        groupr : `bool`, optional, default is `False`
+            option to generate covariances from a multigroup cross section
+            ..note:: this option is activated by default if `nubar=True` or
+                     `chi=True`
+        mubar : `bool`, optional
+            Proccess the mubar covariance (default is `True`)
+        njoy : `str`, optional, default is `None`
+            NJOY executable, if `None` search in the system path.
+        nubar : `bool`, optional
+            Proccess the nubar covariance (default is `True`)
         temperature : `float`, optional, default is `0`.
             temperature of the cross sections in K.
             If not given, stop the processing after RECONR (before BROADR).
-        njoy : `str`, optional, default is `None`
-            NJOY executable, if `None` search in the system path.
         to_file : `str`, optional, default is `None`
             if not `None` write processed ERRORR data to file.
             The name of the ERRORR file is the keyword argument.
         verbose : `bool`, optional, default is `False`
             flag to print NJOY input file to screen before running the
             executable.
-        groupr : `bool`, optional, default is `False`
-            option to generate covariances from a multigroup cross section
+        xs : `bool`, optional
+            Proccess the xs covariance (default is `True`)
         **kwargs : `dict`
             keyword argument to pass to `sandy.njoy.process`.
 
@@ -1677,18 +1691,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
             neutron group option (default is 2, csewg 239-group structure)
         ek : iterable, optional
             derived cross section energy bounds (default is `[1e-5, 2e7]`)
-        iwt : `int`, optional
-            weight function option (default is 2, constant)
         sigz : iterable of `float`
             sigma zero values. The default is 1.0e10.
-        nubar : `bool`, optional
-            Proccess the nubar covariance(default is `False`)
-        xs : `bool`, optional
-            Proccess the xs covariance(default is `False`)
-        mubar : `bool`, optional
-            Proccess the mubar covariance(default is `False`)
-        chi : `bool`, optional
-            Proccess the chi covariance(default is `False`)
 
         Parameters for ERRORR
         ---------------------
@@ -1698,37 +1702,38 @@ If you want to process 0K cross sections use `temperature=0.1`.
             derived cross section energy bounds (default is `[1e-5, 2e7]`)
         iwt : `int`, optional
             weight function option (default is 2, constant)
-        nubar : `bool`, optional
-            Proccess the nubar covariance(default is `False`)
-        xs : `bool`, optional
-            Proccess the xs covariance(default is `False`)
-        mubar : `bool`, optional
-            Proccess the mubar covariance(default is `False`)
-        chi : `bool`, optional
-            Proccess the chi covariance(default is `False`)
+            .. note:: this option will also be used for GROUPR
         spect : iterable, optional
             Weight function as a iterable (default is None)
         irespr: `int`, optional
-            processing for resonance parameter covariances (default is 2,
-                                                        1% sensitivity method)
+            processing for resonance parameter covariances
+            (default is 1, 1% sensitivity method)
         mt: `int` or iterable of `int`, optional
-            program calculated mts/input mts and eks/calculated mts plus extra
-            mat1-mt1 pairs from input
+            list of MT reactions to be processed
+            .. note:: this list will be used for all covariance types, i.e.,
+                      MF31, MF33, MF34, MF35.
+                      If this is not the expected behavior, use keyword
+                      arguments `nubar`, `xs`, `mubar` and `chi`.
 
         Returns
         -------
-        errorr : `sandy.Errorr`
-            `Errorr` instance constaining the nuclear data of the ERRORR file.
+        errorr : `sandy.Errorr` or `None`
+            - `Errorr` instance constaining the nuclear data of the ERRORR
+              file, if covariance information is found.
+            - `None` if no covariiance information is found.
 
         .. important:: this module uses `read_formatted_file`, which is no
                        longer supported.
 
         Notes
         -----
-        .. note:: method arguments are consistent with those of `get_pendf`.
+        .. note:: method arguments are consistent with those of `get_pendf`
+
         .. note:: parameters for groupr are the same as for errorr
-        .. note:: NJOY's errorr module WILL produce a MF35 covariance tape
-        if the errorr module called before the errorr call to produce a MF34
+
+        .. note:: NJOY ERRORR module WILL produce a MF35 covariance tape
+                  if the ERRORR module is called before the ERRORR call to
+                  produce a MF34
 
         Examples
         --------
@@ -1950,24 +1955,6 @@ If you want to process 0K cross sections use `temperature=0.1`.
     
         Test for MT:
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> out = endf6.get_errorr(verbose=True, mt=[1,2])
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        errorr
-        -21 -22 0 33 0 /
-        125 2 2 0 1 /
-        0 0.0 /
-        1 33 1/
-        2 0 /
-        1 2 /
-        stop
-
         >>> out = endf6.get_errorr(verbose=True, mt=[1,2], ek=sandy.energy_grids.CASMO12)
         moder
         20 -21 /
@@ -1987,40 +1974,53 @@ If you want to process 0K cross sections use `temperature=0.1`.
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         stop
+        
+        Test content of output `Errorr` file
+        >>> out = sandy.get_endf6_file('jeff_33', "xs", 922350) \
+        ...            .get_errorr(err=1., irespr=0, mubar=False, chi=False)
+        >>> keys = [(9228, 1, 451), (9228, 3, 456), (9228, 33, 456), (9228, 3, 1), (9228, 3, 2), (9228, 3, 4), (9228, 3, 16), (9228, 3, 17), (9228, 3, 18), (9228, 3, 37), (9228, 3, 102), (9228, 33, 1), (9228, 33, 2), (9228, 33, 4), (9228, 33, 16), (9228, 33, 17), (9228, 33, 18), (9228, 33, 37), (9228, 33, 102)]
+        >>> for key in keys:
+        ...     assert key in out.data
         """
+        kwds_njoy = kwargs.copy()
         if float(temperature) == 0:
-            kwargs["thermr"] = False
-            kwargs["gaspr"] = False
-            kwargs["heatr"] = False
-            kwargs["purr"] = False
-            kwargs["unresr"] = False
-            kwargs['keep_pendf'] = False
+            kwds_njoy["broadr"] = False
+            kwds_njoy["thermr"] = False
+            kwds_njoy["gaspr"] = False
+            kwds_njoy["heatr"] = False
+            kwds_njoy["purr"] = False
+            kwds_njoy["unresr"] = False
+            kwds_njoy['keep_pendf'] = False
         else:
-            kwargs["thermr"] = kwargs.get("thermr", False)
-            kwargs["gaspr"] = kwargs.get("gaspr", False)
-            kwargs["heatr"] = kwargs.get("heatr", False)
-            kwargs["purr"] = kwargs.get("purr", False)
-            kwargs["unresr"] = kwargs.get("unresr", False)
-            kwargs['keep_pendf'] = kwargs.get('keep_pendf', False)
-        endf6_cov_mt = self.to_series().index.get_level_values("MF")\
-                           .intersection([31, 33, 34, 35])
-        run_nubar = True if 31 in endf6_cov_mt else False
-        kwargs['nubar'] = kwargs.get('nubar', run_nubar)
-        run_xs = True if 33 in endf6_cov_mt else False
-        kwargs['xs'] = kwargs.get('xs', run_xs)
-        run_mubar = True if 34 in endf6_cov_mt else False
-        kwargs['mubar'] = kwargs.get('mubar', run_mubar)
-        run_chi = True if 35 in endf6_cov_mt else False
-        kwargs['chi'] = kwargs.get('chi', run_chi)
-        if run_nubar is False and run_xs is False and run_mubar is False and run_chi is False:
-            print('The selected file do not have covariance information')
+            kwds_njoy["broadr"] = True
+            kwds_njoy["thermr"] = kwds_njoy.get("thermr", False)
+            kwds_njoy["gaspr"] = kwds_njoy.get("gaspr", False)
+            kwds_njoy["heatr"] = kwds_njoy.get("heatr", False)
+            kwds_njoy["purr"] = kwds_njoy.get("purr", False)
+            kwds_njoy["unresr"] = kwds_njoy.get("unresr", False)
+            kwds_njoy['keep_pendf'] = kwds_njoy.get('keep_pendf', False)
+
+        supported_mf = [31, 33, 34, 35]
+        endf6_cov_mf = self.to_series().index.get_level_values("MF")\
+                           .intersection(supported_mf)
+
+        run_nubar = True if 31 in endf6_cov_mf else False
+        run_xs = True if 33 in endf6_cov_mf else False
+        run_mubar = True if 34 in endf6_cov_mf else False
+        run_chi = True if 35 in endf6_cov_mf else False
+        if not run_nubar and not run_xs and not run_mubar and not run_chi:
+            msg = 'The selected file does not have the requested covariance information'
+            logging.warning(msg)
             return
-        run_broad = True if float(temperature) != 0 else False
-        kwargs["broadr"] = kwargs.get("broadr", run_broad)
-        if kwargs.get("nubar") or kwargs.get("chi"):
-            groupr_ = True
-        else:
-            groupr_ = groupr
+
+        kwds_njoy.update({
+            'nubar': run_nubar if nubar else False,
+            'xs': run_xs if xs else False,
+            'mubar': run_mubar if mubar else False,
+            'chi': run_chi if chi else False,
+        })
+        groupr_ = True if (kwds_njoy["nubar"] or kwds_njoy["chi"]) else groupr
+
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
             self.to_file(endf6file)
@@ -2033,17 +2033,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
                     suffixes=[0],
                     err=err,
                     groupr=groupr_,
-                    **kwargs,
-                    )[2]  # keep only pendf filename
-            errorrfile = outputs.get(next(iter(outputs)))
-            errorr = sandy.Errorr.from_file(errorrfile)
-            if to_file:
-                shutil.move(errorrfile, to_file)
-            del outputs[next(iter(outputs))]
-            for tape, errorrfile in outputs.items():
-                errorr = errorr.merge(sandy.Errorr.from_file(errorrfile))
-                if to_file:
-                    shutil.move(errorrfile, to_file)
+                    **kwds_njoy,
+                    )[2]
+            seq = map(sandy.Errorr.from_file, outputs.values())
+            errorr = reduce(lambda x, y: x.merge(y), seq)
         return errorr
 
     def get_gendf(self,

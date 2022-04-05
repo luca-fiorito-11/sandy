@@ -814,11 +814,11 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     nubar : `bool`, optional
         Proccess the nubar covariance(default is `False`)
     xs : `bool`, optional
-        Proccess the xs covariance(default is `False`)
+        Proccess the xs covariance (default is `False`)
     mubar : `bool`, optional
-        Proccess the mubar covariance(default is `False`)
+        Proccess the mubar covariance (default is `False`)
     chi : `bool`, optional
-        Proccess the chi covariance(default is `False`)
+        Proccess the chi covariance (default is `False`)
     nuclide_production : `bool`, optional
         print option (default is `False`)
 
