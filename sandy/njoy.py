@@ -950,7 +950,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     293.6/
     10000000000.0/
     3/
-    3 251 ’mubar’ /
+    3 251 'mubar' /
     0/
     0/
 
@@ -964,7 +964,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     10000000000.0/
     3/
     5/
-    5 18 ’chi’ /
+    5 18 'chi' /
     0/
     0/
 
@@ -1012,10 +1012,10 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         for mt_ in mt:
             text += [f"3 {mt_:d} /"]
     if mubar:
-        text += ["3 251 ’mubar’ /"]
+        text += ["3 251 'mubar' /"]
     if chi:
         text += ["5/"]
-        text += ["5 18 ’chi’ /"]
+        text += ["5 18 'chi' /"]
     if nuclide_production:
         text += ["10/"]
     text += ["0/"]  # terimnate list of reactions for this material
