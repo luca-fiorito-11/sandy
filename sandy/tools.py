@@ -83,12 +83,9 @@ def recursively_load_dict_contents_from_group(h5file, path):
             kdict = int(key)
         except ValueError:
             try:
-                kdict = float(key)
+                kdict = literal_eval(key) #to convert string into float or tuple
             except ValueError:
-                try:
-                    kdict = literal_eval(key)
-                except ValueError:
-                    kdict = key
+                kdict = key
         if isinstance(item, h5py._hl.dataset.Dataset):
             ans[kdict] = item[()]
         elif isinstance(item, h5py._hl.group.Group):

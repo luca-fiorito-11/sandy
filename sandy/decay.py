@@ -209,28 +209,28 @@ class DecayData():
         >>> rdd.get_branching_ratio()
                                  BR         DBR
         ZAM    RTYP RFS                        
-        922350 40   0   1.00000e+00 1.00000e-04
-               60   0   7.20000e-11 2.10000e-11
-        942410 40   0   2.44000e-05 0.00000e+00
-               10   0   9.99976e-01 0.00000e+00
+        922350 4    0   1.00000e+00 1.00000e-04
+               6    0   7.20000e-11 2.10000e-11
+        942410 4    0   2.44000e-05 0.00000e+00
+               1    0   9.99976e-01 0.00000e+00
 
         >>> rdd.get_branching_ratio(with_uncertainty=False)
                                  BR
         ZAM    RTYP RFS            
-        922350 40   0   1.00000e+00
-               60   0   7.20000e-11
-        942410 40   0   2.44000e-05
-               10   0   9.99976e-01
+        922350 4    0   1.00000e+00
+               6    0   7.20000e-11
+        942410 4    0   2.44000e-05
+               1    0   9.99976e-01
 
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [942410, 10010, 922350])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> rdd.get_branching_ratio(with_uncertainty=False)
                                  BR
         ZAM    RTYP RFS            
-        922350 40   0   1.00000e+00
-               60   0   7.20000e-11
-        942410 40   0   2.44000e-05
-               10   0   9.99976e-01
+        922350 4    0   1.00000e+00
+               6    0   7.20000e-11
+        942410 4    0   2.44000e-05
+               1    0   9.99976e-01
                
         Decay at first isomeric state:
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", 942390)
@@ -238,9 +238,9 @@ class DecayData():
         >>> rdd.get_branching_ratio(with_uncertainty=False)
                                  BR
         ZAM    RTYP RFS            
-        942390 40   0   6.00000e-04
+        942390 4    0   6.00000e-04
                     1   9.99400e-01
-               60   0   3.10000e-12
+               6    0   3.10000e-12
 
         Stable nuclide:
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", 260560)
@@ -677,7 +677,7 @@ class DecayData():
               gamma: 352.186
             decay_modes:
               ? !!python/tuple
-              - 10
+              - 1
               - 0
               : branching_ratio: 1.0
                 branching_ratio_uncertainty: 0.0
@@ -751,7 +751,7 @@ class DecayData():
                         "branching_ratio": dk["BR"],
                         "branching_ratio_uncertainty": dk["DBR"],
                         }
-                groups[zam]["decay_modes"][(int(rtyp), int(residual_state))] = decay_mode_data
+                groups[zam]["decay_modes"][(rtyp, residual_state)] = decay_mode_data
         return cls(groups)
 
     def to_endf6(self, endf6):
@@ -800,7 +800,7 @@ class DecayData():
             if 'DK' in sec.keys():
                 i = 0
                 for (rtyp, rfs), dk in self.data[zam]['decay_modes'].items():
-                    sec['DK'][i]['RTYP'] = str(rtyp)
+                    sec['DK'][i]['RTYP'] = rtyp
                     sec['DK'][i]['RFS'] = rfs
                     sec['DK'][i]['BR'] = dk['branching_ratio']
                     sec['DK'][i]['DBR'] = dk['branching_ratio_uncertainty']
@@ -881,7 +881,7 @@ class DecayData():
          270600: {'decay_constant': 4.167050502344267e-09, 'decay_constant_uncertainty': 6.324352137605637e-13,
                   'decay_energy': {'alpha': 0.0, 'beta': 96522.0, 'gamma': 2503840.0},
                   'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 202.529, 'gamma': 352.186},
-                  'decay_modes': {(10, 0): {'branching_ratio': 1.0, 'branching_ratio_uncertainty': 0.0, 'decay_products': {280600: 1.0}}},
+                  'decay_modes': {(1, 0): {'branching_ratio': 1.0, 'branching_ratio_uncertainty': 0.0, 'decay_products': {280600: 1.0}}},
                   'half_life': 166340000.0, 'half_life_uncertainty': 25245.5, 'parity': 1.0, 'spin': 5.0, 'stable': False},
          280600: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0},
                   'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0},
@@ -943,6 +943,7 @@ class _DecayBase():
 
         Examples
         --------
+        Perturbation of 5% on the half life of U235:
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", 922350)
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> hl = rdd.get_half_life(with_uncertainty=False)
@@ -954,6 +955,7 @@ class _DecayBase():
         >>> hl_new = hl.custom_perturbation(pert)
         >>> assert hl_new.data.HL.values == hl.data.HL.values * 1.05
 
+        Perturbation of 5% on the alpha decay energy of U235:
         >>> e = rdd.get_decay_energy(with_uncertainty=False)
         >>> pert = pd.DataFrame([{"ZAM": 922350, "TYPE": "alpha", "PERT": 1.05}]).set_index(["ZAM", "TYPE"])
         >>> e_new = e.custom_perturbation(pert)
@@ -963,14 +965,15 @@ class _DecayBase():
         >>> e_new = e.custom_perturbation(pert)
         >>> assert e_new.data.E[922350]['alpha'] == e.data.E[922350]['alpha'] * 1.05
 
+        Perturbation of 5% on the branching ratio for alpha decay of U235:
         >>> br = rdd.get_branching_ratio(with_uncertainty=False)
-        >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 40, "RFS": 0, "PERT": 1.05}]).set_index(["ZAM", "RTYP", "RFS"])
+        >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 4, "RFS": 0, "PERT": 1.05}]).set_index(["ZAM", "RTYP", "RFS"])
         >>> br_new = br.custom_perturbation(pert)
-        >>> assert br_new.data.BR[922350][40][0] == br.data.BR[922350][40][0] * 1.05
+        >>> assert br_new.data.BR[922350][4][0] == br.data.BR[922350][4][0] * 1.05
 
         >>> br = rdd.get_branching_ratio()
         >>> br_new = br.custom_perturbation(pert)
-        >>> assert br_new.data.BR[922350][40][0] == br.data.BR[922350][40][0] * 1.05
+        >>> assert br_new.data.BR[922350][4][0] == br.data.BR[922350][4][0] * 1.05
         """
         name = "BR" if isinstance(self, BranchingRatio) else "E" if isinstance(self, DecayEnergy) else "HL"
         df = self.data.merge(pert.reindex(self.data.index).fillna(1), left_index=True, right_index=True)
@@ -1054,18 +1057,19 @@ class BranchingRatio(_DecayBase):
 
         Examples
         --------
+        
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", 922350)
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> br = rdd.get_branching_ratio(with_uncertainty=False)
-        >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 40, "RFS": 0, "PERT": 1.05}]).set_index(["ZAM", "RTYP", "RFS"])
+        >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 4, "RFS": 0, "PERT": 1.05}]).set_index(["ZAM", "RTYP", "RFS"])
         >>> br_new = br.custom_perturbation(pert)
         >>> rdd_updated = br_new.to_decaydata(rdd)
-        >>> assert rdd_updated.data[922350]['decay_modes'][(40, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==40").BR.values
+        >>> assert rdd_updated.data[922350]['decay_modes'][(4, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==4 & RFS==0").BR.values
         
         >>> br = rdd.get_branching_ratio()
         >>> br_new = br.custom_perturbation(pert)
         >>> rdd_updated = br_new.to_decaydata(rdd)
-        >>> assert rdd_updated.data[922350]['decay_modes'][(40, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==40").BR.values
+        >>> assert rdd_updated.data[922350]['decay_modes'][(4, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==4 & RFS==0").BR.values
         
         Perturbing only one branching ratio of one nuclide in `DecayData` instance:
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [922350, 942410])
@@ -1073,34 +1077,34 @@ class BranchingRatio(_DecayBase):
         >>> br = rdd.get_branching_ratio(with_uncertainty=False)
         >>> br_new = br.custom_perturbation(pert)
         >>> rdd_updated = br_new.to_decaydata(rdd)
-        >>> assert rdd_updated.data[922350]['decay_modes'][(40, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==40").BR.values
-        >>> assert rdd_updated.data[942410]['decay_modes'][(40, 0)]['branching_ratio'] == br_new.data.query("ZAM==942410 & RTYP==40").BR.values
+        >>> assert rdd_updated.data[922350]['decay_modes'][(4, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==4 & RFS==0").BR.values
+        >>> assert rdd_updated.data[942410]['decay_modes'][(4, 0)]['branching_ratio'] == br_new.data.query("ZAM==942410 & RTYP==4 & RFS==0").BR.values
         
         Perturbing only one branching ratio of each nuclide in `DecayData` instance:
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [922350, 942410])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> br = rdd.get_branching_ratio(with_uncertainty=False)
-        >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 40, "RFS": 0, "PERT": 1.05}, \
-                                 {"ZAM": 942410, "RTYP": 40, "RFS": 0, "PERT": 1.02}]).set_index(["ZAM","RTYP", "RFS"])
+        >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 4, "RFS": 0, "PERT": 1.05}, \
+                                 {"ZAM": 942410, "RTYP": 4, "RFS": 0, "PERT": 1.02}]).set_index(["ZAM","RTYP", "RFS"])
         >>> br_new = br.custom_perturbation(pert)
         >>> rdd_updated =br_new.to_decaydata(rdd)
-        >>> assert rdd_updated.data[922350]['decay_modes'][(40, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==40").BR.values
-        >>> assert rdd_updated.data[942410]['decay_modes'][(40, 0)]['branching_ratio'] == br_new.data.query("ZAM==942410 & RTYP==40").BR.values
+        >>> assert rdd_updated.data[922350]['decay_modes'][(4, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==4 & RFS==0").BR.values
+        >>> assert rdd_updated.data[942410]['decay_modes'][(4, 0)]['branching_ratio'] == br_new.data.query("ZAM==942410 & RTYP==4 & RFS==0").BR.values
         
         Perturbing all branching ratios of each nuclide in `DecayData` instance:
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", [922350, 942410])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> br = rdd.get_branching_ratio(with_uncertainty=False)
-        >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 40, "RFS": 0, "PERT": 1.05}, \
-                                 {"ZAM": 922350, "RTYP": 60, "RFS": 0, "PERT": 0.95}, \
-                                 {"ZAM": 942410, "RTYP": 40, "RFS": 0, "PERT": 1.02}, \
-                                 {"ZAM": 942410, "RTYP": 10, "RFS": 0, "PERT": 0.99}]).set_index(["ZAM", "RTYP", "RFS"])
+        >>> pert = pd.DataFrame([{"ZAM": 922350, "RTYP": 4, "RFS": 0, "PERT": 1.05}, \
+                                 {"ZAM": 922350, "RTYP": 6, "RFS": 0, "PERT": 0.95}, \
+                                 {"ZAM": 942410, "RTYP": 4, "RFS": 0, "PERT": 1.02}, \
+                                 {"ZAM": 942410, "RTYP": 1, "RFS": 0, "PERT": 0.99}]).set_index(["ZAM", "RTYP", "RFS"])
         >>> br_new = br.custom_perturbation(pert)
         >>> rdd_updated = br_new.to_decaydata(rdd)
-        >>> assert rdd_updated.data[922350]['decay_modes'][(40, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==40").BR.values
-        >>> assert rdd_updated.data[922350]['decay_modes'][(60, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==60").BR.values
-        >>> assert rdd_updated.data[942410]['decay_modes'][(40, 0)]['branching_ratio'] == br_new.data.query("ZAM==942410 & RTYP==40").BR.values
-        >>> assert rdd_updated.data[942410]['decay_modes'][(10, 0)]['branching_ratio'] == br_new.data.query("ZAM==942410 & RTYP==10").BR.values
+        >>> assert rdd_updated.data[922350]['decay_modes'][(4, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==4 & RFS==0").BR.values
+        >>> assert rdd_updated.data[922350]['decay_modes'][(6, 0)]['branching_ratio'] == br_new.data.query("ZAM==922350 & RTYP==6 & RFS==0").BR.values
+        >>> assert rdd_updated.data[942410]['decay_modes'][(4, 0)]['branching_ratio'] == br_new.data.query("ZAM==942410 & RTYP==4 & RFS==0").BR.values
+        >>> assert rdd_updated.data[942410]['decay_modes'][(1, 0)]['branching_ratio'] == br_new.data.query("ZAM==942410 & RTYP==1 & RFS==0").BR.values
         """
         rdd_updated = copy.deepcopy(rdd.data)
         for (zam, rtyp, rfs), val in self.data.iterrows():
@@ -1287,13 +1291,6 @@ def expand_decay_type(zam, dectyp):
 
     Examples
     --------
-    Expand gamma decay (#0)
-    >>> d, n, p, a = sandy.decay.expand_decay_type(581480, 0)
-    >>> assert d == 581480
-    >>> assert n == 0
-    >>> assert p == 0
-    >>> assert a == 0
-
     Expand beta decay (#1)
     >>> d, n, p, a = sandy.decay.expand_decay_type(581480, 1)
     >>> assert d == 591480
@@ -1301,7 +1298,7 @@ def expand_decay_type(zam, dectyp):
     >>> assert p == 0
     >>> assert a == 0
 
-    Expand electron capture (#2)
+    Expand electron capture and/or positron emission (#2)
     >>> d, n, p, a = sandy.decay.expand_decay_type(581480, 2)
     >>> assert d == 571480
     >>> assert n == 0
@@ -1382,8 +1379,8 @@ def get_decay_products(rtyp, zam, meta=0, br=1.):
 
     Parameters
     ----------
-    rtyp : `str`
-        string of decay modes where:
+    rtyp : `int`
+        integer of decay modes where:
             1. Beta decay
             2. Electron capture and/or positron emission
             3. Isomeric transition
@@ -1408,25 +1405,30 @@ def get_decay_products(rtyp, zam, meta=0, br=1.):
         dictionary of decay products where the keys are the ZAM identifiers
         for the products and the values are the corresponding yield.
 
+     Notes
+     -----
+     .. note:: rtyp=0, corresponding to gamma ray decay, is not used in MF=8, MT=457 section,
+         according with what reported in the ENDF6 manual.
+
     Examples
     --------
     Extract products of fake decay process including all available decay modes.
-    >>> sandy.decay.get_decay_products("01234567", 581480)
+    >>> sandy.decay.get_decay_products(1234567, 581480)
     {551420: 1.0, 10: 1.0, 10010: 1.0, 20040: 1.0}
 
     ...change the metastate of the product
-    >>> sandy.decay.get_decay_products("01234567", 581480, meta=1)
+    >>> sandy.decay.get_decay_products(1234567, 581480, meta=1)
     {551421: 1.0, 10: 1.0, 10010: 1.0, 20040: 1.0}
 
     ...and then use a different braanching ratio
-    >>> sandy.decay.get_decay_products("01234567", 581480, br=0.1)
+    >>> sandy.decay.get_decay_products(1234567, 581480, br=0.1)
     {551420: 0.1, 10: 0.1, 10010: 0.1, 20040: 0.1}
     """
     daughter = zam + 0
     neutrons = 0.
     protons = 0.
     alphas = 0.
-    for dectyp in map(int, rtyp):
+    for dectyp in map(int, str(rtyp)):
         daughter, n, h, a = expand_decay_type(daughter, dectyp)
         neutrons += n
         protons += h
