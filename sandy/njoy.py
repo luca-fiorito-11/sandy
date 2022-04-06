@@ -612,32 +612,31 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         tape number for output ERRORR file
     mat : `int`
         MAT number
-    ign : `int`, optional
-        neutron group option (default is 2, csewg 239-group structure)
     ek : iterable, optional
         derived cross section energy bounds (default is None)
-    spect : iterable, optional
-        Weight function as a iterable (default is None)
+    ign : `int`, optional
+        neutron group option (default is 2, csewg 239-group structure)
+    iprint : `bool`, optional
+        print option (default is `False`)
     irespr: `int`, optional
         processing for resonance parameter covariances
         (default is 1, 1% sensitivity method)
     iwt : `int`, optional
         weight function option (default is 2, constant)
         
-        .. note:: this parameter will change to `iwt=1` if keyword argument
+        .. note:: this parameter will not be used if keyword argument
                   `spect` is provided
 
     relative: `bool`
-        Covariance form (default is True, so the values are relative)
+        use relative covariance form (default is `True`)
     temp : `float`, optional
         temperature in K (default is 293.6 K)
     mfcov : `int`
         endf covariance file to be processed (default is 33)
-    iprint : `bool`, optional
-        print option (default is `False`)
-    mt: `int` or iterable of `int`, optional
-        program calculated mts/input mts and eks/calculated mts plus extra
-        mat1-mt1 pairs from input
+    mt: iterable of `int`, optional
+        run errorr only for the selected mt numbers
+    spect : iterable, optional
+        weight function (default is `None`)
 
     Returns
     -------
@@ -800,34 +799,40 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         tape number for output PENDF file
     mat : `int`
         MAT number
-    ign : `int`, optional
-        neutron group option (default is 2, csewg 239-group structure)
+    chi : `bool`, optional
+        Process chi (default is `False`)
     ek : iterable, optional
         derived cross section energy bounds (default is None)
-    igg : `int`, optional
-        gamma group option. (default is 0, no structure)
     ep : iterable, optional
         derived gamma cross section energy bounds (default is None)
-    iwt : `int`, optional
-        weight function option (default is 2, constant)
-    lord : `int`, optional
-        Legendre order. The default is 0.
-    sigz : iterable of `float`
-        sigma zero values. The default is 1.0e10.
-    temp : iterable of `float`
-        iterable of temperature values in K (default is 293.6 K)
+    igg : `int`, optional
+        gamma group option (default is 0, no structure)
+    ign : `int`, optional
+        neutron group option (default is 2, csewg 239-group structure)
     iprint : `bool`, optional
         print option (default is `False`)
-    nubar : `bool`, optional
-        Proccess the nubar covariance(default is `False`)
-    xs : `bool`, optional
-        Proccess the xs covariance (default is `False`)
+    iwt : `int`, optional
+        weight function option (default is 2, constant)
+        
+        .. note:: this parameter will not be used if keyword argument
+                  `spect` is provided
+
+    lord : `int`, optional
+        Legendre order (default is 0)
+    mt: iterable of `int`, optional
+        run groupr only for the selected mt numbers
     mubar : `bool`, optional
-        Proccess the mubar covariance (default is `False`)
-    chi : `bool`, optional
-        Proccess the chi covariance (default is `False`)
+        Proccess mubar (default is `False`)
+    nubar : `bool`, optional
+        Proccess nubar (default is `False`)
     nuclide_production : `bool`, optional
-        print option (default is `False`)
+        process MF10 (default is `False`)
+    sigz : iterable of `float`
+        sigma zero values (he default is 1.0e10)
+    spect : iterable, optional
+        weight function (default is `None`)
+    temp : iterable of `float`
+        iterable of temperature values in K (default is 293.6 K)
 
     Returns
     -------
