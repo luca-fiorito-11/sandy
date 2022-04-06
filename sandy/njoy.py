@@ -846,7 +846,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
-    /
+    sandy runs groupr /
     293.6/
     10000000000.0/
     3/
@@ -858,7 +858,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9440 2 0 2 0 1 1 0 /
-    /
+    sandy runs groupr /
     600.0/
     10000000000.0/
     3/
@@ -870,7 +870,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9237 2 0 6 0 1 1 0 /
-    /
+    sandy runs groupr /
     293.6/
     10000000000.0/
     3/
@@ -882,7 +882,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9237 3 0 2 0 1 1 0 /
-    /
+    sandy runs groupr /
     293.6/
     10000000000.0/
     3/
@@ -894,7 +894,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9237 2 3 2 0 1 1 0 /
-    /
+    sandy runs groupr /
     293.6/
     10000000000.0/
     3/
@@ -906,7 +906,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 0 /
     22 1 0 2 0 1 1 0 /
-    /
+    sandy runs groupr /
     293.6/
     10000000000.0/
     2 /
@@ -920,7 +920,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 0 /
     22 9237 1 2 0 1 1 0 /
-    /
+    sandy runs groupr /
     293.6/
     10000000000.0/
     2 /
@@ -934,7 +934,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 0 /
     22 9237 0 2 3 1 1 0 /
-    /
+    sandy runs groupr /
     293.6/
     10000000000.0/
     3/
@@ -946,7 +946,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
-    /
+    sandy runs groupr /
     293.6/
     10000000000.0/
     3/
@@ -959,7 +959,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
-    /
+    sandy runs groupr /
     293.6/
     10000000000.0/
     3/
@@ -973,7 +973,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
-    /
+    sandy runs groupr /
     293.6/
     10000000000.0/
     3/
