@@ -1724,12 +1724,10 @@ class EnergyCov(CategoryCov):
         self._data.index = pd.Index(
                 self._data.index.values,
                 name="E",
-                dtype=float,
                 )
         self._data.columns = pd.Index(
                 self._data.columns.values,
                 name="E",
-                dtype=float,
                 )
         if not self._data.index.is_monotonic_increasing:
             raise sandy.Error("index values are not monotonically increasing")
