@@ -2045,6 +2045,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
                   to_file=None,
                   verbose=False,
                   err=0.005,
+                  nubar=True,
+                  mubar=True,
+                  chi=True,
                   **kwargs):
         """
         Process `Endf6` instance into a Gendf file using NJOY.
@@ -2293,26 +2296,17 @@ If you want to process 0K cross sections use `temperature=0.1`.
         -24 32 /
         stop
         """
-        kwargs["thermr"] = False
-        kwargs["gaspr"] = False
-        kwargs["heatr"] = False
-        kwargs["purr"] = False
-        kwargs["unresr"] = False
-        kwargs["acer"] = False
-        kwargs["keep_pendf"] = False
-        kwargs['errorr'] = False
-        endf6_cov_mt = self.to_series().index.get_level_values("MF")\
-                           .intersection([31, 33, 34, 35])
-        run_nubar = True if 31 in endf6_cov_mt else False
-        kwargs['nubar'] = kwargs.get('nubar', run_nubar)
-        run_xs = True if 33 in endf6_cov_mt else False
-        kwargs['xs'] = kwargs.get('xs', run_xs)
-        run_mubar = True if 34 in endf6_cov_mt else False
-        kwargs['mubar'] = kwargs.get('mubar', run_mubar)
-        run_chi = True if 35 in endf6_cov_mt else False
-        kwargs['chi'] = kwargs.get('chi', run_chi)
-        run_broad = True if float(temperature) != 0 else False
-        kwargs["broadr"] = kwargs.get("broadr", run_broad)
+        kwds_njoy = kwargs.copy()
+        kwds_njoy["thermr"] = False
+        kwds_njoy["gaspr"] = False
+        kwds_njoy["heatr"] = False
+        kwds_njoy["purr"] = False
+        kwds_njoy["unresr"] = False
+        kwds_njoy["acer"] = False
+        kwds_njoy["keep_pendf"] = False
+        kwds_njoy['errorr'] = False
+        kwds_njoy["broadr"] = False if float(temperature) == 0 else True
+        
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
             self.to_file(endf6file)
@@ -2323,7 +2317,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
                     temperatures=[temperature],
                     suffixes=[0],
                     err=err,
-                    **kwargs,
+                    **kwds_njoy,
                     )[2]  # keep only gendf filename
             gendf_file = outputs["tape32"]
             groupr = sandy.Groupr.from_file(gendf_file)

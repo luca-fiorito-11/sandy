@@ -619,10 +619,14 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     spect : iterable, optional
         Weight function as a iterable (default is None)
     irespr: `int`, optional
-        processing for resonance parameter covariances (default is 2,
-                                                        1% sensitivity method)
+        processing for resonance parameter covariances
+        (default is 1, 1% sensitivity method)
     iwt : `int`, optional
         weight function option (default is 2, constant)
+        
+        .. note:: this parameter will change to `iwt=1` if keyword argument
+                  `spect` is provided
+
     relative: `bool`
         Covariance form (default is True, so the values are relative)
     temp : `float`, optional
@@ -767,8 +771,10 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         text += [f"{nk} /"]
         text += [" ".join(map("{:.5e}".format, ek)) + " /"]
     if iwt_ == 1:
-        spectrum = sandy.write_float_list(spect)
-        text += [" ".join(map(str, spectrum))]
+        INT = 1               # constant interpolation
+        NBT = int(len(spect) / 2)  # only 1 interpolation group
+        tab1 = "\n".join(sandy.write_tab1(0, 0, 0, 0, [NBT], [INT], spect[::2], spect[1::2]))
+        text += [tab1]
         text += ["/"]
     return "\n".join(text) + "\n"
 
@@ -777,6 +783,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
                   ign=2, ek=None, igg=0,  ep=None,
                   iwt=2, lord=0, sigz=[1e+10],
                   temp=NJOY_TEMPERATURES[0],
+                  spect=None, mt=None,
                   iprint=False, nubar=False, mubar=False, chi=False,
                   nuclide_production=False,
                   **kwargs):
@@ -969,14 +976,15 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
     """
+    iwt_ = 1 if spect is not None else iwt
     ign_ = 1 if ek is not None else ign
     igg_ = 1 if ep is not None else igg
     text = ["groupr"]
     text += [f"{endfin:d} {pendfin:d} 0 {gendfout:d} /"]
     nsigz = len(sigz)
     printflag = int(iprint)
-    text += [f"{mat:d} {ign_:d} {igg_:d} {iwt:d} {lord:d} 1 {nsigz:d} {printflag:d} /"]
-    text += ["/"]
+    text += [f"{mat:d} {ign_:d} {igg_:d} {iwt_:d} {lord:d} 1 {nsigz:d} {printflag:d} /"]
+    text += ["sandy runs groupr /"]  # run label
     text += [f"{temp:.1f}/"]
     text += [" ".join(map("{:.1f}".format, sigz)) + "/"]
     if ign_ == 1:
@@ -987,7 +995,17 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         pk = len(ep) - 1
         text += [f"{pk} /"]
         text += [" ".join(map("{:.5e}".format, ep)) + " /"]
-    text += ["3/"]
+    if iwt_ == 1:
+        INT = 1               # constant interpolation
+        NBT = int(len(spect) / 2)  # only 1 interpolation group
+        tab1 = "\n".join(sandy.write_tab1(0, 0, 0, 0, [NBT], [INT], spect[::2], spect[1::2]))
+        text += [tab1]
+        text += ["/"]
+    if not mt:
+        text += ["3/"]  # by default process all cross sections (MF=3)
+    else:
+        for mt_ in mt:
+            text += [f"3 {mt_:d} /"]
     if mubar:
         text += ["3 251 ’mubar’ /"]
     if chi:
@@ -995,8 +1013,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         text += ["5 18 ’chi’ /"]
     if nuclide_production:
         text += ["10/"]
-    text += ["0/"]
-    text += ["0/"]
+    text += ["0/"]  # terimnate list of reactions for this material
+    text += ["0/"]  # terminate materials (only 1 allowed)
     return "\n".join(text) + "\n"
 
 
