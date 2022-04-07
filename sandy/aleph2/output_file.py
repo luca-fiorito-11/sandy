@@ -584,8 +584,6 @@ def parse_table_contributor(text, index="Main contributor", **kwargs):
     lines = text.splitlines()
     #  Z-SYM-A of the major contributors are reported in the first line
     string = io.StringIO(lines[0])
-#    import pdb
-#    pdb.set_trace()
     columns = pd.read_csv(
         string,
         sep="\s+",
