@@ -1160,6 +1160,83 @@ class _FormattedFile():
         """
         return cls(old_endf6.TEXT.to_dict())
 
+    def write_string(self, title="", skip_title=False, skip_fend=False):
+        """
+        Write `Endf6.data` content to string according to the ENDF-6 file
+        rules.
+
+        Parameters
+        ----------
+        title : `str`, optional, default is an empty string
+            first line of the file
+
+        Returns
+        -------
+        `str`
+            string containing the ENDF-6 information stored in this instance.
+
+        Notes
+        -----
+        ..note:: no modification is implemented to the actual content of
+                 the `Endf6.data` object.
+
+        Examples
+        --------
+        >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
+        >>> string = sandy.Endf6.from_file(file).write_string()
+        >>> print(string[:81 * 4 - 1])
+                                                                             1 0  0    0
+         1.001000+3 9.991673-1          0          0          2          5 125 1451    1
+         0.000000+0 0.000000+0          0          0          0          6 125 1451    2
+         1.000000+0 2.000000+7          3          0         10          3 125 1451    3
+
+        if no modification is applied to the `Endf6` content, the
+        `write_string` returns an output identical to the file ASCII content.
+        >>> assert string == open(file).read()
+
+        ..note:: differences might appear from the way zeros were handled at
+                 the end of ENDF-6 section, or if a different fiel title is
+                 given
+        """
+        string = sandy.write_line(title, 1, 0, 0, 0)
+        string += "\n"
+        for mat, dfmat in self.to_series().groupby('MAT', sort=True):
+            for mf, dfmf in dfmat.groupby('MF', sort=True):
+                for mt, text in dfmf.groupby('MT', sort=True):
+                    string += text.squeeze()\
+                                  .encode('ascii', 'replace')\
+                                  .decode('ascii')
+                    string += "\n"
+                    string += sandy.write_line("", mat, mf, 0, 99999)
+                    string += "\n"
+                string += sandy.write_line("", mat, 0, 0, 0)
+                string += "\n"
+            string += sandy.write_line("", 0, 0, 0, 0)
+            string += "\n"
+        string += sandy.write_line("", -1, 0, 0, 0)
+        return string
+
+    def to_file(self, filename, mode="w", **kwargs):
+        """
+        Given a filename write the content of a `Endf6` instance to disk in
+        ASCII format.
+
+        Parameters
+        ----------
+        filename : `str`
+            The name of the file.
+        mode : `str`, optional
+            Mode while opening a file. The default is "w".
+
+        Returns
+        -------
+        None.
+
+        """
+        text = self.write_string(**kwargs)
+        with open(filename, mode) as f:
+            f.write(text)
+
 
 class Endf6(_FormattedFile):
     """
@@ -1225,107 +1302,6 @@ class Endf6(_FormattedFile):
             return
         foo = eval(f"sandy.{read_module}")
         return foo(self, mat, mt)
-
-    def write_string(self, title="", skip_title=False, skip_fend=False):
-        """
-        .. warning:: OUTDATED, use `to_file`.
-        """
-        string = sandy.write_line(title, 1, 0, 0, 0)
-        string += "\n"
-        for mat, dfmat in self.to_series().groupby('MAT', sort=True):
-            for mf, dfmf in dfmat.groupby('MF', sort=True):
-                for mt, text in dfmf.groupby('MT', sort=True):
-                    string += text.squeeze()\
-                                  .encode('ascii', 'replace')\
-                                  .decode('ascii')
-                    string += "\n"
-                    string += sandy.write_line("", mat, mf, 0, 99999)
-                    string += "\n"
-                string += sandy.write_line("", mat, 0, 0, 0)
-                string += "\n"
-            string += sandy.write_line("", 0, 0, 0, 0)
-            string += "\n"
-        string += sandy.write_line("", -1, 0, 0, 0)
-        return string
-
-    def to_string(self, title="", skip_title=False, skip_fend=False):
-        """
-        Write `Endf6.data` content to string according to the ENDF-6 file
-        rules.
-
-        Parameters
-        ----------
-        title : `str`, optional, default is an empty string
-            first line of the file
-
-        Returns
-        -------
-        `str`
-            string containing the ENDF-6 information stored in this instance.
-
-        Notes
-        -----
-        ..note:: no modification is implemented to the actual content of
-                 the `Endf6.data` object.
-
-        Examples
-        --------
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
-        >>> string = sandy.Endf6.from_file(file).write_string()
-        >>> print(string[:81 * 4 - 1])
-                                                                             1 0  0    0
-         1.001000+3 9.991673-1          0          0          2          5 125 1451    1
-         0.000000+0 0.000000+0          0          0          0          6 125 1451    2
-         1.000000+0 2.000000+7          3          0         10          3 125 1451    3
-
-        if no modification is applied to the `Endf6` content, the
-        `write_string` returns an output identical to the file ASCII content.
-        >>> assert string == open(file).read()
-
-        ..note:: differences might appear from the way zeros were handled at
-                 the end of ENDF-6 section, or if a different fiel title is
-                 given
-        """
-        string = sandy.write_line(title, 1, 0, 0, 0)
-        string += "\n"
-        for mat, dfmat in self.to_series().groupby('MAT', sort=True):
-            for mf, dfmf in dfmat.groupby('MF', sort=True):
-                for mt, text in dfmf.groupby('MT', sort=True):
-                    string += text.squeeze()\
-                                  .encode('ascii', 'replace')\
-                                  .decode('ascii')
-                    string += "\n"
-                    string += sandy.write_line("", mat, mf, 0, 99999)
-                    string += "\n"
-                string += sandy.write_line("", mat, 0, 0, 0)
-                string += "\n"
-            string += sandy.write_line("", 0, 0, 0, 0)
-            string += "\n"
-        string += sandy.write_line("", -1, 0, 0, 0)
-        return string
-
-    def to_file(self, filename, mode="w", **kwargs):
-        """
-        Given a filename write the content of a `Endf6` instance to disk in
-        ASCII format.
-
-        Parameters
-        ----------
-        filename : TYPE
-            DESCRIPTION.
-        mode : TYPE, optional
-            DESCRIPTION. The default is "w".
-        **kwargs : TYPE
-            DESCRIPTION.
-
-        Returns
-        -------
-        None.
-
-        """
-        text = self.write_string(**kwargs)
-        with open(filename, mode) as f:
-            f.write(text)
 
     def _update_info(self, descr=None):
         """Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
@@ -1693,6 +1669,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
             derived cross section energy bounds (default is `[1e-5, 2e7]`)
         sigz : iterable of `float`
             sigma zero values. The default is 1.0e10.
+        iwt_groupr : `int`, optional
+            weight function option (default is 2, constant)
+        spect_groupr : iterable, optional
+            Weight function as a iterable (default is None)
 
         Parameters for ERRORR
         ---------------------
@@ -1700,10 +1680,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
             neutron group option (default is 2, csewg 239-group structure)
         ek : iterable, optional
             derived cross section energy bounds (default is `[1e-5, 2e7]`)
-        iwt : `int`, optional
+        iwt_errorr : `int`, optional
             weight function option (default is 2, constant)
             .. note:: this option will also be used for GROUPR
-        spect : iterable, optional
+        spect_errorr : iterable, optional
             Weight function as a iterable (default is None)
         irespr: `int`, optional
             processing for resonance parameter covariances
@@ -1780,7 +1760,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         groupr
         -21 -22 0 -23 /
         125 2 0 2 0 1 1 0 /
-        /
+        'sandy runs groupr' /
         0.0/
         10000000000.0/
         3/
@@ -1806,7 +1786,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         groupr
         -21 -22 0 -23 /
         125 1 0 2 0 1 1 0 /
-        /
+        'sandy runs groupr' /
         0.0/
         10000000000.0/
         12 /
@@ -1836,7 +1816,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         groupr
         -21 -22 0 -23 /
         125 1 1 2 0 1 1 0 /
-        /
+        'sandy runs groupr' /
         0.0/
         10000000000.0/
         12 /
@@ -1869,15 +1849,15 @@ If you want to process 0K cross sections use `temperature=0.1`.
         groupr
         -21 -22 0 -23 /
         9237 1 0 2 0 1 1 0 /
-        /
+        'sandy runs groupr' /
         0.0/
         10000000000.0/
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         3/
-        3 251 ’mubar’ /
+        3 251 'mubar' /
         5/
-        5 18 ’chi’ /
+        5 18 'chi' /
         0/
         0/
         errorr
@@ -1912,7 +1892,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         Test spectrum:
         >>> spect = [1.000000e-5, 2.00000000, 3.000000e-2, 2.00000000, 5.800000e-2, 4.00000000, 3, 1]
-        >>> out = endf6.get_errorr(spect=spect, ek=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False)
+        >>> out = endf6.get_errorr(spect_errorr=spect, ek=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False)
         moder
         20 -21 /
         reconr
@@ -1928,12 +1908,56 @@ If you want to process 0K cross sections use `temperature=0.1`.
         0 33 1/
         3 /
         1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
-         1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000  3.00000000 1.00000000                                            
+         0.00000000 0.00000000          0          0          1          4
+                  4          1                                            
+         1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000
+         3.00000000 1.00000000                                            
+        /
+        stop
+
+
+        >>> spect_g = [1.000000e-5, 1.00000000, 3.000000e-2, 2.00000000, 5.800000e-2, 3.00000000, 3, 2]
+        >>> out = endf6.get_errorr(spect_errorr=spect, spect_groupr=spect_g, ek=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        9237 0 0 /
+        0.005 0. /
+        0/
+        groupr
+        -21 -22 0 -23 /
+        9237 1 0 1 0 1 1 0 /
+        'sandy runs groupr' /
+        0.0/
+        10000000000.0/
+        3 /
+        1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
+         0.00000000 0.00000000          0          0          1          4
+                  4          1                                            
+         1.000000-5 1.00000000 3.000000-2 2.00000000 5.800000-2 3.00000000
+         3.00000000 2.00000000                                            
+        /
+        3/
+        0/
+        0/
+        errorr
+        -21 0 -23 33 0 /
+        9237 1 1 0 1 /
+        0 0.0 /
+        0 33 1/
+        3 /
+        1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
+         0.00000000 0.00000000          0          0          1          4
+                  4          1                                            
+         1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000
+         3.00000000 1.00000000                                            
         /
         stop
 
         Test irespr:
-        out = endf6.get_errorr(spect=spect, ek=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False, irespr=0)
+        out = endf6.get_errorr(spect_errorr=spect, ek=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False, irespr=0)
         moder
         20 -21 /
         reconr
@@ -1976,11 +2000,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
         stop
         
         Test content of output `Errorr` file
-        >>> out = sandy.get_endf6_file('jeff_33', "xs", 922350) \
-        ...            .get_errorr(err=1., irespr=0, mubar=False, chi=False)
+        >>> out = sandy.get_endf6_file('jeff_33', "xs", 922350).get_errorr(err=1., irespr=0, mubar=False, chi=False)
         >>> keys = [(9228, 1, 451), (9228, 3, 456), (9228, 33, 456), (9228, 3, 1), (9228, 3, 2), (9228, 3, 4), (9228, 3, 16), (9228, 3, 17), (9228, 3, 18), (9228, 3, 37), (9228, 3, 102), (9228, 33, 1), (9228, 33, 2), (9228, 33, 4), (9228, 33, 16), (9228, 33, 17), (9228, 33, 18), (9228, 33, 37), (9228, 33, 102)]
-        >>> for key in keys:
-        ...     assert key in out.data
+        >>> for key in keys: assert key in out.data
         """
         kwds_njoy = kwargs.copy()
         if float(temperature) == 0:
@@ -2000,26 +2022,16 @@ If you want to process 0K cross sections use `temperature=0.1`.
             kwds_njoy["unresr"] = kwds_njoy.get("unresr", False)
             kwds_njoy['keep_pendf'] = kwds_njoy.get('keep_pendf', False)
 
-        supported_mf = [31, 33, 34, 35]
-        endf6_cov_mf = self.to_series().index.get_level_values("MF")\
-                           .intersection(supported_mf)
-
-        run_nubar = True if 31 in endf6_cov_mf else False
-        run_xs = True if 33 in endf6_cov_mf else False
-        run_mubar = True if 34 in endf6_cov_mf else False
-        run_chi = True if 35 in endf6_cov_mf else False
-        if not run_nubar and not run_xs and not run_mubar and not run_chi:
-            msg = 'The selected file does not have the requested covariance information'
-            logging.warning(msg)
+        # Covariance information:
+        cov_info = self.covariance_info(nubar=nubar, xs=xs,
+                                        mubar=mubar, chi=chi)
+        if bool(cov_info):
+            kwds_njoy.update(cov_info)
+        else:
             return
 
-        kwds_njoy.update({
-            'nubar': run_nubar if nubar else False,
-            'xs': run_xs if xs else False,
-            'mubar': run_mubar if mubar else False,
-            'chi': run_chi if chi else False,
-        })
-        groupr_ = True if (kwds_njoy["nubar"] or kwds_njoy["chi"]) else groupr
+        # Mandatory multigroup module activation
+        groupr_ = True if (kwds_njoy["nubar"] or kwds_njoy["chi"] or kwds_njoy.get("ek_groupr") or kwds_njoy.get("spect_groupr")) else groupr
 
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
@@ -2037,6 +2049,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
                     )[2]
             seq = map(sandy.Errorr.from_file, outputs.values())
             errorr = reduce(lambda x, y: x.merge(y), seq)
+            if to_file:
+                errorr.to_file("errorr")
+                shutil.move("errorr", to_file)
         return errorr
 
     def get_gendf(self,
@@ -2046,6 +2061,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
                   verbose=False,
                   err=0.005,
                   nubar=True,
+                  xs=True,
                   mubar=True,
                   chi=True,
                   **kwargs):
@@ -2084,18 +2100,20 @@ If you want to process 0K cross sections use `temperature=0.1`.
         ---------------------
         ign : `int`, optional
             neutron group option (default is 2, csewg 239-group structure)
-        iwt : `int`, optional
+        iwt_groupr : `int`, optional
             weight function option (default is 2, constant)
+        spect_groupr : iterable, optional
+            Weight function as a iterable (default is None)
         sigz : iterable of `float`
             sigma zero values. The default is 1.0e10.
         nubar : `bool`, optional
-            Proccess the nubar covariance(default is `False`)
+            Proccess the nubar covariance(default is `True`)
         xs : `bool`, optional
-            Proccess the xs covariance(default is `False`)
+            Proccess the xs covariance(default is `True`)
         mubar : `bool`, optional
-            Proccess the mubar covariance(default is `False`)
+            Proccess the mubar covariance(default is `True`)
         chi : `bool`, optional
-            Proccess the chi covariance(default is `False`)
+            Proccess the chi covariance(default is `True`)
         nuclide_production : `bool`, optional
             print option (default is `False`)
 
@@ -2126,7 +2144,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         groupr
         -21 -23 0 -24 /
         125 2 0 2 0 1 1 0 /
-        sandy runs groupr /
+        'sandy runs groupr' /
         293.6/
         10000000000.0/
         3/
@@ -2157,7 +2175,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         groupr
         -21 -23 0 -24 /
         125 2 0 2 0 1 2 0 /
-        sandy runs groupr /
+        'sandy runs groupr' /
         293.6/
         10000000000.0 100.0/
         3/
@@ -2168,7 +2186,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         stop
 
         Test iwt:
-        >>> out = endf6.get_gendf(verbose=True, iwt=3)
+        >>> out = endf6.get_gendf(verbose=True, iwt_groupr=3)
         moder
         20 -21 /
         reconr
@@ -2186,7 +2204,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         groupr
         -21 -23 0 -24 /
         125 2 0 3 0 1 1 0 /
-        sandy runs groupr /
+        'sandy runs groupr' /
         293.6/
         10000000000.0/
         3/
@@ -2215,7 +2233,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         groupr
         -21 -23 0 -24 /
         125 3 0 2 0 1 1 0 /
-        sandy runs groupr /
+        'sandy runs groupr' /
         293.6/
         10000000000.0/
         3/
@@ -2249,7 +2267,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         groupr
         -21 -23 0 -24 /
         125 1 0 2 0 1 1 0 /
-        sandy runs groupr /
+        'sandy runs groupr' /
         293.6/
         10000000000.0/
         12 /
@@ -2281,7 +2299,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         groupr
         -21 -23 0 -24 /
         9237 1 0 2 0 1 1 0 /
-        sandy runs groupr /
+        'sandy runs groupr' /
         293.6/
         10000000000.0/
         12 /
@@ -2290,6 +2308,44 @@ If you want to process 0K cross sections use `temperature=0.1`.
         3 251 'mubar' /
         5/
         5 18 'chi' /
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        Spectrum test:
+        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 10010)
+        >>> spect = [1.000000e-5, 2.00000000, 3.000000e-2, 2.00000000, 5.800000e-2, 4.00000000, 3, 1]
+        >>> out = endf6.get_gendf(spect_groupr=spect, ek=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 1 0 1 0 1 1 0 /
+        'sandy runs groupr' /
+        293.6/
+        10000000000.0/
+        3 /
+        1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
+         0.00000000 0.00000000          0          0          1          4
+                  4          1                                            
+         1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000
+         3.00000000 1.00000000                                            
+        /
+        3/
         0/
         0/
         moder
@@ -2306,7 +2362,12 @@ If you want to process 0K cross sections use `temperature=0.1`.
         kwds_njoy["keep_pendf"] = False
         kwds_njoy['errorr'] = False
         kwds_njoy["broadr"] = False if float(temperature) == 0 else True
-        
+
+        # Covariance information:
+        cov_info = self.covariance_info(nubar=nubar, xs=xs,
+                                        mubar=mubar, chi=chi)
+        kwds_njoy.update(cov_info)
+
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
             self.to_file(endf6file)
@@ -2324,3 +2385,58 @@ If you want to process 0K cross sections use `temperature=0.1`.
             if to_file:
                 shutil.move(gendf_file, to_file)
         return groupr
+
+    def covariance_info(self, nubar=True, xs=True, mubar=True, chi=True):
+        """
+        Check the covariance information of the formatted file.
+
+        Parameters
+        ----------
+        nubar : `bool`, optional
+            The nubar covariance(default is `True`)
+        xs : `bool`, optional
+            The xs covariance(default is `True`)
+        mubar : `bool`, optional
+            The mubar covariance(default is `True`)
+        chi : `bool`, optional
+            The chi covariance(default is `True`)
+
+        Returns
+        -------
+        cov_info : `dict`
+            Dictionary with the covariance information.
+
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922380)
+        >>> endf6.covariance_info()
+        {'nubar': True, 'xs': True, 'mubar': True, 'chi': True}
+
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350)
+        >>> endf6.covariance_info()
+        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True}
+
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10030)
+        >>> endf6.covariance_info()
+
+        """
+        supported_mf = [31, 33, 34, 35]
+        endf6_cov_mf = self.to_series().index.get_level_values("MF")\
+                           .intersection(supported_mf)
+
+        run_nubar = True if 31 in endf6_cov_mf else False
+        run_xs = True if 33 in endf6_cov_mf else False
+        run_mubar = True if 34 in endf6_cov_mf else False
+        run_chi = True if 35 in endf6_cov_mf else False
+        if not run_nubar and not run_xs and not run_mubar and not run_chi:
+            msg = 'The selected file does not have the requested covariance information'
+            logging.warning(msg)
+            return
+
+        cov_info = {
+            'nubar': run_nubar if nubar else False,
+            'xs': run_xs if xs else False,
+            'mubar': run_mubar if mubar else False,
+            'chi': run_chi if chi else False,
+            }
+        return cov_info

@@ -592,8 +592,8 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 
 
 def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
-                  ign=2, ek=None, spect=None, irespr=1,
-                  iwt=2, relative=True,
+                  ign=2, ek=None, spect_errorr=None, irespr=1,
+                  iwt_errorr=2, relative=True,
                   temp=NJOY_TEMPERATURES[0], mfcov=33,
                   iprint=False,
                   **kwargs):
@@ -621,7 +621,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     irespr: `int`, optional
         processing for resonance parameter covariances
         (default is 1, 1% sensitivity method)
-    iwt : `int`, optional
+    iwt_errorr : `int`, optional
         weight function option (default is 2, constant)
         
         .. note:: this parameter will not be used if keyword argument
@@ -635,7 +635,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         endf covariance file to be processed (default is 33)
     mt: iterable of `int`, optional
         run errorr only for the selected mt numbers
-    spect : iterable, optional
+    spect_errorr : iterable, optional
         weight function (default is `None`)
 
     Returns
@@ -662,7 +662,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 33 1/
 
     Test argument `iwt`
-    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, iwt=6))
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, iwt_errorr=6))
     errorr
     20 21 0 22 0 /
     9237 2 6 0 1 /
@@ -753,7 +753,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     """
     irelco = 0 if relative is False else 1
     iread = 1 if "mt" in kwargs else 0
-    iwt_ = 1 if spect is not None else iwt
+    iwt_ = 1 if spect_errorr is not None else iwt_errorr
     ign_ = 1 if ek is not None else ign
     text = ["errorr"]
     text += [f"{endfin:d} {pendfin:d} {gendfin:d} {errorrout:d} 0 /"]
@@ -771,8 +771,10 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         text += [" ".join(map("{:.5e}".format, ek)) + " /"]
     if iwt_ == 1:
         INT = 1               # constant interpolation
-        NBT = int(len(spect) / 2)  # only 1 interpolation group
-        tab1 = "\n".join(sandy.write_tab1(0, 0, 0, 0, [NBT], [INT], spect[::2], spect[1::2]))
+        NBT = int(len(spect_errorr) / 2)  # only 1 interpolation group
+        tab1 = "\n".join(sandy.write_tab1(0, 0, 0, 0, [NBT], [INT],
+                                          spect_errorr[::2],
+                                          spect_errorr[1::2]))
         text += [tab1]
         text += ["/"]
     return "\n".join(text) + "\n"
@@ -780,9 +782,9 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
 
 def _groupr_input(endfin, pendfin, gendfout, mat,
                   ign=2, ek=None, igg=0,  ep=None,
-                  iwt=2, lord=0, sigz=[1e+10],
+                  iwt_groupr=2, lord=0, sigz=[1e+10],
                   temp=NJOY_TEMPERATURES[0],
-                  spect=None, mt=None,
+                  spect_groupr=None, mt=None,
                   iprint=False, nubar=False, mubar=False, chi=False,
                   nuclide_production=False,
                   **kwargs):
@@ -811,7 +813,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         neutron group option (default is 2, csewg 239-group structure)
     iprint : `bool`, optional
         print option (default is `False`)
-    iwt : `int`, optional
+    iwt_groupr : `int`, optional
         weight function option (default is 2, constant)
         
         .. note:: this parameter will not be used if keyword argument
@@ -829,7 +831,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         process MF10 (default is `False`)
     sigz : iterable of `float`
         sigma zero values (he default is 1.0e10)
-    spect : iterable, optional
+    spect_groupr : iterable, optional
         weight function (default is `None`)
     temp : iterable of `float`
         iterable of temperature values in K (default is 293.6 K)
@@ -846,7 +848,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
-    sandy runs groupr /
+    'sandy runs groupr' /
     293.6/
     10000000000.0/
     3/
@@ -858,7 +860,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9440 2 0 2 0 1 1 0 /
-    sandy runs groupr /
+    'sandy runs groupr' /
     600.0/
     10000000000.0/
     3/
@@ -866,11 +868,11 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test argument `iwt`
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, iwt=6))
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, iwt_groupr=6))
     groupr
     20 21 0 22 /
     9237 2 0 6 0 1 1 0 /
-    sandy runs groupr /
+    'sandy runs groupr' /
     293.6/
     10000000000.0/
     3/
@@ -882,7 +884,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9237 3 0 2 0 1 1 0 /
-    sandy runs groupr /
+    'sandy runs groupr' /
     293.6/
     10000000000.0/
     3/
@@ -894,7 +896,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9237 2 3 2 0 1 1 0 /
-    sandy runs groupr /
+    'sandy runs groupr' /
     293.6/
     10000000000.0/
     3/
@@ -906,7 +908,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 0 /
     22 1 0 2 0 1 1 0 /
-    sandy runs groupr /
+    'sandy runs groupr' /
     293.6/
     10000000000.0/
     2 /
@@ -920,7 +922,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 0 /
     22 9237 1 2 0 1 1 0 /
-    sandy runs groupr /
+    'sandy runs groupr' /
     293.6/
     10000000000.0/
     2 /
@@ -934,7 +936,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 0 /
     22 9237 0 2 3 1 1 0 /
-    sandy runs groupr /
+    'sandy runs groupr' /
     293.6/
     10000000000.0/
     3/
@@ -946,7 +948,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
-    sandy runs groupr /
+    'sandy runs groupr' /
     293.6/
     10000000000.0/
     3/
@@ -959,7 +961,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
-    sandy runs groupr /
+    'sandy runs groupr' /
     293.6/
     10000000000.0/
     3/
@@ -973,7 +975,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
-    sandy runs groupr /
+    'sandy runs groupr' /
     293.6/
     10000000000.0/
     3/
@@ -981,7 +983,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
     """
-    iwt_ = 1 if spect is not None else iwt
+    iwt_ = 1 if spect_groupr is not None else iwt_groupr
     ign_ = 1 if ek is not None else ign
     igg_ = 1 if ep is not None else igg
     text = ["groupr"]
@@ -989,7 +991,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     nsigz = len(sigz)
     printflag = int(iprint)
     text += [f"{mat:d} {ign_:d} {igg_:d} {iwt_:d} {lord:d} 1 {nsigz:d} {printflag:d} /"]
-    text += ["sandy runs groupr /"]  # run label
+    text += ["'sandy runs groupr' /"]  # run label
     text += [f"{temp:.1f}/"]
     text += [" ".join(map("{:.1f}".format, sigz)) + "/"]
     if ign_ == 1:
@@ -1002,8 +1004,10 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         text += [" ".join(map("{:.5e}".format, ep)) + " /"]
     if iwt_ == 1:
         INT = 1               # constant interpolation
-        NBT = int(len(spect) / 2)  # only 1 interpolation group
-        tab1 = "\n".join(sandy.write_tab1(0, 0, 0, 0, [NBT], [INT], spect[::2], spect[1::2]))
+        NBT = int(len(spect_groupr) / 2)  # only 1 interpolation group
+        tab1 = "\n".join(sandy.write_tab1(0, 0, 0, 0, [NBT], [INT],
+                                          spect_groupr[::2],
+                                          spect_groupr[1::2]))
         text += [tab1]
         text += ["/"]
     if not mt:
