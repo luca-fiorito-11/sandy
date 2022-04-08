@@ -581,15 +581,17 @@ def parse_table_element(text, index="Element", **kwargs):
 
 def parse_table_contributor(text, index="Main contributor", **kwargs):
     index_col = 0
-    begin = 1
     lines = text.splitlines()
+    #  Z-SYM-A of the major contributors are reported in the first line
     string = io.StringIO(lines[0])
     columns = pd.read_csv(
         string,
         sep="\s+",
         header=None,
-        index_col=0,
-        ).iloc[:, 1:].squeeze()
+        index_col=(0, 1),  # "Time" and "(<unit>)" are in the first two columns
+        ).iloc[0].reset_index(drop=True)
+    columns.name = " ".join(columns.name)
+    begin = 1
     if len(lines[begin:]) == 0:
         df = pd.DataFrame(columns=columns)
     else:
