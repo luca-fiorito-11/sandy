@@ -35,6 +35,7 @@ def read_mf35(tape, mat, mt):
 
     Examples
     --------
+    >>> import numpy as np
     >>> tape = sandy.get_endf6_file("jeff_33",'xs',922380)
     >>> out = read_mf35(tape, mat=9237, mt=18)["SUB"][1]["FKK"][0:15]
     >>> np.round(out, decimals=35)
