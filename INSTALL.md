@@ -29,7 +29,7 @@ The user guide to get yourself acquainted with Anaconda is available [here](http
 We advise to install the SANDY dependences in a python environment that was not previously altered. You can do so from a terminal/Anaconda Prompt using the package/environment management system `conda` included in Anaconda, as
 ```sh
 conda update --name base conda
-conda create -y --name sandy-devel -c conda-forge python=3.7 jupyterlab jupyter_nbextensions_configurator
+conda create -y --name sandy-devel -c conda-forge python=3.7 jupyterlab jupyter_nbextensions_configurator jupyter_contrib_nbextensions
 ```
 I like to include jupyterlab to my environment!
 

@@ -591,7 +591,7 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
     return "\n".join(text) + "\n"
 
 
-def _errorr_input(endfin, pendfin, errorrout, mat,
+def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
                   ign=2, ek=None,
                   iwt=2,
                   temp=NJOY_TEMPERATURES[0],
@@ -606,6 +606,8 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
         tape number for input ENDF-6 file
     pendfin : `int`
         tape number for input PENDF file
+    gendfin : `int`
+        tape number for input GENDF file
     errorrout : `int`
         tape number for output ERRORR file
     mat : `int`
@@ -624,12 +626,12 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     Returns
     -------
     `str`
-        acer input text
+        errorr input text
 
     Examples
     --------
     Default test without keyword arguments
-    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237))
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237))
     errorr
     20 21 0 22 0 /
     9237 2 2 0 1 /
@@ -637,7 +639,7 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     0 33 /
 
     Test argument `temp`
-    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9440, temp=600))
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9440, temp=600))
     errorr
     20 21 0 22 0 /
     9440 2 2 0 1 /
@@ -645,7 +647,7 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     0 33 /
 
     Test argument `iwt`
-    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, iwt=6))
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, iwt=6))
     errorr
     20 21 0 22 0 /
     9237 2 6 0 1 /
@@ -653,14 +655,14 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     0 33 /
 
     Test argument `ign`
-    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237))
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237))
     errorr
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
     0 33 /
 
-    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, ek=[1e-2, 1e3, 2e5]))
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, ek=[1e-2, 1e3, 2e5]))
     errorr
     20 21 0 22 0 /
     9237 1 2 0 1 /
@@ -669,25 +671,193 @@ def _errorr_input(endfin, pendfin, errorrout, mat,
     2 /
     1.00000e-02 1.00000e+03 2.00000e+05 /
 
-    >>> print(sandy.njoy._errorr_input(20, 21, 22, 9237, ign=3))
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, ign=3))
     errorr
     20 21 0 22 0 /
     9237 3 2 0 1 /
     0 293.6 /
     0 33 /
     """
-    if ek is not None:
-        ign = 1
+    ign_ = 1 if ek is not None else ign
     text = ["errorr"]
-    text += [f"{endfin:d} {pendfin:d} 0 {errorrout:d} 0 /"]
+    text += [f"{endfin:d} {pendfin:d} {gendfin:d} {errorrout:d} 0 /"]
     printflag = int(iprint)
-    text += [f"{mat:d} {ign:d} {iwt:d} {printflag:d} 1 /"]
+    text += [f"{mat:d} {ign_:d} {iwt:d} {printflag:d} 1 /"]
     text += [f"{printflag:d} {temp:.1f} /"]
     text += ["0 33 /"]
-    if ign == 1:
+    if ign_ == 1:
         nk = len(ek) - 1
         text += [f"{nk} /"]
         text += [" ".join(map("{:.5e}".format, ek)) + " /"]
+    return "\n".join(text) + "\n"
+
+
+def _groupr_input(endfin, pendfin, gendfout, mat,
+                  ign=2, ek=None, igg=0,  ep=None,
+                  iwt=2, lord=0, sigz=[1e+10],
+                  temp=NJOY_TEMPERATURES[0],
+                  iprint=False,
+                  **kwargs):
+    """
+    Write GROUPR input
+
+    Parameters
+    ----------
+    endfin : `int`
+        tape number for input ENDF-6 file
+    pendfin : `int`
+        tape number for input PENDF file
+    gendfout : `int`
+        tape number for output PENDF file
+    mat : `int`
+        MAT number
+    ign : `int`, optional
+        neutron group option (default is 2, csewg 239-group structure)
+    ek : iterable, optional
+        derived cross section energy bounds (default is None)
+    igg : `int`, optional
+        gamma group option. (default is 0, no structure)
+    ep : iterable, optional
+        derived gamma cross section energy bounds (default is None)
+    iwt : `int`, optional
+        weight function option (default is 2, constant)
+    lord : `int`, optional
+        Legendre order. The default is 0.
+    sigz : iterable of `float`
+        sigma zero values. The default is 1.0e10.
+    temp : iterable of `float`
+        iterable of temperature values in K (default is 293.6 K)
+    iprint : `bool`, optional
+        print option (default is `False`)
+
+    Returns
+    -------
+    `str`
+        groupr input text
+
+    Examples
+    --------
+    Default test without keyword arguments
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237))
+    groupr
+    20 21 0 22 /
+    9237 2 0 2 0 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    3/
+    0/
+    0/
+
+    Test argument `temp`
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9440, temp=600))
+    groupr
+    20 21 0 22 /
+    9440 2 0 2 0 1 1 0 /
+    /
+    600.0/
+    10000000000.0/
+    3/
+    0/
+    0/
+
+    Test argument `iwt`
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, iwt=6))
+    groupr
+    20 21 0 22 /
+    9237 2 0 6 0 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    3/
+    0/
+    0/
+
+    Test argument `ign`
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, ign=3))
+    groupr
+    20 21 0 22 /
+    9237 3 0 2 0 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    3/
+    0/
+    0/
+
+    Test argument `igg`:
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, igg=3))
+    groupr
+    20 21 0 22 /
+    9237 2 3 2 0 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    3/
+    0/
+    0/
+    
+    Test argument `ek`:
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ek=[1e-2, 1e3, 2e5]))
+    groupr
+    20 21 0 0 /
+    22 1 0 2 0 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    2 /
+    1.00000e-02 1.00000e+03 2.00000e+05 /
+    3/
+    0/
+    0/
+
+    Test argument `ep`:
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ep=[1e-2, 1e3, 2e5]))
+    groupr
+    20 21 0 0 /
+    22 9237 1 2 0 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    2 /
+    1.00000e-02 1.00000e+03 2.00000e+05 /
+    3/
+    0/
+    0/
+
+    Test argument `lord`
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, lord=3))
+    groupr
+    20 21 0 0 /
+    22 9237 0 2 3 1 1 0 /
+    /
+    293.6/
+    10000000000.0/
+    3/
+    0/
+    0/
+    """
+    ign_ = 1 if ek is not None else ign
+    igg_ = 1 if ep is not None else igg
+    text = ["groupr"]
+    text += [f"{endfin:d} {pendfin:d} 0 {gendfout:d} /"]
+    nsigz = len(sigz)
+    printflag = int(iprint)
+    text += [f"{mat:d} {ign_:d} {igg_:d} {iwt:d} {lord:d} 1 {nsigz:d} {printflag:d} /"]
+    text += ["/"]
+    text += [f"{temp:.1f}/"]
+    text += [" ".join(map("{:.1f}".format, sigz)) + "/"]
+    if ign_ == 1:
+        nk = len(ek) - 1
+        text += [f"{nk} /"]
+        text += [" ".join(map("{:.5e}".format, ek)) + " /"]
+    if igg_ == 1:
+        pk = len(ep) - 1
+        text += [f"{pk} /"]
+        text += [" ".join(map("{:.5e}".format, ep)) + " /"]
+    text += ["3/"]
+    text += ["0/"]
+    text += ["0/"]
     return "\n".join(text) + "\n"
 
 
@@ -748,6 +918,7 @@ def process(
         gaspr=True,
         purr=True,
         errorr=False,
+        groupr=False,
         acer=True,
         wdir="",
         dryrun=False,
@@ -792,6 +963,8 @@ def process(
         option to run module gapr
     purr : `bool`, optional, default is `True`
         option to run module purr
+    groupr : `bool`, optional, default is `False`
+        option to run module groupr
     errorr : `bool`, optional, default is `False`
         option to run module errorr
     acer : `bool`, optional, default is `True`
@@ -892,12 +1065,30 @@ def process(
             wdir,
             f"{outprefix}{tag}.pendf",
             )
+    if groupr and errorr is False:
+        for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
+            kwargs["temp"] = temp
+            kwargs["suff"] = suff = f".{suff}"
+            g = o + 1 + i
+            text += _groupr_input(-e, -p, -g, **kwargs)
+            o = 32 + i
+            text += _moder_input(-g, o)
+            outputs[f"tape{o}"] = join(
+                wdir,
+                f"{outprefix}{tag}{suff}.gendf",
+                )
     if errorr:
+        g = p+1
+        p_ = 0 if groupr else p
+        g_ = g if groupr else 0
+        outputs = {}
         for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
             o = 33 + i
             kwargs["temp"] = temp
             kwargs["suff"] = suff = f".{suff}"
-            text += _errorr_input(-e, -p, o, **kwargs)
+            if groupr:
+                text += _groupr_input(-e, -p, -g_, **kwargs)
+            text += _errorr_input(-e, -p_, -g_, o, **kwargs)
             outputs[f"tape{o}"] = join(
                 wdir,
                 f"{outprefix}{tag}{suff}.errorr",

@@ -7,6 +7,7 @@ import time
 import ctypes
 import h5py
 import sys
+from ast import literal_eval
 
 import numpy as np
 
@@ -82,7 +83,7 @@ def recursively_load_dict_contents_from_group(h5file, path):
             kdict = int(key)
         except ValueError:
             try:
-                kdict = float(key)
+                kdict = literal_eval(key) #to convert string into float or tuple
             except ValueError:
                 kdict = key
         if isinstance(item, h5py._hl.dataset.Dataset):

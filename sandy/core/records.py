@@ -326,10 +326,36 @@ def write_int(x):
     return y
 
 
-def line_numbers(length, istart=1):
-    iend = istart + length
-    ilines = np.arange(istart, iend)
-    return np.where(ilines < 100000, ilines, ilines-99999).tolist()
+def line_numbers(length):
+    """
+    Line number creator
+
+    Parameters
+    ----------
+    length : 'int'
+        Number of lines.
+
+    Returns
+    -------
+    ilines : `list`
+        List containing the number of each line.
+
+    Examples
+    --------
+    >>> np.array(line_numbers(1.0e6)).max()
+    99999
+    >>> np.array(line_numbers(1.0e6+1)).min()
+    1
+    >>> np.array(line_numbers(1.0e4+1)).max()
+    10001
+    >>> len(sandy.records.line_numbers(1.0e6))
+    1000000
+    >>> len(sandy.records.line_numbers(1.0e6+1))
+    1000001
+    """
+    iend = 1 + length
+    ilines = np.tile(np.arange(1, 1e5, dtype=int), int(iend//99999)+1)
+    return ilines[:int(length)].tolist()
 
 
 def write_line(string, mat, mf, mt, iline):
@@ -351,5 +377,5 @@ def write_eol(lines, mat, mf, mt, istart=1):
     This function does not check if the strings are in ENDF-6 format
     or longer than 66 characters.
     """
-    ilines = line_numbers(len(lines), istart=istart)
+    ilines = line_numbers(len(lines))
     return [write_line(string, mat, mf, mt, iline) for string, iline in zip(lines, ilines)]

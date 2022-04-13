@@ -318,9 +318,9 @@ def _read_rdd(tape, mat):
         for idk, data in enumerate(zip(*[iter(L.B)]*6)):
             # Decay Mode (Multiple particle decay is also allowed using
             # combination of RTYP variables)
-            RTYP = str(data[0]).replace(".", "")
+            RTYP = int(str(data[0]).replace(".", "").replace("0", ""))
             # Isomeric state flag for daughter nuclide
-            RFS = data[1]
+            RFS = int(data[1])
             decay = {
                 "RTYP": RTYP,
                 "RFS": RFS,
@@ -607,7 +607,7 @@ def _write_rdd(sec):
         NDK = len(sec['DK'])
         for decay_data in sec['DK']:
             add.extend([
-                float(decay_data['RTYP'][0] + '.' + decay_data['RTYP'][1:]),
+                decay_data['RTYP'] / 10**(len(str(decay_data['RTYP'])) - 1),
                 decay_data['RFS'],
                 decay_data['Q'],
                 decay_data['DQ'],

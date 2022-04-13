@@ -10,8 +10,9 @@ import os
 from functools import reduce
 from tempfile import TemporaryDirectory
 import logging
-from urllib.request import urlopen, Request
+from urllib.request import urlopen, Request, urlretrieve
 from zipfile import ZipFile
+import re
 
 
 import pandas as pd
@@ -44,6 +45,14 @@ from sandy.libraries import (
     DECAY_FILES_ENDFB_80_IAEA,
     URL_DECAY_JEFF_33_IAEA,
     DECAY_FILES_JEFF_33_IAEA,
+    URL_TSL_ENDFB_71_IAEA,
+    TSL_FILES_ENDFB_71_IAEA,
+    URL_TSL_ENDFB_80_IAEA,
+    TSL_FILES_ENDFB_80_IAEA,
+    URL_TSL_JEFF_33_IAEA,
+    TSL_FILES_JEFF_33_IAEA,
+    URL_TSL_JENDL_40U_IAEA,
+    TSL_FILES_JENDL_40U_IAEA,
     )
 
 
@@ -51,9 +60,90 @@ __author__ = "Luca Fiorito"
 __all__ = [
         "Endf6",
         "get_endf6_file",
+        "get_tsl_index",
         ]
 
 pd.options.display.float_format = '{:.5e}'.format
+
+
+def get_tsl_index(library):
+    """
+    Obtain the index information available in the library web page.
+
+    Parameters
+    ----------
+    library : `str`
+        nuclear data library. Available libraries are:
+        for 'tsl'
+            * `'endfb_71'`
+            * `'jeff_33'`
+            * `'endfb_80'`
+            * `'jendl_40u`
+
+    Raises
+    ------
+    ValueError
+        if library is not among available selection.
+
+    Example
+    ------
+    >>> sandy.endf6.get_tsl_index("jendl_40u")
+     Lib:         JENDL-4.0
+     Library:     JENDL-4.0 Japanese evaluated nuclear data library, 2010
+     Sub-library: NSUB=12      Thermal Neutron Scattering Data
+    --------------------------------------------------------------------------------
+       #)  KEY Material     Lab.         Date         Authors
+    --------------------------------------------------------------------------------
+       1)    1 1-H(H2O)     LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0001_h(h2o).zip 412Kb
+       2)    2 1-Para-H     LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0002_para-H.zip 91Kb 
+       3)    3 1-Ortho-H    LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0003_ortho-H.zip 96Kb
+       4)    7 1-H(ZrH)     LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0007_h(zrh).zip 448Kb
+       5)   11 1-D(D2O)     GA           EVAL-DEC69   KOPPEL,HOUSTON                     20.MeV   tsl_0011_D(D2O).zip 235Kb
+       6)   12 1-Para-D     LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0012_para-d.zip 92Kb 
+       7)   13 1-Ortho-D    LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0013_ortho-d.zip 93Kb
+       8)   26 4-Be-metal   LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0026_bemetal.zip 419Kb
+       9)   27 4-BeO        LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0027_beo.zip 483Kb   
+      10)   31 6-Graphite   LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0031_graphite.zip 397Kb
+      11)   33 6-l-CH4      LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0033_l-ch4.zip 50Kb  
+      12)   34 6-s-CH4      LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0034_s-ch4.zip 42Kb  
+      13)   37 6-H(CH2)     GA           EVAL-DEC69   KOPPEL,HOUSTON,SPREVAK             20.MeV   tsl_0037_H(CH2).zip 72Kb 
+      14)   40 6-BENZINE    GA           EVAL-DEC69   KOPPEL,HOUSTON,BORGONOVI           20.MeV   tsl_0040_BENZINE.zip 236Kb
+      15)   58 40-Zr(ZrH)   LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0058_zr(zrh).zip 201Kb
+    --------------------------------------------------------------------------------
+    Total: Materials:15 Size:11Mb Compressed:4Mb
+    """
+    available_libs = (
+            "endfb_71".upper(),
+            "endfb_80".upper(),
+            "jeff_33".upper(),
+            "jendl_40u".upper(),
+            )
+    library_ = library.lower()
+    if library_ == "endfb_71":
+        index = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VII.1/tsl-index.htm"
+    elif library_ == "endfb_80":
+        index = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VIII.0/tsl-index.htm"
+    elif library_ == "jeff_33":
+        index = "https://www-nds.iaea.org/public/download-endf/JEFF-3.3/tsl-index.htm"
+    elif library_ == "jendl_40u":
+        index = "https://www-nds.iaea.org/public/download-endf/JENDL-4.0u2-20160106/tsl-index.htm"
+    else:
+        raise ValueError(
+            f"""library '{library}' is not available.
+            Available libraries are: {available_libs}
+            """
+            )
+    user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'
+    headers = {'User-Agent': user_agent, }
+    request = Request(index, None, headers)
+    response = urlopen(request)
+    data = response.read().decode("utf-8")
+    # Remove html style:
+    data = data[data.find('<pre>')+5:data.find('</pre>')]
+    data = re.sub(r'">tsl\S+', '', data)
+    data = re.sub(r'<a href="tsl/', '', data)
+    print(data.replace('MAT', 'KEY'))
+    return
 
 
 def get_endf6_file(library, kind, zam, to_file=False):
@@ -81,12 +171,18 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * `'endfb_71'`
             * `'jeff_33'`
             * `'endfb_80'`
+        for 'tsl' (read the note)
+            * `'endfb_71'`
+            * `'jeff_33'`
+            * `'endfb_80'`
+            * `'jendl_40u`
     kind : `str`
         nuclear data type:
-            * `xs` is a standard neutron-induced nuclear data file
+            * 'xs' is a standard neutron-induced nuclear data file
             * 'nfpy' is a Neutron-Induced Fission Product Yields nuclear data
               file
             * 'decay' is a Radioactive Decay Data nuclear data file
+            * 'tsl' is a Thermal Neutron Scattering Data file
     zam : `int` or 'all' or iterable
         zam = 'int' (individual nuclides) or iterable (group of nuclides)
             ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
@@ -105,6 +201,12 @@ def get_endf6_file(library, kind, zam, to_file=False):
 
     ValueError
         if when you select 'xs', you select zam = 'all'
+
+    Notes
+    -----
+    .. note:: In the `kind='tls` option, instead of the zam, integers are used.
+              If you need help, the `get_tsl_index` function contains all the
+              necessary information for the correct choice of these integers.
 
     Returns
     -------
@@ -168,6 +270,22 @@ def get_endf6_file(library, kind, zam, to_file=False):
 
     Import a list of Decay Data for JEFF-3.3.
     >>> tape = sandy.get_endf6_file("jeff_33", 'decay', [380900, 551370, 541350])
+    >>> assert type(tape) is sandy.Endf6
+
+    Thermal Neutron Scattering Data from ENDF/B-VII.1.
+    >>> tape = sandy.get_endf6_file("endfb_71", 'tsl', [1, 2, 3])
+    >>> assert type(tape) is sandy.Endf6
+
+    Thermal Neutron Scattering Data from ENDF/B-VIII.0.
+    >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', [1, 2, 3])
+    >>> assert type(tape) is sandy.Endf6
+
+    Thermal Neutron Scattering Data from JEFF-3.3.
+    >>> tape = sandy.get_endf6_file("jeff_33", 'tsl', [1, 2, 3])
+    >>> assert type(tape) is sandy.Endf6
+
+    Thermal Neutron Scattering Data from JENDL-4.0u
+    >>> tape = sandy.get_endf6_file("jendl_40u", 'tsl', [1, 2, 3])
     >>> assert type(tape) is sandy.Endf6
 
 #    Checked, but the test takes too long(~10 min), that's why it is commented.
@@ -258,6 +376,33 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jeff_33":
             url = URL_DECAY_JEFF_33_IAEA
             files = DECAY_FILES_JEFF_33_IAEA
+        else:
+            raise ValueError(
+                f"""library '{library}' is not available.
+                Available libraries are: {available_libs}
+                """
+                    )
+
+    elif kind == 'tsl':
+        available_libs = (
+            "endfb_71".upper(),
+            "endfb_80".upper(),
+            "jeff_33".upper(),
+            "jendl_40u".upper(),
+            )
+        library_ = library.lower()
+        if library_ == "endfb_71":
+            url = URL_TSL_ENDFB_71_IAEA
+            files = TSL_FILES_ENDFB_71_IAEA
+        elif library_ == "endfb_80":
+            url = URL_TSL_ENDFB_80_IAEA
+            files = TSL_FILES_ENDFB_80_IAEA
+        elif library_ == "jeff_33":
+            url = URL_TSL_JEFF_33_IAEA
+            files = TSL_FILES_JEFF_33_IAEA
+        elif library_ == "jendl_40u":
+            url = URL_TSL_JENDL_40U_IAEA
+            files = TSL_FILES_JENDL_40U_IAEA
         else:
             raise ValueError(
                 f"""library '{library}' is not available.
@@ -1022,8 +1167,22 @@ class Endf6(_FormattedFile):
 
     Methods
     -------
+    get_ace
+        Process `Endf6` instance into an ACE file using NJOY.
+    get_pendf
+        Process `Endf6` instance into a PENDF file using NJOY.
+    get_errorr
+        Process `Endf6` instance into a Errorr file using NJOY.
+    get_id
+        Extract ID for a given MAT for a ENDF-6 file.
     read_section
         Parse MAT/MF/MT section.
+    to_file
+        Given a filename write the content of a `Endf6` instance to disk in
+        ASCII format.
+    to_string
+        Write `Endf6.data` content to string according to the ENDF-6 file
+        rules.
     write_string
         Write ENDF-6 content to string.
     """
@@ -1146,6 +1305,24 @@ class Endf6(_FormattedFile):
         return string
 
     def to_file(self, filename, mode="w", **kwargs):
+        """
+        Given a filename write the content of a `Endf6` instance to disk in
+        ASCII format.
+
+        Parameters
+        ----------
+        filename : TYPE
+            DESCRIPTION.
+        mode : TYPE, optional
+            DESCRIPTION. The default is "w".
+        **kwargs : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
         text = self.write_string(**kwargs)
         with open(filename, mode) as f:
             f.write(text)
@@ -1192,6 +1369,54 @@ class Endf6(_FormattedFile):
         self.SECTIONS = self.loc[INFO["MAT"]].reset_index()["MF"].unique()
         self.EHRES = 0
         self.THNMAX = - self.EHRES if self.EHRES != 0 else 1.0E6
+
+    def get_id(self, method="nndc"):
+        """
+        Extract ID for a given MAT for a ENDF-6 file.
+
+        Parameters
+        ----------
+        method : `str`, optional
+            Methods adopted to produce the ID. The default is `"nndc"`.
+            - if `method='aleph'` the ID is the ZAM identifier
+            - else, the ID is the ZA identifier according to the NNDC rules
+
+        Returns
+        -------
+        ID : `int`
+            ID of the ENDF-6 file.
+
+        Notes
+        -----
+        .. note:: a warning is raised if more than one MAT is found.
+                  Only the ID corresponding to the lowest MAT will be returned.
+ 
+        Examples
+        --------
+        Extract ID for H1 file using NNDC and ALEPH methods
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> assert tape.get_id() == 1001
+        >>> assert tape.get_id(method="aleph") == 10010
+
+        Extract ID for Am242m file using NNDC and ALEPH methods
+        >>> tape2 = sandy.get_endf6_file("jeff_33", "xs", 952421)
+        >>> assert tape2.get_id() == 95642
+        >>> assert tape2.get_id(method="ALEPH") == 952421
+
+        >>> assert tape.merge(tape2).get_id() == 1001
+        >>> assert tape2.merge(tape).get_id() == 1001
+        """
+        mat = self.mat[0]
+        if len(self.mat) != 1:
+            msg = "More than one MAT found, will give ID only for the lowest MAT"
+            logging.warning(msg)
+        info = self.read_section(mat, 1, 451)
+        meta = info["LISO"]
+        za = int(info["ZA"])
+        zam = za * 10 + meta
+        za_new = za + meta * 100 + 300 if meta else za
+        ID = zam if method.lower() == "aleph" else za_new
+        return ID
 
     def get_ace(self,
                 temperature,
@@ -1416,6 +1641,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
                    njoy=None,
                    to_file=None,
                    verbose=False,
+                   groupr=False,
                    err=0.005,
                    **kwargs,
                    ):
@@ -1435,6 +1661,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
         verbose : `bool`, optional, default is `False`
             flag to print NJOY input file to screen before running the
             executable.
+        groupr : `bool`, optional, default is `False`
+            option to generate covariances from a multigroup cross section
         **kwargs : `dict`
             keyword argument to pass to `sandy.njoy.process`.
 
@@ -1442,6 +1670,17 @@ If you want to process 0K cross sections use `temperature=0.1`.
         ---------------------
         err : `float`, optional
             reconstruction tolerance (default is 0.005)
+
+        Parameters for GROUPR
+        ---------------------
+        ign : `int`, optional
+            neutron group option (default is 2, csewg 239-group structure)
+        ek : iterable, optional
+            derived cross section energy bounds (default is `[1e-5, 2e7]`)
+        iwt : `int`, optional
+            weight function option (default is 2, constant)
+        sigz : iterable of `float`
+            sigma zero values. The default is 1.0e10.
 
         Parameters for ERRORR
         ---------------------
@@ -1463,13 +1702,13 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Notes
         -----
         .. note:: method arguments are consistent with those of `get_pendf`.
-                      
+        .. note:: parameters for groupr are the same as for errorr
 
         Examples
         --------
         Test verbose keyword
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> out = endf6.get_errorr(ign=1, ek=sandy.energy_grids.CASMO12, verbose=True)
+        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, verbose=True)
         moder
         20 -21 /
         reconr
@@ -1478,8 +1717,6 @@ If you want to process 0K cross sections use `temperature=0.1`.
         125 0 0 /
         0.005 0. /
         0/
-        moder
-        -22 30 /
         errorr
         -21 -22 0 33 0 /
         125 1 2 0 1 /
@@ -1488,17 +1725,104 @@ If you want to process 0K cross sections use `temperature=0.1`.
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         stop
-        
+
         Test output type
         >>> assert isinstance(out, sandy.Errorr)
 
         Test `ign` and `ek`
-        >>> assert out.get_xs(125, 1).size == 12
+        >>> assert out.get_xs().data[(125, 1)].size == 12
         
         Test `to_file`
         >>> out = endf6.get_errorr(to_file="out.err")
         >>> assert os.path.isfile('out.err')
-        
+
+        Test groupr and errorr:
+        >>> out = endf6.get_errorr(verbose=True, groupr=True)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        groupr
+        -21 -22 0 -23 /
+        125 2 0 2 0 1 1 0 /
+        /
+        0.0/
+        10000000000.0/
+        3/
+        0/
+        0/
+        errorr
+        -21 0 -23 33 0 /
+        125 2 2 0 1 /
+        0 0.0 /
+        0 33 /
+        stop
+
+        Test groupr and errorr for neutron energy grids:
+        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        groupr
+        -21 -22 0 -23 /
+        125 1 0 2 0 1 1 0 /
+        /
+        0.0/
+        10000000000.0/
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        3/
+        0/
+        0/
+        errorr
+        -21 0 -23 33 0 /
+        125 1 2 0 1 /
+        0 0.0 /
+        0 33 /
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        stop
+
+        Test groupr and errorr for neutron and photons energy grids:
+        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, ep=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        groupr
+        -21 -22 0 -23 /
+        125 1 1 2 0 1 1 0 /
+        /
+        0.0/
+        10000000000.0/
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        3/
+        0/
+        0/
+        errorr
+        -21 0 -23 33 0 /
+        125 1 2 0 1 /
+        0 0.0 /
+        0 33 /
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        stop
         """
         if float(temperature) == 0:
             kwargs["broadr"] = False
@@ -1507,6 +1831,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
             kwargs["heatr"] = False
             kwargs["purr"] = False
             kwargs["unresr"] = False
+            kwargs['keep_pendf'] = False
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
             self.to_file(endf6file)
@@ -1518,6 +1843,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
                     temperatures=[temperature],
                     suffixes=[0],
                     err=err,
+                    groupr=groupr,
                     **kwargs,
                     )[2]  # keep only pendf filename
             errorrfile = outputs["tape33"]
@@ -1525,3 +1851,240 @@ If you want to process 0K cross sections use `temperature=0.1`.
             if to_file:
                 shutil.move(errorrfile, to_file)
         return errorr
+
+    def get_gendf(self,
+                  temperature=293.6,
+                  njoy=None,
+                  to_file=None,
+                  verbose=False,
+                  broadr=True,
+                  err=0.005,
+                  **kwargs):
+        """
+        Process `Endf6` instance into a Gendf file using NJOY.
+
+        Parameters
+        ----------
+        temperature : `float`, optional, default is `293.6`.
+            temperature of the cross sections in K.
+            If not given, stop the processing after RECONR (before BROADR).
+        njoy : `str`, optional, default is `None`
+            NJOY executable, if `None` search in the system path.
+        to_file : `str`, optional, default is `None`
+            if not `None` write processed GENDF data to file.
+            The name of the GENDF file is the keyword argument.
+        verbose : `bool`, optional, default is `False`
+            flag to print NJOY input file to screen before running the
+            executable.
+        broadr : `bool`, optional, default is `True`
+            option to generate gendf file with Doppler-broadened cross sections
+        **kwargs : `dict`
+            keyword argument to pass to `sandy.njoy.process`.
+
+        Parameters for RECONR
+        ---------------------
+        err : `float`, optional
+            reconstruction tolerance (default is 0.005)
+
+        Parameters for BROADR
+        ---------------------
+        err : `float`
+            tolerance (default is 0.001)
+
+        Parameters for GROUPR
+        ---------------------
+        ign : `int`, optional
+            neutron group option (default is 2, csewg 239-group structure)
+        iwt : `int`, optional
+            weight function option (default is 2, constant)
+        sigz : iterable of `float`
+            sigma zero values. The default is 1.0e10.
+
+        Returns
+        -------
+        gendf : `sandy.Gendf`
+            Gendf object
+
+        Examples
+        --------
+        Default temperature test:
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> out = endf6.get_gendf(verbose=True)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 2 0 2 0 1 1 0 /
+        /
+        293.6/
+        10000000000.0/
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        Test for parameters of groupr:
+
+        Test various sigz:
+        >>> out = endf6.get_gendf(verbose=True, sigz=[1.0e10, 1e2])
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 2 0 2 0 1 2 0 /
+        /
+        293.6/
+        10000000000.0 100.0/
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        Test iwt:
+        >>> out = endf6.get_gendf(verbose=True, iwt=3)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 2 0 3 0 1 1 0 /
+        /
+        293.6/
+        10000000000.0/
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        Test ign:
+        >>> out = endf6.get_gendf(verbose=True, ign=3)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 3 0 2 0 1 1 0 /
+        /
+        293.6/
+        10000000000.0/
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        Test `to_file`
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> out = endf6.get_gendf(to_file="out.gendf")
+        >>> assert os.path.isfile('out.gendf')
+
+        Test energy grid:
+        >>> out = endf6.get_gendf(verbose=True, ek=sandy.energy_grids.CASMO12)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        125 0 0 /
+        0.005 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        125 1 0 0 0. /
+        0.005 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        125 1 0 2 0 1 1 0 /
+        /
+        293.6/
+        10000000000.0/
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        3/
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+        """
+        kwargs["thermr"] = False
+        kwargs["gaspr"] = False
+        kwargs["heatr"] = False
+        kwargs["purr"] = False
+        kwargs["unresr"] = False
+        kwargs["acer"] = False
+        kwargs["keep_pendf"] = False
+        kwargs['errorr'] = False
+        with TemporaryDirectory() as td:
+            endf6file = os.path.join(td, "endf6_file")
+            self.to_file(endf6file)
+            outputs = sandy.njoy.process(
+                    endf6file,
+                    groupr=True,
+                    broadr=broadr,
+                    verbose=verbose,
+                    temperatures=[temperature],
+                    suffixes=[0],
+                    err=err,
+                    **kwargs,
+                    )[2]  # keep only gendf filename
+            gendf_file = outputs["tape32"]
+            groupr = sandy.Groupr.from_file(gendf_file)
+            if to_file:
+                shutil.move(gendf_file, to_file)
+        return groupr

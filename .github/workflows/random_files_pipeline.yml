@@ -1,0 +1,70 @@
+name: random files
+
+on:
+  workflow_dispatch:
+    inputs:
+      library:
+        description: 'ND library'
+        required: true
+        default: 'JEFF-3.3' 
+        type: choice
+        options:
+        - ENDFB-7.1
+        - ENDFB-8.0
+        - JEFF-3.2
+        - JEFF-3.3
+        - JENDL-4.0u
+      nuclide:
+        description: 'Nuclide ZAM'
+        required: true
+      temperature:
+        description: 'Temperature (only for ACE)'
+        required: false
+      format:
+        description: 'Output format'
+        required: true
+        default: 'ACE' 
+        type: choice
+        options:
+        - ACE
+        - ENDF-6
+      samples:
+        description: '# samples'
+        required: true
+
+env:
+  NJOY: ${GITHUB_WORKSPACE}/NJOY2016/build/njoy
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - uses: "actions/setup-python@v2"
+        with:
+          python-version: "3.6"
+
+      # Run commands using the runners shell
+      - name: clone and install njoy
+        run: git clone https://github.com/njoy/NJOY2016.git && (cd NJOY2016 && mkdir build && cd build && cmake -DPython3_EXECUTABLE=$(which python3) .. && make)
+      - name: remove njoy tests from unit testing
+        run: rm -rf NJOY2016/tests
+      - name: install general python dependencies
+        run: pip install sphinx sphinx_rtd_theme codecov numpydoc coveralls pytest-cov nbval
+      - name: install sandy's requirements
+        run: pip install -r requirements.txt
+      - name: install sandy
+        run: python setup.py install --user
+      - name: produce random files
+        run: |
+          python .github/workflows/random_files_pipeline.py ${{ github.event.inputs.library }} ${{ github.event.inputs.nuclide }} ${{ github.event.inputs.temperature }} ${{ github.event.inputs.format }} ${{ github.event.inputs.samples }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.actor }}_${{github.event.inputs.library }}_${{ github.event.inputs.nuclide }}_${{ github.event.inputs.temperature }}_${{ github.event.inputs.format }}_${{ github.event.inputs.samples }}
+          path: random_files
+          retention-days: 1
