@@ -16,6 +16,7 @@ import re
 
 
 import pandas as pd
+import numpy as np
 
 import sandy
 from sandy.libraries import (
@@ -2104,7 +2105,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Returns
         -------
         `sandy.CategoryCov`
-            Covarinace matrix.
+            Covariance matrix.
 
         """
         listmt_ = kwargs.get('mt', range(1, 10000))
@@ -2187,4 +2188,68 @@ If you want to process 0K cross sections use `temperature=0.1`.
         return sandy.CategoryCov.from_stack(data,
                                             index=["MAT", "MT", "L", "E"],
                                             columns=["MAT1", "MT1", "L1", "E1"],
+                                            values='VAL', kind="all")
+
+    def get_edistr_cov(self, **kwargs):
+        """
+        Extract energy distribution coefficients covariance matrix
+        from `sandy.Endf6` instance.
+
+        Parameters
+        ----------
+        mat : `int`, optional
+            MAT number. The default is None.
+        mt : `int`, optional
+            MT number. The default is None.
+
+        Returns
+        -------
+        `sandy.CategoryCov`
+            Covariance matrix.
+
+        """
+        listmt_ = kwargs.get('mt', range(1, 10000))
+        listmt_ = [listmt_] if isinstance(listmt_, int) else listmt_
+        listmat_ = kwargs.get('mat', range(1, 10000))
+        listmat_ = [listmat_] if isinstance(listmat_, int) else listmat_
+        tape = self.filter_by(listmf=[35],
+                              listmt=listmt_,
+                              listmat=listmat_)
+        data = []
+        for mat, mf, mt in tape.data:
+            sec = tape.read_section(mat, mf, mt)
+            for sub, sub_info in sec["SUB"].items():
+                Ek = np.array(sub_info["EK"])
+                Fkk = np.array(sub_info["FKK"])
+                NE = sub_info["NE"]
+                # Covariance
+                cov_upper = np.zeros([NE-1, NE-1])
+                indices = np.triu_indices(NE-1)
+                cov_upper[indices] = Fkk
+                cov = sandy.cov.triu_matrix(cov_upper).data
+                # Normalize covariance matrix dividing by the energy bin.
+                dE = 1./(Ek[1:]-Ek[:-1])
+                cov = sandy.cov.corr2cov(cov, dE).values
+                # Add zero row and column at the end of the matrix
+                cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                # multiindex:
+                index = pd.MultiIndex.from_product(
+                    [[mat], [mt], [sub_info["ELO"]], [sub_info["EHI"]], Ek],
+                    names=["MAT", "MT", "ELO", "EHI", "E"],
+                )
+                columns = pd.MultiIndex.from_product(
+                    [[mat], [mt], [sub_info["ELO"]], [sub_info["EHI"]], Ek],
+                    names=["MAT1", "MT1", "ELO1", "EHI1", "E1"],
+                )
+                df = pd.DataFrame(cov,
+                                  index=index,
+                                  columns=columns)\
+                       .stack(level=["MAT1", "MT1", "ELO1", "EHI1", "E1"])\
+                       .rename("VAL").reset_index()
+                data.append(df)
+        data = pd.concat(data)
+        return sandy.CategoryCov.from_stack(data,
+                                            index=["MAT", "MT", "ELO", "EHI", "E"],
+                                            columns=["MAT1", "MT1", "ELO1", "EHI1", "E1"],
                                             values='VAL', kind="all")
