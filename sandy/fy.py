@@ -459,6 +459,11 @@ class Fy():
         >>> nfpy_pert = nfpy.custom_perturbation([0.9, 1.2], zam=922350, e=0.0253, zap=551370)
         >>> comp = nfpy_pert.data.query('ZAM==922350 & ZAP==551370 & E==0.0253').squeeze().FY
         >>> assert (np.setdiff1d(nfpy_pert.data.values, nfpy.data.values) == comp).all()
+
+        Perturb all values:
+        >>> nfpy_pert = nfpy.custom_perturbation(0.9)
+        >>> (nfpy_pert.data.FY.values.sum()/nfpy.data.FY.values.sum()).round(2)
+        0.9
         """
         df = self.data.copy()
         pert_ = pd.Series(pert).values
