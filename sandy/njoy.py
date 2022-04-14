@@ -592,7 +592,7 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 
 
 def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
-                  ign=2, ek=None, spect_errorr=None, irespr=1,
+                  ign=2, ek_errorr=None, spectrum_errorr=None, irespr=1,
                   iwt_errorr=2, relative=True,
                   temp=NJOY_TEMPERATURES[0], mfcov=33,
                   iprint=False,
@@ -612,7 +612,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         tape number for output ERRORR file
     mat : `int`
         MAT number
-    ek : iterable, optional
+    ek_errorr : iterable, optional
         derived cross section energy bounds (default is None)
     ign : `int`, optional
         neutron group option (default is 2, csewg 239-group structure)
@@ -633,9 +633,9 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         temperature in K (default is 293.6 K)
     mfcov : `int`
         endf covariance file to be processed (default is 33)
-    mt: iterable of `int`, optional
+    mt_errorr: iterable of `int`, optional
         run errorr only for the selected mt numbers
-    spect_errorr : iterable, optional
+    spectrum_errorr : iterable, optional
         weight function (default is `None`)
 
     Returns
@@ -677,7 +677,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 293.6 /
     0 33 1/
 
-    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, ek=[1e-2, 1e3, 2e5]))
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, ek_errorr=[1e-2, 1e3, 2e5]))
     errorr
     20 21 0 22 0 /
     9237 1 2 0 1 /
@@ -742,7 +742,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 33 1/
 
     Test for MT:
-    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt=[1,2]))
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt_errorr=[1,2]))
     errorr
     20 21 0 22 0 /
     9237 2 2 0 1 /
@@ -752,9 +752,9 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     1 2 /    
     """
     irelco = 0 if relative is False else 1
-    iread = 1 if "mt" in kwargs else 0
-    iwt_ = 1 if spect_errorr is not None else iwt_errorr
-    ign_ = 1 if ek is not None else ign
+    iread = 1 if "mt_errorr" in kwargs else 0
+    iwt_ = 1 if spectrum_errorr is not None else iwt_errorr
+    ign_ = 1 if ek_errorr is not None else ign
     text = ["errorr"]
     text += [f"{endfin:d} {pendfin:d} {gendfin:d} {errorrout:d} 0 /"]
     printflag = int(iprint)
@@ -762,29 +762,31 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     text += [f"{printflag:d} {temp:.1f} /"]
     text += [f"{iread:d} {mfcov} {irespr:d}/"]
     if iread == 1:
-        nmt = len(kwargs["mt"])
+        mt = kwargs["mt_errorr"]
+        mt_ = [mt] if isinstance(mt, int) else mt
+        nmt = len(mt_)
         text += [f"{nmt:d} 0 /"]
-        text += [" ".join(map(str, kwargs["mt"])) + " /"]
+        text += [" ".join(map(str, mt_)) + " /"]
     if ign_ == 1:
-        nk = len(ek) - 1
+        nk = len(ek_errorr) - 1
         text += [f"{nk} /"]
-        text += [" ".join(map("{:.5e}".format, ek)) + " /"]
+        text += [" ".join(map("{:.5e}".format, ek_errorr)) + " /"]
     if iwt_ == 1:
         INT = 1               # constant interpolation
-        NBT = int(len(spect_errorr) / 2)  # only 1 interpolation group
+        NBT = int(len(spectrum_errorr) / 2)  # only 1 interpolation group
         tab1 = "\n".join(sandy.write_tab1(0, 0, 0, 0, [NBT], [INT],
-                                          spect_errorr[::2],
-                                          spect_errorr[1::2]))
+                                          spectrum_errorr[::2],
+                                          spectrum_errorr[1::2]))
         text += [tab1]
         text += ["/"]
     return "\n".join(text) + "\n"
 
 
 def _groupr_input(endfin, pendfin, gendfout, mat,
-                  ign=2, ek=None, igg=0,  ep=None,
+                  ign=2, ek_groupr=None, igg=0,  ep=None,
                   iwt_groupr=2, lord=0, sigz=[1e+10],
                   temp=NJOY_TEMPERATURES[0],
-                  spect_groupr=None, mt=None,
+                  spectrum_groupr=None, mt_groupr=None,
                   iprint=False, nubar=False, mubar=False, chi=False,
                   nuclide_production=False,
                   **kwargs):
@@ -803,7 +805,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         MAT number
     chi : `bool`, optional
         Process chi (default is `False`)
-    ek : iterable, optional
+    ek_groupr : iterable, optional
         derived cross section energy bounds (default is None)
     ep : iterable, optional
         derived gamma cross section energy bounds (default is None)
@@ -821,7 +823,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
 
     lord : `int`, optional
         Legendre order (default is 0)
-    mt: iterable of `int`, optional
+    mt_groupr: iterable of `int`, optional
         run groupr only for the selected mt numbers
     mubar : `bool`, optional
         Proccess mubar (default is `False`)
@@ -831,7 +833,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         process MF10 (default is `False`)
     sigz : iterable of `float`
         sigma zero values (he default is 1.0e10)
-    spect_groupr : iterable, optional
+    spectrum_groupr : iterable, optional
         weight function (default is `None`)
     temp : iterable of `float`
         iterable of temperature values in K (default is 293.6 K)
@@ -904,7 +906,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     
     Test argument `ek`:
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ek=[1e-2, 1e3, 2e5]))
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ek_groupr=[1e-2, 1e3, 2e5]))
     groupr
     20 21 0 0 /
     22 1 0 2 0 1 1 0 /
@@ -982,9 +984,22 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     10/
     0/
     0/
+
+    Test for MT:
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt_groupr=[1,2]))
+    groupr
+    20 21 0 0 /
+    22 9237 0 2 0 1 1 0 /
+    'sandy runs groupr' /
+    293.6/
+    10000000000.0/
+    3 1 /
+    3 2 /
+    0/
+    0/       
     """
-    iwt_ = 1 if spect_groupr is not None else iwt_groupr
-    ign_ = 1 if ek is not None else ign
+    iwt_ = 1 if spectrum_groupr is not None else iwt_groupr
+    ign_ = 1 if ek_groupr is not None else ign
     igg_ = 1 if ep is not None else igg
     text = ["groupr"]
     text += [f"{endfin:d} {pendfin:d} 0 {gendfout:d} /"]
@@ -995,25 +1010,26 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     text += [f"{temp:.1f}/"]
     text += [" ".join(map("{:.1f}".format, sigz)) + "/"]
     if ign_ == 1:
-        nk = len(ek) - 1
+        nk = len(ek_groupr) - 1
         text += [f"{nk} /"]
-        text += [" ".join(map("{:.5e}".format, ek)) + " /"]
+        text += [" ".join(map("{:.5e}".format, ek_groupr)) + " /"]
     if igg_ == 1:
         pk = len(ep) - 1
         text += [f"{pk} /"]
         text += [" ".join(map("{:.5e}".format, ep)) + " /"]
     if iwt_ == 1:
         INT = 1               # constant interpolation
-        NBT = int(len(spect_groupr) / 2)  # only 1 interpolation group
+        NBT = int(len(spectrum_groupr) / 2)  # only 1 interpolation group
         tab1 = "\n".join(sandy.write_tab1(0, 0, 0, 0, [NBT], [INT],
-                                          spect_groupr[::2],
-                                          spect_groupr[1::2]))
+                                          spectrum_groupr[::2],
+                                          spectrum_groupr[1::2]))
         text += [tab1]
         text += ["/"]
-    if not mt:
+    if not mt_groupr:
         text += ["3/"]  # by default process all cross sections (MF=3)
     else:
-        for mt_ in mt:
+        MT = [mt_groupr] if isinstance(mt_groupr, int) else mt_groupr
+        for mt_ in MT:
             text += [f"3 {mt_:d} /"]
     if mubar:
         text += ["3 251 'mubar' /"]

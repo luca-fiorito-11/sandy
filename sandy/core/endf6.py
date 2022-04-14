@@ -1160,10 +1160,10 @@ class _FormattedFile():
         """
         return cls(old_endf6.TEXT.to_dict())
 
-    def write_string(self, title="", skip_title=False, skip_fend=False):
+    def write_string(self, title=""):
         """
-        Write `Endf6.data` content to string according to the ENDF-6 file
-        rules.
+        Write `_FormattedFile.data` content to string according to the ENDF-6
+        file rules.
 
         Parameters
         ----------
@@ -1190,9 +1190,19 @@ class _FormattedFile():
          0.000000+0 0.000000+0          0          0          0          6 125 1451    2
          1.000000+0 2.000000+7          3          0         10          3 125 1451    3
 
-        if no modification is applied to the `Endf6` content, the
+        if no modification is applied to the `_FormattedFile` content, the
         `write_string` returns an output identical to the file ASCII content.
         >>> assert string == open(file).read()
+
+        Test with `sandy.Errorr` object and title option:
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> err = endf6.get_errorr(ek=[1e-2, 1e1, 2e7], err=1)
+        >>> err.to_file("out.err", title="H with ERRORR")
+        >>> err_2 = sandy.Errorr.from_file("out.err")
+        >>> os.remove("out.err")
+        >>> assert err_2.data[(125, 1, 451)] == err.data[(125, 1, 451)]
+        >>> assert err_2.data[(125, 3, 102)] == err.data[(125, 3, 102)]
+        >>> assert err_2.data[(125, 33, 102)] == err.data[(125, 33, 102)]
 
         ..note:: differences might appear from the way zeros were handled at
                  the end of ENDF-6 section, or if a different fiel title is
@@ -1218,8 +1228,8 @@ class _FormattedFile():
 
     def to_file(self, filename, mode="w", **kwargs):
         """
-        Given a filename write the content of a `Endf6` instance to disk in
-        ASCII format.
+        Given a filename write the content of a `_FormattedFile` instance to
+        disk in ASCII format.
 
         Parameters
         ----------
@@ -1227,6 +1237,11 @@ class _FormattedFile():
             The name of the file.
         mode : `str`, optional
             Mode while opening a file. The default is "w".
+
+        Parameters for `write_string`
+        -----------------------------
+        title : `str`, optional, default is an empty string
+            first line of the file
 
         Returns
         -------
@@ -1631,17 +1646,17 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Parameters
         ----------
         chi : `bool`, optional
-            Proccess the chi covariance (default is `True`)
+            Process the chi covariance (default is `True`)
         groupr : `bool`, optional, default is `False`
             option to generate covariances from a multigroup cross section
             ..note:: this option is activated by default if `nubar=True` or
                      `chi=True`
         mubar : `bool`, optional
-            Proccess the mubar covariance (default is `True`)
+            Process the mubar covariance (default is `True`)
         njoy : `str`, optional, default is `None`
             NJOY executable, if `None` search in the system path.
         nubar : `bool`, optional
-            Proccess the nubar covariance (default is `True`)
+            Process the nubar covariance (default is `True`)
         temperature : `float`, optional, default is `0`.
             temperature of the cross sections in K.
             If not given, stop the processing after RECONR (before BROADR).
@@ -1652,7 +1667,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
             flag to print NJOY input file to screen before running the
             executable.
         xs : `bool`, optional
-            Proccess the xs covariance (default is `True`)
+            Process the xs covariance (default is `True`)
         **kwargs : `dict`
             keyword argument to pass to `sandy.njoy.process`.
 
@@ -1671,8 +1686,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
             sigma zero values. The default is 1.0e10.
         iwt_groupr : `int`, optional
             weight function option (default is 2, constant)
-        spect_groupr : iterable, optional
+        spectrum_groupr : iterable, optional
             Weight function as a iterable (default is None)
+        mt_groupr: iterable of `int`, optional
+            run groupr only for the selected mt numbers
 
         Parameters for ERRORR
         ---------------------
@@ -1683,12 +1700,12 @@ If you want to process 0K cross sections use `temperature=0.1`.
         iwt_errorr : `int`, optional
             weight function option (default is 2, constant)
             .. note:: this option will also be used for GROUPR
-        spect_errorr : iterable, optional
+        spectrum_errorr : iterable, optional
             Weight function as a iterable (default is None)
         irespr: `int`, optional
             processing for resonance parameter covariances
             (default is 1, 1% sensitivity method)
-        mt: `int` or iterable of `int`, optional
+        mt_errorr: `int` or iterable of `int`, optional
             list of MT reactions to be processed
             .. note:: this list will be used for all covariance types, i.e.,
                       MF31, MF33, MF34, MF35.
@@ -1700,10 +1717,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         errorr : `sandy.Errorr` or `None`
             - `Errorr` instance constaining the nuclear data of the ERRORR
               file, if covariance information is found.
-            - `None` if no covariiance information is found.
-
-        .. important:: this module uses `read_formatted_file`, which is no
-                       longer supported.
+            - `None` if no covariance information is found.
 
         Notes
         -----
@@ -1711,15 +1725,15 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         .. note:: parameters for groupr are the same as for errorr
 
-        .. note:: NJOY ERRORR module WILL produce a MF35 covariance tape
-                  if the ERRORR module is called before the ERRORR call to
-                  produce a MF34
+        .. note:: When MF35 and MF34 are true at the same time, the ERRORR
+        module first calculates MF35 and then MF34, otherwise it gives an
+        error.
 
         Examples
         --------
         Test verbose keyword
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, verbose=True)
+        >>> out = endf6.get_errorr(ek_errorr=sandy.energy_grids.CASMO12, verbose=True)
         moder
         20 -21 /
         reconr
@@ -1774,7 +1788,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         stop
 
         Test groupr and errorr for neutron energy grids:
-        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
+        >>> out = endf6.get_errorr(ek_errorr=sandy.energy_grids.CASMO12, ek_groupr=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
         moder
         20 -21 /
         reconr
@@ -1804,7 +1818,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         stop
 
         Test groupr and errorr for neutron and photons energy grids:
-        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, ep=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
+        >>> out = endf6.get_errorr(ek_groupr=sandy.energy_grids.CASMO12, ek_errorr=sandy.energy_grids.CASMO12, ep=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
         moder
         20 -21 /
         reconr
@@ -1835,9 +1849,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         stop
 
-        U-238 test:
+        U-238 test because it contains mubar, xs, chi and nubar:
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
-        >>> out = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, verbose=True, err=1)
+        >>> out = endf6.get_errorr(ek_errorr=sandy.energy_grids.CASMO12, ek_groupr=sandy.energy_grids.CASMO12, verbose=True, err=1)
         moder
         20 -21 /
         reconr
@@ -1892,7 +1906,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         Test spectrum:
         >>> spect = [1.000000e-5, 2.00000000, 3.000000e-2, 2.00000000, 5.800000e-2, 4.00000000, 3, 1]
-        >>> out = endf6.get_errorr(spect_errorr=spect, ek=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False)
+        >>> out = endf6.get_errorr(spectrum_errorr=spect, ek_errorr=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False)
         moder
         20 -21 /
         reconr
@@ -1917,7 +1931,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
 
         >>> spect_g = [1.000000e-5, 1.00000000, 3.000000e-2, 2.00000000, 5.800000e-2, 3.00000000, 3, 2]
-        >>> out = endf6.get_errorr(spect_errorr=spect, spect_groupr=spect_g, ek=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False)
+        >>> out = endf6.get_errorr(spectrum_errorr=spect, spectrum_groupr=spect_g, ek_errorr=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], ek_groupr=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False, groupr=True)
         moder
         20 -21 /
         reconr
@@ -1957,7 +1971,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         stop
 
         Test irespr:
-        out = endf6.get_errorr(spect_errorr=spect, ek=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False, irespr=0)
+        out = endf6.get_errorr(spectrum_errorr=spect, ek_errorr=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False, irespr=0)
         moder
         20 -21 /
         reconr
@@ -1979,7 +1993,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
     
         Test for MT:
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> out = endf6.get_errorr(verbose=True, mt=[1,2], ek=sandy.energy_grids.CASMO12)
+        >>> out = endf6.get_errorr(verbose=True, mt_errorr=[1,2], ek_errorr=sandy.energy_grids.CASMO12)
         moder
         20 -21 /
         reconr
@@ -2031,7 +2045,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
             return
 
         # Mandatory multigroup module activation
-        groupr_ = True if (kwds_njoy["nubar"] or kwds_njoy["chi"] or kwds_njoy.get("ek_groupr") or kwds_njoy.get("spect_groupr")) else groupr
+        groupr_ = True if (kwds_njoy["nubar"] or kwds_njoy["chi"] or "ek_groupr" in kwds_njoy or "spect_groupr" in kwds_njoy) else groupr
 
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
@@ -2050,8 +2064,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
             seq = map(sandy.Errorr.from_file, outputs.values())
             errorr = reduce(lambda x, y: x.merge(y), seq)
             if to_file:
-                errorr.to_file("errorr")
-                shutil.move("errorr", to_file)
+                errorr.to_file(to_file)
         return errorr
 
     def get_gendf(self,
@@ -2060,10 +2073,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
                   to_file=None,
                   verbose=False,
                   err=0.005,
-                  nubar=True,
+                  nubar=False,
                   xs=True,
-                  mubar=True,
-                  chi=True,
+                  mubar=False,
+                  chi=False,
                   **kwargs):
         """
         Process `Endf6` instance into a Gendf file using NJOY.
@@ -2102,20 +2115,22 @@ If you want to process 0K cross sections use `temperature=0.1`.
             neutron group option (default is 2, csewg 239-group structure)
         iwt_groupr : `int`, optional
             weight function option (default is 2, constant)
-        spect_groupr : iterable, optional
+        spectrum_groupr : iterable, optional
             Weight function as a iterable (default is None)
         sigz : iterable of `float`
             sigma zero values. The default is 1.0e10.
         nubar : `bool`, optional
-            Proccess the nubar covariance(default is `True`)
+            Proccess the nubar covariance(default is `False`)
         xs : `bool`, optional
             Proccess the xs covariance(default is `True`)
         mubar : `bool`, optional
-            Proccess the mubar covariance(default is `True`)
+            Proccess the mubar covariance(default is `False`)
         chi : `bool`, optional
-            Proccess the chi covariance(default is `True`)
+            Proccess the chi covariance(default is `False`)
         nuclide_production : `bool`, optional
             print option (default is `False`)
+        mt_groupr: iterable of `int`, optional
+            run groupr only for the selected mt numbers
 
         Returns
         -------
@@ -2249,7 +2264,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         >>> assert os.path.isfile('out.gendf')
 
         Test energy grid:
-        >>> out = endf6.get_gendf(verbose=True, ek=sandy.energy_grids.CASMO12)
+        >>> out = endf6.get_gendf(verbose=True, ek_groupr=sandy.energy_grids.CASMO12)
         moder
         20 -21 /
         reconr
@@ -2279,9 +2294,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
         -24 32 /
         stop
 
-        Test :
+        U-238 test because it contains mubar, xs, chi and nubar:
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
-        >>> out = endf6.get_gendf(ek=sandy.energy_grids.CASMO12, verbose=True, err=1)
+        >>> out = endf6.get_gendf(ek_groupr=sandy.energy_grids.CASMO12, verbose=True, err=1, nubar=True, mubar=True, chi=True)
         moder
         20 -21 /
         reconr
@@ -2317,7 +2332,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Spectrum test:
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 10010)
         >>> spect = [1.000000e-5, 2.00000000, 3.000000e-2, 2.00000000, 5.800000e-2, 4.00000000, 3, 1]
-        >>> out = endf6.get_gendf(spect_groupr=spect, ek=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False)
+        >>> out = endf6.get_gendf(spectrum_groupr=spect, ek_groupr=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False)
         moder
         20 -21 /
         reconr
@@ -2362,11 +2377,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
         kwds_njoy["keep_pendf"] = False
         kwds_njoy['errorr'] = False
         kwds_njoy["broadr"] = False if float(temperature) == 0 else True
-
-        # Covariance information:
-        cov_info = self.covariance_info(nubar=nubar, xs=xs,
-                                        mubar=mubar, chi=chi)
-        kwds_njoy.update(cov_info)
+        kwds_njoy["nubar"] = nubar
+        kwds_njoy["xs"] = xs
+        kwds_njoy["chi"] = chi
+        kwds_njoy["mubar"] = mubar
 
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
@@ -2383,7 +2397,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
             gendf_file = outputs["tape32"]
             groupr = sandy.Groupr.from_file(gendf_file)
             if to_file:
-                shutil.move(gendf_file, to_file)
+                groupr.to_file(to_file)
         return groupr
 
     def covariance_info(self, nubar=True, xs=True, mubar=True, chi=True):
