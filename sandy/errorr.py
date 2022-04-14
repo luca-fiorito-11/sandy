@@ -34,7 +34,7 @@ class Errorr(_FormattedFile):
         Examples
         --------
         >>> endf6_2 = sandy.get_endf6_file("jeff_33", "xs", 942410)
-        >>> err = endf6_2.get_errorr(ek=sandy.energy_grids.CASMO12, err=1)
+        >>> err = endf6_2.get_errorr(ek_errorr=sandy.energy_grids.CASMO12, err=1, ek_groupr=sandy.energy_grids.CASMO12)
         >>> err.get_energy_grid()
         array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
                3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
@@ -61,7 +61,7 @@ class Errorr(_FormattedFile):
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> err = endf6.get_errorr(ek=sandy.energy_grids.CASMO12, err=1)
+        >>> err = endf6.get_errorr(ek_errorr=sandy.energy_grids.CASMO12, err=1)
         >>> err.get_xs()
         MAT                     125                        
         MT                      1           2           102
@@ -144,7 +144,7 @@ class Errorr(_FormattedFile):
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> err = endf6.get_errorr(ek=[1e-2, 1e1, 2e7], err=1)
+        >>> err = endf6.get_errorr(ek_errorr=[1e-2, 1e1, 2e7], err=1)
         >>> err.get_cov().data
                 MAT1    125
                 MT1	    1	                                2	                                102
