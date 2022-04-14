@@ -407,7 +407,7 @@ class CategoryCov():
         Real test on H1 file
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> ek = sandy.energy_grids.CASMO12
-        >>> err = endf6.get_errorr(ek=ek, err=1)
+        >>> err = endf6.get_errorr(ek_errorr=ek, err=1)
         >>> cov = err.get_cov()
         >>> cov.eig()[0].sort_values(ascending=False).head(7)
         0    3.66411e-01
