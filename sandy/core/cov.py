@@ -1388,30 +1388,35 @@ class CategoryCov():
         """
         Produce covariance matrix given correlation matrix and standard
         deviation array.
+        Same as :obj: `corr2cov` but it returns a :obj: `CategoryCov`.
 
         Parameters
         ----------
-        corr : 2d `numpy.ndarray`
+        corr : 2d iterable
             square 2D correlation matrix
-        std : 1d `numpy.ndarray`
+        std : 1d iterable
             array of standard deviations
         kwargs: `dict`
             keyword arguments to pass to `data` method.
+            They can be used to initialize index and columns of the
+            :obj: `CategoryCov`.
 
         Returns
         -------
-        `sandy.CategoryCov`
+        :obj: `CategoryCov`
             covariance matrix
 
         Examples
         --------
-        >>> S = np.array([1, 2, 3])
-        >>> var = np.array([[1, 0, 2], [0, 3, 0], [2, 0, 1]])
-        >>> sandy.CategoryCov.corr2cov(var, S)
-                    0           1           2
-        0 1.00000e+00 0.00000e+00 6.00000e+00
-        1 0.00000e+00 1.20000e+01 0.00000e+00
-        2 6.00000e+00 0.00000e+00 9.00000e+00
+        Initialize index and columns
+        >>> idx = ["A", "B", "C"]
+        >>> std = np.array([1, 2, 3])
+        >>> corr = np.array([[1, 0, 2], [0, 3, 0], [2, 0, 1]])
+        >>> sandy.CategoryCov.corr2cov(corr, std, index=idx, columns=idx)
+                    A           B           C
+        A 1.00000e+00 0.00000e+00 6.00000e+00
+        B 0.00000e+00 1.20000e+01 0.00000e+00
+        C 6.00000e+00 0.00000e+00 9.00000e+00
         """
         return cls(corr2cov(corr, std), **kwargs)
 
@@ -2075,38 +2080,34 @@ def corr2cov(corr, s):
 
     Parameters
     ----------
-    corr : 2d iterable
+    corr : 2D iterable
         square 2D correlation matrix
-    s : 1d iterable
-        1D iterable with information of standard deviations
-    rows : `int`, optional
-        Option to use row calculation for matrix calculations. This option
-        defines the number of lines to be taken into account in each loop.
-        The default is None.
+    s : 1D iterable
+        1D iterable with standard deviations
 
     Returns
     -------
     `numpy.ndarray`
-        covariance matrix
+        square 2D covariance matrix
 
     Examples
     --------
-    >>> S = np.array([1, 2, 3])
-    >>> var = np.array([[1, 0, 2], [0, 3, 0], [2, 0, 1]])
-    >>> corr2cov(var, S)
-        0   1  2
-     0  1   0  6
-     1  0  12  0
-     2  6   0  9
+    Test with integers
+    >>> s = np.array([1, 2, 3])
+    >>> corr = np.array([[1, 0, 2], [0, 3, 0], [2, 0, 1]])
+    >>> corr2cov(corr, s)
+    array([[ 1,  0,  6],
+           [ 0, 12,  0],
+           [ 6,  0,  9]])
+
+    Test with float
+    >>> corr2cov(corr, s.astype(float))
+    array([[ 1.,  0.,  6.],
+           [ 0., 12.,  0.],
+           [ 6.,  0.,  9.]])
     """
-    s_ = pd.Series(s)
-    S = pd.DataFrame(np.diag(s_.values), index=s_.index, columns=s_.index)
-    corr_ = pd.DataFrame(corr)
-    S_sps = sps.csr_matrix(S.values)
-    corr_sps = sps.csc_matrix(corr_.values)
-    cov_values = S_sps.T.dot(corr_sps).dot(S_sps)
-    cov = pd.DataFrame(cov_values.toarray(), index=s_.index, columns=s_.index)
-    return cov
+    s_ = np.diag(s)
+    return s_.dot(corr.dot(s_))
 
 
 def sparse_tables_dot(a, b, rows=1000):
