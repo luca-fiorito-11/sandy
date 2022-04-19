@@ -508,6 +508,74 @@ class CategoryCov():
         M_inv = M_inv.reindex(index=index, columns=columns).fillna(0)
         return self.__class__(M_inv)
 
+    def log2norm_cov(self, mu):
+        """
+        Transform covariance matrix to the one of the underlying normal
+        distribution.
+
+        Parameters
+        ----------
+        mu : `pandas.Series`
+            The desired mean values of the target lognormal distribution.
+
+        Returns
+        -------
+        `CategoryCov` of the underlying normal covariance matrix
+
+        Examples
+        --------
+        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
+        >>> cov.log2norm_cov(pd.Series(np.ones(cov.data.shape[0]), index=cov.data.index))
+                    A           B           C
+        A 2.19722e+00 1.09861e+00 1.38629e+00
+        B 1.09861e+00 2.39790e+00 1.60944e+00
+        C 1.38629e+00 1.60944e+00 2.07944e+00
+
+        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
+        >>> mu = pd.Series([1, 2, .5], index=["A", "B", "C"])
+        >>> cov.log2norm_cov(mu)
+                    A           B           C
+        A 2.19722e+00 6.93147e-01 1.94591e+00
+        B 6.93147e-01 1.25276e+00 1.60944e+00
+        C 1.94591e+00 1.60944e+00 3.36730e+00
+
+        Notes
+        -----
+        ..notes:: Reference for the equation is 10.1016/j.nima.2012.06.036
+        .. math::
+            $$
+            cov(lnx_i, lnx_j) = \ln\left(\frac{cov(x_i,x_j)}{<x_i>\cdot<x_j>}+1\right)
+            $$
+        """
+        return self.__class__(np.log(self.sandwich(1 / mu).data + 1))
+
+
+    def log2norm_mean(self, mu):
+        """
+        Transform mean values to the mean values of the undelying normal
+        distribution.
+
+        Parameters
+        ----------
+        m : `pd.Series`
+            The target mean values.
+
+        Returns
+        -------
+        `pd.Series` of the underlyig normal distribution mean values
+
+        Examples
+        --------
+        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
+        >>> mu = pd.Series(np.ones(cov.data.shape[0]), index=cov.data.index)
+        >>> cov.log2norm_mean(mu)
+        A   -1.09861e+00
+        B   -1.19895e+00
+        C   -1.03972e+00
+        dtype: float64
+        """
+        return np.log(mu**2 / np.sqrt(np.diag(self.data) + mu**2))
+
     def sampling(self, nsmp, seed=None, rows=None, pdf='normal',
                  tolerance=None, relative=True):
         """
@@ -547,8 +615,12 @@ class CategoryCov():
 
         Notes
         -----
-        .. note:: sampling with non-normal distribution is performed on
+        .. note:: sampling with uniform distribution is performed on
             diagonal covariance matrix, neglecting all correlations.
+
+        .. note:: sampling with lognormal distribution gives a set of samples
+            with mean=1 as lognormal distribution can not have mean=0.
+            Therefore, `relative` parameter does not apply to it.
 
         Examples
         --------
@@ -590,21 +662,21 @@ class CategoryCov():
         1 -6.64587e-01 5.21222e-01
         2  8.72585e-01 9.12563e-01
 
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11, pdf='lognormal', tolerance=0)
-                     0            1
-         0 3.03419e+00 -5.97565e-01
-         1 5.57248e-01  4.84276e-01
-         2 4.72366e-01  2.06538e-01
+        >>> sandy.CategoryCov([[1, 2],[2, 3]]).sampling(3, seed=11, pdf='lognormal', tolerance=0)
+                    0           1
+        0 1.29531e-01 5.70627e-02
+        1 1.13230e+00 1.09829e+00
+        2 1.21963e+00 1.21544e+00
 
         >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0).data.cov()
                      0            1
         0  1.00042e+00 -1.58806e-03
         1 -1.58806e-03  3.00327e+00
 
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0).data.cov()
-                     0            1
-        0  1.00219e+00 -4.46863e-04
-        1 -4.46863e-04  2.96421e+00
+        >>> sandy.CategoryCov([[1, 2],[2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0).data.cov()
+                    0           1
+        0 1.87883e-01 2.20808e-01
+        1 2.20808e-01 2.62491e-01
 
         `relative` kwarg usage:
         >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=True).data.mean(axis=0)
@@ -627,28 +699,43 @@ class CategoryCov():
         1   -7.15929e-04
         dtype: float64
 
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=True).data.mean(axis=0)
-        0   9.99902e-01
-        1   9.98551e-01
+        >>> sandy.CategoryCov([[1, 2],[2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=True).data.mean(axis=0)
+        0   9.45028e-01
+        1   9.07383e-01
+        dtype: float64
+
+        >>> sandy.CategoryCov([[1, 2],[2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=False).data.mean(axis=0)
+        0   9.45028e-01
+        1   9.07383e-01
         dtype: float64
         """
         dim = self.data.shape[0]
         y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf) - 1
         y = sps.csc_matrix(y)
-        if pdf == 'normal':
-            L = sps.csr_matrix(self.get_L(rows=rows, tolerance=tolerance))
-        else:
-            L = sps.csr_matrix(np.diag(np.sqrt(np.diag(self.data))))
-        samples = L.dot(y).toarray()
-        if relative:
-            samples += 1  # mean=1, to be multiplied by the best estimate
+        # the covariance matrix to decompose is created depending on the chosen
+        # pdf
+        if pdf == 'uniform':
+            to_decompose = self.__class__(np.diag(np.diag(self.data)))
         elif pdf == 'lognormal':
-            logging.warning("LogNormal distribution should not have mean=0")
-        df = pd.DataFrame(samples,
-                          index=self.data.index,
-                          columns=list(range(nsmp)),
-                          )
-        return sandy.Samples(df.T)
+            to_decompose = self.log2norm_cov(pd.Series(
+                                            np.ones(self.data.shape[0]),
+                                            index=self.data.index))
+        else:
+            to_decompose = self
+        L = sps.csr_matrix(to_decompose.get_L(rows=rows,
+                                              tolerance=tolerance))
+        samples = pd.DataFrame(L.dot(y).toarray(), index=self.data.index,
+                               columns=list(range(nsmp)))
+        if pdf == 'lognormal':
+            # mean value of lognormally sampled distributions will be one by
+            # defaul
+            samples = np.exp(samples.add(
+                             to_decompose.log2norm_mean(pd.Series(
+                                 np.ones(self.data.shape[0]),
+                                 index=self.data.index)), axis=0))
+        elif relative:
+            samples += 1
+        return sandy.Samples(samples.T)
 
     @classmethod
     def from_var(cls, var):
