@@ -664,9 +664,9 @@ class CategoryCov():
 
         >>> sandy.CategoryCov([[1, 2],[2, 3]]).sampling(3, seed=11, pdf='lognormal', tolerance=0)
                     0           1
-        0 1.29531e-01 5.70627e-02
-        1 1.13230e+00 1.09829e+00
-        2 1.21963e+00 1.21544e+00
+        0 1.52913e-01 6.19192e-02
+        1 9.08308e-01 7.03570e-01
+        2 1.08066e+00 8.91726e-01
 
         >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0).data.cov()
                      0            1
@@ -675,8 +675,8 @@ class CategoryCov():
 
         >>> sandy.CategoryCov([[1, 2],[2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0).data.cov()
                     0           1
-        0 1.87883e-01 2.20808e-01
-        1 2.20808e-01 2.62491e-01
+        0 1.23153e+00 1.93013e+00
+        1 1.93013e+00 3.22615e+00
 
         `relative` kwarg usage:
         >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=True).data.mean(axis=0)
@@ -700,17 +700,18 @@ class CategoryCov():
         dtype: float64
 
         >>> sandy.CategoryCov([[1, 2],[2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=True).data.mean(axis=0)
-        0   9.45028e-01
-        1   9.07383e-01
+        0   1.03646e+00
+        1   1.01849e+00
         dtype: float64
 
         >>> sandy.CategoryCov([[1, 2],[2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=False).data.mean(axis=0)
-        0   9.45028e-01
-        1   9.07383e-01
+        0   1.03646e+00
+        1   1.01849e+00
         dtype: float64
         """
         dim = self.data.shape[0]
-        y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf) - 1
+        to_sample = pdf if pdf != 'lognormal' else 'normal'
+        y = sample_distribution(dim, nsmp, seed=seed, pdf=to_sample) - 1
         y = sps.csc_matrix(y)
         # the covariance matrix to decompose is created depending on the chosen
         # pdf
@@ -730,7 +731,7 @@ class CategoryCov():
             # mean value of lognormally sampled distributions will be one by
             # defaul
             samples = np.exp(samples.add(
-                             to_decompose.log2norm_mean(pd.Series(
+                             self.log2norm_mean(pd.Series(
                                  np.ones(self.data.shape[0]),
                                  index=self.data.index)), axis=0))
         elif relative:
