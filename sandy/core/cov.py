@@ -515,7 +515,7 @@ class CategoryCov():
 
         Parameters
         ----------
-        mu : `pandas.Series`
+        mu : iterable
             The desired mean values of the target lognormal distribution.
 
         Returns
@@ -539,6 +539,22 @@ class CategoryCov():
         B 6.93147e-01 1.25276e+00 1.60944e+00
         C 1.94591e+00 1.60944e+00 3.36730e+00
 
+        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
+        >>> mu = [1, 2, .5]
+        >>> cov.log2norm_cov(mu)
+                    A           B           C
+        A 2.19722e+00 6.93147e-01 1.94591e+00
+        B 6.93147e-01 1.25276e+00 1.60944e+00
+        C 1.94591e+00 1.60944e+00 3.36730e+00
+
+        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
+        >>> mu = np.array([1, 2, .5])
+        >>> cov.log2norm_cov(mu)
+                    A           B           C
+        A 2.19722e+00 6.93147e-01 1.94591e+00
+        B 6.93147e-01 1.25276e+00 1.60944e+00
+        C 1.94591e+00 1.60944e+00 3.36730e+00
+
         Notes
         -----
         ..notes:: Reference for the equation is 10.1016/j.nima.2012.06.036
@@ -547,7 +563,9 @@ class CategoryCov():
             cov(lnx_i, lnx_j) = \ln\left(\frac{cov(x_i,x_j)}{<x_i>\cdot<x_j>}+1\right)
             $$
         """
-        return self.__class__(np.log(self.sandwich(1 / mu).data + 1))
+        mu_ = pd.Series(mu)
+        mu_.index = self.data.index
+        return self.__class__(np.log(self.sandwich(1 / mu_).data + 1))
 
 
     def log2norm_mean(self, mu):
@@ -557,7 +575,7 @@ class CategoryCov():
 
         Parameters
         ----------
-        m : `pd.Series`
+        mu : iterable
             The target mean values.
 
         Returns
@@ -573,8 +591,28 @@ class CategoryCov():
         B   -1.19895e+00
         C   -1.03972e+00
         dtype: float64
+
+        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
+        >>> cov.log2norm_mean([1, 1, 1])
+        A   -1.09861e+00
+        B   -1.19895e+00
+        C   -1.03972e+00
+        dtype: float64
+
+        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
+        >>> mu = np.ones(cov.data.shape[0])
+        >>> cov.log2norm_mean(mu)
+        A   -1.09861e+00
+        B   -1.19895e+00
+        C   -1.03972e+00
+        dtype: float64
+
+        Reindexing example
+        
         """
-        return np.log(mu**2 / np.sqrt(np.diag(self.data) + mu**2))
+        mu_ = pd.Series(mu)
+        mu_.index = self.data.index
+        return np.log(mu_**2 / np.sqrt(np.diag(self.data) + mu_**2))
 
     def sampling(self, nsmp, seed=None, rows=None, pdf='normal',
                  tolerance=None, relative=True):
@@ -644,83 +682,83 @@ class CategoryCov():
         1 3.99417e-01 9.98156e-01
 
         Small negative eigenvalue:
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11, tolerance=0)
-                     0           1
-        0 -8.92988e-01 4.06292e+00
-        1  1.30954e+00 4.99148e-01
-        2  1.52432e+00 1.51631e-01
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, tolerance=0)
+                    0           1
+        0 2.74945e+00 5.21505e+00
+        1 7.13927e-01 1.07147e+00
+        2 5.15435e-01 1.64683e+00
 
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, tolerance=0).data.cov()
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, tolerance=0).data.cov()
                      0            1
-        0  1.16925e+00 -1.89189e+00
-        1 -1.89189e+00  3.06115e+00
+        0  9.98662e-01 -1.99822e-01
+        1 -1.99822e-01  2.99437e+00
 
         Sampling with different `pdf`:
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11, pdf='uniform', tolerance=0)
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, pdf='uniform', tolerance=0)
                      0           1
         0 -1.07578e-01 2.34960e+00
         1 -6.64587e-01 5.21222e-01
         2  8.72585e-01 9.12563e-01
 
-        >>> sandy.CategoryCov([[1, 2],[2, 3]]).sampling(3, seed=11, pdf='lognormal', tolerance=0)
+        >>> sandy.CategoryCov([[1, .2],[.2, 3]]).sampling(3, seed=11, pdf='lognormal', tolerance=0)
                     0           1
-        0 1.52913e-01 6.19192e-02
-        1 9.08308e-01 7.03570e-01
-        2 1.08066e+00 8.91726e-01
+        0 3.03419e+00 1.57919e+01
+        1 5.57248e-01 4.74160e-01
+        2 4.72366e-01 6.50840e-01
 
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0).data.cov()
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0).data.cov()
                      0            1
         0  1.00042e+00 -1.58806e-03
         1 -1.58806e-03  3.00327e+00
 
-        >>> sandy.CategoryCov([[1, 2],[2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0).data.cov()
+        >>> sandy.CategoryCov([[1, .2],[.2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0).data.cov()
                     0           1
-        0 1.23153e+00 1.93013e+00
-        1 1.93013e+00 3.22615e+00
+        0 1.00219e+00 1.99199e-01
+        1 1.99199e-01 3.02605e+00
 
         `relative` kwarg usage:
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=True).data.mean(axis=0)
-        0   9.99847e-01
-        1   1.00025e+00
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=True).data.mean(axis=0)
+        0   1.00014e+00
+        1   9.99350e-01
         dtype: float64
 
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=False).data.mean(axis=0)
-        0   -1.53364e-04
-        1    2.48148e-04
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=False).data.mean(axis=0)
+        0    1.41735e-04
+        1   -6.49679e-04
         dtype: float64
 
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=True).data.mean(axis=0)
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=True).data.mean(axis=0)
         0   9.98106e-01
         1   9.99284e-01
         dtype: float64
 
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=False).data.mean(axis=0)
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=False).data.mean(axis=0)
         0   -1.89367e-03
         1   -7.15929e-04
         dtype: float64
 
-        >>> sandy.CategoryCov([[1, 2],[2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=True).data.mean(axis=0)
-        0   1.03646e+00
-        1   1.01849e+00
+        Lognormal distribution sampling indeoendency from `relative` kwarg
+        >>> sandy.CategoryCov([[1, .2],[.2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=True).data.mean(axis=0)
+        0   9.99902e-01
+        1   9.99284e-01
         dtype: float64
 
-        >>> sandy.CategoryCov([[1, 2],[2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=False).data.mean(axis=0)
-        0   1.03646e+00
-        1   1.01849e+00
+        >>> sandy.CategoryCov([[1, .2],[.2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=False).data.mean(axis=0)
+        0   9.99902e-01
+        1   9.99284e-01
         dtype: float64
         """
         dim = self.data.shape[0]
-        to_sample = pdf if pdf != 'lognormal' else 'normal'
-        y = sample_distribution(dim, nsmp, seed=seed, pdf=to_sample) - 1
+        pdf_ = pdf if pdf != 'lognormal' else 'normal'
+        y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf_) - 1
         y = sps.csc_matrix(y)
         # the covariance matrix to decompose is created depending on the chosen
         # pdf
         if pdf == 'uniform':
             to_decompose = self.__class__(np.diag(np.diag(self.data)))
         elif pdf == 'lognormal':
-            to_decompose = self.log2norm_cov(pd.Series(
-                                            np.ones(self.data.shape[0]),
-                                            index=self.data.index))
+            ones = np.ones(self.data.shape[0])
+            to_decompose = self.log2norm_cov(ones)
         else:
             to_decompose = self
         L = sps.csr_matrix(to_decompose.get_L(rows=rows,
@@ -730,10 +768,7 @@ class CategoryCov():
         if pdf == 'lognormal':
             # mean value of lognormally sampled distributions will be one by
             # defaul
-            samples = np.exp(samples.add(
-                             self.log2norm_mean(pd.Series(
-                                 np.ones(self.data.shape[0]),
-                                 index=self.data.index)), axis=0))
+            samples = np.exp(samples.add(self.log2norm_mean(ones), axis=0))
         elif relative:
             samples += 1
         return sandy.Samples(samples.T)
