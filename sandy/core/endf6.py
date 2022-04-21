@@ -2402,37 +2402,56 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
     def covariance_info(self, nubar=True, xs=True, mubar=True, chi=True):
         """
-        Check the covariance information of the formatted file.
+        Check the covariance information in the formatted file.
 
         Parameters
         ----------
         nubar : `bool`, optional
-            The nubar covariance(default is `True`)
+            default parameter for MF31 (default is `True`)
+            it will overwrite what found in the file
         xs : `bool`, optional
-            The xs covariance(default is `True`)
+            default parameter for MF33 (default is `True`)
+            it will overwrite what found in the file
         mubar : `bool`, optional
-            The mubar covariance(default is `True`)
+            default parameter for MF34 (default is `True`)
+            it will overwrite what found in the file
         chi : `bool`, optional
-            The chi covariance(default is `True`)
+            default parameter for MF35 (default is `True`)
+            it will overwrite what found in the file
 
         Returns
         -------
         cov_info : `dict`
-            Dictionary with the covariance information.
+            dictionary reporting if covariances were found.
+
+        Notes
+        -----
+        .. note:: this method only works with MF31, MF33, MF34 and MF35
 
         Examples
         --------
+        Check file contatining MF31, MF33, MF34 and MF35
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922380)
         >>> endf6.covariance_info()
         {'nubar': True, 'xs': True, 'mubar': True, 'chi': True}
 
+        Set all values to `False`
+        >>> endf6.covariance_info(xs=False, mubar=False, chi=False, nubar=False)
+        {'nubar': False, 'xs': False, 'mubar': False, 'chi': False}
+
+        2nd example without MF34
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350)
         >>> endf6.covariance_info()
         {'nubar': True, 'xs': True, 'mubar': False, 'chi': True}
+        If MF34 is not found, setting `mubar=True` won't change anything'
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350)
+        >>> endf6.covariance_info(mubar=True)
+        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True}
 
+        All infos are `False` if no covariance is found
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10030)
         >>> endf6.covariance_info()
-
+        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True}
         """
         supported_mf = [31, 33, 34, 35]
         endf6_cov_mf = self.to_series().index.get_level_values("MF")\
@@ -2442,10 +2461,6 @@ If you want to process 0K cross sections use `temperature=0.1`.
         run_xs = True if 33 in endf6_cov_mf else False
         run_mubar = True if 34 in endf6_cov_mf else False
         run_chi = True if 35 in endf6_cov_mf else False
-        if not run_nubar and not run_xs and not run_mubar and not run_chi:
-            msg = 'The selected file does not have the requested covariance information'
-            logging.warning(msg)
-            return
 
         cov_info = {
             'nubar': run_nubar if nubar else False,
