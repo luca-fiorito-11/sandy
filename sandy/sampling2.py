@@ -354,8 +354,8 @@ def sampling(iargs=None):
 
     Parameters
     ----------
-    iargs : TYPE, optional
-        DESCRIPTION. The default is None.
+    iargs : `list` of `str`
+        list of strings to parse. The default is taken from `sys.argv`.
 
     Returns
     -------
