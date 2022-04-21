@@ -34,7 +34,7 @@ class Groupr(_FormattedFile):
         241
 
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> groupr = endf6.get_gendf(verborse=True, ek=sandy.energy_grids.CASMO12)
+        >>> groupr = endf6.get_gendf(verborse=True, ek_groupr=sandy.energy_grids.CASMO12)
         >>> groupr.get_n_energy_grid()
         array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
                3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
@@ -83,7 +83,7 @@ class Groupr(_FormattedFile):
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> groupr = endf6.get_gendf(verborse=True, ek=sandy.energy_grids.CASMO12)
+        >>> groupr = endf6.get_gendf(verborse=True, ek_groupr=sandy.energy_grids.CASMO12)
         >>> groupr.get_xs()
         MAT                     125                        
         MT                      1           2           102
@@ -136,7 +136,7 @@ class Groupr(_FormattedFile):
         (2231000.0, 10000000.0] 1.52409e+00 1.52406e+00
 
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922350)
-        >>> groupr = endf6.get_gendf(ek=sandy.energy_grids.CASMO12)
+        >>> groupr = endf6.get_gendf(ek_groupr=sandy.energy_grids.CASMO12)
         >>> groupr.get_xs(mt=[4, 5])
         MAT                            9228            
         MT                                4           5
@@ -188,7 +188,7 @@ class Groupr(_FormattedFile):
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> groupr = endf6.get_gendf(verborse=True, ek=sandy.energy_grids.CASMO12)
+        >>> groupr = endf6.get_gendf(verborse=True, ek_groupr=sandy.energy_grids.CASMO12)
         >>> groupr.get_flux()
         (1e-05, 0.03]             2.99900e-02
         (0.03, 0.058]             2.80000e-02
@@ -253,7 +253,7 @@ def read_mf1(tape, mat):
     Examples
     --------
     >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-    >>> groupr = endf6.get_gendf(verborse=True, ek=sandy.energy_grids.CASMO12)
+    >>> groupr = endf6.get_gendf(verborse=True, ek_groupr=sandy.energy_grids.CASMO12)
     >>> mf1 = sandy.groupr.read_mf1(groupr, 125)
     >>> mf1['AWR'] = round(mf1['AWR'], 3)
     >>> mf1
@@ -325,7 +325,7 @@ def read_mf3(tape, mat, mt):
     Examples
     --------
     >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-    >>> groupr = endf6.get_gendf(verborse=True, ek=sandy.energy_grids.CASMO12)
+    >>> groupr = endf6.get_gendf(verborse=True, ek_groupr=sandy.energy_grids.CASMO12)
     >>> sandy.groupr.read_mf3(groupr, 125, 1)['GROUPS'][0]
     {'TEMPIN': 293.6,
      'NG2': 2,
