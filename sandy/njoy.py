@@ -592,7 +592,8 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 
 
 def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
-                  ign=2, ek_errorr=None, spectrum_errorr=None, irespr=1,
+                  ign=2, ek_errorr=None, spectrum_errorr=None,
+                  mt=None, irespr=1,
                   iwt_errorr=2, relative=True,
                   temp=NJOY_TEMPERATURES[0], mfcov=33,
                   iprint=False,
@@ -633,8 +634,9 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         temperature in K (default is 293.6 K)
     mfcov : `int`
         endf covariance file to be processed (default is 33)
-    mt_errorr: iterable of `int`, optional
+    mt: `int` or iterable of `int`, optional
         run errorr only for the selected mt numbers
+        (default is `None`, i.e., process all MT)
     spectrum_errorr : iterable, optional
         weight function (default is `None`)
 
@@ -742,7 +744,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 33 1/
 
     Test for MT:
-    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt_errorr=[1,2]))
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt=[1, 2]))
     errorr
     20 21 0 22 0 /
     9237 2 2 0 1 /
@@ -762,11 +764,11 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     text += [f"{printflag:d} {temp:.1f} /"]
     text += [f"{iread:d} {mfcov} {irespr:d}/"]
     if iread == 1:
-        mt = kwargs["mt_errorr"]
-        mt_ = [mt] if isinstance(mt, int) else mt
-        nmt = len(mt_)
+        mt = kwargs["mt"]
+        mtlist = [mt] if isinstance(mt, int) else mt
+        nmt = len(mtlist)
         text += [f"{nmt:d} 0 /"]
-        text += [" ".join(map(str, mt_)) + " /"]
+        text += [" ".join(map(str, mtlist)) + " /"]
     if ign_ == 1:
         nk = len(ek_errorr) - 1
         text += [f"{nk} /"]
@@ -786,7 +788,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
                   ign=2, ek_groupr=None, igg=0,  ep=None,
                   iwt_groupr=2, lord=0, sigz=[1e+10],
                   temp=NJOY_TEMPERATURES[0],
-                  spectrum_groupr=None, mt_groupr=None,
+                  spectrum_groupr=None, mt=None,
                   iprint=False, nubar=False, mubar=False, chi=False,
                   nuclide_production=False,
                   **kwargs):
@@ -823,8 +825,9 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
 
     lord : `int`, optional
         Legendre order (default is 0)
-    mt_groupr: iterable of `int`, optional
-        run groupr only for the selected mt numbers
+    mt: `int` or iterable of `int`, optional
+        run groupr only for the selected MT numbers
+        (default is `None`, i.e., process all MT)
     mubar : `bool`, optional
         Proccess mubar (default is `False`)
     nubar : `bool`, optional
@@ -986,7 +989,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test for MT:
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt_groupr=[1,2]))
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[1, 2]))
     groupr
     20 21 0 0 /
     22 9237 0 2 0 1 1 0 /
@@ -1025,11 +1028,11 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
                                           spectrum_groupr[1::2]))
         text += [tab1]
         text += ["/"]
-    if not mt_groupr:
+    if mt is None:
         text += ["3/"]  # by default process all cross sections (MF=3)
     else:
-        MT = [mt_groupr] if isinstance(mt_groupr, int) else mt_groupr
-        for mt_ in MT:
+        mtlist = [mt] if isinstance(mt, int) else mt
+        for mt_ in mtlist:
             text += [f"3 {mt_:d} /"]
     if mubar:
         text += ["3 251 'mubar' /"]

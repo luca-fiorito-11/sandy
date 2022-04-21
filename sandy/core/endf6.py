@@ -14,7 +14,7 @@ from urllib.request import urlopen, Request, urlretrieve
 from zipfile import ZipFile
 import re
 
-
+import numpy as np
 import pandas as pd
 
 import sandy
@@ -1688,8 +1688,6 @@ If you want to process 0K cross sections use `temperature=0.1`.
             weight function option (default is 2, constant)
         spectrum_groupr : iterable, optional
             Weight function as a iterable (default is None)
-        mt_groupr: iterable of `int`, optional
-            run groupr only for the selected mt numbers
 
         Parameters for ERRORR
         ---------------------
@@ -1705,8 +1703,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
         irespr: `int`, optional
             processing for resonance parameter covariances
             (default is 1, 1% sensitivity method)
-        mt_errorr: `int` or iterable of `int`, optional
+        mt: `int` or iterable of `int`, optional
             list of MT reactions to be processed
+            (the same will be used for GROUPR)
+
             .. note:: this list will be used for all covariance types, i.e.,
                       MF31, MF33, MF34, MF35.
                       If this is not the expected behavior, use keyword
@@ -1993,7 +1993,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
     
         Test for MT:
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> out = endf6.get_errorr(verbose=True, mt_errorr=[1,2], ek_errorr=sandy.energy_grids.CASMO12)
+        >>> out = endf6.get_errorr(verbose=True, mt=[1, 2], ek_errorr=sandy.energy_grids.CASMO12)
         moder
         20 -21 /
         reconr
@@ -2036,13 +2036,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
             kwds_njoy["unresr"] = kwds_njoy.get("unresr", False)
             kwds_njoy['keep_pendf'] = kwds_njoy.get('keep_pendf', False)
 
-        # Covariance information:
         cov_info = self.covariance_info(nubar=nubar, xs=xs,
                                         mubar=mubar, chi=chi)
-        if bool(cov_info):
-            kwds_njoy.update(cov_info)
-        else:
-            return
+        if not np.any(list(cov_info.values())):
+            return  # no covariance found or wanted
 
         # Mandatory multigroup module activation
         groupr_ = True if (kwds_njoy["nubar"] or kwds_njoy["chi"] or "ek_groupr" in kwds_njoy or "spect_groupr" in kwds_njoy) else groupr
@@ -2443,6 +2440,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350)
         >>> endf6.covariance_info()
         {'nubar': True, 'xs': True, 'mubar': False, 'chi': True}
+
         If MF34 is not found, setting `mubar=True` won't change anything'
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350)
         >>> endf6.covariance_info(mubar=True)
@@ -2451,7 +2449,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         All infos are `False` if no covariance is found
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10030)
         >>> endf6.covariance_info()
-        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True}
+        {'nubar': False, 'xs': False, 'mubar': False, 'chi': False}
         """
         supported_mf = [31, 33, 34, 35]
         endf6_cov_mf = self.to_series().index.get_level_values("MF")\
