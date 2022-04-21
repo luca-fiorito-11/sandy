@@ -13,6 +13,7 @@ import logging
 from urllib.request import urlopen, Request, urlretrieve
 from zipfile import ZipFile
 import re
+import pytest
 
 import numpy as np
 import pandas as pd
@@ -1678,10 +1679,11 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         Parameters for GROUPR
         ---------------------
-        ign : `int`, optional
+        ign_groupr : `int`, optional
             neutron group option (default is 2, csewg 239-group structure)
-        ek : iterable, optional
-            derived cross section energy bounds (default is `[1e-5, 2e7]`)
+        ek_groupr : iterable, optional
+            derived cross section energy bounds
+            (default is `[1e-5, 2e7]` if `ign_groupr==1`)
         sigz : iterable of `float`
             sigma zero values. The default is 1.0e10.
         iwt_groupr : `int`, optional
@@ -1691,26 +1693,28 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         Parameters for ERRORR
         ---------------------
-        ign : `int`, optional
+        ign_errorr : `int`, optional
             neutron group option (default is 2, csewg 239-group structure)
-        ek : iterable, optional
-            derived cross section energy bounds (default is `[1e-5, 2e7]`)
+        ek_errorr : iterable, optional
+            derived cross section energy bounds
+            (default is `[1e-5, 2e7]` if `ign_errorr==1`)
         iwt_errorr : `int`, optional
             weight function option (default is 2, constant)
-            .. note:: this option will also be used for GROUPR
         spectrum_errorr : iterable, optional
-            Weight function as a iterable (default is None)
+            weight function as a iterable (default is None)
         irespr: `int`, optional
             processing for resonance parameter covariances
             (default is 1, 1% sensitivity method)
         mt: `int` or iterable of `int`, optional
             list of MT reactions to be processed
-            (the same will be used for GROUPR)
 
             .. note:: this list will be used for all covariance types, i.e.,
                       MF31, MF33, MF34, MF35.
                       If this is not the expected behavior, use keyword
                       arguments `nubar`, `xs`, `mubar` and `chi`.
+
+            .. note:: keyword `mt` is currently incompatible with keyword
+                      `groupr`.
 
         Returns
         -------
@@ -1722,12 +1726,6 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Notes
         -----
         .. note:: method arguments are consistent with those of `get_pendf`
-
-        .. note:: parameters for groupr are the same as for errorr
-
-        .. note:: When MF35 and MF34 are true at the same time, the ERRORR
-        module first calculates MF35 and then MF34, otherwise it gives an
-        error.
 
         Examples
         --------
@@ -2013,6 +2011,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         stop
         
+        Keywords `mt` and `groupr` are incompatible
+        >>> with pytest.raises(sandy.SandyError):
+        ...    sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, mt=1, groupr=True)
+            
         Test content of output `Errorr` file
         >>> out = sandy.get_endf6_file('jeff_33', "xs", 922350).get_errorr(err=1., irespr=0, mubar=False, chi=False)
         >>> keys = [(9228, 1, 451), (9228, 3, 456), (9228, 33, 456), (9228, 3, 1), (9228, 3, 2), (9228, 3, 4), (9228, 3, 16), (9228, 3, 17), (9228, 3, 18), (9228, 3, 37), (9228, 3, 102), (9228, 33, 1), (9228, 33, 2), (9228, 33, 4), (9228, 33, 16), (9228, 33, 17), (9228, 33, 18), (9228, 33, 37), (9228, 33, 102)]
@@ -2040,9 +2042,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
                                         mubar=mubar, chi=chi)
         if not np.any(list(cov_info.values())):
             return  # no covariance found or wanted
+        kwds_njoy.update(cov_info)
 
-        # Mandatory multigroup module activation
-        groupr_ = True if (kwds_njoy["nubar"] or kwds_njoy["chi"] or "ek_groupr" in kwds_njoy or "spect_groupr" in kwds_njoy) else groupr
+        # Mandatory groupr module activation
+        groupr_ = True if (kwds_njoy["nubar"] or kwds_njoy["chi"] or "ek_groupr" in kwds_njoy or "spectrum_groupr" in kwds_njoy) else groupr
 
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
@@ -2096,38 +2099,33 @@ If you want to process 0K cross sections use `temperature=0.1`.
         **kwargs : `dict`
             keyword argument to pass to `sandy.njoy.process`.
 
-        Parameters for RECONR
-        ---------------------
+        Parameters for RECONR and BROADR
+        --------------------------------
         err : `float`, optional
             reconstruction tolerance (default is 0.005)
 
-        Parameters for BROADR
-        ---------------------
-        err : `float`
-            tolerance (default is 0.001)
-
         Parameters for GROUPR
         ---------------------
+        chi : `bool`, optional
+            Proccess the chi covariance(default is `False`)
         ign : `int`, optional
             neutron group option (default is 2, csewg 239-group structure)
         iwt_groupr : `int`, optional
             weight function option (default is 2, constant)
+        mubar : `bool`, optional
+            Proccess multigroup mubar (default is `False`)
+        mt: `int` or iterable of `int`, optional
+            run groupr only for the selected MT numbers
+        nubar : `bool`, optional
+            Proccess multigroup nubar (default is `False`)
+        nuclide_production : `bool`, optional
+            process multigroup activation yields (default is `False`)
         spectrum_groupr : iterable, optional
             Weight function as a iterable (default is None)
         sigz : iterable of `float`
             sigma zero values. The default is 1.0e10.
-        nubar : `bool`, optional
-            Proccess the nubar covariance(default is `False`)
         xs : `bool`, optional
-            Proccess the xs covariance(default is `True`)
-        mubar : `bool`, optional
-            Proccess the mubar covariance(default is `False`)
-        chi : `bool`, optional
-            Proccess the chi covariance(default is `False`)
-        nuclide_production : `bool`, optional
-            print option (default is `False`)
-        mt_groupr: iterable of `int`, optional
-            run groupr only for the selected mt numbers
+            Proccess multigroup xs (default is `True`)
 
         Returns
         -------
@@ -2136,7 +2134,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         Examples
         --------
-        Default temperature test:
+        Default test
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> out = endf6.get_gendf(verbose=True)
         moder
@@ -2166,9 +2164,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         -24 32 /
         stop
 
-        Test for parameters of groupr:
-
-        Test various sigz:
+        Test keyword `sigz`
         >>> out = endf6.get_gendf(verbose=True, sigz=[1.0e10, 1e2])
         moder
         20 -21 /
@@ -2197,7 +2193,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         -24 32 /
         stop
 
-        Test iwt:
+        Test keyword `iwt_groupr`
         >>> out = endf6.get_gendf(verbose=True, iwt_groupr=3)
         moder
         20 -21 /
@@ -2226,8 +2222,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
         -24 32 /
         stop
 
-        Test ign:
-        >>> out = endf6.get_gendf(verbose=True, ign=3)
+        Test keyword `ign_groupr`
+        >>> out = endf6.get_gendf(verbose=True, ign_groupr=3)
         moder
         20 -21 /
         reconr
@@ -2255,12 +2251,12 @@ If you want to process 0K cross sections use `temperature=0.1`.
         -24 32 /
         stop
 
-        Test `to_file`
+        Test keyword `to_file`
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> out = endf6.get_gendf(to_file="out.gendf")
         >>> assert os.path.isfile('out.gendf')
 
-        Test energy grid:
+        Test keyword `ek_groupr`
         >>> out = endf6.get_gendf(verbose=True, ek_groupr=sandy.energy_grids.CASMO12)
         moder
         20 -21 /
@@ -2326,7 +2322,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         -24 32 /
         stop
 
-        Spectrum test:
+        Test keyword `spectrum_groupr`
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 10010)
         >>> spect = [1.000000e-5, 2.00000000, 3.000000e-2, 2.00000000, 5.800000e-2, 4.00000000, 3, 1]
         >>> out = endf6.get_gendf(spectrum_groupr=spect, ek_groupr=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False)
@@ -2365,15 +2361,26 @@ If you want to process 0K cross sections use `temperature=0.1`.
         stop
         """
         kwds_njoy = kwargs.copy()
-        kwds_njoy["thermr"] = False
-        kwds_njoy["gaspr"] = False
-        kwds_njoy["heatr"] = False
-        kwds_njoy["purr"] = False
-        kwds_njoy["unresr"] = False
+        if float(temperature) == 0:
+            kwds_njoy["broadr"] = False
+            kwds_njoy["thermr"] = False
+            kwds_njoy["gaspr"] = False
+            kwds_njoy["heatr"] = False
+            kwds_njoy["purr"] = False
+            kwds_njoy["unresr"] = False
+            kwds_njoy['keep_pendf'] = False
+        else:
+            kwds_njoy["broadr"] = True
+            kwds_njoy["thermr"] = kwds_njoy.get("thermr", False)
+            kwds_njoy["gaspr"] = kwds_njoy.get("gaspr", False)
+            kwds_njoy["heatr"] = kwds_njoy.get("heatr", False)
+            kwds_njoy["purr"] = kwds_njoy.get("purr", False)
+            kwds_njoy["unresr"] = kwds_njoy.get("unresr", False)
+            kwds_njoy['keep_pendf'] = kwds_njoy.get('keep_pendf', False)
+
         kwds_njoy["acer"] = False
         kwds_njoy["keep_pendf"] = False
-        kwds_njoy['errorr'] = False
-        kwds_njoy["broadr"] = False if float(temperature) == 0 else True
+
         kwds_njoy["nubar"] = nubar
         kwds_njoy["xs"] = xs
         kwds_njoy["chi"] = chi
