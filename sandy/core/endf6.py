@@ -1167,8 +1167,22 @@ class Endf6(_FormattedFile):
 
     Methods
     -------
+    get_ace
+        Process `Endf6` instance into an ACE file using NJOY.
+    get_pendf
+        Process `Endf6` instance into a PENDF file using NJOY.
+    get_errorr
+        Process `Endf6` instance into a Errorr file using NJOY.
+    get_id
+        Extract ID for a given MAT for a ENDF-6 file.
     read_section
         Parse MAT/MF/MT section.
+    to_file
+        Given a filename write the content of a `Endf6` instance to disk in
+        ASCII format.
+    to_string
+        Write `Endf6.data` content to string according to the ENDF-6 file
+        rules.
     write_string
         Write ENDF-6 content to string.
     """
@@ -1291,6 +1305,24 @@ class Endf6(_FormattedFile):
         return string
 
     def to_file(self, filename, mode="w", **kwargs):
+        """
+        Given a filename write the content of a `Endf6` instance to disk in
+        ASCII format.
+
+        Parameters
+        ----------
+        filename : TYPE
+            DESCRIPTION.
+        mode : TYPE, optional
+            DESCRIPTION. The default is "w".
+        **kwargs : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
         text = self.write_string(**kwargs)
         with open(filename, mode) as f:
             f.write(text)
@@ -1337,6 +1369,54 @@ class Endf6(_FormattedFile):
         self.SECTIONS = self.loc[INFO["MAT"]].reset_index()["MF"].unique()
         self.EHRES = 0
         self.THNMAX = - self.EHRES if self.EHRES != 0 else 1.0E6
+
+    def get_id(self, method="nndc"):
+        """
+        Extract ID for a given MAT for a ENDF-6 file.
+
+        Parameters
+        ----------
+        method : `str`, optional
+            Methods adopted to produce the ID. The default is `"nndc"`.
+            - if `method='aleph'` the ID is the ZAM identifier
+            - else, the ID is the ZA identifier according to the NNDC rules
+
+        Returns
+        -------
+        ID : `int`
+            ID of the ENDF-6 file.
+
+        Notes
+        -----
+        .. note:: a warning is raised if more than one MAT is found.
+                  Only the ID corresponding to the lowest MAT will be returned.
+ 
+        Examples
+        --------
+        Extract ID for H1 file using NNDC and ALEPH methods
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> assert tape.get_id() == 1001
+        >>> assert tape.get_id(method="aleph") == 10010
+
+        Extract ID for Am242m file using NNDC and ALEPH methods
+        >>> tape2 = sandy.get_endf6_file("jeff_33", "xs", 952421)
+        >>> assert tape2.get_id() == 95642
+        >>> assert tape2.get_id(method="ALEPH") == 952421
+
+        >>> assert tape.merge(tape2).get_id() == 1001
+        >>> assert tape2.merge(tape).get_id() == 1001
+        """
+        mat = self.mat[0]
+        if len(self.mat) != 1:
+            msg = "More than one MAT found, will give ID only for the lowest MAT"
+            logging.warning(msg)
+        info = self.read_section(mat, 1, 451)
+        meta = info["LISO"]
+        za = int(info["ZA"])
+        zam = za * 10 + meta
+        za_new = za + meta * 100 + 300 if meta else za
+        ID = zam if method.lower() == "aleph" else za_new
+        return ID
 
     def get_ace(self,
                 temperature,
@@ -1650,7 +1730,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         >>> assert isinstance(out, sandy.Errorr)
 
         Test `ign` and `ek`
-        >>> assert out.get_xs(125, 1).size == 12
+        >>> assert out.get_xs().data[(125, 1)].size == 12
         
         Test `to_file`
         >>> out = endf6.get_errorr(to_file="out.err")

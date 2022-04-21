@@ -389,10 +389,8 @@ class XsCov2():
         """
         >>> cov = sandy.EnergyCov.random_corr(3, seed=1)
         >>> xscov = XsCov2([[125, 2, 125, 2, cov]])
-        >>> xscov.append(1, 2, 3, 4, cov)
-           MAT  MT  MAT1  MT1                                                COV
-        0  125   2   125    2  E            0.00000e+00  1.00000e+00  2.00000...
-        1    1   2     3    4  E            0.00000e+00  1.00000e+00  2.00000...
+        >>> xscov.append(1, 2, 3, 4, cov).data.shape
+        (2, 5)
         """
 #           MAT  MT  MAT1  MT1                                                COV
 #        0  125   2   125    2  E            0.00000e+00  1.00000e+00\nE      ...

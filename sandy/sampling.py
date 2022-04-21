@@ -728,7 +728,7 @@ def extract_samples(ftape, covtape):
                 # Limit imposed by running ERRORR to get covariance matrices
                 raise sandy.Error("More than one MAT number was found")
             endf6 = sandy.Endf6.from_file(init.file)
-            covtape = endf6.get_errorr(init.njoy)
+            covtape = endf6.get_errorr(njoy=init.njoy)
         
             
                 
@@ -750,8 +750,7 @@ def extract_samples(ftape, covtape):
 
         listmt = sorted(set(init.mt + [451])) # ERRORR needs MF1/MT451 to get the energy grid
         covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmt)
-        covtype = covtape.get_file_format()
-        xscov = XsCov.from_errorr(covtape) if covtype == "errorr" else XsCov.from_endf6(covtape)
+        xscov = XsCov(covtape.get_cov().data) if isinstance(covtape, sandy.errorr.Errorr) else XsCov.from_endf6(covtape)
         if not xscov.empty:
             PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
             if init.debug:

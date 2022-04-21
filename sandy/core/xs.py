@@ -123,7 +123,7 @@ class Xs():
     def data(self, data):
         self._data = data.rename_axis(self.__class__._indexname, axis=0)\
                          .rename_axis(self.__class__._columnsnames, axis=1)
-        self._data.index = self._data.index.astype(float)
+        self._data.index = self._data.index
         if not data.index.is_monotonic_increasing:
             raise sandy.Error("energy grid is not monotonically increasing")
 

@@ -277,7 +277,6 @@ class CategoryCov():
         -----
         ..note :: In the future, another tests will be implemented to check
         that the covariance matrix is symmetric and have positive variances.
-        ..note :: 
 
         Examples
         --------
@@ -369,25 +368,25 @@ class CategoryCov():
                     0            1
         0 7.07107e-01 -7.07107e-01
         1 7.07107e-01  7.07107e-01
-        
+
         Extract eigenvalues of covariance matrix.
         >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).eig()[0]
         0   8.90228e-02
         1   1.01098e+00
         Name: eigenvalues, dtype: float64
-        
+
         Set up a tolerance.
         >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).eig(tolerance=0.1)[0]
         0   0.00000e+00
         1   1.01098e+00
         Name: eigenvalues, dtype: float64
-        
+
         Test with negative eigenvalues.
         >>> sandy.CategoryCov([[1, 2], [2, 1]]).eig()[0]
         0    3.00000e+00
         1   -1.00000e+00
         Name: eigenvalues, dtype: float64
-        
+
         Replace negative eigenvalues.
         >>> sandy.CategoryCov([[1, 2], [2, 1]]).eig(tolerance=0)[0]
         0   3.00000e+00
@@ -418,9 +417,9 @@ class CategoryCov():
         5    1.81078e-06
         6    1.26691e-07
         Name: eigenvalues, dtype: float64
-        
+
         >>> assert not (cov.eig()[0] >= 0).all()
-        
+
         >>> assert (cov.eig(tolerance=0)[0] >= 0).all()
         """
         E, V = scipy.linalg.eig(self.data)
@@ -456,7 +455,6 @@ class CategoryCov():
             index=self.data.index,
             columns=self.data.columns,
             )
-
 
     def invert(self, rows=None):
         """
@@ -511,10 +509,11 @@ class CategoryCov():
         return self.__class__(M_inv)
 
     def sampling(self, nsmp, seed=None, rows=None, pdf='normal',
-                               tolerance=None, relative=True):
+                 tolerance=None, relative=True):
         """
         Extract perturbation coefficients according to chosen distribution with
-        covariance from given covariance matrix.
+        covariance from given covariance matrix. See note for non-normal
+        distribution sampling.
         The samples' mean will be 1 or 0 depending on `relative` kwarg.
 
         Parameters
@@ -532,6 +531,7 @@ class CategoryCov():
             Available distributions are:
                 * `'normal'`
                 * `'uniform'`
+                * `'lognormal'`
         tolerance : `float`, optional, default is `None`
             replace all eigenvalues smaller than a given tolerance with zeros.
         relative : `bool`, optional, default is `True`
@@ -544,6 +544,11 @@ class CategoryCov():
         -------
         `sandy.Samples`
             object containing samples
+
+        Notes
+        -----
+        .. note:: sampling with non-normal distribution is performed on
+            diagonal covariance matrix, neglecting all correlations.
 
         Examples
         --------
@@ -578,35 +583,67 @@ class CategoryCov():
         0  1.16925e+00 -1.89189e+00
         1 -1.89189e+00  3.06115e+00
 
+        Sampling with different `pdf`:
         >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11, pdf='uniform', tolerance=0)
-                    0            1
-        0 2.19845e+00 -9.39131e-01
-        1 2.80116e+00 -1.91433e+00
-        2 1.13787e+00  7.76924e-01
+                     0           1
+        0 -1.07578e-01 2.34960e+00
+        1 -6.64587e-01 5.21222e-01
+        2  8.72585e-01 9.12563e-01
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(3, seed=11, pdf='lognormal', tolerance=0)
+                     0            1
+         0 3.03419e+00 -5.97565e-01
+         1 5.57248e-01  4.84276e-01
+         2 4.72366e-01  2.06538e-01
 
         >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0).data.cov()
                      0            1
-        0  1.17131e+00 -1.89522e+00
-        1 -1.89522e+00  3.06654e+00
+        0  1.00042e+00 -1.58806e-03
+        1 -1.58806e-03  3.00327e+00
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0).data.cov()
+                     0            1
+        0  1.00219e+00 -4.46863e-04
+        1 -4.46863e-04  2.96421e+00
 
         `relative` kwarg usage:
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=True).data.mean(axis=0)
+        0   9.99847e-01
+        1   1.00025e+00
+        dtype: float64
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=False).data.mean(axis=0)
+        0   -1.53364e-04
+        1    2.48148e-04
+        dtype: float64
+
         >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=True).data.mean(axis=0)
-        0   1.00205e+00
-        1   9.96685e-01
+        0   9.98106e-01
+        1   9.99284e-01
         dtype: float64
 
         >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=False).data.mean(axis=0)
-        0    2.04904e-03
-        1   -3.31541e-03
+        0   -1.89367e-03
+        1   -7.15929e-04
+        dtype: float64
+
+        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=True).data.mean(axis=0)
+        0   9.99902e-01
+        1   9.98551e-01
         dtype: float64
         """
         dim = self.data.shape[0]
-        y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf)
+        y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf) - 1
         y = sps.csc_matrix(y)
-        L = sps.csr_matrix(self.get_L(rows=rows, tolerance=tolerance))
+        if pdf == 'normal':
+            L = sps.csr_matrix(self.get_L(rows=rows, tolerance=tolerance))
+        else:
+            L = sps.csr_matrix(np.diag(np.sqrt(np.diag(self.data))))
         samples = L.dot(y).toarray()
         if relative:
-            samples += 1  # mean=1, to be multiplied by best estimate
+            samples += 1  # mean=1, to be multiplied by the best estimate
+        elif pdf == 'lognormal':
+            logging.warning("LogNormal distribution should not have mean=0")
         df = pd.DataFrame(samples,
                           index=self.data.index,
                           columns=list(range(nsmp)),
@@ -1695,12 +1732,10 @@ class EnergyCov(CategoryCov):
         self._data.index = pd.Index(
                 self._data.index.values,
                 name="E",
-                dtype=float,
                 )
         self._data.columns = pd.Index(
                 self._data.columns.values,
                 name="E",
-                dtype=float,
                 )
         if not self._data.index.is_monotonic_increasing:
             raise sandy.Error("index values are not monotonically increasing")
@@ -2332,8 +2367,8 @@ def triu_matrix(matrix, kind='upper'):
 
 def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
     """
-    Extract random samples according to the chosen distribution with standard
-    deviation=1 and mean=0.
+    Extract random independent and identically distributed samples according to
+    the chosen distribution with standard deviation=1 and mean=1.
 
     Parameters
     ----------
@@ -2349,33 +2384,56 @@ def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
         Available distributions are:
             * `'normal'`
             * `'uniform'`
+            * `'lognormal'`
 
     Returns
     -------
     y : `np.array`
         Numpy array with the random numbers.
-
+        
+    Notes
+    -----
+    .. note:: the implementation of the lognormal distribution sampling is
+            performed with the following equations:
+            ..math::
+                $$
+                \mu_{LN} = \exp(\mu_N + \frac{\sigma_N^2}{2})\\
+                \sigma_{LN} = \sqrt{[\exp(2\mu_N + 2\sigma_N^2) - \exp(2\mu_N + \sigma_N^2)]}
+                $$
+            More details can be found in reference: https://linkinghub.elsevier.com/retrieve/pii/S0168900213008450
+                                                    DOI: 10.1016/J.NIMA.2013.06.025
+   
     Examples
     --------
     >>> sandy.cov.sample_distribution(2, 3, seed=11)
-    array([[ 1.74945474, -0.286073  , -0.48456513],
-           [-2.65331856, -0.00828463, -0.31963136]])
+    array([[ 2.74945474,  0.713927  ,  0.51543487],
+           [-1.65331856,  0.99171537,  0.68036864]])
 
     >>> sandy.cov.sample_distribution(2, 3, seed=11, pdf='uniform')
-    array([[-1.10757829, -1.66458659, -0.12741476],
-           [ 0.77919399, -0.27642282, -0.05048201]])
+    array([[-0.10757829, -0.66458659,  0.87258524],
+           [ 1.77919399,  0.72357718,  0.94951799]])
+    
+    >>> sandy.cov.sample_distribution(2, 3, seed=11, pdf='lognormal')
+    array([[3.03418551, 0.55724795, 0.4723663 ],
+           [0.07764515, 0.70224636, 0.54189439]])
 
     >>> sandy.cov.sample_distribution(2, 1000000, seed=11).mean().round(5)
-    0.00025
+    1.00025
 
     >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='uniform').mean().round(5)
-    -0.00115
+    0.99885
+
+    >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='lognormal').mean().round(5)
+    0.99953
 
     >>> sandy.cov.sample_distribution(2, 1000000, seed=11).std().round(5)
     0.99919
 
     >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='uniform').std().round(5)
     1.00038
+
+    >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='lognormal').std().round(5)
+    0.99756
 
     >>> np.corrcoef(sandy.cov.sample_distribution(2, 1000000, seed=11)).round(5)
     array([[1.e+00, 5.e-05],
@@ -2384,13 +2442,22 @@ def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
     >>> np.corrcoef(sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='uniform')).round(5)
     array([[ 1.0e+00, -9.2e-04],
            [-9.2e-04,  1.0e+00]])
+
+    >>> np.corrcoef(sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='lognormal')).round(5)
+    array([[ 1.0e+00, -2.6e-04],
+           [-2.6e-04,  1.0e+00]])
     """
     np.random.seed(seed=seed)
     if pdf == 'normal':
-        y = np.random.randn(dim, nsmp)
+        y = np.random.randn(dim, nsmp) + 1
     elif pdf == 'uniform':
         a = np.sqrt(12) / 2
-        y = np.random.uniform(-a, a, (dim, nsmp))
+        y = np.random.uniform(-a, a, (dim, nsmp)) + 1
+    elif pdf == 'lognormal':
+        sl = ml = 1 # target mean and standard deviation of the lognormal distribution
+        mn = 2 * np.log(ml) - .5 * np.log(sl**2 + np.exp(2 * np.log(ml))) # required mean of the corresponding normal distibution (note reference in the docstring)
+        sn = np.sqrt(2 * (np.log(ml) - mn)) # required standard deviation of the corresponding normal distibution (note reference in the docstring)
+        y = np.random.lognormal(mn, sn, (dim, nsmp))
     return y
 
 
