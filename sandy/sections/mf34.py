@@ -33,6 +33,11 @@ def read_mf34(tape, mat, mt):
     `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
 
+    Notes
+    -----
+    .. note:: The covariance pattern as a function of incident energy values
+              (0,1,2,5 and 6 are allowed) are defined as for File 33
+
     Examples
     --------
     >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922380)
@@ -62,31 +67,31 @@ def read_mf34(tape, mat, mt):
     C, i = sandy.read_cont(df, i)
     out.update({"ZA": C.C1,
                 "AWR": C.C2,
-                "LTT": C.L2,
-                "NMT1": C.N2,
+                "LTT": C.L2,  # Legendre coefficient covariances starting coefficient
+                "NMT1": C.N2,  # Number of subsections
                 "REAC": {}})
     for j in range(out["NMT1"]):
             C, i = sandy.read_cont(df, i)
             mat1 = C.L1
             mt1 = C.L2
-            sub = {"NL": C.N1,
-                   "NL1": C.N2,
+            sub = {"NL": C.N1,  # Number of Legendre coefficients for the MT reaction
+                   "NL1": C.N2,  # Number of Legendre coefficients for the MT1 reaction
                    "P": {}}
             nss = C.N1 * (C.N1 + 1) // 2 if C.L2 == out["MT"] else C.N1 * C.N2
             for k in range(nss):
                 C, i = sandy.read_cont(df, i)
-                l = C.L1
-                l1 = C.L2
+                l = C.L1  # Index of the Legendre coefficient for reaction MT
+                l1 = C.L2  # Index of the Legendre coefficient for reaction MT1
                 ni = C.N2
-                ssub = {"LCT": C.N1,
+                ssub = {"LCT": C.N1,  # Flag to specify coordinate system
                         "NI": {}}
                 for m in range(ni):
                     L, i = sandy.read_list(df, i)
-                    sssub = {"LS": L.L1,
-                             "LB": L.L2,
-                             "NT": L.NPL,
-                             "NE": L.N2}
-                    if sssub["LB"] in range(5):
+                    sssub = {"LS": L.L1,  # Indicate if the matrix is symmetric
+                             "LB": L.L2,  # Flag to indicate the covariance pattern as a function of incident energy.
+                             "NT": L.NPL,  # Total number of items
+                             "NE": L.N2}  # Energy points
+                    if sssub["LB"] in range(5):  # Flag to indicate the covariance pattern as a function of incident energy.
                         if sssub["LS"] == 0:
                             sssub.update({"EK": L.B[::2],
                                           "FK": L.B[1::2]})

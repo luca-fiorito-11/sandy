@@ -52,16 +52,16 @@ def read_mf35(tape, mat, mt):
     C, i = sandy.read_cont(df, i)
     out.update({"ZA": C.C1,
                 "AWR": C.C2,
-                "NK": C.N1,
+                "NK": C.N1, # Number of subsections
                 "SUB": {}})
     for k in range(out["NK"]):
         L, i = sandy.read_list(df, i)
-        D = {"ELO": L.C1,
-             "EHI": L.C2,
-             "LS": L.L1,
-             "LB": L.L2,
-             "NE": L.N2,
-             "EK": L.B[:L.N2],
-             "FKK": L.B[L.N2:]}
+        D = {"ELO": L.C1,  # Lowest incident neutron energy for this subsection
+             "EHI": L.C2,  # Highest incident neutron energy for this subsection
+             "LS": L.L1,  # Flago to indicate if the covariance matrix is symmetric
+             "LB": L.L2,  # Flag to indicate if the covariance matrix is given in absolute or relative terms
+             "NE": L.N2,  # Number of entries in the array containing outgoing particle energies
+             "EK": L.B[:L.N2],  # Array containing outgoing particle energies
+             "FKK": L.B[L.N2:]}  # Covariance matrix ordered by rows and starting from the diagonal term
         out["SUB"].update({k+1: D})
     return out
