@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-This module contains only one public functions:
+This module contains a single public function:
 
-    * `read_mf34`
+    * `read_mf35`
 
-Function `read` reads a MF34/MT section from a string and produces a content
-object with a dictionary-like structure.
+Function `read_mf35` reads a MF35/MT section from a string and produces a
+content object with a dictionary-like structure.
 The content object can be accessed using most of the keywords specified in
 the ENDF6 manual for this specific MF section.
 """
@@ -36,7 +36,7 @@ def read_mf35(tape, mat, mt):
     Examples
     --------
     >>> import numpy as np
-    >>> tape = sandy.get_endf6_file("jeff_33",'xs',922380)
+    >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922380)
     >>> out = read_mf35(tape, mat=9237, mt=18)["SUB"][1]["FKK"][0:15]
     >>> np.round(out, decimals=35)
     array([0.00000e+00, 1.00000e-35, 1.00000e-35, 3.00000e-35, 2.00000e-34,

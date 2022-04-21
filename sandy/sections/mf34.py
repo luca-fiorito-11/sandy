@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-This module contains only one public functions:
+This module contains a single public function:
 
     * `read_mf34`
 
-Function `read` reads a MF34/MT section from a string and produces a content
-object with a dictionary-like structure.
+Function `read_mf34` reads a MF34/MT section from a string and produces a 
+content object with a dictionary-like structure.
 The content object can be accessed using most of the keywords specified in
 the ENDF6 manual for this specific MF section.
 
@@ -35,7 +35,7 @@ def read_mf34(tape, mat, mt):
 
     Examples
     --------
-    >>> tape = sandy.get_endf6_file("jeff_33",'xs',922380)
+    >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922380)
     >>> read_mf34(tape, mat=9237, mt=2)["REAC"][(0,2)]["P"][(1, 1)]["NI"][0]["FKK"][0:15]
     [1.51558,
      1.51558,
@@ -72,7 +72,7 @@ def read_mf34(tape, mat, mt):
             sub = {"NL": C.N1,
                    "NL1": C.N2,
                    "P": {}}
-            nss = C.N1*(C.N1+1)//2 if C.L2 == out["MT"] else C.N1*C.N2
+            nss = C.N1 * (C.N1 + 1) // 2 if C.L2 == out["MT"] else C.N1 * C.N2
             for k in range(nss):
                 C, i = sandy.read_cont(df, i)
                 l = C.L1
