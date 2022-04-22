@@ -157,8 +157,7 @@ class Errorr(_FormattedFile):
             102	      (0.01, 10.0]	1.07035e-06	       7.58742e-09	 0.00000e+00	       0.00000e+00	6.51764e-04	           3.40163e-04
                 (10.0, 20000000.0]	5.58627e-07	       1.49541e-06	 0.00000e+00	       0.00000e+00	3.40163e-04	           6.70431e-02
         """
-        eg = self.get_energy_grid()
-        eg = pd.IntervalIndex.from_breaks(eg)
+        eg = pd.IntervalIndex.from_breaks(self.get_energy_grid())
         data = []
         for mat, mf, mt in self.filter_by(listmf=[31, 33]).data:
             mf33 = sandy.errorr.read_mf33(self, mat, mt)
