@@ -391,7 +391,7 @@ class CategoryCov():
         >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).get_eig()[0]
         0   8.90228e-02
         1   1.01098e+00
-        Name: eigenvalues, dtype: float64
+        Name: EIG, dtype: float64
 
         Set up a tolerance.
         >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).get_eig(tolerance=0.1)[0]
@@ -1500,7 +1500,6 @@ class CategoryCov():
             sandwich = self._gls_Vy_calc(s_, rows=rows)
         if threshold is not None:
             sandwich[sandwich < threshold] = 0
-        return sandwich
         return self.__class__(sandwich,
                               index=self.data.index,
                               columns=self.data.columns)
@@ -1647,7 +1646,7 @@ class CategoryCov():
         """
         corr = random_corr(size, correlations=correlations, seed=seed)
         std = np.random.uniform(stdmin, stdmax, size)
-        return cls.corr2cov(corr, std, **kwargs)
+        return CategoryCov(corr).corr2cov(std)
 
     def to_sparse(self, method='csr_matrix'):
         """
