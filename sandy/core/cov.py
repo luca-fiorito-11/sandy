@@ -1453,9 +1453,12 @@ class CategoryCov():
 
         Returns
         -------
-        `CategoryCov`
+        `float` (if s is 1D iterable)
+            The resulting scalar number after having applied the sandwich
+            formula for a given 1D iterable.
+        `CategoryCov` (if s is 2D iterable)
             `CategoryCov` object to which we have applied sandwich
-            formula for a given pd.Series
+            formula for a given 2D iterable.
 
         Warnings
         --------
@@ -1464,16 +1467,16 @@ class CategoryCov():
 
         Examples
         --------
-        >>> S = np.array([1, 2, 3])
-        >>> var = pd.Series([1, 2, 3])
-        >>> cov = sandy.CategoryCov.from_var(S)
-        >>> cov.sandwich(var)
+        >>> var = np.array([1, 2, 3])
+        >>> s = pd.Series([1, 2, 3])
+        >>> cov = sandy.CategoryCov.from_var(var)
+        >>> cov.sandwich(s)
         36.0
 
-        >>> S = np.array([1, 2, 3])
+        >>> s = np.array([1, 2, 3])
         >>> var = pd.Series([1, 2, 3])
-        >>> cov = sandy.CategoryCov.from_var(S)
-        >>> var = sandy.CategoryCov.from_var(var).data
+        >>> cov = sandy.CategoryCov.from_var(var)
+        >>> var = sandy.CategoryCov.from_var(s).data
         >>> cov.sandwich(var)
         	0	1	2
         0	1.00000e+00	0.00000e+00	0.00000e+00
@@ -1483,13 +1486,14 @@ class CategoryCov():
         if pd.DataFrame(s).shape[1] == 1:
             s_ = pd.Series(s)
             sandwich = s_.dot(self.data.dot(s_.T))
+            # sandwich variable is a scalar
             return sandwich
         else:
             s_ = pd.DataFrame(s).T
             sandwich = self._gls_Vy_calc(s_, rows=rows)
-        if threshold is not None:
-            sandwich[sandwich < threshold] = 0
-        return self.__class__(sandwich)
+            if threshold is not None:
+                sandwich[sandwich < threshold] = 0
+            return self.__class__(sandwich)
 
     def corr2cov(self, std):
         """
