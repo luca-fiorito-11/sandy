@@ -750,7 +750,7 @@ def extract_samples(ftape, covtape):
 
         listmt = sorted(set(init.mt + [451])) # ERRORR needs MF1/MT451 to get the energy grid
         covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmt)
-        xscov = XsCov(covtape.get_cov().data) if isinstance(covtape, sandy.errorr.Errorr) else XsCov.from_endf6(covtape)
+        xscov = XsCov(covtape.get_cov(multigroup=False).data) if isinstance(covtape, sandy.errorr.Errorr) else XsCov.from_endf6(covtape)
         if not xscov.empty:
             PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
             if init.debug:
