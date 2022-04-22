@@ -1473,10 +1473,10 @@ class CategoryCov():
         1 0.00000e+00 8.00000e+00 0.00000e+00
         2 0.00000e+00 0.00000e+00 2.70000e+01
 
-        >>> S = pd.DataFrame(np.diag(np.array([1, 2, 3])), index=pd.Index([1, 2, 3]), columns=pd.Index([4, 5, 6]))
-        >>> var = pd.Series([1, 2, 3], index=pd.Index([1, 2, 3]))
-        >>> cov = sandy.CategoryCov(S)
-        >>> cov.sandwich(var)
+        >>> index = [1, 2, 3]
+        >>> c = pd.DataFrame(np.diag(np.array([1, 2, 3])), index=index, columns=index)
+        >>> s = pd.Series([1, 2, 3], index=pd.Index([1, 2, 3]))
+        >>> sandy.CategoryCov(c).sandwich(s)
         	          1	          2	          3
         1	1.00000e+00	0.00000e+00	0.00000e+00
         2	0.00000e+00	8.00000e+00	0.00000e+00
@@ -1500,6 +1500,7 @@ class CategoryCov():
             sandwich = self._gls_Vy_calc(s_, rows=rows)
         if threshold is not None:
             sandwich[sandwich < threshold] = 0
+        return sandwich
         return self.__class__(sandwich,
                               index=self.data.index,
                               columns=self.data.columns)
