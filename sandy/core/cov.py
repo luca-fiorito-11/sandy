@@ -582,9 +582,9 @@ class CategoryCov():
             cov(lnx_i, lnx_j) = \ln\left(\frac{cov(x_i,x_j)}{<x_i>\cdot<x_j>}+1\right)
             $$
         """
-        mu_ = pd.Series(mu)
-        mu_.index = self.data.index
-        return self.__class__(np.log(self.sandwich(1 / mu_).data + 1))
+        mu_ = np.diag(1 / pd.Series(mu))
+        mu_ = pd.DataFrame(mu_, index=self.data.index, columns=self.data.index)
+        return self.__class__(np.log(self.sandwich(mu_).data + 1))
 
 
     def log2norm_mean(self, mu):
@@ -1453,9 +1453,12 @@ class CategoryCov():
 
         Returns
         -------
-        `CategoryCov`
+        `float` (if s is 1D iterable)
+            The resulting scalar number after having applied the sandwich
+            formula for a given 1D iterable.
+        `CategoryCov` (if s is 2D iterable)
             `CategoryCov` object to which we have applied sandwich
-            formula for a given pd.Series
+            formula for a given 2D iterable.
 
         Warnings
         --------
@@ -1464,28 +1467,16 @@ class CategoryCov():
 
         Examples
         --------
-        >>> S = np.array([1, 2, 3])
-        >>> var = pd.Series([1, 2, 3])
-        >>> cov = sandy.CategoryCov.from_var(S)
-        >>> cov.sandwich(var)
-                    0           1           2
-        0 1.00000e+00 0.00000e+00 0.00000e+00
-        1 0.00000e+00 8.00000e+00 0.00000e+00
-        2 0.00000e+00 0.00000e+00 2.70000e+01
+        >>> var = np.array([1, 2, 3])
+        >>> s = pd.Series([1, 2, 3])
+        >>> cov = sandy.CategoryCov.from_var(var)
+        >>> cov.sandwich(s)
+        36.0
 
-        >>> index = [1, 2, 3]
-        >>> c = pd.DataFrame(np.diag(np.array([1, 2, 3])), index=index, columns=index)
-        >>> s = pd.Series([1, 2, 3], index=pd.Index([1, 2, 3]))
-        >>> sandy.CategoryCov(c).sandwich(s)
-        	          1	          2	          3
-        1	1.00000e+00	0.00000e+00	0.00000e+00
-        2	0.00000e+00	8.00000e+00	0.00000e+00
-        3	0.00000e+00	0.00000e+00	2.70000e+01
-
-        >>> S = np.array([1, 2, 3])
+        >>> s = np.array([1, 2, 3])
         >>> var = pd.Series([1, 2, 3])
-        >>> cov = sandy.CategoryCov.from_var(S)
-        >>> var = sandy.CategoryCov.from_var(var).data
+        >>> cov = sandy.CategoryCov.from_var(var)
+        >>> var = sandy.CategoryCov.from_var(s).data
         >>> cov.sandwich(var)
         	0	1	2
         0	1.00000e+00	0.00000e+00	0.00000e+00
@@ -1493,16 +1484,16 @@ class CategoryCov():
         2	0.00000e+00	0.00000e+00	2.70000e+01
         """
         if pd.DataFrame(s).shape[1] == 1:
-            s_ = sandy.CategoryCov.from_var(s).data
-            sandwich = self._gls_Vy_calc(s_, rows=rows)
+            s_ = pd.Series(s)
+            sandwich = s_.dot(self.data.dot(s_.T))
+            # sandwich variable is a scalar
+            return sandwich
         else:
             s_ = pd.DataFrame(s).T
             sandwich = self._gls_Vy_calc(s_, rows=rows)
-        if threshold is not None:
-            sandwich[sandwich < threshold] = 0
-        return self.__class__(sandwich,
-                              index=self.data.index,
-                              columns=self.data.columns)
+            if threshold is not None:
+                sandwich[sandwich < threshold] = 0
+            return self.__class__(sandwich)
 
     def corr2cov(self, std):
         """
