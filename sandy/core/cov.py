@@ -238,14 +238,32 @@ class CategoryCov():
     data
         covariance matrix as a dataframe
     size
-        first dimension of the ocvariance matrix
-    std
-        `pd.Series` of standard deviations
+        first dimension of the covariance matrix
 
     Methods
     -------
+    corr2cov
+        create a covariance matrix given a correlation matrix and a standard
+        deviation vector
+    from_stack
+        create a covariance matrix from a stacked `pd.DataFrame`
+    from_stdev
+        construct a covariance matrix from a stdev vector
+    from_var
+        construct a covariance matrix from a variance vector
     get_corr
         extract correlation matrix from covariance matrix
+    get_eig
+        extract eigenvalues and eigenvectors from covariance matrix
+    get_L
+        extract lower triangular matrix such that $C=L L^T$
+    get_std
+        extract standard deviations from covariance matrix
+    invert
+        calculate the inverse of the matrix
+    sampling
+        extract perturbation coefficients according to chosen distribution
+        and covariance matrix
     """
 
     def __repr__(self):
@@ -293,16 +311,16 @@ class CategoryCov():
             raise TypeError("Covariance matrix must have two dimensions")
         if not (np.diag(data) >= 0).all():
             raise TypeError("Covariance matrix must have positive variance")
+        sym_limit = 10
         # Round to avoid numerical fluctuations
-        if not (data.values.round(14) == data.values.T.round(14)).all():
+        if not (data.values.round(sym_limit) == data.values.T.round(sym_limit)).all():
             raise TypeError("Covariance matrix must be symmetric")
 
     @property
     def size(self):
         return self.data.values.shape[0]
 
-    @property
-    def std(self):
+    def get_std(self):
         """
         Extract standard deviations.
 
@@ -313,16 +331,16 @@ class CategoryCov():
 
         Examples
         --------
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).std
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).get_std()
         0   1.00000e+00
         1   1.00000e+00
-        Name: std, dtype: float64
+        Name: STD, dtype: float64
         """
         cov = self.to_sparse().diagonal()
         std = np.sqrt(cov)
-        return pd.Series(std, index=self.data.index, name="std")
+        return pd.Series(std, index=self.data.index, name="STD")
 
-    def eig(self, tolerance=None):
+    def get_eig(self, tolerance=None):
         """
         Extract eigenvalues and eigenvectors.
 
@@ -358,57 +376,57 @@ class CategoryCov():
         Examples
         --------
         Extract eigenvalues of correlation matrix.
-        >>> sandy.CategoryCov([[1, 0.4], [0.4, 1]]).eig()[0]
+        >>> sandy.CategoryCov([[1, 0.4], [0.4, 1]]).get_eig()[0]
         0   1.40000e+00
         1   6.00000e-01
-        Name: eigenvalues, dtype: float64
+        Name: EIG, dtype: float64
 
         Extract eigenvectors of correlation matrix.
-        >>> sandy.CategoryCov([[1, 0.4], [0.4, 1]]).eig()[1]
+        >>> sandy.CategoryCov([[1, 0.4], [0.4, 1]]).get_eig()[1]
                     0            1
         0 7.07107e-01 -7.07107e-01
         1 7.07107e-01  7.07107e-01
 
         Extract eigenvalues of covariance matrix.
-        >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).eig()[0]
+        >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).get_eig()[0]
         0   8.90228e-02
         1   1.01098e+00
         Name: eigenvalues, dtype: float64
 
         Set up a tolerance.
-        >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).eig(tolerance=0.1)[0]
+        >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).get_eig(tolerance=0.1)[0]
         0   0.00000e+00
         1   1.01098e+00
-        Name: eigenvalues, dtype: float64
+        Name: EIG, dtype: float64
 
         Test with negative eigenvalues.
-        >>> sandy.CategoryCov([[1, 2], [2, 1]]).eig()[0]
+        >>> sandy.CategoryCov([[1, 2], [2, 1]]).get_eig()[0]
         0    3.00000e+00
         1   -1.00000e+00
-        Name: eigenvalues, dtype: float64
+        Name: EIG, dtype: float64
 
         Replace negative eigenvalues.
-        >>> sandy.CategoryCov([[1, 2], [2, 1]]).eig(tolerance=0)[0]
+        >>> sandy.CategoryCov([[1, 2], [2, 1]]).get_eig(tolerance=0)[0]
         0   3.00000e+00
         1   0.00000e+00
-        Name: eigenvalues, dtype: float64
+        Name: EIG, dtype: float64
 
         Check output size.
         >>> cov = sandy.CategoryCov.random_cov(50, seed=11)
-        >>> assert cov.eig()[0].size == cov.data.shape[0] == 50
+        >>> assert cov.get_eig()[0].size == cov.data.shape[0] == 50
 
-        >>> sandy.CategoryCov([[1, 0.2, 0.1], [0.2, 2, 0], [0.1, 0, 3]]).eig()[0]
+        >>> sandy.CategoryCov([[1, 0.2, 0.1], [0.2, 2, 0], [0.1, 0, 3]]).get_eig()[0]
         0   9.56764e-01
         1   2.03815e+00
         2   3.00509e+00
-        Name: eigenvalues, dtype: float64
+        Name: EIG, dtype: float64
 
         Real test on H1 file
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> ek = sandy.energy_grids.CASMO12
         >>> err = endf6.get_errorr(ek_errorr=ek, err=1)
         >>> cov = err.get_cov()
-        >>> cov.eig()[0].sort_values(ascending=False).head(7)
+        >>> cov.get_eig()[0].sort_values(ascending=False).head(7)
         0    3.66411e-01
         1    7.05311e-03
         2    1.55346e-03
@@ -416,14 +434,14 @@ class CategoryCov():
         4    1.81374e-05
         5    1.81078e-06
         6    1.26691e-07
-        Name: eigenvalues, dtype: float64
+        Name: EIG, dtype: float64
 
-        >>> assert not (cov.eig()[0] >= 0).all()
+        >>> assert not (cov.get_eig()[0] >= 0).all()
 
-        >>> assert (cov.eig(tolerance=0)[0] >= 0).all()
+        >>> assert (cov.get_eig(tolerance=0)[0] >= 0).all()
         """
         E, V = scipy.linalg.eig(self.data)
-        E = pd.Series(E.real, name="eigenvalues")
+        E = pd.Series(E.real, name="EIG")
         V = pd.DataFrame(V.real)
         if tolerance is not None:
             E[E/E.max() < tolerance] = 0
@@ -435,7 +453,7 @@ class CategoryCov():
 
         Returns
         -------
-        `pandas.DataFrame`
+        df : :obj: `CetgoryCov`
             correlation matrix
 
         Examples
@@ -447,14 +465,15 @@ class CategoryCov():
         """
         cov = self.data.values
         with np.errstate(divide='ignore', invalid='ignore'):
-            coeff = np.true_divide(1, self.std.values)
+            coeff = np.true_divide(1, self.get_std().values)
             coeff[~ np.isfinite(coeff)] = 0   # -inf inf NaN
         corr = np.multiply(np.multiply(cov, coeff).T, coeff)
-        return pd.DataFrame(
+        df =  pd.DataFrame(
             corr,
             index=self.data.index,
             columns=self.data.columns,
             )
+        return self.__class__(df)
 
     def invert(self, rows=None):
         """
@@ -1416,14 +1435,14 @@ class CategoryCov():
         """
         return self.gls_update(S, Vy_extra=None, rows=rows, threshold=threshold)
 
-    def sandwich(self, S, rows=None, threshold=None):
+    def sandwich(self, s, rows=None, threshold=None):
         """
         Apply the sandwich formula to the CategoryCov object for a given
         pandas.Series.
 
         Parameters
         ----------
-        S : 1D or 2D iterable
+        s : 1D or 2D iterable
             General sensitivities.
         rows : `int`, optional
             Option to use row calculation for matrix calculations. This option
@@ -1473,56 +1492,31 @@ class CategoryCov():
         1	0.00000e+00	8.00000e+00	0.00000e+00
         2	0.00000e+00	0.00000e+00	2.70000e+01
         """
-        if pd.DataFrame(S).shape[1] == 1:
-            S_ = sandy.CategoryCov.from_var(S).data
-            sandwich = self._gls_Vy_calc(S_, rows=rows)
+        if pd.DataFrame(s).shape[1] == 1:
+            s_ = sandy.CategoryCov.from_var(s).data
+            sandwich = self._gls_Vy_calc(s_, rows=rows)
         else:
-            S_ = pd.DataFrame(S).T
-            sandwich = self._gls_Vy_calc(S_, rows=rows)
+            s_ = pd.DataFrame(s).T
+            sandwich = self._gls_Vy_calc(s_, rows=rows)
         if threshold is not None:
             sandwich[sandwich < threshold] = 0
-        return self.__class__(sandwich)
+        return self.__class__(sandwich,
+                              index=self.data.index,
+                              columns=self.data.columns)
 
-    def plot_corr(self, ax, **kwargs):
-        """
-        Plot correlation matrix as a color-encoded matrix.
-
-        Parameters
-        ----------
-        ax : `matplotlib Axes`
-            Axes in which to draw the plot, otherwise use the currently-active
-            Axes.
-        kwargs : `dict`
-            keyword arguments for seaborn heatmap plot.
-
-        Returns
-        -------
-        ax : `matplotlib Axes`
-            Axes object with the heatmap.
-        """
-        add = {"cbar": True, "vmin": -1, "vmax": 1, "cmap": "RdBu"}
-        for k, v in kwargs.items():
-            add[k] = v
-        ax = sns.heatmap(self.get_corr(), ax=ax, **add)
-        return ax
-
-    @classmethod
-    def corr2cov(cls, corr, std, **kwargs):
+    def corr2cov(self, std):
         """
         Produce covariance matrix given correlation matrix and standard
         deviation array.
-        Same as :obj: `corr2cov` but it returns a :obj: `CategoryCov`.
+        Same as :obj: `corr2cov` but it works with :obj: `CategoryCov`
+        instances.
 
         Parameters
         ----------
-        corr : 2d iterable
+        corr : :obj: `CategoryCov`
             square 2D correlation matrix
         std : 1d iterable
             array of standard deviations
-        kwargs: `dict`
-            keyword arguments to pass to `data` method.
-            They can be used to initialize index and columns of the
-            :obj: `CategoryCov`.
 
         Returns
         -------
@@ -1534,14 +1528,17 @@ class CategoryCov():
         Initialize index and columns
         >>> idx = ["A", "B", "C"]
         >>> std = np.array([1, 2, 3])
-        >>> corr = np.array([[1, 0, 2], [0, 3, 0], [2, 0, 1]])
-        >>> sandy.CategoryCov.corr2cov(corr, std, index=idx, columns=idx)
+        >>> corr = sandy.CategoryCov([[1, 0, 2], [0, 3, 0], [2, 0, 1]], index=idx, columns=idx)
+        >>> corr.corr2cov(std)
                     A           B           C
         A 1.00000e+00 0.00000e+00 6.00000e+00
         B 0.00000e+00 1.20000e+01 0.00000e+00
         C 6.00000e+00 0.00000e+00 9.00000e+00
         """
-        return cls(corr2cov(corr, std), **kwargs)
+        cov = corr2cov(self.data, std)
+        index = self.data.index
+        columns = self.data.columns
+        return self.__class__(cov, index=index, columns=columns)
 
     @classmethod
     @cov33csv
@@ -1772,7 +1769,7 @@ class CategoryCov():
         # Reduces the size of the matrix, erasing the zero values
         nonzero_idxs, cov_reduced = reduce_size(self.data)
         # Obtain the eigenvalues and eigenvectors:
-        E, V = sandy.CategoryCov(cov_reduced).eig(tolerance=tolerance)
+        E, V = sandy.CategoryCov(cov_reduced).get_eig(tolerance=tolerance)
         E = sps.diags(np.sqrt(E)).toarray()
         # Construct the matrix:
         rows_ = cov_reduced.shape[0] if rows is None else rows
