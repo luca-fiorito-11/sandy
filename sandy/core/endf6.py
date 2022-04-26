@@ -2012,11 +2012,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         stop
         
-        Keywords `mt` and `groupr` are compatible (`nubar` and `xs` covariance
-        together):
+        Keywords `mt` and `groupr` are incompatible
         >>> with pytest.raises(sandy.SandyError):
         ...    sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, mt=1, groupr=True)
-
+            
         Test content of output `Errorr` file
         >>> out = sandy.get_endf6_file('jeff_33', "xs", 922350).get_errorr(err=1., irespr=0, mubar=False, chi=False)
         >>> keys = [(9228, 1, 451), (9228, 3, 456), (9228, 33, 456), (9228, 3, 1), (9228, 3, 2), (9228, 3, 4), (9228, 3, 16), (9228, 3, 17), (9228, 3, 18), (9228, 3, 37), (9228, 3, 102), (9228, 33, 1), (9228, 33, 2), (9228, 33, 4), (9228, 33, 16), (9228, 33, 17), (9228, 33, 18), (9228, 33, 37), (9228, 33, 102)]
