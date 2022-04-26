@@ -196,6 +196,15 @@ class Errorr(_FormattedFile):
         9228	456	      (0.01, 10.0]	3.15367e-05	1.41334e-05
                     (10.0, 20000000.0]	1.41334e-05	1.64304e-05
 
+        Automatic mf selection:
+        >>> out.get_cov().data
+                    MAT1	           9228
+                    MT1	               456
+                    E1	               (0.01, 10.0]	(10.0, 20000000.0]
+         MAT	 MT	                 E		
+        9228	456	      (0.01, 10.0]	3.15367e-05	1.41334e-05
+                    (10.0, 20000000.0]	1.41334e-05	1.64304e-05
+
         mf=[31, 33]:
         >>> out = endf6.get_errorr(err=1, xs=True, mubar=False, chi=False, nubar=True, mt=[452, 455, 456], ek_groupr=[1e-2, 1e1, 2e7], ek_errorr=[1e-2, 1e1, 2e7])
         >>> cov = out.get_cov()
@@ -231,7 +240,7 @@ class Errorr(_FormattedFile):
             listmf_ = [mf] if isinstance(mf, int) else mf
         else:
             listmf_ = list(self.to_series().index.get_level_values("MF")
-                               .intersection([31, 33, 34, 35]))
+                               .intersection([33, 34, 35]))
 
         data = {mf_: [] for mf_ in listmf_}
         # Nubar is in mf=33, so if mf=31 is in the list, mf=33 has to be there
@@ -266,7 +275,8 @@ class Errorr(_FormattedFile):
                          pd.concat(value),
                          index=["MAT", "MT", "E"],
                          columns=["MAT1", "MT1", "E1"],
-                         values='VAL') for key, value in data.items()}
+                         values='VAL')
+                    for key, value in data.items() if len(value) > 0}
 
         # If only one mf is calculated, the return is directly the `CategoryCov` object
         if len(cov_dict) == 1:

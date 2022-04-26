@@ -758,7 +758,11 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     2 /    
     """
     irelco = 0 if relative is False else 1
-    iread = 1 if mt is not None and mfcov != 31 and (np.array(mt) < 450).all() else 0
+    if mt is not None:
+        mtarray = np.array([mt]) if not isinstance(mt, np.ndarray) else mt
+        mtlist = mtarray[mtarray < 450]
+        nmt = len(mtlist)
+    iread = 1 if mt is not None and mfcov == 33 and nmt >= 1 else 0
     iwt_ = 1 if spectrum_errorr is not None else iwt_errorr
     ign_ = 1 if ek_errorr is not None else ign_errorr
     text = ["errorr"]
@@ -767,9 +771,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     text += [f"{mat:d} {ign_:d} {iwt_:d} {printflag:d} {irelco} /"]
     text += [f"{printflag:d} {temp:.1f} /"]
     text += [f"{iread:d} {mfcov} {irespr:d}/"]
-    if iread == 1 and mfcov != 31 and (np.array(mt) < 450).all():  # only specific mts
-        mtlist = [mt] if isinstance(mt, int) else mt
-        nmt = len(mtlist)
+    if iread == 1 and mfcov == 33:  # only specific mts
         text += [f"{nmt:d} 0 /"]
         text += [" ".join(map(str, mtlist)) + " /"]
     if ign_ == 1:
