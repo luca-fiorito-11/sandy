@@ -131,21 +131,34 @@ class Errorr(_FormattedFile):
         data = pd.concat(data, axis=1).fillna(0)
         return sandy.Xs(data)
 
-    def get_cov(self, multigroup=True):
+    def get_cov(self, multigroup=True, **kwargs):
         """
         Extract cross section/nubar covariance from `Errorr` instance.
 
+        Parameters
+        ----------
+        multigroup : `bool`, optional
+            Option that allows to show the results in multigroup structure. The
+            default is True.
+        mf : `int` or `list`, optional
+            MF number. The default are the available in the `Errorr` object.
+
         Returns
         -------
-        data : `sandy CategoryCov`
-            xs/nubar covariance matrix for all cross section/nubar
-            MAT/MT in ERRORR file.
+        data : `sandy.CategoryCov` or `dict`
+            covariance matrix for the selected mf. If more thant one mf is
+            selected, it returns a `dict` with mf number as key and the
+            `sandy.CategoryCov` as value.
+
+        Notes
+        -----
+        ..note:: The method reads mf=34 and mf=35 but are not tested.
 
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> err = endf6.get_errorr(ek_errorr=[1e-2, 1e1, 2e7], err=1)
-        >>> err.get_cov().data
+        >>> err.get_cov(mf=33).data
 		MAT1	                   125
         MT1	                       1	                            2	                                102
                 E1	               (0.01, 10.0]	(10.0, 20000000.0]	(0.01, 10.0]	(10.0, 20000000.0]	(0.01, 10.0]	(10.0, 20000000.0]
@@ -157,7 +170,7 @@ class Errorr(_FormattedFile):
             102	      (0.01, 10.0]	1.07035e-06	       7.58742e-09	 0.00000e+00	       0.00000e+00	6.51764e-04	           3.40163e-04
                 (10.0, 20000000.0]	5.58627e-07	       1.49541e-06	 0.00000e+00	       0.00000e+00	3.40163e-04	           6.70431e-02
 
-        >>> err.get_cov(multigroup=False).data
+        >>> err.get_cov(multigroup=False, mf=33).data
                 MAT1    125
                 MT1	    1	                                2	                                102
                 E1	    1.00000e-02	1.00000e+01	2.00000e+07	1.00000e-02	1.00000e+01	2.00000e+07	1.00000e-02	1.00000e+01	2.00000e+07
@@ -170,37 +183,95 @@ class Errorr(_FormattedFile):
                         2.00000e+07	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
             102	        1.00000e-02	1.07035e-06	7.58742e-09	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	6.51764e-04	3.40163e-04	0.00000e+00
                         1.00000e+01	5.58627e-07	1.49541e-06	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	3.40163e-04	6.70431e-02	0.00000e+00
-                        2.00000e+07	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00   
+                        2.00000e+07	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
+
+        Selected mf:
+        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922350)
+        >>> out = endf6.get_errorr(err=1, xs=False, mubar=False, chi=False, nubar=True, mt=[452, 455, 456], ek_groupr=[1e-2, 1e1, 2e7], ek_errorr=[1e-2, 1e1, 2e7])
+        >>> out.get_cov(mf=[31]).data
+                    MAT1	           9228
+                    MT1	               456
+                    E1	               (0.01, 10.0]	(10.0, 20000000.0]
+         MAT	 MT	                 E		
+        9228	456	      (0.01, 10.0]	3.15367e-05	1.41334e-05
+                    (10.0, 20000000.0]	1.41334e-05	1.64304e-05
+
+        mf=[31, 33]:
+        >>> out = endf6.get_errorr(err=1, xs=True, mubar=False, chi=False, nubar=True, mt=[452, 455, 456], ek_groupr=[1e-2, 1e1, 2e7], ek_errorr=[1e-2, 1e1, 2e7])
+        >>> cov = out.get_cov()
+        >>> cov[31].data
+        	        MAT1	           9228
+                    MT1	               456
+                    E1	               (0.01, 10.0]	(10.0, 20000000.0]
+         MAT	 MT	                 E		
+        9228	456	      (0.01, 10.0]	3.15367e-05	1.41334e-05
+                    (10.0, 20000000.0]	1.41334e-05	1.64304e-05
+
+        >>> cov[33].data.loc[(9228, 2), (9228, 18)]
+                        E1	(0.01, 10.0]	(10.0, 20000000.0]
+                         E		
+              (0.01, 10.0]	-4.49435e-05	-2.13654e-08
+        (10.0, 20000000.0]	-4.86857e-10	-2.68869e-05
+
+         
+        Test all the mf:
+        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
+        >>> out = endf6.get_errorr(err=1, mt=[452, 455, 456], ek_groupr=[1e-2, 1e1, 2e7], ek_errorr=[1e-2, 1e1, 2e7])
+        >>> cov = out.get_cov()
+        >>> cov.keys()
+        dict_keys([33, 34, 35, 31])
         """
         eg = self.get_energy_grid()
         if multigroup:
             eg = pd.IntervalIndex.from_breaks(eg)
-        data = []
-        for mat, mf, mt in self.filter_by(listmf=[31, 33]).data:
-            mf33 = sandy.errorr.read_mf33(self, mat, mt)
-            for mt1, cov in mf33["COVS"].items():
+
+        # Select the mf:
+        if kwargs.get("mf"):
+            mf = kwargs.get("mf")
+            listmf_ = [mf] if isinstance(mf, int) else mf
+        else:
+            listmf_ = list(self.to_series().index.get_level_values("MF")
+                               .intersection([31, 33, 34, 35]))
+
+        data = {mf_: [] for mf_ in listmf_}
+        # Nubar is in mf=33, so if mf=31 is in the list, mf=33 has to be there
+        if 31 in listmf_ and 33 not in listmf_:
+            listmf_.append(33) 
+            listmf_.remove(31)
+        for mat_, mf_, mt_ in self.filter_by(listmf=listmf_).data:
+            cov_mf = sandy.errorr.read_cov_mf(self, mat_, mt_, mf_)
+            for mt1, cov in cov_mf["COVS"].items():
                 if not multigroup:
                     # add zero row and column at the end of the matrix
                     # (this must be done for ERRORR covariance matrices)
                     cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
                     cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
                 idx = pd.MultiIndex.from_product(
-                    [[mat], [mt], eg],
+                    [[mat_], [mt_], eg],
                     names=["MAT", "MT", "E"],
                     )
                 idx1 = pd.MultiIndex.from_product(
-                    [[mat], [mt1], eg],
+                    [[mat_], [mt1], eg],
                     names=["MAT1", "MT1", "E1"],
                     )
                 df = pd.DataFrame(cov, index=idx, columns=idx1) \
                        .stack(level=["MAT1", "MT1", "E1"]) \
                        .rename("VAL") \
                        .reset_index()
-                data.append(df)
-        data = pd.concat(data)
-        return sandy.CategoryCov.from_stack(data, index=["MAT", "MT", "E"],
-                                            columns=["MAT1", "MT1", "E1"],
-                                            values='VAL')
+                if mt_ == 456:
+                    data[31] = [df]
+                else:
+                    data[mf_].append(df)
+        cov_dict = {key: sandy.CategoryCov.from_stack(
+                         pd.concat(value),
+                         index=["MAT", "MT", "E"],
+                         columns=["MAT1", "MT1", "E1"],
+                         values='VAL') for key, value in data.items()}
+
+        # If only one mf is calculated, the return is directly the `CategoryCov` object
+        if len(cov_dict) == 1:
+            [(key, cov_dict)] = cov_dict.items()
+        return cov_dict
 
 
 def read_mf1(tape, mat):
@@ -277,7 +348,7 @@ def read_mf3(tape, mat, mt):
     return out
 
 
-def read_mf33(tape, mat, mt):
+def read_cov_mf(tape, mat, mt, mf):
     """
     Parse MAT/MF=33/MT section from `sandy.Errorr` object and return
     structured content in nested dcitionaries.
@@ -294,7 +365,6 @@ def read_mf33(tape, mat, mt):
     out : `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
     """
-    mf = 33
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,
