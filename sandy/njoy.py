@@ -758,7 +758,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     2 /    
     """
     irelco = 0 if relative is False else 1
-    iread = 1 if mt is not None else 0 
+    iread = 1 if mt is not None and mfcov != 31 and (np.array(mt) < 450).all() else 0
     iwt_ = 1 if spectrum_errorr is not None else iwt_errorr
     ign_ = 1 if ek_errorr is not None else ign_errorr
     text = ["errorr"]
@@ -767,7 +767,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     text += [f"{mat:d} {ign_:d} {iwt_:d} {printflag:d} {irelco} /"]
     text += [f"{printflag:d} {temp:.1f} /"]
     text += [f"{iread:d} {mfcov} {irespr:d}/"]
-    if iread == 1:  # only specific mts
+    if iread == 1 and mfcov != 31 and (np.array(mt) < 450).all():  # only specific mts
         mtlist = [mt] if isinstance(mt, int) else mt
         nmt = len(mtlist)
         text += [f"{nmt:d} 0 /"]
@@ -992,7 +992,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test keyword `mt` as `list`
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[1, 2]))
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[1, 2], xs=False))
     groupr
     20 21 0 0 /
     22 9237 0 2 0 1 1 0 /
@@ -1005,7 +1005,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/       
 
     Test keyword `mt` as `int`
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=2))
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=2, xs=False))
     groupr
     20 21 0 0 /
     22 9237 0 2 0 1 1 0 /
@@ -1046,6 +1046,9 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     if mt is None:
         text += ["3/"]  # by default process all cross sections (MF=3)
     else:
+        # Compute mf=33 and mf=31 together
+        if kwargs["xs"] and (np.array(mt) > 450).all():
+            text += ["3/"]
         mtlist = [mt] if isinstance(mt, int) else mt
         for mt_ in mtlist:
             text += [f"3 {mt_:d} /"]
