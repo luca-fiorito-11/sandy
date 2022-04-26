@@ -1,4 +1,21 @@
+"""
+This module contains only two public functions:
+
+    * `read_mf2`
+    * `write_mf8`
+
+Function `read` reads a MF2/MT section from a string and produces a content
+object with a dictionary-like structure.
+The content object can be accessed using most of the keywords specified in
+the ENDF6 manual for this specific MF section.
+
+Function `write_mf2` writes a content object for a MF2/MT section into a
+string.
+MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
+"""
+
 import sandy
+
 import numpy as np 
 
 __author__ = "Rayan HADDAD"
@@ -52,7 +69,7 @@ def read_mf2(tape, mat):
     
     out.update(add)
     
-    print (LRU, LRF)
+    print (LRU, LRF, NRO)
     
     if LRU == 0:
         C, i = sandy.read_cont(df, i)
@@ -183,19 +200,16 @@ def read_mf2(tape, mat):
                     }
             out.update(add)
             C, i = sandy.read_cont(df, i)
-            add = {
-                    "L": C.L1,
-                    "NJS": C.N1,        #Number of sets of resolved resonance parameters
-                    }
             NJS = int(C.N1)
-            out.update(add)
+           
             for j in range (NJS):
-                C, i = sandy.read_cont(df, i)
+                
+                
                 add = {
                         "L": C.L1,
-                        "NJS": C.N1,
+                        "NJS": C.N1,        #Number of sets of resolved resonance parameters
                         }
-                out.update(add)
+                
                 L, i = sandy.read_list(df, i)
                 NLJ = int(L.N2)
                 add = { 
@@ -205,6 +219,7 @@ def read_mf2(tape, mat):
                         "List": np.array(L.B).reshape(NLJ,12),
                         }
                 out.update(add)
+
             
         
         if LRF == 7 : 
@@ -243,7 +258,6 @@ def read_mf2(tape, mat):
                             "NCH": L.N2,            #Number of channels for the given J pi.   
                             "List":np.array(L.B).reshape(NCH,6),
                             }                        
-                    out.update(add)
                     L, i = sandy.read_list(df, i)
                     NRS = int(L.L2) 
                     add = {
@@ -256,6 +270,7 @@ def read_mf2(tape, mat):
 
             
     if LRU == 2 :
+        
         if LFW == 0 and LRF == 1 : 
             C, i = sandy.read_cont(df, i)
             add = {
@@ -265,37 +280,20 @@ def read_mf2(tape, mat):
                     "NLS": C.N1,                    #Number of l-values.
                     }
             out.update(add)
-            L, i = sandy.read_list(df, i)
-            NJS= int(L.N2)
-            add = {
-                    "AWRI": L.C1,
-                    "L": L.L1,
-                    "6*NJS": L.NPL,
-                    "NJS": L.N2,                    #Number of J-states for a particular l-state
-                    "List" : np.array(L.B).reshape(NJS,6),
-                    }
-            out.update(add)
+            NLS = int(C.N1)
+            for j in range (NLS) : 
+                L, i = sandy.read_list(df, i)
+                NJS= int(L.N2)
+                add = {
+                        "AWRI": L.C1,
+                        "L": L.L1,
+                        "6*NJS": L.NPL,
+                        "NJS": L.N2,                    #Number of J-states for a particular l-state
+                        "List" : np.array(L.B).reshape(NJS,6),
+                        }
+                out.update(add)
             
         if LFW == 1 and LRF == 1 :
-            C, i = sandy.read_cont(df, i)
-            add = {
-                    "SPI": C.C1,
-                    "AP": C.C2,
-                    "LSSF": C.L1,
-                    "NE": C.N1,
-                    "NLS": C.N2,
-                    }
-            out.update(add)
-            
-            L, i = sandy.read_list(df, i)
-            add = {
-                    "AWRI": L.C1,
-                    "L": L.L1,
-                    "6*NjS": L.NPL,
-                    "NJS": L.N2,
-                    "ES" : np.array(L.B),
-                    }
-            out.update(add)
             
             C, i = sandy.read_cont(df, i)
             add = {
@@ -304,20 +302,22 @@ def read_mf2(tape, mat):
                     "NJS": C.N1,
                     }
             out.update(add)
+            NJS = int(C.N1)
             
-            L, i = sandy.read_list(df, i)
-            add = {
-                    "L": L.L1,
-                    "MUF": L.L2,            #Integer value of the number of degrees of freedom for fission widths
-                    "NE+6": L.NPL,          #Number of energy points at which energy-dependent widths are tabulated
-                    "D": L.B[0],            #Average level spacing for resonances with spin J
-                    "AJ": L.B[1],           #Floating-point value of J
-                    "AMUN": L.B[2],         #Number of degrees of freedom in the neutron width distribution.
-                    "GNO": L.B[3],          #Average reduced neutron width.
-                    "GG": L.B[4],           #Average radiation width.
-                    "ES" : np.array(L.B[6::]),          #Energy of the i th point used to tabulate energy-dependent widths
-                    }
-            out.update(add)
+            for j in range (NJS): 
+                L, i = sandy.read_list(df, i)
+                add = {
+                        "L": L.L1,
+                        "MUF": L.L2,            #Integer value of the number of degrees of freedom for fission widths
+                        "NE+6": L.NPL,          #Number of energy points at which energy-dependent widths are tabulated
+                        "D": L.B[0],            #Average level spacing for resonances with spin J
+                        "AJ": L.B[1],           #Floating-point value of J
+                        "AMUN": L.B[2],         #Number of degrees of freedom in the neutron width distribution.
+                        "GNO": L.B[3],          #Average reduced neutron width.
+                        "GG": L.B[4],           #Average radiation width.
+                        "ES" : np.array(L.B[6::]),          #Energy of the i th point used to tabulate energy-dependent widths
+                        }
+                out.update(add)
             
         if LRF == 2 : 
             
@@ -338,20 +338,23 @@ def read_mf2(tape, mat):
                     }
             out.update(add)
             
-            L, i = sandy.read_list(df, i)
-            NE= int(L.N2)
-            add = {
-                    "AJ": L.C1,
-                    "INT": L.L2,                #Interpolation scheme to be used for interpolating between the cross sections obtained from average resonance parameters.
-                    "6*NE+6": L.NPL,
-                    "NE": L.N2,
-                    "AMUX": L.B[2],             #Number of degrees of freedom used in the competitive width distribution.
-                    "AMUN": L.B[3],             #Number of degrees of freedom in the neutron width distribution.
-                    "AMUG": L.B[4],             #Number of degrees of freedom in the radiation width distribution.
-                    "AMUF": L.B[5],             #Integer value of the number of degrees of freedom for fission widths.
-                    "List" : np.array(L.B[6::]).reshape(NE,6),
-                    }
-            out.update(add)
+            NJS = int(C.N1)
+            
+            for j in range (NJS):
+                L, i = sandy.read_list(df, i)
+                NE= int(L.N2)
+                add = {
+                        "AJ": L.C1,
+                        "INT": L.L2,                #Interpolation scheme to be used for interpolating between the cross sections obtained from average resonance parameters.
+                        "6*NE+6": L.NPL,
+                        "NE": L.N2,
+                        "AMUX": L.B[2],             #Number of degrees of freedom used in the competitive width distribution.
+                        "AMUN": L.B[3],             #Number of degrees of freedom in the neutron width distribution.
+                        "AMUG": L.B[4],             #Number of degrees of freedom in the radiation width distribution.
+                        "AMUF": L.B[5],             #Integer value of the number of degrees of freedom for fission widths.
+                        "List" : np.array(L.B[6::]).reshape(NE,6),
+                        }
+                out.update(add)
     
     return out 
 
