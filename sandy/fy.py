@@ -1405,8 +1405,8 @@ class Fy():
             Energy to which calculations are to be applied.
         Vy_extra : 2D iterable
             2D covariance matrix for y_extra (MXM).
-        y_extra : TYPE
-            DESCRIPTION.
+        y_extra : 1D iterable
+            1D extra info on output (NX1)
         kind : `str`, optional
             Keyword for obtaining sensitivity. The default is 'mass yield'.
         decay_data : `DecayData`, optional
@@ -1499,8 +1499,8 @@ class Fy():
             Energy to which calculations are to be applied.
         Vy_extra : 2D iterable
             2D covariance matrix for y_extra (MXM).
-        y_extra : TYPE
-            DESCRIPTION.
+        y_extra : 1D iterable
+            1D extra info on output (NX1)
         kind : `str`, optional
             Keyword for obtaining sensitivity. The default is 'mass yield'.
         decay_data : `DecayData`, optional
