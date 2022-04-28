@@ -154,7 +154,6 @@ METASTATES = {
 
 METASTATES_FLIP = {v: k for k, v in METASTATES.items()}
 
-
 NATURAL_ABUNDANCE = {
     10010: 0.99984426,
     10020: 0.00015574,
@@ -459,6 +458,51 @@ def abundance_per_element():
 
 
 def expand_za(za, method="nndc", meta=0):
+    """
+    Expand ZA number into atomic number, mass number and metastate number
+    of the correspondent nuclide.
+
+    Parameters
+    ----------
+    za : `int`
+        nuclide ZA indicator
+    method : `str`, optional, default is 'nndc'
+        method of the representation of the metastable state in the ZA number
+    meta : `int`, optional, default is 0
+        metastable state of the nuclide
+
+    Returns
+    -------
+    `int`
+        atomic number
+    `int`
+        mass number
+    `int`
+        metastable state
+
+    Notes
+    -----
+    .. note:: if the 'nndc' method is used, the specification of the `meta`
+        parameter is not needed but the implementation of this method is
+        performed only for nuclides at ground state or first isomeric state
+
+    Examples
+    --------
+    >>> expand_za(92235)
+    (92, 235, 0)
+
+    >>> expand_za(95241)
+    (95, 241, 0)
+
+    >>> expand_za(95641, method="nndc")
+    (95, 241, 1)
+
+    >>> expand_za(95241, method=False, meta=1)
+    (95, 241, 1)
+
+    >>> expand_za(95241, method=False, meta=2)
+    (95, 241, 2)
+    """
     z = int(za//1000)
     a = int(za - z*1000)
     if method == "nndc":
@@ -575,9 +619,66 @@ def zam2nuclide(zam, atomic_number=False, sep=""):
         out = f"{z}{sep}{out}"
     return out
 
+
 def za2nuclide(za, method="nndc", meta=0, atomic_number=False, sep=""):
+    """
+    Convert ZA to string with symbol and mass, such as 92235 to
+    "U235" or 95642 to "Am242m".
+
+    Parameters
+    ----------
+    za : `int`
+        nuclide ZA indicator
+    method : `str`, optional, default is 'nndc'
+        method of the representation of the metastable state in the ZA number
+    meta : `int`, optional, default is 0
+        metastable state of the nuclide
+    atomic_number : bool, optional, default is False
+        flag to include the atomic number in the nuclide name
+    sep : `str`, optional, default is ''
+        separation character(s) to place between the atomic number
+        (if present), the element ID, and the mass number.
+
+    Returns
+    -------
+    `string`
+        nuclide expressed with symbol and mass number
+
+    Notes
+    -----
+    .. note:: if the 'nndc' method is used, the specification of the `meta`
+        parameter is not needed but the implementation of this method is
+        performed only for nuclides at ground state or first isomeric state
+
+    Examples
+    --------
+    >>> za2nuclide(92235, atomic_number=False)
+    'U235'
+
+    >>> za2nuclide(92235, atomic_number=True)
+    '92U235'
+
+    >>> za2nuclide(92235, atomic_number=True, sep="-")
+    '92-U-235'
+
+    >>> za2nuclide(92235, atomic_number=False, sep="-")
+    'U-235'
+
+    >>> za2nuclide(95242)
+    'Am242'
+
+    >>> za2nuclide(95642, method="nndc")
+    'Am242m'
+
+    >>> za2nuclide(95642, method="nndc", atomic_number=True, sep="_")
+    '95_Am_242m'
+
+    >>> za2nuclide(95242, method=False, meta=2)
+    'Am242n'
+    """
     zam = za2zam(za, method=method, meta=meta)
     return zam2nuclide(zam, atomic_number=atomic_number, sep=sep)
+
 
 def nuclide2zam(nuclide, atomic_number=False, sep=""):
     """
@@ -645,9 +746,11 @@ def nuclide2zam(nuclide, atomic_number=False, sep=""):
     out = get_zam(z, a, m)
     return out
 
+
 def nuclide2za(nuclide):
     zam = nuclide2zam(nuclide)
     return zam2za(zam)
+
 
 def get_meta_letter(m, skip_ground=False):
     meta = METASTATES[m]
