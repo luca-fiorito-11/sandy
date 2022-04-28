@@ -224,7 +224,7 @@ def get_nubar_samples(errorr):
 
 def get_xs_samples(errorr):
     global init, ftape
-    cov = errorr if init.cov33csv else errorr.get_cov()
+    cov = errorr if init.cov33csv else errorr.get_cov(mf=33)
     return cov.sampling(init.samples)
 
 
