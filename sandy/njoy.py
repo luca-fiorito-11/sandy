@@ -760,7 +760,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     irelco = 0 if relative is False else 1
     if mt is not None:
         mtarray = np.array([mt]) if not isinstance(mt, np.ndarray) else mt
-        mtlist = mtarray[mtarray < 450]
+        mtlist = mtarray[mtarray < 250]
         nmt = len(mtlist)
     iread = 1 if mt is not None and mfcov == 33 and nmt >= 1 else 0
     iwt_ = 1 if spectrum_errorr is not None else iwt_errorr
@@ -1049,7 +1049,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         text += ["3/"]  # by default process all cross sections (MF=3)
     else:
         # Compute mf=33 and mf=31 together
-        if kwargs["xs"] and (np.array(mt) > 450).all():
+        if kwargs["xs"] and (np.array(mt) > 250).all():
             text += ["3/"]
         mtlist = [mt] if isinstance(mt, int) else mt
         for mt_ in mtlist:
