@@ -2475,3 +2475,44 @@ If you want to process 0K cross sections use `temperature=0.1`.
             'chi': run_chi if chi else False,
             }
         return cov_info
+
+    def _get_nubar_cov(self):
+        return
+
+    def _get_xs_cov(self):
+        return
+
+    def _get_lpc_cov(self):
+        return
+
+    def _get_edistr_cov(self):
+        return
+
+    def get_cov(self, process_mf=[], mf=None, **kwds_njoy):
+        # Select the mf:
+        if mf is not None:
+            listmf_ = [mf] if isinstance(mf, int) else mf
+        else:
+            listmf_ = list(self.to_series().index.get_level_values("MF")
+                               .intersection([31, 33, 34, 35]))
+        list_process = [process_mf] if isinstance(process_mf, int) else process_mf
+        # Dividing the list information:
+        listmf_ = list(pd.Index(listmf_).difference(pd.Index(list_process)))
+        if len(list_process) != 0:
+            kwds_njoy["nubar"] = True if 31 in list_process else False
+            kwds_njoy["xs"] = True if 33 in list_process else False
+            kwds_njoy["chi"] = True if 34 in list_process else False
+            kwds_njoy["mubar"] = True if 35 in list_process else False
+            out = self.get_errorr(**kwds_njoy)
+            cov = out.get_cov(mf=list_process)
+        if len(listmf_) != 0:
+            cov = {} if len(list_process) == 0 else cov
+            if 31 in listmf_:
+                cov[31] = self._get_nubar_cov()
+            elif 33 in listmf_:
+                cov[33] = self._get_xs_cov()
+            elif 34 in listmf_:
+                cov[34] = self._get_lpc_cov()
+            elif 35 in listmf_:
+                cov[35] = self._get_edistr_cov()
+        return listmf_
