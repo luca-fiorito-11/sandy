@@ -242,7 +242,6 @@ def read_mf2(tape, mat):
                             LIST.update(add_2)
                             add.update(LIST)
                             L, i = sandy.read_list(df, i)
-                            NRS = int(L.L2)
                             add2 = {
                                     "NRS": L.L2,            #Number of resonances for the given J pi 
                                     "6*NX": L.NPL,
@@ -610,27 +609,40 @@ def write_mf2(sec):
                     
                     for m in range (NLS) :
                         lines += sandy.write_cont(
-                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m]["AWRI"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NLS {m}"]["AWRI"],
                             0,
-                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m]["L"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NLS {m}"]["L"],
                             0,
-                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m]["NJS"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NLS {m}"]["NJS"],
                             0,
                             )
                         
-                        NJS = int(sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m]["NJS"])
+                        NJS = int(sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NLS {m}"]["NJS"])
                         
                         for k in range (NJS):
-                            
+                            S_NJS = len (sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"][f"List {k}"]["ES"])
+                            add1 = [0]*6
+                            add2 = [0]*(6*S_NJS)
+                            add1[2] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"][f"List {k}"]["AMUX"]
+                            add1[3] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"][f"List {k}"]["AMUN"]
+                            add1[4] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"][f"List {k}"]["AMUG"]
+                            add1[5] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"][f"List {k}"]["AMUF"]
+                            add2[0::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"][f"List {k}"]["ES"]
+                            add2[1::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"][f"List {k}"]["D"]
+                            add2[2::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"][f"List {k}"]["GX"]
+                            add2[3::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"][f"List {k}"]["GNO"]
+                            add2[4::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"][f"List {k}"]["GG"]
+                            add2[5::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"][f"List {k}"]["GF"]
+                            add = add1 + add2
                             lines += sandy.write_list(
-                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m][k]["AJ"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"]["AJ"],
                                 0,
                                 0,
-                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m][k]["INT"],
-                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m][k]["NE"],
-                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m][k]["List"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"]["INT"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][f"NJS {m, k}"]["NE"],
+                                add,
                                 )
-                            
+                            print (add)
                             
                             
                             
