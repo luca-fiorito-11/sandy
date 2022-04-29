@@ -2492,7 +2492,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         Returns
         -------
-        `sandy.CategoryCov`
+        `sandy.CategoryCov` or None if no covariance information is found.
             Covariance matrix.
 
         Examples
@@ -2565,7 +2565,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
     def _get_edistr_cov(self):
         return
 
-    def get_cov(self, process_mf=[], mf=None, **kwds_njoy):
+    def get_cov(self, process_mf=[], mf=None, mt=None, **kwds_njoy):
         """
         Get covariance matrices for nubar/xs/energy distribution/Legendre
         polynomial coefficients from Endf6 or process with NJOY.
@@ -2575,7 +2575,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         process_mf : `int` or `list`, optional
             DESCRIPTION. The default is [].
         mf : `int` or `list`, optional
-            DESCRIPTION. The default is None.
+            MF number. The default is None.
         **kwds_njoy : `dict`
             Extra arguments for proccessing the covariance matrix with NJOY.
 
@@ -2616,8 +2616,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
         if len(list_process) != 0:
             kwds_njoy["nubar"] = True if 31 in list_process else False
             kwds_njoy["xs"] = True if 33 in list_process else False
-            kwds_njoy["chi"] = True if 34 in list_process else False
-            kwds_njoy["mubar"] = True if 35 in list_process else False
+            kwds_njoy["chi"] = True if 35 in list_process else False
+            kwds_njoy["mubar"] = True if 34 in list_process else False
             out = self.get_errorr(**kwds_njoy)
             cov = out.get_cov(mf=list_process)
         if len(listmf_) != 0:
