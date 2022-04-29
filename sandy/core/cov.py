@@ -309,12 +309,12 @@ class CategoryCov():
         self._data = pd.DataFrame(data, dtype=float)
         if not len(data.shape) == 2 and data.shape[0] == data.shape[1]:
             raise TypeError("Covariance matrix must have two dimensions")
-#        if not (np.diag(data) >= 0).all():
-#            raise TypeError("Covariance matrix must have positive variance")
-#        sym_limit = 10
+        if not (np.diag(data) >= 0).all():
+            raise TypeError("Covariance matrix must have positive variance")
+        sym_limit = 10
         # Round to avoid numerical fluctuations
-#        if not (data.values.round(sym_limit) == data.values.T.round(sym_limit)).all():
-#            raise TypeError("Covariance matrix must be symmetric")
+        if not (data.values.round(sym_limit) == data.values.T.round(sym_limit)).all():
+            raise TypeError("Covariance matrix must be symmetric")
 
     @property
     def size(self):

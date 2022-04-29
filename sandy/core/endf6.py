@@ -2494,6 +2494,15 @@ If you want to process 0K cross sections use `temperature=0.1`.
             Covariance matrix divided according to mat, mt, index of the
             Legendre coefficient and energy.
 
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922380)
+        >>> out = tape._get_lpc_cov()
+        >>> out.data.index.get_level_values("MT").unique()
+        Int64Index([2], dtype='int64', name='MT')
+
+        >>> out.data.index.get_level_values("L").unique()
+        Int64Index([1, 2, 3, 4, 5, 6], dtype='int64', name='L')
         """
         listmt_ = [mt] if isinstance(mt, int) else mt
         listmat_ = [mat] if isinstance(mat, int) else mat
@@ -2555,4 +2564,4 @@ If you want to process 0K cross sections use `temperature=0.1`.
         return sandy.CategoryCov.from_stack(data,
                                             index=["MAT", "MT", "L", "E"],
                                             columns=["MAT1", "MT1", "L1", "E1"],
-                                            values='VAL', kind="all")
+                                            values='VAL')
