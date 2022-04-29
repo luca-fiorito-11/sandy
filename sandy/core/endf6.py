@@ -2476,7 +2476,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
             }
         return cov_info
 
-    def _get_lpc_cov(self, mt=range(1, 10000), mat=range(1, 1000)):
+    def _get_lpc_cov(self, mt=range(1, 10000), mat=range(1, 10000)):
         """
         Extract global Legendre Polynomials coefficients covariance matrix
         from `sandy.Endf6` instance.
