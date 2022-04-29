@@ -2507,8 +2507,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
         listmt_ = [mt] if isinstance(mt, int) else mt
         listmat_ = [mat] if isinstance(mat, int) else mat
         tape = self.filter_by(listmf=[34],
-                              listmt=range(1, 10000),
-                              listmat=range(1, 10000))
+                              listmt=listmt_,
+                              listmat=listmat_)
         data = []
         for mat, mf, mt in tape.data:
             sec = tape.read_section(mat, mf, mt)
