@@ -29,8 +29,6 @@ mf = 2
 mt = 151
 
 def read_mf2(tape, mat):
-        
-
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,         
@@ -47,8 +45,6 @@ def read_mf2(tape, mat):
             }
     NIS = int(C.N1)
     I.update(add)
-    
-    
     C, i = sandy.read_cont(df, i)
     add = {
             "ZAI": C.C1,
@@ -58,17 +54,13 @@ def read_mf2(tape, mat):
             }   
     NER = int(C.N1)
     LFW = int(C.L2) 
-    
     I.update(add)
     out.update({"Intro": I})
-   
-    
     P = {}
     for l in range(NIS): 
         M = {}
         for j in range (NER):
             info = {}
-            
             C, i = sandy.read_cont(df, i)
             add = {
                     "EL": C.C1,             #Lower limit for an energy range
@@ -84,9 +76,6 @@ def read_mf2(tape, mat):
             print (LRU, LRF,NRO)
             info.update({f"header {j}": add})
             M.update({f"NER {j}": info})
-            
-            
-            
             if LRU == 0:
                 LRU0 = {}
                 C, i = sandy.read_cont(df, i)
@@ -98,11 +87,8 @@ def read_mf2(tape, mat):
                 LRU0.update(add)
                 info.update({"LRU = 0":LRU0})
                 M.update({f"NER {j}": info})
-            
             if LRU == 1:
-               
-                if LRF == 1 or LRF == 2 :
-                    
+               if LRF == 1 or LRF == 2 :
                     if NRO == 0 :
                         LRU1_LRF1_2_NRO0 = {}
                         C, i = sandy.read_cont(df, i)
@@ -111,29 +97,34 @@ def read_mf2(tape, mat):
                                 "AP": C.C2,
                                 "NLS": C.N1,
                                 }
-                        NLS = int (C.N1)
+                        NLS = int(C.N1)
                         LRU1_LRF1_2_NRO0.update(add)
-                        
-                        
                         for k in range(NLS) :
                             L, i = sandy.read_list(df, i)
-                            NRS= int(L.N2)
-                            add_2 = {
+                            add = {
                                     "AWRI": L.C1,       #Ratio of the mass of a particular isotope to that of a neutron
                                     "QX": L.C2,         #Q-value to be added to the incident particle’s center-of-mass energy to determine the channel energy for use in the penetrability factor.
                                     "L": L.L1,          #Value of l.
                                     "LRX": L.L2,        #Flag indicating whether this energy range contains a competitive width
                                     "6*NRS": L.NPL,     
                                     "NRS": L.N2,        #Number of resolved resonances for a given l-value.
-                                    "List" : np.array(L.B),
                                     }
-                            LRU1_LRF1_2_NRO0.update({k: add_2})
+                            
+                            LIST ={}
+                            add_2 =  {
+                                       "ER": np.array(L.B[0::6]),
+                                       "AJ": np.array(L.B[1::6]),
+                                       "GT": np.array(L.B[2::6]),
+                                       "GN": np.array(L.B[3::6]),
+                                       "GG": np.array(L.B[4::6]),
+                                       "GF": np.array(L.B[5::6]),
+                                      }
+                            LIST.update(add_2)
+                            add.update({f"List {k}": LIST})
+                            LRU1_LRF1_2_NRO0.update(add)
                         info.update({"LRU = 1 LRF = 1 or 2 NRO = 0" : LRU1_LRF1_2_NRO0})
                         M.update({f"NER {j}": info})
-                            
-                    
                     else :   
-                        
                         LRU1_LRF1_2_NRO1 = {}
                         T, i = sandy.read_tab1(df, i)
                         add = {
@@ -145,114 +136,138 @@ def read_mf2(tape, mat):
                         LRU1_LRF1_2_NRO1.update(add)
                         out.update({"LRU = 1 LRF = 1 or 2": LRU1_LRF1_2_NRO1})
                         M.update({f"NER {j}": info})
-    
-                if LRF == 3 :
-                        
-                        if NRO == 0 :
-                            LRU1_LRF3_NRO0={}
-                            C, i = sandy.read_cont(df, i)
-                            add = {
-                                    "SPI": C.C1,
-                                    "AP": C.C2,
-                                    "LAD": C.L1,     #Flag indicating whether these parameters can be used to compute angular distributions
-                                    "NLS": C.N1,     
-                                    "NLSC": C.N2,    #Number of l-values
-                                    }
-                            NLS = int(C.N1)
+               if LRF == 3 :
+                    if NRO == 0 :
+                        LRU1_LRF3_NRO0={}
+                        C, i = sandy.read_cont(df, i)
+                        add = {"SPI": C.C1,
+                               "AP": C.C2,
+                               "LAD": C.L1,     #Flag indicating whether these parameters can be used to compute angular distributions
+                               "NLS": C.N1,     
+                               "NLSC": C.N2,    #Number of l-values
+                               }
+                        NLS = int(C.N1)
+                        LRU1_LRF3_NRO0.update(add)
+                        for k in range(NLS) :
+                            
+                            L, i = sandy.read_list(df, i)
+                            add = {"AWRI": L.C1,
+                                   "QX": L.C2,
+                                   "L": L.L1,
+                                   "LRX": L.L2,
+                                   "6*NRS": L.NPL,
+                                   "NRS": L.N2,
+                                   }
+                            LIST ={}
+                            add_2 =  {
+                                "ER": np.array(L.B[0::6]),
+                                "AJ": np.array(L.B[1::6]),
+                                "GN": np.array(L.B[2::6]),
+                                "GG": np.array(L.B[3::6]),
+                                "GFA": np.array(L.B[4::6]),
+                                "GFB": np.array(L.B[5::6]),
+                                      }
+                            LIST.update(add_2)
+                            add.update({f"List {k}":LIST})
                             LRU1_LRF3_NRO0.update(add)
-                            
-                            for k in range(NLS) :
-                                L, i = sandy.read_list(df, i)
-                                add = {
-                                         "AWRI": L.C1,
-                                         "QX": L.C2,
-                                         "L": L.L1,
-                                         "LRX": L.L2,
-                                         "6*NRS": L.NPL,
-                                         "NRS": L.N2,
-                                         "List": np.array(L.B),
-                                         }
-                                LRU1_LRF3_NRO0.update({k: add})
-                                
-                            info.update({"LRU = 1 LRF = 3 NRO = 0": LRU1_LRF3_NRO0 })
-                            M.update({f"NER {j}": info}) 
-                                
-                        else :
-                            LRU1_LRF3_NRO1={}
-                            T, i = sandy.read_tab1(df, i)
-                            add = {
-                                    "NR": T.NBT,    
-                                    "NP": T.INT,
-                                    "E_int": T.x,
-                                    "AP": T.y,
-                                    }
-                            LRU1_LRF3_NRO1.update(add)
-                            out.update({"LRU = 1 LRF = 3": LRU1_LRF3_NRO1})
-                            M.update({f"NER {j}": info})
-                            
-                            
-                            
-                if LRF == 4 :
-                    
-                  raise ValueError("LRF = 4 is not supported in SANDY")
-                  
-                  
-                if LRF == 7 :
+                        info.update({"LRU = 1 LRF = 3 NRO = 0": LRU1_LRF3_NRO0 })
+                        M.update({f"NER {j}": info}) 
+                    else :
+                        LRU1_LRF3_NRO1={}
+                        T, i = sandy.read_tab1(df, i)
+                        add = {
+                                        "NR": T.NBT,    
+                                        "NP": T.INT,
+                                        "E_int": T.x,
+                                        "AP": T.y,
+                                        }
+                        LRU1_LRF3_NRO1.update(add)
+                        out.update({"LRU = 1 LRF = 3": LRU1_LRF3_NRO1})
+                        M.update({f"NER {j}": info})
+               if LRF == 4 :
+                     raise ValueError("LRF = 4 is not supported in SANDY")
+               if LRF == 7 :
                     LRU1_LRF7={}
-                    
                     C, i = sandy.read_cont(df, i)
                     add = {
-                            "IFG": C.L1,
-                            "KRM": C.L2,
-                            "NJS": C.N1,
-                            "KRL": C.N2,
-                            }
+                                "IFG": C.L1,
+                                "KRM": C.L2,
+                                "NJS": C.N1,
+                                "KRL": C.N2,
+                                }
                     NJS = int(C.N1)
                     LRU1_LRF7.update(add)
-                    
                     L, i = sandy.read_list(df, i)
-                    NPP= int(L.N2)
-                    add = { 
-                            "NPP": L.L1,
-                            "12*NPP": L.NPL,
-                            "2*NPP": L.N2,                  #Total number of particle-pairs.
-                            "List": np.array(L.B),
-                            }
+                    add = {"NPP": L.L1,
+                           "12*NPP": L.NPL,
+                           "2*NPP": L.N2,                  #Total number of particle-pairs.
+                           }
+                    LIST ={}
+                    add_2 = {"MA": np.array(L.B[0::12]),
+                             "MB": np.array(L.B[1::12]),
+                             "ZA": np.array(L.B[2::12]),
+                             "ZB": np.array(L.B[3::12]),
+                             "IA": np.array(L.B[4::12]),
+                             "IB": np.array(L.B[5::12]),
+                             "Q": np.array(L.B[6::12]),
+                             "PNT": np.array(L.B[7::12]),
+                             "SHF": np.array(L.B[8::12]),
+                             "MT": np.array(L.B[9::12]),
+                             "PA": np.array(L.B[10::12]),
+                             "PB": np.array(L.B[11::12]),
+                             }
+                    LIST.update(add_2)
+                    add.update(LIST)
                     LRU1_LRF7.update(add)
-                    
                     for k in range(NJS):
-                        
-                        L, i = sandy.read_list(df, i)
-                        NCH = int(L.N2)
-                        add = {
-                                "AJ": L.C1,             #Floating point value of J (spin); sign indicates parity
-                                "PJ": L.C2,             #Parity (used only if AJ = 0.0).
-                                "KBK": L.L1,            #Non-zero if background R-matrix exists
-                                "KPS": L.L2,            #Non-zero if non-hard-sphere phase shift are to be specified.
-                                "6*NCH": L.NPL,
-                                "NCH": L.N2,            #Number of channels for the given J pi.   
-                                "List_1":np.array(L.B),
-                                }
-                        
-                        L, i = sandy.read_list(df, i)
-                        add2 = {
-                                "NRS": L.L2,            #Number of resonances for the given J pi 
-                                "6*NX": L.NPL,
-                                "NX": L.N2,
-                                "List_2": np.array(L.B),
-                                }
-                        add.update(add2) 
-                        LRU1_LRF7.update({k :add})  
-                        
+                            L, i = sandy.read_list(df, i)
+                            add = {
+                                    "AJ": L.C1,             #Floating point value of J (spin); sign indicates parity
+                                    "PJ": L.C2,             #Parity (used only if AJ = 0.0).
+                                    "KBK": L.L1,            #Non-zero if background R-matrix exists
+                                    "KPS": L.L2,            #Non-zero if non-hard-sphere phase shift are to be specified.
+                                    "6*NCH": L.NPL,
+                                    "NCH": L.N2,            #Number of channels for the given J pi. 
+                                    }
+                            NCH = int (L.N2)
+                            LIST = {}
+                            add_2 =  {
+                                       "PPI": np.array(L.B[0::6]),
+                                       "L": np.array(L.B[1::6]),
+                                       "SCH": np.array(L.B[2::6]),
+                                       "BND": np.array(L.B[3::6]),
+                                       "APE": np.array(L.B[4::6]),
+                                       "APT": np.array(L.B[5::6]),
+                                      }
+                            LIST.update(add_2)
+                            add.update(LIST)
+                            L, i = sandy.read_list(df, i)
+                            NRS = int(L.L2)
+                            add2 = {
+                                    "NRS": L.L2,            #Number of resonances for the given J pi 
+                                    "6*NX": L.NPL,
+                                    "NX": L.N2,
+                                    }
+                            LIST ={}
+                            Ep = np.array(L.B[::NCH+1])
+                            b = L.B[::1]
+                            del b[::NCH+1]
+                            add_2 =  {
+                                       "ER": Ep,
+                                       "GAM": b,
+                                      }
+                            print ( len (Ep), len (b))
+                            LIST.update(add_2)
+                            add2.update({f"List {k}" :LIST})
+                            add.update(add2) 
+                            LRU1_LRF7.update({f"NJS {k}" :add})  
                     info.update({"LRU = 1 LRF = 7": LRU1_LRF7}) 
                     M.update({f"NER {j}": info})
                     
                     
                     
-                    
             if LRU == 2 :
                 if LFW == 0 and LRF == 1 : 
-                    
                     LRU2_LFW0_LRF1 ={}
                     C, i = sandy.read_cont(df, i)
                     add = {
@@ -261,10 +276,8 @@ def read_mf2(tape, mat):
                             "LSSF": C.L1,                   #Flag governing the interpretation of the File 3 cross sections
                             "NLS": C.N1,                    #Number of l-values.
                             }
-                    
                     NLS = int(C.N1)
                     LRU2_LFW0_LRF1.update(add)
-                    
                     for k in range (NLS):
                         L, i = sandy.read_list(df, i)
                         NJS= int(L.N2)
@@ -273,19 +286,23 @@ def read_mf2(tape, mat):
                                 "L": L.L1,
                                 "6*NJS": L.NPL,
                                 "NJS": L.N2,                    #Number of J-states for a particular l-state
-                                "List" : np.array(L.B),
                                     }
+                        LIST ={}
+                        add_2 =  {
+                                   "D": np.array(L.B[0::6]),
+                                   "AJ": np.array(L.B[1::6]),
+                                   "AMUN": np.array(L.B[2::6]),
+                                   "GNO": np.array(L.B[3::6]),
+                                   "GG": np.array(L.B[4::6]),
+                                  }
+                        LIST.update(add_2)
+                        add.update({f"List {k}" :LIST})
                         LRU2_LFW0_LRF1.update({k : add})
-                    info.update({"LRU = 2 LWF = 0 LRF = 1" : LRU2_LFW0_LRF1})
+                    info.update({"LRU = 2 LFW = 0 LRF = 1" : LRU2_LFW0_LRF1})
                     M.update({f"NER {j}": info})
-                        
                 if LFW == 1 and LRF == 1 :
-                    
                     raise ValueError("LRF = 4 is not supported in SANDY")
-                    
-                        
                 if LRF == 2 : 
-                    
                     LRU2_LRF2 = {}
                     C, i = sandy.read_cont(df, i)
                     add = {
@@ -295,42 +312,48 @@ def read_mf2(tape, mat):
                             "NLS": C.N1,
                             }
                     NLS = int (C.N1)
-                    
                     LRU2_LRF2.update(add)
+                    LRU2_LRF2_NLS = {}
                     for m in range (NLS) :
                         C, i = sandy.read_cont(df, i)
-                        add = {
+                        add1 = {
                                 "AWRI": C.C1,
                                 "L": C.L1,
                                 "NJS": C.N1,
                                 }
-                        LRU2_LRF2.update(add)
-                        
                         NJS = int(C.N1)
-                        
+                        LRU2_LRF2_NLS.update({f"NLS {m}" : add1})
                         LRU2_LRF2_NJS = {}
                         for k in range (NJS):
                             L, i = sandy.read_list(df, i)
-                            NE= int(L.N2)
-                            add_2 = {
+                            add2 = {
                                     "AJ": L.C1,
                                     "INT": L.L2,                #Interpolation scheme to be used for interpolating between the cross sections obtained from average resonance parameters.
                                     "6*NE+6": L.NPL,
                                     "NE": L.N2,
-                                    "AMUX": L.B[2],             #Number of degrees of freedom used in the competitive width distribution.
-                                    "AMUN": L.B[3],             #Number of degrees of freedom in the neutron width distribution.
-                                    "AMUG": L.B[4],             #Number of degrees of freedom in the radiation width distribution.
-                                    "AMUF": L.B[5],             #Integer value of the number of degrees of freedom for fission widths.
-                                    "List" : np.array(L.B[6::]),
                                     }
-                            LRU2_LRF2_NJS.update({k : add_2})
-                        LRU2_LRF2.update({m: LRU2_LRF2_NJS})
+                            LIST ={}
+                            add_3 =  {
+                                       "AMUX": L.B[2],             #Number of degrees of freedom used in the competitive width distribution.
+                                       "AMUN": L.B[3],             #Number of degrees of freedom in the neutron width distribution.
+                                       "AMUG": L.B[4],             #Number of degrees of freedom in the radiation width distribution.
+                                       "AMUF": L.B[5],             #Integer value of the number of degrees of freedom for fission widths.
+                                       "ES": np.array(L.B[6::11]),
+                                       "D": np.array(L.B[7::11]),
+                                       "GX": np.array(L.B[8::11]),
+                                       "GNO": np.array(L.B[9::11]),
+                                       "GG": np.array(L.B[10::11]),
+                                       "GF": np.array(L.B[11::11]),
+                                      }
+                            LIST.update(add_3)
+                            add2.update( {f"List {k}" :LIST})
+                            LRU2_LRF2_NJS.update({f"NJS {m,k}": add2})
+                            LRU2_LRF2_NLS.update(LRU2_LRF2_NJS)
+                        LRU2_LRF2.update(LRU2_LRF2_NLS)
                     info.update({"LRU = 2 LRF = 2": LRU2_LRF2})
-                    
                     M.update({f"NER {j}": info})
-        
-    P.update({l : M})
-    out.update({f"NIS {l}": P})
+    P.update({f"NIS {l}": M})
+    out.update(P)
                    
     return out
         
@@ -359,26 +382,26 @@ def write_mf2(sec):
         for j in range (NER):
             
             lines += sandy.write_cont(
-                sec[f"NIS {l}"][l][f"NER {j}"][f"header {j}"]["EL"],
-                sec[f"NIS {l}"][l][f"NER {j}"][f"header {j}"]["EH"],
-                sec[f"NIS {l}"][l][f"NER {j}"][f"header {j}"]["LRU"],
-                sec[f"NIS {l}"][l][f"NER {j}"][f"header {j}"]["LRF"],
-                sec[f"NIS {l}"][l][f"NER {j}"][f"header {j}"]["NRO"],
-                sec[f"NIS {l}"][l][f"NER {j}"][f"header {j}"]["NAPS"],
+                sec[f"NIS {l}"][f"NER {j}"][f"header {j}"]["EL"],
+                sec[f"NIS {l}"][f"NER {j}"][f"header {j}"]["EH"],
+                sec[f"NIS {l}"][f"NER {j}"][f"header {j}"]["LRU"],
+                sec[f"NIS {l}"][f"NER {j}"][f"header {j}"]["LRF"],
+                sec[f"NIS {l}"][f"NER {j}"][f"header {j}"]["NRO"],
+                sec[f"NIS {l}"][f"NER {j}"][f"header {j}"]["NAPS"],
                 )
-            LRU = int(sec[f"NIS {l}"][l][f"NER {j}"][f"header {j}"]["LRU"])
-            LRF = int(sec[f"NIS {l}"][l][f"NER {j}"][f"header {j}"]["LRF"])
-            NRO = int(sec[f"NIS {l}"][l][f"NER {j}"][f"header {j}"]["NRO"])
+            LRU = int(sec[f"NIS {l}"][f"NER {j}"][f"header {j}"]["LRU"])
+            LRF = int(sec[f"NIS {l}"][f"NER {j}"][f"header {j}"]["LRF"])
+            NRO = int(sec[f"NIS {l}"][f"NER {j}"][f"header {j}"]["NRO"])
             
             
             if LRU == 0:
                 
                 lines += sandy.write_cont(
-                    sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 0"]["SPI"],
-                    sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 0"]["AP"],
+                    sec[f"NIS {l}"][f"NER {j}"]["LRU = 0"]["SPI"],
+                    sec[f"NIS {l}"][f"NER {j}"]["LRU = 0"]["AP"],
                     0,
                     0,
-                    sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 0"]["NLS"],
+                    sec[f"NIS {l}"][f"NER {j}"]["LRU = 0"]["NLS"],
                     0,
                     )
             if LRU == 1:
@@ -388,59 +411,72 @@ def write_mf2(sec):
                     if NRO == 0 :
                         
                         lines += sandy.write_cont(
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"]["SPI"],
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"]["AP"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"]["SPI"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"]["AP"],
                             0,
                             0,
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"]["NLS"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"]["NLS"],
                             0,
                             )
-                        NLS = int(sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"]["NLS"])
+                        NLS = int(sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"]["NLS"])
                         for k in range(NLS): 
+                            S_NLS = len (sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"][f"List {k}"]["ER"])
+                            add = [0]*(6*S_NLS)
+                            add[0::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"][f"List {k}"]["ER"]
+                            add[1::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"][f"List {k}"]["AJ"]
+                            add[2::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"][f"List {k}"]["GT"]
+                            add[3::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"][f"List {k}"]["GN"]
+                            add[4::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"][f"List {k}"]["GG"]
+                            add[5::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"][f"List {k}"]["GF"]
                             lines +=sandy.write_list(
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"][k]["AWRI"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"][k]["QX"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"][k]["L"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"][k]["LRX"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"][k]["NRS"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"][k]["List"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"]["AWRI"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"]["QX"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"]["L"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"]["LRX"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2 NRO = 0"]["NRS"],
+                                add,
                                 )
-                            
                     else :
-                        
                         lines += sandy.write_tab1(
                                 0,
                                 0,
                                 0,
                                 0,
                                 0,
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2"]["NR"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2"]["NP"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2"]["E_int"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 1 or 2"]["AP"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2"]["NR"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2"]["NP"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2"]["E_int"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 1 or 2"]["AP"],
                                 )
                         
                 if LRF == 3:
-                    
                     if NRO == 0: 
                         
                         lines += sandy.write_cont(
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["SPI"],
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["AP"],
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["LAD"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["SPI"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["AP"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["LAD"],
                             0,
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["NLS"],
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["NLSC"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["NLS"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["NLSC"],
                             )
-                        NLS = int(sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["NLS"])
+                        NLS = int(sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["NLS"])
                         for k in range(NLS): 
+                            S_NLS = len (sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"][f"List {k}"]["ER"])
+                            add = [0]*(6*S_NLS)
+                            add[0::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"][f"List {k}"]["ER"]
+                            add[1::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"][f"List {k}"]["AJ"]
+                            add[2::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"][f"List {k}"]["GN"]
+                            add[3::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"][f"List {k}"]["GG"]
+                            add[4::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"][f"List {k}"]["GFA"]
+                            add[5::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"][f"List {k}"]["GFB"]
                             lines +=sandy.write_list(
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"][k]["AWRI"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"][k]["QX"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"][k]["L"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"][k]["LRX"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"][k]["NRS"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"][k]["List"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["AWRI"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["QX"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["L"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["LRX"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3 NRO = 0"]["NRS"],
+                                add,
                                 )
                     else :
                         
@@ -450,79 +486,152 @@ def write_mf2(sec):
                                 0,
                                 0,
                                 0,
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3"]["NR"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3"]["NP"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3"]["E_int"],
-                                sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 3"]["AP"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3"]["NR"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3"]["NP"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3"]["E_int"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 3"]["AP"],
                                 )
                 if LRF == 7:
                     
                     lines += sandy.write_cont(
                         0,
                         0,
-                        sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"]["IFG"],
-                        sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"]["KRM"],
-                        sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"]["NJS"],
-                        sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"]["KRL"],
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["IFG"],
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["KRM"],
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["NJS"],
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["KRL"],
                         )
-                    NJS = int(sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"]["NJS"])    
+                    NJS = int(sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["NJS"]) 
+                    
+                    S_NPP = len (sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["MA"])
+                    add = [0]*(12*S_NPP)
+                    add[0::12] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["MA"]
+                    add[1::12] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["MB"]
+                    add[2::12] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["ZA"]
+                    add[3::12] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["ZB"]
+                    add[4::12] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["IA"]
+                    add[5::12] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["IB"]
+                    add[6::12] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["Q"]
+                    add[7::12] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["PNT"]
+                    add[8::12] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["SHF"]
+                    add[9::12] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["MT"]
+                    add[10::12] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["PA"]
+                    add[11::12] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["PB"]
+                    
                     lines += sandy.write_list(
                         0,
                         0,
-                        sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"]["NPP"],
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["NPP"],
                         0,
-                        sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"]["2*NPP"],
-                        sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"]["List"],
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"]["2*NPP"],
+                        add,
                         )
                     
                     
                     for k in range(NJS):
+                        S_NJS = len (sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["PPI"])
+                        add = [0]*(6*S_NJS)
+                        add[0::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["PPI"]
+                        add[1::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["L"]
+                        add[2::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["SCH"]
+                        add[3::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["BND"]
+                        add[4::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["APE"]
+                        add[5::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["APT"]
                         lines += sandy.write_list(
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"][k]["AJ"],
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"][k]["PJ"],
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"][k]["KBK"],
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"][k]["KPS"],
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"][k]["NCH"],
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"][k]["List_1"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["AJ"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["PJ"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["KBK"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["KPS"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["NCH"],
+                            add,
                             )
-                            
+                        size_E = len(sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"][f"List {k}"]["ER"])
+                        size_GAM = len(sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"][f"List {k}"]["GAM"])
+                        add2 = [0]*(size_E + size_GAM)
+                        n = sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["NCH"]+1
+                        x = [sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"][f"List {k}"]["GAM"][o:o + n] for o in range(0, size_GAM, n)]
+                        for o in range(size_E):
+                            add2.append(sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"][f"List {k}"]["ER"][o])
+                            for p in range(len(x[o])):
+                                add2.append(x[o][p])
                         lines += sandy.write_list(
                             0,
                             0,
                             0,
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"][k]["NRS"],
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"][k]["NX"],
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 1 LRF = 7"][k]["List_2"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["NRS"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 1 LRF = 7"][f"NJS {k}"]["NX"],
+                            add2,
                             )
                     
             if LRU == 2:
                 
-                if LFW == 0 and LRF == 1 :
+                if LFW == 0 and LRF == 1:
                     
                     
                     lines += sandy.write_cont(
-                        sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 2 LWF = 0 LRF = 1"]["SPI"],
-                        sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 2 LWF = 0 LRF = 1"]["AP"],
-                        sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 2 LWF = 0 LRF = 1"]["LSSF"],
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"]["SPI"],
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"]["AP"],
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"]["LSSF"],
                         0,
-                        sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 2 LWF = 0 LRF = 1"]["NLS"],
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"]["NLS"],
+                        0,
+                        )
+                    NLS = int (sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"]["NLS"])
+                    for k in range (NLS):
+                        S_NLS = len (sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"][k][f"List {k}"]["D"])
+                        add = [0]*(6*S_NLS)
+                        add[0::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"][k][f"List {k}"]["D"]
+                        add[1::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"][k][f"List {k}"]["AJ"]
+                        add[2::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"][k][f"List {k}"]["AMUN"]
+                        add[3::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"][k][f"List {k}"]["GNO"]
+                        add[4::6] = sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"][k][f"List {k}"]["GG"]
+                        lines += sandy.write_list(
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"][k]["AWRI"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"][k]["L"],
+                            0,
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"][k]["6*NJS"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LFW = 0 LRF = 1"][k]["NJS"],
+                            add,
+                            )
+                        
+                if LRF == 2:
+                     
+                    
+                    lines += sandy.write_cont(
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"]["SPI"],
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"]["AP"],
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"]["LSSF"],
+                        0,
+                        sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"]["NLS"],
                         0,
                         )
                     
-                    for k in range (NLS):
-                        lines += sandy.write_list(
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 2 LWF = 0 LRF = 1"][k]["AWRI"],
+                    NLS = int(sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"]["NLS"])
+                    
+                    for m in range (NLS) :
+                        lines += sandy.write_cont(
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m]["AWRI"],
                             0,
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 2 LWF = 0 LRF = 1"][k]["LSSF"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m]["L"],
                             0,
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 2 LWF = 0 LRF = 1"][k]["NLS"],
-                            sec[f"NIS {l}"][l][f"NER {j}"]["LRU = 2 LWF = 0 LRF = 1"][k]["List"],
+                            sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m]["NJS"],
+                            0,
                             )
-                     
-                    
-               
-                    
-                    
-    
-    
+                        
+                        NJS = int(sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m]["NJS"])
+                        
+                        for k in range (NJS):
+                            
+                            lines += sandy.write_list(
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m][k]["AJ"],
+                                0,
+                                0,
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m][k]["INT"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m][k]["NE"],
+                                sec[f"NIS {l}"][f"NER {j}"]["LRU = 2 LRF = 2"][m][k]["List"],
+                                )
+                            
+                            
+                            
+                            
     return "\n".join(sandy.write_eol(lines, sec["MAT"], 2, 151))
