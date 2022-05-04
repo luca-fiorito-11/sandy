@@ -1707,7 +1707,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
             processing for resonance parameter covariances
             (default is 1, 1% sensitivity method)
         mt: `int` or iterable of `int`, optional
-            list of MT reactions to be processed
+            list of xs MT reactions to be processed
 
             .. note:: this list will be used for all covariance types, i.e.,
                       MF31, MF33, MF34, MF35.
@@ -1868,7 +1868,13 @@ If you want to process 0K cross sections use `temperature=0.1`.
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         3/
+        3 452 'nu' /
+        3 455 'nu' /
+        3 456 'nu' /
         3 251 'mubar' /
+        3 252 'xi' /
+        3 253 'gamma' /
+        3 259 '1_v' /
         5/
         5 18 'chi' /
         0/
@@ -2116,7 +2122,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         mubar : `bool`, optional
             Proccess multigroup mubar (default is `False`)
         mt: `int` or iterable of `int`, optional
-            run groupr only for the selected MT numbers
+            run groupr for xs for the selected MT numbers
         nubar : `bool`, optional
             Proccess multigroup nubar (default is `False`)
         nuclide_production : `bool`, optional
@@ -2314,7 +2320,54 @@ If you want to process 0K cross sections use `temperature=0.1`.
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         3/
+        3 452 'nu' /
+        3 455 'nu' /
+        3 456 'nu' /
         3 251 'mubar' /
+        3 252 'xi' /
+        3 253 'gamma' /
+        3 259 '1_v' /
+        5/
+        5 18 'chi' /
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        U-238 for selected mt:
+        >>> out = endf6.get_gendf(mt=[18, 102], ek_groupr=sandy.energy_grids.CASMO12, verbose=True, err=1, nubar=True, mubar=True, chi=True)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        9237 0 0 /
+        1 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        9237 1 0 0 0. /
+        1 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        9237 1 0 2 0 1 1 0 /
+        'sandy runs groupr' /
+        293.6/
+        10000000000.0/
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        3 18 /
+        3 102 /
+        3 452 'nu' /
+        3 455 'nu' /
+        3 456 'nu' /
+        3 251 'mubar' /
+        3 252 'xi' /
+        3 253 'gamma' /
+        3 259 '1_v' /
         5/
         5 18 'chi' /
         0/
