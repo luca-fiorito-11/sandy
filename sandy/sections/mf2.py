@@ -15,7 +15,7 @@ MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
 """
 
 import sandy
-
+import pandas as pd
 
 __author__ = "Rayan HADDAD"
 __all__ = [
@@ -26,6 +26,8 @@ __all__ = [
 
 mf = 2
 mt = 151
+
+pd.options.display.float_format = '{:.5e}'.format
 
 def read_mf2(tape, mat):
     """
