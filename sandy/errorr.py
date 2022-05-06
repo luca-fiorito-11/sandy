@@ -131,7 +131,7 @@ class Errorr(_FormattedFile):
         data = pd.concat(data, axis=1).fillna(0)
         return sandy.Xs(data)
 
-    def get_cov(self, multigroup=True, **kwargs):
+    def get_cov(self, multigroup=True, mf=None):
         """
         Extract cross section/nubar covariance from `Errorr` instance.
 
@@ -187,8 +187,9 @@ class Errorr(_FormattedFile):
 
         Selected mf:
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922350)
-        >>> out = endf6.get_errorr(err=1, xs=False, mubar=False, chi=False, nubar=True, mt=[452, 455, 456], ek_groupr=[1e-2, 1e1, 2e7], ek_errorr=[1e-2, 1e1, 2e7])
-        >>> out.get_cov(mf=[31]).data
+        >>> out = endf6.get_errorr(err=1, xs=False, mubar=False, chi=False, nubar=True, ek_groupr=[1e-2, 1e1, 2e7], ek_errorr=[1e-2, 1e1, 2e7])
+        >>> nubar = out.get_cov(mf=[31]).data
+        >>> nubar
                     MAT1	           9228
                     MT1	               456
                     E1	               (0.01, 10.0]	(10.0, 20000000.0]
@@ -197,25 +198,12 @@ class Errorr(_FormattedFile):
                     (10.0, 20000000.0]	1.41334e-05	1.64304e-05
 
         Automatic mf selection:
-        >>> out.get_cov().data
-                    MAT1	           9228
-                    MT1	               456
-                    E1	               (0.01, 10.0]	(10.0, 20000000.0]
-         MAT	 MT	                 E		
-        9228	456	      (0.01, 10.0]	3.15367e-05	1.41334e-05
-                    (10.0, 20000000.0]	1.41334e-05	1.64304e-05
+        >>> assert out.get_cov().data.equals(nubar)
 
         mf=[31, 33]:
-        >>> out = endf6.get_errorr(err=1, xs=True, mubar=False, chi=False, nubar=True, mt=[452, 455, 456], ek_groupr=[1e-2, 1e1, 2e7], ek_errorr=[1e-2, 1e1, 2e7])
+        >>> out = endf6.get_errorr(err=1, xs=True, mubar=False, chi=False, nubar=True, ek_groupr=[1e-2, 1e1, 2e7], ek_errorr=[1e-2, 1e1, 2e7])
         >>> cov = out.get_cov()
-        >>> cov[31].data
-        	        MAT1	           9228
-                    MT1	               456
-                    E1	               (0.01, 10.0]	(10.0, 20000000.0]
-         MAT	 MT	                 E		
-        9228	456	      (0.01, 10.0]	3.15367e-05	1.41334e-05
-                    (10.0, 20000000.0]	1.41334e-05	1.64304e-05
-
+        >>> assert cov[31].data.equals(nubar)
         >>> cov[33].data.loc[(9228, 2), (9228, 18)]
                         E1	(0.01, 10.0]	(10.0, 20000000.0]
                          E		
@@ -225,18 +213,32 @@ class Errorr(_FormattedFile):
          
         Test all the mf:
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
-        >>> out = endf6.get_errorr(err=1, mt=[452, 455, 456], ek_groupr=[1e-2, 1e1, 2e7], ek_errorr=[1e-2, 1e1, 2e7])
+        >>> out = endf6.get_errorr(err=1, ek_groupr=[1e-2, 1e1, 2e7], ek_errorr=[1e-2, 1e1, 2e7])
         >>> cov = out.get_cov()
         >>> cov.keys()
         dict_keys([33, 34, 35, 31])
+
+        mt=[452, 455, 456]:
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 942410)
+        >>> out = endf6.get_errorr(err=1, xs=False, mubar=False, chi=False, nubar=True, ek_groupr=[1e-2, 1e1, 2e7], ek_errorr=[1e-2, 1e1, 2e7])
+        >>> out.get_cov().data
+                 MAT1	            9443
+                 MT1	            452	                                455	                                456
+                 E1	                (0.01, 10.0]	(10.0, 20000000.0]	(0.01, 10.0]	(10.0, 20000000.0]	(0.01, 10.0]	(10.0, 20000000.0]
+         MAT  MT	              E						
+        9443 452	   (0.01, 10.0]	3.14218e-05	3.23619e-06	1.35750e-05	3.39374e-06	3.15192e-05	3.23578e-06
+                 (10.0, 20000000.0]	3.23619e-06	2.75936e-05	1.62044e-06	3.32191e-05	3.24501e-06	2.75789e-05
+             455	   (0.01, 10.0]	1.35750e-05	1.62044e-06	2.50000e-03	6.24999e-04	0.00000e+00	0.00000e+00
+                 (10.0, 20000000.0]	3.39374e-06	3.32191e-05	6.24999e-04	1.28125e-02	0.00000e+00	0.00000e+00
+             456	   (0.01, 10.0]	3.15192e-05	3.24501e-06	0.00000e+00	0.00000e+00	3.16913e-05	3.25345e-06
+                 (10.0, 20000000.0]	3.23578e-06	2.75789e-05	0.00000e+00	0.00000e+00	3.25345e-06	2.76506e-05
         """
         eg = self.get_energy_grid()
         if multigroup:
             eg = pd.IntervalIndex.from_breaks(eg)
 
         # Select the mf:
-        if kwargs.get("mf"):
-            mf = kwargs.get("mf")
+        if mf is not None:
             listmf_ = [mf] if isinstance(mf, int) else mf
         else:
             listmf_ = list(self.to_series().index.get_level_values("MF")
@@ -267,8 +269,11 @@ class Errorr(_FormattedFile):
                        .stack(level=["MAT1", "MT1", "E1"]) \
                        .rename("VAL") \
                        .reset_index()
-                if mt_ == 456:
-                    data[31] = [df]
+                if mt_ == 452 or mt_ == 455 or mt_ == 456:
+                    if 31 in data:
+                        data[31].append(df)
+                    else:
+                        data[31] = [df]
                 else:
                     data[mf_].append(df)
         cov_dict = {key: sandy.CategoryCov.from_stack(

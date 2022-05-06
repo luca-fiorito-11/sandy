@@ -28,6 +28,8 @@ from sandy import njoy
 
 __author__ = "Aitor Bengoechea"
 
+mf_available = [8, 31, 33, 34, 35]
+
 def parse(iargs=None):
     """Parse command line arguments for sampling option.
 
@@ -161,6 +163,17 @@ def parse(iargs=None):
                         metavar="S35",
                         help="seed for random sampling of MF35 covariance "
                              "matrix (default = random)")
+    parser.add_argument('--pdf',
+                        type=str,
+                        default='normal',
+                        metavar="pdf",
+                        help="random numbers distribution (default = normal)")
+    parser.add_argument('--tolerance',
+                        type=float,
+                        default=0.0,
+                        metavar="tol",
+                        help="Replace all eigenvalues smaller than a given"
+                             "tolerance with zeros (default = 0.0)")
     parser.add_argument('--temperatures', '-T',
                         default=[],
                         type=float,
@@ -180,19 +193,8 @@ def parse(iargs=None):
         parser.error("--acer requires file in 'endf6' format")
     return init
 
-def get_data(endf6, mf):
-    global init
-    data = endf6.filter_by(listmf=[mf],
-                           listmt=init.mt,
-                           listmat=init.mat)
-    # Data to the appropiate object:
-    if mf == 8:
-        module = sandy.Fy.from_endf6(data)
-    elif mf == 31 or mf == 33:
-        module = sandy.Xs.from_endf6(data)
-    return module
 
-def get_fy_samples(endf6):
+def get_fy_cov(endf6):
     """
     Generate fy samples divided by the MAT, MT and energy
 
@@ -207,36 +209,50 @@ def get_fy_samples(endf6):
         `sandy.core.Samples` objects divided by the MAT, MT and energy.
 
     """
-    fy = get_data(endf6, 8)
-    if not fy.data.empty:
-        dfperts = fy.data\
-                    .groupby(['MAT', 'MT', 'E'])["DFY"]\
-                    .apply(lambda x: sandy.CategoryCov.from_var(x)
-                                          .sampling(init.samples))
-#        if init.debug:
-#            PertFy.to_csv("perts_mf8.csv")
-    return dfperts
+    global init
+    fy = sandy.Fy.from_endf6(endf6.filter_by(listmat=init.mat))
+    fy_cov = fy.data.groupby(['MAT', 'MT', 'E'])["DFY"]\
+               .apply(lambda x: sandy.CategoryCov.from_var(x))
+    return fy_cov
 
 
-def get_nubar_samples(errorr):
-    return
-
-
-def get_xs_samples(errorr):
-    global init, ftape
-    cov = errorr if init.cov33csv else errorr.get_cov(mf=33)
-    return cov.sampling(init.samples)
-
-
-def get_lpc_samples(endf6):
-    conditions = {"MAT": init.mat, "MT": init.mt, "MF": 34}
-    lpc = endf6._filters(conditions)
-    return
-
-
-def get_chi_samples(endf6):
-    return
-
+def get_cov(endf6):
+    global init
+    cov = {}
+    # Covariance of Sandy modules:
+    if 8 in init.mf and 8 in endf6.mf:
+        cov[8] = get_fy_cov(endf6)
+    # Covariance of the endf6 file:
+    mf_process = []
+    mf_extract = []
+    if 34 in init.mf and 34 in endf6.mf:
+        mf_extract.append(34)
+    if 35 in init.mf and 35 in endf6.mf:
+        mf_extract.append(35)
+    if init.cov33csv:
+        logging.warning("found argument '--cov33csv', will skip any other"
+                        " covariance")
+        errorr = sandy.CategoryCov.from_csv(
+                    init.cov33csv,
+                    index_col=[0, 1, 2],
+                    header=[0, 1, 2],
+                    )
+    else:
+        if 31 in init.mf and 31 in endf6.mf:
+            mf_process.append(31)
+        if 33 in init.mf and 33 in endf6.mf:
+            mf_process.append(33)
+        temp = 0 if len(init.temperatures) == 0 else init.temperatures
+    if len(mf_process) + len(mf_extract) == 1:
+        unique_mf = mf_process + mf_extract
+        cov.update({unique_mf[0]: endf6.get_cov(process_mf=mf_process,
+                                                mf=mf_extract,
+                                                njoy=init.njoy,
+                                                temperature=temp)})
+    elif len(mf_process) + len(mf_extract) >= 1:
+        cov.update(endf6.get_cov(process_mf=mf_process, mf=mf_extract,
+                                 njoy=init.njoy, temperature=temp))
+    return cov
 
 def sample_manager(endf6):
     """
@@ -256,76 +272,55 @@ def sample_manager(endf6):
     """
     global init
     samples = {}
-    if 8 in init.mf and 8 in endf6.mf:
-        pfy = get_fy_samples(endf6)
-        samples[8] = pfy
-    if 34 in init.mf and 34 in endf6.mf:
-        plpc = get_lpc_samples(endf6)
-        samples[34] = plpc
-    if 35 in init.mf and 35 in endf6.mf:
-        pchi = get_chi_samples(endf6)
-        samples[35] = pchi
-    if init.cov33csv:
-        logging.warning("found argument '--cov33csv', will skip any other"
-                        " covariance")
-        errorr = sandy.CategoryCov.from_csv(
-                    init.cov33csv,
-                    index_col=[0, 1, 2],
-                    header=[0, 1, 2],
-                    )
-    elif init.errorr:
-        # Obtain errorr file:
-        errorr = endf6.get_errorr(njoy=init.njoy)
-    # Create nubar and xs samples with errorr file:
-    if 31 in init.mf and 31 in endf6.mf:
-        pnu = get_nubar_samples(errorr)
-        samples[31] = pnu
-    if 33 in init.mf and 33 in endf6.mf:
-        pxs = get_xs_samples(errorr)
-        samples[33] = pxs
+    # Obtain the covariance:
+    cov = get_cov(endf6)
+
+    # Create the samples:
+    for mf, mf_cov in cov.items():
+        seed = init.seed31 if mf == 31 else init.seed33 if mf == 33 else init.seed34 if mf == 34 else init.seed35 if mf == 35 else None
+        if mf == 8:
+            samples[mf] = mf_cov.apply(lambda x: x.sampling(init.samples,
+                                                            seed=seed,
+                                          tolerance=init.tolerance,
+                                          pdf=init.pdf))
+        else:
+            samples[mf] = mf_cov.sampling(init.samples, seed=seed,
+                                          tolerance=init.tolerance,
+                                          pdf=init.pdf)
     return samples
 
-
-def custom_perturbation_mf_8(pert_samples, endf6):
-
-    fy = get_data(endf6, 8)
-    fypert = fy.perturb(pert_samples)
-    newtape = newtape.update_fy(fypert) #Me he quedado aqui
-    return
-
-
-def custom_perturbation_mf_31(pert_samples, endf6):
+def perturbation_manager(samples, endf6):
     global init
+    pert_samples = {}
+    for mat in endf6.to_series().index.get_level_values("MAT").unique():
+        tape = endf6.filter_by(listmat=[mat])
+        if platform.system() == "Windows":
+            proc = 1
+            logging.info("Running on Windows does not allow parallel "
+                         "processing")
+        else:
+            proc = init.processes
+        seq = range(1, init.samples + 1)
+        if proc == 1:
+            outs = {i: pert_by_mf(samples, tape, mat, i) for i in seq}
+        else:
+            pool = mp.Pool(processes=proc)
+            outs = {i: pool.apply_async(pert_by_mf, (samples, tape, mat, i))
+                    for i in seq}
+            outs = {i: out.get() for i, out in outs.items()}
+            pool.close()
+            pool.join()
+        pert_samples.update({mat: outs})    
+    return pert_samples
 
-    return
-
-
-def custom_perturbation_mf_33(pert_samples, endf6):
-    global init
-
-    return
-
-
-def custom_perturbation_mf_34(pert_samples, endf6):
-    global init
-
-    return
-
-
-def custom_perturbation_mf_35(pert_samples, endf6):
-    global init
-
-    return
-
-def perturbation_manager(samples, formatted_file):
+def pert_by_mf(samples, endf6, mat, i):
     """
-    
 
     Parameters
     ----------
     samples : `dict`
         Dictionary containing the `sandy.Samples` objects containing the
-        sample.
+        sample information.
 
     Returns
     -------
@@ -333,19 +328,95 @@ def perturbation_manager(samples, formatted_file):
 
     """
     global init
-    pert_endf6 = formatted_file.copy()
+    pert_endf6 = endf6.copy()
+    t0 = time.time()
+    extra_points = np.logspace(-5, 7, init.energy_sequence)
+    i_ = i-1
     if 8 in samples:
-        mat, mt, e = samples.index.values[0]
-        pert_endf6 = custom_perturbation_mf_8(samples, pert_endf6)
+        pert_endf6 = custom_perturbation_mf_8(samples[8],
+                                              pert_endf6, mat, i_)
     if 31 in samples:
-        pert_endf6 = custom_perturbation_mf_31(samples, pert_endf6)
+        pert_endf6 = custom_perturbation_mf_31(samples[31].data.iloc[i_],
+                                               pert_endf6, mat)
     if 33 in samples:
-        pert_endf6 = custom_perturbation_mf_33(samples, pert_endf6)
+        pert_endf6 = custom_perturbation_mf_33(samples[33].data.iloc[i_],
+                                               pert_endf6, mat)
     if 34 in samples:
-        pert_endf6 = custom_perturbation_mf_34(samples, pert_endf6)
+        pert_endf6 = custom_perturbation_mf_34(samples[34].data.iloc[i_],
+                                               pert_endf6, mat)
     if 35 in samples:
-        pert_endf6 = custom_perturbation_mf_35(samples, pert_endf6)
+        pert_endf6 = custom_perturbation_mf_35(samples[35].data.iloc[i_],
+                                               pert_endf6, mat)
     return pert_endf6
+
+
+def custom_perturbation_mf_8(sample, endf6, mat, i):
+    fy = sandy.Fy.from_endf6(endf6)
+    cond_mat = sample.index.get_level_values("MAT").isin([mat])
+    sample_mat = sample.loc[cond_mat]
+    for mat, mt, e in sample_mat.index:
+        sample_ = sample_mat.loc[(mat, mt, e)].data.iloc[i]
+        fy.custom_perturbation(sample_.values, mat=mat, e=e, mt=mt)
+    return fy.to_endf6(endf6)
+
+
+def custom_perturbation_mf_31(sample, endf6, mat):
+    pert = sandy.Pert(pd.Series(sample.values,
+                                index=sample.index.get_level_values("E").left))
+    xs = sandy.Xs.from_endf6(endf6)
+    for mt in sample.index.get_level_values("MT").unique():
+        xs.custom_perturbation(mat, mt, pert)
+    return xs.to_endf6(endf6)
+
+
+def custom_perturbation_mf_33(sample, endf6, mat):
+    xs = sandy.Xs.from_endf6(endf6)
+    pert = sample.reset_index().groupby('MT')\
+        .apply(lambda x: sandy.Pert(pd.Series(x[0].values,
+                                              index=pd.Index(x["E"].values).left))) 
+    for mt in pert.index:
+        xs.custom_perturbation(mat, mt, pert[mt])
+    return xs.to_endf6(endf6)
+
+
+def custom_perturbation_mf_34(sample, endf6, mat):
+    global extra_points
+    conditions = {'MT': 2, 'MAT': mat}
+    lpc = sandy.Lpc.from_endf6(endf6)._filters(conditions)\
+        ._add_points(extra_points)
+    pert = sample.reset_index().groupby('L')\
+        .apply(lambda x: sandy.Pert(pd.Series(x[0].values,
+                                              index=x["E"])))
+    for p in pert.index:
+        lpc.custom_perturbation(mat, 2, p, pert[p])
+    return lpc.to_endf6(endf6)
+
+
+def custom_perturbation_mf_35(sample, endf6, mat):
+    global extra_points
+    edistr = sandy.Edistr.from_endf6(endf6).add_energy_points(9237, 18, 0,
+                                                              extra_points)
+    pert = sample.reset_index().groupby(['ELO', 'EHI'])\
+        .apply(lambda x: sandy.Pert(pd.Series(x[0].values,
+                                              index=x["E"])))
+    for elo, ehi in pert.index:
+        edistr.custom_perturbation(pert[elo, ehi], mat, 18, 0, elo, ehi)
+    return edistr # Falta un to_endf
+
+
+def to_file(pert_endf6):
+    global init
+    frame = pd.DataFrame(pert_endf6)
+    frame.index.name = "SMP"
+    frame.columns.name = "MAT"
+    frame = frame.stack()
+    outname = init.outname if init.outname else os.path.split(init.file)[1]
+    for ismp, dfsmp in frame.groupby("SMP"):
+        output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
+        with open(output, 'w') as f:
+            for mat, dfmat in dfsmp.groupby("MAT"):
+                f.write(frame[ismp, mat])
+    return
 
 
 def sampling(iargs=None):
@@ -366,18 +437,27 @@ def sampling(iargs=None):
     # Command line information and endf6 file information:
     init = parse(iargs)
     ftape = sandy.Endf6.from_file(init.file)
+    # Check if the covariance information is available:
+    mf_check = ftape.to_series().index.get_level_values("MF")\
+                    .intersection(pd.Index(init.mf))
+    if len(mf_check) == 0:
+        print("Covariance information not available in the file")
+        return
     # Samples:
     samples = sample_manager(ftape)
     # Endf + Pendf:
-    pendf = ftape.get_pendf(njoy=init.njoy)
-    with tempfile.TemporaryDirectory() as td:
-        dst = os.path.join(td, "merged")
-        ftape = ftape.merge_pendf(pendf)
-        ftape.to_file(dst)
+    # Check if NJOY has to be run:
+    xs_check = ftape.to_series().index.get_level_values("MF")\
+                    .intersection(pd.Index([3]))
+    if len(xs_check) == 1:
+        pendf = ftape.get_pendf(njoy=init.njoy)
+        with tempfile.TemporaryDirectory() as td:
+            dst = os.path.join(td, "merged")
+            ftape = ftape.merge_pendf(pendf)
+            ftape.to_file(dst)
     # Perturbed endf:
-    i = 0
-    pert_endf6 = perturbation_manager(samples, ftape, i)
-    return pert_endf6
+#    pert_endf6 = perturbation_manager(samples, ftape)
+    return samples, ftape #pert_endf6
 
 
 def run():

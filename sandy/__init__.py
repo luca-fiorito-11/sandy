@@ -23,6 +23,7 @@ from .shared import *
 from .utils import *
 from .core import *
 from .sampling import *
+from .sampling2 import *
 import sandy.mcnp
 import sandy.aleph2
 import sandy.tools
