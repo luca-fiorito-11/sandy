@@ -130,7 +130,7 @@ def read_mf2(tape, mat):
     >>> tape = sandy.get_endf6_file("jeff_33", "xs", 922350)
     >>> dic = sandy.read_mf2(tape, 9228)
     >>> print (dic["NIS"]["ISO"][92235]["NER"][(2250.0, 46200.0)]['L'][0]["J"][0]["RES_PAR"][0])
-    [{'ES': 2250.0, 'D': 1.058, 'GX': 0.0, 'GNO': 0.000107789, 'GG': 0.038513, 'GF': 0.40102}]
+    {'ES': 2250.0, 'D': 1.058, 'GX': 0.0, 'GNO': 0.000107789, 'GG': 0.038513, 'GF': 0.40102}
     
     """
     df = tape._get_section_df(mat, mf, mt)
