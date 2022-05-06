@@ -158,3 +158,124 @@ def read_mf5(tape, mat, mt):
     if pdistr:
         out["PDISTR"] = pdistr
     return out
+
+
+def write_mf5(sec):
+    """
+    Given the content of MF5 for energy distributions of secondary particles
+    as nested dictionaries, write it to string.
+
+    Parameters
+    ----------
+    sec : 'dict'
+        Multiline string reproducing the content of a ENDF-6 section.
+
+    Returns
+    -------
+    `str`
+        Multiline string reproducing the content of a ENDF-6 section.
+
+    Examples
+    --------
+    >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 922380)
+    >>> sec = sandy.sections.read_mf5(endf6, 9237, 18)
+    >>> print(write_mf5(sec)[:1000])
+    92238.0000 236.005800          0          0          1          09237 8 18    1
+    0.00000000 0.00000000          0          1          1          29237 8 18    2
+             2          2                                            9237 8 18    3
+    1.000000-5 1.00000000 30000000.0 1.00000000                      9237 8 18    4
+    0.00000000 0.00000000          0          0          1         969237 8 18    5
+            96          2                                            9237 8 18    6
+    0.00000000 1.000000-5          0          0          1        3039237 8 18    7
+           303          2                                            9237 8 18    8
+    1.000000-5 1.95793-12 2.000000-5 2.76893-12 4.000000-5 3.91586-129237 8 18    9
+    6.000000-5 4.79593-12 8.000000-5 5.53787-12 1.000000-4 6.19152-129237 8 18   10
+    2.000000-4 8.75614-12 4.000000-4 1.23831-11 6.000000-4 1.51661-119237 8 18   11
+    8.000000-4 1.75123-11 1.000000-3 1.95793-11 2.000000-3 2.76893-119237 8 18   12
+    4.000000-3 3.91586-11 6.000
+
+    """
+    NK = len(sec["PDISTR"])
+    lines = sandy.write_cont(sec["ZA"], sec["AWR"], 0, 0, NK, 0)
+    for k, sub_info in sec["PDISTR"].items():
+        LF = sub_info['LF']
+        if LF not in [5, 7, 9, 11, 12]:
+            lines += sandy.write_tab1(0,
+                                      0,
+                                      0,
+                                      LF,
+                                      sub_info["NBT_P"],
+                                      sub_info["INT_P"],
+                                      sub_info["E_P"],
+                                      sub_info["P"])
+        else:
+            lines += sandy.write_tab1(sub_info['U'],  # C1
+                                      0,  # C2
+                                      0,  # L1
+                                      LF,  # L2
+                                      sub_info["NBT_P"],  # NBT
+                                      sub_info["INT_P"],  # INT
+                                      sub_info["E_P"],  # X
+                                      sub_info["P"])  # Y
+        if LF == 5:
+            lines += sandy.write_tab1(0,  # C1
+                                      0,  # C2
+                                      0,  # L1
+                                      0,  # L2
+                                      sub_info["NBT_THETA"],  # NBT
+                                      sub_info["INT_THETA"],  # INT
+                                      sub_info["E_THETA"],  # X
+                                      sub_info["THETA"])  # Y
+            lines += sandy.write_tab1(0,  # C1
+                                      0,  # C2
+                                      0,  # L1
+                                      0,  # L2
+                                      sub_info["NBT_G"],  # NBT
+                                      sub_info["INT_G"],  # INT
+                                      sub_info["E_G"],  # X
+                                      sub_info["G"])  # Y
+        elif LF in (7, 9):
+            lines += sandy.write_tab1(0,  # C1
+                                      0,  # C2
+                                      0,  # L1
+                                      0,  # L2
+                                      sub_info["NBT_THETA"],  # NBT
+                                      sub_info["INT_THETA"],  # INT
+                                      sub_info["E_THETA"],  # X
+                                      sub_info["THETA"])  # Y
+        elif LF == 11:
+            lines += sandy.write_tab1(0,  # C1
+                                      0,  # C2
+                                      0,  # L1
+                                      0,  # L2
+                                      sub_info["NBT_A"],  # NBT
+                                      sub_info["INT_A"],  # INT
+                                      sub_info["E_A"],  # X
+                                      sub_info["A"])  # Y
+            lines += sandy.write_tab1(0,  # C1
+                                      0,  # C2
+                                      0,  # L1
+                                      0,  # L2
+                                      sub_info["NBT_B"],  # NBT
+                                      sub_info["INT_B"],  # INT
+                                      sub_info["E_B"],  # X
+                                      sub_info["B"])  # Y
+        elif LF == 1:
+            NZ = len(sub_info['EIN'])
+            lines += sandy.write_tab2(0,  # C1
+                                      0,  # C2
+                                      0,  # L1
+                                      0,  # L2
+                                      NZ,  # NZ
+                                      sub_info["NBT_EIN"],  # NBT
+                                      sub_info["INT_EIN"])  # INT
+            for EIN, edistr in sub_info['EIN'].items():
+                lines += sandy.write_tab1(0,  # C1
+                                          EIN,  # C2
+                                          0,  # L1
+                                          0,  # L2
+                                          edistr["NBT"],  # NBT
+                                          edistr["INT"],  # INT
+                                          edistr["EOUT"],  # X
+                                          edistr["EDISTR"])  # Y
+    return "\n".join(sandy.write_eol(lines, sec["MAT"], 8, sec["MT"]))

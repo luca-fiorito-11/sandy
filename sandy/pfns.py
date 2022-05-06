@@ -527,3 +527,9 @@ class Edistr():
         if not data:
             raise sandy.Error("no tabulated energy distribution was found")
         return cls(data)
+
+
+    def to_endf6(self, endf6):
+        data = endf6.data.copy()
+        mf = 5
+        return
