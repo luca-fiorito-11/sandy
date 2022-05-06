@@ -434,6 +434,9 @@ class Fy():
         zap : `int`
             ZAP of the product to which perturbations are to be
             applied.
+        mat : `int`
+            MAT of the product to which perturbations are to be
+            applied.
         pert : `float` or 1D iterable
             Perturbation coefficients as ratio values.
 
@@ -464,10 +467,15 @@ class Fy():
         >>> nfpy_pert = nfpy.custom_perturbation(0.9)
         >>> (nfpy_pert.data.FY.values.sum()/nfpy.data.FY.values.sum()).round(2)
         0.9
+
+        Test mat argument for sampling:
+        >>> nfpy_pert_zam = nfpy.custom_perturbation([0.9, 1.2], zam=922350, e=0.0253, zap=551370)
+        >>> nfpy_pert_mat = nfpy.custom_perturbation([0.9, 1.2], mat=9228, e=0.0253, zap=551370)
+        >>> assert nfpy_pert_mat.data.equals(nfpy_pert_zam.data)
         """
         df = self.data.copy()
         pert_ = pd.Series(pert).values
-        if "zam" in kwargs or "zap" in kwargs or "mt" in kwargs or "e" in kwargs:
+        if "zam" in kwargs or "zap" in kwargs or "mt" in kwargs or "e" in kwargs or "mat" in kwargs:
             mask = ""
             for key, value in kwargs.items():
                 key = key.upper()
