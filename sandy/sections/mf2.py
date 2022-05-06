@@ -23,7 +23,6 @@ __all__ = [
         "write_mf2"
         ]
 
-
 mf = 2
 mt = 151
 
@@ -72,17 +71,39 @@ def read_mf2(tape, mat):
     LRU = 1 LRF = 2
     >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902300)
     >>> dic = sandy.read_mf2(tape, 9034)
-    >>> print (dic["NIS"]["ISO"][90230]["NER"][(1e-05, 251.0)]["L"][0]["ER"])
-         [-1.427, 1.427, 17.27, 23.84, 32.2, 39.8, 48.1, 64.5, 75.6, 83.3, 103.0, 116.1, 133.8, 
-          139.0, 148.2, 171.4, 184.2, 195.0, 209.0, 226.0, 241.0, 248.0]
+    >>> print (dic["NIS"]["ISO"][90230]["NER"][(1e-05, 251.0)]["L"][0])
+    {'AWRI': 228.06, 'QX': 0.0, 'L': 0, 'LRX': 0, 'NRS': 22, 
+     'RES_PAR': [{'ER': -1.427, 'AJ': 0.5, 'GT': 0.0251, 'GN': 0.0002, 'GG': 0.0249, 'GF': 0.0}, 
+                 {'ER': 1.427, 'AJ': 0.5, 'GT': 0.0252, 'GN': 0.0003, 'GG': 0.0249, 'GF': 0.0},
+                 {'ER': 17.27, 'AJ': 0.5, 'GT': 0.0351, 'GN': 0.0131, 'GG': 0.022, 'GF': 0.0}, 
+                 {'ER': 23.84, 'AJ': 0.5, 'GT': 0.0371, 'GN': 0.0111, 'GG': 0.026, 'GF': 0.0}, 
+                 {'ER': 32.2, 'AJ': 0.5, 'GT': 0.0323, 'GN': 0.0033, 'GG': 0.029, 'GF': 0.0},
+                 {'ER': 39.8, 'AJ': 0.5, 'GT': 0.0375, 'GN': 0.0085, 'GG': 0.029, 'GF': 0.0},
+                 {'ER': 48.1, 'AJ': 0.5, 'GT': 0.039, 'GN': 0.01, 'GG': 0.029, 'GF': 0.0}, 
+                 {'ER': 64.5, 'AJ': 0.5, 'GT': 0.0287, 'GN': 0.0031, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 75.6, 'AJ': 0.5, 'GT': 0.0283, 'GN': 0.0027, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 83.3, 'AJ': 0.5, 'GT': 0.0504, 'GN': 0.0248, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 103.0, 'AJ': 0.5, 'GT': 0.0308, 'GN': 0.0052, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 116.1, 'AJ': 0.5, 'GT': 0.0659, 'GN': 0.0403, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 133.8, 'AJ': 0.5, 'GT': 0.0331, 'GN': 0.0075, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 139.0, 'AJ': 0.5, 'GT': 0.028, 'GN': 0.0024, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 148.2, 'AJ': 0.5, 'GT': 0.0312, 'GN': 0.0056, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 171.4, 'AJ': 0.5, 'GT': 0.0509, 'GN': 0.0253, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 184.2, 'AJ': 0.5, 'GT': 0.0489, 'GN': 0.0233, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 195.0, 'AJ': 0.5, 'GT': 0.0709, 'GN': 0.0453, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 209.0, 'AJ': 0.5, 'GT': 0.1009, 'GN': 0.0753, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 226.0, 'AJ': 0.5, 'GT': 0.0484, 'GN': 0.0228, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 241.0, 'AJ': 0.5, 'GT': 0.0311, 'GN': 0.0055, 'GG': 0.0256, 'GF': 0.0}, 
+                 {'ER': 248.0, 'AJ': 0.5, 'GT': 0.0809, 'GN': 0.0553, 'GG': 0.0256, 'GF': 0.0}]}     
         
+    
     Resonance parameters of the iron 58
     LRU = 1 LRF = 3 
     >>> tape = sandy.get_endf6_file("endfb_80", "xs", 260580)
     >>> dic = sandy.read_mf2(tape, 2637)
-    >>> print (dic["NIS"]["ISO"][26058]["NER"][(1e-05, 350000.0)]["L"][0]["AJ"])
-     [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 
-      0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+    >>> print (dic["NIS"]["ISO"][26058]["NER"][(1e-05, 350000.0)]["L"][0]["RES_PAR"][20])
+    {'ER': -3612.8, 'AJ': 0.5, 'GN': 271.55, 'GG': 0.74169, 'GFA': 0.0, 'GFB': 0.0}
+
      
     
     Resonance parameters of the iron 58
@@ -90,57 +111,40 @@ def read_mf2(tape, mat):
     >>> tape = sandy.get_endf6_file("endfb_80", "xs", 260580)
     >>> dic = sandy.read_mf2(tape, 2637)
     >>> print (dic["NIS"]["ISO"][26058]["NER"][(350000.0, 3000000.0)]["L"][3])
-    {'AWRI': 57.43561, 'L': 3, 'NJS': 2, 'D': [8033.33, 6025.0], 'AJ': [2.5, 3.5],
-     'AMUN': [1.0, 1.0], 'GNO': [0.482, 0.3615], 'GG': [0.7, 0.7]}
+    {'AWRI': 57.43561, 'L': 3, 'NJS': 2, 
+     'RES_PAR': [{'D': 8033.33, 'AJ': 2.5, 'AMUN': 1.0, 'GNO': 0.482, 'GG': 0.7, '0': 0.0}, 
+                 {'D': 6025.0, 'AJ': 3.5, 'AMUN': 1.0, 'GNO': 0.3615, 'GG': 0.7, '0': 0.0}]}
     
     
     Resonance parameters of the iron 54
     LRU = 1 LRF = 7
     >>> tape = sandy.get_endf6_file("endfb_80", "xs", 260540)
     >>> dic = sandy.read_mf2(tape, 2625)
-    >>> print (dic["NIS"]["ISO"][26054]["NER"][(1e-05, 1036000.0)]["J"][2]["ER"])
-    [3099.0, 0.0, 13581.0, 0.0, 19278.0, 0.0, 23030.0, 0.0, 28220.0, 0.0, 35260.0, 0.0, 38440.0, 0.0, 41200.0, 0.0, 
-     50140.0, 0.0, 59200.0, 0.0, 68760.0, 0.0, 75800.0, 0.0, 77200.0, 0.0, 81280.0, 0.0, 83155.0, 0.0, 87330.0, 0.0, 
-     91355.0, 0.0, 97770.0, 0.0, 99840.0, 0.0, 101710.0, 0.0, 112580.0, 0.0, 112960.0, 0.0, 115850.0, 0.0, 119780.0, 0.0, 
-     126530.0, 0.0, 137930.0, 0.0, 141010.0, 0.0, 145510.0, 0.0, 153190.0, 0.0, 157200.0, 0.0, 164510.0, 0.0, 189090.0, 0.0, 
-     194480.0, 0.0, 203970.0, 0.0, 207600.0, 0.0, 210010.0, 0.0, 225710.0, 0.0, 231220.0, 0.0, 233710.0, 0.0, 242060.0, 0.0, 
-     245290.0, 0.0, 254890.0, 0.0, 263020.0, 0.0, 282940.0, 0.0, 309140.0, 0.0, 322020.0, 0.0, 332690.0, 0.0, 345270.0, 0.0, 
-     357090.0, 0.0, 361090.0, 0.0, 384840.0, 0.0, 389720.0, 0.0, 389910.0, 0.0, 397910.0, 0.0, 398800.0, 0.0, 412390.0, 0.0, 
-     427530.0, 0.0, 427700.0, 0.0, 446970.0, 0.0, 458970.0, 0.0, 461460.0, 0.0, 465450.0, 0.0, 470330.0, 0.0, 478690.0, 0.0, 
-     490150.0, 0.0, 498060.0, 0.0, 511379.9, 0.0, 524220.0, 0.0, 530528.3, 0.0, 552571.6, 0.0, 559890.8, 0.0, 565199.3, 0.0, 
-     568736.5, 0.0, 580930.9, 0.0, 595230.0, 0.0, 604249.2, 0.0, 604484.3, 0.0, 621213.9, 0.0, 638550.0, 0.0, 647068.3, 0.0, 
-     656720.0, 0.0, 669905.7, 0.0, 676842.2, 0.0, 680048.7, 0.0, 680575.4, 0.0, 681811.0, 0.0, 683546.4, 0.0, 684087.7, 0.0, 
-     687628.4, 0.0, 689409.5, 0.0, 697832.6, 0.0, 708779.0, 0.0, 722606.7, 0.0, 726551.9, 0.0, 738710.0, 0.0, 749476.6, 0.0, 
-     773557.5, 0.0, 790978.6, 0.0, 795409.0, 0.0, 807088.2, 0.0, 812907.7, 0.0, 818600.5, 0.0, 825406.2, 0.0, 829051.9, 0.0, 
-     835768.2, 0.0, 841278.0, 0.0, 843465.7, 0.0, 847479.5, 0.0, 852237.1, 0.0, 859129.1, 0.0, 876376.3, 0.0, 888111.6, 0.0, 
-     896010.1, 0.0, 897719.0, 0.0, 909989.2, 0.0, 914450.8, 0.0, 916498.1, 0.0, 918795.3, 0.0, 922752.7, 0.0, 927389.0, 0.0, 
-     944893.5, 0.0, 963621.3, 0.0, 968002.0, 0.0, 978423.1, 0.0, 983843.8, 0.0, 990014.5, 0.0, 1002368.0, 0.0, 1005913.0, 0.0, 
-     1010327.0, 0.0, 1012920.0, 0.0, 1022815.0, 0.0, 1026431.0, 0.0, 1028429.0, 0.0, 1031001.0, 0.0, 1031465.0, 0.0, 1032329.0, 
-     0.0, 1051001.0, 0.0, 1056050.0, 0.0, 1058038.0, 0.0, 1062925.0, 0.0, 1072620.0, 0.0, 1083488.0, 0.0, 1085559.0, 0.0, 
-     1091677.0, 0.0, 1095462.0, 0.0, 1099070.0, 0.0, 1101233.0, 0.0, 1104403.0, 0.0, 1106613.0, 0.0, 1107490.0, 0.0, 1109121.0, 
-     0.0, 1110144.0, 0.0, 1117903.0, 0.0, 1118632.0, 0.0, 1119608.0, 0.0, 1125225.0, 0.0, 1128490.0, 0.0, 1135245.0, 0.0, 
-     1141235.0, 0.0, 1144014.0, 0.0, 1160850.0, 0.0, 1166727.0, 0.0, 1172094.0, 0.0, 1179700.0, 0.0, 1190647.0, 0.0, 1191495.0, 
-     0.0, 1195039.0, 0.0, 1197252.0, 0.0, 1200500.0, 0.0, 1214900.0, 0.0, 1220700.0, 0.0, 1274800.0, 0.0, 1288100.0, 0.0, 
-     1297300.0, 0.0, 1300387.0, 0.0, 1306103.0, 0.0, 1307309.0, 0.0, 1312399.0, 0.0, 1318355.0, 0.0, 1324614.0, 0.0, 1362008.0, 
-     0.0, 1370898.0, 0.0, 1382499.0, 0.0, 1396057.0, 0.0, 1403500.0, 0.0, 1407800.0, 0.0, 1421700.0, 0.0, 1430000.0, 0.0, 
-     1432400.0, 0.0, 1439300.0, 0.0, 1441300.0, 0.0, 1465800.0, 0.0, 1467900.0, 0.0, 1468900.0, 0.0, 1475500.0, 0.0, 1496700.0, 0.0]
+    >>> print (dic["NIS"]["ISO"][26054]["NER"][(1e-05, 1036000.0)]["J"][2]["SPIN_GROUP"])
+    [{'PPI': 1.0, 'L': 0.0, 'SCH': 0.0, 'BND': 0.0, 'APE': 0.0, 'APT': 0.0}, 
+     {'PPI': 2.0, 'L': 1.0, 'SCH': 0.5, 'BND': 0.0, 'APE': 0.54373, 'APT': 0.54373}]
     
     
     Resonance parameters of the Uranium 235
     LRU = 2 LRF = 2
-    >>> tape = sandy.get_endf6_file("jeff_33", "xs",922350)
-    >>> dic = sandy.read_mf2(tape,9228)
-    >>> print (dic["NIS"]["ISO"][92235]["NER"][(2250.0, 46200.0)]['L'][0]["J"][0])
-    {'AJ': 3.0, 'INT': 2, 'NE': 14, 'AMUX': 1.0, 'AMUN': 1.0, 'AMUG': 0.0, 'AMUF': 1.0, 
-     'ES': [2250.0, 3000.0, 4000.0, 5000.0, 6000.0, 7000.0, 8000.001, 9000.0, 10000.0, 13000.0, 15000.0, 20000.0, 25000.0, 46200.0], 
-     'D': [1.058, 1.0558, 1.0536, 1.0515, 1.0493, 1.0471, 1.0449, 1.0428, 1.0406, 1.0341, 1.0298, 1.0192, 1.0087, 0.96532], 
-     'GX': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 6.3286e-05, 0.0004222, 0.00093359, 0.0038198], 
-     'GNO': [0.000107789, 0.0001072693, 0.0001067929, 0.0001063697, 0.0001059583, 0.0001055686, 0.0001051901, 
-             0.0001048431, 0.0001044866, 0.0001035031, 0.000102875, 0.0001014063, 0.0001000348, 9.486007e-05], 
-     'GG': [0.038513, 0.038529, 0.038545, 0.038561, 0.038577, 0.038593, 0.038609, 0.038626, 0.038641, 0.03869, 
-            0.038722, 0.038803, 0.038884, 0.03921], 
-     'GF': [0.40102, 0.40099, 0.40096, 0.40093, 0.40091, 0.40088, 0.40085, 0.40082, 0.4008, 0.40072, 0.40067, 
-            0.40055, 0.40045, 0.40018]}
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 922350)
+    >>> dic = sandy.read_mf2(tape, 9228)
+    >>> print (dic["NIS"]["ISO"][92235]["NER"][(2250.0, 46200.0)]['L'][0]["J"][0]["RES_PAR"])
+    [{'ES': 2250.0, 'D': 1.058, 'GX': 0.0, 'GNO': 0.000107789, 'GG': 0.038513, 'GF': 0.40102}, 
+     {'ES': 3000.0, 'D': 1.0558, 'GX': 0.0, 'GNO': 0.0001072693, 'GG': 0.038529, 'GF': 0.40099}, 
+     {'ES': 4000.0, 'D': 1.0536, 'GX': 0.0, 'GNO': 0.0001067929, 'GG': 0.038545, 'GF': 0.40096}, 
+     {'ES': 5000.0, 'D': 1.0515, 'GX': 0.0, 'GNO': 0.0001063697, 'GG': 0.038561, 'GF': 0.40093}, 
+     {'ES': 6000.0, 'D': 1.0493, 'GX': 0.0, 'GNO': 0.0001059583, 'GG': 0.038577, 'GF': 0.40091}, 
+     {'ES': 7000.0, 'D': 1.0471, 'GX': 0.0, 'GNO': 0.0001055686, 'GG': 0.038593, 'GF': 0.40088}, 
+     {'ES': 8000.001, 'D': 1.0449, 'GX': 0.0, 'GNO': 0.0001051901, 'GG': 0.038609, 'GF': 0.40085}, 
+     {'ES': 9000.0, 'D': 1.0428, 'GX': 0.0, 'GNO': 0.0001048431, 'GG': 0.038626, 'GF': 0.40082}, 
+     {'ES': 10000.0, 'D': 1.0406, 'GX': 0.0, 'GNO': 0.0001044866, 'GG': 0.038641, 'GF': 0.4008}, 
+     {'ES': 13000.0, 'D': 1.0341, 'GX': 0.0, 'GNO': 0.0001035031, 'GG': 0.03869, 'GF': 0.40072}, 
+     {'ES': 15000.0, 'D': 1.0298, 'GX': 6.3286e-05, 'GNO': 0.000102875, 'GG': 0.038722, 'GF': 0.40067}, 
+     {'ES': 20000.0, 'D': 1.0192, 'GX': 0.0004222, 'GNO': 0.0001014063, 'GG': 0.038803, 'GF': 0.40055}, 
+     {'ES': 25000.0, 'D': 1.0087, 'GX': 0.00093359, 'GNO': 0.0001000348, 'GG': 0.038884, 'GF': 0.40045}, 
+     {'ES': 46200.0, 'D': 0.96532, 'GX': 0.0038198, 'GNO': 9.486007e-05, 'GG': 0.03921, 'GF': 0.40018}]
+    
     """
     df = tape._get_section_df(mat, mf, mt)
     out = {
@@ -227,18 +231,9 @@ def read_mf2(tape, mat):
                                     "LRX": L.L2,        #Flag indicating whether this energy range contains a competitive width
                                     "NRS": L.N2,        #Number of resolved resonances for a given l-value.
                                     }
-                            
-                            LIST ={}
-                            add_2 =  {
-                                       "ER": L.B[0::6],     #Resonance energy
-                                       "AJ": L.B[1::6],     #The absolute value of AJ is the floating-point value of J
-                                       "GT": L.B[2::6],     #Resonance total width
-                                       "GN": L.B[3::6],     #Neutron width 
-                                       "GG": L.B[4::6],     #Radiation width
-                                       "GF": L.B[5::6],     #Fission width
-                                      }
-                            LIST.update(add_2)
-                            add.update(LIST)
+                            keys = ["ER", "AJ", "GT", "GN", "GG", "GF"]
+                            RES_PAR = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B, 6)]
+                            add.update({"RES_PAR":RES_PAR})
                             LRU1_LRF1_2_NRO0_NLS.update({k:add})
                             LRU1_LRF1_2_NRO0.update({"L":LRU1_LRF1_2_NRO0_NLS})
                         dico[(EL, EH)] = LRU1_LRF1_2_NRO0  
@@ -270,19 +265,9 @@ def read_mf2(tape, mat):
                                     "LRX": L.L2,        #Flag indicating whether this energy range contains a competitive width
                                     "NRS": L.N2,        #Number of resolved resonances for a given l-value.
                                     }
-                            
-                            LIST ={}
-                            add_2 =  {
-                                       "ER": L.B[0::6],
-                                       "AJ": L.B[1::6],
-                                       "GT": L.B[2::6],
-                                       "GN": L.B[3::6],
-                                       "GG": L.B[4::6],
-                                       "GF": L.B[5::6],
-                                      }
-                            add.update(add_2)
-                            LIST.update(add)
-                            add.update({k:LIST})
+                            keys = ["ER", "AJ", "GT", "GN", "GG", "GF"]
+                            RES_PAR = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B, 6)]
+                            add.update({"RES_PAR":RES_PAR})
                         LRU1_LRF1_2_NRO1.update({"L":add})
                         dico[(EL, EH)] = LRU1_LRF1_2_NRO1
                elif LRF == 3 :
@@ -308,17 +293,10 @@ def read_mf2(tape, mat):
                                     "L": L.L1,          #Value of l.   
                                     "NRS": L.N2,        #Number of resolved resonances for a given l-value.
                                     }
-                            LIST ={}
-                            add_2 =  {
-                                       "ER": L.B[0::6],
-                                       "AJ": L.B[1::6],
-                                       "GN": L.B[2::6],
-                                       "GG": L.B[3::6],
-                                       "GFA": L.B[4::6],        #First partial fission width, a constant
-                                       "GFB": L.B[5::6],        #Second partial fission width, a constant.
-                                      }
-                            LIST.update(add_2)
-                            add.update(LIST)
+                            
+                            keys = ["ER", "AJ", "GN", "GG", "GFA", "GFB"]
+                            RES_PAR = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B, 6)]
+                            add.update({"RES_PAR":RES_PAR})
                             LRU1_LRF3_NRO0_NLS.update({k:add})
                         LRU1_LRF3_NRO0.update({"L":LRU1_LRF3_NRO0_NLS})
                         dico[(EL, EH)] = LRU1_LRF3_NRO0
@@ -351,17 +329,10 @@ def read_mf2(tape, mat):
                                     "L": L.L1,          #Value of l.     
                                     "NRS": L.N2,        #Number of resolved resonances for a given l-value.
                                     }
-                            LIST ={}
-                            add_2 =  {
-                                       "ER": L.B[0::6],
-                                       "AJ": L.B[1::6],
-                                       "GN": L.B[2::6],
-                                       "GG": L.B[3::6],
-                                       "GFA": L.B[4::6],
-                                       "GFB": L.B[5::6],
-                                      }
-                            LIST.update(add_2)
-                            add.update(LIST)
+                            
+                            keys = ["ER", "AJ", "GN", "GG", "GFA", "GFB"]
+                            RES_PAR = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B, 6)]
+                            add.update({"RES_PAR":RES_PAR})
                             LRU1_LRF3_NRO1_NLS.update({k:add})
                         LRU1_LRF3_NRO1.update({"L":LRU1_LRF3_NRO1_NLS})
                         dico[(EL, EH)] = LRU1_LRF3_NRO1
@@ -372,32 +343,21 @@ def read_mf2(tape, mat):
                     LRU1_LRF7.update(header2)
                     C, i = sandy.read_cont(df, i)
                     add = {
-                                "IFG": C.L1,
-                                "KRM": C.L2,        #Flag to specify which formulae for the R-matrix are to be used
-                                "NJS": C.N1,        #Number of values of J
-                                "KRL": C.N2,        #Flag is zero for non-relativistic kinematics
-                                }
+                            "IFG": C.L1,
+                            "KRM": C.L2,        #Flag to specify which formulae for the R-matrix are to be used
+                            "NJS": C.N1,        #Number of values of J
+                            "KRL": C.N2,        #Flag is zero for non-relativistic kinematics
+                            }
                     NJS = int(C.N1)
                     LRU1_LRF7.update(add)
                     L, i = sandy.read_list(df, i)
-                    add = {"NPP": L.L1,                #Total number of particle-pairs.
+                    add = {
+                            "NPP": L.L1,                #Total number of particle-pairs.
                            }
-                    LIST ={}
-                    add_2 = {"MA": L.B[0::12],          #Mass of first particle in the pair
-                             "MB": L.B[1::12],          #Mass of second particle
-                             "ZA": L.B[2::12],          #Charge of first particle.
-                             "ZB": L.B[3::12],          #Charge of second particle
-                             "IA": L.B[4::12],          #Spin (and parity, if non-zero) of one particle in the pair
-                             "IB": L.B[5::12],          #Spin of the other particle in the pair
-                             "Q": L.B[6::12],           
-                             "PNT": L.B[7::12],         #Flag if penetrability is to be calculated;
-                             "SHF": L.B[8::12],         #Flag if shift factor is to be calculated
-                             "MT": L.B[9::12],          #Reaction type associated with this particle-pair
-                             "PA": L.B[10::12],         #Parity for first particle in the pair
-                             "PB": L.B[11::12],         #Parity for second particle
-                             }
-                    LIST.update(add_2)
-                    add.update(LIST)
+                    
+                    keys = ["MA", "MB", "ZA", "ZB", "IA", "IB","Q", "PNT", "SHF", "MT", "PA", "PB"]
+                    PAIR_PART = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B, 12)]
+                    add.update({"PAIR_PART":PAIR_PART})
                     LRU1_LRF7.update(add)
                     LRU1_LRF7_NJS = {}
                     for k in range(NJS):
@@ -411,22 +371,16 @@ def read_mf2(tape, mat):
                                     "NCH": L.N2,            #Number of channels for the given J pi. 
                                     }
                             NCH = int (L.N2)
-                            LIST1 = {}
-                            add_2 =  {
-                                       "PPI": L.B[0::6],    #Particle-pair number for this channel
-                                       "L": L.B[1::6],      #Orbital angular momentum
-                                       "SCH": L.B[2::6],    #Channel spin
-                                       "BND": L.B[3::6],    #Boundary condition for this channel
-                                       "APE": L.B[4::6],    #Effective channel radius
-                                       "APT": L.B[5::6],    #True channel radius
-                                      }
-                            LIST1.update(add_2)
-                            add1.update(LIST1)
+                            keys = ["PPI", "L", "SCH", "BND", "APE", "APT"]
+                            SPIN_GROUP = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B, 6)]
+                            add1.update({"SPIN_GROUP":SPIN_GROUP})
+                            
                             L, i = sandy.read_list(df, i)
                             add2 = {
                                     "NRS": L.L2,            #Number of resonances for the given J pi 
                                     "NX": L.N2,             #Number of lines required for all resonances for the given J
                                     }
+                            
                             LIST2 ={}
                             Ep = L.B[::NCH+1]
                             b = L.B[::1]
@@ -463,16 +417,10 @@ def read_mf2(tape, mat):
                                 "L": L.L1,
                                 "NJS": L.N2,                    #Number of J-states for a particular l-state
                                     }
-                        LIST ={}
-                        add_2 =  {
-                                   "D": L.B[0::6],
-                                   "AJ": L.B[1::6],
-                                   "AMUN": L.B[2::6],
-                                   "GNO": L.B[3::6],
-                                   "GG": L.B[4::6],
-                                  }
-                        LIST.update(add_2)
-                        add.update(LIST)
+                        
+                        keys = ["D", "AJ", "AMUN", "GNO", "GG","0"]
+                        RES_PAR = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B, 6)]
+                        add.update({"RES_PAR":RES_PAR})
                         LRU2_LFW0_LRF1_NLS.update({k : add})
                     LRU2_LFW0_LRF1.update({"L": LRU2_LFW0_LRF1_NLS})
                     dico[(EL, EH)] = LRU2_LFW0_LRF1
@@ -513,13 +461,10 @@ def read_mf2(tape, mat):
                                     "AMUN": L.B[3],             #Number of degrees of freedom in the neutron width distribution.
                                     "AMUG": L.B[4],             #Number of degrees of freedom in the radiation width distribution.
                                     "AMUF": L.B[5],             #Integer value of the number of degrees of freedom for fission widths.
-                                    "ES": L.B[6::6],
-                                    "D": L.B[7::6],
-                                    "GX": L.B[8::6],
-                                    "GNO": L.B[9::6],
-                                    "GG": L.B[10::6],
-                                    "GF": L.B[11::6],
                                     }
+                            keys = ["ES","D", "GX", "GNO", "GG", "GF"]
+                            RES_PAR = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B[6::], 6)]
+                            add_3.update({"RES_PAR":RES_PAR})
                             add_2.update(add_3)
                             LIST.update({k:add_2})
                         LRU2_LRF2_NjS.update(add_1)    
@@ -726,23 +671,16 @@ def write_mf2(sec):
                             sec3["NLS"],
                             0,
                             )
-                        NLS = int(sec3["NLS"])
-                        for k in range(NLS): 
-                            S_NLS = len(sec3["L"][k]["ER"])
-                            add = [0] * (6 * S_NLS)
-                            add[0::6] = sec3["L"][k]["ER"]
-                            add[1::6] = sec3["L"][k]["AJ"]
-                            add[2::6] = sec3["L"][k]["GT"]
-                            add[3::6] = sec3["L"][k]["GN"]
-                            add[4::6] = sec3["L"][k]["GG"]
-                            add[5::6] = sec3["L"][k]["GF"]
+                        for l, sec4 in sec3["L"].items():
+                            keys = ["ER", "AJ", "GT", "GN", "GG", "GF"]
+                            tab = [res[k] for res in sec4["RES_PAR"] for k in keys]
                             lines +=sandy.write_list(
-                                sec3["L"][k]["AWRI"],
-                                sec3["L"][k]["QX"],
-                                sec3["L"][k]["L"],
-                                sec3["L"][k]["LRX"],
-                                sec3["L"][k]["NRS"],
-                                add,
+                                sec4["AWRI"],
+                                sec4["QX"],
+                                sec4["L"],
+                                sec4["LRX"],
+                                sec4["NRS"],
+                                tab,
                                 )
                     else :
                         lines += sandy.write_tab1(
@@ -764,23 +702,16 @@ def write_mf2(sec):
                             sec3["NLS"],
                             0,
                             )
-                        NLS = int(sec3["NLS"])
-                        for k in range(NLS): 
-                            S_NLS = len(sec3["L"][k]["ER"])
-                            add = [0] * (6 * S_NLS)
-                            add[0::6] = sec3["L"][k]["ER"]
-                            add[1::6] = sec3["L"][k]["AJ"]
-                            add[2::6] = sec3["L"][k]["GT"]
-                            add[3::6] = sec3["L"][k]["GN"]
-                            add[4::6] = sec3["L"][k]["GG"]
-                            add[5::6] = sec3["L"][k]["GF"]
+                        for l, sec4 in sec3["L"].items():
+                            keys = ["ER", "AJ", "GT", "GN", "GG", "GF"]
+                            tab = [res[k] for res in sec4["RES_PAR"] for k in keys]
                             lines +=sandy.write_list(
-                                sec3["L"][k]["AWRI"],
-                                sec3["L"][k]["QX"],
-                                sec3["L"][k]["L"],
-                                sec3["L"][k]["LRX"],
-                                sec3["L"][k]["NRS"],
-                                add,
+                                sec4["AWRI"],
+                                sec4["QX"],
+                                sec4["L"],
+                                sec4["LRX"],
+                                sec4["NRS"],
+                                tab,
                                 )
                 elif sec3["LRF"] == 3:
                     if sec3["NRO"] == 0: 
@@ -792,23 +723,16 @@ def write_mf2(sec):
                             sec3["NLS"],
                             sec3["NLSC"],
                             )
-                        NLS = int(sec3["NLS"])
-                        for k in range(NLS): 
-                            S_ER = len (sec3["L"][k]["ER"])
-                            add = [0]*(6*S_ER)
-                            add[0::6] = sec3["L"][k]["ER"]
-                            add[1::6] = sec3["L"][k]["AJ"]
-                            add[2::6] = sec3["L"][k]["GN"]
-                            add[3::6] = sec3["L"][k]["GG"]
-                            add[4::6] = sec3["L"][k]["GFA"]
-                            add[5::6] = sec3["L"][k]["GFB"]
+                        for l, sec4 in sec3["L"].items():
+                            keys = ["ER", "AJ", "GN", "GG", "GFA", "GFB"]
+                            tab = [res[k] for res in sec4["RES_PAR"] for k in keys]
                             lines +=sandy.write_list(
-                                sec3["L"][k]["AWRI"],
-                                sec3["L"][k]["APL"],
-                                sec3["L"][k]["L"],
+                                sec4["AWRI"],
+                                sec4["APL"],
+                                sec4["L"],
                                 0,
-                                sec3["L"][k]["NRS"],
-                                add,
+                                sec4["NRS"],
+                                tab,
                                 )
                     else :
                         lines += sandy.write_tab1(
@@ -830,23 +754,16 @@ def write_mf2(sec):
                             sec3["NLS"],
                             sec3["NLSC"],
                             )
-                        NLS = int(sec3["NLS"])
-                        for k in range(NLS): 
-                            S_ER = len (sec3["L"][k]["ER"])
-                            add = [0]*(6*S_ER)
-                            add[0::6] = sec3["L"][k]["ER"]
-                            add[1::6] = sec3["L"][k]["AJ"]
-                            add[2::6] = sec3["L"][k]["GN"]
-                            add[3::6] = sec3["L"][k]["GG"]
-                            add[4::6] = sec3["L"][k]["GFA"]
-                            add[5::6] = sec3["L"][k]["GFB"]
+                        for l, sec4 in sec3["L"].items():
+                            keys = ["ER", "AJ", "GN", "GG", "GFA", "GFB"]
+                            tab = [res[k] for res in sec4["RES_PAR"] for k in keys]
                             lines +=sandy.write_list(
-                                sec3["L"][k]["AWRI"],
-                                sec3["L"][k]["APL"],
-                                sec3["L"][k]["L"],
+                                sec4["AWRI"],
+                                sec4["APL"],
+                                sec4["L"],
                                 0,
-                                sec3["L"][k]["NRS"],
-                                add,
+                                sec4["NRS"],
+                                tab,
                                 )
                 elif sec3["LRF"] == 7:
                     lines += sandy.write_cont(
@@ -857,62 +774,43 @@ def write_mf2(sec):
                         sec3["NJS"],
                         sec3["KRL"],
                         )
-                    NJS = int(sec3["NJS"]) 
-                    S_NPP = len (sec3["MA"])
-                    add = [0]*(12*S_NPP)
-                    add[0::12] = sec3["MA"]
-                    add[1::12] = sec3["MB"]
-                    add[2::12] = sec3["ZA"]
-                    add[3::12] = sec3["ZB"]
-                    add[4::12] = sec3["IA"]
-                    add[5::12] = sec3["IB"]
-                    add[6::12] = sec3["Q"]
-                    add[7::12] = sec3["PNT"]
-                    add[8::12] = sec3["SHF"]
-                    add[9::12] = sec3["MT"]
-                    add[10::12] = sec3["PA"]
-                    add[11::12] = sec3["PB"]
+                    keys = ["MA", "MB", "ZA", "ZB", "IA", "IB", "Q", "PNT", "SHF", "MT", "PA", "PB"]
+                    tab = [res[k] for res in sec3["PAIR_PART"] for k in keys]
                     lines += sandy.write_list(
                         0,
                         0,
                         sec3["NPP"],
                         0,
                         2 * sec3["NPP"],
-                        add,
+                        tab,
                         )
-                    for k in range(NJS):
-                        S_NJS = len (sec3["J"][k]["PPI"])
-                        add = [0]*(6*S_NJS)
-                        add[0::6] = sec3["J"][k]["PPI"]
-                        add[1::6] = sec3["J"][k]["L"]
-                        add[2::6] = sec3["J"][k]["SCH"]
-                        add[3::6] = sec3["J"][k]["BND"]
-                        add[4::6] = sec3["J"][k]["APE"]
-                        add[5::6] = sec3["J"][k]["APT"]
+                    for l, sec4 in sec3["J"].items():
+                        keys = ["PPI", "L", "SCH", "BND", "APE", "APT"]
+                        tab = [res[k] for res in sec4["SPIN_GROUP"] for k in keys]
                         lines += sandy.write_list(
-                            sec3["J"][k]["AJ"],
-                            sec3["J"][k]["PJ"],
-                            sec3["J"][k]["KBK"],
-                            sec3["J"][k]["KPS"],
-                            sec3["J"][k]["NCH"],
-                            add,
+                            sec4["AJ"],
+                            sec4["PJ"],
+                            sec4["KBK"],
+                            sec4["KPS"],
+                            sec4["NCH"],
+                            tab,
                             )
-                        NCH = sec3["J"][k]["NCH"]
-                        size_E = len(sec3["J"][k]["ER"])
-                        size_b = len(sec3["J"][k]["GAM"])
+                        NCH = sec4["NCH"]
+                        size_E = len(sec4["ER"])
+                        size_b = len(sec4["GAM"])
                         add2 = []
                         n = NCH 
-                        x = [sec3["J"][k]["GAM"][i:i + n] for i in range(0, size_b, n)]
+                        x = [sec4["GAM"][i:i + n] for i in range(0, size_b, n)]
                         for i in range(size_E):
-                            add2.append(sec3["J"][k]["ER"][i])
+                            add2.append(sec4["ER"][i])
                             for m in range(len(x[i])):
                                 add2.append(x[i][m])
                         lines += sandy.write_list(
                             0,
                             0,
                             0,
-                            sec3["J"][k]["NRS"],
-                            sec3["J"][k]["NX"],
+                            sec4["NRS"],
+                            sec4["NX"],
                             add2,
                             )
             elif sec3["LRU"] == 2:
@@ -925,22 +823,16 @@ def write_mf2(sec):
                         sec3["NLS"],
                         0,
                         )
-                    NLS = int (sec3["NLS"])
-                    for k in range(NLS):
-                        S_NLS = len (sec3["L"][k]["AJ"])
-                        add = [0]*(6*S_NLS)
-                        add[0::6] = sec3["L"][k]["D"]
-                        add[1::6] = sec3["L"][k]["AJ"]
-                        add[2::6] = sec3["L"][k]["AMUN"]
-                        add[3::6] = sec3["L"][k]["GNO"]
-                        add[4::6] = sec3["L"][k]["GG"]
+                    for l, sec4 in sec3["L"].items():
+                        keys = ["D", "AJ", "AMUN", "GNO", "GG","0"]
+                        tab = [res[k] for res in sec4["RES_PAR"] for k in keys]
                         lines += sandy.write_list(
-                            sec3["L"][k]["AWRI"],
+                            sec4["AWRI"],
                             0,
-                            sec3["L"][k]["L"],
+                            sec4["L"],
                             0,
-                            sec3["L"][k]["NJS"],
-                            add,
+                            sec4["NJS"],
+                            tab,
                             )
                 elif sec3["LRF"] == 2:
                     lines += sandy.write_cont(
@@ -960,28 +852,22 @@ def write_mf2(sec):
                             sec4["NJS"],
                             0,
                             )
-                        NJS = int(sec4["NJS"])
-                        for k in range(NJS):
-                            S_NJS = len (sec4["J"][k]["ES"])
+                        
+                        for k, sec5 in sec4["J"].items():
+                            keys = ["ES", "D", "GX", "GNO", "GG","GF"]
+                            tab = [res[k] for res in sec5["RES_PAR"] for k in keys]
                             add1 = [0]*6
-                            add2 = [0]*(6*S_NJS)
-                            add1[2] = sec4["J"][k]["AMUX"]
-                            add1[3] = sec4["J"][k]["AMUN"]
-                            add1[4] = sec4["J"][k]["AMUG"]
-                            add1[5] = sec4["J"][k]["AMUF"]
-                            add2[0::6] = sec4["J"][k]["ES"]
-                            add2[1::6] = sec4["J"][k]["D"]
-                            add2[2::6] = sec4["J"][k]["GX"]
-                            add2[3::6] = sec4["J"][k]["GNO"]
-                            add2[4::6] = sec4["J"][k]["GG"]
-                            add2[5::6] = sec4["J"][k]["GF"]
-                            add = add1 + add2
+                            add1[2] = sec5["AMUX"]
+                            add1[3] = sec5["AMUN"]
+                            add1[4] = sec5["AMUG"]
+                            add1[5] = sec5["AMUF"]
+                            add = add1 + tab
                             lines += sandy.write_list(
-                                sec4["J"][k]["AJ"],
+                                sec5["AJ"],
                                 0,
-                                sec4["J"][k]["INT"],
+                                sec5["INT"],
                                 0,
-                                sec4["J"][k]["NE"],
+                                sec5["NE"],
                                 add,
                                 )
     return "\n".join(sandy.write_eol(lines, sec["MAT"], 2, 151))
