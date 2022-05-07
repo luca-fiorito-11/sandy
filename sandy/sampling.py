@@ -604,11 +604,6 @@ def parse(iargs=None):
                         default='normal',
                         help="draw samples according to the chosen distribution "
                              "(default = 'normal')")
-    parser.add_argument('--relative',
-                        type=bool,
-                        default=True,
-                        help="flag to switch between relative and absolute covariance matrix "
-                             "(default = True)")
     parser.add_argument('--njoy',
                         type=lambda x: is_valid_file(parser, x),
                         default=None,
@@ -762,7 +757,7 @@ def extract_samples(ftape, covtape):
         covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmt)
         xscov = XsCov(covtape.get_cov(multigroup=False).data) if isinstance(covtape, sandy.errorr.Errorr) else XsCov.from_endf6(covtape)
         if not xscov.empty:
-            PertXs = sandy.CategoryCov(xscov).sampling(init.samples, tolerance=0, seed=init.seed33, pdf=init.pdf, relative=init.relative).data.T
+            PertXs = sandy.CategoryCov(xscov).sampling(init.samples, tolerance=0, seed=init.seed33, pdf=init.pdf).data.T
             PertXs.rename(columns=dict(zip(range(0, init.samples), range(1, init.samples + 1))), inplace=True)
             PertXs = pd.DataFrame(PertXs, columns=range(1, init.samples + 1))
             PertXs.columns.name = "SMP"
@@ -821,7 +816,7 @@ def sampling(iargs=None):
 #            ftape = ftape.delete_sections((None, 3, None)). \
 #                          add_sections(ptape.filter_by(listmf=[3])). \
 #                          add_sections(ptape.filter_by(listmf=[1], listmt=[451]))
-        pxs = xscov.sampling(init.samples, pdf=init.pdf, seed=init.seed33, tolerance=0, relative=init.relative)
+        pxs = xscov.sampling(init.samples, pdf=init.pdf, seed=init.seed33, tolerance=0)
         cn = pxs.condition_number
         print(f"Condition number : {cn:>15}")
         pxs = pxs.data.T
