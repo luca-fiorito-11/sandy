@@ -599,6 +599,16 @@ def parse(iargs=None):
                         metavar="{1,..,999}",
                         help="draw samples only from the selected MT sections "
                              "(default = keep all)")
+    parser.add_argument('--pdf',
+                        type=str,
+                        default='normal',
+                        help="draw samples according to the chosen distribution "
+                             "(default = 'normal')")
+    parser.add_argument('--relative',
+                        type=bool,
+                        default=True,
+                        help="flag to switch between relative and absolute covariance matrix "
+                             "(default = True)")
     parser.add_argument('--njoy',
                         type=lambda x: is_valid_file(parser, x),
                         default=None,
@@ -752,7 +762,10 @@ def extract_samples(ftape, covtape):
         covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmt)
         xscov = XsCov(covtape.get_cov(multigroup=False).data) if isinstance(covtape, sandy.errorr.Errorr) else XsCov.from_endf6(covtape)
         if not xscov.empty:
-            PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
+            PertXs = sandy.CategoryCov(xscov).sampling(init.samples, tolerance=0, seed=init.seed33, pdf=init.pdf, relative=init.relative).data.T
+            PertXs.rename(columns=dict(zip(range(0, init.samples), range(1, init.samples + 1))), inplace=True)
+            PertXs = pd.DataFrame(PertXs, columns=range(1, init.samples + 1))
+            PertXs.columns.name = "SMP"
             if init.debug:
                 PertXs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
     return ftape, covtape, PertNubar, PertXs, PertLpc, PertEdistr, PertFy
@@ -786,7 +799,7 @@ def sampling(iargs=None):
                     index_col=[0, 1, 2],
                     header=[0, 1, 2],
                     )
-        covtape = xscov = sandy.XsCov(catcov.data)
+        covtape = xscov = sandy.CategoryCov(catcov.data)
         # This part is to get the pendf file
         if ftape.get_file_format() == "endf6":
             endf6 = sandy.Endf6.from_file(init.file)
@@ -808,9 +821,13 @@ def sampling(iargs=None):
 #            ftape = ftape.delete_sections((None, 3, None)). \
 #                          add_sections(ptape.filter_by(listmf=[3])). \
 #                          add_sections(ptape.filter_by(listmf=[1], listmt=[451]))
-        pxs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
-        cn = sandy.Samples(pxs).condition_number
+        pxs = xscov.sampling(init.samples, pdf=init.pdf, seed=init.seed33, tolerance=0, relative=init.relative)
+        cn = pxs.condition_number
         print(f"Condition number : {cn:>15}")
+        pxs = pxs.data.T
+        pxs.rename(columns=dict(zip(range(0, init.samples), range(1, init.samples + 1))), inplace=True)
+        pxs = pd.DataFrame(pxs, columns=range(1, init.samples + 1))
+        pxs.columns.name = "SMP"
         pnu = plpc = pchi = pfy = pd.DataFrame()
         if init.debug:
             pxs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
