@@ -650,7 +650,8 @@ def sampling(iargs=None):
             ftape.to_file(dst)
     # Perturbed endf:
     pert_endf6 = perturbation_manager(samples, ftape)
-    return to_file(pert_endf6)
+    to_file(pert_endf6)
+    return pert_endf6
 
 
 def run():
