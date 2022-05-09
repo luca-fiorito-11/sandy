@@ -347,14 +347,14 @@ def perturbation_manager(samples, endf6):
     """
     global init
     pert_samples = {}
+    if platform.system() == "Windows":
+        proc = 1
+        logging.info("Running on Windows does not allow parallel "
+                     "processing")
+    else:
+        proc = init.processes
     for mat in endf6.to_series().index.get_level_values("MAT").unique():
         tape = endf6.filter_by(listmat=[mat])
-        if platform.system() == "Windows":
-            proc = 1
-            logging.info("Running on Windows does not allow parallel "
-                         "processing")
-        else:
-            proc = init.processes
         seq = range(1, init.samples + 1)
         if proc == 1:
             outs = {i: pert_by_mf(samples, tape, mat, i) for i in seq}
