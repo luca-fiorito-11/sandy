@@ -87,7 +87,6 @@ import numpy as np
 
 import sandy
 from sandy.settings import SandyError
-from sandy.formats.endf6 import Endf6
 
 __author__ = "Luca Fiorito"
 __all__ = ["process", "process_proton", "get_njoy"]
@@ -1263,7 +1262,7 @@ def process(
     outputs : `map`
         map of {`tape` : `file`) for ouptut files
     """
-    tape = Endf6.from_file(endftape)
+    tape = sandy.Endf6.from_file(endftape)
     mat = tape.mat[0]
     info = tape.read_section(mat, 1, 451)
     meta = info["LISO"]
@@ -1489,7 +1488,7 @@ def process_proton(
     outputs : `map`
         map of {`tape` : `file`) for ouptut files
     """
-    tape = Endf6.from_file(endftape)
+    tape = sandy.Endf6.from_file(endftape)
     mat = tape.mat[0]
     info = tape.read_section(mat, 1, 451)
     meta = info["LISO"]
