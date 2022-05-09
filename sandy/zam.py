@@ -487,6 +487,45 @@ def expand_za(za, method="nndc", meta=0):
 
     Examples
     --------
+    Tests for nuclides with mass number < 100:
+    >>> expand_za(1001, method="nndc")
+    (1, 1, 0)
+
+    >>> expand_za(1501, method="nndc")
+    (1, 1, 2)
+
+    >>> expand_za(1601, method="nndc")
+    (1, 1, 3)
+
+    >>> expand_za(1001, method=False, meta=3)
+    (1, 1, 3)
+
+    >>> expand_za(43495, method="nndc")
+    (43, 95, 1)
+
+    >>> expand_za(43095, method=False, meta=1)
+    (43, 95, 1)
+
+    Tests for nuclides with mass number between 100 and 200:
+    >>> expand_za(72577, method="nndc")
+    (72, 177, 1)
+
+    >>> expand_za(72677, method="nndc")
+    (72, 177, 2)
+
+    >>> expand_za(72177, method=False, meta=1)
+    (72, 177, 1)
+
+    >>> expand_za(72177, method=False, meta=2)
+    (72, 177, 2)
+
+    >>> expand_za(78795, method="nndc")
+    (78, 195, 3)
+
+    >>> expand_za(78195, method=False, meta=3)
+    (78, 195, 3)
+
+    Tests for nuclides with mass number > 200:
     >>> expand_za(92235)
     (92, 235, 0)
 
@@ -499,23 +538,17 @@ def expand_za(za, method="nndc", meta=0):
     >>> expand_za(95741, method="nndc")
     (95, 241, 2)
 
-    >>> expand_za(72577, method="nndc")
-    (72, 177, 1)
-
-    >>> expand_za(72677, method="nndc")
-    (72, 177, 2)
-
     >>> expand_za(95241, method=False, meta=1)
     (95, 241, 1)
 
     >>> expand_za(95241, method=False, meta=2)
     (95, 241, 2)
 
-    >>> expand_za(72177, method=False, meta=1)
-    (72, 177, 1)
+    >>> expand_za(117894, method="nndc")
+    (117, 294, 3)
 
-    >>> expand_za(72177, method=False, meta=2)
-    (72, 177, 2)
+    >>> expand_za(117294, method=False, meta=3)
+    (117, 294, 3)
     """
     z = int(za//1000)
     a = int(za - z*1000)
@@ -524,9 +557,9 @@ def expand_za(za, method="nndc", meta=0):
         if a >= 300:
             m = 1
             a = a - 300 - m*100
-        while a > 3*z:
-            m += 1
-            a -= 100
+            while a > 3*z:
+                m += 1
+                a -= 100
     else:
         m = int(meta)
     return z, a, m

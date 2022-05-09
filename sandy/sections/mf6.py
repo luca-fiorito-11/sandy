@@ -124,7 +124,7 @@ def read_mf6(tape, mat, mt):
         LAW = T.L2  # Distintion between different distribution function
         ZAP = T.C1  # Product identifier
         LIP = T.L1  # Product isomeric state identifier
-        ZAM = zam.za2zam(ZAP, meta=LIP)
+        ZAM = zam.za2zam(ZAP, meta=LIP, method=False)
         add = {
                 "AWP": T.C2,  # Product mass in neutron units
                 "LAW": T.L2,
@@ -400,7 +400,7 @@ def write_mf6(sec):
                 )
     for product, NK in sec["NK"].items():  # For the rest of the NK subsections
         # [MAT, 6, MT/ ZAP, AWP, LIP, LAW,NR,NP/Eint/yi(E)]TAB1
-        ZAP, LIP = zam.zam2za(product)
+        ZAP, LIP = zam.zam2za(product, method=False)
         lines += sandy.write_tab1(
                     ZAP,
                     NK["AWP"],
