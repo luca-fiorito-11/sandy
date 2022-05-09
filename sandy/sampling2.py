@@ -557,29 +557,25 @@ def custom_perturbation_mf_35(sample, endf6, mat, i):
     return edistr.to_endf6(endf6)
 
 
-def _to_file(outname, ismp, dfsmp, frame):
+def _to_file(frame, ismp, mat, outname):
     """
     Write each sample in the outdir and with the outnames introduced by the
     user.
 
     Parameters
     ----------
-    outname : `str`
-        Outname introduced by the user for the sample.
-    ismp : `int`
-        Number of the sample. 
-    dfsmp : `int`
-        Samples for that MAT number.
     frame : `pd.Series`
         Pandas series with perturbed information divided by mat and the number
         of the sample.
-
+    ismp : `int`
+        Number of the sample.
+    mat : `int`
+        MAT number.
+    outname : `str`
+        Outname introduced by the user for the sample.
     """
     output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
-    with open(output, 'w') as f:
-        for mat, dfmat in dfsmp.groupby("MAT"):
-            f.write(frame[ismp, mat])
-    return
+    return frame[ismp, mat].to_file(output)
 
 
 def to_file(pert_endf6):
@@ -602,12 +598,13 @@ def to_file(pert_endf6):
     frame.columns.name = "MAT"
     frame = frame.stack()
     outname = init.outname if init.outname else os.path.split(init.file)[1]
+    proc = 1 if platform.system() == "Windows" else init.processes
     for ismp, dfsmp in frame.groupby("SMP"):
-        proc = 1 if platform.system() == "Windows" else init.processes
-        if proc == 1:
-            _to_file(outname, ismp, dfsmp, frame)
-        else:
-            mp.pool.apply_async(_to_file, (outname, ismp, dfsmp, frame))
+        for mat, dfmat in dfsmp.groupby("MAT"):
+            if proc == 1:
+                _to_file(frame, ismp, mat, outname)
+            else:
+                mp.pool.apply_async(_to_file, (frame, ismp, mat, outname))
     return
 
 
