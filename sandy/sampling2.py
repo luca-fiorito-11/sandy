@@ -564,18 +564,15 @@ def _to_file(outname, ismp, dfsmp, frame):
 
     Parameters
     ----------
-    outname : TYPE
-        DESCRIPTION.
-    ismp : TYPE
-        DESCRIPTION.
-    dfsmp : TYPE
-        DESCRIPTION.
-    frame : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    None.
+    outname : `str`
+        Outname introduced by the user for the sample.
+    ismp : `int`
+        Number of the sample. 
+    dfsmp : `int`
+        Samples for that MAT number.
+    frame : `pd.Series`
+        Pandas series with perturbed information divided by mat and the number
+        of the sample.
 
     """
     output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
