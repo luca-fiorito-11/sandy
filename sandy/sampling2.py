@@ -30,8 +30,10 @@ __author__ = "Aitor Bengoechea"
 
 mf_available = [8, 31, 33, 34, 35]
 
+
 def parse(iargs=None):
-    """Parse command line arguments for sampling option.
+    """
+    Parse command line arguments for sampling option.
 
     Parameters
     ----------
@@ -201,7 +203,7 @@ def get_fy_cov(endf6):
     Parameters
     ----------
     endf6 : `sandy.Endf6`
-        DESCRIPTION.
+        Endf file
 
     Returns
     -------
@@ -217,6 +219,28 @@ def get_fy_cov(endf6):
 
 
 def get_cov(endf6):
+    """
+    Function to obtain the covariance matrices for all mf entered by the user.
+
+    Parameters
+    ----------
+    endf6 : `sandy.Endf6`
+        Endf file.
+
+    Returns
+    -------
+    cov : `dict`
+        Dictionary containing as keys the mf entered by the user and as values
+        objects `sandy.CategoryCov`. The dictionary is divided as follows:
+
+                {mf: {`sandy.CategoryCov`}}
+
+    Notes
+    -----
+    .. note:: FY data is divided in a differente way. The covariance matrix are
+    divided according to the mat, mt and energy.
+
+    """
     global init
     cov = {}
     # Covariance of Sandy modules:
@@ -254,21 +278,29 @@ def get_cov(endf6):
                                  njoy=init.njoy, temperature=temp))
     return cov
 
+
 def sample_manager(endf6):
     """
-    
+    Function to obtain the sample covariance matrices for all mf entered
+    by the user.
 
     Parameters
     ----------
     endf6 : `sandy.Endf6`
-        DESCRIPTION.
+        Endf6 file.
 
     Returns
     -------
     samples : `dict`
-        Dictionary containing the `sandy.Samples` objects containing the
-        samples.
+        Dictionary containing the `sandy.Samples` objects divided by the mf
+        (dict keys). The dictionary is divided as follows:
 
+                {mf: {`sandy.Samples`}}
+
+    Notes
+    -----
+    .. note:: FY data is divided in a differente way. The samples are
+    divided according to the mat, mt and energy.
     """
     global init
     samples = {}
@@ -281,15 +313,38 @@ def sample_manager(endf6):
         if mf == 8:
             samples[mf] = mf_cov.apply(lambda x: x.sampling(init.samples,
                                                             seed=seed,
-                                          tolerance=init.tolerance,
-                                          pdf=init.pdf))
+                                                            tolerance=init.tolerance,
+                                                            pdf=init.pdf))
         else:
             samples[mf] = mf_cov.sampling(init.samples, seed=seed,
                                           tolerance=init.tolerance,
                                           pdf=init.pdf)
     return samples
 
+
 def perturbation_manager(samples, endf6):
+    """
+    Function to produce `sandy.Endf6` objects with perturbed data in
+    parallelised form if the operating system permits.
+
+    Parameters
+    ----------
+    samples : `dict`
+        Dictionary containing the `sandy.Samples` objects divided by the mf
+        (dict keys).
+    endf6 : `sandy.Endf6`
+        Endf6 file.
+
+    Returns
+    -------
+    pert_samples : `dict`
+        Dictionary containing the `sandy.Endf6` objects with the perturbed data
+        for the number of samples entered by the user. The dictionary is
+        divided as follows:
+
+                {mat: {Number of the sample: `sandy.Endf6`}}
+
+    """
     global init
     pert_samples = {}
     for mat in endf6.to_series().index.get_level_values("MAT").unique():
@@ -310,8 +365,9 @@ def perturbation_manager(samples, endf6):
             outs = {i: out.get() for i, out in outs.items()}
             pool.close()
             pool.join()
-        pert_samples.update({mat: outs})    
+        pert_samples.update({mat: outs})
     return pert_samples
+
 
 def pert_by_mf(samples, endf6, mat, i):
     """
@@ -324,13 +380,13 @@ def pert_by_mf(samples, endf6, mat, i):
 
     Returns
     -------
-    None.
+    `pert_endf6`: `sandy.Endf6`
+        Endf6 with perturbed data.
 
     """
     global init
-    pert_endf6 = endf6.copy()
+    pert_endf6 = sandy.Endf6(endf6.data.copy())
     t0 = time.time()
-    extra_points = np.logspace(-5, 7, init.energy_sequence)
     i_ = i-1
     if 8 in samples:
         pert_endf6 = custom_perturbation_mf_8(samples[8],
@@ -340,17 +396,39 @@ def pert_by_mf(samples, endf6, mat, i):
                                                pert_endf6, mat)
     if 33 in samples:
         pert_endf6 = custom_perturbation_mf_33(samples[33].data.iloc[i_],
-                                               pert_endf6, mat)
+                                               pert_endf6, mat, i_)
     if 34 in samples:
         pert_endf6 = custom_perturbation_mf_34(samples[34].data.iloc[i_],
-                                               pert_endf6, mat)
+                                               pert_endf6, mat, i_)
     if 35 in samples:
         pert_endf6 = custom_perturbation_mf_35(samples[35].data.iloc[i_],
-                                               pert_endf6, mat)
+                                               pert_endf6, mat, i_)
+    print("Created sample {} for MAT {} in {:.2f} sec".format(i, mat, time.time()-t0,))
     return pert_endf6
 
 
 def custom_perturbation_mf_8(sample, endf6, mat, i):
+    """
+    Perturb the fy data for a selected mat, mt and energy.
+
+    Parameters
+    ----------
+    sample : `dict`
+        Dictionay containing the Samples (`sandy.Samples` objects) divided by
+        the mat, mt and enegy.
+    endf6 :`sandy.Endf6`
+        Endf6 file.
+    mat : `int`
+        MAT number.
+    i : `int`
+        Number of the sample.
+
+    Returns
+    -------
+    `sandt.Endf6`
+        Endf6 file with the pertubed fy data.
+
+    """
     fy = sandy.Fy.from_endf6(endf6)
     cond_mat = sample.index.get_level_values("MAT").isin([mat])
     sample_mat = sample.loc[cond_mat]
@@ -361,6 +439,24 @@ def custom_perturbation_mf_8(sample, endf6, mat, i):
 
 
 def custom_perturbation_mf_31(sample, endf6, mat):
+    """
+    Perturb the nubar data for a selected mat.
+
+    Parameters
+    ----------
+    sample : `dict`
+        Sample.
+    endf6 :`sandy.Endf6`
+        Endf6 file for pointwise nubar process with NJOY (module PENDF).
+    mat : `int`
+        MAT number.
+
+    Returns
+    -------
+    `sandt.Endf6`
+        Endf6 file with the pertubed nubar data.
+
+    """
     pert = sandy.Pert(pd.Series(sample.values,
                                 index=sample.index.get_level_values("E").left))
     xs = sandy.Xs.from_endf6(endf6)
@@ -369,42 +465,140 @@ def custom_perturbation_mf_31(sample, endf6, mat):
     return xs.to_endf6(endf6)
 
 
-def custom_perturbation_mf_33(sample, endf6, mat):
+def custom_perturbation_mf_33(sample, endf6, mat, i):
+    """
+    Perturb the xs data for a selected mat.
+
+    Parameters
+    ----------
+    sample : `sandy.Samples`
+        Sample.
+    endf6 :`sandy.Endf6`
+        Endf6 file for pointwise nubar process with NJOY (module PENDF).
+    mat : `int`
+        MAT number.
+    i : `int`
+        Number of the sample.
+
+    Returns
+    -------
+    `sandt.Endf6`
+        Endf6 file with the pertubed nubar data.
+    """
     xs = sandy.Xs.from_endf6(endf6)
     pert = sample.reset_index().groupby('MT')\
-        .apply(lambda x: sandy.Pert(pd.Series(x[0].values,
-                                              index=pd.Index(x["E"].values).left))) 
+        .apply(lambda x: sandy.Pert(pd.Series(x[i].values,
+                                              index=pd.Index(x["E"].values).left)))
     for mt in pert.index:
         xs.custom_perturbation(mat, mt, pert[mt])
     return xs.to_endf6(endf6)
 
 
-def custom_perturbation_mf_34(sample, endf6, mat):
-    global extra_points
+def custom_perturbation_mf_34(sample, endf6, mat, i):
+    """
+    Perturb the lpc data for a selected mat.
+
+    Parameters
+    ----------
+    sample : `sandy.Samples`
+        Sample.
+    endf6 :`sandy.Endf6`
+        Endf6 file.
+    mat : `int`
+        MAT number.
+    i : `int`
+        Number of the sample.
+
+    Returns
+    -------
+    `sandt.Endf6`
+        Endf6 file with the pertubed lpc data.
+    """
+    extra_points = np.logspace(-5, 7, init.energy_sequence)
     conditions = {'MT': 2, 'MAT': mat}
     lpc = sandy.Lpc.from_endf6(endf6)._filters(conditions)\
         ._add_points(extra_points)
     pert = sample.reset_index().groupby('L')\
-        .apply(lambda x: sandy.Pert(pd.Series(x[0].values,
+        .apply(lambda x: sandy.Pert(pd.Series(x[i].values,
                                               index=x["E"])))
     for p in pert.index:
         lpc.custom_perturbation(mat, 2, p, pert[p])
     return lpc.to_endf6(endf6)
 
 
-def custom_perturbation_mf_35(sample, endf6, mat):
-    global extra_points
+def custom_perturbation_mf_35(sample, endf6, mat, i):
+    """
+    Perturb the energy distribution data for a selected mat.
+
+    Parameters
+    ----------
+    sample : `sandy.Samples`
+        Sample.
+    endf6 :`sandy.Endf6`
+        Endf6 file.
+    mat : `int`
+        MAT number.
+    i : `int`
+        Number of the sample.
+
+    Returns
+    -------
+    `sandt.Endf6`
+        Endf6 file with the pertubed energy distribution data.
+    """
+    extra_points = np.logspace(-5, 7, init.energy_sequence)
     edistr = sandy.Edistr.from_endf6(endf6).add_energy_points(9237, 18, 0,
                                                               extra_points)
     pert = sample.reset_index().groupby(['ELO', 'EHI'])\
-        .apply(lambda x: sandy.Pert(pd.Series(x[0].values,
+        .apply(lambda x: sandy.Pert(pd.Series(x[i].values,
                                               index=x["E"])))
     for elo, ehi in pert.index:
         edistr.custom_perturbation(pert[elo, ehi], mat, 18, 0, elo, ehi)
-    return edistr # Falta un to_endf
+    return edistr.to_endf6(endf6)
+
+
+def _to_file(outname, ismp, dfsmp, frame):
+    """
+    Write each sample in the outdir and with the outnames introduced by the
+    user.
+
+    Parameters
+    ----------
+    outname : TYPE
+        DESCRIPTION.
+    ismp : TYPE
+        DESCRIPTION.
+    dfsmp : TYPE
+        DESCRIPTION.
+    frame : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
+    with open(output, 'w') as f:
+        for mat, dfmat in dfsmp.groupby("MAT"):
+            f.write(frame[ismp, mat])
+    return
 
 
 def to_file(pert_endf6):
+    """
+    Function to write Endf6 files with perturbed data in ASCII format.
+
+    Parameters
+    ----------
+    pert_endf6 : `dict`
+        Dictionary containing the `sandy.Endf6` objects with the perturbed data
+        for the number of samples entered by the user. The dictionary is
+        divided as follows:
+
+                {mat: {Number of the sample: `sandy.Endf6`}}
+
+    """
     global init
     frame = pd.DataFrame(pert_endf6)
     frame.index.name = "SMP"
@@ -412,16 +606,21 @@ def to_file(pert_endf6):
     frame = frame.stack()
     outname = init.outname if init.outname else os.path.split(init.file)[1]
     for ismp, dfsmp in frame.groupby("SMP"):
-        output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
-        with open(output, 'w') as f:
-            for mat, dfmat in dfsmp.groupby("MAT"):
-                f.write(frame[ismp, mat])
+        proc = 1 if platform.system() == "Windows" else init.processes
+        if proc == 1:
+            _to_file(outname, ismp, dfsmp, frame)
+        else:
+            mp.pool.apply_async(_to_file, (outname, ismp, dfsmp, frame))
     return
 
 
 def sampling(iargs=None):
     """
-    
+    Construct multivariate distributions with a unit vector for
+    mean and with relative covariances taken from the evaluated files or
+    process with NJOY. Perturbation factors are sampled with the same
+    multigroup structure of the covariance matrix, and are applied to the
+    pointwise data to produce the perturbed files.
 
     Parameters
     ----------
@@ -456,8 +655,8 @@ def sampling(iargs=None):
             ftape = ftape.merge_pendf(pendf)
             ftape.to_file(dst)
     # Perturbed endf:
-#    pert_endf6 = perturbation_manager(samples, ftape)
-    return samples, ftape #pert_endf6
+    pert_endf6 = perturbation_manager(samples, ftape)
+    return to_file(pert_endf6)
 
 
 def run():
