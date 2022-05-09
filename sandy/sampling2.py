@@ -461,7 +461,9 @@ def custom_perturbation_mf_31(sample, endf6, mat):
                                 index=sample.index.get_level_values("E").left))
     xs = sandy.Xs.from_endf6(endf6)
     for mt in sample.index.get_level_values("MT").unique():
-        xs.custom_perturbation(mat, mt, pert)
+        xs = xs.custom_perturbation(mat,
+                                    mt,
+                                    pert)
     return xs.to_endf6(endf6)
 
 
@@ -490,7 +492,9 @@ def custom_perturbation_mf_33(sample, endf6, mat, i):
         .apply(lambda x: sandy.Pert(pd.Series(x[i].values,
                                               index=pd.Index(x["E"].values).left)))
     for mt in pert.index:
-        xs.custom_perturbation(mat, mt, pert[mt])
+        xs = xs.custom_perturbation(mat,
+                                    mt,
+                                    pert[mt])
     return xs.to_endf6(endf6)
 
 
@@ -522,7 +526,7 @@ def custom_perturbation_mf_34(sample, endf6, mat, i):
         .apply(lambda x: sandy.Pert(pd.Series(x[i].values,
                                               index=x["E"])))
     for p in pert.index:
-        lpc.custom_perturbation(mat, 2, p, pert[p])
+        lpc = lpc.custom_perturbation(mat, 2, p, pert[p])
     return lpc.to_endf6(endf6)
 
 
@@ -553,7 +557,12 @@ def custom_perturbation_mf_35(sample, endf6, mat, i):
         .apply(lambda x: sandy.Pert(pd.Series(x[i].values,
                                               index=x["E"])))
     for elo, ehi in pert.index:
-        edistr.custom_perturbation(pert[elo, ehi], mat, 18, 0, elo, ehi)
+        edistr = edistr.custom_perturbation(pert[elo, ehi],
+                                            mat,
+                                            18,
+                                            0,
+                                            elo,
+                                            ehi)
     return edistr.to_endf6(endf6)
 
 
@@ -623,7 +632,12 @@ def sampling(iargs=None):
 
     Returns
     -------
-    None.
+    pert_samples : `dict`
+        Dictionary containing the `sandy.Endf6` objects with the perturbed data
+        for the number of samples entered by the user. The dictionary is
+        divided as follows:
+
+                {mat: {Number of the sample: `sandy.Endf6`}}
 
     """
     global init, ftape
