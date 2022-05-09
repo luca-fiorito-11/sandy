@@ -600,9 +600,11 @@ def parse(iargs=None):
                         help="draw samples only from the selected MT sections "
                              "(default = keep all)")
     parser.add_argument('--pdf',
-                        type=str,
+                        type=str.lower,
+                        choices=['normal', 'lognormal', 'uniform'],
                         default='normal',
-                        help="draw samples according to the chosen distribution "
+                        help="draw samples according to the chosen distribution. "
+                             "Available options are 'normal', 'lognormal' or 'uniform' "
                              "(default = 'normal')")
     parser.add_argument('--njoy',
                         type=lambda x: is_valid_file(parser, x),
@@ -758,8 +760,8 @@ def extract_samples(ftape, covtape):
         xscov = XsCov(covtape.get_cov(multigroup=False).data) if isinstance(covtape, sandy.errorr.Errorr) else XsCov.from_endf6(covtape)
         if not xscov.empty:
             PertXs = sandy.CategoryCov(xscov).sampling(init.samples, tolerance=0, seed=init.seed33, pdf=init.pdf).data.T
-            PertXs.rename(columns=dict(zip(range(0, init.samples), range(1, init.samples + 1))), inplace=True)
-            PertXs = pd.DataFrame(PertXs, columns=range(1, init.samples + 1))
+            idx = PertXs.index
+            PertXs = pd.DataFrame(PertXs.values, index=idx, columns=range(1, init.samples + 1))
             PertXs.columns.name = "SMP"
             if init.debug:
                 PertXs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
@@ -820,8 +822,8 @@ def sampling(iargs=None):
         cn = pxs.condition_number
         print(f"Condition number : {cn:>15}")
         pxs = pxs.data.T
-        pxs.rename(columns=dict(zip(range(0, init.samples), range(1, init.samples + 1))), inplace=True)
-        pxs = pd.DataFrame(pxs, columns=range(1, init.samples + 1))
+        idx = pxs.index
+        pxs = pd.DataFrame(pxs.values, index=idx, columns=range(1, init.samples + 1))
         pxs.columns.name = "SMP"
         pnu = plpc = pchi = pfy = pd.DataFrame()
         if init.debug:
