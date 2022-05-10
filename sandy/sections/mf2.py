@@ -197,7 +197,6 @@ def read_mf2(tape, mat):
                         add = {
                                 "SPI": C.C1,
                                 "AP": C.C2,
-                                "NLS": C.N1,
                                 }
                         NLS = int(C.N1)
                         LRU1_LRF1_2_NRO0.update(add)
@@ -232,7 +231,6 @@ def read_mf2(tape, mat):
                         add = {
                                 "SPI": C.C1,
                                 "AP": C.C2,
-                                "NLS": C.N1,
                                 }
                         NLS = int(C.N1)
                         LRU1_LRF1_2_NRO1.update(add)
@@ -258,8 +256,7 @@ def read_mf2(tape, mat):
                         add = {
                                 "SPI": C.C1,
                                 "AP": C.C2,
-                                "LAD": C.L1,        #Flag indicating whether these parameters can be used to compute angular distributions.
-                                "NLS": C.N1,        
+                                "LAD": C.L1,        #Flag indicating whether these parameters can be used to compute angular distributions.      
                                 "NLSC": C.N2,       #Number of l-values which must be used to converge the calculation with respect to the incident l-value in order to obtain accurate elastic angular distributions.
                                 }
                         NLS = int(C.N1)
@@ -295,7 +292,6 @@ def read_mf2(tape, mat):
                                 "SPI": C.C1,
                                 "AP": C.C2,
                                 "LAD": C.L1,
-                                "NLS": C.N1,
                                 "NLSC": C.N2
                                 }
                         NLS = int(C.N1)
@@ -325,7 +321,6 @@ def read_mf2(tape, mat):
                     add = {
                             "IFG": C.L1,
                             "KRM": C.L2,        #Flag to specify which formulae for the R-matrix are to be used
-                            "NJS": C.N1,        #Number of values of J
                             "KRL": C.N2,        #Flag is zero for non-relativistic kinematics
                             }
                     NJS = int(C.N1)
@@ -334,7 +329,6 @@ def read_mf2(tape, mat):
                     add = {
                             "NPP": L.L1,                #Total number of particle-pairs.
                            }
-                    
                     keys = ["MA", "MB", "ZA", "ZB", "IA", "IB","Q", "PNT", "SHF", "MT", "PA", "PB"]
                     PAIR_PART = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B, 12)]
                     add.update({"PAIR_PART":PAIR_PART})
@@ -385,7 +379,6 @@ def read_mf2(tape, mat):
                             "SPI": C.C1,
                             "AP": C.C2,
                             "LSSF": C.L1,                   #Flag governing the interpretation of the File 3 cross sections
-                            "NLS": C.N1,                    #Number of l-values.
                             }
                     NLS = int(C.N1)
                     LRU2_LFW0_LRF1.update(add)
@@ -396,8 +389,7 @@ def read_mf2(tape, mat):
                                 "AWRI": L.C1,
                                 "L": L.L1,
                                 "NJS": L.N2,                    #Number of J-states for a particular l-state
-                                    }
-                        
+                            }
                         keys = ["D", "AJ", "AMUN", "GN0", "GG","0"]
                         RES_PAR = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B, 6)]
                         add.update({"RES_PAR":RES_PAR})
@@ -414,7 +406,6 @@ def read_mf2(tape, mat):
                             "SPI": C.C1,
                             "AP": C.C2,
                             "LSSF": C.L1,
-                            "NLS": C.N1,
                             }
                     NLS = int (C.N1)
                     LRU2_LRF2.update(add)
@@ -424,7 +415,6 @@ def read_mf2(tape, mat):
                         add_1 = {
                                 "AWRI": C.C1,
                                 "L": C.L1,
-                                "NJS": C.N1,
                                 }
                         NJS = int(C.N1)
                         LRU2_LRF2_NjS = {}
@@ -645,7 +635,7 @@ def write_mf2(sec):
                             sec3["AP"],
                             0,
                             0,
-                            sec3["NLS"],
+                            len(sec3["L"]),
                             0,
                             )
                         for l, sec4 in sec3["L"].items():
@@ -676,7 +666,7 @@ def write_mf2(sec):
                             sec3["AP"],
                             0,
                             0,
-                            sec3["NLS"],
+                            len(sec3["L"]),
                             0,
                             )
                         for l, sec4 in sec3["L"].items():
@@ -697,7 +687,7 @@ def write_mf2(sec):
                             sec3["AP"],
                             sec3["LAD"],
                             0,
-                            sec3["NLS"],
+                            len(sec3["L"]),
                             sec3["NLSC"],
                             )
                         for l, sec4 in sec3["L"].items():
@@ -728,7 +718,7 @@ def write_mf2(sec):
                             sec3["AP"],
                             sec3["LAD"],
                             0,
-                            sec3["NLS"],
+                            len(sec3["L"]),
                             sec3["NLSC"],
                             )
                         for l, sec4 in sec3["L"].items():
@@ -748,7 +738,7 @@ def write_mf2(sec):
                         0,
                         sec3["IFG"],
                         sec3["KRM"],
-                        sec3["NJS"],
+                        len(sec3["J"]),
                         sec3["KRL"],
                         )
                     keys = ["MA", "MB", "ZA", "ZB", "IA", "IB", "Q", "PNT", "SHF", "MT", "PA", "PB"]
@@ -797,7 +787,7 @@ def write_mf2(sec):
                         sec3["AP"],
                         sec3["LSSF"],
                         0,
-                        sec3["NLS"],
+                        len(sec3["L"]),
                         0,
                         )
                     for l, sec4 in sec3["L"].items():
@@ -817,7 +807,7 @@ def write_mf2(sec):
                         sec3["AP"],
                         sec3["LSSF"],
                         0,
-                        sec3["NLS"],
+                        len(sec3["L"]),
                         0,
                         )
                     for m, sec4 in sec3["L"].items():
@@ -826,7 +816,7 @@ def write_mf2(sec):
                             0,
                             sec4["L"],
                             0,
-                            sec4["NJS"],
+                            len(sec4["J"]),
                             0,
                             )
                         for k, sec5 in sec4["J"].items():
