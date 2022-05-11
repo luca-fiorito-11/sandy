@@ -491,13 +491,12 @@ def custom_perturbation_mf_33(sample, endf6, mat, i):
     xs = sandy.Xs.from_endf6(endf6)
     pert = sample.reset_index().query(f"MAT == {mat}").groupby('MT')\
         .apply(lambda x: sandy.Pert(pd.Series(x[i].values,
-                                              index=pd.Index(x["E"].values)
-                                                      .left)))
+                                              index=x["E"].values)))
     for mt in pert.index:
         xs = xs.custom_perturbation(mat,
                                     mt,
                                     pert[mt])
-    return xs.to_endf6(endf6)
+    return xs._reconstruct_sums().to_endf6(endf6)
 
 
 def custom_perturbation_mf_34(sample, endf6, mat, i):
