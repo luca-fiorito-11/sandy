@@ -765,7 +765,7 @@ def write_mf2(sec):
                         NCH = sec4["NCH"]
                         size_E = len(sec4["ER"])
                         size_b = len(sec4["GAM"])
-                        add2 = []
+                        add2 = [ ]
                         n = NCH 
                         x = [sec4["GAM"][i:i + n] for i in range(0, size_b, n)]
                         for i in range(size_E):
