@@ -258,7 +258,7 @@ class Xs():
             # Assume all xs have only 1 interpolation region and it is linear
             sec["NBT"] = [xs.size]
             sec["INT"] = [2]
-            data[mat, mf, mt] = sandy.write_mf3(sec)
+            data[(mat, mf, mt)] = sandy.write_mf3(sec)
         return sandy.Endf6(data)
 
     @classmethod

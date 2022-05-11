@@ -214,7 +214,7 @@ def get_fy_cov(endf6):
     global init
     fy = sandy.Fy.from_endf6(endf6.filter_by(listmat=init.mat))
     fy_cov = fy.data.groupby(['MAT', 'MT', 'E'])["DFY"]\
-               .apply(lambda x: sandy.CategoryCov.from_var(x))
+               .apply(lambda x: sandy.CategoryCov.from_var(x)) # o from_stdev
     return fy_cov
 
 
@@ -255,8 +255,8 @@ def get_cov(endf6):
         mf_extract.append(35)
     if init.cov33csv:
         logging.warning("found argument '--cov33csv', will skip any other"
-                        " covariance")
-        errorr = sandy.CategoryCov.from_csv(
+                        "covariance")
+        cov[33] = sandy.CategoryCov.from_csv(
                     init.cov33csv,
                     index_col=[0, 1, 2],
                     header=[0, 1, 2],
@@ -403,7 +403,8 @@ def pert_by_mf(samples, endf6, mat, i):
     if 35 in samples:
         pert_endf6 = custom_perturbation_mf_35(samples[35].data.iloc[i_],
                                                pert_endf6, mat, i_)
-    print("Created sample {} for MAT {} in {:.2f} sec".format(i, mat, time.time()-t0,))
+    print("Created sample {} for MAT {} in {:.2f} sec"
+          .format(i, mat, time.time()-t0,))
     return pert_endf6
 
 
@@ -488,9 +489,10 @@ def custom_perturbation_mf_33(sample, endf6, mat, i):
         Endf6 file with the pertubed nubar data.
     """
     xs = sandy.Xs.from_endf6(endf6)
-    pert = sample.reset_index().groupby('MT')\
+    pert = sample.reset_index().query(f"MAT == {mat}").groupby('MT')\
         .apply(lambda x: sandy.Pert(pd.Series(x[i].values,
-                                              index=pd.Index(x["E"].values).left)))
+                                              index=pd.Index(x["E"].values)
+                                                      .left)))
     for mt in pert.index:
         xs = xs.custom_perturbation(mat,
                                     mt,
@@ -522,7 +524,7 @@ def custom_perturbation_mf_34(sample, endf6, mat, i):
     conditions = {'MT': 2, 'MAT': mat}
     lpc = sandy.Lpc.from_endf6(endf6)._filters(conditions)\
         ._add_points(extra_points)
-    pert = sample.reset_index().groupby('L')\
+    pert = sample.reset_index().query(f"MAT == {mat}").groupby('L')\
         .apply(lambda x: sandy.Pert(pd.Series(x[i].values,
                                               index=x["E"])))
     for p in pert.index:
@@ -553,7 +555,7 @@ def custom_perturbation_mf_35(sample, endf6, mat, i):
     extra_points = np.logspace(-5, 7, init.energy_sequence)
     edistr = sandy.Edistr.from_endf6(endf6).add_energy_points(9237, 18, 0,
                                                               extra_points)
-    pert = sample.reset_index().groupby(['ELO', 'EHI'])\
+    pert = sample.reset_index().query(f"MAT == {mat}").groupby(['ELO', 'EHI'])\
         .apply(lambda x: sandy.Pert(pd.Series(x[i].values,
                                               index=x["E"])))
     for elo, ehi in pert.index:
@@ -656,7 +658,7 @@ def sampling(iargs=None):
     # Check if NJOY has to be run:
     xs_check = ftape.to_series().index.get_level_values("MF")\
                     .intersection(pd.Index([3]))
-    if len(xs_check) == 1:
+    if len(xs_check) == 1 and 31 in init.mf or 33 in init.mf:
         pendf = ftape.get_pendf(njoy=init.njoy)
         with tempfile.TemporaryDirectory() as td:
             dst = os.path.join(td, "merged")
