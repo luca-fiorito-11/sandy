@@ -150,10 +150,6 @@ class Errorr(_FormattedFile):
             selected, it returns a `dict` with mf number as key and the
             `sandy.CategoryCov` as value.
 
-        Notes
-        -----
-        ..note:: The method reads mf=34 and mf=35 but are not tested.
-
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)

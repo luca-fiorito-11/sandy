@@ -81,6 +81,7 @@ import logging
 import pdb
 import tempfile
 import subprocess as sp
+import pytest
 
 import pandas as pd
 import numpy as np
@@ -759,13 +760,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     2 /
 
     Test of wrong mt number:
-    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt=455))
-    errorr
-    20 21 0 22 0 /
-    9237 2 2 0 1 /
-    0 293.6 /
-    0 33 1/
-
+    >>> with pytest.raises(SyntaxError): sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt=455)
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt=[102,455]))
     errorr
     20 21 0 22 0 /
@@ -781,6 +776,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         for xs_ban in banned_xs:
             if xs_ban in mtlist:
                 mtlist.remove(xs_ban)
+        if len(mtlist) == 0 and mfcov == 33:
+            raise SyntaxError("Introduced mt are not appropriate for mf=33")
     else:
         mtlist = []
     iread = 1 if len(mtlist) != 0 and mfcov == 33 else 0
@@ -816,7 +813,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
                   iwt_groupr=2, lord=0, sigz=[1e+10],
                   temp=NJOY_TEMPERATURES[0],
                   spectrum_groupr=None, mt=None,
-                  iprint=False, nubar=False, mubar=False, chi=False,
+                  iprint=False, nubar=False, mubar=False, chi=False, xs=True,
                   nuclide_production=False,
                   **kwargs):
     """
@@ -832,8 +829,6 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         tape number for output PENDF file
     mat : `int`
         MAT number
-    chi : `bool`, optional
-        Process chi (default is `False`)
     ek_groupr : iterable, optional
         derived cross section energy bounds (default is None)
     ep : iterable, optional
@@ -855,10 +850,14 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     mt: `int` or iterable of `int`, optional
         run groupr for xs for the selected MT numbers
         (default is `None`, i.e., process all MT)
+    chi : `bool`, optional
+        Process chi (default is `False`)
     mubar : `bool`, optional
         Proccess mubar (default is `False`)
     nubar : `bool`, optional
         Proccess nubar (default is `False`)
+    xs : `bool`, optional
+        Proccess multigroup xs (default is `True`)
     nuclide_production : `bool`, optional
         process MF10 (default is `False`)
     sigz : iterable of `float`
@@ -876,7 +875,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     Examples
     --------
     Default test without keyword arguments
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, xs=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237))
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
@@ -888,7 +887,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test argument `temp`
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9440, temp=600, xs=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9440, temp=600))
     groupr
     20 21 0 22 /
     9440 2 0 2 0 1 1 0 /
@@ -900,7 +899,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test argument `iwt_groupr`
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, iwt_groupr=6, xs=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, iwt_groupr=6))
     groupr
     20 21 0 22 /
     9237 2 0 6 0 1 1 0 /
@@ -912,7 +911,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test argument `ign_groupr`
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, ign_groupr=3, xs=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, ign_groupr=3))
     groupr
     20 21 0 22 /
     9237 3 0 2 0 1 1 0 /
@@ -924,7 +923,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test argument `igg`
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, igg=3, xs=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, igg=3))
     groupr
     20 21 0 22 /
     9237 2 3 2 0 1 1 0 /
@@ -936,7 +935,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     
     Test argument `ek_groupr`
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ek_groupr=[1e-2, 1e3, 2e5], xs=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ek_groupr=[1e-2, 1e3, 2e5]))
     groupr
     20 21 0 0 /
     22 1 0 2 0 1 1 0 /
@@ -950,7 +949,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test argument `ep`
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ep=[1e-2, 1e3, 2e5], xs=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ep=[1e-2, 1e3, 2e5]))
     groupr
     20 21 0 0 /
     22 9237 1 2 0 1 1 0 /
@@ -964,7 +963,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test argument `lord`
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, lord=3, xs=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, lord=3))
     groupr
     20 21 0 0 /
     22 9237 0 2 3 1 1 0 /
@@ -1004,7 +1003,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test radioactive nuclide production:
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, xs=True, nuclide_production=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, nuclide_production=True))
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
@@ -1017,7 +1016,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test keyword `mt` as `list`
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[1, 2], xs=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[1, 2]))
     groupr
     20 21 0 0 /
     22 9237 0 2 0 1 1 0 /
@@ -1030,7 +1029,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/       
 
     Test keyword `mt` as `int`
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=2, xs=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=2))
     groupr
     20 21 0 0 /
     22 9237 0 2 0 1 1 0 /
@@ -1042,7 +1041,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test the wrong mt number:
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[455], xs=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[455]))
     groupr
     20 21 0 0 /
     22 9237 0 2 0 1 1 0 /
@@ -1053,7 +1052,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[102, 455], xs=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[102, 455]))
     groupr
     20 21 0 0 /
     22 9237 0 2 0 1 1 0 /
@@ -1091,9 +1090,9 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
                                           spectrum_groupr[1::2]))
         text += [tab1]
         text += ["/"]
-    if mt is None and kwargs["xs"]:
+    if mt is None and xs:
         text += ["3/"]  # by default process all cross sections (MF=3)
-    elif kwargs["xs"]:
+    elif xs:
         mtlist = [mt] if isinstance(mt, int) else mt
         for xs_ban in banned_xs:
             if xs_ban in mtlist:
