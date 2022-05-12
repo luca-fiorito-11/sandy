@@ -44,12 +44,13 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, rows=None,
         Vector in which we are going to apply GLS (MX1)
     Vx_prior : 2D iterable
         2D covariance matrix of x_prior (MXN).
-    Vy_extra : 2D iterable
-        2D covariance matrix for y_extra (MXN).
-    S : 2D iterable
-        2D sensitivity of the model y=f(x) (MXN).
-    y_extra : 1D iterable
-        1D extra info on output (NX1)
+    Vy_extra : 2D iterable or `float`
+        2D covariance matrix for y_extra (MXN) or `float` for y_extra(1XN).
+    S : 2D or 1D iterable
+        2D sensitivity of the model y=f(x) (MXN) or 1D sensitivity of the
+        model y=f(x) (1XN).
+    y_extra : 1D iterable or `float`
+        1D extra info on output (NX1) or float.
     rows : `int`, optional
         Option to use row calculation for matrix calculations. This option
         defines the number of lines to be taken into account in each loop.
@@ -76,6 +77,76 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, rows=None,
     dtype: float64
 
     >>> gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, rows=1)
+    0   2.00000e-01
+    1   4.85714e-01
+    dtype: float64
+    """
+    if len(pd.DataFrame(S).shape) == 2 and len(pd.Series(y_extra)) != 1:
+        x_post = _gls_model_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
+                                   rows=rows, threshold=threshold)
+    elif len(pd.DataFrame(S).shape) == 1 and len(pd.Series(y_extra)) == 1:
+        x_post = _gls_vector_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
+                                    rows=rows, threshold=threshold)
+    else:
+        print("Introduced variables are not correct")
+        return
+    return x_post
+
+
+def _gls_vector_update(x_prior, S, Vx_prior, Vy_extra, y_extra, rows=None,
+                       threshold=None):
+    return
+
+
+def _gls_model_update(x_prior, S, Vx_prior, Vy_extra, y_extra, rows=None,
+                      threshold=None):
+    """
+    Perform the GlS update of a prior vector, given its prior covariance
+    matrix, a lekelyhood matrix and additional info on the model obserbale
+    (both values and covariance matrix).
+    .. math::
+        $$
+        x_{post} = x_{prior} + V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)
+        $$
+
+    Parameters
+    ----------
+    x_prior: 1D iterable
+        Vector in which we are going to apply GLS (MX1)
+    Vx_prior : 2D iterable
+        2D covariance matrix of x_prior (MXN).
+    Vy_extra : 2D iterable
+        2D covariance matrix for y_extra (MXN) or `float` for y_extra(1XN).
+    S : 2D iterable
+        2D sensitivity of the model y=f(x) (MXN).
+    y_extra : 1D iterable
+        1D extra info on output (NX1)
+    rows : `int`, optional
+        Option to use row calculation for matrix calculations. This option
+        defines the number of lines to be taken into account in each loop.
+        The default is None.
+    threshold : `int`, optional
+        Thereshold to avoid numerical fluctuations. The default is None.
+
+    Returns
+    -------
+    `pd.Series`
+        GLS apply to a vector x_prior given S, Vx_prior, Vy_extra, y_calc
+        and y_extra.
+
+    Example
+    -------
+    >>> S = [[1, 2], [3, 4]]
+    >>> x_prior = pd.Series([1, 1])
+    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
+    >>> Vy_extra = pd.DataFrame([[1, 0], [0, 1]])
+    >>> y_extra = [2, 2]
+    >>> _gls_model_update(x_prior, S, Vx_prior, Vy_extra, y_extra)
+    0   2.00000e-01
+    1   4.85714e-01
+    dtype: float64
+
+    >>> _gls_model_update(x_prior, S, Vx_prior, Vy_extra, y_extra, rows=1)
     0   2.00000e-01
     1   4.85714e-01
     dtype: float64
@@ -155,6 +226,54 @@ def _y_calc(x_prior, S):
     y_calc = S_.dot(x_prior_.values)
     y_calc = pd.Series(y_calc, index=index)
     return y_calc
+
+
+def _vector_calc(S, x_prior):
+    """
+    Perform vector calculation in GLS.
+
+    Parameters
+    ----------
+    x_prior: 1D iterable
+        Vector in which we are going to apply GLS (MX1).
+    S : 2D iterable
+        2D sensitivity of the model y=f(x) (MXN).
+    sparse : `bool`, optional
+        Option to use sparse matrix for calculations. The default is False.
+
+    Returns
+    -------
+    vector_calc : `pd.Series`
+        1D calculated output using x_prior.dot(S)
+
+    Example
+    -------
+    S square matrix:
+    >>> _vector_calc(S, x_prior)
+    0    1
+    1    2
+    2    3
+    dtype: int64
+
+    Different number of row and columns in S:
+    >>> S = [[1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1]]
+    >>> _vector_calc(S, x_prior)
+    0    1
+    1    2
+    2    3
+    3    6
+    dtype: int64
+    """
+    S_ = pd.DataFrame(S)
+    x_prior_ = pd.Series(x_prior)
+    union_index = S_.index.union(x_prior_.index)
+    S_ = S_.reindex(index=union_index).fillna(0)
+    x_prior_ = x_prior_.reindex(union_index).fillna(0)
+    x_prior_sps = sps.coo_matrix(x_prior_.values)
+    S_sps = sps.csc_matrix(S)
+    vector_calc = x_prior_sps.dot(S_sps)
+    vector_calc = pd.Series(vector_calc.toarray()[0], index=S_.columns)
+    return vector_calc
 
 
 def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra,
@@ -483,6 +602,69 @@ def constrained_gls_update(x_prior, S, Vx_prior, rows=None, threshold=None):
     1    5.50000e+00
     dtype: float64
     """
+    if len(pd.DataFrame(S).shape) == 2:
+        x_post = _constrained_model_gls_update(x_prior, S, Vx_prior,
+                                               rows=rows, threshold=threshold)
+    elif len(pd.DataFrame(S).shape) == 1:
+        x_post = _constrained_vector_gls_update(x_prior, S, Vx_prior,
+                                                rows=rows, threshold=threshold)
+    else:
+        print("Introduced variables are not correct")
+        return
+    return x_post
+
+
+def _constrained_vector_gls_update(x_prior, S, Vx_prior, rows=None,
+                                   threshold=None):
+    return
+
+
+def _constrained_model_gls_update(x_prior, S, Vx_prior, rows=None,
+                                  threshold=None):
+    """
+    Perform Constrained Least-Squares update for a given variances, vectors
+    and sensitivity:
+    .. math::
+        $$
+        x_{post} = x_{prior} + \left(S.T \cdot x_{prior} - x_{prior} \cdot S.T\right) \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
+        $$
+
+    Parameters
+    ----------
+    x_prior: 1D iterable
+        Vector in which we are going to apply GLS (MX1)
+    S : 2D iterable
+        2D sensitivity of the model y=f(x) (MXN).
+    Vx_prior : 2D iterable
+        2D covariance matrix of x_prior (MXN).
+    rows : `int`, optional
+        Option to use row calculation for matrix calculations. This option
+        defines the number of lines to be taken into account in each loop.
+        The default is None.
+    threshold : `int`, optional
+            Thereshold to avoid numerical fluctuations. The default is None.
+
+    Returns
+    -------
+    x_post : `pandas.Series`
+        Constrained Least-Squares apply to a vector x_prior given S and
+        Vx_prior.
+
+    Example
+    -------
+    >>> S = np.array([[1, 2], [3, 4]])
+    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
+    >>> x_prior = np.array([1, 2])
+    >>> _constrained_model_gls_update(x_prior, S, Vx_prior)
+    0   -4.00000e+00
+    1    5.50000e+00
+    dtype: float64
+
+    >>> _constrained_model_gls_update(x_prior, S, Vx_prior, rows=1)
+    0   -4.00000e+00
+    1    5.50000e+00
+    dtype: float64
+    """
     # Data in a appropriate format
     x_prior_ = pd.Series(x_prior)
     original_index = x_prior_.index
@@ -499,14 +681,11 @@ def constrained_gls_update(x_prior, S, Vx_prior, rows=None, threshold=None):
     A = Vx_prior_._gls_constrained_sensitivity(S_, rows=rows,
                                                threshold=threshold)
     # Constrained gls calculations
-    x_prior_sps = sps.coo_matrix(x_prior_)
-    S_sps = sps.csc_matrix(S_)
-    diff = x_prior_sps.dot(S_sps.T)
-    diff = pd.Series(diff.toarray()[0], index=index)   
+    diff = _vector_calc(S_.T, x_prior_)
     delta = y_calc - diff
     delta = sps.coo_matrix(delta)
     A = sps.csc_matrix(A.values)
-    x_post = x_prior_sps + delta.dot(A)
+    x_post = sps.coo_matrix(x_prior_) + delta.dot(A)
     x_post = pd.Series(x_post.toarray()[0], index=original_index)
     if threshold is not None:
         x_post[abs(x_post) < threshold] = 0

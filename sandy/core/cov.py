@@ -1348,9 +1348,9 @@ class CategoryCov():
 
         Parameters
         ----------
-        Vy_extra : 2D iterable, optional
-            2D covariance matrix for y_extra (MXM).
-        S : 2D iterable
+        Vy_extra : 2D iterable or `float`, optional
+            2D covariance matrix for y_extra (MXM) or a float.
+        S : 2D or 1D iterable
             Sensitivity matrix (MXN).
         rows : `int`, optional
             Option to use row calculation for matrix calculations. This option
@@ -1379,6 +1379,64 @@ class CategoryCov():
         0  6.00000e-01 -4.00000e-01
         1 -4.00000e-01  3.14286e-01
         """
+        if len(pd.DataFrame(S).shape) == 2:
+            cov_update = self._gls_model_update(S, Vy_extra=Vy_extra, rows=rows,
+                                                threshold=threshold)
+        elif len(pd.DataFrame(S).shape) == 1:
+            cov_update = self._gls_vector_update(S, Vy_extra=Vy_extra, rows=rows,
+                                                 threshold=threshold)
+        else:
+            print("Introduced variables are not correct")
+            return
+        return self.__class__(cov_update)
+
+    def _gls_vector_update(self, S, Vy_extra=None, rows=None,
+                           threshold=None):
+        return
+
+    def _gls_model_update(self, S, Vy_extra=None, rows=None,
+                          threshold=None):
+        """
+        Perform GlS update for a given variance and sensitivity:
+        .. math::
+            $$
+            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
+            $$
+
+        Parameters
+        ----------
+        Vy_extra : 2D iterable, optional
+            2D covariance matrix for y_extra (MXM).
+        S : 2D iterable
+            Sensitivity matrix (MXN).
+        rows : `int`, optional
+            Option to use row calculation for matrix calculations. This option
+            defines the number of lines to be taken into account in each loop.
+            The default is None.
+        threshold : `int`, optional
+            Thereshold to avoid numerical fluctuations. The default is None.
+
+        Returns
+        -------
+        `pd.DataFrame`
+            GLS method apply to a CategoryCov object for a given Vy and S,
+            obtained from a model.
+
+        Example
+        -------
+        >>> S = np.array([[1, 2], [3, 4]])
+        >>> cov = sandy.CategoryCov.from_var([1, 1])
+        >>> Vy = np.diag(pd.Series([1, 1]))
+        >>> cov._gls_model_update(S, Vy)
+                     0            1
+        0  6.00000e-01 -4.00000e-01
+        1 -4.00000e-01  3.14286e-01
+
+        >>> cov._gls_model_update(S, Vy, rows=1)
+                     0            1
+        0  6.00000e-01 -4.00000e-01
+        1 -4.00000e-01  3.14286e-01
+        """
         index, columns = self.data.index, self.data.columns
         A = self._gls_cov_sensitivity(S, Vy_extra=Vy_extra,
                                       rows=rows, threshold=threshold).values
@@ -1390,7 +1448,7 @@ class CategoryCov():
         Vx_post = Vx_post.toarray()
         if threshold is not None:
             Vx_post[abs(Vx_post) < threshold] = 0
-        return self.__class__(pd.DataFrame(Vx_post, index=index, columns=columns))
+        return pd.DataFrame(Vx_post, index=index, columns=columns)
 
     def constrained_gls_update(self, S, rows=None,
                                threshold=None):
