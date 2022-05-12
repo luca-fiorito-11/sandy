@@ -461,11 +461,17 @@ def custom_perturbation_mf_31(sample, endf6, mat):
     pert = sandy.Pert(pd.Series(sample.values,
                                 index=sample.index.get_level_values("E").left))
     xs = sandy.Xs.from_endf6(endf6)
-    for mt in sample.index.get_level_values("MT").unique():
-        xs = xs.custom_perturbation(mat,
-                                    mt,
-                                    pert)
-    return xs.to_endf6(endf6)
+    for mt in pert.index:
+        if mt in xs.redundant_xs:
+            for mt_redundant in xs.data.columns.get_level_values("MT").intersection(xs.redundant_xs[mt]):
+                xs = xs.custom_perturbation(mat,
+                                            mt_redundant,
+                                            pert[mt])
+        else:
+            xs = xs.custom_perturbation(mat,
+                                        mt,
+                                        pert[mt])
+    return xs._reconstruct_sums().to_endf6(endf6)
 
 
 def custom_perturbation_mf_33(sample, endf6, mat, i):
@@ -493,9 +499,15 @@ def custom_perturbation_mf_33(sample, endf6, mat, i):
         .apply(lambda x: sandy.Pert(pd.Series(x[i].values,
                                               index=x["E"].values)))
     for mt in pert.index:
-        xs = xs.custom_perturbation(mat,
-                                    mt,
-                                    pert[mt])
+        if mt in xs.redundant_xs:
+            for mt_redundant in xs.data.columns.get_level_values("MT").intersection(xs.redundant_xs[mt]):
+                xs = xs.custom_perturbation(mat,
+                                            mt_redundant,
+                                            pert[mt])
+        else:
+            xs = xs.custom_perturbation(mat,
+                                        mt,
+                                        pert[mt])
     return xs._reconstruct_sums().to_endf6(endf6)
 
 

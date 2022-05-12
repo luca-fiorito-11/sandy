@@ -390,13 +390,13 @@ class Xs():
 #                frame.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
 #        return Xs(frame)
 
-    def _perturb(self, pert, method=2, **kwargs):
+    def perturb(self, pert):
         """Perturb cross sections/nubar given a set of perturbations.
         
         Parameters
         ----------
         pert : pandas.Series
-            multigroup perturbations from sandy.XsSamples
+            multigroup perturbations from sandy.Samples
         method : int
             * 1 : samples outside the range [0, 2*_mean_] are set to _mean_. 
             * 2 : samples outside the range [0, 2*_mean_] are set to 0 or 2*_mean_ respectively if they fall below or above the defined range.
