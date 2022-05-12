@@ -66,14 +66,22 @@ def import_chain_yields():
 
     Examples
     --------
-    >>> sandy.fy.import_chain_yields().head()
+    >>> chain_yields = sandy.fy.import_chain_yields()
+    >>> chain_yields.head()
            ZAM	         Ch	          E	        DCh
      A				
-    66	902270	8.53000e-08	2.53000e-02	2.72960e-08
-    67	902270	2.16000e-07	2.53000e-02	6.91200e-08
-    68	902270	8.23000e-07	2.53000e-02	2.63360e-07
-    69	902270	2.35000e-06	2.53000e-02	7.52000e-07
-    70	902270	5.19000e-06	2.53000e-02	1.66080e-06
+    66	902270	8.53000e-10	2.53000e-02	2.72960e-10
+    67	902270	2.16000e-09	2.53000e-02	6.91200e-10
+    68	902270	8.23000e-09	2.53000e-02	2.63360e-09
+    69	902270	2.35000e-08	2.53000e-02	7.52000e-09
+    70	902270	5.19000e-08	2.53000e-02	1.66080e-08
+
+    >>> chain_yields["ZAM"].unique()
+    array([902270, 902290, 902320, 912310, 922320, 922330, 922340, 922350,
+           922360, 922370, 922380, 932370, 932380, 942380, 942390, 942400,
+           942410, 942420, 952410, 952421, 952430, 962420, 962430, 962440,
+           962450, 962460, 962480, 982490, 982510, 992540, 1002550],
+          dtype=object)
     """
     letters = {'a': 0.0035, 'b': 0.0050, 'c': 0.0070, 'd': 0.01, 'e': 0.014,
                'f': 0.02, 'g': 0.028, 'h': 0.04,
@@ -113,10 +121,12 @@ def import_chain_yields():
         df['ZAM'] = [valor[::-1].replace(key, '', 1)[::-1]
                      for index, valor in df['ZAM'].items()
                      for key, value in energy.items() if key in valor[-2:]]
-        df['ZAM'] = [nuclides_z[valor[:-3]]*10000 + 10*int(valor[-3:])
+        df['ZAM'] = [nuclides_z[valor[:-3]]*10000 + 10*int(valor[-3:]) + 1
+                     if valor == "am242" else
+                     nuclides_z[valor[:-3]]*10000 + 10*int(valor[-3:])
                      for index, valor in df['ZAM'].items()]
         df['DCh'] = df['Ch'].str[-1].replace(letters, regex=True)
-        df['Ch'] = df['Ch'].str[:-1].astype(float)
+        df['Ch'] = df['Ch'].str[:-1].astype(float)/100
         df['DCh'] = df['Ch']*df['DCh']
         df['A'] = df['A'].astype(int)
         df = df[df.E != 'spontaneous fission']
@@ -549,34 +559,34 @@ class Fy():
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest)
         >>> npfy_pert.data[npfy_pert.data.MT == 454]
         	 MAT	 MT	   ZAM	   ZAP	          E	          FY	        DFY
-        3	9437	454	942390	591480	5.00000e+05	 8.00000e-01	4.00000e-02
-        4	9437	454	942390	591481	5.00000e+05	 1.00000e+00	5.00000e-02
-        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	1.00000e-01
-        6	9437	454	942390	621480	5.00000e+05	-2.00000e-01	1.00000e-02
+        3	9437	454	942390	591480	5.00000e+05	 8.00000e-01	1.60000e-03
+        4	9437	454	942390	591481	5.00000e+05	 1.00000e+00	2.50000e-03
+        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	4.20000e-03
+        6	9437	454	942390	621480	5.00000e+05	-2.00000e-01	1.00000e-04
 
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, rows=1)
         >>> npfy_pert.data[npfy_pert.data.MT == 454]
         	 MAT	 MT	   ZAM	   ZAP	          E	          FY	        DFY
-        3	9437	454	942390	591480	5.00000e+05	 8.00000e-01	4.00000e-02
-        4	9437	454	942390	591481	5.00000e+05	 1.00000e+00	5.00000e-02
-        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	1.00000e-01
-        6	9437	454	942390	621480	5.00000e+05	-2.00000e-01	1.00000e-02
+        3	9437	454	942390	591480	5.00000e+05	 8.00000e-01	1.60000e-03
+        4	9437	454	942390	591481	5.00000e+05	 1.00000e+00	2.50000e-03
+        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	4.20000e-03
+        6	9437	454	942390	621480	5.00000e+05	-2.00000e-01	1.00000e-04
 
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, fill_negative=0)
         >>> npfy_pert.data[npfy_pert.data.MT == 454]
         	 MAT	 MT	   ZAM	   ZAP	          E	          FY	        DFY
-        3	9437	454	942390	591480	5.00000e+05	 8.00000e-01	4.00000e-02
-        4	9437	454	942390	591481	5.00000e+05	 1.00000e+00	5.00000e-02
-        5	9437	454	942390	601480	5.00000e+05	 0.00000e+00	0.00000e+00
-        6	9437	454	942390	621480	5.00000e+05	 0.00000e+00	0.00000e+00
+        3	9437	454	942390	591480	5.00000e+05	8.00000e-01	1.60000e-03
+        4	9437	454	942390	591481	5.00000e+05	1.00000e+00	2.50000e-03
+        5	9437	454	942390	601480	5.00000e+05	0.00000e+00	0.00000e+00
+        6	9437	454	942390	621480	5.00000e+05	0.00000e+00	0.00000e+00
 
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, rows=1, fill_negative=0)
         >>> npfy_pert.data[npfy_pert.data.MT == 454]
         	 MAT	 MT	   ZAM	   ZAP	          E	          FY	        DFY
-        3	9437	454	942390	591480	5.00000e+05	 8.00000e-01	4.00000e-02
-        4	9437	454	942390	591481	5.00000e+05	 1.00000e+00	5.00000e-02
-        5	9437	454	942390	601480	5.00000e+05	 0.00000e+00	0.00000e+00
-        6	9437	454	942390	621480	5.00000e+05	 0.00000e+00	0.00000e+00
+        3	9437	454	942390	591480	5.00000e+05	8.00000e-01	1.60000e-03
+        4	9437	454	942390	591481	5.00000e+05	1.00000e+00	2.50000e-03
+        5	9437	454	942390	601480	5.00000e+05	0.00000e+00	0.00000e+00
+        6	9437	454	942390	621480	5.00000e+05	0.00000e+00	0.00000e+00
         
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
@@ -585,30 +595,30 @@ class Fy():
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
         >>> npfy_pert.data[npfy_pert.data.MT == 454]
              MAT	 MT	   ZAM	   ZAP	          E	         FY	            DFY
-        3	9437	454	942390	591480	5.00000e+05	 8.00000e-01	4.00000e-02
-        4	9437	454	942390	591481	5.00000e+05	 1.00000e+00	5.00000e-02
-        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	1.00000e-01
+        3	9437	454	942390	591480	5.00000e+05	 8.00000e-01	1.60000e-03
+        4	9437	454	942390	591481	5.00000e+05	 1.00000e+00	2.50000e-03
+        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	4.20000e-03
 
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, rows=1, keep_fy_index=True)
         >>> npfy_pert.data[npfy_pert.data.MT == 454]
              MAT	 MT	   ZAM	   ZAP	          E	         FY	            DFY
-        3	9437	454	942390	591480	5.00000e+05	 8.00000e-01	4.00000e-02
-        4	9437	454	942390	591481	5.00000e+05	 1.00000e+00	5.00000e-02
-        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	1.00000e-01
+        3	9437	454	942390	591480	5.00000e+05	 8.00000e-01	1.60000e-03
+        4	9437	454	942390	591481	5.00000e+05	 1.00000e+00	2.50000e-03
+        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	4.20000e-03
 
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True, fill_negative=0)
         >>> npfy_pert.data[npfy_pert.data.MT == 454]
-             MAT	 MT	   ZAM	   ZAP	          E	         FY	            DFY
-        3	9437	454	942390	591480	5.00000e+05	 8.00000e-01	4.00000e-02
-        4	9437	454	942390	591481	5.00000e+05	 1.00000e+00	5.00000e-02
-        5	9437	454	942390	601480	5.00000e+05	 0.00000e+00	0.00000e+00
+             MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
+        3	9437	454	942390	591480	5.00000e+05	8.00000e-01	1.60000e-03
+        4	9437	454	942390	591481	5.00000e+05	1.00000e+00	2.50000e-03
+        5	9437	454	942390	601480	5.00000e+05	0.00000e+00	0.00000e+00
 
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, rows=1, keep_fy_index=True, fill_negative=0)
         >>> npfy_pert.data[npfy_pert.data.MT == 454]
-             MAT	 MT	   ZAM	   ZAP	          E	         FY	            DFY
-        3	9437	454	942390	591480	5.00000e+05	 8.00000e-01	4.00000e-02
-        4	9437	454	942390	591481	5.00000e+05	 1.00000e+00	5.00000e-02
-        5	9437	454	942390	601480	5.00000e+05	 0.00000e+00	0.00000e+00
+             MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
+        3	9437	454	942390	591480	5.00000e+05	8.00000e-01	1.60000e-03
+        4	9437	454	942390	591481	5.00000e+05	1.00000e+00	2.50000e-03
+        5	9437	454	942390	601480	5.00000e+05	0.00000e+00	0.00000e+00
         """
         # Obtain the data:
         data = self.data.copy()
@@ -641,7 +651,7 @@ class Fy():
         np.fill_diagonal(sensitivity.values, 1)
         fy_data = fy_data.reindex(columns_union).fillna(0)
         cov_data = cov_data.reindex(columns_union).fillna(0)
-        cov_data = sandy.CategoryCov.from_var(cov_data)
+        cov_data = sandy.CategoryCov.from_stdev(cov_data)
         # Apply (1-B) matrix
         ify_calc_values = sandy._y_calc(fy_data, sensitivity).rename('FY')
         cov_calc_values = np.diag(cov_data._gls_Vy_calc(sensitivity,
@@ -710,18 +720,18 @@ class Fy():
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest)
         >>> npfy_pert.data[npfy_pert.data.MT == 459]
              MAT	 MT	   ZAM	   ZAP	          E	         FY 	    DFY
-        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
-        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
-        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01
-        6	9437	459	942390	621480	5.00000e+05	6.00000e-01	1.00000e-01
+        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	1.60000e-03
+        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	2.50000e-03
+        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	4.20000e-03
+        6	9437	459	942390	621480	5.00000e+05	6.00000e-01	4.20000e-03
 
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, rows=1)
         >>> npfy_pert.data[npfy_pert.data.MT == 459]
              MAT	 MT	   ZAM	   ZAP	          E	         FY 	    DFY
-        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
-        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
-        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01
-        6	9437	459	942390	621480	5.00000e+05	6.00000e-01	1.00000e-01
+        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	1.60000e-03
+        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	2.50000e-03
+        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	4.20000e-03
+        6	9437	459	942390	621480	5.00000e+05	6.00000e-01	4.20000e-03
 
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
@@ -730,16 +740,16 @@ class Fy():
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
         >>> npfy_pert.data[npfy_pert.data.MT == 459]
              MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
-        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
-        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
-        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01
+        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	1.60000e-03
+        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	2.50000e-03
+        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	4.20000e-03
 
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, rows=1, keep_fy_index=True)
         >>> npfy_pert.data[npfy_pert.data.MT == 459]
              MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
-        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
-        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
-        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01        
+        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	1.60000e-03
+        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	2.50000e-03
+        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	4.20000e-03       
         """
         # Obtain the data:
         data = self.data.copy()
@@ -762,7 +772,7 @@ class Fy():
             np.fill_diagonal(Q.loc[approximation, approximation].values, 1)
         fy_data = fy_data.reindex(union_index).fillna(0)
         cov_data = cov_data.reindex(union_index).fillna(0)
-        cov_data = sandy.CategoryCov.from_var(cov_data)
+        cov_data = sandy.CategoryCov.from_stdev(cov_data)
         # Apply qmatrix
         cfy_calc_values = sandy._y_calc(fy_data, Q).rename('FY')
         cov_calc_values = np.diag(cov_data._gls_Vy_calc(Q, rows=rows))
@@ -832,14 +842,14 @@ class Fy():
         >>> nfpy = Fy.from_endf6(tape_nfpy)
         >>> e = 2.53000e-02
         >>> zam = 922350
-        >>> mass = nfpy.cov_update(zam, e, sparse=True).data.round(6)
+        >>> mass = nfpy.cov_update(zam, e).data.round(6)
         >>> mass.loc[401000, 401000], mass.loc[390971, 390971], mass.loc[390970, 390970], mass.loc[400980, 400980], mass.loc[411020, 411020]
-        (0.00561, 0.005398, 0.005398, 0.005058, 0.003176)
+        (2e-05, 5.1e-05, 5.1e-05, 2.2e-05, 1.4e-05)
         """
         if Vy_extra is None and kind != 'cumulative':
             ch_info = sandy.fy.import_chain_yields()
             ch_info = ch_info.loc[(ch_info.E == e) & (ch_info.ZAM == zam)]
-            Vy_extra = sandy.CategoryCov.from_var(ch_info.DCh).data/100
+            Vy_extra = sandy.CategoryCov.from_stdev(ch_info.DCh).data
         return self.gls_cov_update(zam, e, Vy_extra=Vy_extra, kind=kind,
                                    rows=rows, decay_data=decay_data,
                                    threshold=threshold, **kwargs)
@@ -900,34 +910,34 @@ class Fy():
         >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=index, columns=index)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy.gls_cov_update(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest).data
-        ZAP	         591480	         591481	        601480
+        ZAP	         591480	          591481	      601480
         ZAP
-        591480	 3.59798e-02   -3.07257e-03	   -6.45241e-04
-        591481	-3.07257e-03	4.38149e-02	   -7.98869e-04
-        601480	-6.45241e-04   -7.98869e-04	    9.83224e-03
+        591480	 1.59238e-03	-7.90107e-06	-3.16833e-07
+        591481	-7.90107e-06	 2.48143e-03	-4.94607e-07
+        601480	-3.16833e-07	-4.94607e-07	 9.99802e-05
 
         >>> npfy.gls_cov_update(942390, 500e3, CFY_var_extra, kind='cumulative', rows=1, decay_data=decay_fytest).data
         ZAP	         591480	         591481	        601480
         ZAP
-        591480	 3.59798e-02   -3.07257e-03	   -6.45241e-04
-        591481	-3.07257e-03	4.38149e-02	   -7.98869e-04
-        601480	-6.45241e-04   -7.98869e-04	    9.83224e-03
+        591480	 1.59238e-03	-7.90107e-06	-3.16833e-07
+        591481	-7.90107e-06	 2.48143e-03	-4.94607e-07
+        601480	-3.16833e-07	-4.94607e-07	 9.99802e-05
 
         >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1]))
         >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
         >>> npfy.gls_cov_update(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest).data
         ZAP	          591480	      591481	      601480
         ZAP
-        591480	 3.71119e-02	-1.67096e-03	-3.50901e-04
-        591481	-1.67096e-03	 4.55502e-02	-4.34448e-04
-        601480	-3.50901e-04	-4.34448e-04	 9.90877e-03
+        591480	 1.59490e-03	-3.96702e-06	-1.59078e-07
+        591481	-3.96702e-06	 2.48757e-03	-2.48336e-07
+        601480	-1.59078e-07	-2.48336e-07	 9.99900e-05
 
         >>> npfy.gls_cov_update(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest, rows=1).data
         ZAP	          591480	      591481	      601480
         ZAP
-        591480	 3.71119e-02	-1.67096e-03	-3.50901e-04
-        591481	-1.67096e-03	 4.55502e-02	-4.34448e-04
-        601480	-3.50901e-04	-4.34448e-04	 9.90877e-03
+        591480	 1.59490e-03	-3.96702e-06	-1.59078e-07
+        591481	-3.96702e-06	 2.48757e-03	-2.48336e-07
+        601480	-1.59078e-07	-2.48336e-07	 9.99900e-05
 
         >>> zam = [591480, 591481, 601480]
         >>> chain_var_extra = np.diag(pd.Series([1, 1, 1]))
@@ -937,37 +947,37 @@ class Fy():
         >>> npfy.gls_cov_update(942390, 500e3, chain_var_extra).data
         ZAP	          591480	      591481	      601480
         ZAP
-        591480	 3.85455e-02	-1.81818e-03	-3.63636e-04
-        591481	-1.81818e-03	 4.77273e-02	-4.54545e-04
-        601480	-3.63636e-04	-4.54545e-04	 9.90909e-03
+        591480	 1.59745e-03	-3.98327e-06	-1.59331e-07
+        591481	-3.98327e-06	 2.49378e-03	-2.48954e-07
+        601480	-1.59331e-07	-2.48954e-07	 9.99900e-05
 
         >>> npfy.gls_cov_update(942390, 500e3, chain_var_extra, rows=1).data
         ZAP	          591480	      591481	      601480
         ZAP
-        591480	 3.85455e-02	-1.81818e-03	-3.63636e-04
-        591481	-1.81818e-03	 4.77273e-02	-4.54545e-04
-        601480	-3.63636e-04	-4.54545e-04	 9.90909e-03
+        591480	 1.59745e-03	-3.98327e-06	-1.59331e-07
+        591481	-3.98327e-06	 2.49378e-03	-2.48954e-07
+        601480	-1.59331e-07	-2.48954e-07	 9.99900e-05
 
         >>> npfy.gls_cov_update(942390, 500e3)
-        ZAP	          591480	      591481	      601480
+        ZAP	          591480	   591481	    601480
         ZAP
-        591480	 2.40000e-02	-2.00000e-02	-4.00000e-03
-        591481	-2.00000e-02	 2.50000e-02	-5.00000e-03
-        601480	-4.00000e-03	-5.00000e-03	 9.00000e-03
+        591480   9.90476e-04 -9.52381e-04 -3.80952e-05
+        591481  -9.52381e-04  1.01190e-03 -5.95238e-05
+        601480  -3.80952e-05 -5.95238e-05  9.76190e-05
 
         >>> npfy.gls_cov_update(942390, 500e3, rows=1).data
         ZAP	          591480	      591481	      601480
         ZAP
-        591480	 2.40000e-02	-2.00000e-02	-4.00000e-03
-        591481	-2.00000e-02	 2.50000e-02	-5.00000e-03
-        601480	-4.00000e-03	-5.00000e-03	 9.00000e-03
+        591480   9.90476e-04 -9.52381e-04 -3.80952e-05
+        591481  -9.52381e-04  1.01190e-03 -5.95238e-05
+        601480  -3.80952e-05 -5.95238e-05  9.76190e-05
         """
         # Divide the data type:
         conditions = {'ZAM': zam, "E": e}
         fy_data = self._filters(conditions).data\
                       .set_index('ZAP')[['MT', 'DFY']]
         Vx_prior = fy_data.query('MT==454').DFY
-        Vx_prior = sandy.CategoryCov.from_var(Vx_prior).data
+        Vx_prior = sandy.CategoryCov.from_stdev(Vx_prior).data
         # Fix the S with the correct dimension:
         if kind == 'mass yield':
             model_sensitivity_object = self._filters(conditions)
@@ -1047,16 +1057,16 @@ class Fy():
         >>> conditions = {'E': e, 'ZAM': zam, 'MT': 454}
         >>> mass = nfpy.update(zam, e, sparse=True)._filters(conditions).data.set_index('ZAP').round(6)
         >>> mass.FY.loc[521340], mass.FY.loc[401000], mass.FY.loc[541380], mass.FY.loc[380950], mass.FY.loc[380940]
-        (0.062211, 0.049734, 0.04811, 0.04531, 0.044811)
+        (0.062219, 0.049721, 0.048087, 0.04535, 0.04468)
 
         >>> mass.DFY.loc[401000], mass.DFY.loc[390971], mass.DFY.loc[390970], mass.DFY.loc[400980], mass.DFY.loc[411020]
-        (0.00561, 0.005398, 0.005398, 0.005058, 0.003176)
+        (2e-05, 5.1e-05, 5.1e-05, 2.2e-05, 1.4e-05)
         """
         if y_extra is None and Vy_extra is None and kind != 'cumulative':
             ch_info = sandy.fy.import_chain_yields()
             ch_info = ch_info.loc[(ch_info.E == e) & (ch_info.ZAM == zam)]
-            y_extra = ch_info.Ch/100
-            Vy_extra = sandy.CategoryCov.from_var(ch_info.DCh).data/100
+            y_extra = ch_info.Ch
+            Vy_extra = sandy.CategoryCov.from_stdev(ch_info.DCh).data
         return self.gls_update(zam, e, y_extra=y_extra,
                                Vy_extra=Vy_extra, kind=kind,
                                rows=rows, decay_data=decay_data,
@@ -1121,18 +1131,18 @@ class Fy():
         0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
         1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
         2  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
-        3  9437  454  942390  591480 5.00000e+05 8.24199e-02 3.71119e-02
-        4  9437  454  942390  591481 5.00000e+05 1.78234e-01 4.55502e-02
-        5  9437  454  942390  601480 5.00000e+05 2.96429e-01 9.90877e-03
+        3  9437  454  942390  591480 5.00000e+05 9.92046e-02 1.59490e-03
+        4  9437  454  942390  591481 5.00000e+05 1.98758e-01 2.48757e-03
+        5  9437  454  942390  601480 5.00000e+05 2.99960e-01 9.99900e-05
 
         >>> npfy.gls_update(942390, 500e3, CFY_extra, CFY_var_extra, kind='cumulative', decay_data=decay_fytest, rows=1)
             MAT   MT     ZAM     ZAP           E          FY         DFY
         0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
         1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
         2  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
-        3  9437  454  942390  591480 5.00000e+05 8.24199e-02 3.71119e-02
-        4  9437  454  942390  591481 5.00000e+05 1.78234e-01 4.55502e-02
-        5  9437  454  942390  601480 5.00000e+05 2.96429e-01 9.90877e-03
+        3  9437  454  942390  591480 5.00000e+05 9.92046e-02 1.59490e-03
+        4  9437  454  942390  591481 5.00000e+05 1.98758e-01 2.48757e-03
+        5  9437  454  942390  601480 5.00000e+05 2.99960e-01 9.99900e-05
 
         >>> index = pd.Index([147, 148, 149])
         >>> chain_extra = pd.Series([0, 0.1, 0.2], index=index)
@@ -1143,18 +1153,18 @@ class Fy():
         0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
         1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
         2  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
-        3  9437  454  942390  591480 5.00000e+05 8.18182e-02 3.85455e-02
-        4  9437  454  942390  591481 5.00000e+05 1.77273e-01 4.77273e-02
-        5  9437  454  942390  601480 5.00000e+05 2.95455e-01 9.90909e-03
+        3  9437  454  942390  591480 5.00000e+05 9.92033e-02 1.59745e-03
+        4  9437  454  942390  591481 5.00000e+05 1.98755e-01 2.49378e-03
+        5  9437  454  942390  601480 5.00000e+05 2.99950e-01 9.99900e-05
 
         >>> npfy.gls_update(942390, 500e3, chain_extra, chain_var_extra, rows=1)
             MAT   MT     ZAM     ZAP           E          FY         DFY
         0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
         1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
         2  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
-        3  9437  454  942390  591480 5.00000e+05 8.18182e-02 3.85455e-02
-        4  9437  454  942390  591481 5.00000e+05 1.77273e-01 4.77273e-02
-        5  9437  454  942390  601480 5.00000e+05 2.95455e-01 9.90909e-03
+        3  9437  454  942390  591480 5.00000e+05 9.92033e-02 1.59745e-03
+        4  9437  454  942390  591481 5.00000e+05 1.98755e-01 2.49378e-03
+        5  9437  454  942390  601480 5.00000e+05 2.99950e-01 9.99900e-05
         """
         data = self.data.copy()
         # Filter FY data:
@@ -1168,7 +1178,7 @@ class Fy():
         x_prior = fy_data.query('MT==454').FY
         Vx_prior = fy_data.query('MT==454').DFY
         index = x_prior.index
-        Vx_prior = sandy.CategoryCov.from_var(Vx_prior).data
+        Vx_prior = sandy.CategoryCov.from_stdev(Vx_prior).data
         # Find the GLS varibles:
         if kind == 'mass yield':
             model_sensitivity_object = self._filters(conditions)
@@ -1257,15 +1267,15 @@ class Fy():
         >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
         >>> npfy = sandy.Fy(minimal_fytest_2)
         >>> npfy.ishikawa_factor(942390, 500e3, Vy_extra=CFY_var_extra, kind='cumulative', decay_data=decay_fytest)
-        591480   4.00000e-02
-        591481   5.00000e-02
-        601480   1.00000e-01
+        591480   1.60000e-03
+        591481   2.50000e-03
+        601480   4.20000e-03
         dtype: float64
 
         >>> npfy.ishikawa_factor(942390, 500e3, Vy_extra=CFY_var_extra, kind='cumulative', decay_data=decay_fytest, rows=1)
-        591480   4.00000e-02
-        591481   5.00000e-02
-        601480   1.00000e-01
+        591480   1.60000e-03
+        591481   2.50000e-03
+        601480   4.20000e-03
         dtype: float64
 
         >>> A = [147, 148, 149]
@@ -1274,20 +1284,20 @@ class Fy():
         >>> npfy = sandy.Fy(minimal_fytest_2)
         >>> npfy.ishikawa_factor(942390, 500e3, Vy_extra=Chain_var_extra)
         147   0.00000e+00
-        148   1.00000e-01
+        148   4.20000e-03
         149   0.00000e+00
         dtype: float64
 
         >>> npfy.ishikawa_factor(942390, 500e3, Vy_extra=Chain_var_extra, rows=1)
         147   0.00000e+00
-        148   1.00000e-01
+        148   4.20000e-03
         149   0.00000e+00
         dtype: float64
         """
         if Vy_extra is None and kind != 'cumulative':
             ch_info = sandy.fy.import_chain_yields()
             ch_info = ch_info.loc[(ch_info.E == e) & (ch_info.ZAM == zam)]
-            Vy_extra = sandy.CategoryCov.from_var(ch_info.DCh).data/100
+            Vy_extra = sandy.CategoryCov.from_stdev(ch_info.DCh).data
         return self._ishikawa_factor(zam, e, Vy_extra=Vy_extra,
                                      kind=kind, decay_data=decay_data,
                                      rows=rows, threshold=threshold, **kwargs)
@@ -1352,15 +1362,15 @@ class Fy():
         >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
         >>> npfy = sandy.Fy(minimal_fytest_2)
         >>> npfy._ishikawa_factor(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest)
-        591480   4.00000e-02
-        591481   5.00000e-02
-        601480   1.00000e-01
+        591480   1.60000e-03
+        591481   2.50000e-03
+        601480   4.20000e-03
         dtype: float64
 
         >>> npfy._ishikawa_factor(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest, rows=1)
-        591480   4.00000e-02
-        591481   5.00000e-02
-        601480   1.00000e-01
+        591480   1.60000e-03
+        591481   2.50000e-03
+        601480   4.20000e-03
         dtype: float64
 
         >>> A = [147, 148, 149]
@@ -1369,13 +1379,13 @@ class Fy():
         >>> npfy = sandy.Fy(minimal_fytest_2)
         >>> npfy._ishikawa_factor(942390, 500e3, Chain_var_extra)
         147   0.00000e+00
-        148   1.00000e-01
+        148   4.20000e-03
         149   0.00000e+00
         dtype: float64
 
         >>> npfy._ishikawa_factor(942390, 500e3, Chain_var_extra, rows=1)
         147   0.00000e+00
-        148   1.00000e-01
+        148   4.20000e-03
         149   0.00000e+00
         dtype: float64
         """
@@ -1383,7 +1393,7 @@ class Fy():
         conditions = {'ZAM': zam, "E": e}
         fy_data = self._filters(conditions).data.set_index('ZAP')
         Vx_prior = fy_data.query('MT==454').DFY
-        Vx_prior = sandy.CategoryCov.from_var(Vx_prior).data
+        Vx_prior = sandy.CategoryCov.from_stdev(Vx_prior).data
         # Find the GLS sensitivity:
         if kind == 'mass yield':
             model_sensitivity_object = self._filters(conditions)
@@ -1453,15 +1463,15 @@ class Fy():
         >>> y_extra = pd.Series([1, 1, 1], index=zam)
         >>> npfy = sandy.Fy(minimal_fytest_2)
         >>> npfy._chi_diagonal(942390, 500e3, Vy_extra=CFY_var_extra, y_extra=y_extra, kind='cumulative', decay_data=decay_fytest)
-        591480   9.17180e-01
-        591481   8.18867e-01
-        601480   4.18775e-01
+        591480   9.00719e-01
+        591481   8.00997e-01
+        601480   4.00837e-01
         dtype: float64
 
         >>> npfy._chi_diagonal(942390, 500e3, Vy_extra=CFY_var_extra, y_extra=y_extra, kind='cumulative', decay_data=decay_fytest, rows=1)
-        591480   9.17180e-01
-        591481   8.18867e-01
-        601480   4.18775e-01
+        591480   9.00719e-01
+        591481   8.00997e-01
+        601480   4.00837e-01
         dtype: float64
 
         >>> A = [147, 148, 149]
@@ -1471,28 +1481,28 @@ class Fy():
         >>> y_extra = pd.Series([1, 1, 1], index=A)
         >>> npfy._chi_diagonal(942390, 500e3, Vy_extra=Chain_var_extra, y_extra=y_extra)
         147   1.00000e+00
-        148   4.19524e-01
+        148   4.00839e-01
         149   1.00000e+00
         dtype: float64
 
         >>> npfy.chi_diagonal(942390, 500e3, Vy_extra=Chain_var_extra, y_extra=y_extra, rows=1)
         147   1.00000e+00
-        148   4.19524e-01
+        148   4.00839e-01
         149   1.00000e+00
         dtype: float64
         """
         if y_extra is None and Vy_extra is None and kind != 'cumulative':
             ch_info = sandy.fy.import_chain_yields()
             ch_info = ch_info.loc[(ch_info.E == e) & (ch_info.ZAM == zam)]
-            y_extra = ch_info.Ch/100
-            Vy_extra = sandy.CategoryCov.from_var(ch_info.DCh).data/100
+            y_extra = ch_info.Ch
+            Vy_extra = sandy.CategoryCov.from_stdev(ch_info.DCh).data
         return self._chi_diagonal(zam, e, Vy_extra=Vy_extra, y_extra=y_extra,
                                   kind=kind, decay_data=decay_data,
                                   rows=rows, threshold=threshold, **kwargs)
 
     def _chi_diagonal(self, zam, e, Vy_extra, y_extra,
-                     kind='mass yield', decay_data=None, rows=None,
-                     threshold=None, **kwargs):
+                      kind='mass yield', decay_data=None, rows=None,
+                      threshold=None, **kwargs):
         """
         Function to calculate diagonal chi-value and know if may exist a
         inconsistency between |y_extra - y_calc_by_model| and the covariance
@@ -1547,15 +1557,15 @@ class Fy():
         >>> y_extra = pd.Series([1, 1, 1], index=zam)
         >>> npfy = sandy.Fy(minimal_fytest_2)
         >>> npfy._chi_diagonal(942390, 500e3, CFY_var_extra, y_extra, kind='cumulative', decay_data=decay_fytest)
-        591480   9.17180e-01
-        591481   8.18867e-01
-        601480   4.18775e-01
+        591480   9.00719e-01
+        591481   8.00997e-01
+        601480   4.00837e-01
         dtype: float64
 
         >>> npfy._chi_diagonal(942390, 500e3, CFY_var_extra, y_extra, kind='cumulative', decay_data=decay_fytest, rows=1)
-        591480   9.17180e-01
-        591481   8.18867e-01
-        601480   4.18775e-01
+        591480   9.00719e-01
+        591481   8.00997e-01
+        601480   4.00837e-01
         dtype: float64
 
         >>> A = [147, 148, 149]
@@ -1565,13 +1575,13 @@ class Fy():
         >>> y_extra = pd.Series([1, 1, 1], index=A)
         >>> npfy._chi_diagonal(942390, 500e3, Chain_var_extra, y_extra)
         147   1.00000e+00
-        148   4.19524e-01
+        148   4.00839e-01
         149   1.00000e+00
         dtype: float64
 
         >>> npfy._chi_diagonal(942390, 500e3, Chain_var_extra, y_extra, rows=1)
         147   1.00000e+00
-        148   4.19524e-01
+        148   4.00839e-01
         149   1.00000e+00
         dtype: float64
         """
@@ -1580,7 +1590,7 @@ class Fy():
         fy_data = self._filters(conditions).data.set_index('ZAP')
         x_prior = fy_data.query('MT==454').FY
         Vx_prior = fy_data.query('MT==454').DFY
-        Vx_prior = sandy.CategoryCov.from_var(Vx_prior).data
+        Vx_prior = sandy.CategoryCov.from_stdev(Vx_prior).data
         # Find the GLS sensitivity:
         if kind == 'mass yield':
             model_sensitivity_object = self._filters(conditions)
@@ -1653,15 +1663,15 @@ class Fy():
         >>> npfy = sandy.Fy(minimal_fytest_2)
         >>> Ne = 1
         >>> npfy.chi_square(942390, 500e3, Vy_extra=CFY_var_extra, y_extra=y_extra, N_e=Ne, kind='cumulative', decay_data=decay_fytest)
-        591480   7.68510e-01
-        591481   5.98149e-01
-        601480   1.19440e-01
+        591480   8.08138e-01
+        591481   6.37616e-01
+        601480   1.57965e-01
         dtype: float64
 
         >>> npfy.chi_square(942390, 500e3, Vy_extra=CFY_var_extra, y_extra=y_extra, N_e=Ne, kind='cumulative', decay_data=decay_fytest, rows=1)
-        591480   7.68510e-01
-        591481   5.98149e-01
-        601480   1.19440e-01
+        591480   8.08138e-01
+        591481   6.37616e-01
+        601480   1.57965e-01
         dtype: float64
 
         >>> A = [147, 148, 149]
@@ -1671,21 +1681,21 @@ class Fy():
         >>> y_extra = pd.Series([1, 1, 1], index=A)
         >>> npfy.chi_square(942390, 500e3, Vy_extra=Chain_var_extra, y_extra=y_extra, N_e=Ne)
         147   1.00000e+00
-        148   1.45455e-01
+        148   1.59331e-01
         149   1.00000e+00
         dtype: float64
 
         >>> npfy.chi_square(942390, 500e3, Vy_extra=Chain_var_extra, y_extra=y_extra, N_e=Ne, rows=1)
         147   1.00000e+00
-        148   1.45455e-01
+        148   1.59331e-01
         149   1.00000e+00
         dtype: float64
         """
         if y_extra is None and Vy_extra is None and kind != 'cumulative':
             ch_info = sandy.fy.import_chain_yields()
             ch_info = ch_info.loc[(ch_info.E == e) & (ch_info.ZAM == zam)]
-            y_extra = ch_info.Ch/100
-            Vy_extra = sandy.CategoryCov.from_var(ch_info.DCh).data/100
+            y_extra = ch_info.Ch
+            Vy_extra = sandy.CategoryCov.from_stdev(ch_info.DCh).data
         return self._chi_square(zam, e, Vy_extra=Vy_extra, y_extra=y_extra,
                                 N_e=N_e, kind=kind, decay_data=decay_data,
                                 rows=rows, threshold=threshold,
@@ -1750,15 +1760,15 @@ class Fy():
         >>> npfy = sandy.Fy(minimal_fytest_2)
         >>> Ne = 1
         >>> npfy._chi_square(942390, 500e3, CFY_var_extra, y_extra, Ne, kind='cumulative', decay_data=decay_fytest)
-        591480   7.68510e-01
-        591481   5.98149e-01
-        601480   1.19440e-01
+        591480   8.08138e-01
+        591481   6.37616e-01
+        601480   1.57965e-01
         dtype: float64
 
         >>> npfy._chi_square(942390, 500e3, CFY_var_extra, y_extra, Ne, kind='cumulative', decay_data=decay_fytest, rows=1)
-        591480   7.68510e-01
-        591481   5.98149e-01
-        601480   1.19440e-01
+        591480   8.08138e-01
+        591481   6.37616e-01
+        601480   1.57965e-01
         dtype: float64
 
         >>> A = [147, 148, 149]
@@ -1768,13 +1778,13 @@ class Fy():
         >>> y_extra = pd.Series([1, 1, 1], index=A)
         >>> npfy._chi_square(942390, 500e3, Chain_var_extra, y_extra, Ne)
         147   1.00000e+00
-        148   1.45455e-01
+        148   1.59331e-01
         149   1.00000e+00
         dtype: float64
 
         >>> npfy._chi_square(942390, 500e3, Chain_var_extra, y_extra, Ne, rows=1)
         147   1.00000e+00
-        148   1.45455e-01
+        148   1.59331e-01
         149   1.00000e+00
         dtype: float64
         """
@@ -1783,7 +1793,7 @@ class Fy():
         fy_data = self._filters(conditions).data.set_index('ZAP')
         x_prior = fy_data.query('MT==454').FY
         Vx_prior = fy_data.query('MT==454').DFY
-        Vx_prior = sandy.CategoryCov.from_var(Vx_prior).data
+        Vx_prior = sandy.CategoryCov.from_stdev(Vx_prior).data
         # Find the GLS sensitivity:
         if kind == 'mass yield':
             model_sensitivity_object = self._filters(conditions)
