@@ -1090,18 +1090,19 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
                                           spectrum_groupr[1::2]))
         text += [tab1]
         text += ["/"]
-    if mt is None and xs:
-        text += ["3/"]  # by default process all cross sections (MF=3)
-    elif xs:
-        mtlist = [mt] if isinstance(mt, int) else mt
-        for xs_ban in banned_xs:
-            if xs_ban in mtlist:
-                mtlist.remove(xs_ban)
-        if len(mtlist) == 0:
-            text += ["3/"]
+    if xs:
+        if mt is None:
+            text += ["3/"]  # by default process all cross sections (MF=3)
         else:
-            for mt_ in mtlist:
-                text += [f"3 {mt_:d} /"]
+            mtlist = [mt] if isinstance(mt, int) else mt
+            for xs_ban in banned_xs:
+                if xs_ban in mtlist:
+                    mtlist.remove(xs_ban)
+            if len(mtlist) == 0:
+                text += ["3/"]
+            else:
+                for mt_ in mtlist:
+                    text += [f"3 {mt_:d} /"]
     if nubar:
         text += ["3 452 'nu' /"]
         text += ["3 455 'nu' /"]
