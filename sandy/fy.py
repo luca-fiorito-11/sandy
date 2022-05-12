@@ -41,6 +41,7 @@ minimal_fytest_2 = pd.DataFrame([
     columns=["MAT", "MT", "ZAM", "ZAP", "E", "FY", "DFY"]
     )
 
+only_metastable = [95242]
 
 def import_chain_yields():
     """
@@ -1900,6 +1901,8 @@ class Fy():
         for mat, mf, mt in tape.data:
             sec = tape.read_section(mat, mf, mt)
             zam = int(sec["ZA"]*10)
+            if sec['ZA'] in only_metastable:
+                zam += 1
             if verbose:
                 logging.info(f"reading 'ZAM={zam}'...")
             for e in sec["E"]:
