@@ -1041,17 +1041,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test the wrong mt number:
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[455]))
-    groupr
-    20 21 0 0 /
-    22 9237 0 2 0 1 1 0 /
-    'sandy runs groupr' /
-    293.6/
-    10000000000.0/
-    3/
-    0/
-    0/
-
+    >>> with pytest.raises(SyntaxError): sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=455)
     >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[102, 455]))
     groupr
     20 21 0 0 /
@@ -1098,8 +1088,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
             for xs_ban in banned_xs:
                 if xs_ban in mtlist:
                     mtlist.remove(xs_ban)
-            if len(mtlist) == 0:
-                text += ["3/"]
+            if len(mtlist) == 0 and nubar is False and mubar is False:
+                raise SyntaxError("Introduced mt are not appropriate for xs")
             else:
                 for mt_ in mtlist:
                     text += [f"3 {mt_:d} /"]
