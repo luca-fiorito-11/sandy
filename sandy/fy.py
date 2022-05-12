@@ -12,6 +12,8 @@ import pandas as pd
 import numpy as np
 import scipy.sparse as sps
 import os
+from os.path import join, dirname
+import re
 
 import sandy
 from sandy.shared import expand_zam
@@ -60,6 +62,7 @@ def import_chain_yields():
     the ENDF/B-VI decay files and also four charge units from Zp, but the
     extension does not alter the values in this document for the specific
     nuclides listed in the appendices.
+
     ..note :: It is recognized that even smaller independent yields have even
     larger than 100% error.Indeed, independent yields in the range of 1.0e-9 to
     1.0e-12 may be difficult to predict to better than a factor of 100. For
@@ -84,57 +87,31 @@ def import_chain_yields():
            962450, 962460, 962480, 982490, 982510, 992540, 1002550],
           dtype=object)
     """
-    letters = {'a': 0.0035, 'b': 0.0050, 'c': 0.0070, 'd': 0.01, 'e': 0.014,
+    errors = {'a': 0.0035, 'b': 0.0050, 'c': 0.0070, 'd': 0.01, 'e': 0.014,
                'f': 0.02, 'g': 0.028, 'h': 0.04,
                'i': 0.06, 'j': 0.08, 'k': 0.11, 'l': 0.16, 'm': 0.23,
                'n': 0.32, 'o': 0.45, 'p': 0.64}
-    energy = {'t': 2.53e-2, 'f': 2000000.0, 'h': 14000000.0,
+    energy = {'t': 2.53e-2, 'f': 2000000.0, 'he': 14000000.0, 'h': 14000000.0,
               's': 'spontaneous fission'}
-    nuclides_z = {'th': 90, 'pa': 91, 'u': 92, 'np': 93, 'pu': 94, 'am': 95,
-                  'cm': 96, 'cf': 98, 'es': 99, 'fm': 100}
-    names = {'A': ['mass', 'u235t', 'u235f', 'u235h', 'u238f', 'u238h',
-                   'pu239t', 'pu239f', 'pu241t', 'u233t', 'th232f'],
-             'B': ['mass', 'u233f', 'u233h', 'u236f', 'pu239h', 'pu240f',
-                   'pu241f', 'pu242f', 'th232h', 'np237f', 'cf252s'],
-             'C': ['mass', 'u234f', 'u237f', 'pu240h', 'u234h', 'u236h',
-                   'pu238f', 'am241f', 'am243f', 'np238f', 'cm242f'],
-             'D': ['mass', 'th227t', 'th229t', 'pa231f', 'am241t', 'am241h',
-                   'am242t', 'cm245t', 'cf249t', 'cf251t', 'es254t'],
-             'E': ['mass', 'cf250s', 'cm244s', 'cm248s', 'es253s', 'fm254s',
-                   'fm255t', 'fm256s', 'np237h', 'u232t', 'u238s'],
-             'F': ['mass', 'cm243t', 'cm246s', 'cm243f', 'cm244f', 'cm246f',
-                   'cm248f', 'pu242h', 'np237t', 'pu240t', 'pu242t']}
     files = ['appendix A.txt', 'appendix B.txt', 'appendix C.txt',
              'appendix D.txt', 'appendix E.txt', 'appendix F.txt']
-    colspecs = [(0, 3), (3, 13), (13, 23), (23, 33), (33, 43), (43, 53),
-                (53, 63), (63, 73), (73, 83), (83, 93), (93, 103)]
-    data = pd.DataFrame(columns=['A', 'ZAM', 'Ch', 'E', 'DCh'])
-    for file in files:
-        df = pd.read_fwf(os.path.join(os.path.dirname(__file__),
-                                      'appendix',
-                                      'chain yields',
-                                      file),
-                         colspecs = colspecs,
-                         names = names[file[file.find('.')-1]])[1::].rename(columns ={'mass':'A'}).set_index('A')
-        df = df.stack().to_frame().reset_index().rename(columns = {'level_1': 'ZAM', 0: 'Ch'})
-        df['E'] = [value for index, valor in df['ZAM'].items()
-                   for key, value in energy.items() if key in valor[-2:]]
-        df['ZAM'] = [valor[::-1].replace(key, '', 1)[::-1]
-                     for index, valor in df['ZAM'].items()
-                     for key, value in energy.items() if key in valor[-2:]]
-        df['ZAM'] = [nuclides_z[valor[:-3]]*10000 + 10*int(valor[-3:]) + 1
-                     if valor == "am242" else
-                     nuclides_z[valor[:-3]]*10000 + 10*int(valor[-3:])
-                     for index, valor in df['ZAM'].items()]
-        df['DCh'] = df['Ch'].str[-1].replace(letters, regex=True)
-        df['Ch'] = df['Ch'].str[:-1].astype(float)/100
-        df['DCh'] = df['Ch']*df['DCh']
-        df['A'] = df['A'].astype(int)
-        df = df[df.E != 'spontaneous fission']
-        data = data.append(df.reset_index(drop=True))
-    data = data.sort_values(['ZAM', 'E'], ascending=[True, False])\
-               .reset_index(drop=True).set_index('A')
-    return data
+    #
+    path = join(dirname(__file__), 'appendix', 'chain yields')
+    df = pd.concat([pd.read_csv(join(path, file), sep="\s+", index_col=0) for file in files], axis=1)
+    df.columns.name, df.index.name = "ISO", "A"
+    df = df.stack().rename("Y").reset_index("ISO")
+    # 
+    zam_pattern = re.compile("(?P<SYM>[a-z]+)(?P<A>[0-9]+)(?P<M>[m]*)(?P<E>[a-z]+)", flags=re.IGNORECASE)
+    df["SYM"] = df.ISO.apply(lambda x: zam_pattern.search(x).group("SYM").title())
+    df["A"] = df.ISO.apply(lambda x: zam_pattern.search(x).group("A")).astype(int)
+    df["M"] = df.ISO.apply(lambda x: zam_pattern.search(x).group("M")).astype(bool).astype(int)
+    df["E"] = df.ISO.apply(lambda x: energy[zam_pattern.search(x).group("E")])
+    df["Z"] = df.SYM.apply(lambda x: {v: k for k, v in sandy.ELEMENTS.items()}[x])
+    df["ZAM"] = df.Z * 10000 + df.A * 10 + df.M
+    #
+    df["CHY"] = df.Y.apply(lambda x: x[:-1]).astype(float)
+    df["DCHY"] = df.Y.apply(lambda x: errors[x[-1]]) * df.CHY
+    return df[["ZAM", "E", "CHY", "DCHY"]].sort_values(by=["ZAM", "E"])
 
 
 class Fy():
