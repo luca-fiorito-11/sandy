@@ -498,16 +498,10 @@ def custom_perturbation_mf_33(sample, endf6, mat, i):
     pert = sample.reset_index().query(f"MAT == {mat}").groupby('MT')\
         .apply(lambda x: sandy.Pert(pd.Series(x[i].values,
                                               index=x["E"].values)))
-    xs_mt = xs.data.columns.get_level_values("MT").unique()
     for mt in pert.index:
         xs = xs.custom_perturbation(mat,
                                     mt,
                                     pert[mt])
-        if mt in xs.redundant_xs:
-            for mt_redundant in xs_mt.intersection(xs.redundant_xs[mt]):
-                xs = xs.custom_perturbation(mat,
-                                            mt_redundant,
-                                            pert[mt])
     return xs._reconstruct_sums().to_endf6(endf6)
 
 

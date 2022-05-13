@@ -186,7 +186,11 @@ class Xs():
             enew = np.union1d(self.data.index.values, pert.right.index.values)
             u_xs = self.reshape(enew)
             u_pert = pert.reshape(enew)
-            u_xs.data[(mat, mt)] = u_xs.data[(mat, mt)] * u_pert.right.values
+            if mt in redundant_xs:
+                mt = self.data.columns.get_level_values("MT")\
+                         .intersection(redundant_xs[mt]).union([mt])
+            u_xs.data.loc[:, (mat, mt)] = u_xs.data.loc[:, (mat, mt)]\
+                                                   .multiply(u_pert.right, axis='index')
         return self.__class__(u_xs.data)
 
     def filter_energies(self, energies):
