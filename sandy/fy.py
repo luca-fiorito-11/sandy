@@ -11,7 +11,6 @@ import warnings
 import pandas as pd
 import numpy as np
 import scipy.sparse as sps
-import os
 from os.path import join, dirname
 import re
 
@@ -70,7 +69,7 @@ def get_chain_yields():
 
     Examples
     --------
-    >>> chain_yields = sandy.fy.import_chain_yields()
+    >>> chain_yields = sandy.fy.get_chain_yields()
     >>> chain_yields.head()
     	A	ZAM	E	CHY	DCHY
     0	66	902270	thermal	8.53000e-08	2.72960e-08
