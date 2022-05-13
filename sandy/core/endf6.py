@@ -185,7 +185,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * `'endfb_80'`
             * `'jendl_40u`
         for 'eig_val'
-            * `'irdff_ii`
+            * `'irdff_ii` 
     kind : `str`
         nuclear data type:
             * 'xs' is a standard neutron-induced nuclear data file
