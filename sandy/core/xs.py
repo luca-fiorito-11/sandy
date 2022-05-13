@@ -390,7 +390,7 @@ class Xs():
 #                frame.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
 #        return Xs(frame)
 
-    def perturb(self, pert):
+    def perturb(self, pert, method=2):
         """Perturb cross sections/nubar given a set of perturbations.
         
         Parameters
