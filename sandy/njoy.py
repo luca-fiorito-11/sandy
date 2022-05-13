@@ -761,23 +761,13 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
 
     Test of wrong mt number:
     >>> with pytest.raises(SyntaxError): sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt=455)
-    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt=[102,455]))
-    errorr
-    20 21 0 22 0 /
-    9237 2 2 0 1 /
-    0 293.6 /
-    1 33 1/
-    1 0 /
-    102 /
     """
     irelco = 0 if relative is False else 1
     if mt is not None:
         mtlist = [mt] if isinstance(mt, int) else mt
         for xs_ban in banned_xs:
-            if xs_ban in mtlist:
-                mtlist.remove(xs_ban)
-        if len(mtlist) == 0 and mfcov == 33:
-            raise SyntaxError("Introduced mt are not appropriate for mf=33")
+            if xs_ban in mtlist and mfcov == 33:
+                raise SyntaxError("Introduced mt are not appropriate for mf=33")
     else:
         mtlist = []
     iread = 1 if len(mtlist) != 0 and mfcov == 33 else 0
@@ -1041,17 +1031,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test the wrong mt number:
-    >>> with pytest.raises(SyntaxError): sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=455)
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[102, 455]))
-    groupr
-    20 21 0 0 /
-    22 9237 0 2 0 1 1 0 /
-    'sandy runs groupr' /
-    293.6/
-    10000000000.0/
-    3 102 /
-    0/
-    0/
+    >>> with pytest.raises(SyntaxError): sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[102, 455])
     """
     iwt_ = 1 if spectrum_groupr is not None else iwt_groupr
     ign_ = 1 if ek_groupr is not None else ign_groupr
@@ -1087,9 +1067,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
             mtlist = [mt] if isinstance(mt, int) else mt
             for xs_ban in banned_xs:
                 if xs_ban in mtlist:
-                    mtlist.remove(xs_ban)
-            if len(mtlist) == 0 and nubar is False and mubar is False:
-                raise SyntaxError("Introduced mt are not appropriate for xs")
+                    raise SyntaxError("Introduced mt are not appropriate for xs")
             else:
                 for mt_ in mtlist:
                     text += [f"3 {mt_:d} /"]
