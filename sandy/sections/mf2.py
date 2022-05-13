@@ -423,9 +423,10 @@ def read_mf2(tape, mat):
                         add = {
                             "AWRI": L.C1,
                         }
-                        keys = ["D", "AJ", "AMUN", "GN0", "GG",""]
+                        keys = ["D", "AJ", "AMUN", "GN0", "GG","0"]
                         RES_PAR = [dict(zip(keys, items))
                                    for items in sandy.utils.grouper(L.B, 6)]
+                        del RES_PAR["O"]
                         add.update({"RES_PAR": RES_PAR})
                         LRU2_LFW0_LRF1_NLS.update({L.L1: add})
                     LRU2_LFW0_LRF1.update({"L": LRU2_LFW0_LRF1_NLS})
@@ -854,7 +855,7 @@ def write_mf2(sec):
                         0,
                     )
                     for L, sec4 in sec3["L"].items():
-                        keys = ["D", "AJ", "AMUN", "GN0", "GG",""]
+                        keys = ["D", "AJ", "AMUN", "GN0", "GG","0"]
                         tab = [res[k] for res in sec4["RES_PAR"] for k in keys]
                         lines += sandy.write_list(
                             sec4["AWRI"],
