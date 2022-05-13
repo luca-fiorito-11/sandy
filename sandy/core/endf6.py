@@ -55,6 +55,8 @@ from sandy.libraries import (
     TSL_FILES_JEFF_33_IAEA,
     URL_TSL_JENDL_40U_IAEA,
     TSL_FILES_JENDL_40U_IAEA,
+    URL_N_IRDFF_II_IAEA,
+    N_FILES_IRDFF_II_IAEA,
     )
 
 
@@ -81,6 +83,7 @@ def get_tsl_index(library):
             * `'jeff_33'`
             * `'endfb_80'`
             * `'jendl_40u`
+            * `'irdff_ii`
 
     Raises
     ------
@@ -119,6 +122,7 @@ def get_tsl_index(library):
             "endfb_80".upper(),
             "jeff_33".upper(),
             "jendl_40u".upper(),
+            "irdff_ii".upper(),
             )
     library_ = library.lower()
     if library_ == "endfb_71":
@@ -129,6 +133,8 @@ def get_tsl_index(library):
         index = "https://www-nds.iaea.org/public/download-endf/JEFF-3.3/tsl-index.htm"
     elif library_ == "jendl_40u":
         index = "https://www-nds.iaea.org/public/download-endf/JENDL-4.0u2-20160106/tsl-index.htm"
+    elif library_ == "irdff_ii":
+        index = "https://www-nds.iaea.org/public/download-endf/IRDFF-II/n-index.htm"
     else:
         raise ValueError(
             f"""library '{library}' is not available.
@@ -178,6 +184,8 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * `'jeff_33'`
             * `'endfb_80'`
             * `'jendl_40u`
+        for 'eig_val'
+            * `'irdff_ii`
     kind : `str`
         nuclear data type:
             * 'xs' is a standard neutron-induced nuclear data file
@@ -185,6 +193,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
               file
             * 'decay' is a Radioactive Decay Data nuclear data file
             * 'tsl' is a Thermal Neutron Scattering Data file
+            * 'eig_val' is Eigenvalues of Covariance Matrices
     zam : `int` or 'all' or iterable
         zam = 'int' (individual nuclides) or iterable (group of nuclides)
             ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
@@ -289,6 +298,10 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Thermal Neutron Scattering Data from JENDL-4.0u
     >>> tape = sandy.get_endf6_file("jendl_40u", 'tsl', [1, 2, 3])
     >>> assert type(tape) is sandy.Endf6
+    
+    Neutron files for IRDFF-II
+    >>> tape = sandy.get_endf6_file("irdff_ii", "eig_val", "all")
+    >>> assert type(tape) is sandy.Endf6
 
 #    Checked, but the test takes too long(~10 min), that's why it is commented.
 #    Import all Radioactive Decay Data from ENDF/B-VIII.0.
@@ -335,6 +348,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
                 Available libraries are: {available_libs}
                 """
                 )
+   
     elif kind == 'nfpy':
         available_libs = (
             "endfb_71".upper(),
@@ -411,6 +425,21 @@ def get_endf6_file(library, kind, zam, to_file=False):
                 Available libraries are: {available_libs}
                 """
                     )
+            
+    elif kind == 'eig_val':
+         available_libs = (
+             "irdff_ii".upper(),
+             )
+         library_ = library.lower()
+         if library_ == "irdff_ii":
+             url = URL_N_IRDFF_II_IAEA
+             files = N_FILES_IRDFF_II_IAEA
+         else:
+             raise ValueError(
+                 f"""library '{library}' is not available.
+                 Available libraries are: {available_libs}
+                 """
+                 )
     if str(zam).lower() == 'all':
         if kind.lower() == 'xs':
             raise ValueError("'all' option is not available for xs")
