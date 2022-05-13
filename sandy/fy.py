@@ -45,7 +45,7 @@ minimal_fytest_2 = pd.DataFrame([
 
 only_metastable = [95242]
 
-def import_chain_yields():
+def get_chain_yields():
     """
     Import chain yields information from information store in sandy. The
     information was taken from 'https://www-nds.iaea.org/endf349/la-ur-94-3106.pdf',
@@ -91,7 +91,7 @@ def import_chain_yields():
                'f': 0.02, 'g': 0.028, 'h': 0.04,
                'i': 0.06, 'j': 0.08, 'k': 0.11, 'l': 0.16, 'm': 0.23,
                'n': 0.32, 'o': 0.45, 'p': 0.64}
-    energy = {'t': 2.53e-2, 'f': 2000000.0, 'he': 14000000.0, 'h': 14000000.0,
+    energy = {'t': "thermal", 'f': "fast", 'he': "high energy", 'h': "high energy",
               's': 'spontaneous fission'}
     files = ['appendix A.txt', 'appendix B.txt', 'appendix C.txt',
              'appendix D.txt', 'appendix E.txt', 'appendix F.txt']
@@ -111,7 +111,8 @@ def import_chain_yields():
     #
     df["CHY"] = df.Y.apply(lambda x: x[:-1]).astype(float)
     df["DCHY"] = df.Y.apply(lambda x: errors[x[-1]]) * df.CHY
-    return df[["ZAM", "E", "CHY", "DCHY"]].sort_values(by=["ZAM", "E"])
+    return df[["ZAM", "E", "CHY", "DCHY"]].sort_values(by=["ZAM", "E"]) \
+                                          .reset_index()
 
 
 class Fy():
