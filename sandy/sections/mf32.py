@@ -29,6 +29,25 @@ mt = 151
 
 
 def read_intg(df, NDIGIT, ipos):
+    """
+    Read ``ENDF-6`` ``INTG`` record in formatted fortran.
+
+    Returns
+    -------
+    `CONT` : `collections.namedtuple`
+        - `II` : `int`
+            first five elements of string
+        - `JJ` : `int`
+            second five elements of string
+        - `KIJ` : `array`
+            depending of the format imposed by NDIGIT
+            for NDIGIT = 2 KIJ is an array of 18 str 
+            for NDIGIT = 3 KIJ is an array of 13 str 
+            for NDIGIT = 3 KIJ is an array of 11 str 
+            for NDIGIT = 4 KIJ is an array of 9 str 
+            for NDIGIT = 5 KIJ is an array of 8 str 
+            
+    """
     INTG = namedtuple('INTG', 'II JJ KIJ')
     series = df.iloc[ipos]
     line = "".join(series.values.astype(str))
@@ -330,6 +349,37 @@ def read_intg(df, NDIGIT, ipos):
 
 
 def read_mf32(tape, mat):
+    """
+    Write MT section for MF32
+
+    Parameters
+    ----------
+    tape : `sandy.Endf6`
+        endf6 object containing requested section
+    mat : `int`
+        MAT number
+
+    Returns
+    -------
+    `dict`
+        Content of the ENDF-6 tape structured as nested `dict`.
+        
+    Examples
+    --------
+    Covariances of resonance parameters of the Curium 2245
+    LCOMP = 0
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 962450)
+    >>> dic = sandy.read_mf32(tape,9640)
+    >>> print( dic["NIS"][96245]['NER'][(1e-05, 100.0)]["L"][0]['COVAR_PAR'][0:2])
+    [{'ER': -0.1, 'AJ': 3.0, 'GT': 0.230946, 'GN': 4.61e-05, 'GG': 0.0359, 'GF': 0.195,
+      'DE²': 1e-08, 'DN²': 2.12521e-11, 'DNDG': 0.0, 'DG²': 5.15524e-05, 'DNDF': 0.0, 'DGDF': 0.0, 
+      'DF²': 0.00038025, 'DJDN': 0.0, 'DJDG': 0.0, 'DJDF': 0.0, 'DJ²': 0.0}, 
+     {'ER': 0.85, 'AJ': 4.0, 'GT': 0.84409, 'GN': 9e-05, 'GG': 0.044, 'GF': 0.8,
+      'DE²': 0.0009, 'DN²': 6.30623e-11, 'DNDG': 0.0, 'DG²': 7.744e-05, 'DNDF': 0.0, 'DGDF': 0.0,
+      'DF²': 0.0025, 'DJDN': 0.0, 'DJDG': 0.0, 'DJDF': 0.0, 'DJ²': 0.0}]
+    
+    
+    """
     df = tape._get_section_df(mat, mf, mt)
     out = {
         "MAT": mat,
@@ -426,11 +476,13 @@ def read_mf32(tape, mat):
                                 "DNDG",
                                 "DG²",
                                 "DNDF",
+                                "DGDF",
                                 "DF²",
                                 "DJDN",
                                 "DJDG",
                                 "DJDF",
-                                "DJ²"]
+                                "DJ²",
+                            ]
                             COVAR_PAR = [dict(zip(keys, items))
                                          for items in sandy.utils.grouper(L.B, 18)]
                             add.update({"COVAR_PAR": COVAR_PAR})
@@ -604,7 +656,6 @@ def read_mf32(tape, mat):
                         if ISR > 0:
                             L, i = sandy.read_list(df, i)
                             add = {
-
                                 "JCH": L.NPL,
                                 "(1+(NJCH-1)/6)": L.N2,
                                 "DAP": L.B,
