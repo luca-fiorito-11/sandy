@@ -89,6 +89,7 @@ class Samples():
     @data.setter
     def data(self, data):
         self._data = data
+        self._data.index.name = 'SMP'
 
     @property
     def condition_number(self):
