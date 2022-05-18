@@ -312,9 +312,10 @@ def reshape_bfill(x, y, xnew, left_values="first", right_values=0):
     `numpy.ndarray` with length `len(xnew)`
         interpolated array
     """
-    fill_value = (left_values, right_values)
+    fill_value = [left_values, right_values]
     if left_values == "first":
         fill_value[0] = y[0]
+    fill_value = tuple(fill_value)
     foo = scipy.interpolate.interp1d(
             x, y,
             axis=0,
