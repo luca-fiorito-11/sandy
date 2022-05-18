@@ -266,7 +266,9 @@ class Samples():
 
     def reshape(self, eg, update=True):
         """
-        Reshape energy dependend samples.
+        Reshape energy dependend samples. If update is False, this method
+        returns a dataframe to be use in the method `custom_perturbation` of
+        Xs, Edistr and Lpc objects.
 
         Parameters
         ----------
@@ -283,24 +285,27 @@ class Samples():
 
         """
 
+    def reshape(self, eg, update=True):
         def reshape_samples(df, eg):
             levels = list(np.arange(df.columns.nlevels))
             data = df.iloc[0].unstack(level=levels[0:-1])
             name = data.index.name
-            sample = reshape_df(data, eg).rename_axis(name)
-            columns_name = sample.columns.names
-            if "L" in columns_name:
-                sample = sample.stack(level=['MAT', 'MT'])
-                sample.columns.name = "P"
-            elif "ELO" in columns_name and "EHI" in columns_name:
-                sample = sample.stack(level=['MAT', 'MT', 'ELO', 'EHI'])
-            return sample
+            if isinstance(data.index, pd.IntervalIndex):
+                data.index = data.index.right
+            return reshape_df(data, eg).rename_axis(name)
 
         data = self.data.copy()
         data = data.groupby('SMP').apply(reshape_samples, eg)
         if update:
             return self.__class__(data.unstack(level=-1))
         else:
+            columns_name = data.columns.names
+            if "L" in columns_name:
+                data = data.stack(level=['MAT', 'MT'])
+                data.columns.name = "P"
+            elif "ELO" in columns_name and "EHI" in columns_name:
+                data = data.stack(level=['MAT', 'MT', 'ELO', 'EHI'])\
+                           .rename('Value').reset_index()
             return data
 
 
@@ -320,6 +325,21 @@ def reshape_df(df, eg):
     data : `pd.DataFrame`
         Dataframe with the energy grid reshaped.
 
+    Examples
+    --------
+    >>> col = pd.MultiIndex.from_arrays([[2631, 2631], [5, 2]], names=('MAT', 'MT'))
+    >>> pert = pd.DataFrame([[1, 1.05], [1.05, 1]], index =pd.IntervalIndex.from_breaks(pd.Index([10, 100]).insert(0, 0)), columns=col)
+    >>> sandy.samples.reshape_df(pert, [0, 1, 5,  25, 50, 100, 1.95000e+08])
+    MAT	        2631
+    MT	        5	        2
+    0.00000e+00	1.00000e+00	1.05000e+00
+    1.00000e+00	1.00000e+00	1.05000e+00
+    5.00000e+00	1.00000e+00	1.05000e+00
+    1.00000e+01	1.00000e+00	1.05000e+00
+    2.50000e+01	1.05000e+00	1.00000e+00
+    5.00000e+01	1.05000e+00	1.00000e+00
+    1.00000e+02	1.05000e+00	1.00000e+00
+    1.95000e+08	1.00000e+00	1.00000e+00   
     """
     index = pd.Index(eg)
     name = df.index.name
@@ -332,7 +352,7 @@ def reshape_df(df, eg):
                             x.index.values,
                             x.values,
                             enew,
-                            left_values=1,
+                            left_values="first",
                             right_values=1,
                             )).set_index(enew).rename_axis(name)
     return data
