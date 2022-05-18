@@ -14776,8 +14776,8 @@ TSL_FILES_JEFF_33_IAEA = {
 
 
 # neutron files for IRDFF-II from the IAEA website
-URL_N_IRDFF_II_IAEA = "https://www-nds.iaea.org/public/download-endf/IRDFF-II/n/"
-N_FILES_IRDFF_II_IAEA = {
+URL_N_IRDFF_2_IAEA = "https://www-nds.iaea.org/public/download-endf/IRDFF-II/n/"
+N_FILES_IRDFF_2_IAEA = {
     110230: "n_11-Na-23_1125.dat",
     120000: "n_12-Mg-0_1200.dat",
     120240: "n_12-Mg-24_1225.dat",
