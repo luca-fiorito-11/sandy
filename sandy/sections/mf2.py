@@ -234,7 +234,7 @@ def read_mf2(tape, mat):
                             "NR": T.NBT,
                             "NP": T.INT,
                             "E_int": T.x,
-                            "AP": T.y,
+                            "AP(E)": T.y,
                         }
                         LRU1_LRF1_2_NRO1.update(add)
                         C, i = sandy.read_cont(df, i)
@@ -280,7 +280,7 @@ def read_mf2(tape, mat):
                             # angular distributions.
                             "NLSC": C.N2,
                         }
-                        NLS = int(C.N1)
+                        NLS = C.N1
                         LRU1_LRF3_NRO0.update(add)
                         LRU1_LRF3_NRO0_NLS = {}
                         for k in range(NLS):
@@ -306,7 +306,7 @@ def read_mf2(tape, mat):
                             "NR": T.NBT,
                             "NP": T.INT,
                             "E_int": T.x,
-                            "AP": T.y,
+                            "AP(E)": T.y,
                         }
                         LRU1_LRF3_NRO1.update(add)
                         C, i = sandy.read_cont(df, i)
@@ -707,7 +707,7 @@ def write_mf2(sec):
                             sec3["NR"],
                             sec3["NP"],
                             sec3["E_int"],
-                            sec3["AP"],
+                            sec3["AP(E)"],
                         )
                         lines += sandy.write_cont(
                             sec3["SPI"],
@@ -761,7 +761,7 @@ def write_mf2(sec):
                             sec3["NR"],
                             sec3["NP"],
                             sec3["E_int"],
-                            sec3["AP"],
+                            sec3["AP(E)"],
                         )
                         lines += sandy.write_cont(
                             sec3["SPI"],
