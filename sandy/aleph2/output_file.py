@@ -729,6 +729,10 @@ def parse_materials_output(text):
                 ),
             }
         if PATTERN_FISSIONS.search(v):
+            burnup = _search_pattern_flist(v, PATTERN_BURNUP)
+            total_burnup = _search_pattern_float(v, PATTERN_TOTBURNUP)
+            fissions = _search_pattern_flist(v, PATTERN_FISSIONS)
+            total_fissions = _search_pattern_float(v, PATTERN_TOTFISSIONS)
             material.update({
             "burnup": pd.Series(
                 burnup,
@@ -736,17 +740,17 @@ def parse_materials_output(text):
                 name="burnup [GWd/tHM]",
                 ),
             "cumulative_burnup": pd.Series(
-                cumburnup,
+                itertools.accumulate(burnup),
                 index=time,
-                name="cumulative burnup [GWd/tHM]",
+                name="burnup [GWd/tHM]",
                 ),
-            "total_burnup": totburnup,
+            "total_burnup": total_burnup,
             "fissions": pd.Series(
                 fissions,
                 index=time,
                 name="fissions [#]",
                 ),
-            "total_fissions": totfissions,
+            "total_fissions": total_fissions,
             })
         materials[mat_number] = material
     return AlephMaterials(materials)
