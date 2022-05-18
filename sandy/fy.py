@@ -1287,18 +1287,27 @@ def _gls_setup(model_sensitivity_object, kind):
 
 def _to_energy_range(e):
     """
-    Function to obtain the corrisponding energy range.
+    Function to obtain the corresponding energy range.
 
     Parameters
     ----------
     e : `float`
+        Energy of the fissioning system.
 
     Returns
     -------
     range_e : `str`
+        Corresponding energy range.
 
     Examples
     --------
+    >>> e = 0.0253
+    >>> _to_energy_range(e)
+    'thermal'
+
+    >>> e = 50000
+    >>> _to_energy_range(e)
+    'fast'
     """
     if e<=0.0253:
         range_e = "thermal"
