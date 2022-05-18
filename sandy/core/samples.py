@@ -89,6 +89,7 @@ class Samples():
     @data.setter
     def data(self, data):
         self._data = data
+        self._data.index.name = "SMP"
 
     @property
     def condition_number(self):
@@ -262,3 +263,76 @@ class Samples():
         """
         df = pd.read_csv(file, **kwargs)
         return cls(df)
+
+    def reshape(self, eg, update=True):
+        """
+        Reshape energy dependend samples.
+
+        Parameters
+        ----------
+        eg : 1D iterable.
+            Points to add to the energy grid.
+        update : `bool`, optional
+            Option to update the object or return a dataframe.
+            The default is True.
+
+        Returns
+        -------
+        `sandy.Samples` or `pd.DataFrame`
+            Energy dependent samples reshaped.
+
+        """
+
+        def reshape_samples(df, eg):
+            levels = list(np.arange(df.columns.nlevels))
+            data = df.iloc[0].unstack(level=levels[0:-1])
+            name = data.index.name
+            sample = reshape_df(data, eg).rename_axis(name)
+            columns_name = sample.columns.names
+            if "L" in columns_name:
+                sample = sample.stack(level=['MAT', 'MT'])
+                sample.columns.name = "P"
+            elif "ELO" in columns_name and "EHI" in columns_name:
+                sample = sample.stack(level=['MAT', 'MT', 'ELO', 'EHI'])
+            return sample
+
+        data = self.data.copy()
+        data = data.groupby('SMP').apply(reshape_samples, eg)
+        if update:
+            return self.__class__(data.unstack(level=-1))
+        else:
+            return data
+
+
+def reshape_df(df, eg):
+    """
+    Reshape a dataframe with the energy grid in the index.
+
+    Parameters
+    ----------
+    df : `pd.DataFrame`
+        Dataframe containing in the index the energy grid to reshape.
+    eg : 1D iterable.
+        Points to add to the energy grid.
+
+    Returns
+    -------
+    data : `pd.DataFrame`
+        Dataframe with the energy grid reshaped.
+
+    """
+    index = pd.Index(eg)
+    name = df.index.name
+    if isinstance(index, pd.IntervalIndex):
+        index = index.right
+    if isinstance(df.index, pd.IntervalIndex):
+        df.index = df.index.right
+    enew = df.index.union(index).unique().astype(float).values
+    data = df.apply(lambda x: sandy.shared.reshape_bfill(
+                            x.index.values,
+                            x.values,
+                            enew,
+                            left_values=1,
+                            right_values=1,
+                            )).set_index(enew).rename_axis(name)
+    return data
