@@ -200,7 +200,6 @@ def read_mf32(tape, mat):
             EH = C.C2
             NRO = C.N1
             LRF = C.L2
-            print ("LRF =", LRF )
             if NRO != 0:
                 NRO1 = {}
                 C, i = sandy.read_cont(df, i)
@@ -219,7 +218,6 @@ def read_mf32(tape, mat):
                     "ISR": C.N2,
                 }
                 LCOMP = int(C.L2)
-                print ("LCOMP =",LCOMP)
                 ISR = int(C.N2)
                 NLS = int(C.N1)
                 if LCOMP == 0:
