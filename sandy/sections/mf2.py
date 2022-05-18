@@ -16,7 +16,6 @@ MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
 
 import sandy
 import pandas as pd
-import pdb
 
 __author__ = "Rayan HADDAD"
 __all__ = [
