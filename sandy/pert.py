@@ -239,13 +239,10 @@ class Pert():
 
         >>> sandy.Pert(pert_ind).reshape([0, 1, 5,  25, 50, 100, 1.95000e+08]).data
         ENERGY
-        (0.0, 1.0]             1.00000e+00
-        (1.0, 5.0]             1.00000e+00
-        (5.0, 10.0]            1.00000e+00
+        (0.0, 10.0]            1.00000e+00
         (10.0, 25.0]           1.05000e+00
         (25.0, 50.0]           1.05000e+00
         (50.0, 100.0]          1.05000e+00
-        (100.0, 195000000.0]   1.00000e+00
         dtype: float64
         """
         index = pd.Index(eg)
@@ -274,6 +271,8 @@ class Pert():
                           right_values=1,
                           )
             data = pd.Series(pertnew, index=enew)
+            data = data.loc[(data.index >= index.min()) &
+                            (data.index <= index.max())]
         else:
             data = df.apply(lambda x: sandy.shared.reshape_bfill(
                                     x.index.values,
@@ -282,6 +281,8 @@ class Pert():
                                     left_values="first",
                                     right_values=1,
                                     )).set_index(enew).rename_axis(name)
+            data = data.loc[(data.index >= index.min()) &
+                            (data.index <= index.max()), :]
         if not inplace:
             return self.__class__(data)
         self.data = data
