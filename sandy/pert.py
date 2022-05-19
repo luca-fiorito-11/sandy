@@ -89,13 +89,23 @@ class Pert():
     @data.setter
     def data(self, data):
         self._data = data
-        if isinstance(self._data.index, pd.IntervalIndex):
-            self._data.index = self._data.index.right
-        index = self._data.index.astype(float)
-        if not index.is_monotonic_increasing:
-            raise sandy.Error("energy grid is not monotonically increasing")
-        self._data.index = pd.IntervalIndex.from_breaks(index.insert(0, 0))
-        self._data.index.name = self._indexname
+        if isinstance(data, pd.Series):
+            if isinstance(self._data.index, pd.IntervalIndex):
+                self._data.index = self._data.index.right
+            index = self._data.index.astype(float)
+            if not index.is_monotonic_increasing:
+                raise sandy.Error("energy grid is not monotonically increasing")
+            self._data.index = pd.IntervalIndex.from_breaks(index.insert(0, 0))
+            self._data.index.name = self._indexname
+        else:
+            if isinstance(self._data.index.get_level_values(-1), pd.IntervalIndex):
+                index = self._data.index.get_level_values(-1).right.astype(float)
+            else:
+                index = self._data.index.get_level_values(-1).astype(float)
+            if not index.is_monotonic_increasing:
+                raise sandy.Error("energy grid is not monotonically increasing")
+            self._data.index = pd.IntervalIndex.from_breaks(index.insert(0, 0))
+            self._data.index.name = self._indexname
 
     @property
     def right(self):
