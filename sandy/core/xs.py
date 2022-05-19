@@ -733,38 +733,3 @@ class Xs():
         df = self.data.copy()
         df.index = df.index * 1e-6
         return df
-
-
-def reshape_df(df, eg):
-    """
-    Reshape energy dependent dataframe with using "bfill" method.
-
-    Parameters
-    ----------
-    df : `pd.Dataframe`
-        Dataframe to be reshaped.
-        .
-    eg : 1D iterable
-        New energy grid structure.
-
-    Returns
-    -------
-    data : `pd.Dataframe`
-        Reshaped dataframe.
-
-    """
-    index = pd.Index(eg)
-    if isinstance(index, pd.IntervalIndex):
-        index = index.right
-    if isinstance(df.index, pd.IntervalIndex):
-        df.index = df.index.right
-    enew = df.index.union(index).unique().astype(float).values
-    name = df.index.name
-    data = df.apply(lambda x: sandy.shared.reshape_bfill(
-                            x.index.values,
-                            x.values,
-                            enew,
-                            left_values=1,
-                            right_values=1,
-                            )).set_index(enew).rename_axis(name)
-    return data
