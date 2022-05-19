@@ -129,7 +129,7 @@ def read_mf32(tape, mat):
     Covariances of resonance parameters of the Curium 2245
     LCOMP = 0
     >>> tape = sandy.get_endf6_file("jeff_33", "xs", 962450)
-    >>> dic = sandy.read_mf32(tape,9640)
+    >>> dic = sandy.read_mf32(tape, 9640)
     >>> print( dic["NIS"][96245]['NER'][(1e-05, 100.0)]["L"][0]['COVAR_PAR'][0:2])
     [{'ER': -0.1, 'AJ': 3.0, 'GT': 0.230946, 'GN': 4.61e-05, 'GG': 0.0359, 'GF': 0.195,
       'DE²': 1e-08, 'DN²': 2.12521e-11, 'DNDG': 0.0, 'DG²': 5.15524e-05, 'DNDF': 0.0, 'DGDF': 0.0, 
@@ -141,7 +141,7 @@ def read_mf32(tape, mat):
     Covariances of resonance parameters of the Americium 241
     LCOMP = 1 LRF = 2
     >>> tape = sandy.get_endf6_file("jeff_33", "xs", 952410)
-    >>> dic = sandy.read_mf32(tape,9640)
+    >>> dic = sandy.read_mf32(tape, 9543)
     >>> print(dic["NIS"][95241]['NER'][(1e-05, 150.0)]["COVAR_PAR"][0][10:50])
     [ 2.494710e-10  7.847580e-11 -9.012000e-10 -9.512310e-12 -2.029530e-10
       1.497910e-11  7.083150e-09 -1.567680e-11  1.527096e-09  7.121410e-11
@@ -152,8 +152,28 @@ def read_mf32(tape, mat):
       4.308922e-09  4.159470e-10 -1.722510e-08 -1.178230e-10 -8.631673e-08
      -1.642100e-11 -1.722510e-08  7.081580e-11 -9.513253e-08 -3.665940e-12]
     
-    
-    
+    Covariances of resonance parameters of the Caesium 137
+    LCOMP = 2 LRF = 2
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 551370)
+    >>> dic = sandy.read_mf32(tape, 5537)
+    >>> dic['NIS'][55137]["NER"][(1e-05, 56666.38)]['RES_PAR'][20::30]
+    [{'ER': -1342.1, 'AJ': 4.0, 'GT': 10.75884, 'GN': 10.09489, 'GG': 0.66395, 'GF': 0.0, 
+      'DER': 0.0005, 'DGN': 0.5, 'DGG': 0.1, 'DGF': 0.0},
+     {'ER': 20098.0, 'AJ': 4.0, 'GT': 36.19939, 'GN': 36.163, 'GG': 0.036395, 'GF': 0.0, 
+      'DER': 10.049, 'DGN': 0.00036163, 'DGG': 3.6395e-07, 'DGF': 0.0},
+     {'ER': 36830.02, 'AJ': 4.0, 'GT': 3.388613, 'GN': 3.298613, 'GG': 0.09000001, 'GF': 0.0,
+      'DER': 36.83, 'DGN': 0.0659723, 'DGG': 0.0018, 'DGF': 0.0},
+     {'ER': 51650.52, 'AJ': 3.0, 'GT': 17.43718, 'GN': 17.34718, 'GG': 0.09000001, 'GF': 0.0,
+      'DER': 51.6505, 'DGN': 0.346944, 'DGG': 0.0018, 'DGF': 0.0}]
+   
+    Covariances of resonance parameters of the Caesium 137
+    LCOMP = 2 LRF = 3
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902320)
+    >>> dic = sandy.read_mf32(tape, 9040)
+    >>> dic['NIS'][90232]["NER"][(1e-05, 4000.0)]["INTG"][350] 
+    {'II': 795,
+     'JJ': 793,
+     'KIJ': array([44, 69,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0])}
     """
     df = tape._get_section_df(mat, mf, mt)
     out = {
