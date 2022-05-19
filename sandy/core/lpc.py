@@ -227,7 +227,7 @@ class Lpc():
         u_lpc = self.reshape(enew, selected_mat=mat, selected_mt=mt)
         u_pert = pert.reshape(enew)
         u_lpc.data.loc[(mat, mt)][p] *= u_pert.right.values
-        return Lpc(u_lpc.data)
+        return self.__class__(u_lpc.data)
 
     def reshape(self, eg, selected_mat=None, selected_mt=None):
         """
@@ -266,31 +266,29 @@ class Lpc():
         3	1.00000e+03	1.13381e-03	2.53242e-06
         4	2.00000e+03	2.93552e-03	1.59183e-05
         """
-        listdf = []
-        for (mat, mt), df in self.data.groupby(["MAT", "MT"]):
-            if selected_mat:
-                if mat != selected_mat:
-                    listdf.append(df)
-                    continue
-            if selected_mt:
-                if mt != selected_mt:
-                    listdf.append(df)
-                    continue
-            df = df.T[mat][mt].T
-            enew = df.index.union(eg).astype("float").rename("E")
+        lpc = self
+        if selected_mat:
+            selected_mat_ = [selected_mat] if isinstance(selected_mat, int) else selected_mat
+            lpc = lpc.filter_by('MAT', selected_mat_)
+        if selected_mt:
+            selected_mt_ = [selected_mt] if isinstance(selected_mt, int) else selected_mt
+            lpc = lpc.filter_by('MT', selected_mt_)
+
+        def reshape_lpc(df, eg):
+            energy_grid = df.index.get_level_values('E')
+            enew = energy_grid.unique().union(pd.Index(eg))\
+                              .astype("float").rename("E")
             valsnew = sandy.shared.reshape_differential(
-                df.index.values,
+                df.index.get_level_values('E').values,
                 df.values,
                 enew,
                 )
-            dfnew = pd.DataFrame(valsnew, index=enew, columns=df.columns) \
-                      .reset_index(drop=False)
-            dfnew.insert(0, "MAT", mat)
-            dfnew.insert(0, "MT", mt)
-            dfnew.set_index(self._indexnames, inplace=True)
-            listdf.append(dfnew)
-        data = pd.concat(listdf, axis=0)
-        return Lpc(data)
+            dfnew = pd.DataFrame(valsnew, index=enew, columns=df.columns)
+            return dfnew.loc[(dfnew.index >= energy_grid.min()) &
+                             (dfnew.index <= energy_grid.max()), :]
+
+        data = lpc.data.groupby(["MAT", "MT"]).apply(reshape_lpc, eg)
+        return self.__class__(data)
 
     def to_endf6(self, endf6):
         """
@@ -440,7 +438,7 @@ class Lpc():
             rdf["MT"] = mt
             rdf = rdf.set_index(["MAT", "MT", "E"])
             List.append(rdf)
-        return Lpc(pd.concat(List, axis=0))
+        return self.__class__(pd.concat(List, axis=0))
 
     def _perturb(self, pert, method=2, **kwargs):
         """
