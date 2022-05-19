@@ -321,26 +321,13 @@ class Xs():
         1.94000e+08	1.03360e+00	1.05000e+00	1.00106e+00	1.00000e+00
         1.96000e+08	1.01702e+00	1.00000e+00	1.05085e+00	1.05000e+00
         1.98000e+08	1.00016e+00	1.00000e+00	1.00044e+00	1.00000e+00
-
-        Pert a series without mt and mat information:
-        >>> pert = pd.Series([1, 1.05], index=pd.IntervalIndex.from_breaks(pd.Index([1.94000e+08, 1.98000e+08]).insert(0, 0)))
-        >>> pert_xs = xs._custom_perturbation(sandy.Pert(pert), 2631)
-        >>> pert_xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]] / xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]]
-        MAT	        2631
-        MT	        1	        2	        3	        5
-                  E				
-        1.92000e+08	1.00042e+00	1.00000e+00	1.00121e+00	1.00000e+00
-        1.94000e+08	1.00040e+00	1.00000e+00	1.00106e+00	1.00000e+00
-        1.96000e+08	1.05032e+00	1.05000e+00	1.05085e+00	1.05000e+00
-        1.98000e+08	1.05016e+00	1.05000e+00	1.05047e+00	1.05000e+00
         """
         # Reshape (all to the right):
-        enew = np.union1d(self.data.index.values, pert.right.index.values)
+        index = self.data.index
+        enew = index.union(pert.right.index.values)
+        enew = enew[(enew <= index.max()) & (enew >= index.min())]
         u_xs = self.reshape(enew).data
         u_pert = pert.reshape(enew).right
-        if isinstance(u_pert, pd.Series):
-            u_xs = u_xs.multiply(u_pert, axis='index')
-            return self.__class__(u_xs)._reconstruct_sums(**kwargs)
         # Redundant xs:
         mt = u_xs.columns.get_level_values('MT')
         mt_pert_o = u_pert.columns.get_level_values('MT')
