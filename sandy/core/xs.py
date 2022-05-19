@@ -156,7 +156,7 @@ class Xs():
         df = pd.DataFrame(xsnew, index=enew, columns=df.columns)
         return self.__class__(df)
 
-    def custom_perturbation(self, pert, mat=None, **kwargs):
+    def custom_perturbation(self, pert, mat=None, mt=None, **kwargs):
         """
         Function to apply perturbations to individual XS or a group of XS.
 
@@ -191,23 +191,7 @@ class Xs():
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 10010)
         >>> xs = sandy.Xs.from_endf6(endf6)
         >>> pert = sandy.Pert([1, 1.05], index=[10, 100])
-        >>> pert_xs = xs.custom_perturbation(pert, mat=125)
-        >>> (pert_xs.data.loc[:, (125, 2)] / xs.data.loc[:, (125, 2)]).round(2).unique()
-        array([1.  , 1.05])
-
-        >>> (pert_xs.data.loc[[1.00000e-05, 10, 20.0,  100, 10000.0], (125, 2)] / xs.data.loc[[1.00000e-05, 10, 20.0,  100, 10000.0], (125, 2)]).round(2)
-        E
-        1.00000e-05   1.00000e+00
-        1.00000e+01   1.00000e+00
-        2.00000e+01   1.05000e+00
-        1.00000e+02   1.05000e+00
-        1.00000e+04   1.00000e+00
-        Name: (125, 2), dtype: float64
-
-        Single perturbation in a dataframe:
-        >>> pert = pd.DataFrame([1, 1.05], index =pd.IntervalIndex.from_breaks(pd.Index([10, 100]).insert(0, 0)), columns=[2])
-        >>> pert.columns.name = 'MT'
-        >>> pert_xs = xs.custom_perturbation(pert, mat=125)
+        >>> pert_xs = xs.custom_perturbation(pert, mat=125, mt=2)
         >>> (pert_xs.data.loc[:, (125, 2)] / xs.data.loc[:, (125, 2)]).round(2).unique()
         array([1.  , 1.05])
 
@@ -236,23 +220,19 @@ class Xs():
         1.98000e+08	1.00016e+00	1.00000e+00	1.00044e+00	1.00000e+00
         """
         xs = self
-        # By default, apply the perturbation to all the mat in the object:
-        if mat is not None:
-            mat_ = [mat] if isinstance(mat, int) else mat
-        else:
-            mat_ = xs.data.columns.get_level_values('MAT').unique()
-        # Create perturbation object:
         pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
-        # Perturbation data for all the mat numbers:
-        if isinstance(pert_.data, pd.DataFrame):
-            if 'MAT' not in pert_.data.columns.names:
-                pert_ = pd.concat([pert_.data]*len(mat_),  names=['MAT'],
-                                  keys=mat_, axis=1)
-                pert_ = sandy.Pert(pert_)
-            for pert_mat in mat_:
-                xs = xs._custom_perturbation(pert_, pert_mat, **kwargs)
-        else:
-            xs = xs._custom_perturbation(pert_, mat_, **kwargs)
+        if isinstance(pert_.data, pd.Series):
+            if mat and mt:
+                columns = pd.MultiIndex.from_arrays([[mat], [mt]],
+                                                    names=('MAT', 'MT'))
+                df = pd.DataFrame(pert_.data.values, index=pert_.data.index,
+                                  columns=columns)
+                pert_ = sandy.Pert(df)
+            else:
+                print("The input do not have enought information")
+        mat_ = pert_.data.columns.get_level_values('MAT').unique()
+        for pert_mat in mat_:
+            xs = xs._custom_perturbation(pert_, pert_mat, **kwargs)
         return xs
 
     def _custom_perturbation(self, pert, mat, **kwargs):
