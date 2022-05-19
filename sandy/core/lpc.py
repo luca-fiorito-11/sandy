@@ -140,10 +140,14 @@ class Lpc():
         >>> comp = LPC.filter_by('E', 1e-05).data.index.get_level_values(2) == 1e-05
         >>> assert comp.all() == True
         """
-        info = {'MAT': 0, 'MT': 1, 'E': 2}
+        info = {'MAT': 0, 'MT': 1, 'E': 2, 'P': 0}
         value_ = [value] if isinstance(value, int) or isinstance(value, float) else value
-        condition = self.data.index.get_level_values(info[key]).isin(value_)
-        out = self.data.copy()[condition]
+        if key == 'P':
+            condition = self.data.columns.get_level_values(info[key]).isin(value_)
+            out = self.data.copy().loc[:, condition]
+        else:
+            condition = self.data.index.get_level_values(info[key]).isin(value_)
+            out = self.data.copy()[condition]
         if out.empty:
             raise sandy.Error("applied filter returned empty dataframe")
         return self.__class__(out)
