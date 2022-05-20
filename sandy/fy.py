@@ -448,7 +448,7 @@ class Fy():
         cov_data = sandy.CategoryCov.from_var(cov_data)
         # Apply (1-B) matrix
         ify_calc_values = sandy._y_calc(fy_data, sensitivity).rename('FY')
-        cov_calc_values = np.diag(cov_data._gls_Vy_calc(sensitivity))
+        cov_calc_values = np.diag(cov_data.sandwich(sensitivity.T).data)
         cov_calc_values = pd.Series(cov_calc_values, index=sensitivity.index)
         if keep_fy_index:
             ify_calc_values = ify_calc_values.reindex(original_index).fillna(0)
@@ -532,7 +532,7 @@ class Fy():
         cov_data = sandy.CategoryCov.from_var(cov_data)
         # Apply qmatrix
         cfy_calc_values = sandy._y_calc(fy_data, Q).rename('FY')
-        cov_calc_values = np.diag(cov_data._gls_Vy_calc(Q))
+        cov_calc_values = np.diag(cov_data.sandwich(Q.T).data)
         cov_calc_values = pd.Series(cov_calc_values, index=Q.index)
         if keep_fy_index:
             cfy_calc_values = cfy_calc_values.reindex(original_index).fillna(0)
@@ -656,11 +656,10 @@ class Fy():
         if Vy_extra is not None:
             Vy_extra_ = pd.DataFrame(Vy_extra)
             S = S.reindex(index=Vy_extra_.index).fillna(0)
-            Vx_post = Vx_prior.gls_update(S, Vy_extra_,
-                                          threshold=threshold).data
+            Vx_post = Vx_prior.gls_cov_update(S, Vy_extra_, threshold=threshold).data
         else:
-            Vx_post = Vx_prior.constrained_gls_update(S,
-                                                      threshold=threshold).data
+            Vx_post = Vx_prior.gls_cov_update(S, Vy_extra=None,
+                                              threshold=threshold).data
         return Vx_post
 
     def gls_update(self, zam, e, y_extra=None, Vy_extra=None,
@@ -761,8 +760,8 @@ class Fy():
                                           decay_data=decay_data,
                                           threshold=threshold)
         else:
-            x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
-                                      threshold=threshold)
+            S = S.reindex(index=pd.DataFrame(Vy_extra).index, columns = Vx_prior.index).fillna(0)
+            x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, threshold=threshold)
             Vx_post = self.gls_cov_update(zam, e, Vy_extra,
                                           kind=kind, decay_data=decay_data,
                                           threshold=threshold)

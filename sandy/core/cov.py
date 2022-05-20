@@ -13,6 +13,8 @@ import warnings
 import logging
 import tables as tb
 import os
+from collections.abc import Iterable
+from sandy.gls import sandwich, gls_cov_update, reduce_size, restore_size
 
 import sandy
 import pytest
@@ -524,7 +526,7 @@ class CategoryCov():
         rows_ = cov.shape[0] if rows is None else rows
         data = sparse_tables_inv(cov, rows=rows_)
         M_inv = restore_size(M_nonzero_idxs, data, len(self.data))
-        M_inv = M_inv.reindex(index=index, columns=columns).fillna(0)
+        M_inv = pd.DataFrame(M_inv.values, index=index, columns=columns)
         return self.__class__(M_inv)
 
     def log2norm_cov(self, mu):
@@ -976,552 +978,96 @@ class CategoryCov():
         else:
             return triu_matrix(cov, kind=kind)
 
-    def _gls_Vy_calc(self, S, rows=None):
+    def gls_cov_update(self, S, Vy_extra=None, threshold=None):
         """
-        2D calculated output using
+        Perform GlS update for a given covariance matrix, sensitivity and
+        covariance matrix of the extra information:
         .. math::
             $$
-            S\cdot V_{x_{prior}}\cdot S.T
+            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S^T\cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1}\cdot S\cdot V_{x_{prior}}
             $$
 
         Parameters
         ----------
-        S : 2D iterable
-            Sensitivity matrix (MXN).
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
-
-        Returns
-        -------
-        `pd.DataFrame`
-            Covariance matrix `Vy_calc` calculated using
-            S.dot(Vx_prior).dot(S.T)
-
-        Example
-        -------
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> cov = sandy.CategoryCov.from_var([1, 1])
-        >>> cov._gls_Vy_calc(S)
-                      0	          1
-        0	5.00000e+00	1.10000e+01
-        1	1.10000e+01	2.50000e+01
-
-        >>> cov._gls_Vy_calc(S, rows=1)
-                      0	          1
-        0	5.00000e+00	1.10000e+01
-        1	1.10000e+01	2.50000e+01
-        """
-        index = pd.DataFrame(S).index
-        S_ = pd.DataFrame(S).values
-        rows_ = S_.shape[0] if rows is None else rows
-        Vy_calc = sparse_tables_dot_multiple([S_, self.data.values,
-                                              S_.T], rows=rows_)
-        return pd.DataFrame(Vy_calc, index=index, columns=index)
-
-    def _gls_G(self, S, Vy_extra=None, rows=None):
-        """
-        2D calculated output using
-        .. math::
-            $$
-            S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}
-            $$
-
-        Parameters
-        ----------
-        S : 2D iterable
-            Sensitivity matrix (MXN).
-        Vy_extra : 2D iterable, optional.
-            2D covariance matrix for y_extra (MXM).
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
-
-        Returns
-        -------
-        `pd.DataFrame`
-            Covariance matrix `G` calculated using
-            S.dot(Vx_prior).dot(S.T) + Vy_extra
-
-        Example
-        -------
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> cov = sandy.CategoryCov.from_var([1, 1])
-        >>> Vy = np.diag(pd.Series([1, 1]))
-        >>> cov._gls_G(S, Vy)
-                    	0	      1
-        0	6.00000e+00	1.10000e+01
-        1	1.10000e+01	2.60000e+01
-
-        >>> cov._gls_G(S, Vy, rows=1)
-                    	0	      1
-        0	6.00000e+00	1.10000e+01
-        1	1.10000e+01	2.60000e+01
-
-        >>> cov._gls_G(S)
-                      0	          1
-        0	5.00000e+00	1.10000e+01
-        1	1.10000e+01	2.50000e+01
-
-        >>> cov._gls_G(S, rows=1)
-                      0	          1
-        0	5.00000e+00	1.10000e+01
-        1	1.10000e+01	2.50000e+01
-        """
-        # GLS_sensitivity:
-        Vy_calc = self._gls_Vy_calc(S, rows=rows)
-        if Vy_extra is not None:
-            # Data in a appropriate format
-            Vy_extra_ = sandy.CategoryCov(Vy_extra).data
-            index = pd.DataFrame(Vy_extra).index
-            Vy_extra_ = Vy_extra_.values
-            Vy_calc = Vy_calc.reindex(index=index, columns=index).fillna(0).values
-            # Calculations:
-            Vy_calc = sps.csr_matrix(Vy_calc)
-            Vy_extra_ = sps.csr_matrix(Vy_extra_)
-            # G calculation
-            G = Vy_calc + Vy_extra_
-            G = pd.DataFrame(G.toarray(), index=index, columns=index)
-        else:
-            G = Vy_calc
-        return G
-
-    def _gls_G_inv(self, S, Vy_extra=None, rows=None):
-        """
-        2D calculated output using
-        .. math::
-            $$
-            \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1}
-            $$
-
-        Parameters
-        ----------
-        S : 2D iterable
-            Sensitivity matrix (MXN).
-        Vy_extra : 2D iterable, optional
-            2D covariance matrix for y_extra (MXM).
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
-
-        Returns
-        -------
-        `pd.DataFrame`
-            Covariance matrix `G_inv` calculated using
-            (S.dot(Vx_prior).dot(S.T) + Vy_extra)^-1
-
-        Example
-        -------
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> cov = sandy.CategoryCov.from_var([1, 1])
-        >>> Vy = np.diag(pd.Series([1, 1]))
-        >>> cov._gls_G_inv(S, Vy)
-                       0	          1
-        0	 7.42857e-01   -3.14286e-01
-        1	-3.14286e-01	1.71429e-01
-
-        >>> cov._gls_G_inv(S, Vy, rows=1)
-                       0	          1
-        0	 7.42857e-01   -3.14286e-01
-        1	-3.14286e-01	1.71429e-01
-
-        >>> cov._gls_G_inv(S)
-                      0	               1
-        0	 6.25000e+00	-2.75000e+00
-        1	-2.75000e+00	 1.25000e+00
-
-        >>> cov._gls_G_inv(S, rows=1)
-                      0	               1
-        0	 6.25000e+00	-2.75000e+00
-        1	-2.75000e+00	 1.25000e+00
-        """
-        if Vy_extra is not None:
-            index = pd.DataFrame(Vy_extra).index
-            G = self._gls_G(S, Vy_extra=Vy_extra, rows=rows).values
-        else:
-            index = pd.DataFrame(S).index
-            G = self._gls_Vy_calc(S, rows=rows).values
-        G_inv = sandy.CategoryCov(G).invert(rows=rows).data.values
-        return pd.DataFrame(G_inv, index=index, columns=index)
-
-    def _gls_general_sensitivity(self, S, Vy_extra=None,
-                                 rows=None, threshold=None):
-        """
-        Method to obtain general sensitivity according to GLS
-        .. math::
-            $$
-            V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1}
-            $$
-
-        Parameters
-        ----------
-        S : 2D iterable
-            Sensitivity matrix (MXN).
-        Vy_extra : 2D iterable
-            2D covariance matrix for y_extra (MXM).
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
-        threshold : `int`, optional
-            threshold to avoid numerical fluctuations. The default is None.
-
-        Returns
-        -------
-        `GLS`
-            GLS sensitivity for a given Vy_extra and S.
-
-        Example
-        -------
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> cov = sandy.CategoryCov.from_var([1, 1])
-        >>> Vy = np.diag(pd.Series([1, 1]))
-        >>> cov._gls_general_sensitivity(S, Vy)
-                      0	              1
-        0	-2.00000e-01	2.00000e-01
-        1	2.28571e-01	    5.71429e-02
-
-        >>> S = pd.DataFrame([[1, 2], [3, 4]], index=[1, 2],columns=[3, 4])
-        >>> cov = sandy.CategoryCov.from_var([1, 1])
-        >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
-        >>> cov._gls_general_sensitivity(S, Vy_extra=Vy)
-                      1	              2
-        3	-2.00000e-01	2.00000e-01
-        4	 2.28571e-01	5.71429e-02
-
-        >>> cov._gls_general_sensitivity(S, Vy_extra=Vy, rows=1)
-                      1	              2
-        3	-2.00000e-01	2.00000e-01
-        4	 2.28571e-01	5.71429e-02
-
-        >>> cov._gls_general_sensitivity(S)
-            	       1	           2
-        3	-2.00000e+00	 1.00000e+00
-        4	 1.50000e+00	-5.00000e-01
-
-        >>> cov._gls_general_sensitivity(S, rows=1)
-            	       1	           2
-        3	-2.00000e+00	 1.00000e+00
-        4	 1.50000e+00	-5.00000e-01
-        """
-        index = pd.DataFrame(S).columns
-        columns = pd.DataFrame(S).index
-        S_ = pd.DataFrame(S).values
-        # GLS_sensitivity:
-        G_inv = self._gls_G_inv(S, Vy_extra=Vy_extra, rows=rows).values
-        rows_ = S_.shape[0] if rows is None else rows
-        sensitivity = sparse_tables_dot_multiple([self.data.values, S_.T,
-                                                  G_inv], rows=rows_)
-        if threshold is not None:
-            sensitivity[abs(sensitivity) < threshold] = 0
-        return pd.DataFrame(sensitivity, index=index, columns=columns)
-
-    def _gls_constrained_sensitivity(self, S, rows=None,
-                                     threshold=None):
-        """
-        Method to obtain sensitivity according to constrained Least-Squares:
-        .. math::
-            $$
-            \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
-            $$
-
-        Parameters
-        ----------
-        S : 2D iterable
-            Sensitivity matrix (MXN).
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
-        threshold : `int`, optional
-            threshold to avoid numerical fluctuations. The default is None.
-
-        Returns
-        -------
-        `pd.DataFrame`
-            constrained Least-Squares sensitivity.
-
-        Notes
-        -----
-        ..note :: This method is equivalent to `_gls_general_sensitivity`
-        but for a constrained system
-
-        Example
-        -------
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> cov = CategoryCov.from_var([1, 1])
-        >>> cov._gls_constrained_sensitivity(S)
-                      0	              1
-        0	-2.00000e+00	1.50000e+00
-        1	 1.00000e+00   -5.00000e-01
-
-        >>> cov._gls_constrained_sensitivity(S, rows=1)
-                      0	              1
-        0	-2.00000e+00	1.50000e+00
-        1	 1.00000e+00   -5.00000e-01
-        """
-        # Data in a appropiate format
-        S_ = pd.DataFrame(S)
-        index = S_.index
-        columns = S_.columns
-        G_inv = self._gls_G_inv(S, rows=rows).values
-        rows_ = S_.shape[0] if rows is None else rows
-        sensitivity = sparse_tables_dot_multiple([G_inv, S_,
-                                                 self.data.values],
-                                                 rows=rows_)
-        if threshold is not None:
-            sensitivity[abs(sensitivity) < threshold] = 0
-        return pd.DataFrame(sensitivity, index=index, columns=columns)
-
-    def _gls_cov_sensitivity(self, S, Vy_extra=None,
-                             rows=None, threshold=None):
-        """
-        Method to obtain covariance sensitivity according to GLS:
-        .. math::
-            $$
-            V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S
-            $$
-
-        Parameters
-        ----------
-        S : 2D iterable
-            Sensitivity matrix (MXN).
-        Vy_extra : 2D iterable
-            2D covariance matrix for y_extra (MXM).
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
-        threshold : `int`, optional
-            threshold to avoid numerical fluctuations. The default is None.
-
-        Returns
-        -------
-        `pd.DataFrame`
-            GlS sensitivity for a given Vy and S.
-
-        Example
-        -------
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> cov = sandy.CategoryCov.from_var([1, 1])
-        >>> Vy = np.diag(pd.Series([1, 1]))
-        >>> cov._gls_cov_sensitivity(S, Vy)
-                      0	          1
-        0	4.00000e-01	4.00000e-01
-        1	4.00000e-01	6.85714e-01
-
-        >>> S = pd.DataFrame([[1, 2], [3, 4]], index=[1, 2],columns=[3, 4])
-        >>> cov = sandy.CategoryCov.from_var([1, 1])
-        >>> Vy = pd.DataFrame([[1, 0], [0, 1]], index=[1, 2], columns=[1, 2])
-        >>> cov._gls_cov_sensitivity(S, Vy)
-                      3	          4
-        3	4.00000e-01	4.00000e-01
-        4	4.00000e-01	6.85714e-01
-
-        >>> cov._gls_cov_sensitivity(S, Vy, rows=1)
-                      3	          4
-        3	4.00000e-01	4.00000e-01
-        4	4.00000e-01	6.85714e-01
-        """
-        index = columns = pd.DataFrame(S).columns
-        S_ = pd.DataFrame(S).values
-        general_sens = self._gls_general_sensitivity(S, Vy_extra=Vy_extra,
-                                                     rows=rows,
-                                                     threshold=threshold).values
-        rows_ = S_.shape[0] if rows is None else rows
-        cov_sens = sparse_tables_dot(general_sens, S_, rows=rows_).toarray()
-        if threshold is not None:
-            cov_sens[abs(cov_sens) < threshold] = 0
-        return pd.DataFrame(cov_sens, index=index, columns=columns)
-
-    def gls_update(self, S, Vy_extra=None, rows=None,
-                   threshold=None):
-        """
-        Perform GlS update for a given variance and sensitivity:
-        .. math::
-            $$
-            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
-            $$
-
-        Parameters
-        ----------
-        Vy_extra : 2D iterable or `float`, optional
-            2D covariance matrix for y_extra (MXM) or a float.
+        Vy_extra : 2D iterable or sigle element 1D iterable
+            covariance matrix of the extra information,
+            (MXM) or (1x1).
         S : 2D or 1D iterable
-            Sensitivity matrix (MXN).
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
+            Sensitivity matrix (MXN) or sensitivity vector(1xN).
         threshold : `int`, optional
             Thereshold to avoid numerical fluctuations. The default is None.
 
         Returns
         -------
-        `CategoryCov`
-            GLS method apply to a CategoryCov object for a given Vy and S.
-
-        Example
-        -------
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> cov = sandy.CategoryCov.from_var([1, 1])
-        >>> Vy = np.diag(pd.Series([1, 1]))
-        >>> cov.gls_update(S, Vy)
-                     0            1
-        0  6.00000e-01 -4.00000e-01
-        1 -4.00000e-01  3.14286e-01
-
-        >>> cov.gls_update(S, Vy, rows=1)
-                     0            1
-        0  6.00000e-01 -4.00000e-01
-        1 -4.00000e-01  3.14286e-01
-        """
-        if len(pd.DataFrame(S).shape) == 2:
-            cov_update = self._gls_model_update(S, Vy_extra=Vy_extra, rows=rows,
-                                                threshold=threshold)
-        elif len(pd.DataFrame(S).shape) == 1:
-            cov_update = self._gls_vector_update(S, Vy_extra=Vy_extra, rows=rows,
-                                                 threshold=threshold)
-        else:
-            print("Introduced variables are not correct")
-            return
-        return self.__class__(cov_update)
-
-    def _gls_vector_update(self, S, Vy_extra=None, rows=None,
-                           threshold=None):
-        return
-
-    def _gls_model_update(self, S, Vy_extra=None, rows=None,
-                          threshold=None):
-        """
-        Perform GlS update for a given variance and sensitivity:
-        .. math::
-            $$
-            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
-            $$
-
-        Parameters
-        ----------
-        Vy_extra : 2D iterable, optional
-            2D covariance matrix for y_extra (MXM).
-        S : 2D iterable
-            Sensitivity matrix (MXN).
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
-        threshold : `int`, optional
-            Thereshold to avoid numerical fluctuations. The default is None.
-
-        Returns
-        -------
-        `pd.DataFrame`
-            GLS method apply to a CategoryCov object for a given Vy and S,
-            obtained from a model.
-
-        Example
-        -------
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> cov = sandy.CategoryCov.from_var([1, 1])
-        >>> Vy = np.diag(pd.Series([1, 1]))
-        >>> cov._gls_model_update(S, Vy)
-                     0            1
-        0  6.00000e-01 -4.00000e-01
-        1 -4.00000e-01  3.14286e-01
-
-        >>> cov._gls_model_update(S, Vy, rows=1)
-                     0            1
-        0  6.00000e-01 -4.00000e-01
-        1 -4.00000e-01  3.14286e-01
-        """
-        index, columns = self.data.index, self.data.columns
-        A = self._gls_cov_sensitivity(S, Vy_extra=Vy_extra,
-                                      rows=rows, threshold=threshold).values
-        rows_ = self.data.shape[0] if rows is None else rows
-        Vx_prior = self.to_sparse(method='csc_matrix')
-        diff = sparse_tables_dot(A, Vx_prior, rows=rows_)
-        # gls update
-        Vx_post = Vx_prior - diff
-        Vx_post = Vx_post.toarray()
-        if threshold is not None:
-            Vx_post[abs(Vx_post) < threshold] = 0
-        return pd.DataFrame(Vx_post, index=index, columns=columns)
-
-    def constrained_gls_update(self, S, rows=None,
-                               threshold=None):
-        """
-        Perform constrained Least-Squares update for a given sensitivity:
-        .. math::
-            $$
-            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S.T \cdot \left(S\cdot V_{x_{prior}}\cdot S.T\right)^{-1} \cdot S \cdot V_{x_{prior}}
-            $$
-
-        Parameters
-        ----------
-        S : 2D iterable
-            Sensitivity matrix (MXN).
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
-        threshold : `int`, optional
-            Thereshold to avoid numerical fluctuations. The default is None.
-
-        Returns
-        -------
-        `CategoryCov`
-            Constrained Least-squares method apply to a CategoryCov object
-            for a given S.
+        `sandy.CategoryCov`
+            `CategoryCov` object corresponding to the updated covariance matrix
+            adjusted with the GLS technique.
 
         Notes
         -----
-        ..note :: This method is equivalent to `gls_update` but for a
-        constrained system
+        .. note:: If Vy_extra=None the constraint GLS update technique
+        will be performed
 
         Example
         -------
         >>> S = np.array([[1, 2], [3, 4]])
         >>> cov = sandy.CategoryCov.from_var([1, 1])
-        >>> cov_update = cov.constrained_gls_update(S).data.round(decimals=6)
-        >>> assert np.amax(cov_update.values) == 0.0
+        >>> Vy = np.diag(pd.Series([1, 1]))
+        >>> cov.gls_cov_update(S, Vy)
+                     0            1
+        0  6.00000e-01 -4.00000e-01
+        1 -4.00000e-01  3.14286e-01
 
-        >>> cov_update = cov.constrained_gls_update(S, rows=1).data.round(decimals=6)
-        >>> assert np.amax(cov_update.values) == 0.0
-        """
-        return self.gls_update(S, Vy_extra=None, rows=rows, threshold=threshold)
+        >>> cov = pd.DataFrame([[1, 0], [0, 1]], index=[2, 3], columns=[2, 3])
+        >>> cov = sandy.CategoryCov(cov)
+        >>> cov.gls_cov_update(S, Vy)
+                    2            3
+        2  6.00000e-01 -4.00000e-01
+        3 -4.00000e-01  3.14286e-01
 
-    def sandwich(self, s, rows=None, threshold=None):
+        >>> S = pd.DataFrame([[1, 0], [0, 1], [0, 1]], index=[2, 3, 4], columns=[1, 2])
+        >>> cov = pd.DataFrame([[1, 0], [0, 1]], index=[2, 3], columns=[2, 3])
+        >>> cov = sandy.CategoryCov(cov)
+        >>> Vy = np.diag(pd.Series([1, 1, 1]))
+        >>> cov.gls_cov_update(S, Vy)
+                    2           3
+        2 5.00000e-01 0.00000e+00
+        3 0.00000e+00 3.33333e-01
+
+        >>> S = np.array([1, 2])
+        >>> cov = sandy.CategoryCov.from_var([1, 1])
+        >>> Vy = [1]
+        >>> cov.gls_cov_update(S, Vy)
+                     0            1
+        0  8.33333e-01 -3.33333e-01
+        1 -3.33333e-01  3.33333e-01
         """
-        Apply the sandwich formula to the CategoryCov object for a given
-        pandas.Series.
+        Vx_post = gls_cov_update(self.data, S, Vy_extra=Vy_extra, threshold=threshold)
+        return self.__class__(Vx_post)
+
+    def sandwich(self, s, threshold=None):
+        """
+        Apply the "sandwich formula" to the CategoryCov object for a given
+        sensitivity. According with http://dx.doi.org/10.1016/j.anucene.2015.10.027,
+        the moment propagation equation is implemented as:
+
+           .. math::
+               $$
+               V_R = S^T\cdot V_P\cdot S
+               $$
 
         Parameters
         ----------
         s : 1D or 2D iterable
-            General sensitivities.
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
-        threshold : `int`, optional
-            Thereshold to avoid numerical fluctuations. The default is None.
+            General sensitivities (Nx1) or (NxM) with N the size of the `CategoryCov` object.
+        threshold : `int`, optional, default is None
+            Thereshold to avoid numerical fluctuations.
 
         Returns
         -------
-        `float` (if s is 1D iterable)
-            The resulting scalar number after having applied the sandwich
-            formula for a given 1D iterable.
-        `CategoryCov` (if s is 2D iterable)
-            `CategoryCov` object to which we have applied sandwich
-            formula for a given 2D iterable.
-
-        Warnings
-        --------
-        The `CategoryCov` object and the sensitivity (S) must have the same
-        indices.
+        `sandy.CategoryCov`
+            `CategoryCov` object corresponding to the response covariance matrix
+            obtained with the sandwich formula.
 
         Examples
         --------
@@ -1529,7 +1075,8 @@ class CategoryCov():
         >>> s = pd.Series([1, 2, 3])
         >>> cov = sandy.CategoryCov.from_var(var)
         >>> cov.sandwich(s)
-        36.0
+                    0
+        0 3.60000e+01
 
         >>> s = np.array([1, 2, 3])
         >>> var = pd.Series([1, 2, 3])
@@ -1540,18 +1087,17 @@ class CategoryCov():
         0	1.00000e+00	0.00000e+00	0.00000e+00
         1	0.00000e+00	8.00000e+00	0.00000e+00
         2	0.00000e+00	0.00000e+00	2.70000e+01
+        
+        >>> s = pd.DataFrame([[1, 0, 1], [0, 1, 1]], index=[2, 3], columns=[2, 3, 4])
+        >>> cov = pd.DataFrame([[1, 0], [0, 1]], index=[2, 3], columns=[2, 3])
+        >>> cov = sandy.CategoryCov(cov)
+        >>> cov.sandwich(s)
+                    2           3           4
+        2 1.00000e+00 0.00000e+00 1.00000e+00
+        3 0.00000e+00 1.00000e+00 1.00000e+00
+        4 1.00000e+00 1.00000e+00 2.00000e+00
         """
-        if pd.DataFrame(s).shape[1] == 1:
-            s_ = pd.Series(s)
-            sandwich = s_.dot(self.data.dot(s_.T))
-            # sandwich variable is a scalar
-            return sandwich
-        else:
-            s_ = pd.DataFrame(s).T
-            sandwich = self._gls_Vy_calc(s_, rows=rows)
-            if threshold is not None:
-                sandwich[sandwich < threshold] = 0
-            return self.__class__(sandwich)
+        return self.__class__(sandwich(self.data, s, threshold=threshold))
 
     def corr2cov(self, std):
         """
@@ -2348,7 +1894,7 @@ def sparse_tables_dot_multiple(matrix_list, rows=1000):
     -------
     >>> S = np.array([[1, 2], [3, 4]])
     >>> cov = sandy.CategoryCov.from_var([1, 1]).data.values
-    >>> sparse_tables_dot_multiple([S, cov, S.T], 1)
+    >>> sparse_tables_dot_multiple([S, cov, S.T], 1).toarray()
     array([[ 5., 11.],
            [11., 25.]])
     """
@@ -2356,8 +1902,7 @@ def sparse_tables_dot_multiple(matrix_list, rows=1000):
     for b in matrix_list[1::]:
         intermediate_matrix = sparse_tables_dot(matrix, b, rows=rows)
         matrix = intermediate_matrix
-    return matrix.toarray()
-
+    return matrix
 
 def sparse_tables_inv(a, rows=1000):
     """
@@ -2629,101 +2174,6 @@ def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
         sn = np.sqrt(2 * (np.log(ml) - mn)) # required standard deviation of the corresponding normal distibution (note reference in the docstring)
         y = np.random.lognormal(mn, sn, (dim, nsmp))
     return y
-
-
-def reduce_size(data):
-    """
-    Reduces the size of the matrix, erasing the zero values.
-
-    Parameters
-    ----------
-    data : 'pd.DataFrame'
-        Matrix to be reduced.
-
-    Returns
-    -------
-    nonzero_idxs : `numpy.ndarray`
-        The indices of the diagonal that are not null.
-    cov_reduced : `pandas.DataFrame`
-        The reduced matrix.
-
-    Examples
-    --------
-    >>> S = pd.DataFrame(np.diag(np.array([1, 2, 3])))
-    >>> non_zero_index, reduce_matrix = reduce_size(S)
-    >>> assert reduce_matrix.equals(S)
-    >>> assert (non_zero_index == range(3)).all()
-
-    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3])))
-    >>> non_zero_index, reduce_matrix = reduce_size(S)
-    >>> assert (non_zero_index == np.array([1, 2])).all()
-    >>> reduce_matrix
-      1 2
-    1 2 0
-    2 0 3
-
-    >>> S.index = S.columns = ["a", "b", "c"]
-    >>> non_zero_index, reduce_matrix = reduce_size(S)
-    >>> reduce_matrix
-      b c
-    b 2 0
-    c 0 3
-    """
-    data_ = pd.DataFrame(data)
-    nonzero_idxs = np.flatnonzero(np.diag(data_))
-    cov_reduced = data_.iloc[nonzero_idxs, nonzero_idxs]
-    return nonzero_idxs, cov_reduced
-
-
-def restore_size(nonzero_idxs, mat_reduced, dim):
-    """
-    Restore the size of a matrix.
-
-    Parameters
-    ----------
-    nonzero_idxs : `numpy.ndarray`
-        The indices of the diagonal that are not null.
-    mat_reduced : `numpy.ndarray`
-        The reduced matrix.
-    dim : `int`
-        Dimension of the original matrix.
-
-    Returns
-    -------
-    mat : `pd.DataFrame`
-        Matrix of specified dimensions.
-
-    Notes
-    -----
-    ..notes:: This funtion was developed to be used after using
-              `reduce_size`.
-
-    Examples
-    --------
-    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3, 0])))
-    >>> M_nonzero_idxs, M_reduce = reduce_size(S)
-    >>> M_reduce[::] = 1
-    >>> restore_size(M_nonzero_idxs, M_reduce.values, len(S))
-                0           1           2           3
-    0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-    1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
-    2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
-    3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-
-    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3, 0])), index=[1, 2, 3, 4], columns=[5, 6, 7, 8])
-    >>> M_nonzero_idxs, M_reduce = reduce_size(S)
-    >>> M_reduce[::] = 1
-    >>> restore_size(M_nonzero_idxs, M_reduce.values, len(S))
-                0           1           2           3
-    0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-    1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
-    2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
-    3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-    """
-    mat = np.zeros((dim, dim))
-    for i, ni in enumerate(nonzero_idxs):
-        mat[ni, nonzero_idxs] = mat_reduced[i]
-    return pd.DataFrame(mat)
 
 
 def random_corr(size, correlations=True, seed=None):
