@@ -190,7 +190,7 @@ class Xs():
         Test single perturbation:
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 10010)
         >>> xs = sandy.Xs.from_endf6(endf6)
-        >>> pert = sandy.Pert([1, 1.05], index=[10, 100])
+        >>> pert = pd.Series([1, 1.05], index=[10, 100])
         >>> pert_xs = xs.custom_perturbation(pert, mat=125, mt=2)
         >>> (pert_xs.data.loc[:, (125, 2)] / xs.data.loc[:, (125, 2)]).round(2).unique()
         array([1.  , 1.05])
@@ -220,16 +220,17 @@ class Xs():
         1.98000e+08	1.00016e+00	1.00000e+00	1.00044e+00	1.00000e+00
         """
         xs = self
-        pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
-        if isinstance(pert_.data, pd.Series):
+        if isinstance(pert, pd.Series):
             if mat and mt:
                 columns = pd.MultiIndex.from_arrays([[mat], [mt]],
                                                     names=('MAT', 'MT'))
-                df = pd.DataFrame(pert_.data.values, index=pert_.data.index,
+                df = pd.DataFrame(pert.values, index=pert.index,
                                   columns=columns)
                 pert_ = sandy.Pert(df)
             else:
                 print("The input do not have enought information")
+        else:
+            pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
         mat_ = pert_.data.columns.get_level_values('MAT').unique()
         for pert_mat in mat_:
             xs = xs._custom_perturbation(pert_, pert_mat, **kwargs)

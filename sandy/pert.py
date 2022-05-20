@@ -54,11 +54,7 @@ class Pert():
         return self.data.__repr__()
 
     def __init__(self, df, **kwargs):
-        df_ = np.array(df)
-        if len(df_.shape) == 1:
-            self.data = pd.Series(df, dtype=float, **kwargs)
-        else:
-            self.data = pd.DataFrame(df, dtype=float, **kwargs)
+        self.data = pd.DataFrame(df, dtype=float, **kwargs)
 
     @property
     def data(self):
@@ -112,9 +108,9 @@ class Pert():
         Examples
         --------
         >>> sandy.Pert(pert_ind).right
-        1.00000e+01   1.00000e+00
-        1.00000e+02   1.05000e+00
-        dtype: float64
+        	                  0
+        1.00000e+01	1.00000e+00
+        1.00000e+02	1.05000e+00
 
         >>> sandy.Pert(pert).right
         MAT	        2631
@@ -122,13 +118,9 @@ class Pert():
         1.00000e+01	1.00000e+00	1.05000e+00
         1.00000e+02	1.05000e+00	1.00000e+00
         """
-        if len(self.data.shape) == 1:
-            return pd.Series(self.data.values,
-                                index=self.data.index.right)
-        else:
-            return pd.DataFrame(self.data.values,
-                                index=self.data.index.right,
-                                columns=self.data.columns)
+        return pd.DataFrame(self.data.values,
+                            index=self.data.index.right,
+                            columns=self.data.columns)
 
     @property
     def left(self):
@@ -145,9 +137,9 @@ class Pert():
         Examples
         --------
         >>> sandy.Pert(pert_ind).left
-        0.00000e+00   1.00000e+00
-        1.00000e+01   1.05000e+00
-        dtype: float64
+                              0
+        0.00000e+00	1.00000e+00
+        1.00000e+01	1.05000e+00
 
         >>> sandy.Pert(pert).left
         MAT	        2631
@@ -155,13 +147,9 @@ class Pert():
         0.00000e+00	1.00000e+00	1.05000e+00
         1.00000e+01	1.05000e+00	1.00000e+00
         """
-        if len(self.data.shape) == 1:
-            return pd.Series(self.data.values,
-                             index=self.data.index.left)
-        else:
-            return pd.DataFrame(self.data.values,
-                                index=self.data.index.left,
-                                columns=self.data.columns)
+        return pd.DataFrame(self.data.values,
+                            index=self.data.index.left,
+                            columns=self.data.columns)
 
     @property
     def mid(self):
@@ -178,9 +166,9 @@ class Pert():
         Examples
         --------
         >>> sandy.Pert(pert_ind).mid
-        5.00000e+00   1.00000e+00
-        5.50000e+01   1.05000e+00
-        dtype: float64
+                              0
+        5.00000e+00	1.00000e+00
+        5.50000e+01	1.05000e+00
 
         >>> sandy.Pert(pert).mid
         MAT	        2631
@@ -188,13 +176,9 @@ class Pert():
         5.00000e+00	1.00000e+00	1.05000e+00
         5.50000e+01	1.05000e+00	1.00000e+00
         """
-        if len(self.data.shape) == 1:
-            return pd.Series(self.data.values,
-                             index=self.data.index.mid)
-        else:
-            return pd.DataFrame(self.data.values,
-                                index=self.data.index.mid,
-                                columns=self.data.columns)
+        return pd.DataFrame(self.data.values,
+                            index=self.data.index.mid,
+                            columns=self.data.columns)
 
     def reshape(self, eg, inplace=False):
         """
@@ -238,40 +222,49 @@ class Pert():
         (100.0, 195000000.0]	1.00000e+00	1.00000e+00
 
         >>> sandy.Pert(pert_ind).reshape([0, 1, 5,  25, 50, 100, 1.95000e+08]).data
-        ENERGY
-        (0.0, 1.0]             1.00000e+00
-        (1.0, 5.0]             1.00000e+00
-        (5.0, 10.0]            1.00000e+00
-        (10.0, 25.0]           1.05000e+00
-        (25.0, 50.0]           1.05000e+00
-        (50.0, 100.0]          1.05000e+00
-        (100.0, 195000000.0]   1.00000e+00
-        Name: 0, dtype: float64
+        	0
+               ENERGY	
+          (0.0, 10.0]	1.00000e+00
+         (10.0, 25.0]	1.05000e+00
+         (25.0, 50.0]	1.05000e+00
+        (50.0, 100.0]	1.05000e+00
         """
-        index = pd.Index(eg)
+        eg_ = pd.Index(eg)
         df = self.right
-        if not index.is_monotonic_increasing:
+        if not eg_.is_monotonic_increasing:
             raise sandy.Error("energy grid is not monotonic increasing")
-        if (index < 0).any():
+        if (eg_ < 0).any():
             raise ValueError("found negative values in the energy grid")
-        enew = df.index.union(index).unique().astype(float).values
+        enew = df.index.union(eg_).unique().astype(float).values
         # remove zero if any, it will be automatically added by `Pert`
         enew = enew[enew != 0]
         # this part prevents errors in "scipy.interp1d" when x.size == 1
         name = df.index.name
-        if isinstance(df, pd.Series):
-            df = df.to_frame()
-        data = df.apply(lambda x: sandy.shared.reshape_bfill(
-                                  x.index.values,
-                                  x.values,
-                                  enew,
-                                  left_values="first",
-                                  right_values=1,
-                                  )).set_index(enew).rename_axis(name)
-        data = data.loc[(data.index >= index.min()) &
-                        (data.index <= index.max()), :]
-        if data.shape[1] == 1:
-            data = data.iloc[:, 0]
+        if df.shape[1] == 1:
+            index = df.index.values
+            values = df.values
+            if values.size == 1:
+                # this must be done after that enew is created
+                index = np.insert(index, 0, 0)
+                values = np.insert(values, 0, 0)
+            pertnew = sandy.shared.reshape_bfill(
+                          index,
+                          values,
+                          enew,
+                          left_values="first",
+                          right_values=1,
+                          )
+            data = pd.DataFrame(pertnew, index=enew, columns=df.columns)
+        else:
+            data = df.apply(lambda x: sandy.shared.reshape_bfill(
+                                    x.index.values,
+                                    x.values,
+                                    enew,
+                                    left_values="first",
+                                    right_values=1,
+                                    )).set_index(enew).rename_axis(name)
+        data = data.loc[(data.index >= eg_.min()) &
+                        (data.index <= eg_.max()), :]
         if not inplace:
             return self.__class__(data)
         self.data = data
@@ -307,10 +300,10 @@ class Pert():
 
         >>> pert_ind = pd.Series([-1, 2.05], index=pd.IntervalIndex.from_breaks(pd.Index([10, 100]).insert(0, 0)))
         >>> sandy.Pert(pert_ind).truncate().data
-        ENERGY
-          (0.0, 10.0]     0.00000e+00
-        (10.0, 100.0]     2.00000e+00
-        dtype: float64
+        	                      0
+               ENERGY
+          (0.0, 10.0]	0.00000e+00
+        (10.0, 100.0]	2.00000e+00
         """
         data = self.data.copy()
         data = data.where(data <= high, high).where(data >= low, low)
@@ -350,10 +343,10 @@ class Pert():
 
         >>> pert_ind = pd.Series([-1, 2.05], index=pd.IntervalIndex.from_breaks(pd.Index([10, 100]).insert(0, 0)))
         >>> sandy.Pert(pert_ind).recenter().data
-        ENERGY
-          (0.0, 10.0]     1.00000e+00
-        (10.0, 100.0]     1.00000e+00
-        dtype: float64
+                                  0
+               ENERGY	
+          (0.0, 10.0]	1.00000e+00
+        (10.0, 100.0]	1.00000e+00
         """
         data = self.data.copy()
         data = data.where(data <= high, value).where(data >= low, value)
@@ -406,10 +399,10 @@ class Pert():
         Examples
         --------
         >>> Pert.from_bin(1e-5, 1e-4, 0.05)
-        ENERGY
-        (0.0, 1e-05]      1.00000e+00
-        (1e-05, 0.0001]   1.05000e+00
-        dtype: float64
+                                     0
+                 ENERGY
+           (0.0, 1e-05]    1.00000e+00
+        (1e-05, 0.0001]    1.05000e+00
         """
         pert = cls([1, 1 + coeff], index=[elow, ehigh])
         return pert
