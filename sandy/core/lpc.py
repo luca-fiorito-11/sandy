@@ -209,7 +209,7 @@ class Lpc():
         >>> mat= 9228
         >>> mt=  2
         >>> p = 1 
-        >>> pert= sandy.Pert([1, 1.05], index=[1.00000e+03, 5.00000e+03])
+        >>> pert= pd.Series([1, 1.05], index=[1.00000e+03, 5.00000e+03])
         >>> pert = LPC.custom_perturbation(mat, mt, p, pert)._filters({'MAT': mat, 'MT':2}).data.loc[:,1].iloc[0:5]
         >>> data = LPC._filters({'MAT': mat, 'MT':2}).data.loc[:,1].iloc[0:5]
         >>> (pert/data).fillna(0)
@@ -222,16 +222,17 @@ class Lpc():
                   1.00000e+04   0.00000e+00
         Name: 1, dtype: float64
         """
-        pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
-        if isinstance(pert_.data, pd.Series):
+        if isinstance(pert, pd.Series):
             if mat is not None and mt is not None and p is not None:
                 columns = pd.MultiIndex.from_product([[mat], [mt], [p]],
                                                      names=['MAT', 'MT', 'P'])
-                df = pd.DataFrame(pert_.data.values, index=pert_.data.index,
+                df = pd.DataFrame(pert.values, index=pert.index,
                                   columns=columns)
                 pert_ = sandy.Pert(df)
             else:
                 print("The input do not have enought information")
+        else:
+            pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
         return self._custom_perturbation(pert_)
 
     def _custom_perturbation(self,  pert):
