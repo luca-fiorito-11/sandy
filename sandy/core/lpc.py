@@ -271,7 +271,7 @@ class Lpc():
         """
         energy_grid = self.data.index.get_level_values('E').unique()
         enew = energy_grid.union(pert.right.index)
-        enew[(enew <= energy_grid.max()) & (enew >= energy_grid.min())]
+        enew = enew[(enew <= energy_grid.max()) & (enew >= energy_grid.min())]
         mat = pert.data.columns.get_level_values('MAT').unique().values
         mt = pert.data.columns.get_level_values('MT').unique().values
         u_pert = pert.reshape(enew).right
