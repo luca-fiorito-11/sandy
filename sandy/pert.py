@@ -239,11 +239,14 @@ class Pert():
 
         >>> sandy.Pert(pert_ind).reshape([0, 1, 5,  25, 50, 100, 1.95000e+08]).data
         ENERGY
-        (0.0, 10.0]            1.00000e+00
+        (0.0, 1.0]             1.00000e+00
+        (1.0, 5.0]             1.00000e+00
+        (5.0, 10.0]            1.00000e+00
         (10.0, 25.0]           1.05000e+00
         (25.0, 50.0]           1.05000e+00
         (50.0, 100.0]          1.05000e+00
-        dtype: float64
+        (100.0, 195000000.0]   1.00000e+00
+        Name: 0, dtype: float64
         """
         index = pd.Index(eg)
         df = self.right
@@ -257,32 +260,18 @@ class Pert():
         # this part prevents errors in "scipy.interp1d" when x.size == 1
         name = df.index.name
         if isinstance(df, pd.Series):
-            index = df.index.values
-            values = df.values
-            if values.size == 1:
-                # this must be done after that enew is created
-                index = np.insert(index, 0, 0)
-                values = np.insert(values, 0, 0)
-            pertnew = sandy.shared.reshape_bfill(
-                          index,
-                          values,
-                          enew,
-                          left_values="first",
-                          right_values=1,
-                          )
-            data = pd.Series(pertnew, index=enew)
-            data = data.loc[(data.index >= index.min()) &
-                            (data.index <= index.max())]
-        else:
-            data = df.apply(lambda x: sandy.shared.reshape_bfill(
-                                    x.index.values,
-                                    x.values,
-                                    enew,
-                                    left_values="first",
-                                    right_values=1,
-                                    )).set_index(enew).rename_axis(name)
-            data = data.loc[(data.index >= index.min()) &
-                            (data.index <= index.max()), :]
+            df = df.to_frame()
+        data = df.apply(lambda x: sandy.shared.reshape_bfill(
+                                  x.index.values,
+                                  x.values,
+                                  enew,
+                                  left_values="first",
+                                  right_values=1,
+                                  )).set_index(enew).rename_axis(name)
+        data = data.loc[(data.index >= index.min()) &
+                        (data.index <= index.max()), :]
+        if data.shape[1] == 1:
+            data = data.iloc[:, 0]
         if not inplace:
             return self.__class__(data)
         self.data = data
