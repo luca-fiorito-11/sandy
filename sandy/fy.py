@@ -102,39 +102,7 @@ def get_chain_yields():
     return df[["ZAM", "E", "CHY", "DCHY"]].sort_values(by=["ZAM", "E"]) \
                                           .reset_index()
 
-def get_chain_yields_covariance(e, zam):
-    """
-    Build diagonal covariance matrix for the chain yields vector with the 
-    uncertainties taken from 'https://www-nds.iaea.org/endf349/la-ur-94-3106.pdf',
-    page 18-29.
 
-    Parameters
-    ----------
-    zam : `int`
-        ZAM number of the fissioning nuclide.
-    e : `float`
-        Energy of the fissioning system.
-
-    Returns
-    -------
-    `sandy.CategoryCov`
-        Chain yields covariance matrix with information taken from
-        IAEA document for a given energy and zam.
-
-    Examples
-    --------
-    >>> e = 0.0253
-    >>> zam = 922350
-    >>> chain_yields = sandy.fy.get_chain_yields()
-    >>> std = chain_yields.query(f"ZAM=={zam} & E =='thermal' & A==66").DCHY.values
-    >>> chain_yields_covariance = sandy.fy.get_chain_yields_covariance(e, zam)
-    >>> assert std**2 == chain_yields_covariance.data.loc[66,66]
-    """
-    ch_info = get_chain_yields()
-    ch_info = ch_info.loc[(ch_info.E == _to_energy_range(e)) & (ch_info.ZAM == zam)]
-    Vy_extra = sandy.CategoryCov.from_stdev(ch_info.set_index("A").DCHY).data
-    return sandy.CategoryCov(Vy_extra)
-    
 class Fy():
     """
     Object for fission yield data.
@@ -674,8 +642,8 @@ class Fy():
         data = pd.concat([data, calc_values], ignore_index=True)
         return self.__class__(data)
 
-    def gls_cov_update(self, zam, e, Vy_extra=None, kind='mass yield',
-                       decay_data=None, rows=None, threshold=None, **kwargs):
+    def gls_cov_update(self, zam, e, S, Vy_extra=None,
+                      rows=None, threshold=None):
         """
         Update the prior IFY covariance matrix using the GLS technique
         described in https://doi.org/10.1016/j.anucene.2015.10.027
@@ -691,19 +659,10 @@ class Fy():
             applied.
         e : `float`
             Energy to which calculations are to be applied.
+        S : 2D iterable
+            Sensitivity matrix (MXN)
         Vy_extra : 2D iterable, optional, default is None.
             Extra Covariance matrix (MXM)
-        kind : `str`, optional, default is 'mass yield'.
-            Keyword for obtaining sensitivity.
-            Available options are:
-                * `'mass yield'`
-                * `'chain yield'`
-                * `'cumulative'`
-        decay_data : `DecayData`, optional, default is None.
-            Object to change the model to CFY = Q*IFY or Ch_chain = S_chain*IFY,
-            so the sensitivity (S) is Q or S_chain. The default is None,
-            so the model is ChY = ChY_mass*IFY and the sensitivity is mass
-            yield sensitivity.
         rows : `int`, optional, default is None.
             Option to use row calculation for matrix calculations. This option
             defines the number of lines to be taken into account in each loop.
@@ -711,8 +670,6 @@ class Fy():
             Optional argument to avoid numerical fluctuations or
             values so small that they do not have to be taken into
             account. The .
-        kwargs : `dict`
-            keyword arguments for method `get_decay_chains`
 
         Returns
         -------
@@ -728,14 +685,15 @@ class Fy():
         >>> index = pd.Index([591480, 591481, 601480, 621480])
         >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=index, columns=index)
         >>> npfy = Fy(minimal_fytest_2)
-        >>> npfy.gls_cov_update(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest).data
+        >>> S = decay_fytest.get_qmatrix()
+        >>> npfy.gls_cov_update(942390, 500e3, S, CFY_var_extra).data
         ZAP	         591480	          591481	      601480
         ZAP
         591480	 1.59238e-03	-7.90107e-06	-3.16833e-07
         591481	-7.90107e-06	 2.48143e-03	-4.94607e-07
         601480	-3.16833e-07	-4.94607e-07	 9.99802e-05
 
-        >>> npfy.gls_cov_update(942390, 500e3, CFY_var_extra, kind='cumulative', rows=1, decay_data=decay_fytest).data
+        >>> npfy.gls_cov_update(942390, 500e3, S, CFY_var_extra, rows=1).data
         ZAP	         591480	         591481	        601480
         ZAP
         591480	 1.59238e-03	-7.90107e-06	-3.16833e-07
@@ -744,14 +702,7 @@ class Fy():
 
         >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1]))
         >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
-        >>> npfy.gls_cov_update(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest).data
-        ZAP	          591480	      591481	      601480
-        ZAP
-        591480	 1.59490e-03	-3.96702e-06	-1.59078e-07
-        591481	-3.96702e-06	 2.48757e-03	-2.48336e-07
-        601480	-1.59078e-07	-2.48336e-07	 9.99900e-05
-
-        >>> npfy.gls_cov_update(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest, rows=1).data
+        >>> npfy.gls_cov_update(942390, 500e3, S, CFY_var_extra).data
         ZAP	          591480	      591481	      601480
         ZAP
         591480	 1.59490e-03	-3.96702e-06	-1.59078e-07
@@ -763,28 +714,29 @@ class Fy():
         >>> index = pd.Index([147, 148, 149])
         >>> chain_var_extra = pd.DataFrame(chain_var_extra, index=index, columns=index)
         >>> npfy = sandy.Fy(minimal_fytest_2)
-        >>> npfy.gls_cov_update(942390, 500e3, chain_var_extra).data
+        >>> S = npfy.get_mass_yield_sensitivity()
+        >>> npfy.gls_cov_update(942390, 500e3, S, chain_var_extra).data
         ZAP	          591480	      591481	      601480
         ZAP
         591480	 1.59745e-03	-3.98327e-06	-1.59331e-07
         591481	-3.98327e-06	 2.49378e-03	-2.48954e-07
         601480	-1.59331e-07	-2.48954e-07	 9.99900e-05
 
-        >>> npfy.gls_cov_update(942390, 500e3, chain_var_extra, rows=1).data
+        >>> npfy.gls_cov_update(942390, 500e3, S, chain_var_extra, rows=1).data
         ZAP	          591480	      591481	      601480
         ZAP
         591480	 1.59745e-03	-3.98327e-06	-1.59331e-07
         591481	-3.98327e-06	 2.49378e-03	-2.48954e-07
         601480	-1.59331e-07	-2.48954e-07	 9.99900e-05
 
-        >>> npfy.gls_cov_update(942390, 500e3)
+        >>> npfy.gls_cov_update(942390, 500e3, S)
         ZAP	          591480	   591481	    601480
         ZAP
         591480   9.90476e-04 -9.52381e-04 -3.80952e-05
         591481  -9.52381e-04  1.01190e-03 -5.95238e-05
         601480  -3.80952e-05 -5.95238e-05  9.76190e-05
 
-        >>> npfy.gls_cov_update(942390, 500e3, rows=1).data
+        >>> npfy.gls_cov_update(942390, 500e3, S, rows=1).data
         ZAP	          591480	      591481	      601480
         ZAP
         591480   9.90476e-04 -9.52381e-04 -3.80952e-05
@@ -798,11 +750,7 @@ class Fy():
         Vx_prior = fy_data.query('MT==454').DFY
         Vx_prior = sandy.CategoryCov.from_stdev(Vx_prior).data
         # Fix the S with the correct dimension:
-        if kind == 'mass yield':
-            model_sensitivity_object = self._filters(conditions)
-        elif kind == 'cumulative' or 'chain yield':
-            model_sensitivity_object = decay_data
-        S = _gls_setup(model_sensitivity_object, kind, **kwargs)
+        S = pd.DataFrame(S)
         index = Vx_prior.index
         Vx_prior = Vx_prior.reindex(index=S.columns, columns=S.columns).fillna(0)
         Vx_prior = sandy.CategoryCov(Vx_prior)
@@ -816,9 +764,8 @@ class Fy():
                                               .fillna(0)
         return sandy.CategoryCov(Vx_post)
 
-    def gls_update(self, zam, e, y_extra=None, Vy_extra=None,
-                   kind='mass yield', decay_data=None, rows=None,
-                   threshold=None, **kwargs):
+    def gls_update(self, zam, e, S, y_extra=None, Vy_extra=None,
+                   rows=None, threshold=None):
         """
         Update IFY for a given zam, energy, decay_data and new information.
         .. math::
@@ -833,17 +780,12 @@ class Fy():
             applied.
         e : `float`
             Energy to which calculations are to be applied.
+        S : 2D iterable
+            Sensitivity matrix (MXN)
         y_extra : 1D iterable, optional
             New value of the vector.
         Vy_extra : 2D iterable, optional
             2D covariance matrix for y_extra (MXM).
-        kind : `str`, optional
-            Keyword for obtaining sensitivity. The default is 'mass yield'.
-        decay_data : `DecayData`, optional
-            Object to change the model to CFY = Q*IFY or Ch_chain = S_chain*IFY,
-            so the sensitivity (S) is Q or S_chain. The default is None,
-            so the model is ChY = ChY_mass*IFY and the sensitivity is mass
-            yield sensitivity.
         rows : `int`, optional
             Option to use row calculation for matrix calculations. This option
             defines the number of lines to be taken into account in each loop.
@@ -852,8 +794,6 @@ class Fy():
             Optional argument to avoid numerical fluctuations or
             values so small that they do not have to be taken into
             account. The default is None.
-        kwargs : `dict`
-            keyword arguments for method `get_decay_chains`
 
         Returns
         -------
@@ -870,7 +810,8 @@ class Fy():
         >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1]))
         >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
         >>> npfy = Fy(minimal_fytest_2)
-        >>> npfy.gls_update(942390, 500e3, CFY_extra, CFY_var_extra, kind='cumulative', decay_data=decay_fytest)
+        >>> S = decay_fytest.get_qmatrix()
+        >>> npfy.gls_update(942390, 500e3, S, CFY_extra, CFY_var_extra)
             MAT   MT     ZAM     ZAP           E          FY         DFY
         0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
         1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
@@ -879,7 +820,7 @@ class Fy():
         4  9437  454  942390  591481 5.00000e+05 1.98758e-01 2.48757e-03
         5  9437  454  942390  601480 5.00000e+05 2.99960e-01 9.99900e-05
 
-        >>> npfy.gls_update(942390, 500e3, CFY_extra, CFY_var_extra, kind='cumulative', decay_data=decay_fytest, rows=1)
+        >>> npfy.gls_update(942390, 500e3, S, CFY_extra, CFY_var_extra, rows=1)
             MAT   MT     ZAM     ZAP           E          FY         DFY
         0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
         1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
@@ -892,7 +833,8 @@ class Fy():
         >>> chain_extra = pd.Series([0, 0.1, 0.2], index=index)
         >>> chain_var_extra = np.diag(pd.Series([1, 1, 1]))
         >>> chain_var_extra = pd.DataFrame(chain_var_extra, index=index, columns=index)
-        >>> npfy.gls_update(942390, 500e3, chain_extra, chain_var_extra)
+        >>> S = npfy.get_mass_yield_sensitivity()
+        >>> npfy.gls_update(942390, 500e3, S, chain_extra, chain_var_extra)
             MAT   MT     ZAM     ZAP           E          FY         DFY
         0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
         1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
@@ -901,7 +843,7 @@ class Fy():
         4  9437  454  942390  591481 5.00000e+05 1.98755e-01 2.49378e-03
         5  9437  454  942390  601480 5.00000e+05 2.99950e-01 9.99900e-05
 
-        >>> npfy.gls_update(942390, 500e3, chain_extra, chain_var_extra, rows=1)
+        >>> npfy.gls_update(942390, 500e3, S, chain_extra, chain_var_extra, rows=1)
             MAT   MT     ZAM     ZAP           E          FY         DFY
         0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
         1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
@@ -924,24 +866,18 @@ class Fy():
         Vx_prior = fy_data.query('MT==454').DFY
         Vx_prior = sandy.CategoryCov.from_stdev(Vx_prior).data
         # Find the GLS varibles:
-        if kind == 'mass yield':
-            model_sensitivity_object = self._filters(conditions)
-        elif kind == 'cumulative' or 'chain yield':
-            model_sensitivity_object = decay_data
-        S = _gls_setup(model_sensitivity_object, kind, **kwargs)
+        S = pd.DataFrame(S)
         # Perform GLS:
         if y_extra is None and Vy_extra is None:
             x_post = sandy.constrained_gls_update(x_prior, S, Vx_prior,
                                                   rows=rows,
                                                   threshold=threshold)
-            Vx_post = self.gls_cov_update(zam, e, kind=kind,
-                                          decay_data=decay_data, rows=rows,
+            Vx_post = self.gls_cov_update(zam, e, S, rows=rows,
                                           threshold=threshold).data
         else:
             x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
                                       rows=rows, threshold=threshold)
-            Vx_post = self.gls_cov_update(zam, e, Vy_extra,
-                                          kind=kind, decay_data=decay_data,
+            Vx_post = self.gls_cov_update(zam, e, S, Vy_extra,
                                           rows=rows, threshold=threshold).data
         # Results in appropriate format:
         Vx_post = Vx_post.reindex(index=index, columns=index).fillna(0)
@@ -952,9 +888,7 @@ class Fy():
         data = pd.concat([data, calc_values], ignore_index=True)
         return self.__class__(data)
 
-    def ishikawa_factor(self, zam, e, Vy_extra,
-                        kind='mass yield', decay_data=None,
-                        threshold=None):
+    def ishikawa_factor(self, zam, e, S, Vy_extra, threshold=None):
         """
         Ishikawa factor to determine whether the experiment from where we
         obtain model sensitivity is useful to reduce the IFY uncertainty
@@ -966,16 +900,10 @@ class Fy():
             applied.
         e : `float`
             Energy to which calculations are to be applied.
+        S : 2D iterable
+            Sensitivity matrix (MXN)
         Vy_extra : 2D iterable
             2D covariance matrix for y_extra (MXM).
-        kind : `str`, optional
-            Keyword for obtaining sensitivity. The
-            default is 'mass yield'.
-        decay_data : `DecayData`, optional
-            Object to change the model to CFY = Q*IFY or
-            Ch_chain = S_chain*IFY, so the sensitivity (S) is Q or S_chain.
-            The default is None, so the model is ChY = ChY_mass*IFY
-            and the sensitivity is mass yield sensitivity.
         threshold : `int`, optional
             Optional argument to avoid numerical fluctuations or
             values so small that they do not have to be taken into
@@ -1005,7 +933,8 @@ class Fy():
         >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1]))
         >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
         >>> npfy = sandy.Fy(minimal_fytest_2)
-        >>> npfy.ishikawa_factor(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest)
+        >>> S = decay_fytest.get_qmatrix()
+        >>> npfy.ishikawa_factor(942390, 500e3, S, CFY_var_extra)
         591480   1.60000e-03
         591481   2.50000e-03
         601480   4.20000e-03
@@ -1015,7 +944,8 @@ class Fy():
         >>> Chain_var_extra = np.diag(pd.Series([1, 1, 1]))
         >>> Chain_var_extra = pd.DataFrame(Chain_var_extra, index=A, columns=A)
         >>> npfy = sandy.Fy(minimal_fytest_2)
-        >>> npfy.ishikawa_factor(942390, 500e3, Chain_var_extra)
+        >>> S = npfy.get_mass_yield_sensitivity()
+        >>> npfy.ishikawa_factor(942390, 500e3, S, Chain_var_extra)
         147   0.00000e+00
         148   4.20000e-03
         149   0.00000e+00
@@ -1027,11 +957,7 @@ class Fy():
         Vx_prior = fy_data.query('MT==454').DFY
         Vx_prior = sandy.CategoryCov.from_stdev(Vx_prior).data
         # Find the GLS sensitivity:
-        if kind == 'mass yield':
-            model_sensitivity_object = self._filters(conditions)
-        elif kind == 'cumulative' or 'chain yield':
-            model_sensitivity_object = decay_data
-        S = _gls_setup(model_sensitivity_object, kind)
+        S = pd.DataFrame(S)
         # Perform Ishikawa factor:
         ishikawa = sandy.ishikawa_factor(S, Vx_prior, Vy_extra)
         if threshold is not None:
@@ -1242,72 +1168,6 @@ class Fy():
                 tab = self.energy_table(zam, by="ZAM", kind=kind)
                 tab.index *= 1e-6
                 tab.to_hdf(file, key, format="fixed")
-
-
-def _gls_setup(model_sensitivity_object, kind):
-    """
-    A function to obtain the sensitivity for performing GLS.
-
-    Parameters
-    ----------
-    model_sensitivity_object : `DecayData` or `Fy`
-        Object from which the sensitivity (S) of the model is to be derived:
-            y_calc = S*x_prior
-    kind : `str`
-        Keyword for obtaining sensitivity.
-
-    Raises
-    ------
-    TypeError
-        The kind is not implemented in the method.
-
-    Returns
-    -------
-    S : `pandas.DataFrame`
-        The sensitivity for performing GLS.
-
-    """
-    if kind == 'cumulative':
-        S = model_sensitivity_object.get_qmatrix()
-    elif kind == 'chain yield':
-        S = model_sensitivity_object.get_chain_yield_sensitivity()
-    elif kind == 'mass yield':
-        S = model_sensitivity_object.get_mass_yield_sensitivity()
-    else:
-        raise ValueError('Keyword argument "kind" is not valid')
-    return S
-
-def _to_energy_range(e):
-    """
-    Function to obtain the corresponding energy range.
-
-    Parameters
-    ----------
-    e : `float`
-        Energy of the fissioning system.
-
-    Returns
-    -------
-    range_e : `str`
-        Corresponding energy range.
-
-    Examples
-    --------
-    >>> e = 0.0253
-    >>> _to_energy_range(e)
-    'thermal'
-
-    >>> e = 50000
-    >>> _to_energy_range(e)
-    'fast'
-    """
-    if e<=0.0253:
-        range_e = "thermal"
-    elif e>0.0253 and e<=2000000.0:
-        range_e = "fast"
-    elif e>2000000.0:
-        range_e = "high energy"
-    return range_e
 
 
 def fy2hdf(e6file, h5file, lib):
