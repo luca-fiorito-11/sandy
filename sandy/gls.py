@@ -48,7 +48,7 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
     Vy_extra : 2D iterable or sigle element 1D iterable
         covariance matrix with the uncertainties of the extra information,
         (MXM) or (1x1).
-     S : 2D or 1D iterable
+    S : 2D or 1D iterable
          Sensitivity matrix (MXN) or sensitivity vector(1xN).
     y_extra : 1D iterable
         1D extra info on output (MX1).
@@ -92,7 +92,7 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
     y_extra_ = pd.Series(y_extra).values
     Vy_extra = pd.DataFrame(Vy_extra).values
     # GLS update
-    G_inv = _gls_G_inv(Vx_prior_, S_, Vy_extra).values
+    G_inv = _gls_G_inv(Vx_prior_, S_, Vy_extra, threshold=threshold).values
     A = Vx_prior_.dot(S_.T).dot(G_inv)
     y_calc = S_.dot(x_prior_)
     delta = y_extra_ - y_calc
@@ -157,7 +157,7 @@ def gls_cov_update(Vx_prior, S, Vy_extra=None, threshold=None):
     Vx_prior = pd.DataFrame(Vx_prior)
     index, columns = Vx_prior.index, Vx_prior.columns
     s_ = pd.DataFrame(S).values
-    G_inv = _gls_G_inv(Vx_prior, s_, Vy_extra=Vy_extra).values
+    G_inv = _gls_G_inv(Vx_prior, s_, Vy_extra=Vy_extra, threshold=threshold).values
     # gls update
     if pd.DataFrame(S).shape[1] == 1:
         A = np.outer(Vx_prior.values.dot(s_) * G_inv, s_)
@@ -239,9 +239,10 @@ def constrained_gls_update(x_prior, y_constraint, S, Vx_prior, threshold=None):
         s_ = s_.T
     # Constrained gls calculations
     y_calc = s_.dot(x_prior_.values)
-    G_inv = _gls_G_inv(Vx_prior, s_, Vy_extra=None).values
+    G_inv = _gls_G_inv(Vx_prior, s_, Vy_extra=None, threshold=threshold).values
     delta = y_constraint_ - y_calc
-    x_post = x_prior_.values + delta.dot(G_inv).dot(s_).dot(Vx_prior_)
+    A = delta @ G_inv @ s_ @ Vx_prior_
+    x_post = x_prior_.values + A
     x_post = pd.Series(x_post, index=index)
     if threshold is not None:
         x_post[abs(x_post) < threshold] = 0
@@ -318,7 +319,7 @@ def _gls_G_inv(Vx_prior, s, Vy_extra=None, threshold=None):
     M_nonzero_idxs, M_reduce = reduce_size(G)
     G_inv = np.linalg.inv(M_reduce)
     G_inv = restore_size(M_nonzero_idxs, G_inv, len(G))
-    return pd.DataFrame(np.linalg.inv(G), index=index, columns=index)
+    return pd.DataFrame(G_inv)
 
 
 def sandwich(cov, s, threshold=None):
