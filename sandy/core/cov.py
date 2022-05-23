@@ -994,8 +994,8 @@ class CategoryCov():
             (MXM) or (1x1).
         S : 2D or 1D iterable
             Sensitivity matrix (MXN) or sensitivity vector(1xN).
-        threshold : `int`, optional
-            Thereshold to avoid numerical fluctuations. The default is None.
+        threshold : `int`, optional, default is None
+            Threshold to avoid numerical fluctuations.
 
         Returns
         -------

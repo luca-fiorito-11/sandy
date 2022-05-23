@@ -241,8 +241,7 @@ def constrained_gls_update(x_prior, y_constraint, S, Vx_prior, threshold=None):
     y_calc = s_.dot(x_prior_.values)
     G_inv = _gls_G_inv(Vx_prior, s_, Vy_extra=None, threshold=threshold).values
     delta = y_constraint_ - y_calc
-    A = delta @ G_inv @ s_ @ Vx_prior_
-    x_post = x_prior_.values + A
+    x_post = x_prior_.values + delta.dot(G_inv).dot(s_).dot(Vx_prior)
     x_post = pd.Series(x_post, index=index)
     if threshold is not None:
         x_post[abs(x_post) < threshold] = 0
