@@ -482,7 +482,10 @@ class Edistr():
             mat = df.loc[:, 'MAT'].unique()[0]
             mt = df.loc[:, 'MT'].unique()[0]
             col = pert.columns
-            mask = (mat == col.get_level_values('MAT')) & (mt == col.get_level_values('MT')) & (ein >= col.get_level_values('ELO')) & (ein <= col.get_level_values('EHI'))
+            mask = (mat == col.get_level_values('MAT')) & \
+                   (mt == col.get_level_values('MT')) & \
+                   (ein >= col.get_level_values('ELO')) & \
+                   (ein <= col.get_level_values('EHI'))
             pert_ = pert.loc[:, mask]
             if not pert_.empty:
                 pert_ = pert_.iloc[:, [0]]\
