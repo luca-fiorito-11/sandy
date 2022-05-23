@@ -13,7 +13,6 @@ import warnings
 import logging
 import tables as tb
 import os
-from collections.abc import Iterable
 from sandy.gls import sandwich, gls_cov_update, reduce_size, restore_size
 
 import sandy
@@ -1083,7 +1082,7 @@ class CategoryCov():
         0	1.00000e+00	0.00000e+00	0.00000e+00
         1	0.00000e+00	8.00000e+00	0.00000e+00
         2	0.00000e+00	0.00000e+00	2.70000e+01
-        
+
         >>> s = pd.DataFrame([[1, 0, 1], [0, 1, 1]], index=[2, 3], columns=[2, 3, 4])
         >>> cov = pd.DataFrame([[1, 0], [0, 1]], index=[2, 3], columns=[2, 3])
         >>> cov = sandy.CategoryCov(cov)

@@ -149,13 +149,14 @@ def gls_cov_update(Vx_prior, S, Vy_extra=None):
     """
     Vx_prior = pd.DataFrame(Vx_prior)
     index, columns = Vx_prior.index, Vx_prior.columns
+    Vx_prior = Vx_prior.values
     s_ = pd.DataFrame(S).values
     G_inv = _gls_G_inv(Vx_prior, s_, Vy_extra=Vy_extra).values
     # gls update
     if pd.DataFrame(S).shape[1] == 1:
-        A = np.outer(Vx_prior.values.dot(s_) * G_inv, s_)
+        A = np.outer(Vx_prior.dot(s_) * G_inv, s_)
     else:
-        A = Vx_prior.values.dot(s_.T).dot(G_inv).dot(s_)
+        A = Vx_prior.dot(s_.T).dot(G_inv).dot(s_)
     diff = A.dot(Vx_prior)
     Vx_post = Vx_prior - diff
     return pd.DataFrame(Vx_post, index=index, columns=columns)
@@ -230,7 +231,10 @@ def constrained_gls_update(x_prior, y_constraint, S, Vx_prior):
     y_calc = s_.dot(x_prior_.values)
     G_inv = _gls_G_inv(Vx_prior_, s_, Vy_extra=None).values
     delta = y_constraint_ - y_calc
-    x_post = x_prior_.values + delta.dot(G_inv).dot(s_).dot(Vx_prior_)
+    A = delta.dot(G_inv)
+    B = A.dot(s_)
+    C = B.dot(Vx_prior_)
+    x_post = x_prior_.values + C
     x_post = pd.Series(x_post, index=index)
     return x_post
 
@@ -279,7 +283,7 @@ def _gls_G_inv(Vx_prior, s, Vy_extra=None):
                  0            1
     0  6.25000e+00 -2.75000e+00
     1 -2.75000e+00  1.25000e+00
-    
+
     >>> S = np.array([1, 2])
     >>> cov = sandy.CategoryCov.from_var([1, 1]).data
     >>> Vy = [1]
@@ -348,8 +352,8 @@ def sandwich(cov, s):
     """
     s_ = pd.DataFrame(s)
     index = s_.columns
-    cov_ = pd.DataFrame(cov)
-    Vy_calc = s_.T.values.dot(cov_.values).dot(s_.values)
+    cov_ = pd.DataFrame(cov).values
+    Vy_calc = s_.T.values.dot(cov_).dot(s_.values)
     sandwich = pd.DataFrame(Vy_calc, index=index, columns=index)
     return sandwich
 
@@ -497,8 +501,7 @@ def _y_calc(x_prior, S):
     return y_calc
 
 
-def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra,
-                   rows=None):
+def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
     """
     Function to calculate individual chi-value measured in sigmas according to
     https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
@@ -516,10 +519,6 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra,
         2D covariance matrix for y_extra (MXN).
     y_extra : 1D iterable
         1D extra info on output (NX1).
-    rows : `int`, optional
-        Option to use row calculation for matrix calculations. This option
-        defines the number of lines to be taken into account in each loop.
-        The default is None.
 
     Returns
     -------
@@ -540,12 +539,6 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra,
     >>> Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
     >>> Vy_extra = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3], columns=[1, 2, 3])
     >>> chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra)
-    1   1.00000e+00
-    2   5.00000e-01
-    3   3.33333e-01
-    dtype: float64
-
-    >>> chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra, rows=1)
     1   1.00000e+00
     2   5.00000e-01
     3   3.33333e-01
@@ -573,7 +566,7 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra,
     return pd.Series(delta / G, index=y_extra_.index)
 
 
-def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra, rows=None):
+def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
     """
     Function to calculate diagonal chi-value
     $\chi_{ind,i}$>>1 according to
@@ -592,15 +585,11 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra, rows=None):
         2D covariance matrix for y_extra (MXN).
     y_extra : 1D iterable
         1D extra info on output (NX1)
-    rows : `int`, optional
-        Option to use row calculation for matrix calculations. This option
-        defines the number of lines to be taken into account in each loop.
-        The default is None.
 
     Returns
     -------
     `pd.Series`
-        diagonal chi-value 
+        diagonal chi-value
 
     Results:
     -------
@@ -617,12 +606,6 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra, rows=None):
     >>> Vy_extra = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3], columns=[1, 2, 3])
     >>> N_e = 1
     >>> chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra)
-    1   1.00000e+00
-    2   2.00000e+00
-    3   3.00000e+00
-    dtype: float64
-
-    >>> chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra, rows=1)
     1   1.00000e+00
     2   2.00000e+00
     3   3.00000e+00
@@ -667,10 +650,6 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
         1D extra info on output (NX1)
     N_e : `int`
         Number of experimental values used in adjustment.
-    rows : `int`, optional
-        Option to use row calculation for matrix calculations. This option
-        defines the number of lines to be taken into account in each loop.
-        The default is None.
 
     Returns
     -------
@@ -714,7 +693,7 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
     return pd.Series(chi_square, index=y_extra_.index)
 
 
-def ishikawa_factor(S, Vx_prior, Vy_extra, rows=None):
+def ishikawa_factor(S, Vx_prior, Vy_extra):
     """
     Function to obtain Ishikawa factor according to
     https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
@@ -728,10 +707,6 @@ def ishikawa_factor(S, Vx_prior, Vy_extra, rows=None):
         2D covariance matrix of x_prior (MXN).
     Vy_extra : 2D iterable
         2D covariance matrix for y_extra (MXN).
-    rows : `int`, optional
-        Option to use row calculation for matrix calculations. This option
-        defines the number of lines to be taken into account in each loop.
-        The default is None.
 
     Returns
     -------
@@ -773,4 +748,3 @@ def ishikawa_factor(S, Vx_prior, Vy_extra, rows=None):
     Vy_values = np.diag(Vy_calc_)
     Vy_extra_ = np.diag(Vy_extra_.values)
     return pd.Series(Vy_values / Vy_extra_, index=index)
-
