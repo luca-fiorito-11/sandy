@@ -28,8 +28,7 @@ Vy_extra = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 N_e = 1
 
 
-def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
-               threshold=None):
+def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra):
     """
     Perform the GlS update of a prior vector, given its prior covariance
     matrix, additional info on the model observable and their covariance
@@ -52,8 +51,6 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
          Sensitivity matrix (MXN) or sensitivity vector(1xN).
     y_extra : 1D iterable
         1D extra info on output (MX1).
-    threshold : `int`, optional, default is None
-        Thereshold to avoid numerical fluctuations.
 
     Returns
     -------
@@ -92,18 +89,16 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra,
     y_extra_ = pd.Series(y_extra).values
     Vy_extra = pd.DataFrame(Vy_extra).values
     # GLS update
-    G_inv = _gls_G_inv(Vx_prior_, S_, Vy_extra, threshold=threshold).values
+    G_inv = _gls_G_inv(Vx_prior_, S_, Vy_extra).values
     A = Vx_prior_.dot(S_.T).dot(G_inv)
     y_calc = S_.dot(x_prior_)
     delta = y_extra_ - y_calc
     x_post = x_prior_ + A.dot(delta)
     x_post = pd.Series(x_post, index=index)
-    if threshold is not None:
-        x_post[abs(x_post) < threshold] = 0
     return x_post
 
 
-def gls_cov_update(Vx_prior, S, Vy_extra=None, threshold=None):
+def gls_cov_update(Vx_prior, S, Vy_extra=None):
     """
     Perform GlS update for a given covariance matrix, sensitivity and
     covariance matrix of the extra information, according with
@@ -123,8 +118,6 @@ def gls_cov_update(Vx_prior, S, Vy_extra=None, threshold=None):
         (MXM) or (1x1).
     S : 2D or 1D iterable
         Sensitivity matrix (MXN) or sensitivity vector(1xN).
-    threshold : `int`, optional
-        Thereshold to avoid numerical fluctuations. The default is None.
 
     Returns
     -------
@@ -157,7 +150,7 @@ def gls_cov_update(Vx_prior, S, Vy_extra=None, threshold=None):
     Vx_prior = pd.DataFrame(Vx_prior)
     index, columns = Vx_prior.index, Vx_prior.columns
     s_ = pd.DataFrame(S).values
-    G_inv = _gls_G_inv(Vx_prior, s_, Vy_extra=Vy_extra, threshold=threshold).values
+    G_inv = _gls_G_inv(Vx_prior, s_, Vy_extra=Vy_extra).values
     # gls update
     if pd.DataFrame(S).shape[1] == 1:
         A = np.outer(Vx_prior.values.dot(s_) * G_inv, s_)
@@ -165,12 +158,10 @@ def gls_cov_update(Vx_prior, S, Vy_extra=None, threshold=None):
         A = Vx_prior.values.dot(s_.T).dot(G_inv).dot(s_)
     diff = A.dot(Vx_prior)
     Vx_post = Vx_prior - diff
-    if threshold is not None:
-        Vx_post[abs(Vx_post) < threshold] = 0
     return pd.DataFrame(Vx_post, index=index, columns=columns)
 
 
-def constrained_gls_update(x_prior, y_constraint, S, Vx_prior, threshold=None):
+def constrained_gls_update(x_prior, y_constraint, S, Vx_prior):
     """
     Perform Constrained Least-Squares update for a vector to be updated,
     its covariance matrix, constraint to be introduced and sensitivity:
@@ -192,8 +183,6 @@ def constrained_gls_update(x_prior, y_constraint, S, Vx_prior, threshold=None):
          Sensitivity matrix (MXN) or sensitivity vector (1xN).
     y_constraint : 1D iterable
         information that can be used to reﬁne the ﬁt (MX1).
-    threshold : `int`, optional, default is None
-        Thereshold to avoid numerical fluctuations.
 
     Returns
     -------
@@ -211,15 +200,6 @@ def constrained_gls_update(x_prior, y_constraint, S, Vx_prior, threshold=None):
     1    2.00000e+00
     dtype: float64
 
-    >>> S = [[1, 2], [3, 4], [1, 0]]
-    >>> x_prior = pd.Series([1, 1])
-    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
-    >>> y_constraint = [2, 2, 2]
-    >>> constrained_gls_update(x_prior, y_constraint, S, Vx_prior)
-    0    2.50000e-01
-    1   -3.00000e+00
-    dtype: float64
-
     >>> S = [1, 2]
     >>> x_prior = pd.Series([1, 1])
     >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
@@ -227,6 +207,15 @@ def constrained_gls_update(x_prior, y_constraint, S, Vx_prior, threshold=None):
     >>> constrained_gls_update(x_prior, y_constraint, S, Vx_prior)
     0   8.00000e-01
     1   6.00000e-01
+    dtype: float64
+
+    >>> S = [[1, 2], [3, 4], [1, 0]]
+    >>> x_prior = pd.Series([1, 1])
+    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
+    >>> y_constraint = [2, 2, 2]
+    >>> constrained_gls_update(x_prior, y_constraint, S, Vx_prior)
+    0    2.50000e-01
+    1   -3.00000e+00
     dtype: float64
     """
     # Data in a appropriate format
@@ -239,16 +228,14 @@ def constrained_gls_update(x_prior, y_constraint, S, Vx_prior, threshold=None):
         s_ = s_.T
     # Constrained gls calculations
     y_calc = s_.dot(x_prior_.values)
-    G_inv = _gls_G_inv(Vx_prior, s_, Vy_extra=None, threshold=threshold).values
+    G_inv = _gls_G_inv(Vx_prior_, s_, Vy_extra=None).values
     delta = y_constraint_ - y_calc
-    x_post = x_prior_.values + delta.dot(G_inv).dot(s_).dot(Vx_prior)
+    x_post = x_prior_.values + delta.dot(G_inv).dot(s_).dot(Vx_prior_)
     x_post = pd.Series(x_post, index=index)
-    if threshold is not None:
-        x_post[abs(x_post) < threshold] = 0
     return x_post
 
 
-def _gls_G_inv(Vx_prior, s, Vy_extra=None, threshold=None):
+def _gls_G_inv(Vx_prior, s, Vy_extra=None):
     """
     Compute part of the GLS update technique. Output calculated using
     .. math::
@@ -265,8 +252,6 @@ def _gls_G_inv(Vx_prior, s, Vy_extra=None, threshold=None):
         (MXM) or (1x1).
     S : 2D or 1D iterable
         Sensitivity matrix (MXN) or sensitivity vector(1xN).
-    threshold : `int`, optional
-        Thereshold to avoid numerical fluctuations. The default is None.
 
     Returns
     -------
@@ -305,15 +290,13 @@ def _gls_G_inv(Vx_prior, s, Vy_extra=None, threshold=None):
     # GLS_sensitivity:
     cov_ = pd.DataFrame(Vx_prior)
     s_ = pd.DataFrame(s)
-    if s_.shape[1]==1:
+    if s_.shape[1] == 1:
         s_ = s_.T
-    Vy_calc = sandwich(cov_.values, s_.T.values, threshold=threshold)
+    Vy_calc = sandwich(cov_.values, s_.T.values).values
     if Vy_extra is not None:
-        Vy_extra_ = pd.DataFrame(Vy_extra)
-        index = Vy_extra_.index
-        G = Vy_calc.values + Vy_extra_.values
+        Vy_extra_ = pd.DataFrame(Vy_extra).values
+        G = Vy_calc + Vy_extra_
     else:
-        index = Vy_calc.index
         G = Vy_calc
     M_nonzero_idxs, M_reduce = reduce_size(G)
     G_inv = np.linalg.inv(M_reduce)
@@ -321,7 +304,7 @@ def _gls_G_inv(Vx_prior, s, Vy_extra=None, threshold=None):
     return pd.DataFrame(G_inv)
 
 
-def sandwich(cov, s, threshold=None):
+def sandwich(cov, s):
     """
     Apply the "sandwich formula" to the covariance matrix passed for a given
     sensitivity. According with http://dx.doi.org/10.1016/j.anucene.2015.10.027,
@@ -338,8 +321,6 @@ def sandwich(cov, s, threshold=None):
         Parameter covariance matrix (NxN)
     s : 1D or 2D iterable
         General sensitivities (Nx1) or (NxM)
-    threshold : `int`, optional, default is None
-        Thereshold to avoid numerical fluctuations.
 
     Returns
     -------
@@ -370,8 +351,6 @@ def sandwich(cov, s, threshold=None):
     cov_ = pd.DataFrame(cov)
     Vy_calc = s_.T.values.dot(cov_.values).dot(s_.values)
     sandwich = pd.DataFrame(Vy_calc, index=index, columns=index)
-    if threshold is not None:
-        sandwich[sandwich < threshold] = 0
     return sandwich
 
 

@@ -978,7 +978,7 @@ class CategoryCov():
         else:
             return triu_matrix(cov, kind=kind)
 
-    def gls_cov_update(self, S, Vy_extra=None, threshold=None):
+    def gls_cov_update(self, S, Vy_extra=None):
         """
         Perform GlS update for a given covariance matrix, sensitivity and
         covariance matrix of the extra information:
@@ -994,8 +994,6 @@ class CategoryCov():
             (MXM) or (1x1).
         S : 2D or 1D iterable
             Sensitivity matrix (MXN) or sensitivity vector(1xN).
-        threshold : `int`, optional, default is None
-            Threshold to avoid numerical fluctuations.
 
         Returns
         -------
@@ -1042,10 +1040,10 @@ class CategoryCov():
         0  8.33333e-01 -3.33333e-01
         1 -3.33333e-01  3.33333e-01
         """
-        Vx_post = gls_cov_update(self.data, S, Vy_extra=Vy_extra, threshold=threshold)
+        Vx_post = gls_cov_update(self.data, S, Vy_extra=Vy_extra)
         return self.__class__(Vx_post)
 
-    def sandwich(self, s, threshold=None):
+    def sandwich(self, s):
         """
         Apply the "sandwich formula" to the CategoryCov object for a given
         sensitivity. According with http://dx.doi.org/10.1016/j.anucene.2015.10.027,
@@ -1060,8 +1058,6 @@ class CategoryCov():
         ----------
         s : 1D or 2D iterable
             General sensitivities (Nx1) or (NxM) with N the size of the `CategoryCov` object.
-        threshold : `int`, optional, default is None
-            Thereshold to avoid numerical fluctuations.
 
         Returns
         -------
@@ -1097,7 +1093,7 @@ class CategoryCov():
         3 0.00000e+00 1.00000e+00 1.00000e+00
         4 1.00000e+00 1.00000e+00 2.00000e+00
         """
-        return self.__class__(sandwich(self.data, s, threshold=threshold))
+        return self.__class__(sandwich(self.data, s))
 
     def corr2cov(self, std):
         """

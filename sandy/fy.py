@@ -545,7 +545,7 @@ class Fy():
         return self.__class__(data)
 
     def gls_cov_update(self, zam, e, Vy_extra=None,
-                       kind='mass yield', decay_data=None, threshold=None):
+                       kind='mass yield', decay_data=None):
         """
         Update the prior IFY covariance matrix using the GLS technique
         described in https://doi.org/10.1016/j.anucene.2015.10.027
@@ -570,10 +570,6 @@ class Fy():
             so the sensitivity (S) is Q or S_chain. The default is None,
             so the model is ChY = ChY_mass*IFY and the sensitivity is mass
             yield sensitivity.
-        threshold : `int`, optional
-            Optional argument to avoid numerical fluctuations or
-            values so small that they do not have to be taken into
-            account. The default is None.
 
         Returns
         -------
@@ -656,15 +652,13 @@ class Fy():
         if Vy_extra is not None:
             Vy_extra_ = pd.DataFrame(Vy_extra)
             S = S.reindex(index=Vy_extra_.index).fillna(0)
-            Vx_post = Vx_prior.gls_cov_update(S, Vy_extra_, threshold=threshold).data
+            Vx_post = Vx_prior.gls_cov_update(S, Vy_extra_).data
         else:
-            Vx_post = Vx_prior.gls_cov_update(S, Vy_extra=None,
-                                              threshold=threshold).data
+            Vx_post = Vx_prior.gls_cov_update(S, Vy_extra=None).data
         return Vx_post
 
     def gls_update(self, zam, e, y_extra=None, Vy_extra=None,
-                   kind='mass yield', decay_data=None,
-                   threshold=None):
+                   kind='mass yield', decay_data=None):
         """
         Update IFY for a given zam, energy, decay_data and new information.
         .. math::
@@ -691,10 +685,6 @@ class Fy():
             so the sensitivity (S) is Q or S_chain. The default is None,
             so the model is ChY = ChY_mass*IFY and the sensitivity is mass
             yield sensitivity.
-        threshold : `int`, optional
-            Optional argument to avoid numerical fluctuations or
-            values so small that they do not have to be taken into
-            account. The default is None.
 
          Returns
         -------
@@ -754,17 +744,14 @@ class Fy():
         S = _gls_setup(model_sensitivity_object, kind)
         # Perform GLS:
         if y_extra is None and Vy_extra is None:
-            x_post = sandy.constrained_gls_update(x_prior, S, Vx_prior,
-                                                  threshold=threshold)
+            x_post = sandy.constrained_gls_update(x_prior, S, Vx_prior)
             Vx_post = self.gls_cov_update(zam, e, kind=kind,
-                                          decay_data=decay_data,
-                                          threshold=threshold)
+                                          decay_data=decay_data)
         else:
             S = S.reindex(index=pd.DataFrame(Vy_extra).index, columns = Vx_prior.index).fillna(0)
-            x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra, threshold=threshold)
+            x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra)
             Vx_post = self.gls_cov_update(zam, e, Vy_extra,
-                                          kind=kind, decay_data=decay_data,
-                                          threshold=threshold)
+                                          kind=kind, decay_data=decay_data)
         # Results in appropriate format:
         Vx_post = Vx_post.reindex(index=index, columns=index).fillna(0)
         x_post = x_post.reindex(index=index).fillna(0)
@@ -775,8 +762,7 @@ class Fy():
         return self.__class__(data)
 
     def ishikawa_factor(self, zam, e, Vy_extra,
-                        kind='mass yield', decay_data=None,
-                        threshold=None):
+                        kind='mass yield', decay_data=None):
         """
         Ishikawa factor to determine whether the experiment from where we
         obtain model sensitivity is useful to reduce the IFY uncertainty
@@ -798,10 +784,6 @@ class Fy():
             Ch_chain = S_chain*IFY, so the sensitivity (S) is Q or S_chain.
             The default is None, so the model is ChY = ChY_mass*IFY
             and the sensitivity is mass yield sensitivity.
-        threshold : `int`, optional
-            Optional argument to avoid numerical fluctuations or
-            values so small that they do not have to be taken into
-            account. The default is None.
 
         Returns
         -------
@@ -856,8 +838,6 @@ class Fy():
         S = _gls_setup(model_sensitivity_object, kind)
         # Perform Ishikawa factor:
         ishikawa = sandy.ishikawa_factor(S, Vx_prior, Vy_extra)
-        if threshold is not None:
-            ishikawa[abs(ishikawa) < threshold] = 0
         return ishikawa
 
     def _filters(self, conditions):
