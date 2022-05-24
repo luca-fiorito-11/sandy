@@ -186,6 +186,64 @@ class Edistr():
             .sort_index(axis="index") \
             .sort_index(axis="columns")
 
+    def reshape(self, enew):
+        """
+        Reshape the outgoing energy.
+
+        Parameters
+        ----------
+        enew : 1D iterable or `float`
+            new energy grid.
+
+        Returns
+        -------
+        `sandy.Edistr`
+            Energy distribution instance over new grid.
+
+        Examples
+        --------
+        >>> orig = Edistr(minimal_edistrtest)
+        >>> orig.reshape(1.5)
+            MAT  MT  K         EIN        EOUT       VALUE
+        0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
+        1  9437  18  0 1.00000e+00 1.50000e+00 4.00000e-01
+        2  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01
+        3  9437  18  0 2.00000e+00 1.00000e-04 2.00000e-01
+        4  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
+        5  9437  18  0 2.00000e+00 1.50000e+00 7.00000e-01
+        6  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
+
+        >>> orig.reshape([1.5e-5, 1.5, 15e6])
+            MAT  MT  K         EIN        EOUT       VALUE
+        0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
+        1  9437  18  0 1.00000e+00 1.50000e-05 4.00000e-01
+        2  9437  18  0 1.00000e+00 1.50000e+00 4.00000e-01
+        3  9437  18  0 1.00000e+00 1.50000e+07 5.50000e-01
+        4  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01
+        5  9437  18  0 2.00000e+00 1.00000e-04 2.00000e-01
+        6  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
+        7  9437  18  0 2.00000e+00 1.50000e+00 7.00000e-01
+        8  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
+        """
+        enew_ = np.array(enew) if isinstance(enew, np.ndarray) else enew
+
+        def foo(df, enew):
+            df_ = df.loc[:, ["EOUT", "VALUE"]].set_index("EOUT")
+            enew_ = np.union1d(df_.index.values, enew)
+            enew_ = enew_[(enew_ >= df_.index.min()) & (enew_ <= df_.index.max())]
+            new_edistr = sandy.shared.reshape_differential(
+                                                            df_.index.values,
+                                                            df_.values,
+                                                            enew_,
+                                                          )
+            new_edistr = pd.DataFrame(new_edistr, index=enew_,
+                                      columns=df_.columns)
+            new_edistr.index.name = 'EOUT'
+            return new_edistr
+        edistr_reshape = self.data.groupby(['MAT', 'MT', 'K', 'EIN'])\
+                             .apply(foo, enew_).reset_index()
+        return self.__class__(edistr_reshape)
+
     def add_energy_point(self, mat, mt, k, enew):
         """
         Add outgoing energy distribution at one additional incident energy by
