@@ -1006,21 +1006,36 @@ class Fy():
         -----
         .. note:: Both independent and cumulative fission product yields are
                   loaded, if found.
+
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 'all')
+        >>> fy = sandy.Fy.from_endf6(tape)
+        >>> fy.data.query("ZAM==952421 & MT==454 & E==0.0253").head()
+                MAT   MT         ZAM    ZAP           E          FY         DFY
+        56250  9547  454 9.52421e+05  10010 2.53000e-02 3.32190e-05 1.17790e-05
+        56251  9547  454 9.52421e+05  10020 2.53000e-02 1.01520e-05 3.52080e-06
+        56252  9547  454 9.52421e+05  10030 2.53000e-02 1.60000e-04 5.00220e-05
+        56253  9547  454 9.52421e+05  20030 2.53000e-02 0.00000e+00 0.00000e+00
+        56254  9547  454 9.52421e+05  20040 2.53000e-02 2.10000e-03 6.64080e-04
         """
-        tape = endf6.filter_by(listmf=[8], listmt=[454, 459])
         data = []
-        for mat, mf, mt in tape.data:
-            sec = tape.read_section(mat, mf, mt)
-            zam = sec["ZA"]*10
-            if verbose:
-                logging.info(f"reading 'ZAM={zam}'...")
-            for e in sec["E"]:
-                for zap in sec["E"][e]["ZAP"]:
-                    fy = sec["E"][e]["ZAP"][zap]["FY"]
-                    dfy = sec["E"][e]["ZAP"][zap]["DFY"]
-                    values = (mat, mt, zam, zap, e, fy, dfy)
-                    data.append(dict(zip(cls._columns, values)))
-        df = pd.DataFrame(data)
+        zam = []
+        for (mat, mf, mt) in endf6.keys:
+            sec = endf6.read_section(mat, mf, mt)
+            if mf == 1:
+                zam.append(sec["ZA"] * 10 + sec["LISO"])
+            else:
+                if verbose:
+                    logging.info(f"reading 'MAT={mat}/MT={mt}'...")
+                for e in sec["E"]:
+                    for zap in sec["E"][e]["ZAP"]:
+                        fy = sec["E"][e]["ZAP"][zap]["FY"]
+                        dfy = sec["E"][e]["ZAP"][zap]["DFY"]
+                        values = (mat, mt, zap, e, fy, dfy)
+                        data.append(dict(zip(["MAT", "MT", "ZAP", "E", "FY", "DFY"], values)))
+        df_zam = pd.DataFrame({"MAT": endf6.mat, "ZAM": zam})
+        df = pd.DataFrame(data).merge(df_zam, on='MAT')
         return cls(df)
 
     def to_endf6(self, endf6):
@@ -1046,9 +1061,13 @@ class Fy():
         >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", "all")
         >>> fy = sandy.Fy.from_endf6(tape)
         >>> new_tape = fy.to_endf6(tape)
-        >>> assert new_tape.data == tape.data
+        >>> new_tape.filter_by(listmat= [9640], listmf=[8], listmt=[454, 459])
+        MAT   MF  MT
+        9640  8   454     96245.0000 242.960000          2          0  ...
+                  459     96245.0000 242.960000          2          0  ...
+        dtype: object
         """
-        data_endf6 = endf6.data
+        data_endf6 = endf6.data.copy()
         mf = 8
         for (mat, mt, e), data_fy in self.data.groupby(['MAT', 'MT', 'E']):
             sec = endf6.read_section(mat, mf, mt)
