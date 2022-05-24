@@ -14,6 +14,8 @@ import scipy.sparse as sps
 
 import sandy
 from sandy.shared import expand_zam
+from os.path import join, dirname
+import re
 
 __author__ = "Luca Fiorito"
 __all__ = [
@@ -39,6 +41,62 @@ minimal_fytest_2 = pd.DataFrame([
      [9437, 459, 942390, 601480, 500e3, 0.1 * 2, 0.01]],
     columns=["MAT", "MT", "ZAM", "ZAP", "E", "FY", "DFY"]
     )
+
+def get_chain_yields():
+    """
+    Import chain yields information from data stored in sandy. The
+    information was taken from 'https://www-nds.iaea.org/endf349/la-ur-94-3106.pdf',
+    page 18-29.
+
+    Returns
+    -------
+    df : `pd.Dataframe`
+        Information of the url divided into a dataframe.
+
+    Notes
+    -----
+    ..note :: It is recognized that even smaller independent yields have even
+    larger than 100% error. Indeed, independent yields in the range of 1.0e-9 to
+    1.0e-12 may be difficult to predict to better than a factor of 100. For
+    this reason, all yields less than 1.0e-12 are blanked out.
+
+    Examples
+    --------
+    >>> chain_yields = sandy.fy.get_chain_yields()
+    >>> chain_yields.head()
+        A     ZAM        E         CHY        DCHY
+    0  66  902270  thermal 8.53000e-10 2.72960e-10
+    1  67  902270  thermal 2.16000e-09 6.91200e-10
+    2  68  902270  thermal 8.23000e-09 2.63360e-09
+    3  69  902270  thermal 2.35000e-08 7.52000e-09
+    4  70  902270  thermal 5.19000e-08 1.66080e-08
+    """
+    errors = {'a': 0.0035, 'b': 0.0050, 'c': 0.0070, 'd': 0.01, 'e': 0.014,
+               'f': 0.02, 'g': 0.028, 'h': 0.04,
+               'i': 0.06, 'j': 0.08, 'k': 0.11, 'l': 0.16, 'm': 0.23,
+               'n': 0.32, 'o': 0.45, 'p': 0.64}
+    energy = {'t': "thermal", 'f': "fast", 'h': "high energy",
+              's': 'spontaneous fission'}
+    files = ['appendix A.txt', 'appendix B.txt', 'appendix C.txt',
+             'appendix D.txt', 'appendix E.txt', 'appendix F.txt']
+    #
+    path = join(dirname(__file__), 'appendix', 'chain yields')
+    df = pd.concat([pd.read_csv(join(path, file), sep="\s+", index_col=0) for file in files], axis=1)
+    df.columns.name, df.index.name = "ISO", "A"
+    df = df.stack().rename("Y").reset_index("ISO")
+    # 
+    zam_pattern = re.compile("(?P<SYM>[a-z]+)(?P<A>[0-9]+)(?P<M>[m]*)(?P<E>[a-z]+)", flags=re.IGNORECASE)
+    df["SYM"] = df.ISO.apply(lambda x: zam_pattern.search(x).group("SYM").title())
+    df["A"] = df.ISO.apply(lambda x: zam_pattern.search(x).group("A")).astype(int)
+    df["M"] = df.ISO.apply(lambda x: zam_pattern.search(x).group("M")).astype(bool).astype(int)
+    df["E"] = df.ISO.apply(lambda x: energy[zam_pattern.search(x).group("E")])
+    df["Z"] = df.SYM.apply(lambda x: {v: k for k, v in sandy.ELEMENTS.items()}[x])
+    df["ZAM"] = df.Z * 10000 + df.A * 10 + df.M
+    #
+    df["CHY"] = df.Y.apply(lambda x: x[:-1]).astype(float) / 100
+    df["DCHY"] = df.Y.apply(lambda x: errors[x[-1]]) * df.CHY
+    return df[["ZAM", "E", "CHY", "DCHY"]].sort_values(by=["ZAM", "E"]) \
+                                          .reset_index()
 
 
 class Fy():
