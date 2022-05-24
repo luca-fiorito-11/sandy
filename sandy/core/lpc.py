@@ -279,6 +279,8 @@ class Lpc():
         u_lpc = self.reshape(enew, selected_mat=mat, selected_mt=mt)\
                     .data.unstack(level=['MAT', 'MT'])
         u_lpc = u_lpc.reorder_levels(u_pert.columns.names, axis=1)
+        if 'L' in u_pert.columns.names:
+            u_pert.columns = u_pert.columns.set_names('P', level='L')
         u_lpc.loc[:, u_pert.columns] = u_lpc.loc[:, u_pert.columns]\
                                             .multiply(u_pert, axis='columns')
         u_lpc = u_lpc.stack(level=['MAT', 'MT'])\
