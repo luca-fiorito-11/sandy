@@ -75,7 +75,7 @@ def get_chain_yields():
                'f': 0.02, 'g': 0.028, 'h': 0.04,
                'i': 0.06, 'j': 0.08, 'k': 0.11, 'l': 0.16, 'm': 0.23,
                'n': 0.32, 'o': 0.45, 'p': 0.64}
-    energy = {'t': "thermal", 'f': "fast", 'he': "high energy", 'h': "high energy",
+    energy = {'t': "thermal", 'f': "fast", 'h': "high energy",
               's': 'spontaneous fission'}
     files = ['appendix A.txt', 'appendix B.txt', 'appendix C.txt',
              'appendix D.txt', 'appendix E.txt', 'appendix F.txt']
