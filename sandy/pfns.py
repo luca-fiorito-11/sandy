@@ -186,6 +186,64 @@ class Edistr():
             .sort_index(axis="index") \
             .sort_index(axis="columns")
 
+    def reshape(self, enew):
+        """
+        Reshape the outgoing energy.
+
+        Parameters
+        ----------
+        enew : 1D iterable or `float`
+            new energy grid.
+
+        Returns
+        -------
+        `sandy.Edistr`
+            Energy distribution instance over new grid.
+
+        Examples
+        --------
+        >>> orig = Edistr(minimal_edistrtest)
+        >>> orig.reshape(1.5)
+            MAT  MT  K         EIN        EOUT       VALUE
+        0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
+        1  9437  18  0 1.00000e+00 1.50000e+00 4.00000e-01
+        2  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01
+        3  9437  18  0 2.00000e+00 1.00000e-04 2.00000e-01
+        4  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
+        5  9437  18  0 2.00000e+00 1.50000e+00 7.00000e-01
+        6  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
+
+        >>> orig.reshape([1.5e-5, 1.5, 15e6])
+            MAT  MT  K         EIN        EOUT       VALUE
+        0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
+        1  9437  18  0 1.00000e+00 1.50000e-05 4.00000e-01
+        2  9437  18  0 1.00000e+00 1.50000e+00 4.00000e-01
+        3  9437  18  0 1.00000e+00 1.50000e+07 5.50000e-01
+        4  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01
+        5  9437  18  0 2.00000e+00 1.00000e-04 2.00000e-01
+        6  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
+        7  9437  18  0 2.00000e+00 1.50000e+00 7.00000e-01
+        8  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
+        """
+        enew_ = np.array(enew) if isinstance(enew, np.ndarray) else enew
+
+        def foo(df, enew):
+            df_ = df.loc[:, ["EOUT", "VALUE"]].set_index("EOUT")
+            enew_ = np.union1d(df_.index.values, enew)
+            enew_ = enew_[(enew_ >= df_.index.min()) & (enew_ <= df_.index.max())]
+            new_edistr = sandy.shared.reshape_differential(
+                                                            df_.index.values,
+                                                            df_.values,
+                                                            enew_,
+                                                          )
+            new_edistr = pd.DataFrame(new_edistr, index=enew_,
+                                      columns=df_.columns)
+            new_edistr.index.name = 'EOUT'
+            return new_edistr
+        edistr_reshape = self.data.groupby(['MAT', 'MT', 'K', 'EIN'])\
+                             .apply(foo, enew_).reset_index()
+        return self.__class__(edistr_reshape)
+
     def add_energy_point(self, mat, mt, k, enew):
         """
         Add outgoing energy distribution at one additional incident energy by
@@ -378,7 +436,8 @@ class Edistr():
         df = pd.concat(out)
         return self.__class__(df)
 
-    def custom_perturbation(self, pert, mat, mt, k, ein_low, ein_high):
+    def custom_perturbation(self, pert, mat=None, mt=None, k=None,
+                            ein_low=None, ein_high=None):
         """
         Given a peruration object (fractions), a MAT number, a MT number,
         a subsection number, a lower and an upper incoming energy bound,
@@ -389,16 +448,16 @@ class Edistr():
         ----------
         pert : `sandy.Pert` or `pd.Series`
             perturbation object.
-        mat : `int`
-            MAT number.
+        mat : `int`, optional
+            MAT number. The default is None.
         mt : `int`
-            MT number.
+            MT number. The default is None.
         k : `int`
-            subsection.
-        ein_low : TYPE
-            lower energy boundary in eV.
-        ein_high : TYPE
-            upper energy boundary in eV.
+            subsection.  The default is None.
+        ein_low : `float`, optional
+            lower energy boundary in eV.  The default is None.
+        ein_high : `float`, optional
+            upper energy boundary in eV.  The default is None.
 
         Returns
         -------
@@ -481,7 +540,10 @@ class Edistr():
             mat = df.loc[:, 'MAT'].unique()[0]
             mt = df.loc[:, 'MT'].unique()[0]
             col = pert.columns
-            mask = (mat == col.get_level_values('MAT')) & (mt == col.get_level_values('MT')) & (ein >= col.get_level_values('ELO')) & (ein <= col.get_level_values('EHI'))
+            mask = (mat == col.get_level_values('MAT')) & \
+                   (mt == col.get_level_values('MT')) & \
+                   (ein >= col.get_level_values('ELO')) & \
+                   (ein <= col.get_level_values('EHI'))
             pert_ = pert.loc[:, mask]
             if not pert_.empty:
                 pert_ = pert_.iloc[:, [0]]\
@@ -578,45 +640,3 @@ class Edistr():
         if not data:
             raise sandy.Error("no tabulated energy distribution was found")
         return cls(data)
-
-    def to_endf6(self, endf6):
-        """
-        Update cross sections in `Endf6` instance with those available in a
-        `Fy` instance.
-        Parameters
-        ----------
-        `endf6` : `sandy.Endf6`
-           `Endf6` instance
-        Returns
-        -------
-        `sandy.Endf6`
-           `Endf6` instance with updated IFY and CFY
-        Examples
-        --------
-        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 922380)
-        >>> edistr = sandy.Edistr.from_endf6(endf6)
-        >>> out_endf = edistr.to_endf6(endf6)
-        >>> assert type(out_endf) == sandy.core.endf6.Endf6
-        >>> out_df = out_endf._get_section_df(9237, 5, 18).apply(pd.to_numeric, errors='coerce').fillna(0)
-        >>> input_df = endf6._get_section_df(9237, 5, 18).apply(pd.to_numeric, errors='coerce').fillna(0)
-        >>> assert out_df.equals(input_df)
-        """
-        data = endf6.data.copy()
-        for (mat, mt, k), data_edistr in self.data.groupby(['MAT', 'MT', 'K']):
-            sec = endf6.read_section(mat, 5, mt)
-            new_values = {}
-            mask = f"MAT == {mat} & MT == {mt} & K == {k}"
-            data_ein = data_edistr.query(mask)
-            for ein in data_ein["EIN"].unique():
-                mask = f"EIN == {ein}"
-                new_data = data_ein.query(mask)
-                NBT = len(new_data["EOUT"].values)
-                new_values[ein] = {
-                        "EOUT": new_data["EOUT"].values,
-                        "EDISTR": new_data["VALUE"].values,
-                        "NBT": [NBT],
-                        "INT": [2],
-                        }
-            sec["PDISTR"][k]['EIN'] = new_values
-            data[(mat, 5, mt)] = sandy.sections.mf5.write_mf5(sec)
-        return sandy.Endf6(data)
