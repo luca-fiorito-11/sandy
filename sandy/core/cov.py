@@ -683,16 +683,18 @@ class CategoryCov():
         --------
         Draw 3 sets of samples using custom seed:
         >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11)
-                     0            1
-        0 -7.49455e-01 -2.13159e+00
-        1  1.28607e+00  1.10684e+00
-        2  1.48457e+00  9.00879e-01
+                       0            1
+        SMP
+          0 -7.49455e-01 -2.13159e+00
+          1  1.28607e+00  1.10684e+00
+          2  1.48457e+00  9.00879e-01
 
         >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, rows=1)
-                     0            1
-        0 -7.49455e-01 -2.13159e+00
-        1  1.28607e+00  1.10684e+00
-        2  1.48457e+00  9.00879e-01
+                       0            1
+        SMP
+          0 -7.49455e-01 -2.13159e+00
+          1  1.28607e+00  1.10684e+00
+          2  1.48457e+00  9.00879e-01
 
         >>> sample = sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(1000000, seed=11)
         >>> sample.data.cov()
@@ -702,10 +704,11 @@ class CategoryCov():
 
         Small negative eigenvalue:
         >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, tolerance=0)
-                    0           1
-        0 2.74945e+00 5.21505e+00
-        1 7.13927e-01 1.07147e+00
-        2 5.15435e-01 1.64683e+00
+                      0           1
+        SMP
+          0 2.74945e+00 5.21505e+00
+          1 7.13927e-01 1.07147e+00
+          2 5.15435e-01 1.64683e+00
 
         >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, tolerance=0).data.cov()
                      0            1
@@ -714,16 +717,18 @@ class CategoryCov():
 
         Sampling with different `pdf`:
         >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, pdf='uniform', tolerance=0)
-                     0           1
-        0 -1.07578e-01 2.34960e+00
-        1 -6.64587e-01 5.21222e-01
-        2  8.72585e-01 9.12563e-01
+                       0           1
+        SMP
+          0 -1.07578e-01 2.34960e+00
+          1 -6.64587e-01 5.21222e-01
+          2  8.72585e-01 9.12563e-01
 
         >>> sandy.CategoryCov([[1, .2],[.2, 3]]).sampling(3, seed=11, pdf='lognormal', tolerance=0)
-                    0           1
-        0 3.03419e+00 1.57919e+01
-        1 5.57248e-01 4.74160e-01
-        2 4.72366e-01 6.50840e-01
+                      0           1
+        SMP
+          0 3.03419e+00 1.57919e+01
+          1 5.57248e-01 4.74160e-01
+          2 4.72366e-01 6.50840e-01
 
         >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0).data.cov()
                      0            1
