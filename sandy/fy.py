@@ -1012,19 +1012,19 @@ class Fy():
         >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 'all')
         >>> fy = sandy.Fy.from_endf6(tape)
         >>> fy.data.query("ZAM==952421 & MT==454 & E==0.0253").head()
-                MAT   MT         ZAM    ZAP           E          FY         DFY
-        56250  9547  454 9.52421e+05  10010 2.53000e-02 3.32190e-05 1.17790e-05
-        56251  9547  454 9.52421e+05  10020 2.53000e-02 1.01520e-05 3.52080e-06
-        56252  9547  454 9.52421e+05  10030 2.53000e-02 1.60000e-04 5.00220e-05
-        56253  9547  454 9.52421e+05  20030 2.53000e-02 0.00000e+00 0.00000e+00
-        56254  9547  454 9.52421e+05  20040 2.53000e-02 2.10000e-03 6.64080e-04
+                MAT   MT     ZAM    ZAP           E          FY         DFY
+        56250  9547  454  952421  10010 2.53000e-02 3.32190e-05 1.17790e-05
+        56251  9547  454  952421  10020 2.53000e-02 1.01520e-05 3.52080e-06
+        56252  9547  454  952421  10030 2.53000e-02 1.60000e-04 5.00220e-05
+        56253  9547  454  952421  20030 2.53000e-02 0.00000e+00 0.00000e+00
+        56254  9547  454  952421  20040 2.53000e-02 2.10000e-03 6.64080e-04
         """
         data = []
-        zam = []
+        dict_zam = {}
         for (mat, mf, mt) in endf6.keys:
             sec = endf6.read_section(mat, mf, mt)
             if mf == 1:
-                zam.append(sec["ZA"] * 10 + sec["LISO"])
+                dict_zam[mat] = int(sec["ZA"] * 10 + sec["LISO"])
             else:
                 if verbose:
                     logging.info(f"reading 'MAT={mat}/MT={mt}'...")
@@ -1034,7 +1034,8 @@ class Fy():
                         dfy = sec["E"][e]["ZAP"][zap]["DFY"]
                         values = (mat, mt, zap, e, fy, dfy)
                         data.append(dict(zip(["MAT", "MT", "ZAP", "E", "FY", "DFY"], values)))
-        df_zam = pd.DataFrame({"MAT": endf6.mat, "ZAM": zam})
+        df_zam = pd.DataFrame([dict_zam]).T.reset_index()
+        df_zam.columns = ['MAT', 'ZAM']
         df = pd.DataFrame(data).merge(df_zam, on='MAT')
         return cls(df)
 
