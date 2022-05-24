@@ -181,7 +181,7 @@ class Lpc():
             out = out.filter_by(keys, values)
         return out
 
-    def custom_perturbation(self, mat, mt, p, pert):
+    def custom_perturbation(self, mat=None, mt=None, p=None, pert=None):
         """
         Apply a custom perturbation (energy dependent) to a given
         Legendre polynomial coefficient.
@@ -278,6 +278,8 @@ class Lpc():
         u_pert = pert.reshape(enew).right
         u_lpc = self.reshape(enew, selected_mat=mat, selected_mt=mt)\
                     .data.unstack(level=['MAT', 'MT'])
+        if 'L' in u_pert.columns.names:
+            u_pert.columns = u_pert.columns.set_names('P', level='L')
         u_lpc = u_lpc.reorder_levels(u_pert.columns.names, axis=1)
         u_lpc.loc[:, u_pert.columns] = u_lpc.loc[:, u_pert.columns]\
                                             .multiply(u_pert, axis='columns')

@@ -389,20 +389,20 @@ def pert_by_mf(samples, endf6, mat, i):
     t0 = time.time()
     i_ = i-1
     if 8 in samples:
-        pert_endf6 = custom_perturbation_mf_8(samples[8],
-                                              pert_endf6, mat, i_)
+        pert_endf6 = custom_perturbation_mf_8(samples[8].to_pert(smp=i_),
+                                              pert_endf6, mat,)
     if 31 in samples:
-        pert_endf6 = custom_perturbation_mf_31(samples[31].data.iloc[i_],
+        pert_endf6 = custom_perturbation_mf_31(samples[31].to_pert(smp=i_),
                                                pert_endf6, mat)
     if 33 in samples:
-        pert_endf6 = custom_perturbation_mf_33(samples[33].data.iloc[i_],
-                                               pert_endf6, mat, i_)
+        pert_endf6 = custom_perturbation_mf_33(samples[33].to_pert(smp=i_),
+                                               pert_endf6, mat)
     if 34 in samples:
-        pert_endf6 = custom_perturbation_mf_34(samples[34].data.iloc[i_],
-                                               pert_endf6, mat, i_)
+        pert_endf6 = custom_perturbation_mf_34(samples[34].to_pert(smp=i_),
+                                               pert_endf6, mat)
     if 35 in samples:
-        pert_endf6 = custom_perturbation_mf_35(samples[35].data.iloc[i_],
-                                               pert_endf6, mat, i_)
+        pert_endf6 = custom_perturbation_mf_35(samples[35].to_pert(smp=i_),
+                                               pert_endf6, mat)
     print("Created sample {} for MAT {} in {:.2f} sec"
           .format(i, mat, time.time()-t0,))
     return pert_endf6
@@ -670,9 +670,9 @@ def sampling(iargs=None):
             ftape = ftape.merge_pendf(pendf)
             ftape.to_file(dst)
     # Perturbed endf:
-    pert_endf6 = perturbation_manager(samples, ftape)
-    to_file(pert_endf6)
-    return pert_endf6, samples
+#    pert_endf6 = perturbation_manager(samples, ftape)
+#    to_file(pert_endf6)
+    return samples, ftape
 
 
 def run():
