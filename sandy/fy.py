@@ -1040,7 +1040,7 @@ class Fy():
 
     def to_endf6(self, endf6):
         """
-        Update cross sections in `Endf6` instance with those available in a
+        Update fission yields in `Endf6` instance with those available in a
         `Fy` instance.
 
         .. warning:: only IFY and CFY that are originally
