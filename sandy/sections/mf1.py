@@ -75,6 +75,42 @@ def read_mf1(tape, mat, mt):
     (33, 2, 113418, 7),
     (33, 102, 23060, 7)]
 
+    >>> tape = sandy.get_endf6_file("endfb_71", 'nfpy', 922350)
+    >>> test = read_mf1(tape, 9228, 451)
+    >>> test['SECTIONS']
+    [(1, 451, 17, 2), (8, 454, 2501, 2), (8, 459, 2501, 2)]
+
+    >>> tape = sandy.get_endf6_file("endfb_71", 'decay', 922350)
+    >>> test = read_mf1(tape, 3515, 451)
+    >>> print(test['DESCRIPTION'])
+    *********************** Begin Description ***********************
+    **         ENDF/B-VII.1 RADIOACTIVE DECAY DATA FILE            **
+    **         Produced at the NNDC from the ENSDF database        **
+    **               Translated into ENDF format by:               **
+    **    T.D. Johnson, E.A. McCutchan and A.A. Sonzogni, 2011     **
+    *****************************************************************
+    ENSDF evaluation authors: E. BROWNE
+    Parent Excitation Energy: 0
+    Parent Spin & Parity: 7/2-
+    Parent half-life: 703.8E+6 Y 5
+    Decay Mode: A
+    ************************ Energy  Balance ************************
+    Mean Gamma Energy:      1.486E2 +- 1.440E0 keV
+    Mean X-Ray+511 Energy:  1.553E1 +- 7.609E-1 keV
+    Mean CE+Auger Energy:   4.170E1 +- 1.313E0 keV
+    Mean B- Energy:         0.000E0 +- 0.000E0 keV
+    Mean B+ Energy:         0.000E0 +- 0.000E0 keV
+    Mean Neutrino Energy:   0.000E0 +- 0.000E0 keV
+    Mean Neutron Energy:    0.000E0 +- 0.000E0 keV
+    Mean Proton Energy:     0.000E0 +- 0.000E0 keV
+    Mean Alpha Energy:      4.339E3 +- 1.648E2 keV
+    Mean Recoil Energy:     7.386E1 +- 2.806E0 keV
+    Sum Mean Energies:      4.619E3 +- 1.649E2 keV
+    Q effective:            4.679E3 keV
+    Missing Energy:         5.951E1 keV
+    Deviation:              1.272E0 %
+    ************************ End Description ************************
+
     **mt = 452** :
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350)
     >>> test = sandy.sections.mf1.read_mf1(tape, 9228, 452)
@@ -416,17 +452,17 @@ def _read_intro(tape, mat):
             }
     out.update(add)
     lines = []
-    for j in range(NWD):
+    for j in range(NWD - 5):
         T, i = sandy.read_text(df, i)
         lines.append(T.HL)
     add = "\n".join(lines)
     out.update({
-        "DESCRIPTIION": add,
+        "DESCRIPTION": add,
         })
     try:
         sections = _get_sections(df.iloc[-NXC:])
     except Exception as e:
-        msg = f"reported sections in MAT{mat}/MF1/MT451 are not cosistent"
+        msg = f"reported sections in MAT{mat}/MF1/MT451 are not consistent"
         logging.warning(msg)
         logging.warning(f"captured error: '{e}'")
     else:
