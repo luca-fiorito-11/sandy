@@ -1056,7 +1056,8 @@ class CategoryCov():
         Parameters
         ----------
         s : 1D or 2D iterable
-            General sensitivities (Nx1) or (NxM) with N the size of the `CategoryCov` object.
+            General sensitivities (Nx1) or (NxM) with N the size of the
+            `CategoryCov` object.
 
         Returns
         -------
@@ -1078,10 +1079,10 @@ class CategoryCov():
         >>> cov = sandy.CategoryCov.from_var(var)
         >>> var = sandy.CategoryCov.from_var(s).data
         >>> cov.sandwich(var)
-        	0	1	2
-        0	1.00000e+00	0.00000e+00	0.00000e+00
-        1	0.00000e+00	8.00000e+00	0.00000e+00
-        2	0.00000e+00	0.00000e+00	2.70000e+01
+                    0           1           2
+        0 1.00000e+00 0.00000e+00 0.00000e+00
+        1 0.00000e+00 8.00000e+00 0.00000e+00
+        2 0.00000e+00 0.00000e+00 2.70000e+01
 
         >>> s = pd.DataFrame([[1, 0, 1], [0, 1, 1]], index=[2, 3], columns=[2, 3, 4])
         >>> cov = pd.DataFrame([[1, 0], [0, 1]], index=[2, 3], columns=[2, 3])

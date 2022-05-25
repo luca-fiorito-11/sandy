@@ -807,7 +807,7 @@ class Fy():
                                           decay_data=decay_data)
         else:
             S = S.reindex(index=pd.DataFrame(Vy_extra).index, columns = Vx_prior.index).fillna(0)
-            x_post = sandy.gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra)
+            x_post = sandy.gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra)
             Vx_post = self.gls_cov_update(zam, e, Vy_extra,
                                           kind=kind, decay_data=decay_data)
         # Results in appropriate format:

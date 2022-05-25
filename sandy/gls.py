@@ -6,13 +6,13 @@ assessment of adjustment in matrix form.
 import pandas as pd
 import numpy as np
 import scipy.sparse as sps
+import logging
 import sandy
 
 __author__ = "Aitor Bengoechea"
 __all__ = [
         "gls_update",
         "gls_cov_update",
-        "constrained_gls_update",
         "_y_calc",
         "chi_individual",
         "chi_diag",
@@ -28,7 +28,7 @@ Vy_extra = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 N_e = 1
 
 
-def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra):
+def gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
     """
     Perform the GlS update of a prior vector, given its prior covariance
     matrix, additional info on the model observable and their covariance
@@ -42,20 +42,25 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra):
     ----------
     x_prior : 1D iterable
         Vector to be updated (NX1)
+    S : 2D or 1D iterable
+         Sensitivity matrix (MXN) or sensitivity vector(1xN)
     Vx_prior : 2D iterable
-        2D covariance matrix of x_prior (NXN).
-    Vy_extra : 2D iterable or sigle element 1D iterable
+        2D covariance matrix of x_prior (NXN)
+    y_extra : 1D iterable
+        1D extra info on output (MX1)
+    Vy_extra : 2D iterable or sigle element 1D iterable, optional, default is `None`
         covariance matrix with the uncertainties of the extra information,
         (MXM) or (1x1).
-    S : 2D or 1D iterable
-         Sensitivity matrix (MXN) or sensitivity vector(1xN).
-    y_extra : 1D iterable
-        1D extra info on output (MX1).
 
     Returns
     -------
     `pd.Series`
         updated vector adjusted with the GLS technique.
+
+    Notes
+    -----
+    .. note:: If Vy_extra=None the constraint GLS update technique
+    will be performed
 
     Example
     -------
@@ -64,9 +69,14 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra):
     >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
     >>> Vy_extra = pd.DataFrame([[1, 0], [0, 1]])
     >>> y_extra = [2, 2]
-    >>> gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra)
+    >>> gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra)
     0   2.00000e-01
     1   4.85714e-01
+    dtype: float64
+
+    >>> gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None)
+    0   -2.00000e+00
+    1    2.00000e+00
     dtype: float64
 
     >>> S = [1, 2]
@@ -74,22 +84,26 @@ def gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra):
     >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
     >>> Vy_extra = [1]
     >>> y_extra = [2]
-    >>> gls_update(x_prior, S, Vx_prior, Vy_extra, y_extra)
+    >>> gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra)
     0   8.33333e-01
     1   6.66667e-01
+    dtype: float64
+
+    >>> gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None)
+    0   8.00000e-01
+    1   6.00000e-01
     dtype: float64
     """
     # Put data in a appropiate format
     S_ = pd.DataFrame(S).values
-    if S_.shape[1] == 1:
-        S_ = S_.T
-    x_prior_ = pd.Series(x_prior).values
+    S_ = S_ if S_.shape[1] > 1 else S_.T
+    x_prior_ = pd.Series(x_prior)
+    index = x_prior_.index
+    x_prior_ = x_prior_.values
     Vx_prior_ = pd.DataFrame(Vx_prior).values
-    index = pd.Series(x_prior).index
     y_extra_ = pd.Series(y_extra).values
-    Vy_extra = pd.DataFrame(Vy_extra).values
+    G_inv = _gls_G_inv(Vx_prior_, S_, Vy_extra=Vy_extra).values
     # GLS update
-    G_inv = _gls_G_inv(Vx_prior_, S_, Vy_extra).values
     A = Vx_prior_.dot(S_.T).dot(G_inv)
     y_calc = S_.dot(x_prior_)
     delta = y_extra_ - y_calc
@@ -139,6 +153,11 @@ def gls_cov_update(Vx_prior, S, Vy_extra=None):
     0  6.00000e-01 -4.00000e-01
     1 -4.00000e-01  3.14286e-01
 
+    >>> gls_cov_update(cov, S)
+                 0            1
+    0 -1.77636e-15 -1.77636e-15
+    1  8.88178e-16  0.00000e+00
+
     >>> S = np.array([1, 2])
     >>> cov = sandy.CategoryCov.from_var([1, 1]).data
     >>> Vy = [1]
@@ -146,97 +165,26 @@ def gls_cov_update(Vx_prior, S, Vy_extra=None):
                  0            1
     0  8.33333e-01 -3.33333e-01
     1 -3.33333e-01  3.33333e-01
+
+    >>> gls_cov_update(cov, S)
+                 0            1
+    0  8.00000e-01 -4.00000e-01
+    1 -4.00000e-01  2.00000e-01
     """
-    Vx_prior = pd.DataFrame(Vx_prior)
-    index, columns = Vx_prior.index, Vx_prior.columns
-    Vx_prior = Vx_prior.values
+    # Put data in a appropiate format
+    Vx_prior_ = pd.DataFrame(Vx_prior)
+    index, columns = Vx_prior_.index, Vx_prior_.columns
+    Vx_prior_ = Vx_prior_.values
     s_ = pd.DataFrame(S).values
-    G_inv = _gls_G_inv(Vx_prior, s_, Vy_extra=Vy_extra).values
-    # gls update
+    G_inv = _gls_G_inv(Vx_prior_, s_, Vy_extra=Vy_extra).values
+    # Gls update
     if pd.DataFrame(S).shape[1] == 1:
-        A = np.outer(Vx_prior.dot(s_) * G_inv, s_)
+        A = np.outer(Vx_prior_.dot(s_) * G_inv, s_)
     else:
-        A = Vx_prior.dot(s_.T).dot(G_inv).dot(s_)
-    diff = A.dot(Vx_prior)
-    Vx_post = Vx_prior - diff
+        A = Vx_prior_.dot(s_.T).dot(G_inv).dot(s_)
+    diff = A.dot(Vx_prior_)
+    Vx_post = Vx_prior_ - diff
     return pd.DataFrame(Vx_post, index=index, columns=columns)
-
-
-def constrained_gls_update(x_prior, y_constraint, S, Vx_prior):
-    """
-    Perform Constrained Least-Squares update for a vector to be updated,
-    its covariance matrix, constraint to be introduced and sensitivity:
-    .. math::
-        $$
-        x_{post}^T = x_{prior}^T + \left(y_{constraint}^T - x_{prior}^T \cdot S^T\right) \cdot \left(S\cdot V_{x_{prior}}\cdot S^T \right)^{-1} \cdot S \cdot V_{x_{prior}}
-        $$
-
-    Parameters
-    ----------
-    x_prior : 1D iterable
-        Vector to be updated (NX1)
-    Vx_prior : 2D iterable
-        2D covariance matrix of x_prior (NXN).
-    Vy_extra : 2D iterable or sigle element 1D iterable
-        covariance matrix with the uncertainties of the extra information,
-        (MXM) or (1x1).
-     S : 2D or 1D iterable
-         Sensitivity matrix (MXN) or sensitivity vector (1xN).
-    y_constraint : 1D iterable
-        information that can be used to reﬁne the ﬁt (MX1).
-
-    Returns
-    -------
-    x_post : `pandas.Series`
-        updated vector adjusted with the constrained GLS technique.
-
-    Example
-    -------
-    >>> S = [[1, 2], [3, 4]]
-    >>> x_prior = pd.Series([1, 1])
-    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
-    >>> y_constraint = [2, 2]
-    >>> constrained_gls_update(x_prior, y_constraint, S, Vx_prior)
-    0   -2.00000e+00
-    1    2.00000e+00
-    dtype: float64
-
-    >>> S = [1, 2]
-    >>> x_prior = pd.Series([1, 1])
-    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
-    >>> y_constraint = [2]
-    >>> constrained_gls_update(x_prior, y_constraint, S, Vx_prior)
-    0   8.00000e-01
-    1   6.00000e-01
-    dtype: float64
-
-    >>> S = [[1, 2], [3, 4], [1, 0]]
-    >>> x_prior = pd.Series([1, 1])
-    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
-    >>> y_constraint = [2, 2, 2]
-    >>> constrained_gls_update(x_prior, y_constraint, S, Vx_prior)
-    0    2.50000e-01
-    1   -3.00000e+00
-    dtype: float64
-    """
-    # Data in a appropriate format
-    x_prior_ = pd.Series(x_prior)
-    index = x_prior_.index
-    s_ = pd.DataFrame(S).values
-    Vx_prior_ = pd.DataFrame(Vx_prior).values
-    y_constraint_ = pd.Series(y_constraint).values
-    if s_.shape[1] == 1:
-        s_ = s_.T
-    # Constrained gls calculations
-    y_calc = s_.dot(x_prior_.values)
-    G_inv = _gls_G_inv(Vx_prior_, s_, Vy_extra=None).values
-    delta = y_constraint_ - y_calc
-    A = delta.dot(G_inv)
-    B = A.dot(s_)
-    C = B.dot(Vx_prior_)
-    x_post = x_prior_.values + C
-    x_post = pd.Series(x_post, index=index)
-    return x_post
 
 
 def _gls_G_inv(Vx_prior, s, Vy_extra=None):
@@ -290,12 +238,15 @@ def _gls_G_inv(Vx_prior, s, Vy_extra=None):
     >>> _gls_G_inv(cov, S, Vy)
                 0
     0 1.66667e-01
+
+    >>> _gls_G_inv(cov, S)
+                0
+    0 2.00000e-01
     """
     # GLS_sensitivity:
     cov_ = pd.DataFrame(Vx_prior)
     s_ = pd.DataFrame(s)
-    if s_.shape[1] == 1:
-        s_ = s_.T
+    s_ = s_ if s_.shape[1] > 1 else s_.T
     Vy_calc = sandwich(cov_.values, s_.T.values).values
     if Vy_extra is not None:
         Vy_extra_ = pd.DataFrame(Vy_extra).values
@@ -303,6 +254,10 @@ def _gls_G_inv(Vx_prior, s, Vy_extra=None):
     else:
         G = Vy_calc
     M_nonzero_idxs, M_reduce = reduce_size(G)
+    if abs(np.linalg.det(M_reduce)) < 10e-5:
+        msg = "determinant of the matrix (S*Vprior*S^T + Vextra) " +\
+                f"is {np.linalg.det(M_reduce)}, the inverse becomes unreliable"
+        logging.warning(msg)
     G_inv = np.linalg.inv(M_reduce)
     G_inv = restore_size(M_nonzero_idxs, G_inv, len(G))
     return pd.DataFrame(G_inv)
