@@ -231,7 +231,12 @@ class Xs():
                 print("The input do not have enought information")
         else:
             pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
-        mat_ = pert_.data.columns.get_level_values('MAT').unique()
+
+        if mat is not None:
+            mat_ = [mat] if isinstance(mat, int) else mat
+        else:
+            mat_ = pert_.data.columns.get_level_values('MAT').unique()
+
         for pert_mat in mat_:
             xs = xs._custom_perturbation(pert_, pert_mat, **kwargs)
         return xs
@@ -329,6 +334,11 @@ class Xs():
         enew = enew[(enew <= index.max()) & (enew >= index.min())]
         u_xs = self.reshape(enew).data
         u_pert = pert.reshape(enew).right
+        if mat is not None:
+            u_pert = u_pert.T.query(f"MAT == {mat}").T
+            if u_pert.empty:
+                print(f"{mat} is not in perturbation")
+                return self
         # Redundant xs:
         mt = u_xs.columns.get_level_values('MT')
         mt_pert_o = u_pert.columns.get_level_values('MT')
