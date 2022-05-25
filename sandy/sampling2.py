@@ -7,7 +7,6 @@ Created on Fri Apr  8 08:50:02 2022
 
 import os
 import time
-import pdb
 import shutil
 import sys
 import argparse
@@ -16,7 +15,7 @@ import tempfile
 import multiprocessing as mp
 import platform
 import pytest
-import pdb
+
 
 import numpy as np
 import pandas as pd
@@ -32,8 +31,9 @@ mf_available = [8, 31, 33, 34, 35]
 
 
 class sandy_object():
-    def __init__(self, ftape, mf):
+    def __init__(self, ftape, mf, energy_sequence):
         self.Endf6 = ftape
+        extra_points = np.logspace(-5, 7, energy_sequence) # FALTA METER ESTO.
         if 8 in mf:
             self.Fy = sandy.Fy.from_endf6(ftape)
         if 31 in mf or 33 in mf:
@@ -216,12 +216,12 @@ def get_fy_cov(endf6):
     Parameters
     ----------
     endf6 : `sandy.Endf6`
-        Endf file
+        Endf6 file containing nfpy.
 
     Returns
     -------
     dfperts : `pd.Series`
-        `sandy.core.Samples` objects divided by the MAT, MT and energy.
+        `sandy.core.Samples` objects divided by the MAT, MT and E.
 
     """
     global init
@@ -256,6 +256,9 @@ def get_cov(endf6):
     """
     global init
     cov = {}
+    if init.cov:
+        cov[init.mf[0]] = sandy.CategoryCov.from_csv(init.cov)
+        return cov
     # Covariance of Sandy modules:
     if 8 in init.mf and 8 in endf6.mf:
         cov[8] = get_fy_cov(endf6)
@@ -369,7 +372,7 @@ def perturbation_manager(samples, endf6):
     seq = range(1, init.samples + 1)
     for mat in endf6.to_series().index.get_level_values("MAT").unique():
         tape = endf6.filter_by(listmat=[mat])
-        pert_objects = sandy_object(tape, samples.keys())
+        pert_objects = sandy_object(tape, samples.keys(), init.energy_sequence)
 
         if proc == 1:
             outs = {i: pert_by_mf(samples, pert_objects, i, mat) for i in seq}
@@ -418,20 +421,20 @@ def pert_by_mf(samples, pert_objects, i, mat):
         pert_endf6 = pert_objects.Xs.custom_perturbation(sandy.Pert(pert), mat=mat)\
                                  .to_endf6(pert_endf6)
     elif 31 in samples:
-        pert = samples[31].to_pert(smp=i_).data
-        pert_endf6 = pert_objects.Xs.custom_perturbation(sandy.Pert(pert), mat=mat)\
+        pert = samples[31].to_pert(smp=i_)
+        pert_endf6 = pert_objects.Xs.custom_perturbation(pert, mat=mat)\
                                  .to_endf6(pert_endf6)
     elif 33 in samples:
-        pert = samples[33].to_pert(smp=i_).data
-        pert_endf6 = pert_objects.Xs.custom_perturbation(sandy.Pert(pert), mat=mat)\
+        pert = samples[33].to_pert(smp=i_)
+        pert_endf6 = pert_objects.Xs.custom_perturbation(pert, mat=mat)\
                                  .to_endf6(pert_endf6)
     if 34 in samples:
-        pert = samples[34].to_pert(smp=i_).data
-        pert_endf6 = pert_objects.Lpc.custom_perturbation(sandy.Pert(pert), mat=mat)\
+        pert = samples[34].to_pert(smp=i_)
+        pert_endf6 = pert_objects.Lpc.custom_perturbation(pert, mat=mat)\
                                  .to_endf6(pert_endf6)
     if 35 in samples:
-        pert = samples[35].to_pert(smp=i_).data
-        pert_endf6 = pert_objects.Edistr.custom_perturbation(sandy.Pert(pert), mat=mat)\
+        pert = samples[35].to_pert(smp=i_)
+        pert_endf6 = pert_objects.Edistr.custom_perturbation(pert, mat=mat)\
                                  .to_endf6(pert_endf6)
     print("Created sample {} for MAT {} in {:.2f} sec"
           .format(i, mat, time.time()-t0,))
@@ -510,7 +513,8 @@ def sampling(iargs=None):
         divided as follows:
 
                 {mat: {Number of the sample: `sandy.Endf6`}}
-
+    ftape: 'sandy.Endf6'
+        Original `sandy.Endf6` object withouth perturbed data.
     """
     global init, ftape
     # Command line information and endf6 file information:
