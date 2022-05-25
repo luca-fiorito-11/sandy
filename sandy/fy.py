@@ -14,6 +14,8 @@ import scipy.sparse as sps
 
 import sandy
 from sandy.shared import expand_zam
+from os.path import join, dirname
+import re
 
 __author__ = "Luca Fiorito"
 __all__ = [
@@ -39,6 +41,62 @@ minimal_fytest_2 = pd.DataFrame([
      [9437, 459, 942390, 601480, 500e3, 0.1 * 2, 0.01]],
     columns=["MAT", "MT", "ZAM", "ZAP", "E", "FY", "DFY"]
     )
+
+def get_chain_yields():
+    """
+    Import chain yields information from data stored in sandy. The
+    information was taken from 'https://www-nds.iaea.org/endf349/la-ur-94-3106.pdf',
+    page 18-29.
+
+    Returns
+    -------
+    df : `pd.Dataframe`
+        Information of the url divided into a dataframe.
+
+    Notes
+    -----
+    ..note :: It is recognized that even smaller independent yields have even
+    larger than 100% error. Indeed, independent yields in the range of 1.0e-9 to
+    1.0e-12 may be difficult to predict to better than a factor of 100. For
+    this reason, all yields less than 1.0e-12 are blanked out.
+
+    Examples
+    --------
+    >>> chain_yields = sandy.fy.get_chain_yields()
+    >>> chain_yields.head()
+        A     ZAM        E         CHY        DCHY
+    0  66  902270  thermal 8.53000e-10 2.72960e-10
+    1  67  902270  thermal 2.16000e-09 6.91200e-10
+    2  68  902270  thermal 8.23000e-09 2.63360e-09
+    3  69  902270  thermal 2.35000e-08 7.52000e-09
+    4  70  902270  thermal 5.19000e-08 1.66080e-08
+    """
+    errors = {'a': 0.0035, 'b': 0.0050, 'c': 0.0070, 'd': 0.01, 'e': 0.014,
+               'f': 0.02, 'g': 0.028, 'h': 0.04,
+               'i': 0.06, 'j': 0.08, 'k': 0.11, 'l': 0.16, 'm': 0.23,
+               'n': 0.32, 'o': 0.45, 'p': 0.64}
+    energy = {'t': "thermal", 'f': "fast", 'h': "high energy",
+              's': 'spontaneous fission'}
+    files = ['appendix A.txt', 'appendix B.txt', 'appendix C.txt',
+             'appendix D.txt', 'appendix E.txt', 'appendix F.txt']
+    #
+    path = join(dirname(__file__), 'appendix', 'chain yields')
+    df = pd.concat([pd.read_csv(join(path, file), sep="\s+", index_col=0) for file in files], axis=1)
+    df.columns.name, df.index.name = "ISO", "A"
+    df = df.stack().rename("Y").reset_index("ISO")
+    # 
+    zam_pattern = re.compile("(?P<SYM>[a-z]+)(?P<A>[0-9]+)(?P<M>[m]*)(?P<E>[a-z]+)", flags=re.IGNORECASE)
+    df["SYM"] = df.ISO.apply(lambda x: zam_pattern.search(x).group("SYM").title())
+    df["A"] = df.ISO.apply(lambda x: zam_pattern.search(x).group("A")).astype(int)
+    df["M"] = df.ISO.apply(lambda x: zam_pattern.search(x).group("M")).astype(bool).astype(int)
+    df["E"] = df.ISO.apply(lambda x: energy[zam_pattern.search(x).group("E")])
+    df["Z"] = df.SYM.apply(lambda x: {v: k for k, v in sandy.ELEMENTS.items()}[x])
+    df["ZAM"] = df.Z * 10000 + df.A * 10 + df.M
+    #
+    df["CHY"] = df.Y.apply(lambda x: x[:-1]).astype(float) / 100
+    df["DCHY"] = df.Y.apply(lambda x: errors[x[-1]]) * df.CHY
+    return df[["ZAM", "E", "CHY", "DCHY"]].sort_values(by=["ZAM", "E"]) \
+                                          .reset_index()
 
 
 class Fy():
@@ -927,26 +985,42 @@ class Fy():
         -----
         .. note:: Both independent and cumulative fission product yields are
                   loaded, if found.
+
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 'all')
+        >>> fy = sandy.Fy.from_endf6(tape)
+        >>> fy.data.query("ZAM==952421 & MT==454 & E==0.0253").head()
+                MAT   MT     ZAM    ZAP           E          FY         DFY
+        56250  9547  454  952421  10010 2.53000e-02 3.32190e-05 1.17790e-05
+        56251  9547  454  952421  10020 2.53000e-02 1.01520e-05 3.52080e-06
+        56252  9547  454  952421  10030 2.53000e-02 1.60000e-04 5.00220e-05
+        56253  9547  454  952421  20030 2.53000e-02 0.00000e+00 0.00000e+00
+        56254  9547  454  952421  20040 2.53000e-02 2.10000e-03 6.64080e-04
         """
-        tape = endf6.filter_by(listmf=[8], listmt=[454, 459])
         data = []
-        for mat, mf, mt in tape.data:
-            sec = tape.read_section(mat, mf, mt)
-            zam = sec["ZA"]*10
-            if verbose:
-                logging.info(f"reading 'ZAM={zam}'...")
-            for e in sec["E"]:
-                for zap in sec["E"][e]["ZAP"]:
-                    fy = sec["E"][e]["ZAP"][zap]["FY"]
-                    dfy = sec["E"][e]["ZAP"][zap]["DFY"]
-                    values = (mat, mt, zam, zap, e, fy, dfy)
-                    data.append(dict(zip(cls._columns, values)))
-        df = pd.DataFrame(data)
+        dict_zam = {}
+        for (mat, mf, mt) in endf6.keys:
+            sec = endf6.read_section(mat, mf, mt)
+            if mf == 1:
+                dict_zam[mat] = int(sec["ZA"] * 10 + sec["LISO"])
+            else:
+                if verbose:
+                    logging.info(f"reading 'MAT={mat}/MT={mt}'...")
+                for e in sec["E"]:
+                    for zap in sec["E"][e]["ZAP"]:
+                        fy = sec["E"][e]["ZAP"][zap]["FY"]
+                        dfy = sec["E"][e]["ZAP"][zap]["DFY"]
+                        values = (mat, mt, zap, e, fy, dfy)
+                        data.append(dict(zip(["MAT", "MT", "ZAP", "E", "FY", "DFY"], values)))
+        df_zam = pd.DataFrame([dict_zam]).T.reset_index()
+        df_zam.columns = ['MAT', 'ZAM']
+        df = pd.DataFrame(data).merge(df_zam, on='MAT')
         return cls(df)
 
     def to_endf6(self, endf6):
         """
-        Update cross sections in `Endf6` instance with those available in a
+        Update fission yields in `Endf6` instance with those available in a
         `Fy` instance.
 
         .. warning:: only IFY and CFY that are originally
@@ -967,9 +1041,13 @@ class Fy():
         >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", "all")
         >>> fy = sandy.Fy.from_endf6(tape)
         >>> new_tape = fy.to_endf6(tape)
-        >>> assert new_tape.data == tape.data
+        >>> new_tape.filter_by(listmat= [9640], listmf=[8], listmt=[454, 459])
+        MAT   MF  MT
+        9640  8   454     96245.0000 242.960000          2          0  ...
+                  459     96245.0000 242.960000          2          0  ...
+        dtype: object
         """
-        data_endf6 = endf6.data
+        data_endf6 = endf6.data.copy()
         mf = 8
         for (mat, mt, e), data_fy in self.data.groupby(['MAT', 'MT', 'E']):
             sec = endf6.read_section(mat, mf, mt)

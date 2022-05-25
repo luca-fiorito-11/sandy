@@ -55,6 +55,8 @@ from sandy.libraries import (
     TSL_FILES_JEFF_33_IAEA,
     URL_TSL_JENDL_40U_IAEA,
     TSL_FILES_JENDL_40U_IAEA,
+    URL_N_IRDFF_2_IAEA,
+    N_FILES_IRDFF_2_IAEA,
     )
 
 
@@ -81,6 +83,7 @@ def get_tsl_index(library):
             * `'jeff_33'`
             * `'endfb_80'`
             * `'jendl_40u`
+            * `'irdff_ii`
 
     Raises
     ------
@@ -119,6 +122,7 @@ def get_tsl_index(library):
             "endfb_80".upper(),
             "jeff_33".upper(),
             "jendl_40u".upper(),
+            "irdff_ii".upper(),
             )
     library_ = library.lower()
     if library_ == "endfb_71":
@@ -129,6 +133,8 @@ def get_tsl_index(library):
         index = "https://www-nds.iaea.org/public/download-endf/JEFF-3.3/tsl-index.htm"
     elif library_ == "jendl_40u":
         index = "https://www-nds.iaea.org/public/download-endf/JENDL-4.0u2-20160106/tsl-index.htm"
+    elif library_ == "irdff_ii":
+        index = "https://www-nds.iaea.org/public/download-endf/IRDFF-II/n-index.htm"
     else:
         raise ValueError(
             f"""library '{library}' is not available.
@@ -159,10 +165,10 @@ def get_endf6_file(library, kind, zam, to_file=False):
         nuclear data library. Available libraries are:
         for `xs`
             * `'endfb_71'`
+            * `'endfb_80'`
+            * `'irdff_2'`
             * `'jeff_32'`
             * `'jeff_33'`
-            * `'jeff_40t0'`
-            * `'endfb_80'`
             * `'jendl_40u`
         for 'nfpy'
             * `'endfb_71'`
@@ -185,6 +191,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
               file
             * 'decay' is a Radioactive Decay Data nuclear data file
             * 'tsl' is a Thermal Neutron Scattering Data file
+            * 'eig_val' is Eigenvalues of Covariance Matrices
     zam : `int` or 'all' or iterable
         zam = 'int' (individual nuclides) or iterable (group of nuclides)
             ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
@@ -217,11 +224,6 @@ def get_endf6_file(library, kind, zam, to_file=False):
 
     Examples
     --------
-
-#    Import hydrogen file from JEFF-4.0T0.
-#    >>> tape = sandy.get_endf6_file("jeff_40t0", 'xs', 10010)
-#    >>> assert type(tape) is sandy.Endf6
-
     Import hydrogen file from JEFF-3.3.
     >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 10010)
     >>> assert type(tape) is sandy.Endf6
@@ -289,11 +291,10 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Thermal Neutron Scattering Data from JENDL-4.0u
     >>> tape = sandy.get_endf6_file("jendl_40u", 'tsl', [1, 2, 3])
     >>> assert type(tape) is sandy.Endf6
-
-#    Checked, but the test takes too long(~10 min), that's why it is commented.
-#    Import all Radioactive Decay Data from ENDF/B-VIII.0.
-#    >>> tape = sandy.get_endf6_file("endfb_80", 'decay', 'all')
-#    >>> assert type(tape) is sandy.Endf6
+    
+    Import natural Fe for IRDFF-II
+    >>> tape = sandy.get_endf6_file("irdff_2", "xs", 260000)
+    >>> assert type(tape) is sandy.Endf6
     """
     foo_get = Endf6.from_zipurl
     foo_read = Endf6.read_zipurl
@@ -301,13 +302,13 @@ def get_endf6_file(library, kind, zam, to_file=False):
         available_libs = (
             "jeff_32".upper(),
             "jeff_33".upper(),
-            "jeff_40t0".upper(),
             "endfb_71".upper(),
             "endfb_80".upper(),
             "jendl_40u".upper(),
+            "irdff_2".upper(),
             )
         library_ = library.lower()
-        if library_ == "jeff_40t0":
+        if library_ == "jeff_40t0":  # not allowed anymore since NEA change website
             url = URL_N_JEFF_40T0_NEA
             files = N_FILES_JEFF_40T0_NEA
             foo_read = Endf6.read_url
@@ -329,12 +330,16 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jendl_40u":
             url = URL_N_JENDL_40U_IAEA
             files = N_FILES_JENDL_40U_IAEA
+        elif library_ == "irdff_2":
+            url = URL_N_IRDFF_2_IAEA
+            files = N_FILES_IRDFF_2_IAEA
         else:
             raise ValueError(
                 f"""library '{library}' is not available.
                 Available libraries are: {available_libs}
                 """
                 )
+   
     elif kind == 'nfpy':
         available_libs = (
             "endfb_71".upper(),
@@ -361,7 +366,6 @@ def get_endf6_file(library, kind, zam, to_file=False):
                 Available libraries are: {available_libs}
                 """
                     )
-
     elif kind == 'decay':
         available_libs = (
             "endfb_71".upper(),
@@ -384,7 +388,6 @@ def get_endf6_file(library, kind, zam, to_file=False):
                 Available libraries are: {available_libs}
                 """
                     )
-
     elif kind == 'tsl':
         available_libs = (
             "endfb_71".upper(),
