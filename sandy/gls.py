@@ -153,11 +153,6 @@ def gls_cov_update(Vx_prior, S, Vy_extra=None):
     0  6.00000e-01 -4.00000e-01
     1 -4.00000e-01  3.14286e-01
 
-    >>> gls_cov_update(cov, S)
-                 0            1
-    0 -1.77636e-15 -1.77636e-15
-    1  8.88178e-16  0.00000e+00
-
     >>> S = np.array([1, 2])
     >>> cov = sandy.CategoryCov.from_var([1, 1]).data
     >>> Vy = [1]
