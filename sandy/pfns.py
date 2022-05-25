@@ -497,9 +497,9 @@ class Edistr():
                 return
         else:
             pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
-        return self._custom_perturbation(pert_)
+        return self._custom_perturbation(pert_, mat=mat)
 
-    def _custom_perturbation(self, pert):
+    def _custom_perturbation(self, pert, mat=None):
         """
         Apply the perturbation to the outgoing energy distributions for all
         incident energies comprised within the given boundarie in the pert
@@ -509,6 +509,8 @@ class Edistr():
         ----------
         pert : `sandy.Pert`
             perturbation object
+        mat : `int`, optional
+            MAT number. The default is None.
 
         Returns
         -------
@@ -534,6 +536,11 @@ class Edistr():
         enew = np.union1d(energy_grid, pert.right.index)
         enew = enew[(enew <= energy_grid.max()) & (enew >= energy_grid.min())]
         u_pert = pert.reshape(enew).right
+        if mat is not None:
+            u_pert = u_pert.T.query(f"MAT == {mat}").T
+            if u_pert.empty:
+                print(f"{mat} is not in perturbation")
+                return self
 
         def foo(df, pert):
             ein = df.loc[:, 'EIN'].unique()[0]
