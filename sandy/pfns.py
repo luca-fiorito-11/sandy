@@ -640,3 +640,45 @@ class Edistr():
         if not data:
             raise sandy.Error("no tabulated energy distribution was found")
         return cls(data)
+
+    def to_endf6(self, endf6):
+        """
+        Update cross sections in `Endf6` instance with those available in a
+        `Fy` instance.
+        Parameters
+        ----------
+        `endf6` : `sandy.Endf6`
+           `Endf6` instance
+        Returns
+        -------
+        `sandy.Endf6`
+           `Endf6` instance with updated IFY and CFY
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 922380)
+        >>> edistr = sandy.Edistr.from_endf6(endf6)
+        >>> out_endf = edistr.to_endf6(endf6)
+        >>> assert type(out_endf) == sandy.core.endf6.Endf6
+        >>> out_df = out_endf._get_section_df(9237, 5, 18).apply(pd.to_numeric, errors='coerce').fillna(0)
+        >>> input_df = endf6._get_section_df(9237, 5, 18).apply(pd.to_numeric, errors='coerce').fillna(0)
+        >>> assert out_df.equals(input_df)
+        """
+        data = endf6.data.copy()
+        for (mat, mt, k), data_edistr in self.data.groupby(['MAT', 'MT', 'K']):
+            sec = endf6.read_section(mat, 5, mt)
+            new_values = {}
+            mask = f"MAT == {mat} & MT == {mt} & K == {k}"
+            data_ein = data_edistr.query(mask)
+            for ein in data_ein["EIN"].unique():
+                mask = f"EIN == {ein}"
+                new_data = data_ein.query(mask)
+                NBT = len(new_data["EOUT"].values)
+                new_values[ein] = {
+                        "EOUT": new_data["EOUT"].values,
+                        "EDISTR": new_data["VALUE"].values,
+                        "NBT": [NBT],
+                        "INT": [2],
+                        }
+            sec["PDISTR"][k]['EIN'] = new_values
+            data[(mat, 5, mt)] = sandy.sections.mf5.write_mf5(sec)
+        return sandy.Endf6(data)

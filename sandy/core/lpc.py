@@ -181,7 +181,7 @@ class Lpc():
             out = out.filter_by(keys, values)
         return out
 
-    def custom_perturbation(self, mat=None, mt=None, p=None, pert=None):
+    def custom_perturbation(self, pert, mat=None, mt=None, p=None):
         """
         Apply a custom perturbation (energy dependent) to a given
         Legendre polynomial coefficient.
