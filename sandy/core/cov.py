@@ -13,7 +13,7 @@ import warnings
 import logging
 import tables as tb
 import os
-from sandy.gls import sandwich, gls_cov_update, reduce_size, restore_size
+from sandy.gls import sandwich, _gls_cov_update
 
 import sandy
 import pytest
@@ -1039,7 +1039,16 @@ class CategoryCov():
         0  8.33333e-01 -3.33333e-01
         1 -3.33333e-01  3.33333e-01
         """
-        Vx_post = gls_cov_update(self.data, S, Vy_extra=Vy_extra)
+        idx = self.data.index
+        S_ = pd.DataFrame(S).values
+        if S_.shape[1] == 1:
+            S_ = S_.T
+        if Vy_extra is not None:
+            Vy_extra_ = pd.DataFrame(Vy_extra).values
+            Vx_post = _gls_cov_update(self.data.values, S_, Vy_extra=Vy_extra_)
+        else:
+            Vx_post = _gls_cov_update(self.data.values, S_)
+        Vx_post = pd.DataFrame(Vx_post, index=idx, columns=idx)
         return self.__class__(Vx_post)
 
     def sandwich(self, s):
@@ -1050,13 +1059,13 @@ class CategoryCov():
 
            .. math::
                $$
-               V_R = S^T\cdot V_P\cdot S
+               V_R = S\cdot V_P\cdot S^T
                $$
 
         Parameters
         ----------
         s : 1D or 2D iterable
-            General sensitivities (Nx1) or (NxM) with N the size of the
+            General sensitivities (1xN) or (MxN) with N the size of the
             `CategoryCov` object.
 
         Returns
@@ -1068,7 +1077,8 @@ class CategoryCov():
         Examples
         --------
         >>> var = np.array([1, 2, 3])
-        >>> s = pd.Series([1, 2, 3])
+        >>> s = np.array([[1, 2, 3]])
+        >>> assert s.shape == (1, 3)
         >>> cov = sandy.CategoryCov.from_var(var)
         >>> cov.sandwich(s)
                     0
@@ -1084,7 +1094,7 @@ class CategoryCov():
         1 0.00000e+00 8.00000e+00 0.00000e+00
         2 0.00000e+00 0.00000e+00 2.70000e+01
 
-        >>> s = pd.DataFrame([[1, 0, 1], [0, 1, 1]], index=[2, 3], columns=[2, 3, 4])
+        >>> s = pd.DataFrame([[1, 0, 1], [0, 1, 1]], index=[2, 3], columns=[2, 3, 4]).T
         >>> cov = pd.DataFrame([[1, 0], [0, 1]], index=[2, 3], columns=[2, 3])
         >>> cov = sandy.CategoryCov(cov)
         >>> cov.sandwich(s)
@@ -1093,7 +1103,13 @@ class CategoryCov():
         3 0.00000e+00 1.00000e+00 1.00000e+00
         4 1.00000e+00 1.00000e+00 2.00000e+00
         """
-        return self.__class__(sandwich(self.data, s))
+        s_ = pd.DataFrame(s)
+        index = s_.index
+        sandwich_ = sandwich(self.data.values, s_.values)
+        if len(sandwich_.shape) == 0: 
+            sandwich_ = [sandwich_]
+        sandwich_ = pd.DataFrame(sandwich_, index=index, columns=index)
+        return self.__class__(sandwich_)
 
     def corr2cov(self, std):
         """
@@ -1944,6 +1960,101 @@ def sparse_tables_inv(a, rows=1000):
     f.close()
     os.remove('inv.h5')
     return invert_matrix
+
+
+def reduce_size(data):
+    """
+    Reduces the size of the matrix, erasing the zero values.
+
+    Parameters
+    ----------
+    data : 'pd.DataFrame'
+        Matrix to be reduced.
+
+    Returns
+    -------
+    nonzero_idxs : `numpy.ndarray`
+        The indices of the diagonal that are not null.
+    cov_reduced : `pandas.DataFrame`
+        The reduced matrix.
+
+    Examples
+    --------
+    >>> S = pd.DataFrame(np.diag(np.array([1, 2, 3])))
+    >>> non_zero_index, reduce_matrix = reduce_size(S)
+    >>> assert reduce_matrix.equals(S)
+    >>> assert (non_zero_index == range(3)).all()
+
+    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3])))
+    >>> non_zero_index, reduce_matrix = reduce_size(S)
+    >>> assert (non_zero_index == np.array([1, 2])).all()
+    >>> reduce_matrix
+      1 2
+    1 2 0
+    2 0 3
+
+    >>> S.index = S.columns = ["a", "b", "c"]
+    >>> non_zero_index, reduce_matrix = reduce_size(S)
+    >>> reduce_matrix
+      b c
+    b 2 0
+    c 0 3
+    """
+    data_ = pd.DataFrame(data)
+    nonzero_idxs = np.flatnonzero(np.diag(data_))
+    cov_reduced = data_.iloc[nonzero_idxs, nonzero_idxs]
+    return nonzero_idxs, cov_reduced
+
+
+def restore_size(nonzero_idxs, mat_reduced, dim):
+    """
+    Restore the size of a matrix.
+
+    Parameters
+    ----------
+    nonzero_idxs : `numpy.ndarray`
+        The indices of the diagonal that are not null.
+    mat_reduced : `numpy.ndarray`
+        The reduced matrix.
+    dim : `int`
+        Dimension of the original matrix.
+
+    Returns
+    -------
+    mat : `pd.DataFrame`
+        Matrix of specified dimensions.
+
+    Notes
+    -----
+    ..notes:: This funtion was developed to be used after using
+              `reduce_size`.
+
+    Examples
+    --------
+    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3, 0])))
+    >>> M_nonzero_idxs, M_reduce = reduce_size(S)
+    >>> M_reduce[::] = 1
+    >>> restore_size(M_nonzero_idxs, M_reduce.values, len(S))
+                0           1           2           3
+    0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+    1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+    2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+    3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+
+    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3, 0])), index=[1, 2, 3, 4], columns=[5, 6, 7, 8])
+    >>> M_nonzero_idxs, M_reduce = reduce_size(S)
+    >>> M_reduce[::] = 1
+    >>> restore_size(M_nonzero_idxs, M_reduce.values, len(S))
+                0           1           2           3
+    0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+    1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+    2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
+    3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
+    """
+    mat = np.zeros((dim, dim))
+    for i, ni in enumerate(nonzero_idxs):
+        mat[ni, nonzero_idxs] = mat_reduced[i]
+    return pd.DataFrame(mat)
 
 
 def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):

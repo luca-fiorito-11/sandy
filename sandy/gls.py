@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 This module contains all classes and functions specific for processing GLS and
-assessment of adjustment in matrix form.
+assessment of adjustment. It handles only numpy.ndarray.
 """
 import pandas as pd
 import numpy as np
@@ -12,7 +12,8 @@ import sandy
 __author__ = "Aitor Bengoechea"
 __all__ = [
         "gls_update",
-        "gls_cov_update",
+        "_gls_parameters_update",
+        "_gls_cov_update",
         "_y_calc",
         "chi_individual",
         "chi_diag",
@@ -27,8 +28,65 @@ Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
 Vy_extra = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 N_e = 1
 
-
 def gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
+    """
+    Perform the GlS update of a prior vector and its related covariance matrix,
+    according with
+    https://www.tandfonline.com/action/journalInformation?journalCode=tnst2
+    .. math::
+        $$
+        x_{post} = x_{prior} + V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)\\
+        V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
+        $$
+
+    Parameters
+    ----------
+    x_prior : 1D iterable
+        Vector to be updated (NX1)
+    S : 2D or 1D iterable
+         Sensitivity matrix (MXN) or sensitivity vector(1xN)
+    Vx_prior : 2D iterable
+        2D covariance matrix of x_prior (NXN)
+    y_extra : 1D iterable
+        1D extra info on output (MX1)
+    Vy_extra : 2D iterable or sigle element 1D iterable, optional, default is `None`
+        covariance matrix with the uncertainties of the extra information,
+        (MXM) or (1x1).
+
+    Returns
+    -------
+    `numpy.ndarray`
+        updated vector adjusted with the GLS technique
+    `numpy.ndarray`
+        updated covariance matrix adjusted with the GLS technique
+
+    Notes
+    -----
+    .. note:: If Vy_extra=None the constraint GLS update technique
+    will be performed
+
+    Example
+    -------
+    >>> S = [[1, 2], [3, 4]]
+    >>> x_prior = pd.Series([1, 1])
+    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data.values
+    >>> Vy_extra = pd.DataFrame([[1, 0], [0, 1]]).values
+    >>> y_extra = [2, 2]
+    >>> gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra)
+    (array([0.2       , 0.48571429]),
+     array([[ 0.6       , -0.4       ],
+            [-0.4       ,  0.31428571]]))
+
+    >>> y_constraint = y_extra
+    >>> gls_update(x_prior, S, Vx_prior, y_constraint)[0]
+    array([-2.,  2.])
+    """
+    x_post = _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra)
+    Vx_post = _gls_cov_update(Vx_prior, S, Vy_extra)
+    return x_post, Vx_post
+
+
+def _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
     """
     Perform the GlS update of a prior vector, given its prior covariance
     matrix, additional info on the model observable and their covariance
@@ -54,7 +112,7 @@ def gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
 
     Returns
     -------
-    `pd.Series`
+    `numpy.ndarray`
         updated vector adjusted with the GLS technique.
 
     Notes
@@ -66,53 +124,42 @@ def gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
     -------
     >>> S = [[1, 2], [3, 4]]
     >>> x_prior = pd.Series([1, 1])
-    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
-    >>> Vy_extra = pd.DataFrame([[1, 0], [0, 1]])
+    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data.values
+    >>> Vy_extra = pd.DataFrame([[1, 0], [0, 1]]).values
     >>> y_extra = [2, 2]
-    >>> gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra)
-    0   2.00000e-01
-    1   4.85714e-01
-    dtype: float64
+    >>> _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra)
+    array([0.2       , 0.48571429])
 
-    >>> gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None)
-    0   -2.00000e+00
-    1    2.00000e+00
-    dtype: float64
+    >>> _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None)
+    array([-2.,  2.])
 
     >>> S = [1, 2]
-    >>> x_prior = pd.Series([1, 1])
-    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data
+    >>> x_prior = pd.Series([1, 1]).values
+    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data.values
     >>> Vy_extra = [1]
     >>> y_extra = [2]
-    >>> gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra)
-    0   8.33333e-01
-    1   6.66667e-01
-    dtype: float64
+    >>> _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra)
+    array([0.83333333, 0.66666667])
 
-    >>> gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None)
-    0   8.00000e-01
-    1   6.00000e-01
-    dtype: float64
+    >>> _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None)
+    array([0.8, 0.6])
     """
     # Put data in a appropiate format
-    S_ = pd.DataFrame(S).values
-    S_ = S_ if S_.shape[1] > 1 else S_.T
-    x_prior_ = pd.Series(x_prior)
-    index = x_prior_.index
-    x_prior_ = x_prior_.values
-    Vx_prior_ = pd.DataFrame(Vx_prior).values
-    y_extra_ = pd.Series(y_extra).values
-    G_inv = _gls_G_inv(Vx_prior_, S_, Vy_extra=Vy_extra).values
+    S_ = np.array(S)
+    x_prior_ = np.array(x_prior)
+    Vx_prior_ = np.array(Vx_prior)
+    y_extra_ = np.array(y_extra)
+    G_inv = _gls_G_inv(Vx_prior_, S_, Vy_extra=Vy_extra)
+    S_ = np.array([S]) if len(S_.shape) == 1 else S_
     # GLS update
     A = Vx_prior_.dot(S_.T).dot(G_inv)
     y_calc = S_.dot(x_prior_)
     delta = y_extra_ - y_calc
     x_post = x_prior_ + A.dot(delta)
-    x_post = pd.Series(x_post, index=index)
     return x_post
 
 
-def gls_cov_update(Vx_prior, S, Vy_extra=None):
+def _gls_cov_update(Vx_prior, S, Vy_extra=None):
     """
     Perform GlS update for a given covariance matrix, sensitivity and
     covariance matrix of the extra information, according with
@@ -135,7 +182,7 @@ def gls_cov_update(Vx_prior, S, Vy_extra=None):
 
     Returns
     -------
-    `pd.DataFrame`
+    `numpy.ndarray`
        updated covariance matrix adjusted with the GLS technique.
 
     Notes
@@ -146,40 +193,35 @@ def gls_cov_update(Vx_prior, S, Vy_extra=None):
     Example
     -------
     >>> S = np.array([[1, 2], [3, 4]])
-    >>> cov = sandy.CategoryCov.from_var([1, 1]).data
+    >>> cov = sandy.CategoryCov.from_var([1, 1]).data.values
     >>> Vy = np.diag(pd.Series([1, 1]))
-    >>> gls_cov_update(cov, S, Vy)
-                 0            1
-    0  6.00000e-01 -4.00000e-01
-    1 -4.00000e-01  3.14286e-01
+    >>> _gls_cov_update(cov, S, Vy)
+    array([[ 0.6       , -0.4       ],
+           [-0.4       ,  0.31428571]])
 
     >>> S = np.array([1, 2])
-    >>> cov = sandy.CategoryCov.from_var([1, 1]).data
+    >>> cov = sandy.CategoryCov.from_var([1, 1]).data.values
     >>> Vy = [1]
-    >>> gls_cov_update(cov, S, Vy)
-                 0            1
-    0  8.33333e-01 -3.33333e-01
-    1 -3.33333e-01  3.33333e-01
+    >>> _gls_cov_update(cov, S, Vy)
+    array([[ 0.83333333, -0.33333333],
+           [-0.33333333,  0.33333333]])
 
-    >>> gls_cov_update(cov, S)
-                 0            1
-    0  8.00000e-01 -4.00000e-01
-    1 -4.00000e-01  2.00000e-01
+    >>> _gls_cov_update(cov, S)
+    array([[ 0.8, -0.4],
+           [-0.4,  0.2]])
     """
     # Put data in a appropiate format
-    Vx_prior_ = pd.DataFrame(Vx_prior)
-    index, columns = Vx_prior_.index, Vx_prior_.columns
-    Vx_prior_ = Vx_prior_.values
-    s_ = pd.DataFrame(S).values
-    G_inv = _gls_G_inv(Vx_prior_, s_, Vy_extra=Vy_extra).values
+    Vx_prior_ = np.array(Vx_prior)
+    s_ = np.array(S)
+    G_inv = _gls_G_inv(Vx_prior_, s_, Vy_extra=Vy_extra)
     # Gls update
-    if pd.DataFrame(S).shape[1] == 1:
+    if len(s_.shape) == 1:
         A = np.outer(Vx_prior_.dot(s_) * G_inv, s_)
     else:
         A = Vx_prior_.dot(s_.T).dot(G_inv).dot(s_)
     diff = A.dot(Vx_prior_)
     Vx_post = Vx_prior_ - diff
-    return pd.DataFrame(Vx_post, index=index, columns=columns)
+    return Vx_post
 
 
 def _gls_G_inv(Vx_prior, s, Vy_extra=None):
@@ -202,71 +244,65 @@ def _gls_G_inv(Vx_prior, s, Vy_extra=None):
 
     Returns
     -------
-    `pandas.DataFrame`
+    `numpy.ndarray`
         matrix calculated using the formula inserted in the description
 
     Notes
     -----
-    .. note:: If the matrix computed with $S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}$
-    has zero columns or vectors, it will result singular. In this case
-    the invertion is performed considering a reduced matrix; then the size of
-    the matrix is restored introducing the null values.
+    .. note:: If the matrix computed with
+    $S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}$ has determinant close to
+    zero the (Moore-Penrose) pseudo-inverse will be performed.
 
     Example
     -------
     >>> S = np.array([[1, 2], [3, 4]])
-    >>> cov = sandy.CategoryCov.from_var([1, 1]).data
+    >>> cov = sandy.CategoryCov.from_var([1, 1]).data.values
     >>> Vy = np.diag(pd.Series([1, 1]))
     >>> _gls_G_inv(cov, S, Vy)
-                 0            1
-    0  7.42857e-01 -3.14286e-01
-    1 -3.14286e-01  1.71429e-01
+    array([[ 0.74285714, -0.31428571],
+           [-0.31428571,  0.17142857]])
 
     >>> _gls_G_inv(cov, S)
-                 0            1
-    0  6.25000e+00 -2.75000e+00
-    1 -2.75000e+00  1.25000e+00
+    array([[ 6.25, -2.75],
+           [-2.75,  1.25]])
 
     >>> S = np.array([1, 2])
-    >>> cov = sandy.CategoryCov.from_var([1, 1]).data
+    >>> cov = sandy.CategoryCov.from_var([1, 1]).data.values
     >>> Vy = [1]
     >>> _gls_G_inv(cov, S, Vy)
-                0
-    0 1.66667e-01
+    array([[0.16666667]])
 
     >>> _gls_G_inv(cov, S)
-                0
-    0 2.00000e-01
+    array([[0.2]])
     """
-    # GLS_sensitivity:
-    cov_ = pd.DataFrame(Vx_prior)
-    s_ = pd.DataFrame(s)
-    s_ = s_ if s_.shape[1] > 1 else s_.T
-    Vy_calc = sandwich(cov_.values, s_.T.values).values
+    # GLS sensitivity:
+    cov_ = np.array(Vx_prior)
+    s_ = np.array(s)
+    Vy_calc = sandwich(cov_, s_)
     if Vy_extra is not None:
-        Vy_extra_ = pd.DataFrame(Vy_extra).values
+        Vy_extra_ = np.array(Vy_extra)
         G = Vy_calc + Vy_extra_
     else:
         G = Vy_calc
-    M_nonzero_idxs, M_reduce = reduce_size(G)
-    if abs(np.linalg.det(M_reduce)) < 10e-5:
+    if len(G.shape) > 1 and abs(np.linalg.det(G)) < 10e-5:
         msg = "determinant of the matrix (S*Vprior*S^T + Vextra) " +\
-                f"is {np.linalg.det(M_reduce)}, the inverse becomes unreliable"
+                f"is {np.linalg.det(G)}, the inverse becomes unreliable"
         logging.warning(msg)
-    G_inv = np.linalg.inv(M_reduce)
-    G_inv = restore_size(M_nonzero_idxs, G_inv, len(G))
-    return pd.DataFrame(G_inv)
+    # Compute the (Moore-Penrose) pseudo-inverse of a matrix.
+    # It will converge to the inverse if the matrix G is not singular
+    G_inv = np.linalg.pinv(G)
+    return G_inv
 
 
 def sandwich(cov, s):
     """
     Apply the "sandwich formula" to the covariance matrix passed for a given
-    sensitivity. According with http://dx.doi.org/10.1016/j.anucene.2015.10.027,
+    sensitivity. According with https://doi.org/10.1155/2013/380284,
     the moment propagation equation is implemented as:
 
        .. math::
            $$
-           V_R = S^T\cdot V_P\cdot S
+           V_R = S\cdot V_P\cdot S^T
            $$
 
     Parameters
@@ -274,133 +310,36 @@ def sandwich(cov, s):
     cov : 2D iterable
         Parameter covariance matrix (NxN)
     s : 1D or 2D iterable
-        General sensitivities (Nx1) or (NxM)
+        General sensitivities (1xN) or (MxN)
 
     Returns
     -------
-    `pandas.DataFrame`
+    `numpy.ndarray`
+        2D iterable,
         response covariance matrix obtained with the sandwich formula.
 
     Examples
     --------
     >>> var = np.array([1, 2, 3])
     >>> s = pd.Series([1, 2, 3])
-    >>> cov = sandy.CategoryCov.from_var(var).data
+    >>> cov = sandy.CategoryCov.from_var(var).data.values
     >>> sandwich(cov, s)
-                0
-    0 3.60000e+01
+    array([[36.]])
 
     >>> s = np.array([1, 2, 3])
-    >>> var = pd.Series([1, 2, 3])
-    >>> cov = sandy.CategoryCov.from_var(var).data
-    >>> var = sandy.CategoryCov.from_var(s).data
-    >>> sandwich(cov, var)
-                0           1           2
-    0 1.00000e+00 0.00000e+00 0.00000e+00
-    1 0.00000e+00 8.00000e+00 0.00000e+00
-    2 0.00000e+00 0.00000e+00 2.70000e+01
+    >>> cov = sandy.CategoryCov.from_var([1, 2, 3]).data.values
+    >>> s_matrix = sandy.CategoryCov.from_var(s).data.values
+    >>> sandwich(cov, s_matrix)
+    array([[ 1.,  0.,  0.],
+           [ 0.,  8.,  0.],
+           [ 0.,  0., 27.]])
     """
-    s_ = pd.DataFrame(s)
-    index = s_.columns
-    cov_ = pd.DataFrame(cov).values
-    Vy_calc = s_.T.values.dot(cov_).dot(s_.values)
-    sandwich = pd.DataFrame(Vy_calc, index=index, columns=index)
-    return sandwich
-
-
-def reduce_size(data):
-    """
-    Reduces the size of the matrix, erasing the zero values.
-
-    Parameters
-    ----------
-    data : 'pd.DataFrame'
-        Matrix to be reduced.
-
-    Returns
-    -------
-    nonzero_idxs : `numpy.ndarray`
-        The indices of the diagonal that are not null.
-    cov_reduced : `pandas.DataFrame`
-        The reduced matrix.
-
-    Examples
-    --------
-    >>> S = pd.DataFrame(np.diag(np.array([1, 2, 3])))
-    >>> non_zero_index, reduce_matrix = reduce_size(S)
-    >>> assert reduce_matrix.equals(S)
-    >>> assert (non_zero_index == range(3)).all()
-
-    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3])))
-    >>> non_zero_index, reduce_matrix = reduce_size(S)
-    >>> assert (non_zero_index == np.array([1, 2])).all()
-    >>> reduce_matrix
-      1 2
-    1 2 0
-    2 0 3
-
-    >>> S.index = S.columns = ["a", "b", "c"]
-    >>> non_zero_index, reduce_matrix = reduce_size(S)
-    >>> reduce_matrix
-      b c
-    b 2 0
-    c 0 3
-    """
-    data_ = pd.DataFrame(data)
-    nonzero_idxs = np.flatnonzero(np.diag(data_))
-    cov_reduced = data_.iloc[nonzero_idxs, nonzero_idxs]
-    return nonzero_idxs, cov_reduced
-
-
-def restore_size(nonzero_idxs, mat_reduced, dim):
-    """
-    Restore the size of a matrix.
-
-    Parameters
-    ----------
-    nonzero_idxs : `numpy.ndarray`
-        The indices of the diagonal that are not null.
-    mat_reduced : `numpy.ndarray`
-        The reduced matrix.
-    dim : `int`
-        Dimension of the original matrix.
-
-    Returns
-    -------
-    mat : `pd.DataFrame`
-        Matrix of specified dimensions.
-
-    Notes
-    -----
-    ..notes:: This funtion was developed to be used after using
-              `reduce_size`.
-
-    Examples
-    --------
-    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3, 0])))
-    >>> M_nonzero_idxs, M_reduce = reduce_size(S)
-    >>> M_reduce[::] = 1
-    >>> restore_size(M_nonzero_idxs, M_reduce.values, len(S))
-                0           1           2           3
-    0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-    1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
-    2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
-    3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-
-    >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3, 0])), index=[1, 2, 3, 4], columns=[5, 6, 7, 8])
-    >>> M_nonzero_idxs, M_reduce = reduce_size(S)
-    >>> M_reduce[::] = 1
-    >>> restore_size(M_nonzero_idxs, M_reduce.values, len(S))
-                0           1           2           3
-    0 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-    1 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
-    2 0.00000e+00 1.00000e+00 1.00000e+00 0.00000e+00
-    3 0.00000e+00 0.00000e+00 0.00000e+00 0.00000e+00
-    """
-    mat = np.zeros((dim, dim))
-    for i, ni in enumerate(nonzero_idxs):
-        mat[ni, nonzero_idxs] = mat_reduced[i]
-    return pd.DataFrame(mat)
+    s_ = np.array(s)
+    cov_ = np.array(cov)
+    sandwich = s_.dot(cov_).dot(s_.T)
+    if isinstance(sandwich, float):
+        sandwich = [[sandwich]]
+    return np.array(sandwich)
 
 
 def _y_calc(x_prior, S):
@@ -472,7 +411,7 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
 
     Returns
     -------
-    `pd.Series`
+    `numpy.ndarray`
         individual chi-value measured in sigmas.
 
     Results:
@@ -489,31 +428,22 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
     >>> Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
     >>> Vy_extra = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3], columns=[1, 2, 3])
     >>> chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra)
-    1   1.00000e+00
-    2   5.00000e-01
-    3   3.33333e-01
-    dtype: float64
+    array([1.        , 0.5       , 0.33333333])
     """
     # Data in a appropriate format
-    Vx_prior_ = sandy.CategoryCov(Vx_prior).data
-    y_extra_ = pd.Series(y_extra)
-    S_ = pd.DataFrame(S)
-    union_index = S_.columns.union(Vx_prior_.index)
-    S_ = S_.reindex(columns=union_index).fillna(0)
-    Vx_prior_ = sandy.CategoryCov(Vx_prior_.reindex(columns=union_index,
-                                                    index=union_index).fillna(0))
+    x_prior_ = np.array(x_prior)
+    Vx_prior_ = np.array(Vx_prior)
+    y_extra_ = np.array(y_extra)
+    S_ = np.array(S)
     # Model calculations
-    y_calc_ = _y_calc(x_prior, S_)
-    S_ = S_.reindex(index=y_extra_.index).fillna(0)
-    y_calc_ = y_calc_.reindex(index=y_extra_.index).fillna(0).values
-    # Chi individual calculations
-    G = sandwich(Vx_prior_.data, S_.T,)
+    y_calc_ = S_.dot(x_prior_)
+    G = sandwich(Vx_prior_, S_.T)
     if Vy_extra is not None:
-        Vy_extra_ = pd.DataFrame(Vy_extra)
+        Vy_extra_ = np.array(Vy_extra)
         G = G + Vy_extra_
     G = np.sqrt(np.diag(G))
-    delta = np.abs(y_extra_.values - y_calc_)
-    return pd.Series(delta / G, index=y_extra_.index)
+    delta = np.abs(y_extra_ - y_calc_)
+    return delta / G
 
 
 def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
@@ -538,7 +468,7 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
 
     Returns
     -------
-    `pd.Series`
+    `numpy.ndarray`
         diagonal chi-value
 
     Results:
@@ -556,28 +486,19 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
     >>> Vy_extra = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3], columns=[1, 2, 3])
     >>> N_e = 1
     >>> chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra)
-    1   1.00000e+00
-    2   2.00000e+00
-    3   3.00000e+00
-    dtype: float64
+    array([1., 2., 3.])
     """
     # Data in a appropriate format
-    Vx_prior_ = sandy.CategoryCov(Vx_prior).data
-    y_extra_ = pd.Series(y_extra)
-    S_ = pd.DataFrame(S)
-    union_index = S_.columns.union(Vx_prior_.index)
-    S_ = S_.reindex(columns=union_index).fillna(0)
-    Vx_prior_ = sandy.CategoryCov(Vx_prior_.reindex(columns=union_index,
-                                                    index=union_index).fillna(0))
+    Vx_prior_ = np.array(Vx_prior)
+    y_extra_ = np.array(y_extra)
+    S_ = np.array(S)
     # Model calculations
-    y_calc_ = _y_calc(x_prior, S_)
-    S_ = S_.reindex(index=y_extra_.index).fillna(0)
-    y_calc_ = y_calc_.reindex(index=y_extra_.index).fillna(0).values
-    G_inv = _gls_G_inv(Vx_prior_.data, S_, Vy_extra=Vy_extra).values
+    y_calc_ = S_.dot(x_prior)
+    G_inv = _gls_G_inv(Vx_prior_, S_, Vy_extra=Vy_extra)
     # Chi diagonal calculations
     G_inv = np.sqrt(np.diag(G_inv))
-    delta = np.abs(y_extra_.values - y_calc_)
-    return pd.Series(delta / G_inv, index=y_extra_.index)
+    delta = np.abs(y_extra_ - y_calc_)
+    return delta / G_inv
 
 
 def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
@@ -603,7 +524,7 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
 
     Returns
     -------
-    `pd.Series`
+    `numpy.ndarray`
         contribution to chi-square value
 
     Results:
@@ -619,28 +540,19 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
     >>> Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
     >>> Vy_extra = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3], columns=[1, 2, 3])
     >>> chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e)
-    1   1.00000e+00
-    2   2.50000e-01
-    3   1.11111e-01
-    dtype: float64
+    array([1.        , 0.25      , 0.11111111])
     """
     # Data in a appropriate format
-    Vx_prior_ = sandy.CategoryCov(Vx_prior).data
-    y_extra_ = pd.Series(y_extra)
-    S_ = pd.DataFrame(S)
-    union_index = S_.columns.union(Vx_prior_.index)
-    S_ = S_.reindex(columns=union_index).fillna(0)
-    Vx_prior_ = sandy.CategoryCov(Vx_prior_.reindex(columns=union_index,
-                                                    index=union_index).fillna(0))
+    Vx_prior_ = np.array(Vx_prior)
+    y_extra_ = np.array(y_extra)
+    S_ = np.array(S)
     # Model calculations
-    y_calc_ = _y_calc(x_prior, S_)
-    S_ = S_.reindex(index=y_extra_.index).fillna(0)
-    y_calc_ = y_calc_.reindex(index=y_extra_.index).fillna(0).values
-    G_inv = _gls_G_inv(Vx_prior_.data, S_, Vy_extra).values
+    y_calc_ = S_.dot(x_prior)
+    G_inv = _gls_G_inv(Vx_prior_, S_, Vy_extra)
     # Chi square calculations
-    delta = y_extra_.values - y_calc_
+    delta = y_extra_ - y_calc_
     chi_square = delta.T.dot(G_inv) * delta / N_e
-    return pd.Series(chi_square, index=y_extra_.index)
+    return chi_square
 
 
 def ishikawa_factor(S, Vx_prior, Vy_extra):
@@ -660,7 +572,7 @@ def ishikawa_factor(S, Vx_prior, Vy_extra):
 
     Returns
     -------
-    `pd.Series`
+    `numpy.ndarray`
         Ishikawa factor.
 
     Results:
@@ -677,24 +589,15 @@ def ishikawa_factor(S, Vx_prior, Vy_extra):
     Example
     -------
     >>> ishikawa_factor(S, Vx_prior, Vy_extra)
-    0   0.00000e+00
-    1   3.00000e+00
-    2   8.00000e+00
-    dtype: float64
+    array([0., 3., 8.])
     """
     # Data in a appropriate format
-    Vx_prior_ = sandy.CategoryCov(Vx_prior).data
-    Vy_extra_ = pd.DataFrame(Vy_extra)
-    index = Vy_extra_.index
-    S_ = pd.DataFrame(S)
-    union_index = S_.columns.union(Vx_prior_.index)
-    S_ = S_.reindex(columns=union_index).fillna(0)
-    Vx_prior_ = sandy.CategoryCov(Vx_prior_.reindex(columns=union_index,
-                                                    index=union_index).fillna(0))
+    Vx_prior_ = np.array(Vx_prior)
+    Vy_extra_ = np.array(Vy_extra)
+    S_ = np.array(S)
     # Model calculations
-    Vy_calc_ = sandwich(Vx_prior_.data, S_.T)
-    Vy_calc_ = Vy_calc_.reindex(index=index, columns=index).fillna(0)
+    Vy_calc_ = sandwich(Vx_prior_, S_)
     # Ishikawa factor calculations
     Vy_values = np.diag(Vy_calc_)
-    Vy_extra_ = np.diag(Vy_extra_.values)
-    return pd.Series(Vy_values / Vy_extra_, index=index)
+    Vy_extra_ = np.diag(Vy_extra_)
+    return Vy_values / Vy_extra_
