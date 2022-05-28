@@ -1881,37 +1881,6 @@ def sparse_tables_dot(a, b, rows=1000):
     return dot_product
 
 
-#def sparse_tables_dot_multiple(matrix_list, rows=1000):
-    """
-    Function to perform multiplications between matrices stored on local
-    disk instead of memory.
-
-    Parameters
-    ----------
-    matrix_list : 1D iterables
-        Iterable with the matrix inside
-    rows : `int`, optional.
-        Number of rows to be calculated in each loop. The default is 1000.
-
-    Returns
-    -------
-    matrix : "scipy.sparse.csc_matrix"
-        Result of the multiplication of 2 matrix.
-
-    Example
-    -------
-    >>> S = np.array([[1, 2], [3, 4]])
-    >>> cov = sandy.CategoryCov.from_var([1, 1]).data.values
-    >>> sparse_tables_dot_multiple([S, cov, S.T], 1).toarray()
-    array([[ 5., 11.],
-           [11., 25.]])
-    """
-#    matrix = matrix_list[0]
-#    for b in matrix_list[1::]:
-#        intermediate_matrix = sparse_tables_dot(matrix, b, rows=rows)
-#        matrix = intermediate_matrix
-#    return matrix
-
 def sparse_tables_inv(a, rows=1000):
     """
     Function to perform matrix inversion stored on local
@@ -2025,6 +1994,70 @@ def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):
     return pivot_matrix
 
 
+def triu_matrix(matrix, kind='upper'):
+    """
+    Given the upper or lower triangular matrix , return the full symmetric
+    matrix.
+
+    Parameters
+    ----------
+    matrix : 2d iterable
+        Upper triangular matrix
+    kind : `str`, optional
+        Select if matrix variable is upper or lower triangular matrix. The
+        default is 'upper'
+
+    Returns
+    -------
+    `pd.Dataframe`
+        reconstructed symmetric matrix
+
+    Examples
+    --------
+    >>> S = pd.DataFrame(np.array([[1, 2, 1], [0, 2, 4], [0, 0, 3]]))
+    >>> triu_matrix(S).data
+                0           1           2
+    0 1.00000e+00 2.00000e+00 1.00000e+00
+    1 2.00000e+00 2.00000e+00 4.00000e+00
+    2 1.00000e+00 4.00000e+00 3.00000e+00
+
+    Overwrite the lower triangular part of the matrix:
+    >>> S = pd.DataFrame(np.array([[1, 2, 1], [-8, 2, 4], [-6, -5, 3]]))
+    >>> triu_matrix(S).data
+                0           1           2
+    0 1.00000e+00 2.00000e+00 1.00000e+00
+    1 2.00000e+00 2.00000e+00 4.00000e+00
+    2 1.00000e+00 4.00000e+00 3.00000e+00
+
+    Test for lower triangular matrix:
+    >>> S = pd.DataFrame(np.array([[3, 0, 0], [5, 2, 0], [1, 2, 1]]))
+    >>> triu_matrix(S, kind='lower').data
+                0           1           2
+    0 3.00000e+00 5.00000e+00 1.00000e+00
+    1 5.00000e+00 2.00000e+00 2.00000e+00
+    2 1.00000e+00 2.00000e+00 1.00000e+00
+    
+    Overwrite the upper triangular part of the matrix:
+    >>> S = pd.DataFrame(np.array([[3, 5, -9], [5, 2, 8], [1, 2, 1]]))
+    >>> triu_matrix(S, kind='lower').data
+                0           1           2
+    0 3.00000e+00 5.00000e+00 1.00000e+00
+    1 5.00000e+00 2.00000e+00 2.00000e+00
+    2 1.00000e+00 2.00000e+00 1.00000e+00
+    """
+    matrix_ = pd.DataFrame(matrix)
+    index = matrix_.index
+    columns = matrix_.columns
+    values = matrix_.values
+    if kind == 'upper':    
+        index_lower = np.tril_indices(matrix_.shape[0], -1)
+        values[index_lower] = values.T[index_lower]
+    elif kind == 'lower':
+        index_upper = np.triu_indices(matrix_.shape[0], 1)
+        values[index_upper] = values.T[index_upper]
+    return CategoryCov(pd.DataFrame(values, index=index, columns=columns))
+
+
 def reduce_size(data):
     """
     Reduces the size of the matrix, erasing the zero values.
@@ -2118,70 +2151,6 @@ def restore_size(nonzero_idxs, mat_reduced, dim):
     for i, ni in enumerate(nonzero_idxs):
         mat[ni, nonzero_idxs] = mat_reduced[i]
     return pd.DataFrame(mat)
-
-
-def triu_matrix(matrix, kind='upper'):
-    """
-    Given the upper or lower triangular matrix , return the full symmetric
-    matrix.
-
-    Parameters
-    ----------
-    matrix : 2d iterable
-        Upper triangular matrix
-    kind : `str`, optional
-        Select if matrix variable is upper or lower triangular matrix. The
-        default is 'upper'
-
-    Returns
-    -------
-    `pd.Dataframe`
-        reconstructed symmetric matrix
-
-    Examples
-    --------
-    >>> S = pd.DataFrame(np.array([[1, 2, 1], [0, 2, 4], [0, 0, 3]]))
-    >>> triu_matrix(S).data
-                0           1           2
-    0 1.00000e+00 2.00000e+00 1.00000e+00
-    1 2.00000e+00 2.00000e+00 4.00000e+00
-    2 1.00000e+00 4.00000e+00 3.00000e+00
-
-    Overwrite the lower triangular part of the matrix:
-    >>> S = pd.DataFrame(np.array([[1, 2, 1], [-8, 2, 4], [-6, -5, 3]]))
-    >>> triu_matrix(S).data
-                0           1           2
-    0 1.00000e+00 2.00000e+00 1.00000e+00
-    1 2.00000e+00 2.00000e+00 4.00000e+00
-    2 1.00000e+00 4.00000e+00 3.00000e+00
-
-    Test for lower triangular matrix:
-    >>> S = pd.DataFrame(np.array([[3, 0, 0], [5, 2, 0], [1, 2, 1]]))
-    >>> triu_matrix(S, kind='lower').data
-                0           1           2
-    0 3.00000e+00 5.00000e+00 1.00000e+00
-    1 5.00000e+00 2.00000e+00 2.00000e+00
-    2 1.00000e+00 2.00000e+00 1.00000e+00
-    
-    Overwrite the upper triangular part of the matrix:
-    >>> S = pd.DataFrame(np.array([[3, 5, -9], [5, 2, 8], [1, 2, 1]]))
-    >>> triu_matrix(S, kind='lower').data
-                0           1           2
-    0 3.00000e+00 5.00000e+00 1.00000e+00
-    1 5.00000e+00 2.00000e+00 2.00000e+00
-    2 1.00000e+00 2.00000e+00 1.00000e+00
-    """
-    matrix_ = pd.DataFrame(matrix)
-    index = matrix_.index
-    columns = matrix_.columns
-    values = matrix_.values
-    if kind == 'upper':    
-        index_lower = np.tril_indices(matrix_.shape[0], -1)
-        values[index_lower] = values.T[index_lower]
-    elif kind == 'lower':
-        index_upper = np.triu_indices(matrix_.shape[0], 1)
-        values[index_upper] = values.T[index_upper]
-    return CategoryCov(pd.DataFrame(values, index=index, columns=columns))
 
 
 def sample_distribution(dim, nsmp, seed=None, pdf='normal'):

@@ -395,15 +395,15 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
     Parameters
     ----------
     x_prior: 1D iterable
-        Vector in which we are going to apply GLS (MX1)
+        Vector in which we are going to apply GLS (M,)
     S : 2D iterable
-        2D sensitivity of the model y=f(x) (MXN).
+        2D sensitivity of the model y=f(x) (M, N).
     Vx_prior : 2D iterable
-        2D covariance matrix of x_prior (MXN).
+        2D covariance matrix of x_prior (M, N).
     Vy_extra : 2D iterable
-        2D covariance matrix for y_extra (MXN).
+        2D covariance matrix for y_extra (M, N).
     y_extra : 1D iterable
-        1D extra info on output (NX1).
+        1D extra info on output (N,).
 
     Returns
     -------
@@ -452,15 +452,15 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
     Parameters
     ----------
     x_prior: 1D iterable
-        Vector in which we are going to apply GLS (MX1)
+        Vector in which we are going to apply GLS (M,)
     S : 2D iterable
-        2D sensitivity of the model y=f(x) (MXN).
+        2D sensitivity of the model y=f(x) (M, N).
     Vx_prior : 2D iterable
-        2D covariance matrix of x_prior (MXN).
+        2D covariance matrix of x_prior (M, N).
     Vy_extra : 2D iterable
-        2D covariance matrix for y_extra (MXN).
+        2D covariance matrix for y_extra (M, N).
     y_extra : 1D iterable
-        1D extra info on output (NX1)
+        1D extra info on output (N,)
 
     Returns
     -------
@@ -506,15 +506,15 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
     Parameters
     ----------
     x_prior: 1D iterable
-        Vector in which we are going to apply GLS (MX1)
+        Vector in which we are going to apply GLS (M,)
     S : 2D iterable
-        2D sensitivity of the model y=f(x) (MXN).
+        2D sensitivity of the model y=f(x) (M, N).
     Vx_prior : 2D iterable
-        2D covariance matrix of x_prior (MXN).
+        2D covariance matrix of x_prior (M, N).
     Vy_extra : 2D iterable
-        2D covariance matrix for y_extra (MXN).
+        2D covariance matrix for y_extra (M, N).
     y_extra : 1D iterable
-        1D extra info on output (NX1)
+        1D extra info on output (N,)
     N_e : `int`
         Number of experimental values used in adjustment.
 
@@ -560,11 +560,11 @@ def ishikawa_factor(S, Vx_prior, Vy_extra):
     Parameters
     ----------
     S : 2D iterable
-        2D sensitivity of the model y=f(x) (MXN).
+        2D sensitivity of the model y=f(x) (M, N).
     Vx_prior : 2D iterable
-        2D covariance matrix of x_prior (MXN).
+        2D covariance matrix of x_prior (M, N).
     Vy_extra : 2D iterable
-        2D covariance matrix for y_extra (MXN).
+        2D covariance matrix for y_extra (M, N).
 
     Returns
     -------
