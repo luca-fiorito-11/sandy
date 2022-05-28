@@ -7,7 +7,6 @@ import pandas as pd
 import numpy as np
 import scipy.sparse as sps
 import logging
-import sandy
 
 __author__ = "Aitor Bengoechea"
 __all__ = [
@@ -22,7 +21,7 @@ __all__ = [
         ]
 
 x_prior = [1, 2, 3]
-y_extra = pd.Series([2, 3, 4], index=[1, 2, 3])
+y_extra = np.array([2, 3, 4])
 S = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
 Vy_extra = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
@@ -42,16 +41,16 @@ def gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
     Parameters
     ----------
     x_prior : 1D iterable
-        Vector to be updated (NX1)
+        Vector to be updated (N,)
     S : 2D or 1D iterable
-         Sensitivity matrix (MXN) or sensitivity vector(1xN)
+         Sensitivity matrix (M, N) or sensitivity vector(N,)
     Vx_prior : 2D iterable
-        2D covariance matrix of x_prior (NXN)
+        2D covariance matrix of x_prior (N, N)
     y_extra : 1D iterable
-        1D extra info on output (MX1)
+        1D extra info on output (M,)
     Vy_extra : 2D iterable or sigle element 1D iterable, optional, default is `None`
         covariance matrix with the uncertainties of the extra information,
-        (MXM) or (1x1).
+        (M, M) or (1,).
 
     Returns
     -------
@@ -68,9 +67,9 @@ def gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
     Example
     -------
     >>> S = [[1, 2], [3, 4]]
-    >>> x_prior = pd.Series([1, 1])
-    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data.values
-    >>> Vy_extra = pd.DataFrame([[1, 0], [0, 1]]).values
+    >>> x_prior = [1, 1]
+    >>> Vx_prior = np.diag([1, 1])
+    >>> Vy_extra = np.array([[1, 0], [0, 1]])
     >>> y_extra = [2, 2]
     >>> gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra)
     (array([0.2       , 0.48571429]),
@@ -99,16 +98,16 @@ def _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
     Parameters
     ----------
     x_prior : 1D iterable
-        Vector to be updated (NX1)
+        Vector to be updated (N,)
     S : 2D or 1D iterable
-         Sensitivity matrix (MXN) or sensitivity vector(1xN)
+         Sensitivity matrix (M, N) or sensitivity vector(N,)
     Vx_prior : 2D iterable
-        2D covariance matrix of x_prior (NXN)
+        2D covariance matrix of x_prior (N, N)
     y_extra : 1D iterable
-        1D extra info on output (MX1)
+        1D extra info on output (M,)
     Vy_extra : 2D iterable or sigle element 1D iterable, optional, default is `None`
         covariance matrix with the uncertainties of the extra information,
-        (MXM) or (1x1).
+        (M, M) or (1,).
 
     Returns
     -------
@@ -123,9 +122,9 @@ def _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
     Example
     -------
     >>> S = [[1, 2], [3, 4]]
-    >>> x_prior = pd.Series([1, 1])
-    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data.values
-    >>> Vy_extra = pd.DataFrame([[1, 0], [0, 1]]).values
+    >>> x_prior = [1, 1]
+    >>> Vx_prior = np.diag([1, 1])
+    >>> Vy_extra = np.array([[1, 0], [0, 1]])
     >>> y_extra = [2, 2]
     >>> _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra)
     array([0.2       , 0.48571429])
@@ -134,8 +133,8 @@ def _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
     array([-2.,  2.])
 
     >>> S = [1, 2]
-    >>> x_prior = pd.Series([1, 1]).values
-    >>> Vx_prior = sandy.CategoryCov.from_var([1, 1]).data.values
+    >>> x_prior = [1, 1]
+    >>> Vx_prior = np.diag([1, 1])
     >>> Vy_extra = [1]
     >>> y_extra = [2]
     >>> _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra)
@@ -150,7 +149,8 @@ def _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
     Vx_prior_ = np.array(Vx_prior)
     y_extra_ = np.array(y_extra)
     G_inv = _gls_G_inv(Vx_prior_, S_, Vy_extra=Vy_extra)
-    S_ = np.array([S]) if len(S_.shape) == 1 else S_
+    ndim = len(S_.shape)
+    S_ = np.array([S]) if ndim == 1 else S_
     # GLS update
     A = Vx_prior_.dot(S_.T).dot(G_inv)
     y_calc = S_.dot(x_prior_)
@@ -173,12 +173,12 @@ def _gls_cov_update(Vx_prior, S, Vy_extra=None):
     Parameters
     ----------
     Vx_prior : 2D iterable
-        prior covariance matrix to be updated (NxN).
+        prior covariance matrix to be updated (N, N).
     Vy_extra : 2D iterable or sigle element 1D iterable
         covariance matrix with the uncertainties of the extra information,
-        (MXM) or (1x1).
+        (M, M) or (1,).
     S : 2D or 1D iterable
-        Sensitivity matrix (MXN) or sensitivity vector(1xN).
+        Sensitivity matrix (M, N) or sensitivity vector(N,).
 
     Returns
     -------
@@ -193,14 +193,13 @@ def _gls_cov_update(Vx_prior, S, Vy_extra=None):
     Example
     -------
     >>> S = np.array([[1, 2], [3, 4]])
-    >>> cov = sandy.CategoryCov.from_var([1, 1]).data.values
-    >>> Vy = np.diag(pd.Series([1, 1]))
+    >>> cov = np.diag([1, 1])
+    >>> Vy = np.diag([1, 1])
     >>> _gls_cov_update(cov, S, Vy)
     array([[ 0.6       , -0.4       ],
            [-0.4       ,  0.31428571]])
 
     >>> S = np.array([1, 2])
-    >>> cov = sandy.CategoryCov.from_var([1, 1]).data.values
     >>> Vy = [1]
     >>> _gls_cov_update(cov, S, Vy)
     array([[ 0.83333333, -0.33333333],
@@ -215,10 +214,10 @@ def _gls_cov_update(Vx_prior, S, Vy_extra=None):
     s_ = np.array(S)
     G_inv = _gls_G_inv(Vx_prior_, s_, Vy_extra=Vy_extra)
     # Gls update
-    if len(s_.shape) == 1:
-        A = np.outer(Vx_prior_.dot(s_) * G_inv, s_)
-    else:
-        A = Vx_prior_.dot(s_.T).dot(G_inv).dot(s_)
+    ndim = len(s_.shape)
+    if ndim == 1:
+        s_ = s_.reshape(1, -1)
+    A = Vx_prior_.dot(s_.T).dot(G_inv).dot(s_)
     diff = A.dot(Vx_prior_)
     Vx_post = Vx_prior_ - diff
     return Vx_post
@@ -235,12 +234,12 @@ def _gls_G_inv(Vx_prior, s, Vy_extra=None):
     Parameters
     ----------
     Vx_prior : 2D iterable
-        prior covariance matrix to be updated (NxN).
+        prior covariance matrix to be updated (N, N).
     Vy_extra : 2D iterable or sigle element 1D iterable
         covariance matrix with the uncertainties of the extra information,
-        (MXM) or (1x1).
+        (M, M) or (1,).
     S : 2D or 1D iterable
-        Sensitivity matrix (MXN) or sensitivity vector(1xN).
+        Sensitivity matrix (M, N) or sensitivity vector(N,).
 
     Returns
     -------
@@ -256,8 +255,8 @@ def _gls_G_inv(Vx_prior, s, Vy_extra=None):
     Example
     -------
     >>> S = np.array([[1, 2], [3, 4]])
-    >>> cov = sandy.CategoryCov.from_var([1, 1]).data.values
-    >>> Vy = np.diag(pd.Series([1, 1]))
+    >>> cov = np.diag([1, 1])
+    >>> Vy = np.diag([1, 1])
     >>> _gls_G_inv(cov, S, Vy)
     array([[ 0.74285714, -0.31428571],
            [-0.31428571,  0.17142857]])
@@ -266,8 +265,7 @@ def _gls_G_inv(Vx_prior, s, Vy_extra=None):
     array([[ 6.25, -2.75],
            [-2.75,  1.25]])
 
-    >>> S = np.array([1, 2])
-    >>> cov = sandy.CategoryCov.from_var([1, 1]).data.values
+    >>> S = [1, 2]
     >>> Vy = [1]
     >>> _gls_G_inv(cov, S, Vy)
     array([[0.16666667]])
@@ -308,9 +306,9 @@ def sandwich(cov, s):
     Parameters
     ----------
     cov : 2D iterable
-        Parameter covariance matrix (NxN)
+        Parameter covariance matrix (N, N)
     s : 1D or 2D iterable
-        General sensitivities (1xN) or (MxN)
+        General sensitivities (N,) or (M, N)
 
     Returns
     -------
@@ -320,26 +318,24 @@ def sandwich(cov, s):
 
     Examples
     --------
-    >>> var = np.array([1, 2, 3])
-    >>> s = pd.Series([1, 2, 3])
-    >>> cov = sandy.CategoryCov.from_var(var).data.values
+    >>> var = [1, 2, 3]
+    >>> s = [1, 2, 3]
+    >>> cov = np.diag(var)
     >>> sandwich(cov, s)
-    array([[36.]])
+    array([[36]])
 
-    >>> s = np.array([1, 2, 3])
-    >>> cov = sandy.CategoryCov.from_var([1, 2, 3]).data.values
-    >>> s_matrix = sandy.CategoryCov.from_var(s).data.values
+    >>> s_matrix = np.diag(s)
     >>> sandwich(cov, s_matrix)
-    array([[ 1.,  0.,  0.],
-           [ 0.,  8.,  0.],
-           [ 0.,  0., 27.]])
+    array([[ 1,  0,  0],
+           [ 0,  8,  0],
+           [ 0,  0, 27]])
     """
     s_ = np.array(s)
     cov_ = np.array(cov)
-    sandwich = s_.dot(cov_).dot(s_.T)
-    if isinstance(sandwich, float):
-        sandwich = [[sandwich]]
-    return np.array(sandwich)
+    sandwich = np.array(s_.dot(cov_).dot(s_.T))
+    ndim = s_.ndim
+    sandwich = sandwich.reshape(-1, ndim) if ndim == 1 else sandwich
+    return sandwich
 
 
 def _y_calc(x_prior, S):
@@ -423,10 +419,10 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
     Example
     -------
     >>> x_prior = [1, 2, 3]
-    >>> y_extra = pd.Series([2, 3, 4], index=[1, 2, 3])
-    >>> S = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3])
-    >>> Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
-    >>> Vy_extra = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3], columns=[1, 2, 3])
+    >>> y_extra = [2, 3, 4]
+    >>> S = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    >>> Vx_prior = np.array([[0, 0, 0], [0, 3, 0], [0, 0, 8]])
+    >>> Vy_extra = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
     >>> chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra)
     array([1.        , 0.5       , 0.33333333])
     """
@@ -480,10 +476,10 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
     Example
     -------
     >>> x_prior = [1, 2, 3]
-    >>> y_extra = pd.Series([2, 3, 4], index=[1, 2, 3])
-    >>> S = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3])
-    >>> Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
-    >>> Vy_extra = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3], columns=[1, 2, 3])
+    >>> y_extra = [2, 3, 4]
+    >>> S = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    >>> Vx_prior = np.array([[0, 0, 0], [0, 3, 0], [0, 0, 8]])
+    >>> Vy_extra = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
     >>> N_e = 1
     >>> chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra)
     array([1., 2., 3.])
@@ -535,10 +531,10 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
     Example
     -------
     >>> x_prior = [1, 2, 3]
-    >>> y_extra = pd.Series([2, 3, 4], index=[1, 2, 3])
-    >>> S = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3])
+    >>> y_extra = [2, 3, 4]
+    >>> S = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
     >>> Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
-    >>> Vy_extra = pd.DataFrame([[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=[1, 2, 3], columns=[1, 2, 3])
+    >>> Vy_extra = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
     >>> chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e)
     array([1.        , 0.25      , 0.11111111])
     """

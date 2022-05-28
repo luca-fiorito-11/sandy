@@ -3,13 +3,11 @@ import functools
 import numpy as np
 import scipy
 import scipy.linalg
-import scipy
 import scipy.sparse as sps
 import scipy.sparse.linalg as spsl
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import warnings
 import logging
 import tables as tb
 import os
@@ -990,9 +988,9 @@ class CategoryCov():
         ----------
         Vy_extra : 2D iterable or sigle element 1D iterable
             covariance matrix of the extra information,
-            (MXM) or (1x1).
+            (M, M) or (1,).
         S : 2D or 1D iterable
-            Sensitivity matrix (MXN) or sensitivity vector(1xN).
+            Sensitivity matrix (M, N) or sensitivity vector (N,).
 
         Returns
         -------
@@ -1040,9 +1038,7 @@ class CategoryCov():
         1 -3.33333e-01  3.33333e-01
         """
         idx = self.data.index
-        S_ = pd.DataFrame(S).values
-        if S_.shape[1] == 1:
-            S_ = S_.T
+        S_ = np.array(S)
         if Vy_extra is not None:
             Vy_extra_ = pd.DataFrame(Vy_extra).values
             Vx_post = _gls_cov_update(self.data.values, S_, Vy_extra=Vy_extra_)
@@ -1065,7 +1061,7 @@ class CategoryCov():
         Parameters
         ----------
         s : 1D or 2D iterable
-            General sensitivities (1xN) or (MxN) with N the size of the
+            General sensitivities (N,) or (M, N) with N the size of the
             `CategoryCov` object.
 
         Returns
@@ -1087,8 +1083,8 @@ class CategoryCov():
         >>> s = np.array([1, 2, 3])
         >>> var = pd.Series([1, 2, 3])
         >>> cov = sandy.CategoryCov.from_var(var)
-        >>> var = sandy.CategoryCov.from_var(s).data
-        >>> cov.sandwich(var)
+        >>> sensitivity = np.diag(s)
+        >>> cov.sandwich(sensitivity)
                     0           1           2
         0 1.00000e+00 0.00000e+00 0.00000e+00
         1 0.00000e+00 8.00000e+00 0.00000e+00
@@ -1885,7 +1881,7 @@ def sparse_tables_dot(a, b, rows=1000):
     return dot_product
 
 
-def sparse_tables_dot_multiple(matrix_list, rows=1000):
+#def sparse_tables_dot_multiple(matrix_list, rows=1000):
     """
     Function to perform multiplications between matrices stored on local
     disk instead of memory.
@@ -1910,11 +1906,11 @@ def sparse_tables_dot_multiple(matrix_list, rows=1000):
     array([[ 5., 11.],
            [11., 25.]])
     """
-    matrix = matrix_list[0]
-    for b in matrix_list[1::]:
-        intermediate_matrix = sparse_tables_dot(matrix, b, rows=rows)
-        matrix = intermediate_matrix
-    return matrix
+#    matrix = matrix_list[0]
+#    for b in matrix_list[1::]:
+#        intermediate_matrix = sparse_tables_dot(matrix, b, rows=rows)
+#        matrix = intermediate_matrix
+#    return matrix
 
 def sparse_tables_inv(a, rows=1000):
     """
@@ -1960,6 +1956,73 @@ def sparse_tables_inv(a, rows=1000):
     f.close()
     os.remove('inv.h5')
     return invert_matrix
+
+
+def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):
+    """
+    Create a pivot table from a stacked dataframe.
+
+    Parameters
+    ----------
+    data_stack : `pd.Dataframe`
+        Stacked dataframe.
+    index : 1D iterable, optional
+        Index of the final covariance matrix.
+    columns : 1D iterable, optional
+        Columns of the final covariance matrix.
+    values : `str`, optional
+        Name of the column where the values are located.
+    rows : `int`, optional
+        Number of rows to take into account into each loop. The default
+        is 10000000.
+
+    Returns
+    -------
+    pivot_matrix : `pd.DataFrame`
+        Covariance matrix created from a stacked data
+
+    Examples
+    --------
+    >>> S = pd.DataFrame(np.array([[1, 1, 1], [0, 2, 1], [0, 0, 1]]))
+    >>> S = S.stack().reset_index().rename(columns = {'level_0': 'dim1', 'level_1': 'dim2', 0: 'cov'})
+    >>> sandy.cov.segmented_pivot_table(S, index=['dim1'], columns=['dim2'], values='cov')
+    dim2	0	1	2
+    dim1
+       0	1	1	1
+       1	0	2	1
+       2	0	0	1
+
+    >>> sandy.cov.segmented_pivot_table(S, index=['dim1'], columns=['dim2'], values='cov', rows=1)
+    dim2	0	        1	        2
+    dim1
+       0    1.00000e+00 1.00000e+00 1.00000e+00
+       1    0.00000e+00 2.00000e+00 1.00000e+00
+       2    0.00000e+00 0.00000e+00 1.00000e+00
+    """
+    size = data_stack.shape[0]
+    pivot_matrix = []
+    for i in range(0, size, rows):
+        partial_pivot = data_stack[i: min(i+rows, size)].pivot_table(
+            index=index,
+            columns=columns,
+            values=values,
+            fill_value=0,
+            aggfunc=np.sum,
+            )
+        pivot_matrix.append(partial_pivot)
+    pivot_matrix = pd.concat(pivot_matrix).fillna(0)
+    # Because the default axis to concatenate is the 0, some duplicate
+    # index appear with null values. With this groupby, the duplicate axis
+    # disappear, keeping the original values.
+    pivot_matrix = pivot_matrix.groupby(pivot_matrix.index).sum()
+    if len(index) >= 2:
+        # Groupby transforms multiindex structure into a tuple. This line
+        # reverse the transformation.
+        pivot_matrix.index = pd.MultiIndex.from_tuples(
+            pivot_matrix.index,
+            names=index,
+            )
+    return pivot_matrix
 
 
 def reduce_size(data):
@@ -2056,72 +2119,6 @@ def restore_size(nonzero_idxs, mat_reduced, dim):
         mat[ni, nonzero_idxs] = mat_reduced[i]
     return pd.DataFrame(mat)
 
-
-def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):
-    """
-    Create a pivot table from a stacked dataframe.
-
-    Parameters
-    ----------
-    data_stack : `pd.Dataframe`
-        Stacked dataframe.
-    index : 1D iterable, optional
-        Index of the final covariance matrix.
-    columns : 1D iterable, optional
-        Columns of the final covariance matrix.
-    values : `str`, optional
-        Name of the column where the values are located.
-    rows : `int`, optional
-        Number of rows to take into account into each loop. The default
-        is 10000000.
-
-    Returns
-    -------
-    pivot_matrix : `pd.DataFrame`
-        Covariance matrix created from a stacked data
-
-    Examples
-    --------
-    >>> S = pd.DataFrame(np.array([[1, 1, 1], [0, 2, 1], [0, 0, 1]]))
-    >>> S = S.stack().reset_index().rename(columns = {'level_0': 'dim1', 'level_1': 'dim2', 0: 'cov'})
-    >>> sandy.cov.segmented_pivot_table(S, index=['dim1'], columns=['dim2'], values='cov')
-    dim2	0	1	2
-    dim1
-       0	1	1	1
-       1	0	2	1
-       2	0	0	1
-
-    >>> sandy.cov.segmented_pivot_table(S, index=['dim1'], columns=['dim2'], values='cov', rows=1)
-    dim2	0	        1	        2
-    dim1
-       0    1.00000e+00 1.00000e+00 1.00000e+00
-       1    0.00000e+00 2.00000e+00 1.00000e+00
-       2    0.00000e+00 0.00000e+00 1.00000e+00
-    """
-    size = data_stack.shape[0]
-    pivot_matrix = []
-    for i in range(0, size, rows):
-        partial_pivot = data_stack[i: min(i+rows, size)].pivot_table(
-            index=index,
-            columns=columns,
-            values=values,
-            fill_value=0,
-            aggfunc=np.sum,
-            )
-        pivot_matrix.append(partial_pivot)
-    pivot_matrix = pd.concat(pivot_matrix).fillna(0)
-    # Because the default axis to concatenate is the 0, some duplicate
-    # index appear with null values. With this groupby, the duplicate axis
-    # disappear, keeping the original values.
-    pivot_matrix = pivot_matrix.groupby(pivot_matrix.index).sum()
-    if len(index) >= 2:
-        # Groupby transforms multiindex structure into a tuple. This line
-        # reverse the transformation.
-        pivot_matrix.index = pd.MultiIndex.from_tuples(
-            pivot_matrix.index,
-            names=index,
-            )
-    return pivot_matrix
 
 def triu_matrix(matrix, kind='upper'):
     """
