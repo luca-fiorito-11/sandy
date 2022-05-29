@@ -328,8 +328,8 @@ class Fy():
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
-        >>> npfy = sandy.Fy(minimal_fytest_2)
-        >>> chain = npfy.get_chain_yield(942390, 500e3, decay_fytest).iloc[0].round(2) 
+        >>> nfpy = sandy.Fy(minimal_fytest_2)
+        >>> chain = nfpy.get_chain_yield(942390, 500e3, decay_fytest).iloc[0].round(2) 
         >>> assert chain == 0.6
         """
         # Filter FY data:
