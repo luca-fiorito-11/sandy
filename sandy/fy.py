@@ -325,12 +325,13 @@ class Fy():
 
         Examples
         --------
-        >>> zam = [591480, 591481, 601480]
+        >>> zam = [591480, 591481, 601480, 561480, 571480, 571490, 581480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
-        >>> nfpy = sandy.Fy(minimal_fytest_2)
-        >>> chain = nfpy.get_chain_yield(942390, 500e3, decay_fytest).iloc[0].round(2) 
-        >>> assert chain == 0.6
+        >>> tape_nfpy = sandy.get_endf6_file("jeff_33", 'nfpy', 922350)
+        >>> nfpy = Fy.from_endf6(tape_nfpy)
+        >>> nfpy.get_chain_yield(922350, 0.0253, decay_fytest).loc[148]
+        0.01692277272
         """
         # Filter FY data:
         conditions = {'ZAM': zam, "E": e, 'MT': 454}
@@ -429,7 +430,7 @@ class Fy():
 
     def apply_bmatrix(self, zam, e, decay_data, keep_fy_index=False):
         """
-        Perform IFY = (1-B)*CFY equation to calculate IFY in a given zam
+        Perform IFY = (1-B) * CFY equation to calculate IFY in a given zam
         for a given energy and apply into the original data.
 
         Parameters
@@ -441,20 +442,20 @@ class Fy():
             Energy to which calculations are to be applied.
         decay_data : `sandy.DecayData`
             Radioactive nuclide data for several isotopes.
-        keep_fy_index=False : `bool`, optional
+        keep_fy_index: `bool`, optional, default is `False`
             Option that allows you to output only the CFY results that were
             part of the original `sandy.Fy` object. The default is False.
 
         Returns
         -------
-        `Fy`
+        `sandy.Fy`
             Fission yield instance with IFY calculated for a given combination
             of ZAM/e/decay_data.
 
         Notes
         -----
         .. note:: This method applies a perturbation to certain IFYs,
-        since the equation IFY = (1-B)*CFY is not satisfied for all nuclei.
+        since the equation IFY = (1-B) * CFY is not satisfied for all nuclei.
 
         Examples
         --------
@@ -463,23 +464,23 @@ class Fy():
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest)
-        >>> npfy_pert.data[npfy_pert.data.MT == 454]
-        	 MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
-        3	9437	454	942390	591480	5.00000e+05	8.00000e-01	4.00000e-02
-        4	9437	454	942390	591481	5.00000e+05	1.00000e+00	5.00000e-02
-        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	1.00000e-01
-        6	9437	454	942390	621480	5.00000e+05	-2.00000e-01	1.00000e-02
+        >>> npfy_pert.data.query("MT==454")
+            MAT   MT     ZAM     ZAP           E           FY         DFY
+        3  9437  454  942390  591480 5.00000e+05  8.00000e-01 1.60000e-03
+        4  9437  454  942390  591481 5.00000e+05  1.00000e+00 2.50000e-03
+        5  9437  454  942390  601480 5.00000e+05 -1.60000e+00 4.20000e-03
+        6  9437  454  942390  621480 5.00000e+05 -2.00000e-01 1.00000e-04
         
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
-        >>> npfy_pert.data[npfy_pert.data.MT == 454]
-             MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
-        3	9437	454	942390	591480	5.00000e+05	8.00000e-01	4.00000e-02
-        4	9437	454	942390	591481	5.00000e+05	1.00000e+00	5.00000e-02
-        5	9437	454	942390	601480	5.00000e+05	-1.60000e+00	1.00000e-01
+        >>> npfy_pert.data.query("MT==454")
+            MAT   MT     ZAM     ZAP           E           FY         DFY
+        3  9437  454  942390  591480 5.00000e+05  8.00000e-01 1.60000e-03
+        4  9437  454  942390  591481 5.00000e+05  1.00000e+00 2.50000e-03
+        5  9437  454  942390  601480 5.00000e+05 -1.60000e+00 4.20000e-03
         """
         # Obtain the data:
         data = self.data.copy()
@@ -504,7 +505,7 @@ class Fy():
         data = data.loc[~mask]
         fy_data = fy_data.reindex(columns).fillna(0)
         cov_data = cov_data.reindex(columns).fillna(0)
-        cov_data = sandy.CategoryCov.from_var(cov_data)
+        cov_data = sandy.CategoryCov.from_stdev(cov_data)
         # Apply (1-B) matrix
         ify_calc_values = sensitivity.dot(fy_data).rename('FY')
         cov_calc_values = np.diag(cov_data.sandwich(sensitivity).data)
@@ -521,7 +522,7 @@ class Fy():
 
     def apply_qmatrix(self, zam, energy, decay_data, keep_fy_index=False):
         """
-        Perform CFY = Q*IFY equation to calculate CFY in a given zam
+        Perform CFY = Q * IFY equation to calculate CFY in a given zam
         for a given energy and apply into the original data.
 
         Parameters
@@ -533,20 +534,20 @@ class Fy():
             Energy to which calculations are to be applied.
         decay_data : `sandy.DecayData`
             Radioactive nuclide data for several isotopes.
-        keep_fy_index=False : `bool`, optional
+        keep_fy_index : `bool`, optional, default is `False`
             Option that allows you to output only the CFY results that were
             part of the original `sandy.Fy` object. The default is False.
 
         Returns
         -------
-        `Fy`
+        `sandy.Fy`
             Fission yield instance with IFY calculated for a given combination
             of ZAM/e/decay_data.
 
         Notes
         -----
         .. note:: This method applies a perturbation to certain CFYs,
-        since the equation CFY = Q*IFY is not satisfied for all nuclei.
+        since the equation CFY = Q * IFY is not satisfied for all nuclei.
 
         Examples
         --------
@@ -555,23 +556,23 @@ class Fy():
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest)
-        >>> npfy_pert.data[npfy_pert.data.MT == 459]
-             MAT	 MT	   ZAM	   ZAP	          E	         FY 	    DFY
-        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
-        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
-        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01
-        6	9437	459	942390	621480	5.00000e+05	6.00000e-01	1.00000e-01
+        >>> npfy_pert.data.query("MT==459")
+            MAT   MT     ZAM     ZAP           E          FY         DFY
+        3  9437  459  942390  591480 5.00000e+05 1.00000e-01 1.60000e-03
+        4  9437  459  942390  591481 5.00000e+05 2.00000e-01 2.50000e-03
+        5  9437  459  942390  601480 5.00000e+05 6.00000e-01 4.20000e-03
+        6  9437  459  942390  621480 5.00000e+05 6.00000e-01 4.20000e-03
 
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
-        >>> npfy_pert.data[npfy_pert.data.MT == 459]
-             MAT	 MT	   ZAM	   ZAP	          E	         FY	        DFY
-        3	9437	459	942390	591480	5.00000e+05	1.00000e-01	4.00000e-02
-        4	9437	459	942390	591481	5.00000e+05	2.00000e-01	5.00000e-02
-        5	9437	459	942390	601480	5.00000e+05	6.00000e-01	1.00000e-01       
+        >>> npfy_pert.data.query("MT==459")
+            MAT   MT     ZAM     ZAP           E          FY         DFY
+        3  9437  459  942390  591480 5.00000e+05 1.00000e-01 1.60000e-03
+        4  9437  459  942390  591481 5.00000e+05 2.00000e-01 2.50000e-03
+        5  9437  459  942390  601480 5.00000e+05 6.00000e-01 4.20000e-03
         """
         # Obtain the data:
         data = self.data.copy()
@@ -588,7 +589,7 @@ class Fy():
         data = data.loc[~mask]
         fy_data = fy_data.reindex(Q.columns).fillna(0)
         cov_data = cov_data.reindex(Q.columns).fillna(0)
-        cov_data = sandy.CategoryCov.from_var(cov_data)
+        cov_data = sandy.CategoryCov.from_stdev(cov_data)
         # Apply qmatrix
         cfy_calc_values = Q.dot(fy_data).rename('FY')
         cov_calc_values = np.diag(cov_data.sandwich(Q).data)
