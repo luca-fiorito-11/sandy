@@ -590,7 +590,6 @@ class Fy():
         cov_data = cov_data.reindex(Q.columns).fillna(0)
         cov_data = sandy.CategoryCov.from_var(cov_data)
         # Apply qmatrix
-        Q = Q.reindex(columns=fy_data.index)
         cfy_calc_values = Q.dot(fy_data).rename('FY')
         cov_calc_values = np.diag(cov_data.sandwich(Q).data)
         cov_calc_values = pd.Series(cov_calc_values, index=Q.index)
