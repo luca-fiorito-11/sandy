@@ -466,10 +466,10 @@ class Fy():
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest)
         >>> npfy_pert.data.query("MT==454")
             MAT   MT     ZAM     ZAP           E           FY         DFY
-        3  9437  454  942390  591480 5.00000e+05  8.00000e-01 1.60000e-03
-        4  9437  454  942390  591481 5.00000e+05  1.00000e+00 2.50000e-03
-        5  9437  454  942390  601480 5.00000e+05 -1.60000e+00 4.20000e-03
-        6  9437  454  942390  621480 5.00000e+05 -2.00000e-01 1.00000e-04
+        3  9437  454  942390  591480 5.00000e+05  8.00000e-01 4.00000e-02
+        4  9437  454  942390  591481 5.00000e+05  1.00000e+00 5.00000e-02
+        5  9437  454  942390  601480 5.00000e+05 -1.60000e+00 6.48074e-02
+        6  9437  454  942390  621480 5.00000e+05 -2.00000e-01 1.00000e-02
         
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
@@ -478,9 +478,9 @@ class Fy():
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
         >>> npfy_pert.data.query("MT==454")
             MAT   MT     ZAM     ZAP           E           FY         DFY
-        3  9437  454  942390  591480 5.00000e+05  8.00000e-01 1.60000e-03
-        4  9437  454  942390  591481 5.00000e+05  1.00000e+00 2.50000e-03
-        5  9437  454  942390  601480 5.00000e+05 -1.60000e+00 4.20000e-03
+        3  9437  454  942390  591480 5.00000e+05  8.00000e-01 4.00000e-02
+        4  9437  454  942390  591481 5.00000e+05  1.00000e+00 5.00000e-02
+        5  9437  454  942390  601480 5.00000e+05 -1.60000e+00 6.48074e-02
         """
         # Obtain the data:
         data = self.data.copy()
@@ -508,7 +508,7 @@ class Fy():
         cov_data = sandy.CategoryCov.from_stdev(cov_data)
         # Apply (1-B) matrix
         ify_calc_values = sensitivity.dot(fy_data).rename('FY')
-        cov_calc_values = np.diag(cov_data.sandwich(sensitivity).data)
+        cov_calc_values = np.sqrt(np.diag((cov_data.sandwich(sensitivity).data)))
         cov_calc_values = pd.Series(cov_calc_values, index=sensitivity.index)
         if keep_fy_index:
             ify_calc_values = ify_calc_values.reindex(original_index).fillna(0)
@@ -558,10 +558,10 @@ class Fy():
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest)
         >>> npfy_pert.data.query("MT==459")
             MAT   MT     ZAM     ZAP           E          FY         DFY
-        3  9437  459  942390  591480 5.00000e+05 1.00000e-01 1.60000e-03
-        4  9437  459  942390  591481 5.00000e+05 2.00000e-01 2.50000e-03
-        5  9437  459  942390  601480 5.00000e+05 6.00000e-01 4.20000e-03
-        6  9437  459  942390  621480 5.00000e+05 6.00000e-01 4.20000e-03
+        3  9437  459  942390  591480 5.00000e+05 1.00000e-01 4.00000e-02
+        4  9437  459  942390  591481 5.00000e+05 2.00000e-01 5.00000e-02
+        5  9437  459  942390  601480 5.00000e+05 6.00000e-01 6.48074e-02
+        6  9437  459  942390  621480 5.00000e+05 6.00000e-01 6.48074e-02
 
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
@@ -570,9 +570,9 @@ class Fy():
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
         >>> npfy_pert.data.query("MT==459")
             MAT   MT     ZAM     ZAP           E          FY         DFY
-        3  9437  459  942390  591480 5.00000e+05 1.00000e-01 1.60000e-03
-        4  9437  459  942390  591481 5.00000e+05 2.00000e-01 2.50000e-03
-        5  9437  459  942390  601480 5.00000e+05 6.00000e-01 4.20000e-03
+        3  9437  459  942390  591480 5.00000e+05 1.00000e-01 4.00000e-02
+        4  9437  459  942390  591481 5.00000e+05 2.00000e-01 5.00000e-02
+        5  9437  459  942390  601480 5.00000e+05 6.00000e-01 6.48074e-02
         """
         # Obtain the data:
         data = self.data.copy()
@@ -592,7 +592,7 @@ class Fy():
         cov_data = sandy.CategoryCov.from_stdev(cov_data)
         # Apply qmatrix
         cfy_calc_values = Q.dot(fy_data).rename('FY')
-        cov_calc_values = np.diag(cov_data.sandwich(Q).data)
+        cov_calc_values = np.sqrt(np.diag(cov_data.sandwich(Q).data))
         cov_calc_values = pd.Series(cov_calc_values, index=Q.index)
         if keep_fy_index:
             cfy_calc_values = cfy_calc_values.reindex(original_index).fillna(0)
