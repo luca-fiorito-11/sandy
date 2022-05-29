@@ -3,9 +3,7 @@
 This module contains all classes and functions specific for processing GLS and
 assessment of adjustment. It handles only numpy.ndarray.
 """
-import pandas as pd
 import numpy as np
-import scipy.sparse as sps
 import logging
 
 __author__ = "Aitor Bengoechea"
@@ -13,19 +11,12 @@ __all__ = [
         "gls_update",
         "_gls_parameters_update",
         "_gls_cov_update",
-        "_y_calc",
         "chi_individual",
         "chi_diag",
         "chi_square",
         "ishikawa_factor",
         ]
 
-x_prior = [1, 2, 3]
-y_extra = np.array([2, 3, 4])
-S = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
-Vy_extra = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-N_e = 1
 
 def gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
     """
@@ -338,54 +329,6 @@ def sandwich(cov, s):
     return sandwich
 
 
-def _y_calc(x_prior, S):
-    """
-    Perform model calculation in GLS.
-
-    Parameters
-    ----------
-    x_prior: 1D iterable
-        Vector in which we are going to apply GLS (MX1).
-    S : 2D iterable
-        2D sensitivity of the model y=f(x) (NXM).
-    sparse : `bool`, optional
-        Option to use sparse matrix for calculations. The default is False.
-
-    Returns
-    -------
-    y_calc : `pd.Series`
-        1D calculated output using S.dot(x_prior), e.g. calculated CFY
-
-    Example
-    -------
-    S square matrix:
-    >>> _y_calc(x_prior, S)
-    0    1
-    1    2
-    2    3
-    dtype: int64
-
-    Different number of row and columns in S:
-    >>> S = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]]
-    >>> _y_calc(x_prior, S)
-    0    1
-    1    2
-    2    3
-    3    6
-    dtype: int64
-    """
-    S_ = pd.DataFrame(S)
-    x_prior_ = pd.Series(x_prior)
-    union_index = S_.columns.union(x_prior_.index)
-    S_ = S_.reindex(columns=union_index).fillna(0)
-    x_prior_ = x_prior_.reindex(union_index).fillna(0)
-    idx = S_.index
-    S_ = sps.csr_matrix(S_.values)
-    y_calc = S_.dot(x_prior_.values)
-    y_calc = pd.Series(y_calc, index=idx)
-    return y_calc
-
-
 def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
     """
     Function to calculate individual chi-value measured in sigmas according to
@@ -535,6 +478,7 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
     >>> S = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
     >>> Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
     >>> Vy_extra = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+    >>> N_e = 1
     >>> chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e)
     array([1.        , 0.25      , 0.11111111])
     """
@@ -584,6 +528,9 @@ def ishikawa_factor(S, Vx_prior, Vy_extra):
 
     Example
     -------
+    >>> S = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+    >>> Vx_prior = [[0, 0, 0], [0, 3, 0], [0, 0, 8]]
+    >>> Vy_extra = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
     >>> ishikawa_factor(S, Vx_prior, Vy_extra)
     array([0., 3., 8.])
     """
