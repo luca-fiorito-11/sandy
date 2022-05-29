@@ -290,20 +290,18 @@ class Fy():
 
         Examples
         --------
-        >>> zam = [591480, 591481, 601480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
-        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
-        >>> npfy = sandy.Fy(minimal_fytest_2)
-        >>> chain = npfy.get_chain_yield(942390, 500e3, decay_fytest).iloc[0].round(2) 
-        >>> assert chain == 0.6
+        >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy','all')
+        >>> nfpy = Fy.from_endf6(tape_nfpy)
+        >>> nfpy.get_mass_yield(922350, 0.0253).loc[148]
+        0.0169029147
         """
         # Filter FY data:
         conditions = {'ZAM': zam, "E": e, 'MT': 454}
         fy_data = self._filters(conditions).data.set_index('ZAP').FY
-        chain_data = self._filters({'ZAM': zam, "E": e})
-        S = chain_data.get_mass_yield_sensitivity()
-        chain = sandy._y_calc(fy_data, S)
-        return chain.rename('mass yield')
+        mass_data = self._filters({'ZAM': zam, "E": e})
+        S = mass_data.get_mass_yield_sensitivity()
+        mass_yield = S.dot(fy_data)
+        return mass_yield.rename('mass yield')
 
     def get_chain_yield(self, zam, e, decay_data, **kwargs):
         """
@@ -327,17 +325,20 @@ class Fy():
 
         Examples
         --------
-        >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy','all')
-        >>> nfpy = Fy.from_endf6(tape_nfpy)
-        >>> nfpy.get_mass_yield(922350, 0.0253).loc[148]
-        0.0169029147
+        >>> zam = [591480, 591481, 601480]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
+        >>> npfy = sandy.Fy(minimal_fytest_2)
+        >>> chain = npfy.get_chain_yield(942390, 500e3, decay_fytest).iloc[0].round(2) 
+        >>> assert chain == 0.6
         """
         # Filter FY data:
         conditions = {'ZAM': zam, "E": e, 'MT': 454}
         fy_data = self._filters(conditions).data.set_index('ZAP').FY
         S = decay_data. get_chain_yield_sensitivity(**kwargs)
-        chain = sandy._y_calc(fy_data, S)
-        return chain.rename('chain yield')
+        S = S.reindex(columns=fy_data.index).fillna(0)
+        chain_yield = S.dot(fy_data)
+        return chain_yield.rename('chain yield')
 
     def get_mass_yield_sensitivity(self):
         """
@@ -505,7 +506,7 @@ class Fy():
         cov_data = cov_data.reindex(columns).fillna(0)
         cov_data = sandy.CategoryCov.from_var(cov_data)
         # Apply (1-B) matrix
-        ify_calc_values = sandy._y_calc(fy_data, sensitivity).rename('FY')
+        ify_calc_values = sensitivity.dot(fy_data).rename('FY')
         cov_calc_values = np.diag(cov_data.sandwich(sensitivity).data)
         cov_calc_values = pd.Series(cov_calc_values, index=sensitivity.index)
         if keep_fy_index:
@@ -589,7 +590,8 @@ class Fy():
         cov_data = cov_data.reindex(Q.columns).fillna(0)
         cov_data = sandy.CategoryCov.from_var(cov_data)
         # Apply qmatrix
-        cfy_calc_values = sandy._y_calc(fy_data, Q).rename('FY')
+        Q = Q.reindex(columns=fy_data.index)
+        cfy_calc_values = Q.dot(fy_data).rename('FY')
         cov_calc_values = np.diag(cov_data.sandwich(Q).data)
         cov_calc_values = pd.Series(cov_calc_values, index=Q.index)
         if keep_fy_index:
