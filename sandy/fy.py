@@ -487,7 +487,7 @@ class Fy():
         conditions = {'ZAM': zam, 'MT': 459, "E": e}
         fy_data = self._filters(conditions).data
         mat = fy_data.MAT.iloc[0]
-        cov_data = fy_data.set_index('ZAP')['DFY']
+        std = fy_data.set_index('ZAP')['DFY']
         fy_data = fy_data.set_index('ZAP')['FY']
         if keep_fy_index:
             original_index = fy_data.index
@@ -504,8 +504,8 @@ class Fy():
         fy_data = fy_data.reindex(columns).fillna(0)
         data = data.loc[~mask]
         fy_data = fy_data.reindex(columns).fillna(0)
-        cov_data = cov_data.reindex(columns).fillna(0)
-        cov_data = sandy.CategoryCov.from_stdev(cov_data)
+        std = std.reindex(columns).fillna(0)
+        cov_data = sandy.CategoryCov.from_stdev(std)
         # Apply (1-B) matrix
         ify_calc_values = sensitivity.dot(fy_data).rename('FY')
         cov_calc_values = np.sqrt(np.diag((cov_data.sandwich(sensitivity).data)))
@@ -579,7 +579,7 @@ class Fy():
         conditions = {'ZAM': zam, 'MT': 454, "E": energy}
         fy_data = self._filters(conditions).data
         mat = fy_data.MAT.iloc[0]
-        cov_data = fy_data.set_index('ZAP')['DFY']
+        std = fy_data.set_index('ZAP')['DFY']
         fy_data = fy_data.set_index('ZAP')['FY']
         if keep_fy_index:
             original_index = fy_data.index
@@ -588,8 +588,8 @@ class Fy():
         mask = (data.ZAM == zam) & (data.MT == 459) & (data.E == energy)
         data = data.loc[~mask]
         fy_data = fy_data.reindex(Q.columns).fillna(0)
-        cov_data = cov_data.reindex(Q.columns).fillna(0)
-        cov_data = sandy.CategoryCov.from_stdev(cov_data)
+        std = std.reindex(Q.columns).fillna(0)
+        cov_data = sandy.CategoryCov.from_stdev(std)
         # Apply qmatrix
         cfy_calc_values = Q.dot(fy_data).rename('FY')
         cov_calc_values = np.sqrt(np.diag(cov_data.sandwich(Q).data))
@@ -603,15 +603,16 @@ class Fy():
         calc_values[['MAT', 'ZAM', 'MT', 'E']] = [mat, zam, 459, energy]
         data = pd.concat([data, calc_values], ignore_index=True)
         return self.__class__(data)
-
-    def gls_cov_update(self, zam, e, Vy_extra=None,
-                       kind='mass yield', decay_data=None):
+    
+    def gls_update(self, zam, e, S, y_extra, Vy_extra=None):
         """
-        Update the prior IFY covariance matrix using the GLS technique
-        described in https://doi.org/10.1016/j.anucene.2015.10.027
+        Perform the GlS update of fission yields and their related covariance
+        matrix, according with
+        https://www.tandfonline.com/action/journalInformation?journalCode=tnst2
         .. math::
             $$
-            V_{IFY_{post}} = V_{IFY_{prior}} - V_{IFY_{prior}}\cdot S.T \cdot \left(S\cdot V_{IFY_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{IFY_{prior}}
+            x_{post} = x_{prior} + V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)\\
+            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
             $$
 
         Parameters
@@ -621,136 +622,27 @@ class Fy():
             applied.
         e : `float`
             Energy to which calculations are to be applied.
-        Vy_extra : 2D iterable, optional
-            Extra Covariance matrix (MXM).
-        kind : `str`, optional
-            Keyword for obtaining sensitivity. The default is 'mass yield'.
-        decay_data : `DecayData`, optional
-            Object to change the model to CFY = Q*IFY or Ch_chain = S_chain*IFY,
-            so the sensitivity (S) is Q or S_chain. The default is None,
-            so the model is ChY = ChY_mass*IFY and the sensitivity is mass
-            yield sensitivity.
+        S : 2D or 1D iterable
+            Sensitivity matrix (M, N) or sensitivity vector (N,).
+        y_extra : 1D iterable, optional
+            1D extra info on output (M,)
+        Vy_extra : 2D or 1D iterable, optional, default is `None`
+            covariance matrix with the uncertainties of the extra information,
+            (M, M) or (1,).
 
         Returns
         -------
-        `panda.DataFrame`
-            IFY covariance matrix performed by GLS for a given energy and zam.
+        `sandy.Fy`
+            `Fy` object updated with GLS for a given zam, energy, design
+            sensitivity and new information.
+        `sandy.CategoryCov`
+            `CategoryCov` object corresponding to the updated covariance matrix
+            adjusted with the GLS technique.
 
         Notes
         -----
-        .. note:: only option `kind='cumulative'` is implemented.
-
-        Examples
-        --------
-        >>> zam = [591480, 591481, 601480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
-        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
-        >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1, 1]))
-        >>> index = pd.Index([591480, 591481, 601480, 621480])
-        >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=index, columns=index)
-        >>> npfy = Fy(minimal_fytest_2)
-        >>> npfy.gls_cov_update(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest)
-        ZAP	         591480	         591481	        601480
-        ZAP
-        591480	 3.59798e-02   -3.07257e-03	   -6.45241e-04
-        591481	-3.07257e-03	4.38149e-02	   -7.98869e-04
-        601480	-6.45241e-04   -7.98869e-04	    9.83224e-03
-
-        >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1]))
-        >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
-        >>> npfy.gls_cov_update(942390, 500e3, CFY_var_extra, kind='cumulative', decay_data=decay_fytest)
-        ZAP	          591480	      591481	      601480
-        ZAP
-        591480	 3.71119e-02	-1.67096e-03	-3.50901e-04
-        591481	-1.67096e-03	 4.55502e-02	-4.34448e-04
-        601480	-3.50901e-04	-4.34448e-04	 9.90877e-03
-
-        >>> zam = [591480, 591481, 601480]
-        >>> chain_var_extra = np.diag(pd.Series([1, 1, 1]))
-        >>> index = pd.Index([147, 148, 149])
-        >>> chain_var_extra = pd.DataFrame(chain_var_extra, index=index, columns=index)
-        >>> npfy = sandy.Fy(minimal_fytest_2)
-        >>> npfy.gls_cov_update(942390, 500e3, chain_var_extra)
-        ZAP	          591480	      591481	      601480
-        ZAP
-        591480	 3.85455e-02	-1.81818e-03	-3.63636e-04
-        591481	-1.81818e-03	 4.77273e-02	-4.54545e-04
-        601480	-3.63636e-04	-4.54545e-04	 9.90909e-03
-
-        >>> zam = [591480, 591481, 601480]
-        >>> chain_var_extra = np.diag(pd.Series([1, 1, 1, 1]))
-        >>> index = pd.Index([147, 148, 149, 150])
-        >>> chain_var_extra = pd.DataFrame(chain_var_extra, index=index, columns=index)
-        >>> npfy = sandy.Fy(minimal_fytest_2)
-        >>> npfy.gls_cov_update(942390, 500e3, chain_var_extra)
-        ZAP	          591480	      591481	      601480
-        ZAP
-        591480	 3.85455e-02	-1.81818e-03	-3.63636e-04
-        591481	-1.81818e-03	 4.77273e-02	-4.54545e-04
-        601480	-3.63636e-04	-4.54545e-04	 9.90909e-03
-
-        >>> npfy.gls_cov_update(942390, 500e3)
-        ZAP	          591480	      591481	      601480
-        ZAP
-        591480	 2.40000e-02	-2.00000e-02	-4.00000e-03
-        591481	-2.00000e-02	 2.50000e-02	-5.00000e-03
-        601480	-4.00000e-03	-5.00000e-03	 9.00000e-03
-        """
-        # Divide the data type:
-        conditions = {'ZAM': zam, "E": e}
-        fy_data = self._filters(conditions).data\
-                      .set_index('ZAP')[['MT', 'DFY']]
-        Vx_prior = fy_data.query('MT==454').DFY
-        Vx_prior = sandy.CategoryCov.from_var(Vx_prior)
-        # Fix the S with the correct dimension:
-        if kind == 'mass yield':
-            model_sensitivity_object = self._filters(conditions)
-        elif kind == 'cumulative' or 'chain yield':
-            model_sensitivity_object = decay_data
-        S = _gls_setup(model_sensitivity_object, kind)\
-            .reindex(columns=Vx_prior.data.columns).fillna(0)
-        if Vy_extra is not None:
-            Vy_extra_ = pd.DataFrame(Vy_extra)
-            S = S.reindex(index=Vy_extra_.index).fillna(0)
-            Vx_post = Vx_prior.gls_cov_update(S, Vy_extra_).data
-        else:
-            Vx_post = Vx_prior.gls_cov_update(S, Vy_extra=None).data
-        return Vx_post
-
-    def gls_update(self, zam, e, y_extra=None, Vy_extra=None,
-                   kind='mass yield', decay_data=None):
-        """
-        Update IFY for a given zam, energy, decay_data and new information.
-        .. math::
-            $$
-            IFY_{post} = IFY_{prior} + V_{IFY_{prior}}\cdot S.T \cdot \left(S\cdot V_{IFY_{prior}}\cdot S.T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)
-            $$
-
-        Parameters
-        ----------
-        zam : `int`
-            ZAM number of the material to which calculations are to be
-            applied.
-        e : `float`
-            Energy to which calculations are to be applied.
-        y_extra : 1D iterable, optional
-            New value of the vector.
-        Vy_extra : 2D iterable, optional
-            2D covariance matrix for y_extra (MXM).
-        kind : `str`, optional
-            Keyword for obtaining sensitivity. The
-            default is 'mass yield'.
-        decay_data : `DecayData`, optional
-            Object to change the model to CFY = Q*IFY or Ch_chain = S_chain*IFY,
-            so the sensitivity (S) is Q or S_chain. The default is None,
-            so the model is ChY = ChY_mass*IFY and the sensitivity is mass
-            yield sensitivity.
-
-         Returns
-        -------
-        `sandy.FY`
-            IFY updated with GLS for a given zam, energy, decay_data and
-            new information.
+        .. note:: If Vy_extra=None the constraint GLS update technique
+        will be performed.
 
         Examples
         --------
@@ -759,67 +651,206 @@ class Fy():
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> CFY_extra = pd.Series([0, 0.1, 0.2], index=zam)
         >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1]))
-        >>> CFY_var_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
+        >>> Vy_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
         >>> npfy = Fy(minimal_fytest_2)
-        >>> npfy.gls_update(942390, 500e3, CFY_extra, CFY_var_extra, kind='cumulative', decay_data=decay_fytest)
+        >>> S = decay_fytest.get_qmatrix()
+        >>> npfy.gls_update(942390, 500e3, S, CFY_extra, Vy_extra)[0]
             MAT   MT     ZAM     ZAP           E          FY         DFY
-        0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
-        1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
-        2  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
-        3  9437  454  942390  591480 5.00000e+05 8.24199e-02 3.71119e-02
-        4  9437  454  942390  591481 5.00000e+05 1.78234e-01 4.55502e-02
-        5  9437  454  942390  601480 5.00000e+05 2.96429e-01 9.90877e-03
+        0  9437  454  942390  591480 5.00000e+05 9.92046e-02 3.99362e-02
+        1  9437  454  942390  591481 5.00000e+05 1.98758e-01 4.98756e-02
+        2  9437  454  942390  601480 5.00000e+05 2.99960e-01 9.99950e-03
+        3  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
+        4  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
+        5  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
+
+        >>> npfy.gls_update(942390, 500e3, S, CFY_extra, Vy_extra)[1]
+        ZAP          591480       591481       601480
+        ZAP                                          
+        591480  1.59490e-03 -3.96702e-06 -1.59078e-07
+        591481 -3.96702e-06  2.48757e-03 -2.48336e-07
+        601480 -1.59078e-07 -2.48336e-07  9.99900e-05
+        """
+        x_post = self._gls_parameters_update(zam, e, S, y_extra, Vy_extra) 
+        Vx_post = self._gls_cov_update(zam, e, S, Vy_extra)
+        return x_post, Vx_post
+
+    def _gls_parameters_update(self, zam, e, S, y_extra, Vy_extra=None):
+        """
+        Update IFY with the GLS update technique for a given zam, energy,
+        design sensitivity and extra information, according with
+        https://doi.org/10.1016/j.anucene.2015.10.027.
+        .. math::
+            $$
+            IFY_{post} = IFY_{prior} + V_{IFY_{prior}}\cdot S^T \cdot \left(S\cdot V_{IFY_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)
+            $$
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which calculations are to be
+            applied.
+        e : `float`
+            Energy to which calculations are to be applied.
+        S : 2D or 1D iterable
+            Sensitivity matrix (M, N) or sensitivity vector (N,).
+        y_extra : 1D iterable, optional
+            1D extra info on output (M,)
+        Vy_extra : 2D or 1D iterable, optional, default is `None`
+            covariance matrix with the uncertainties of the extra information,
+            (M, M) or (1,).
+
+        Returns
+        -------
+        `sandy.Fy`
+            `Fy` object updated with GLS for a given zam, energy, design
+            sensitivity and new information.
+
+        Notes
+        -----
+        .. note:: If Vy_extra=None the constraint GLS update technique
+        will be performed.
+
+        Examples
+        --------
+        >>> zam = [591480, 591481, 601480]
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
+        >>> CFY_extra = pd.Series([0, 0.1, 0.2], index=zam)
+        >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1]))
+        >>> Vy_extra = pd.DataFrame(CFY_var_extra, index=zam, columns=zam)
+        >>> nfpy = Fy(minimal_fytest_2)
+        >>> S = decay_fytest.get_qmatrix()
+        >>> nfpy._gls_parameters_update(942390, 500e3, S, CFY_extra, Vy_extra)
+            MAT   MT     ZAM     ZAP           E          FY         DFY
+        0  9437  454  942390  591480 5.00000e+05 9.92046e-02 3.99362e-02
+        1  9437  454  942390  591481 5.00000e+05 1.98758e-01 4.98756e-02
+        2  9437  454  942390  601480 5.00000e+05 2.99960e-01 9.99950e-03
+        3  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
+        4  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
+        5  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
 
         >>> index = pd.Index([147, 148, 149])
         >>> chain_extra = pd.Series([0, 0.1, 0.2], index=index)
         >>> chain_var_extra = np.diag(pd.Series([1, 1, 1]))
-        >>> chain_var_extra = pd.DataFrame(chain_var_extra, index=index, columns=index)
-        >>> npfy.gls_update(942390, 500e3, chain_extra, chain_var_extra)
+        >>> Vy_extra = pd.DataFrame(chain_var_extra, index=index, columns=index)
+        >>> S = nfpy.get_mass_yield_sensitivity()
+        >>> nfpy._gls_parameters_update(942390, 500e3, S, chain_extra, Vy_extra)
             MAT   MT     ZAM     ZAP           E          FY         DFY
-        0  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
-        1  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
-        2  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
-        3  9437  454  942390  591480 5.00000e+05 8.18182e-02 3.85455e-02
-        4  9437  454  942390  591481 5.00000e+05 1.77273e-01 4.77273e-02
-        5  9437  454  942390  601480 5.00000e+05 2.95455e-01 9.90909e-03
+        0  9437  454  942390  591480 5.00000e+05 9.92033e-02 3.99681e-02
+        1  9437  454  942390  591481 5.00000e+05 1.98755e-01 4.99377e-02
+        2  9437  454  942390  601480 5.00000e+05 2.99950e-01 9.99950e-03
+        3  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
+        4  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
+        5  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
+
+        >>> y_constraint = pd.Series(0.9, index=[148])
+        >>> nfpy._gls_parameters_update(942390, 500e3, S, y_constraint)
+            MAT   MT     ZAM     ZAP           E          FY         DFY
+        0  9437  454  942390  591480 5.00000e+05 2.14286e-01 3.14718e-02
+        1  9437  454  942390  591481 5.00000e+05 3.78571e-01 3.18105e-02
+        2  9437  454  942390  601480 5.00000e+05 3.07143e-01 9.88024e-03
+        3  9437  459  942390  591480 5.00000e+05 8.00000e-01 4.00000e-02
+        4  9437  459  942390  591481 5.00000e+05 1.00000e+00 5.00000e-02
+        5  9437  459  942390  601480 5.00000e+05 2.00000e-01 1.00000e-02
         """
-        data = self.data.copy()
         # Filter FY data:
-        conditions = {'ZAM': zam, "E": e}
-        fy_data = self._filters(conditions).data
+        fy_data = self.data.query(f"ZAM=={zam} & E=={e} & MT==454").set_index('ZAP')
         mat = fy_data.MAT.iloc[0]
-        fy_data = fy_data.set_index('ZAP')[['MT', 'FY', 'DFY']]
-        # Divide the data:
-        mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e)
-        data = data.loc[~mask]
-        x_prior = fy_data.query('MT==454').FY
-        index = x_prior.index
-        Vx_prior = fy_data.query('MT==454').DFY
-        Vx_prior = sandy.CategoryCov.from_var(Vx_prior).data
-        # Find the GLS varibles:
-        if kind == 'mass yield':
-            model_sensitivity_object = self._filters(conditions)
-        elif kind == 'cumulative' or 'chain yield':
-            model_sensitivity_object = decay_data
-        S = _gls_setup(model_sensitivity_object, kind)
+        x_prior = fy_data.FY
+        std = fy_data.DFY
+        Vx_prior = sandy.CategoryCov.from_stdev(std).data
+        index = Vx_prior.index
+        S_ = pd.DataFrame(S).reindex(columns=index).fillna(0)
+        y_extra_ = pd.Series(y_extra).reindex(index=S_.index).fillna(0).values
         # Perform GLS:
-        if y_extra is None and Vy_extra is None:
-            x_post = sandy.constrained_gls_update(x_prior, S, Vx_prior)
-            Vx_post = self.gls_cov_update(zam, e, kind=kind,
-                                          decay_data=decay_data)
+        if Vy_extra is not None:
+            Vy_extra_ = pd.DataFrame(Vy_extra)
+            S_ = S_.reindex(index=Vy_extra_.index).fillna(0)
+            y_extra_ = pd.Series(y_extra).reindex(index=S_.index).fillna(0).values
+            x_post = sandy._gls_parameters_update(x_prior.values, S_.values,
+                                                  Vx_prior.values, y_extra_, Vy_extra.values)
         else:
-            S = S.reindex(index=pd.DataFrame(Vy_extra).index, columns = Vx_prior.index).fillna(0)
-            x_post = sandy._gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra)
-            Vx_post = self.gls_cov_update(zam, e, Vy_extra,
-                                          kind=kind, decay_data=decay_data)
+            x_post = sandy._gls_parameters_update(x_prior.values, S_.values,
+                                                  Vx_prior.values, y_extra_)
+        Vx_post = self._gls_cov_update(zam, e, S, Vy_extra)
         # Results in appropriate format:
-        Vx_post = Vx_post.reindex(index=index, columns=index).fillna(0)
-        x_post = pd.Series(x_post, index=index)
-        calc_values = x_post.rename('FY').reset_index()
-        calc_values['DFY'] = pd.Series(np.diag(Vx_post)).values
-        calc_values[['MAT', 'ZAM', 'MT', 'E']] = [mat, zam, 454, e]
-        data = pd.concat([data, calc_values], ignore_index=True)
-        return self.__class__(data)
+        data = self.data.query(f"ZAM=={zam} & E=={e} & MT==459")
+        dx_post = np.sqrt(np.diag(Vx_post.data))
+        new_info = pd.DataFrame({"ZAP": index, "FY": x_post, "DFY": dx_post})
+        new_info[['MAT', 'ZAM', 'MT', 'E']] = [mat, zam, 454, e]
+        return self.__class__(pd.concat([new_info, data], ignore_index=True))
+
+    def _gls_cov_update(self, zam, e, S, Vy_extra=None):
+        """
+        Update the prior IFY covariance matrix using the GLS technique
+        described in https://doi.org/10.1016/j.anucene.2015.10.027
+        .. math::
+            $$
+            V_{IFY_{post}} = V_{IFY_{prior}} - V_{IFY_{prior}}\cdot S^T \cdot \left(S\cdot V_{IFY_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{IFY_{prior}}
+            $$
+
+        Parameters
+        ----------
+        zam : `int`
+            ZAM number of the material to which calculations are to be
+            applied.
+        e : `float`
+            Energy to which calculations are to be applied.
+        S : 2D or 1D iterable
+            Sensitivity matrix (M, N) or sensitivity vector (N,).
+        Vy_extra : 2D or 1D iterable, optional, default is `None`
+            covariance matrix with the uncertainties of the extra information,
+            (M, M) or (1,).
+
+        Returns
+        -------
+        `sandy.CategoryCov`
+            `CategoryCov` object corresponding to the updated covariance matrix
+            adjusted with the GLS technique.
+
+        Notes
+        -----
+        .. note:: If Vy_extra=None the constraint GLS update technique
+        will be performed.
+
+        Examples
+        --------
+        >>> zam = [591480, 591481, 601480]
+        >>> tape_rdd = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_fytest = sandy.DecayData.from_endf6(tape_rdd)
+        >>> CFY_var_extra = np.diag(pd.Series([1, 1, 1, 1]))
+        >>> index = pd.Index([147, 148, 149, 150])
+        >>> Vy_extra = pd.DataFrame(CFY_var_extra, index=index, columns=index)
+        >>> nfpy = Fy(minimal_fytest_2)
+        >>> S = decay_fytest.get_chain_yield_sensitivity()
+        >>> nfpy._gls_cov_update(942390, 500e3, S, Vy_extra)
+        ZAP          591480       591481       601480
+        ZAP
+        591480  1.59745e-03 -3.98327e-06 -1.59331e-07
+        591481 -3.98327e-06  2.49378e-03 -2.48954e-07
+        601480 -1.59331e-07 -2.48954e-07  9.99900e-05
+
+        >>> S = nfpy.get_mass_yield_sensitivity()
+        >>> nfpy._gls_cov_update(942390, 500e3, S)
+        ZAP          591480       591481       601480
+        ZAP
+        591480  9.90476e-04 -9.52381e-04 -3.80952e-05
+        591481 -9.52381e-04  1.01190e-03 -5.95238e-05
+        601480 -3.80952e-05 -5.95238e-05  9.76190e-05
+        """
+        # Divide the data type:
+        std = self.data.query(f"ZAM=={zam} & E=={e} & MT==454").set_index('ZAP').DFY
+        Vx_prior = sandy.CategoryCov.from_stdev(std)
+        # Fix the S with the correct dimension:
+        S_ = pd.DataFrame(S)\
+            .reindex(columns=Vx_prior.data.columns).fillna(0)
+        if Vy_extra is not None:
+            Vy_extra_ = pd.DataFrame(Vy_extra)
+            S_ = S_.reindex(index=Vy_extra_.index).fillna(0)
+            Vx_post = Vx_prior.gls_cov_update(S_, Vy_extra_)
+        else:
+            Vx_post = Vx_prior.gls_cov_update(S_)
+        return Vx_post
 
     def ishikawa_factor(self, zam, e, Vy_extra,
                         kind='mass yield', decay_data=None):
