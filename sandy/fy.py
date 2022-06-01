@@ -606,9 +606,9 @@ class Fy():
     
     def gls_update(self, zam, e, S, y_extra, Vy_extra=None):
         """
-        Perform the GlS update of fission yields and their related covariance
+        Perform the GLS update of fission yields and their related covariance
         matrix, according with
-        https://www.tandfonline.com/action/journalInformation?journalCode=tnst2
+        https://doi.org/10.1016/j.anucene.2015.10.027.
         .. math::
             $$
             x_{post} = x_{prior} + V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)\\
@@ -633,8 +633,8 @@ class Fy():
         Returns
         -------
         `sandy.Fy`
-            IFY updated with GLS for a given zam, energy, decay_data and
-            new information.
+            `Fy` object updated with GLS for a given zam, energy, design
+            sensitivity and new information.
         `sandy.CategoryCov`
             `CategoryCov` object corresponding to the updated covariance matrix
             adjusted with the GLS technique.
@@ -680,13 +680,13 @@ class Fy():
 
     def _gls_parameters_update(self, zam, e, S, y_extra, Vy_extra=None):
         """
-        Update IFY with the GLS update technique for a given zam, energy,
-        design sensitivity and extra information, according with
-        https://doi.org/10.1016/j.anucene.2015.10.027.
-        .. math::
-            $$
-            IFY_{post} = IFY_{prior} + V_{IFY_{prior}}\cdot S^T \cdot \left(S\cdot V_{IFY_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)
-            $$
+        Perform the GlS update of the `Fy` object, for a given zam, energy, design
+        matrix, additional info on the model observable and their covariance
+        matrix, according with https://doi.org/10.1016/j.anucene.2015.10.027.
+         .. math::
+             $$
+             x_{post} = x_{prior} + V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)
+             $$
 
         Parameters
         ----------
@@ -747,13 +747,12 @@ class Fy():
         4  9228  459  922350  591481 2.53000e-02 3.02430e-04 1.01150e-04
         5  9228  459  922350  601480 2.53000e-02 1.69270e-02 1.18300e-04
 
-        >>> y_constraint = 2
-        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
+        >>> y_constraint = pd.Series([2])
+        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922340)
         >>> nfpy = sandy.Fy.from_endf6(tape)
-        >>> S = pd.Series(np.ones(len(nfpy.data.columns)), index=nfpy.data.columns)
-        >>> nfpy_post = nfpy._gls_parameters_update(922350, 0.0253, S, y_constraint)
-        >>> print(sum(nfpy_post.data.query("MT==454").FY), sum(nfpy.data.query("MT==454").FY))
-        2.001872133562849 6.005592198984664
+        >>> S = pd.DataFrame(np.ones(len(nfpy.data.query("E==400000 & MT==454").ZAP)), index=nfpy.data.query("E==400000 & MT==454").ZAP.to_list()).T
+        >>> nfpy_post = nfpy._gls_parameters_update(922340, 400000, S, y_constraint)
+        >>> assert sum(nfpy_post.data.query("MT==454").FY) == 2
         """
         # Filter FY data:
         fy_data = self.data.query(f"ZAM=={zam} & E=={e} & MT==454").set_index('ZAP')
@@ -784,11 +783,13 @@ class Fy():
 
     def _gls_cov_update(self, zam, e, S, Vy_extra=None):
         """
-        Update the prior IFY covariance matrix using the GLS technique
-        described in https://doi.org/10.1016/j.anucene.2015.10.027
+        Perform GlS update of the covariance matrix of the `Fy` instance
+        for a given zam, energy, design sensitivity and
+        covariance matrix of the extra information, according with
+        https://doi.org/10.1016/j.anucene.2015.10.027
         .. math::
             $$
-            V_{IFY_{post}} = V_{IFY_{prior}} - V_{IFY_{prior}}\cdot S^T \cdot \left(S\cdot V_{IFY_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{IFY_{prior}}
+            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
             $$
 
         Parameters
