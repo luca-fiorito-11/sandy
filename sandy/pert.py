@@ -180,6 +180,41 @@ class Pert():
                             index=self.data.index.mid,
                             columns=self.data.columns)
 
+    def reorder(self, columns):
+        """
+        Sort the levels in the columns of `Sandy.Pert`
+
+        Parameters
+        ----------
+        columns : `pd.Multiindex`
+            New columns order.
+
+        Returns
+        -------
+        `sandy.Pert`
+            Pert order with sort levels.
+
+        Examples
+        --------
+        >>> col = pd.MultiIndex.from_arrays([[5, 2], [2631, 2631]], names=('MT', 'MAT'))
+        >>> pert = pd.DataFrame([[1, 1.05], [1.05, 1]], index =pd.IntervalIndex.from_breaks(pd.Index([1.94000e+08, 1.96000e+08+1]).insert(0, 0)), columns=col)
+        >>> col_new = pd.MultiIndex.from_arrays([[2631, 2631], [2, 5]], names=('MT', 'MAT'))
+        >>> sandy.Pert(pert).reorder(['MAT', 'MT'])
+        MAT                               2631
+        MT                                   2           5
+        ENERGY
+        (0.0, 194000000.0]         1.05000e+00 1.00000e+00
+        (194000000.0, 196000001.0] 1.00000e+00 1.05000e+00
+        """
+        data = self.data
+        for name in columns.names:
+            if name not in self.data.columns.names:
+                print("Levels do not match")
+                return
+        data_reorder = data.reorder_levels(columns.names, axis=1)
+        col = columns.intersection(data_reorder.columns)
+        return sandy.Pert(data_reorder[col])
+
     def reshape(self, eg, inplace=False):
         """
         Interpolate perturbation over new energy grid structure using `bfill`

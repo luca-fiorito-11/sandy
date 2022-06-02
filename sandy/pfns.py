@@ -436,8 +436,7 @@ class Edistr():
         df = pd.concat(out)
         return self.__class__(df)
 
-    def custom_perturbation(self, pert, mat=None, mt=None, k=None,
-                            ein_low=None, ein_high=None):
+    def custom_perturbation(self, pert):
         """
         Given a peruration object (fractions), a MAT number, a MT number,
         a subsection number, a lower and an upper incoming energy bound,
@@ -446,8 +445,8 @@ class Edistr():
 
         Parameters
         ----------
-        pert : `sandy.Pert` or `pd.Series`
-            perturbation object.
+        pert : `sandy.Pert` or `pd.DataFrame`
+            Tabulated perturbation.
         mat : `int`, optional
             MAT number. The default is None.
         mt : `int`
@@ -477,54 +476,10 @@ class Edistr():
         --------
         >>> orig = Edistr(minimal_edistrtest)
         >>> pert = pd.Series([1.3], index=[1e-3])
-        >>> orig.custom_perturbation(pert, 9437, 18, 0, 1.5, 2.5)
-            MAT  MT  K         EIN        EOUT       VALUE
-        0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
-        1  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01
-        2  9437  18  0 2.00000e+00 1.00000e-04 2.60000e-01
-        3  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
-        4  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
-        """
-        if isinstance(pert, pd.Series):
-            if mat is not None and mt is not None and k is not None and ein_low is not None and ein_high is not None:
-                columns = pd.MultiIndex.from_product([[mat], [mt], [k], [ein_low], [ein_high]],
-                                                     names=['MAT', 'MT', 'K', 'ELO', 'EHI'])
-                df = pd.DataFrame(pert.values, index=pert.index,
-                                  columns=columns)
-                pert_ = sandy.Pert(df)
-            else:
-                print("The input do not have enought information")
-                return
-        else:
-            pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
-        return self._custom_perturbation(pert_, mat=mat)
-
-    def _custom_perturbation(self, pert, mat=None):
-        """
-        Apply the perturbation to the outgoing energy distributions for all
-        incident energies comprised within the given boundarie in the pert
-        variable columns.
-
-        Parameters
-        ----------
-        pert : `sandy.Pert`
-            perturbation object
-        mat : `int`, optional
-            MAT number. The default is None.
-
-        Returns
-        -------
-        `sandy.Edistr`
-            perturbed distributions.
-
-        Examples
-        --------
-        >>> orig = Edistr(minimal_edistrtest)
-        >>> pert = pd.Series([1.3], index=[1e-3])
         >>> columns = pd.MultiIndex.from_product([[9437], [18], [0], [1.5], [2.5]], names=['MAT', 'MT', 'K', 'ELO', 'EHI'])
         >>> df = pd.DataFrame(pert.values, index=pert.index, columns=columns)
         >>> pert_ = sandy.Pert(df)
-        >>> orig._custom_perturbation(pert_)
+        >>> orig.custom_perturbation(pert_)
             MAT  MT  K         EIN        EOUT       VALUE
         0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
         1  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01
@@ -532,16 +487,17 @@ class Edistr():
         3  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
         4  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
         """
+        pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
+
+        # New energy grid:
         energy_grid = self.data.loc[:, 'EOUT'].unique()
         enew = np.union1d(energy_grid, pert.right.index)
         enew = enew[(enew <= energy_grid.max()) & (enew >= energy_grid.min())]
-        u_pert = pert.reshape(enew).right
-        if mat is not None:
-            u_pert = u_pert.T.query(f"MAT == {mat}").T
-            if u_pert.empty:
-                print(f"{mat} is not in perturbation")
-                return self
 
+        # Reshape to new energy grid and columns estructure:
+        u_pert = pert.reshape(enew).right
+
+        # Apply the perturbation:
         def foo(df, pert):
             ein = df.loc[:, 'EIN'].unique()[0]
             mat = df.loc[:, 'MAT'].unique()[0]
@@ -555,8 +511,7 @@ class Edistr():
             if not pert_.empty:
                 pert_ = pert_.iloc[:, [0]]\
                              .reindex(index=df.loc[:, "EOUT"].values)\
-                             .values\
-                             .flatten()
+                             .values.flatten()
                 df["VALUE"] = df['VALUE'].values * pert_
             return df
         pert_edistr = self.data.groupby(['MAT', 'MT', 'K', 'EIN'])\
