@@ -198,7 +198,7 @@ class Pert():
         --------
         >>> col = pd.MultiIndex.from_arrays([[5, 2], [2631, 2631]], names=('MT', 'MAT'))
         >>> pert = pd.DataFrame([[1, 1.05], [1.05, 1]], index =pd.IntervalIndex.from_breaks(pd.Index([1.94000e+08, 1.96000e+08+1]).insert(0, 0)), columns=col)
-        >>> col_new = pd.MultiIndex.from_arrays([[2631, 2631], [2, 5]], names=('MT', 'MAT'))
+        >>> col_new = pd.MultiIndex.from_arrays([[2631, 2631], [2, 5]], names=('MAT', 'MT'))
         >>> sandy.Pert(pert).reorder(col_new)
         MAT                               2631
         MT                                   2           5
