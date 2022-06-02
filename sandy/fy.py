@@ -611,9 +611,10 @@ class Fy():
         https://doi.org/10.1016/j.anucene.2015.10.027.
         .. math::
             $$
-            x_{post} = x_{prior} + V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)\\
-            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
+            IFY_{post} = IFY_{prior} + V_{IFY_{prior}}\cdot S^T \cdot \left(S\cdot V_{IFY_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)\\
+            V_{IFY_{post}} = V_{IFY_{prior}} - V_{IFY_{prior}}\cdot S^T \cdot \left(S\cdot V_{IFY_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{IFY_{prior}}
             $$
+            with $x_{post}$ the updated IFY and $x_{prior}$ the prior IFY
 
         Parameters
         ----------
@@ -622,13 +623,15 @@ class Fy():
             applied.
         e : `float`
             Energy to which calculations are to be applied.
-        S : 2D or 1D iterable
+        S : `pandas.DataFrame`
             Sensitivity matrix (M, N) or sensitivity vector (N,).
-        y_extra : 1D iterable, optional
-            1D extra info on output (M,)
-        Vy_extra : 2D or 1D iterable, optional, default is `None`
+        y_extra : `pandas.Series`
+            Extra information on output (M,). The names of the indeces must be
+            consistent with the names of the indices of the sensitivity matrix.
+        Vy_extra : `pandas.DataFrame` or `pandas.Series`, optional, default is `None`
             covariance matrix with the uncertainties of the extra information,
-            (M, M) or (1,).
+            (M, M) or (1,). The names of the indeces and columns must be
+            consistent with the names of the indices of the sensitivity matrix.
 
         Returns
         -------
@@ -669,194 +672,42 @@ class Fy():
 
         >>> nfpy.gls_update(922350, 0.0253, S, y_extra, Vy_extra)[1]
         ZAP          591480       591481       601480
-        ZAP                                          
+        ZAP
         591480  5.71318e-10 -4.98686e-10 -1.34355e-12
         591481 -4.98686e-10  1.78322e-09 -2.37615e-11
         601480 -1.34355e-12 -2.37615e-11  2.85018e-11
-        """
-        x_post = self._gls_parameters_update(zam, e, S, y_extra, Vy_extra)
-        Vx_post = self._gls_cov_update(zam, e, S, Vy_extra)
-        return x_post, Vx_post
 
-    def _gls_parameters_update(self, zam, e, S, y_extra, Vy_extra=None):
-        """
-        Perform the GlS update of the `Fy` object, for a given zam, energy, design
-        matrix, additional info on the model observable and their covariance
-        matrix, according with https://doi.org/10.1016/j.anucene.2015.10.027.
-         .. math::
-             $$
-             x_{post} = x_{prior} + V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot \left(y_{extra} - y_{calc}\right)
-             $$
-
-        Parameters
-        ----------
-        zam : `int`
-            ZAM number of the material to which calculations are to be
-            applied.
-        e : `float`
-            Energy to which calculations are to be applied.
-        S : 2D or 1D iterable
-            Sensitivity matrix (M, N) or sensitivity vector (N,).
-        y_extra : 1D iterable, optional
-            1D extra info on output (M,)
-        Vy_extra : 2D or 1D iterable, optional, default is `None`
-            covariance matrix with the uncertainties of the extra information,
-            (M, M) or (1,).
-
-        Returns
-        -------
-        `sandy.Fy`
-            `Fy` object updated with GLS for a given zam, energy, design
-            sensitivity and new information.
-
-        Notes
-        -----
-        .. note:: If Vy_extra=None the constraint GLS update technique
-        will be performed.
-
-        Examples
-        --------
-        >>> zam = [591480, 591481, 601480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
-        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
-        >>> mass_numbers = [147, 148, 149]
-        >>> S = decay_fytest.get_chain_yield_sensitivity()
-        >>> chain_yields = sandy.fy.get_chain_yields()
-        >>> y_extra = chain_yields.query(f"A=={mass_numbers} & E=='thermal' & ZAM==922350").set_index("A").CHY
-        >>> std_extra_info = chain_yields.query(f"A=={mass_numbers} & E=='thermal'").set_index("A").DCHY
-        >>> Vy_extra = sandy.CategoryCov.from_stdev(std_extra_info).data
-        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
-        >>> nfpy = sandy.Fy.from_endf6(tape)
-        >>> nfpy = sandy.Fy(nfpy.data.query(f"ZAP=={zam}"))
-        >>> nfpy._gls_parameters_update(922350, 0.0253, S, y_extra, Vy_extra)
-            MAT   MT     ZAM     ZAP           E          FY         DFY
-        0  9228  454  922350  591480 2.53000e-02 8.40795e-04 2.39023e-05
-        1  9228  454  922350  591481 2.53000e-02 1.39006e-02 4.22282e-05
-        2  9228  454  922350  601480 2.53000e-02 5.12689e-05 5.33871e-06
-        3  9228  459  922350  591480 2.53000e-02 1.66100e-02 1.21560e-04
-        4  9228  459  922350  591481 2.53000e-02 3.02430e-04 1.01150e-04
-        5  9228  459  922350  601480 2.53000e-02 1.69270e-02 1.18300e-04
-
-        >>> S = nfpy.get_mass_yield_sensitivity()
-        >>> nfpy._gls_parameters_update(922350, 0.0253, S, y_extra, Vy_extra)
-            MAT   MT     ZAM     ZAP           E          FY         DFY
-        0  9228  454  922350  591480 2.53000e-02 3.44859e-04 2.38324e-05
-        1  9228  454  922350  591481 2.53000e-02 5.12970e-03 2.72184e-05
-        2  9228  454  922350  601480 2.53000e-02 2.76385e-05 5.33800e-06
-        3  9228  459  922350  591480 2.53000e-02 1.66100e-02 1.21560e-04
-        4  9228  459  922350  591481 2.53000e-02 3.02430e-04 1.01150e-04
-        5  9228  459  922350  601480 2.53000e-02 1.69270e-02 1.18300e-04
-
-        >>> y_constraint = pd.Series([2])
+        >>> y_constraint = pd.Series([2], index=[0])
         >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922340)
         >>> nfpy = sandy.Fy.from_endf6(tape)
         >>> S = pd.DataFrame(np.ones(len(nfpy.data.query("E==400000 & MT==454").ZAP)), index=nfpy.data.query("E==400000 & MT==454").ZAP.to_list()).T
-        >>> nfpy_post = nfpy._gls_parameters_update(922340, 400000, S, y_constraint)
+        >>> nfpy_post = nfpy.gls_update(922340, 400000, S, y_constraint)[0]
         >>> assert sum(nfpy_post.data.query("MT==454").FY) == 2
         """
-        # Filter FY data:
         fy_data = self.data.query(f"ZAM=={zam} & E=={e} & MT==454").set_index('ZAP')
         mat = fy_data.MAT.iloc[0]
         x_prior = fy_data.FY
         std = fy_data.DFY
-        Vx_prior = sandy.CategoryCov.from_stdev(std).data
-        index = Vx_prior.index
-        S_ = pd.DataFrame(S).reindex(columns=index).fillna(0)
-        y_extra_ = pd.Series(y_extra).reindex(index=S_.index).fillna(0).values
+        Vx_prior = sandy.CategoryCov.from_stdev(std)
+        index = Vx_prior.data.index
+        S_ = S.reindex(columns=index).fillna(0)
+        y_extra_ = y_extra.reindex(index=S_.index).fillna(0)
         # Perform GLS:
         if Vy_extra is not None:
-            Vy_extra_ = pd.DataFrame(Vy_extra)
-            S_ = S_.reindex(index=Vy_extra_.index).fillna(0)
-            y_extra_ = pd.Series(y_extra).reindex(index=S_.index).fillna(0).values
+            S_ = S_.reindex(index=Vy_extra.index).fillna(0)
+            y_extra_ = y_extra.reindex(index=S_.index).fillna(0).values
             x_post = sandy._gls_parameters_update(x_prior.values, S_.values,
-                                                  Vx_prior.values, y_extra_, Vy_extra.values)
+                                                  Vx_prior.data.values, y_extra_, Vy_extra.values)
         else:
             x_post = sandy._gls_parameters_update(x_prior.values, S_.values,
-                                                  Vx_prior.values, y_extra_)
-        Vx_post = self._gls_cov_update(zam, e, S, Vy_extra)
+                                                  Vx_prior.data.values, y_extra_.values)
+        Vx_post = Vx_prior.gls_cov_update(S_, Vy_extra)
         # Results in appropriate format:
         data = self.data.query(f"ZAM=={zam} & E=={e} & MT==459")
         dx_post = np.sqrt(np.diag(Vx_post.data))
         new_info = pd.DataFrame({"ZAP": index, "FY": x_post, "DFY": dx_post})
         new_info[['MAT', 'ZAM', 'MT', 'E']] = [mat, zam, 454, e]
-        return self.__class__(pd.concat([new_info, data], ignore_index=True))
-
-    def _gls_cov_update(self, zam, e, S, Vy_extra=None):
-        """
-        Perform GlS update of the covariance matrix of the `Fy` instance
-        for a given zam, energy, design sensitivity and
-        covariance matrix of the extra information, according with
-        https://doi.org/10.1016/j.anucene.2015.10.027
-        .. math::
-            $$
-            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1} \cdot S \cdot V_{x_{prior}}
-            $$
-
-        Parameters
-        ----------
-        zam : `int`
-            ZAM number of the material to which calculations are to be
-            applied.
-        e : `float`
-            Energy to which calculations are to be applied.
-        S : 2D or 1D iterable
-            Sensitivity matrix (M, N) or sensitivity vector (N,).
-        Vy_extra : 2D or 1D iterable, optional, default is `None`
-            covariance matrix with the uncertainties of the extra information,
-            (M, M) or (1,).
-
-        Returns
-        -------
-        `sandy.CategoryCov`
-            `CategoryCov` object corresponding to the updated covariance matrix
-            adjusted with the GLS technique.
-
-        Notes
-        -----
-        .. note:: If Vy_extra=None the constraint GLS update technique
-        will be performed.
-
-        Examples
-        --------
-        >>> zam = [591480, 591481, 601480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
-        >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
-        >>> mass_numbers = [147, 148, 149]
-        >>> S = decay_fytest.get_chain_yield_sensitivity()
-        >>> chain_yields = sandy.fy.get_chain_yields()
-        >>> std_extra_info = chain_yields.query(f"A=={mass_numbers} & E=='thermal'").set_index("A").DCHY
-        >>> Vy_extra = sandy.CategoryCov.from_stdev(std_extra_info).data
-        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
-        >>> nfpy = sandy.Fy.from_endf6(tape)
-        >>> nfpy = sandy.Fy(nfpy.data.query(f"ZAP=={zam}"))
-        >>> nfpy._gls_cov_update(922350, 0.0253, S, Vy_extra)
-        ZAP          591480       591481       601480
-        ZAP                                          
-        591480  5.71318e-10 -4.98686e-10 -1.34355e-12
-        591481 -4.98686e-10  1.78322e-09 -2.37615e-11
-        601480 -1.34355e-12 -2.37615e-11  2.85018e-11
-
-        >>> S = nfpy.get_mass_yield_sensitivity()
-        >>> nfpy._gls_cov_update(922350, 0.0253, S, Vy_extra)
-        ZAP          591480       591481       601480
-        ZAP                                          
-        591480  5.67985e-10 -5.57626e-10 -1.50234e-12
-        591481 -5.57626e-10  7.40839e-10 -2.65699e-11
-        601480 -1.50234e-12 -2.65699e-11  2.84942e-11
-        """
-        # Divide the data type:
-        std = self.data.query(f"ZAM=={zam} & E=={e} & MT==454").set_index('ZAP').DFY
-        Vx_prior = sandy.CategoryCov.from_stdev(std)
-        # Fix the S with the correct dimension:
-        S_ = pd.DataFrame(S)\
-            .reindex(columns=Vx_prior.data.columns).fillna(0)
-        if Vy_extra is not None:
-            Vy_extra_ = pd.DataFrame(Vy_extra)
-            S_ = S_.reindex(index=Vy_extra_.index).fillna(0)
-            Vx_post = Vx_prior.gls_cov_update(S_, Vy_extra_)
-        else:
-            Vx_post = Vx_prior.gls_cov_update(S_)
-        return Vx_post
+        return self.__class__(pd.concat([new_info, data], ignore_index=True)), Vx_post
 
     def ishikawa_factor(self, zam, e, Vy_extra,
                         kind='mass yield', decay_data=None):
@@ -1200,3 +1051,4 @@ def fy2hdf(e6file, h5file, lib):
     endf6 = sandy.Endf6.from_file(e6file)
     logging.info(f"adding FY to '{lib}' in '{h5file}'")
     Fy.from_endf6(endf6, verbose=True).to_hdf5(h5file, lib)
+
