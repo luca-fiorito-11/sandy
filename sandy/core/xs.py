@@ -219,141 +219,33 @@ class Xs():
         1.96000e+08	1.01702e+00	1.00000e+00	1.05085e+00	1.05000e+00
         1.98000e+08	1.00016e+00	1.00000e+00	1.00044e+00	1.00000e+00
         """
-        xs = self
-        if isinstance(pert, pd.Series):
-            if mat and mt:
-                columns = pd.MultiIndex.from_arrays([[mat], [mt]],
-                                                    names=('MAT', 'MT'))
-                df = pd.DataFrame(pert.values, index=pert.index,
-                                  columns=columns)
-                pert_ = sandy.Pert(df)
-            else:
-                print("The input do not have enought information")
-        else:
-            pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
-
-        if mat is not None:
-            mat_ = [mat] if isinstance(mat, int) else mat
-        else:
-            mat_ = pert_.data.columns.get_level_values('MAT').unique()
-
-        for pert_mat in mat_:
-            xs = xs._custom_perturbation(pert_, pert_mat, **kwargs)
-        return xs
-
-    def _custom_perturbation(self, pert, mat, **kwargs):
-        """
-        Custom a set of perturbation to the Xs object.
-
-        Parameters
-        ----------
-        pert : `sandy.Pert`
-            tabulated perturbations
-        mat : `int`
-            MAT number.
-        **kwargs : `dict`
-            keyword argument to pass to `sandy.Xs._recontruct_sums`.
-
-        Parameters for _recontruct_sums
-        ---------------------
-        drop : `bool`, optional
-            Keep only mts present in the original file. The default is True.
-        inplace : `bool`, optional
-            Argument to define whether the output is a new object or
-            overwrite the original object.. The default is False.
-
-        Returns
-        -------
-        `sandy.Xs`
-            Perturbed Xs.
-
-        Examples
-        --------
-        Test single perturbation (Non redundant):
-        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 10010)
-        >>> xs = sandy.Xs.from_endf6(endf6)
-        >>> col = pd.MultiIndex.from_arrays([[125], [2]], names=('MAT', 'MT'))
-        >>> pert = pd.DataFrame([1, 1.05], index =pd.IntervalIndex.from_breaks(pd.Index([10, 100]).insert(0, 0)), columns=col)
-        >>> pert_xs = xs._custom_perturbation(sandy.Pert(pert), 125)
-        >>> (pert_xs.data.loc[:, (125, 2)] / xs.data.loc[:, (125, 2)]).round(2).unique()
-        array([1.  , 1.05])
-
-        >>> (pert_xs.data.loc[[1.00000e-05, 10, 20.0,  100, 10000.0], (125, 2)] / xs.data.loc[[1.00000e-05, 10, 20.0,  100, 10000.0], (125, 2)]).round(2)
-        E
-        1.00000e-05   1.00000e+00
-        1.00000e+01   1.00000e+00
-        2.00000e+01   1.05000e+00
-        1.00000e+02   1.05000e+00
-        1.00000e+04   1.00000e+00
-        Name: (125, 2), dtype: float64
-
-        Test single perturbation (Redundant):
-        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 260560)
-        >>> xs = sandy.Xs.from_endf6(endf6)
-        >>> col = pd.MultiIndex.from_arrays([[2631], [1]], names=('MAT', 'MT'))
-        >>> pert = pd.DataFrame([1, 1.05], index =pd.IntervalIndex.from_breaks(pd.Index([1.94000e+08, 1.96000e+08]).insert(0, 0)), columns=col)
-        >>> pert_xs = xs._custom_perturbation(sandy.Pert(pert), 2631)
-        >>> (pert_xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3)]] / xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3)]]).round(2)
-        MAT	        2631
-        MT	        1           2	        3
-                  E			
-        1.92000e+08	1.00000e+00	1.00000e+00	1.00000e+00
-        1.94000e+08	1.00000e+00	1.00000e+00	1.00000e+00
-        1.96000e+08	1.03000e+00	1.05000e+00	1.00000e+00
-        1.98000e+08	1.00000e+00	1.00000e+00	1.00000e+00
-
-        Multiple perturbation(redundant + non redundant, mt perturb max = 3)
-        >>> col = pd.MultiIndex.from_arrays([[2631, 2631], [3, 2]], names=('MAT', 'MT'))
-        >>> pert = pd.DataFrame([[1, 1.05], [1.05, 1]], index =pd.IntervalIndex.from_breaks(pd.Index([1.94000e+08, 1.96000e+08+1]).insert(0, 0)), columns=col)
-        >>> pert_xs = xs._custom_perturbation(sandy.Pert(pert), 2631)
-        >>> pert_xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]] / xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]]
-        MAT	        2631
-        MT	        1	        2	        3	        5
-                  E				
-        1.92000e+08	1.03353e+00	1.05000e+00	1.00121e+00	1.00000e+00
-        1.94000e+08	1.03360e+00	1.05000e+00	1.00106e+00	1.00000e+00
-        1.96000e+08	1.01702e+00	1.00000e+00	1.05085e+00	1.05000e+00
-        1.98000e+08	1.00016e+00	1.00000e+00	1.00044e+00	1.00000e+00
-
-        Multiple perturbation(non redundant):
-        >>> col = pd.MultiIndex.from_arrays([[2631, 2631], [5, 2]], names=('MAT', 'MT'))
-        >>> pert = pd.DataFrame([[1, 1.05], [1.05, 1]], index =pd.IntervalIndex.from_breaks(pd.Index([1.94000e+08, 1.96000e+08+1]).insert(0, 0)), columns=col)
-        >>> pert_xs = xs._custom_perturbation(sandy.Pert(pert), 2631)
-        >>> pert_xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]] / xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]]
-        MAT	        2631
-        MT	        1	         2	        3	        5
-                  E				
-        1.92000e+08	1.03353e+00	1.05000e+00	1.00121e+00	1.00000e+00
-        1.94000e+08	1.03360e+00	1.05000e+00	1.00106e+00	1.00000e+00
-        1.96000e+08	1.01702e+00	1.00000e+00	1.05085e+00	1.05000e+00
-        1.98000e+08	1.00016e+00	1.00000e+00	1.00044e+00	1.00000e+00
-        """
+        pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
         # Reshape (all to the right):
         index = self.data.index
         enew = index.union(pert.right.index.values)
         enew = enew[(enew <= index.max()) & (enew >= index.min())]
         u_xs = self.reshape(enew).data
-        u_pert = pert.reshape(enew).right
-        if mat is not None:
-            u_pert = u_pert.T.query(f"MAT == {mat}").T
-            if u_pert.empty:
-                print(f"{mat} is not in perturbation")
-                return self
+        u_pert = pert_.reorder(self.data.columns).reshape(enew).right
         # Redundant xs:
-        mt = u_xs.columns.get_level_values('MT')
-        mt_pert_o = u_pert.columns.get_level_values('MT')
-        parent = pd.Index(self.__class__.redundant_xs.keys())
-        mask = mt_pert_o.isin(parent)
-        if mt_pert_o.max() == 3:
-            u_pert = u_pert.join(pd.concat([u_pert[(mat, 3)]]*len(mt[mt > 3]), axis=1,
-                                           keys=zip([mat]*len(mt[mt > 3]), mt[mt > 3])))
-        elif len(mt_pert_o[mask]) != 0:
-            for mt_parent in mt_pert_o[mask].sort_values(ascending=False):
-                mt_pert = mt[(mt.isin(redundant_xs[mt_parent]))]
-                mt_pert = mt_pert[~(mt_pert.isin(mt_pert_o))]
-                if len(mt_pert) != 0:
-                    u_pert = u_pert.join(pd.concat([u_pert[(mat, mt_parent)]]*len(mt_pert), axis=1,
-                                                   keys=zip([mat]*len(mt_pert), mt_pert)))
+        for mat in u_pert.columns.get_level_values('MAT'):
+            mt = u_xs[(mat)].columns.get_level_values('MT')
+            mt_pert_o = u_pert[(mat)].columns.get_level_values('MT')
+            parent = pd.Index(self.__class__.redundant_xs.keys())
+            mask = mt_pert_o.isin(parent)
+            if mt_pert_o.max() == 3:
+                u_pert = u_pert.join(pd.concat([u_pert[(mat, 3)]]*len(mt[mt > 3]),
+                                               axis=1,
+                                               keys=zip([mat]*len(mt[mt > 3]),
+                                                        mt[mt > 3])))
+            elif len(mt_pert_o[mask]) != 0:
+                for mt_parent in mt_pert_o[mask].sort_values(ascending=False):
+                    mt_pert = mt[(mt.isin(redundant_xs[mt_parent]))]
+                    mt_pert = mt_pert[~(mt_pert.isin(mt_pert_o))]
+                    if len(mt_pert) != 0:
+                        u_pert = u_pert.join(pd.concat([u_pert[(mat, mt_parent)]]*len(mt_pert),
+                                                       axis=1,
+                                                       keys=zip([mat]*len(mt_pert),
+                                                                mt_pert)))
         # Apply pertubation:
         u_xs.loc[:, u_pert.columns] = u_xs.loc[:, u_pert.columns]\
                                           .multiply(u_pert, axis='columns')
