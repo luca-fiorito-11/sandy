@@ -392,14 +392,27 @@ def read_mf2(tape, mat):
                             "NRS": L.L2,  # Number of resonances for the given J pi
                             "NX": L.N2,
                         }
-                        Ep = L.B[::NCH + 1]
+                        keys = ["ER"]
+                        for k in range(5): 
+                            keys.append(f"GAM{k}")
+                        A = [dict(zip(keys, items))
+                                      for items in sandy.utils.grouper(L.B, 6)]
+                        for j in range(len(A)):
+                            GAM = []
+                            for k in range(5):
+                                GAM1 = {}
+                                GAM.append(A[j][f"GAM{k}"])
+                                del A[j][f"GAM{k}"]
+                                GAM1.update({"GAM":GAM})
+                            A[j].update(GAM1)
+                        """Ep = L.B[::NCH + 1]
                         b = L.B[::1]
                         del b[::NCH + 1]
                         add_3 = {
                             "ER": Ep,  # Resonance energy in eV
                             "GAM": b,  # Channel width in eV
-                        }
-                        add2.update(add_3)
+                        }"""
+                        add2.update({"RES_PAR": A})
                         LISTS.update(add1)
                         LISTS.update(add2)
                         LRU1_LRF7_NJS.update({(AJ, PJ): LISTS})
@@ -832,23 +845,18 @@ def write_mf2(sec):
                             int(len(tab2) / 6),
                             tab2,
                         )
-                        NCH = int(len(tab2) / 6)
-                        size_E = len(sec4["ER"])
-                        size_b = len(sec4["GAM"])
-                        add2 = []
-                        n = NCH
-                        x = [sec4["GAM"][i:i + n] for i in range(0, size_b, n)]
-                        for i in range(size_E):
-                            add2.append(sec4["ER"][i])
-                            for m in range(len(x[i])):
-                                add2.append(x[i][m])
+                        tab3 = []
+                        for i in range(len(sec4["RES_PAR"])):
+                            tab3.append(sec4["RES_PAR"][i]["ER"])
+                            for j in range(5):
+                                tab3.append(sec4["RES_PAR"][i]["GAM"][j])
                         lines += sandy.write_list(
                             0,
                             0,
                             0,
                             sec4["NRS"],
                             sec4["NX"],
-                            add2,
+                            tab3,
                         )
             elif sec3["LRU"] == 2:
                 if sec2["LFW"] == 0 and sec3["LRF"] == 1:
