@@ -208,12 +208,13 @@ class Lpc():
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> mat= 9228
         >>> mt=  2
-        >>> p = 1 
-        >>> pert= pd.Series([1, 1.05], index=[1.00000e+03, 5.00000e+03])
-        >>> pert = LPC.custom_perturbation(pert, mat=mat, mt=mt, p=p)._filters({'MAT': mat, 'MT':2}).data.loc[:,1].iloc[0:5]
+        >>> p = 1
+        >>> columns = pd.MultiIndex.from_product([[mat], [mt], [p]], names=['MAT', 'MT', 'P'])
+        >>> pert= sandy.Pert(pd.DataFrame([1, 1.05], index=[1.00000e+03, 5.00000e+03], columns=columns))
+        >>> pert = LPC.custom_perturbation(pert)._filters({'MAT': mat, 'MT':2}).data.loc[:,1].iloc[0:5]
         >>> data = LPC._filters({'MAT': mat, 'MT':2}).data.loc[:,1].iloc[0:5]
         >>> (pert/data).fillna(0)
-        MAT   MT  E          
+        MAT   MT  E
         9228  2   1.00000e-05   0.00000e+00
                   7.73304e+01   0.00000e+00
                   1.00000e+03   1.00000e+00

@@ -70,7 +70,7 @@ class Pert():
 
         Returns
         -------
-        `pandas.Series`
+        `pandas.DataFrame`
             multigroup perturbation coefficients
 
         Raises
@@ -79,6 +79,18 @@ class Pert():
             if `data` is not a `pandas.Series`
         `sandy.Error`
             if energy grid is not monotonically increasing
+
+        Examples
+        --------
+        >>> sandy.Pert(pert_ind).right
+        	                  0
+        1.00000e+01	1.00000e+00
+        1.00000e+02	1.05000e+00
+        >>> sandy.Pert(pert).right
+        MAT	        2631
+        MT	        5	        2
+        1.00000e+01	1.00000e+00	1.05000e+00
+        1.00000e+02	1.05000e+00	1.00000e+00
         """
         return self._data
 
@@ -131,7 +143,7 @@ class Pert():
 
         Returns
         -------
-        `pandas.Series`
+        `pandas.DataFrame`
             perturbations
 
         Examples
@@ -160,7 +172,7 @@ class Pert():
 
         Returns
         -------
-        `pandas.Series`
+        `pandas.DataFrame`
             perturbations
 
         Examples

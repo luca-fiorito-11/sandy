@@ -436,8 +436,7 @@ class Edistr():
         df = pd.concat(out)
         return self.__class__(df)
 
-    def custom_perturbation(self, pert, mat=None, mt=None, k=None,
-                            ein_low=None, ein_high=None):
+    def custom_perturbation(self, pert):
         """
         Given a peruration object (fractions), a MAT number, a MT number,
         a subsection number, a lower and an upper incoming energy bound,
@@ -448,16 +447,6 @@ class Edistr():
         ----------
         pert : `sandy.Pert` or `pd.Series`
             perturbation object.
-        mat : `int`, optional
-            MAT number. The default is None.
-        mt : `int`
-            MT number. The default is None.
-        k : `int`
-            subsection.  The default is None.
-        ein_low : `float`, optional
-            lower energy boundary in eV.  The default is None.
-        ein_high : `float`, optional
-            upper energy boundary in eV.  The default is None.
 
         Returns
         -------
@@ -477,7 +466,10 @@ class Edistr():
         --------
         >>> orig = Edistr(minimal_edistrtest)
         >>> pert = pd.Series([1.3], index=[1e-3])
-        >>> orig.custom_perturbation(pert, 9437, 18, 0, 1.5, 2.5)
+        >>> columns = pd.MultiIndex.from_product([[9437], [18], [0], [1.5], [2.5]], names=['MAT', 'MT', 'K', 'ELO', 'EHI'])
+        >>> df = pd.DataFrame(pert.values, index=pert.index, columns=columns)
+        >>> pert_ = sandy.Pert(df)
+        >>> orig.custom_perturbation(pert_)
             MAT  MT  K         EIN        EOUT       VALUE
         0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
         1  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01

@@ -2510,7 +2510,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
-        >>> cov = endf6._get_xs_cov()
+        >>> cov = endf6._get_xs_cov(mf=[31, 33])
         >>> xs_cov = sandy.XsCov.from_endf6(endf6)
         >>> assert (cov.data == xs_cov).all().all()
         """
@@ -2743,16 +2743,16 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Nubar covariance matrix from endf6 file:
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
         >>> xs_cov = sandy.XsCov.from_endf6(endf6)
-        >>> nubar_cov = endf6.get_cov(mf=31)
+        >>> nubar_cov = endf6.get_cov(mf=31, process_mf=[])
         >>> assert (nubar_cov.data.values == xs_cov.loc[(9237, 456), (9237, 456)].values).all().all()
 
         Xs covariance matrix from endf6 file:
-        >>> endf_xs_cov = endf6.get_cov(mf=33)
+        >>> endf_xs_cov = endf6.get_cov(mf=33, process_mf=[])
         >>> size = len(endf_xs_cov.data)
         >>> assert (endf_xs_cov.data.values == xs_cov.iloc[:size, :size].values).all().all()
 
         Both together:
-        >>> endf_xs_cov = endf6.get_cov(mf=[31, 33])
+        >>> endf_xs_cov = endf6.get_cov(mf=[31, 33], process_mf=[])
         >>> size = len(endf_xs_cov[33].data)
         >>> assert (endf_xs_cov[33].data.values == xs_cov.iloc[:size, :size].values).all().all()
         """
@@ -2762,8 +2762,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
         else:
             listmf_ = list(self.to_series().index.get_level_values("MF")
                                .intersection([31, 33, 34, 35]))
-        list_process = [process_mf] if isinstance(process_mf, int) else process_mf
+
         # Dividing the list information:
+        list_process = [process_mf] if isinstance(process_mf, int) else process_mf
         listmf_ = list(pd.Index(listmf_).difference(pd.Index(list_process)))
         if len(list_process) != 0:
             kwds_njoy["nubar"] = True if 31 in list_process else False

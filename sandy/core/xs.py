@@ -187,11 +187,14 @@ class Xs():
 
         Examples
         --------
+        Examples
+        --------
         Test single perturbation:
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 10010)
         >>> xs = sandy.Xs.from_endf6(endf6)
-        >>> pert = pd.Series([1, 1.05], index=[10, 100])
-        >>> pert_xs = xs.custom_perturbation(pert, mat=125, mt=2)
+        >>> col = pd.MultiIndex.from_arrays([[125], [2]], names=('MAT', 'MT'))
+        >>> pert = pd.DataFrame([1, 1.05], index =pd.IntervalIndex.from_breaks(pd.Index([10, 100]).insert(0, 0)), columns=col)
+        >>> pert_xs = xs.custom_perturbation(sandy.Pert(pert))
         >>> (pert_xs.data.loc[:, (125, 2)] / xs.data.loc[:, (125, 2)]).round(2).unique()
         array([1.  , 1.05])
 
@@ -205,11 +208,38 @@ class Xs():
         Name: (125, 2), dtype: float64
 
         Multiple perturbation:
+        Test single perturbation (Redundant):
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 260560)
         >>> xs = sandy.Xs.from_endf6(endf6)
+        >>> col = pd.MultiIndex.from_arrays([[2631], [1]], names=('MAT', 'MT'))
+        >>> pert = pd.DataFrame([1, 1.05], index =pd.IntervalIndex.from_breaks(pd.Index([1.94000e+08, 1.96000e+08]).insert(0, 0)), columns=col)
+        >>> pert_xs = xs.custom_perturbation(sandy.Pert(pert))
+        >>> (pert_xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3)]] / xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3)]]).round(2)
+        MAT	        2631
+        MT	        1           2	        3
+                  E			
+        1.92000e+08	1.00000e+00	1.00000e+00	1.00000e+00
+        1.94000e+08	1.00000e+00	1.00000e+00	1.00000e+00
+        1.96000e+08	1.03000e+00	1.05000e+00	1.00000e+00
+        1.98000e+08	1.00000e+00	1.00000e+00	1.00000e+00
+
+        Multiple perturbation(redundant + non redundant, mt perturb max = 3)
+        >>> col = pd.MultiIndex.from_arrays([[2631, 2631], [3, 2]], names=('MAT', 'MT'))
+        >>> pert = pd.DataFrame([[1, 1.05], [1.05, 1]], index =pd.IntervalIndex.from_breaks(pd.Index([1.94000e+08, 1.96000e+08+1]).insert(0, 0)), columns=col)
+        >>> pert_xs = xs.custom_perturbation(sandy.Pert(pert))
+        >>> pert_xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]] / xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]]
+        MAT	        2631
+        MT	        1	        2	        3	        5
+                  E				
+        1.92000e+08	1.03353e+00	1.05000e+00	1.00121e+00	1.00000e+00
+        1.94000e+08	1.03360e+00	1.05000e+00	1.00106e+00	1.00000e+00
+        1.96000e+08	1.01702e+00	1.00000e+00	1.05085e+00	1.05000e+00
+        1.98000e+08	1.00016e+00	1.00000e+00	1.00044e+00	1.00000e+00
+
+        Multiple perturbation(non redundant):
         >>> col = pd.MultiIndex.from_arrays([[2631, 2631], [5, 2]], names=('MAT', 'MT'))
         >>> pert = pd.DataFrame([[1, 1.05], [1.05, 1]], index =pd.IntervalIndex.from_breaks(pd.Index([1.94000e+08, 1.96000e+08+1]).insert(0, 0)), columns=col)
-        >>> pert_xs = xs.custom_perturbation(pert)
+        >>> pert_xs = xs.custom_perturbation(sandy.Pert(pert))
         >>> pert_xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]] / xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]]
         MAT	        2631
         MT	        1	         2	        3	        5
