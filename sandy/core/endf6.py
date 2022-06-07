@@ -1673,6 +1673,11 @@ If you want to process 0K cross sections use `temperature=0.1`.
         **kwargs : `dict`
             keyword argument to pass to `sandy.njoy.process`.
 
+        Parameters to insert dummy MF=33 file
+        -------------------------------------
+        mt_rlm: `int` or `list`
+            mt number to be reconstructed with RML methods.
+
         Parameters for RECONR
         ---------------------
         err : `float`, optional
@@ -2492,26 +2497,26 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Check file contatining MF31, MF33, MF34 and MF35
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922380)
         >>> endf6.covariance_info()
-        {'nubar': True, 'xs': True, 'mubar': True, 'chi': True}
+        {'nubar': True, 'xs': True, 'mubar': True, 'chi': True, 'urr': False}
 
         Set all values to `False`
         >>> endf6.covariance_info(xs=False, mubar=False, chi=False, nubar=False)
-        {'nubar': False, 'xs': False, 'mubar': False, 'chi': False}
+        {'nubar': False, 'xs': False, 'mubar': False, 'chi': False, 'urr': False}
 
         2nd example without MF34
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350)
         >>> endf6.covariance_info()
-        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True}
+        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True, 'urr': False}
 
         If MF34 is not found, setting `mubar=True` won't change anything'
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350)
         >>> endf6.covariance_info(mubar=True)
-        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True}
+        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True, 'urr': False}
 
         All infos are `False` if no covariance is found
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10030)
         >>> endf6.covariance_info()
-        {'nubar': False, 'xs': False, 'mubar': False, 'chi': False}
+        {'nubar': False, 'xs': False, 'mubar': False, 'chi': False, 'urr': False}
         """
         supported_mf = [31, 32, 33, 34, 35]
         endf6_cov_mf = self.to_series().index.get_level_values("MF")\

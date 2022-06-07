@@ -267,10 +267,40 @@ def _moder_input(nin, nout, **kwargs):
     return "\n".join(text) + "\n"
 
 
-def _error_input(endfin, pendfin, mt_rlm=None, **kwargs):
+def _error_input(endfin, pendfin, mt_rlm):
+    """
+    Write dummy ERRORR input.
+
+    Parameters
+    ----------
+    endfin : `int`
+        tape number for input ENDF-6 file
+    pendfin : `int`
+        tape number for input PENDF file
+    mt_rlm : `int` or `list`
+        mt in the dummy files.
+
+    Returns
+    -------
+    `str`
+        errorr input text.
+
+    Examples
+    --------
+    >>> print(sandy.njoy._error_input(20, 21, [1, 2, 102]))
+    errorr
+    999/
+    20 21 /
+    1/
+    2/
+    102/
+    0/
+    """
     text = ["errorr"]
     text += ["999/"]
     text += [f"{endfin:d} {pendfin:d} /"]
+    if mt_rlm is None:
+        raise SyntaxError("Not mt_rlm introduced")
     mtlist = [mt_rlm] if isinstance(mt_rlm, int) else mt_rlm
     for mt_ in mtlist:
         text += [f"{mt_:d}/"]
@@ -1268,7 +1298,7 @@ def process(
     e = 21
     p = e + 1
     if urr:
-        text = _error_input(20, e, **kwargs)
+        text = _error_input(20, e, kwargs["mt_rlm"])
         kwargs['xs'] = True
     else:
         text = _moder_input(20, -e)
