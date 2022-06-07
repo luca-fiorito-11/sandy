@@ -2052,7 +2052,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         kwds_njoy.update(cov_info)
 
         # Mandatory groupr module activation
-        groupr_ = True if (kwds_njoy["nubar"] or kwds_njoy["chi"] or "ek_groupr" in kwds_njoy or "spectrum_groupr" in kwds_njoy) else groupr
+        groupr_ = True if (kwds_njoy["nubar"] or kwds_njoy["chi"] or "ek_groupr" in kwds_njoy or "spectrum_groupr" in kwds_njoy or kwds_njoy['urr']) else groupr
 
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
@@ -2435,10 +2435,11 @@ If you want to process 0K cross sections use `temperature=0.1`.
         kwds_njoy["acer"] = False
         kwds_njoy["keep_pendf"] = False
 
-        kwds_njoy["nubar"] = nubar
-        kwds_njoy["xs"] = xs
-        kwds_njoy["chi"] = chi
-        kwds_njoy["mubar"] = mubar
+        cov_info = self.covariance_info(nubar=nubar, xs=xs,
+                                        mubar=mubar, chi=chi)
+        if not np.any(list(cov_info.values())):
+            return  # no covariance found or wanted
+        kwds_njoy.update(cov_info)
 
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
@@ -2512,11 +2513,12 @@ If you want to process 0K cross sections use `temperature=0.1`.
         >>> endf6.covariance_info()
         {'nubar': False, 'xs': False, 'mubar': False, 'chi': False}
         """
-        supported_mf = [31, 33, 34, 35]
+        supported_mf = [31, 32, 33, 34, 35]
         endf6_cov_mf = self.to_series().index.get_level_values("MF")\
                            .intersection(supported_mf)
 
         run_nubar = True if 31 in endf6_cov_mf else False
+        run_urr = True if 32 in endf6_cov_mf else False
         run_xs = True if 33 in endf6_cov_mf else False
         run_mubar = True if 34 in endf6_cov_mf else False
         run_chi = True if 35 in endf6_cov_mf else False
@@ -2526,5 +2528,6 @@ If you want to process 0K cross sections use `temperature=0.1`.
             'xs': run_xs if xs else False,
             'mubar': run_mubar if mubar else False,
             'chi': run_chi if chi else False,
+            'urr': run_urr if not run_xs else False,
             }
         return cov_info

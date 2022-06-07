@@ -267,6 +267,17 @@ def _moder_input(nin, nout, **kwargs):
     return "\n".join(text) + "\n"
 
 
+def _error_input(endfin, pendfin, mt_rlm=None, **kwargs):
+    text = ["errorr"]
+    text += ["999/"]
+    text += [f"{endfin:d} {pendfin:d} /"]
+    mtlist = [mt_rlm] if isinstance(mt_rlm, int) else mt_rlm
+    for mt_ in mtlist:
+        text += [f"{mt_:d}/"]
+    text += ["0/"]
+    return "\n".join(text) + "\n"
+
+
 def _reconr_input(endfin, pendfout, mat,
                   header="sandy runs njoy",
                   err=NJOY_TOLER,
@@ -1149,6 +1160,7 @@ def process(
         errorr=False,
         groupr=False,
         acer=True,
+        urr=False,
         wdir="",
         dryrun=False,
         tag="",
@@ -1255,19 +1267,23 @@ def process(
     inputs["tape20"] = endftape
     e = 21
     p = e + 1
-    text = _moder_input(20, -e)
+    if urr:
+        text = _error_input(20, e, **kwargs)
+        kwargs['xs'] = True
+    else:
+        text = _moder_input(20, -e)
     if pendftape:
         inputs["tape99"] = pendftape
         text += _moder_input(99, -p)
     else:
-        text += _reconr_input(-e, -p, **kwargs)
+        text += _reconr_input(-e, -p, **kwargs) if not urr else _reconr_input(e, p, **kwargs)
     if broadr:
         o = p + 1
-        text += _broadr_input(-e, -p, -o, **kwargs)
+        text += _broadr_input(-e, -p, -o, **kwargs) if not urr else _broadr_input(e, p, o, **kwargs)
         p = o
     if thermr:
         o = p + 1
-        text += _thermr_input(0, -p, -o, **kwargs)
+        text += _thermr_input(0, -p, -o, **kwargs) 
         p = o
     if unresr:
         o = p + 1
@@ -1299,9 +1315,9 @@ def process(
             kwargs["temp"] = temp
             kwargs["suff"] = suff = f".{suff}"
             g = o + 1 + i
-            text += _groupr_input(-e, -p, -g, **kwargs)
+            text += _groupr_input(-e, -p, -g, **kwargs) if not urr else _groupr_input(e, p, g, **kwargs)
             o = 32 + i
-            text += _moder_input(-g, o)
+            text += _moder_input(-g, o) if not urr else _moder_input(g, o, **kwargs)
             outputs[f"tape{o}"] = join(
                 wdir,
                 f"{outprefix}{tag}{suff}.gendf",
@@ -1315,11 +1331,11 @@ def process(
             kwargs["temp"] = temp
             kwargs["suff"] = suff = f".{suff}"
             if groupr:
-                text += _groupr_input(-e, -p, -g_, **kwargs)
+                text += _groupr_input(-e, -p, -g_, **kwargs) if not urr else _groupr_input(e, p, g_,**kwargs)
             if kwargs['nubar']:
                 o = 31 + i * 5
                 kwargs['mfcov'] = mfcov = 31
-                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
+                text += _errorr_input(-e, -p_, -g_, o, **kwargs) if not urr else _errorr_input(e, p, g_, o,**kwargs)
                 outputs[f"tape{o}"] = join(
                     wdir,
                     f"{outprefix}{tag}{suff}_{mfcov}.errorr",
@@ -1327,7 +1343,7 @@ def process(
             if kwargs['xs']:
                 o = 33 + i * 5
                 kwargs['mfcov'] = mfcov = 33
-                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
+                text += _errorr_input(-e, -p_, -g_, o, **kwargs) if not urr else _errorr_input(e, p, g_, o,**kwargs)
                 outputs[f"tape{o}"] = join(
                     wdir,
                     f"{outprefix}{tag}{suff}_{mfcov}.errorr",
@@ -1337,7 +1353,7 @@ def process(
             if kwargs['chi']:
                 o = 35 + i * 5
                 kwargs['mfcov'] = mfcov = 35
-                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
+                text += _errorr_input(-e, -p_, -g_, o, **kwargs) if not urr else _errorr_input(e, p, g_, o,**kwargs)
                 outputs[f"tape{o}"] = join(
                     wdir,
                     f"{outprefix}{tag}{suff}_{mfcov}.errorr",
@@ -1345,7 +1361,7 @@ def process(
             if kwargs['mubar']:
                 o = 34 + i * 5
                 kwargs['mfcov'] = mfcov = 34
-                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
+                text += _errorr_input(-e, -p_, -g_, o, **kwargs) if not urr else _errorr_input(e, p, g_, o,**kwargs)
                 outputs[f"tape{o}"] = join(
                     wdir,
                     f"{outprefix}{tag}{suff}_{mfcov}.errorr",
