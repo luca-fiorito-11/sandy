@@ -323,7 +323,7 @@ def sample_manager(endf6):
     divided according to the mat, mt and energy.
     """
     global init
-    samples = {}
+
     # Obtain the covariance:
     cov = get_cov(endf6)
 
@@ -342,7 +342,12 @@ def sample_manager(endf6):
                                       tolerance=init.tolerance,
                                       pdf=init.pdf)
         return (mf, samples)
-    return dict(map(sample_creation, cov.items()))
+
+    # Sample creation in parallel or series
+    if platform.system() == "Windows":
+        return dict(map(sample_creation, cov.items()))
+    else:
+        return dict(mp.Pool.map(sample_creation, cov.items()))
 
 
 def perturbation_manager(samples, endf6):
@@ -370,6 +375,8 @@ def perturbation_manager(samples, endf6):
     """
     global init
     pert_samples = {}
+
+    # Decide if the sampes are going to be created in series or parallel
     if platform.system() == "Windows":
         proc = 1
         logging.info("Running on Windows does not allow parallel "
@@ -377,6 +384,8 @@ def perturbation_manager(samples, endf6):
     else:
         proc = init.processes
     seq = range(1, init.samples + 1)
+
+    # Sample creation:
     for mat in endf6.to_series().index.get_level_values("MAT").unique():
         tape = endf6.filter_by(listmat=[mat])
         pert_objects = sandy_object(tape, samples.keys(), init.energy_sequence)
@@ -389,7 +398,8 @@ def perturbation_manager(samples, endf6):
             outs = {i: out.get() for i, out in outs.items()}
             pool.close()
             pool.join()
-    pert_samples[mat] = outs
+        pert_samples[mat] = outs
+
     return pert_samples
 
 
@@ -412,6 +422,7 @@ def pert_by_mf(samples, pert_objects, i, mat):
     t0 = time.time()
     i_ = i-1
     pert_data = [sandy.Endf6(pert_objects.Endf6.data.copy())]
+
     # FY:
     if 8 in samples:
         sample = samples[8]
@@ -450,9 +461,9 @@ def pert_by_mf(samples, pert_objects, i, mat):
 
     # Perturbed Endf6 file
     pert_endf6 = reduce(lambda x, y: y.to_endf6(x), pert_data)
-
     print("Created sample {} for MAT {} in {:.2f} sec"
           .format(i, mat, time.time()-t0,))
+
     return pert_endf6
 
 
@@ -528,10 +539,12 @@ def sampling(iargs=None):
         divided as follows:
 
                 {mat: {Number of the sample: `sandy.Endf6`}}
+
     ftape: 'sandy.Endf6'
         Original `sandy.Endf6` object withouth perturbed data.
     """
     global init, ftape
+
     # Command line information and endf6 file information:
     init = parse(iargs)
     ftape = sandy.Endf6.from_file(init.file)
@@ -539,10 +552,11 @@ def sampling(iargs=None):
     mf_check = ftape.to_series().index.get_level_values("MF")\
                     .intersection(pd.Index(init.mf))
     if len(mf_check) == 0:
-        print("Covariance information not available in the file")
-        return
+        raise sandy.Error("The selected MF was not found")
+
     # Samples:
     samples = sample_manager(ftape)
+
     # Endf + Pendf:
     # Check if NJOY has to be run:
     xs_check = ftape.to_series().index.get_level_values("MF")\
@@ -553,6 +567,7 @@ def sampling(iargs=None):
             dst = os.path.join(td, "merged")
             ftape = ftape.merge_pendf(pendf)
             ftape.to_file(dst)
+
     # Perturbed endf:
     pert_endf6 = perturbation_manager(samples, ftape)
     to_file(pert_endf6)
