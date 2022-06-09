@@ -571,7 +571,7 @@ def sampling(iargs=None):
     # Perturbed endf:
     pert_endf6 = perturbation_manager(samples, ftape)
     to_file(pert_endf6)
-    return pert_endf6, ftape  # samples, ftape
+    return pert_endf6, ftape
 
 
 def run():
