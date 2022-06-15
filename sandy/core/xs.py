@@ -156,7 +156,7 @@ class Xs():
         df = pd.DataFrame(xsnew, index=enew, columns=df.columns)
         return self.__class__(df)
 
-    def custom_perturbation(self, pert, mat=None, mt=None, **kwargs):
+    def custom_perturbation(self, pert, **kwargs):
         """
         Function to apply perturbations to individual XS or a group of XS.
 
