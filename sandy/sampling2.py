@@ -32,9 +32,11 @@ mf_available = [8, 31, 33, 34, 35]
 
 
 class sandy_object():
+    global init
     def __init__(self, ftape, mf, energy_sequence):
         self.Endf6 = ftape
         extra_points = np.logspace(-5, 7, energy_sequence)
+        ftape = ftape.filter_by(listmt=init.mt)
         if 8 in mf:
             self.Fy = sandy.Fy.from_endf6(ftape)
         if 31 in mf or 33 in mf:
@@ -226,7 +228,7 @@ def get_fy_cov(endf6):
 
     """
     global init
-    fy = sandy.Fy.from_endf6(endf6.filter_by(listmat=init.mat))
+    fy = sandy.Fy.from_endf6(endf6.filter_by(listmat=init.mat, listmt=init.mt))
     fy_cov = fy.data.groupby(['MAT', 'MT', 'E'])["DFY"]\
                .apply(lambda x: sandy.CategoryCov.from_stdev(x))
     return fy_cov
@@ -337,17 +339,17 @@ def sample_manager(endf6):
                                                         seed=seed,
                                                         tolerance=init.tolerance,
                                                         pdf=init.pdf))
+        elif mf == 35:
+            samples = mf_cov.sampling(init.samples, seed=seed,
+                                      tolerance=init.tolerance,
+                                      pdf=init.pdf, relative=False)
         else:
             samples = mf_cov.sampling(init.samples, seed=seed,
                                       tolerance=init.tolerance,
                                       pdf=init.pdf)
         return (mf, samples)
 
-    # Sample creation in parallel or series
-    if platform.system() == "Windows":
-        return dict(map(sample_creation, cov.items()))
-    else:
-        return dict(mp.Pool.map(sample_creation, cov.items()))
+    return dict(map(sample_creation, cov.items()))
 
 
 def perturbation_manager(samples, endf6):
@@ -421,7 +423,7 @@ def pert_by_mf(samples, pert_objects, i, mat):
     global init
     t0 = time.time()
     i_ = i-1
-    pert_data = [sandy.Endf6(pert_objects.Endf6.data.copy())]
+    pert_data = [pert_objects.Endf6]
 
     # FY:
     if 8 in samples:
@@ -514,7 +516,8 @@ def to_file(pert_endf6):
             if proc == 1:
                 _to_file(frame, ismp, mat, outname)
             else:
-                mp.pool.apply_async(_to_file, (frame, ismp, mat, outname))
+                pool = mp.Pool(processes=proc)
+                pool.apply_async(_to_file, (frame, ismp, mat, outname))
     return
 
 

@@ -485,7 +485,7 @@ class Edistr():
         enew = enew[(enew <= energy_grid.max()) & (enew >= energy_grid.min())]
 
         # Reshape to new energy grid and columns estructure:
-        u_pert = pert.reshape(enew).right
+        u_pert = pert.reshape(enew, right_values=0).right
 
         # Apply the perturbation:
         def foo(df, pert):
@@ -502,11 +502,11 @@ class Edistr():
                 pert_ = pert_.iloc[:, [0]]\
                              .reindex(index=df.loc[:, "EOUT"].values)\
                              .values.flatten()
-                df["VALUE"] = df['VALUE'].values * pert_
+                df["VALUE"] = df['VALUE'].values + pert_
             return df
         pert_edistr = self.data.groupby(['MAT', 'MT', 'K', 'EIN'])\
                           .apply(foo, u_pert)
-        return self.__class__(pert_edistr)
+        return self.__class__(pert_edistr).normalize()
 
     def _perturb(self, pert, method=2, normalize=True, **kwargs):
         """Perturb energy distributions given a set of perturbations.
