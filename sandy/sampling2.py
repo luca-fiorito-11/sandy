@@ -33,6 +33,7 @@ mf_available = [8, 31, 33, 34, 35]
 
 class sandy_object():
     global init
+
     def __init__(self, ftape, mf, energy_sequence):
         self.Endf6 = ftape
         extra_points = np.logspace(-5, 7, energy_sequence)
@@ -367,16 +368,10 @@ def perturbation_manager(samples, endf6):
 
     Returns
     -------
-    pert_samples : `dict`
-        Dictionary containing the `sandy.Endf6` objects with the perturbed data
-        for the number of samples entered by the user. The dictionary is
-        divided as follows:
-
-                {mat: {Number of the sample: `sandy.Endf6`}}
+    Perturbed files written in the folder selected
 
     """
-    global init
-    pert_samples = {}
+    global init, outname
 
     # Decide if the sampes are going to be created in series or parallel
     if platform.system() == "Windows":
@@ -385,24 +380,22 @@ def perturbation_manager(samples, endf6):
                      "processing")
     else:
         proc = init.processes
-    seq = range(1, init.samples + 1)
+
+    # Output:
+    outname = init.outname if init.outname else os.path.basename(init.file)
 
     # Sample creation:
     for mat in endf6.to_series().index.get_level_values("MAT").unique():
         tape = endf6.filter_by(listmat=[mat])
         pert_objects = sandy_object(tape, samples.keys(), init.energy_sequence)
-        if proc == 1:
-            outs = {i: pert_by_mf(samples, pert_objects, i, mat) for i in seq}
-        else:
+        if proc != 1:
             pool = mp.Pool(processes=proc)
-            outs = {i: pool.apply_async(pert_by_mf, (samples, pert_objects, i, mat))
-                    for i in seq}
-            outs = {i: out.get() for i, out in outs.items()}
-            pool.close()
-            pool.join()
-        pert_samples[mat] = outs
-
-    return pert_samples
+        for i in range(1, init.samples + 1):
+            if proc == 1:
+                pert_by_mf(samples, pert_objects, i, mat)
+            else:
+                pool.apply_async(pert_by_mf, (samples, pert_objects, i, mat))
+    return
 
 
 def pert_by_mf(samples, pert_objects, i, mat):
@@ -416,11 +409,10 @@ def pert_by_mf(samples, pert_objects, i, mat):
 
     Returns
     -------
-    `pert_endf6`: `sandy.Endf6`
-        Endf6 with perturbed data.
+    Endf6 with perturbed data in a text file
 
     """
-    global init
+    global init, outname
     t0 = time.time()
     i_ = i-1
     pert_data = [pert_objects.Endf6]
@@ -466,58 +458,56 @@ def pert_by_mf(samples, pert_objects, i, mat):
     print("Created sample {} for MAT {} in {:.2f} sec"
           .format(i, mat, time.time()-t0,))
 
-    return pert_endf6
+    # Output files:
+    output = os.path.join(init.outdir, '{}-{}'.format(outname, i))
+    pert_endf6.to_file(output)
+    return
 
 
-def _to_file(frame, ismp, mat, outname):
+def ace_files():
     """
-    Write each sample in the outdir and with the outnames introduced by the
-    user.
-
-    Parameters
-    ----------
-    frame : `pd.Series`
-        Pandas series with perturbed information divided by mat and the number
-        of the sample.
-    ismp : `int`
-        Number of the sample.
-    mat : `int`
-        MAT number.
-    outname : `str`
-        Outname introduced by the user for the sample.
-    """
-    output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
-    return frame[ismp, mat].to_file(output)
-
-
-def to_file(pert_endf6):
-    """
-    Function to write Endf6 files with perturbed data in ASCII format.
-
-    Parameters
-    ----------
-    pert_endf6 : `dict`
-        Dictionary containing the `sandy.Endf6` objects with the perturbed data
-        for the number of samples entered by the user. The dictionary is
-        divided as follows:
-
-                {mat: {Number of the sample: `sandy.Endf6`}}
+    Function to decide if ACE files are created in parallel or serial
 
     """
     global init
-    frame = pd.DataFrame(pert_endf6)
-    frame.index.name = "SMP"
-    frame.columns.name = "MAT"
-    frame = frame.stack()
-    outname = init.outname if init.outname else os.path.split(init.file)[1]
-    proc = 1 if platform.system() == "Windows" else init.processes
-    for ismp, dfsmp in frame.groupby("SMP"):
-        for mat, dfmat in dfsmp.groupby("MAT"):
-            if proc == 1:
-                _to_file(frame, ismp, mat, outname)
-            else:
-                pool = mp.Pool(processes=proc)
-                pool.apply_async(_to_file, (frame, ismp, mat, outname))
+    if platform.system() != "Windows":
+        pool = mp.Pool(processes=init.processes)
+    for i in range(1, init.samples + 1):
+        if platform.system() == "Windows":
+            _ace_files(i)
+        else:
+            pool.apply_async(_ace_files, (i))
+    return
+
+
+def _ace_files(i):
+    """
+    Run NJOY module to produce ACE files
+
+    Parameters
+    ----------
+    i : `int`
+        Number of the sample.
+    """
+    global init, outname
+    smpfile = os.path.join(init.outdir, f'{outname}-{i}')
+    kwargs = dict(
+        purr=False,
+        wdir=init.outdir,
+        keep_pendf=False,
+        pendftape=smpfile,
+        tag=f"_{i}",
+        temperatures=init.temperatures,
+        err=0.005,
+        addpath="",
+        )
+    fmt = sandy.formats.get_file_format(smpfile)
+    if 31 in init.mf or 33 in init.mf:
+        kwargs["pendftape"] = smpfile
+        inp = init.file
+    elif fmt == "endf6":
+        inp = smpfile
+    input, inputs, outputs = njoy.process(inp, **kwargs)
     return
 
 
@@ -572,9 +562,13 @@ def sampling(iargs=None):
             ftape.to_file(dst)
 
     # Perturbed endf:
-    pert_endf6 = perturbation_manager(samples, ftape)
-    to_file(pert_endf6)
-    return pert_endf6, ftape
+    perturbation_manager(samples, ftape)
+    
+    # Produce ACE files:
+    if init.acer:
+        ace_files()
+
+    return
 
 
 def run():
