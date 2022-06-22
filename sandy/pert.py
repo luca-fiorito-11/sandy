@@ -215,7 +215,7 @@ class Pert():
         col = columns.intersection(data_reorder.columns)
         return sandy.Pert(data_reorder[col])
 
-    def reshape(self, eg, inplace=False):
+    def reshape(self, eg, inplace=False, right_values=1):
         """
         Interpolate perturbation over new energy grid structure using `bfill`
         method.
@@ -290,7 +290,7 @@ class Pert():
                           values,
                           enew,
                           left_values="first",
-                          right_values=1,
+                          right_values=right_values,
                           )
             data = pd.DataFrame(pertnew, index=enew, columns=df.columns)
         else:
@@ -299,7 +299,7 @@ class Pert():
                                     x.values,
                                     enew,
                                     left_values="first",
-                                    right_values=1,
+                                    right_values=right_values,
                                     )).set_index(enew).rename_axis(name)
         data = data.loc[(data.index >= eg_.min()) &
                         (data.index <= eg_.max()), :]
