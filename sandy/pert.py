@@ -12,6 +12,17 @@ __all__ = [
         ]
 
 
+col = pd.MultiIndex.from_arrays([[2631, 2631], [5, 2]], names=('MAT', 'MT'))
+pert = pd.DataFrame([[1, 1.05], [1.05, 1]],
+                    index=pd.IntervalIndex.from_breaks(pd.Index([10, 100])
+                                                       .insert(0, 0)),
+                    columns=col)
+
+pert_ind = pd.Series([1, 1.05], index=pd.IntervalIndex
+                                        .from_breaks(pd.Index([10, 100])
+                                                       .insert(0, 0)))
+
+
 class Pert():
     """
     Container for tabulated multigroup perturbation coefficients.
@@ -42,8 +53,8 @@ class Pert():
     def __repr__(self):
         return self.data.__repr__()
 
-    def __init__(self, series, **kwargs):
-        self.data = pd.Series(series, dtype=float, **kwargs)
+    def __init__(self, df, **kwargs):
+        self.data = pd.DataFrame(df, dtype=float, **kwargs)
 
     @property
     def data(self):
@@ -93,8 +104,23 @@ class Pert():
         -------
         `pandas.Series`
             perturbations
+
+        Examples
+        --------
+        >>> sandy.Pert(pert_ind).right
+        	                  0
+        1.00000e+01	1.00000e+00
+        1.00000e+02	1.05000e+00
+
+        >>> sandy.Pert(pert).right
+        MAT	        2631
+        MT	        5	        2
+        1.00000e+01	1.00000e+00	1.05000e+00
+        1.00000e+02	1.05000e+00	1.00000e+00
         """
-        return pd.Series(self.data.values, index=self.data.index.right)
+        return pd.DataFrame(self.data.values,
+                            index=self.data.index.right,
+                            columns=self.data.columns)
 
     @property
     def left(self):
@@ -107,8 +133,23 @@ class Pert():
         -------
         `pandas.Series`
             perturbations
+
+        Examples
+        --------
+        >>> sandy.Pert(pert_ind).left
+                              0
+        0.00000e+00	1.00000e+00
+        1.00000e+01	1.05000e+00
+
+        >>> sandy.Pert(pert).left
+        MAT	        2631
+        MT	        5	        2
+        0.00000e+00	1.00000e+00	1.05000e+00
+        1.00000e+01	1.05000e+00	1.00000e+00
         """
-        return pd.Series(self.data.values, index=self.data.index.left)
+        return pd.DataFrame(self.data.values,
+                            index=self.data.index.left,
+                            columns=self.data.columns)
 
     @property
     def mid(self):
@@ -121,10 +162,60 @@ class Pert():
         -------
         `pandas.Series`
             perturbations
-        """
-        return pd.Series(self.data.values, index=self.data.index.mid)
 
-    def reshape(self, eg, inplace=False):
+        Examples
+        --------
+        >>> sandy.Pert(pert_ind).mid
+                              0
+        5.00000e+00	1.00000e+00
+        5.50000e+01	1.05000e+00
+
+        >>> sandy.Pert(pert).mid
+        MAT	        2631
+        MT	        5	        2
+        5.00000e+00	1.00000e+00	1.05000e+00
+        5.50000e+01	1.05000e+00	1.00000e+00
+        """
+        return pd.DataFrame(self.data.values,
+                            index=self.data.index.mid,
+                            columns=self.data.columns)
+
+    def reorder(self, columns):
+        """
+        Sort the levels in the columns of `Sandy.Pert`
+
+        Parameters
+        ----------
+        columns : `pd.Multiindex`
+            New columns order.
+
+        Returns
+        -------
+        `sandy.Pert`
+            Pert order with sort levels.
+
+        Examples
+        --------
+        >>> col = pd.MultiIndex.from_arrays([[5, 2], [2631, 2631]], names=('MT', 'MAT'))
+        >>> pert = pd.DataFrame([[1, 1.05], [1.05, 1]], index =pd.IntervalIndex.from_breaks(pd.Index([1.94000e+08, 1.96000e+08+1]).insert(0, 0)), columns=col)
+        >>> col_new = pd.MultiIndex.from_arrays([[2631, 2631], [2, 5]], names=('MAT', 'MT'))
+        >>> sandy.Pert(pert).reorder(col_new)
+        MAT                               2631
+        MT                                   2           5
+        ENERGY
+        (0.0, 194000000.0]         1.05000e+00 1.00000e+00
+        (194000000.0, 196000001.0] 1.00000e+00 1.05000e+00
+        """
+        data = self.data
+        for name in columns.names:
+            if name not in self.data.columns.names:
+                print("Levels do not match")
+                return
+        data_reorder = data.reorder_levels(columns.names, axis=1)
+        col = columns.intersection(data_reorder.columns)
+        return sandy.Pert(data_reorder[col])
+
+    def reshape(self, eg, inplace=False, right_values=1):
         """
         Interpolate perturbation over new energy grid structure using `bfill`
         method.
@@ -150,33 +241,71 @@ class Pert():
             if the given energy grid is not monotonic
         `value.Error`
             if negative values are found in the given energy grid
+
+        Examples
+        --------
+        >>> sandy.Pert(pert).reshape([0, 1, 5,  25, 50, 100, 1.95000e+08]).data
+        MAT	                    2631
+        MT	                    5	        2
+                      ENERGY		
+                  (0.0, 1.0]	1.00000e+00	1.05000e+00
+                  (1.0, 5.0]	1.00000e+00	1.05000e+00
+                 (5.0, 10.0]	1.00000e+00	1.05000e+00
+                (10.0, 25.0]	1.05000e+00	1.00000e+00
+                (25.0, 50.0]	1.05000e+00	1.00000e+00
+               (50.0, 100.0]	1.05000e+00	1.00000e+00
+        (100.0, 195000000.0]	1.00000e+00	1.00000e+00
+
+        >>> sandy.Pert(pert_ind).reshape([0, 1, 5,  25, 50, 100, 1.95000e+08]).data
+                                       0
+        ENERGY
+        (0.0, 1.0]           1.00000e+00
+        (1.0, 5.0]           1.00000e+00
+        (5.0, 10.0]          1.00000e+00
+        (10.0, 25.0]         1.05000e+00
+        (25.0, 50.0]         1.05000e+00
+        (50.0, 100.0]        1.05000e+00
+        (100.0, 195000000.0] 1.00000e+00
         """
-        index = pd.Index(eg)
-        if not index.is_monotonic_increasing:
+        eg_ = pd.Index(eg)
+        df = self.right
+        if not eg_.is_monotonic_increasing:
             raise sandy.Error("energy grid is not monotonic increasing")
-        if (index < 0).any():
+        if (eg_ < 0).any():
             raise ValueError("found negative values in the energy grid")
-        enew = self.right.index.union(index).unique().astype(float).values
+        enew = df.index.union(eg_).unique().astype(float).values
         # remove zero if any, it will be automatically added by `Pert`
         enew = enew[enew != 0]
         # this part prevents errors in "scipy.interp1d" when x.size == 1
-        x = self.right.index.values
-        y = self.right.values
-        if y.size == 1:
-            # this must be done after that enew is created
-            x = np.insert(x, 0, 0)
-            y = np.insert(y, 0, 0)
-        pertnew = sandy.shared.reshape_bfill(
-                          x,
-                          y,
+        name = df.index.name
+        if df.shape[1] == 1:
+            index = df.index.values
+            values = df.values
+            if values.size == 1:
+                # this must be done after that enew is created
+                index = np.insert(index, 0, 0)
+                values = np.insert(values, 0, 0)
+            pertnew = sandy.shared.reshape_bfill(
+                          index,
+                          values,
                           enew,
-                          left_values=1,
-                          right_values=1,
+                          left_values="first",
+                          right_values=right_values,
                           )
-        series = pd.Series(pertnew, index=enew)
+            data = pd.DataFrame(pertnew, index=enew, columns=df.columns)
+        else:
+            data = df.apply(lambda x: sandy.shared.reshape_bfill(
+                                    x.index.values,
+                                    x.values,
+                                    enew,
+                                    left_values="first",
+                                    right_values=right_values,
+                                    )).set_index(enew).rename_axis(name)
+        data = data.loc[(data.index >= eg_.min()) &
+                        (data.index <= eg_.max()), :]
         if not inplace:
-            return Pert(series)
-        self.data = series
+            return self.__class__(data)
+        self.data = data
 
     def truncate(self, low=0.0, high=2.0):
         """
@@ -196,6 +325,23 @@ class Pert():
         -------
         `sandy.Pert`
             perturbation instance with truncated values.
+
+        Examples
+        --------
+        >>> pert = pd.DataFrame([[-1, 2.55], [2.55, -1]], index =pd.IntervalIndex.from_breaks(pd.Index([10, 100]).insert(0, 0)), columns=col)
+        >>> sandy.Pert(pert).truncate().data
+        MAT	            2631
+        MT	            5	        2
+               ENERGY		
+          (0.0, 10.0]	0.00000e+00	2.00000e+00
+        (10.0, 100.0]	2.00000e+00	0.00000e+00
+
+        >>> pert_ind = pd.Series([-1, 2.05], index=pd.IntervalIndex.from_breaks(pd.Index([10, 100]).insert(0, 0)))
+        >>> sandy.Pert(pert_ind).truncate().data
+        	                      0
+               ENERGY
+          (0.0, 10.0]	0.00000e+00
+        (10.0, 100.0]	2.00000e+00
         """
         data = self.data.copy()
         data = data.where(data <= high, high).where(data >= low, low)
@@ -222,6 +368,23 @@ class Pert():
         -------
         `sandy.Pert`
             perturbation instance with truncated values.
+
+        Examples
+        --------
+        >>> pert = pd.DataFrame([[-1, 2.55], [2.55, -1]], index =pd.IntervalIndex.from_breaks(pd.Index([10, 100]).insert(0, 0)), columns=col)
+        >>> sandy.Pert(pert).recenter().data
+        MAT	            2631
+        MT	            5	        2
+               ENERGY		
+          (0.0, 10.0]	1.00000e+00	1.00000e+00
+        (10.0, 100.0]	1.00000e+00	1.00000e+00
+
+        >>> pert_ind = pd.Series([-1, 2.05], index=pd.IntervalIndex.from_breaks(pd.Index([10, 100]).insert(0, 0)))
+        >>> sandy.Pert(pert_ind).recenter().data
+                                  0
+               ENERGY	
+          (0.0, 10.0]	1.00000e+00
+        (10.0, 100.0]	1.00000e+00
         """
         data = self.data.copy()
         data = data.where(data <= high, value).where(data >= low, value)
@@ -259,7 +422,7 @@ class Pert():
 
         Parameters
         ----------
-        elow : TYPE
+        elow : `float`
             lower energy boundary in eV.
         ehigh : `float`
             upper energy boundary in eV.
@@ -274,10 +437,10 @@ class Pert():
         Examples
         --------
         >>> Pert.from_bin(1e-5, 1e-4, 0.05)
-        ENERGY
-        (0.0, 1e-05]      1.00000e+00
-        (1e-05, 0.0001]   1.05000e+00
-        dtype: float64
+                                     0
+                 ENERGY
+           (0.0, 1e-05]    1.00000e+00
+        (1e-05, 0.0001]    1.05000e+00
         """
         pert = cls([1, 1 + coeff], index=[elow, ehigh])
         return pert
