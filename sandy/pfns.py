@@ -445,18 +445,8 @@ class Edistr():
 
         Parameters
         ----------
-        pert : `sandy.Pert` or `pd.DataFrame`
-            Tabulated perturbation.
-        mat : `int`, optional
-            MAT number. The default is None.
-        mt : `int`
-            MT number. The default is None.
-        k : `int`
-            subsection.  The default is None.
-        ein_low : `float`, optional
-            lower energy boundary in eV.  The default is None.
-        ein_high : `float`, optional
-            upper energy boundary in eV.  The default is None.
+        pert : `sandy.Pert` or `pd.Series`
+            perturbation object.
 
         Returns
         -------
@@ -481,11 +471,11 @@ class Edistr():
         >>> pert_ = sandy.Pert(df)
         >>> orig.custom_perturbation(pert_)
             MAT  MT  K         EIN        EOUT       VALUE
-        0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
-        1  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01
-        2  9437  18  0 2.00000e+00 1.00000e-04 2.60000e-01
-        3  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
-        4  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
+        0	9437	18	0	1.00000e+00	1.00000e-05	4.00000e-08
+        1	9437	18	0	1.00000e+00	2.00000e+07	6.00000e-08
+        2	9437	18	0	2.00000e+00	1.00000e-04	3.75000e-07
+        3	9437	18	0	2.00000e+00	1.00000e+00	1.75000e-07
+        4	9437	18	0	2.00000e+00	1.00000e+07	2.50000e-08
         """
         pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
 
@@ -495,7 +485,7 @@ class Edistr():
         enew = enew[(enew <= energy_grid.max()) & (enew >= energy_grid.min())]
 
         # Reshape to new energy grid and columns estructure:
-        u_pert = pert.reshape(enew).right
+        u_pert = pert.reshape(enew, right_values=0).right
 
         # Apply the perturbation:
         def foo(df, pert):
@@ -512,11 +502,11 @@ class Edistr():
                 pert_ = pert_.iloc[:, [0]]\
                              .reindex(index=df.loc[:, "EOUT"].values)\
                              .values.flatten()
-                df["VALUE"] = df['VALUE'].values * pert_
+                df["VALUE"] = df['VALUE'].values + pert_
             return df
         pert_edistr = self.data.groupby(['MAT', 'MT', 'K', 'EIN'])\
                           .apply(foo, u_pert)
-        return self.__class__(pert_edistr)
+        return self.__class__(pert_edistr).normalize()
 
     def _perturb(self, pert, method=2, normalize=True, **kwargs):
         """Perturb energy distributions given a set of perturbations.
