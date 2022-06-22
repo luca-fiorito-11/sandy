@@ -117,8 +117,9 @@ def parse(iargs=None):
                         metavar="{1,..,9999}",
                         help="draw samples only from the selected MAT "
                              "sections (default = keep all)")
-    parser.add_argument('--max-polynomial', '-P',
+    parser.add_argument('--max_polynomial', '-P',
                         type=int,
+                        default=None,
                         help="Maximum order of Legendre polynomial coefficients considered for sampling (default = all)")
     parser.add_argument('--mf',
                         type=int,
@@ -288,7 +289,6 @@ def get_cov(endf6):
             mf_process.append(31)
         if 33 in init.mf and 33 in endf6.mf:
             mf_process.append(33)
-        temp = 0 if len(init.temperatures) == 0 else init.temperatures
 
     # Endf6 covariance:
     if len(mf_process) + len(mf_extract) == 1:
@@ -296,10 +296,11 @@ def get_cov(endf6):
         cov.update({unique_mf[0]: endf6.get_cov(process_mf=mf_process,
                                                 mf=mf_extract,
                                                 njoy=init.njoy,
-                                                temperature=temp)})
+                                                temperature=0, 
+                                                p=init.max_polynomial)})
     elif len(mf_process) + len(mf_extract) >= 1:
         cov.update(endf6.get_cov(process_mf=mf_process, mf=mf_extract,
-                                 njoy=init.njoy, temperature=temp))
+                                 njoy=init.njoy, temperature=0, p=init.max_polynomial))
     return cov
 
 
@@ -460,8 +461,8 @@ def pert_by_mf(samples, pert_objects, i, mat):
 
     # Output files:
     output = os.path.join(init.outdir, '{}-{}'.format(outname, i))
-    pert_endf6.to_file(output)
-    return
+    
+    return pert_endf6.to_file(output)
 
 
 def ace_files():
@@ -507,8 +508,7 @@ def _ace_files(i):
         inp = init.file
     elif fmt == "endf6":
         inp = smpfile
-    input, inputs, outputs = njoy.process(inp, **kwargs)
-    return
+    return njoy.process(inp, **kwargs)
 
 
 def sampling(iargs=None):

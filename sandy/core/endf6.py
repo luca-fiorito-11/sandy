@@ -2571,29 +2571,40 @@ If you want to process 0K cross sections use `temperature=0.1`.
                                             columns=["MAT1", "MT1", "E1"],
                                             values='VAL')
 
-    def _get_lpc_cov(self, mt=range(1, 10000), mat=range(1, 10000)):
+    def _get_lpc_cov(self, mt=range(1, 10000), mat=range(1, 10000), p=None):
         """
         Extract global Legendre Polynomials coefficients covariance matrix
         from `sandy.Endf6` instance.
+
         Parameters
         ----------
         mat : `int` or `list`, optional
             MAT number. The default is range(1, 10000).
         mt : `int` or `list`, optional
             MT number. The default is range(1, 1000).
+        p : `int`, optional
+            maximum order of Legendre polynomial coefficients
+
         Returns
         -------
         `sandy.CategoryCov`
             Covariance matrix divided according to mat, mt, index of the
             Legendre coefficient and energy.
+
         Examples
         --------
         >>> tape = sandy.get_endf6_file("jeff_33",'xs',922380)
         >>> out = tape._get_lpc_cov()
         >>> out.data.index.get_level_values("MT").unique()
         Int64Index([2], dtype='int64', name='MT')
+
         >>> out.data.index.get_level_values("L").unique()
         Int64Index([1, 2, 3, 4, 5, 6], dtype='int64', name='L')
+
+        Filter p:
+        >>> out = tape._get_lpc_cov(p=4)
+        >>> out.data.index.get_level_values("L").unique()
+        Int64Index([1, 2, 3, 4], dtype='int64', name='L')
         """
         listmt_ = [mt] if isinstance(mt, int) else mt
         listmat_ = [mat] if isinstance(mat, int) else mat
@@ -2652,6 +2663,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
         if not data:
             return pd.DataFrame()
         data = pd.concat(data)
+        if p is not None:
+            data = data.query(f"L <= {p} & L1 <= {p}")
         return sandy.CategoryCov.from_stack(data,
                                             index=["MAT", "MT", "L", "E"],
                                             columns=["MAT1", "MT1", "L1", "E1"],
@@ -2784,7 +2797,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
             if 33 in listmf_:
                 cov[33] = self._get_xs_cov(mf=[33])
             if 34 in listmf_:
-                cov[34] = self._get_lpc_cov()
+                p = kwds_njoy.get("p", None)
+                cov[34] = self._get_lpc_cov(p=p)
             if 35 in listmf_:
                 cov[35] = self._get_edistr_cov()
         # If only one mf is calculated, the return is directly the `CategoryCov` object
