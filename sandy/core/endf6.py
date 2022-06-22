@@ -2476,7 +2476,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
             }
         return cov_info
 
-    def _get_lpc_cov(self, mt=range(1, 10000), mat=range(1, 10000)):
+    def _get_lpc_cov(self, mt=range(1, 10000), mat=range(1, 10000), p=None):
         """
         Extract global Legendre Polynomials coefficients covariance matrix
         from `sandy.Endf6` instance.
@@ -2487,6 +2487,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
             MAT number. The default is range(1, 10000).
         mt : `int` or `list`, optional
             MT number. The default is range(1, 1000).
+        p : `int`, optional
+            maximum order of Legendre polynomial coefficients
 
         Returns
         -------
@@ -2503,6 +2505,11 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         >>> out.data.index.get_level_values("L").unique()
         Int64Index([1, 2, 3, 4, 5, 6], dtype='int64', name='L')
+
+        Filter p:
+        >>> out = tape._get_lpc_cov(p=4)
+        >>> out.data.index.get_level_values("L").unique()
+        Int64Index([1, 2, 3, 4], dtype='int64', name='L')
         """
         listmt_ = [mt] if isinstance(mt, int) else mt
         listmat_ = [mat] if isinstance(mat, int) else mat
@@ -2561,6 +2568,8 @@ If you want to process 0K cross sections use `temperature=0.1`.
         if not data:
             return pd.DataFrame()
         data = pd.concat(data)
+        if p is not None:
+            data = data.query(f"L <= {p} & L1 <= {p}")
         return sandy.CategoryCov.from_stack(data,
                                             index=["MAT", "MT", "L", "E"],
                                             columns=["MAT1", "MT1", "L1", "E1"],
