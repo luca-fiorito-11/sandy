@@ -37,7 +37,7 @@ class sandy_object():
     def __init__(self, ftape, mf, energy_sequence):
         self.Endf6 = ftape
         extra_points = np.logspace(-5, 7, energy_sequence)
-        ftape = ftape.filter_by(listmt=init.mt)
+        ftape = ftape.filter_by(listmt=init.mt) if init.mt else ftape
         if 8 in mf:
             self.Fy = sandy.Fy.from_endf6(ftape)
         if 31 in mf or 33 in mf:
@@ -131,7 +131,7 @@ def parse(iargs=None):
                              "(default = keep all)")
     parser.add_argument('--mt',
                         type=int,
-                        default=list(range(1, 1000)),
+                        default=None,
                         action='store',
                         nargs="+",
                         metavar="{1,..,999}",
@@ -295,12 +295,17 @@ def get_cov(endf6):
         unique_mf = mf_process + mf_extract
         cov.update({unique_mf[0]: endf6.get_cov(process_mf=mf_process,
                                                 mf=mf_extract,
+                                                mt=init.mt,
                                                 njoy=init.njoy,
                                                 temperature=0, 
                                                 p=init.max_polynomial)})
     elif len(mf_process) + len(mf_extract) >= 1:
-        cov.update(endf6.get_cov(process_mf=mf_process, mf=mf_extract,
-                                 njoy=init.njoy, temperature=0, p=init.max_polynomial))
+        cov.update(endf6.get_cov(process_mf=mf_process,
+                                 mf=mf_extract,
+                                 njoy=init.njoy,
+                                 mt=init.mt,
+                                 temperature=0,
+                                 p=init.max_polynomial))
     return cov
 
 

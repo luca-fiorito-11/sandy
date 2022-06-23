@@ -2793,14 +2793,14 @@ If you want to process 0K cross sections use `temperature=0.1`.
         if len(listmf_) != 0:
             cov = {} if len(list_process) == 0 else cov
             if 31 in listmf_:
-                cov[31] = self._get_xs_cov(mf=[31])
+                cov[31] = self._get_xs_cov(mf=[31]) if not kwds_njoy.get("mt") else self._get_xs_cov(mf=[31], mt=kwds_njoy["mt"])
             if 33 in listmf_:
-                cov[33] = self._get_xs_cov(mf=[33])
+                cov[33] = self._get_xs_cov(mf=[33]) if not kwds_njoy.get("mt") else self._get_xs_cov(mf=[33], mt=kwds_njoy["mt"])
             if 34 in listmf_:
                 p = kwds_njoy.get("p", None)
-                cov[34] = self._get_lpc_cov(p=p)
+                cov[34] = self._get_lpc_cov(p=p) if not kwds_njoy.get("mt") else self._get_lpc_cov(p=p, mt=kwds_njoy["mt"])
             if 35 in listmf_:
-                cov[35] = self._get_edistr_cov()
+                cov[35] = self._get_edistr_cov() if not kwds_njoy.get("mt") else self._get_edistr_cov(mt=kwds_njoy["mt"])
         # If only one mf is calculated, the return is directly the `CategoryCov` object
         if len(cov) == 1:
             [(key, cov)] = cov.items()
