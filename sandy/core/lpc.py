@@ -415,7 +415,7 @@ class Lpc():
     def _add_points(self, extra_points):
         """
         Add additional entries to Lpc incoming energies.
-        
+
         Parameters
         ----------
         extra_points : 1D iterable
@@ -432,7 +432,7 @@ class Lpc():
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> LPC._add_points([1,2]).data.iloc[:,:2].head()
 		                      P	          0	          1
-         MAT   MT	          E		
+         MAT   MT	          E
         9228	2	1.00000e-05	1.00000e+00	0.00000e+00
                     1.00000e+00	1.00000e+00	1.13380e-06
                     2.00000e+00	1.00000e+00	2.26761e-06
@@ -442,7 +442,7 @@ class Lpc():
         points = np.array(sorted(extra_points))
         frame = self.data.copy()
         List = []
-        for (mat, mt),df in frame.groupby(["MAT","MT"]):
+        for (mat, mt), df in frame.groupby(["MAT", "MT"]):
             rdf = df.loc[mat, mt]
             mask = (points >= min(rdf.index)) & (points <= max(rdf.index))
             grid = sorted((set(rdf.index) | set(points[mask])))
@@ -459,7 +459,7 @@ class Lpc():
     def _perturb(self, pert, method=2, **kwargs):
         """
         Perturb Legendre polynomials coefficients given a set of perturbations.
-        
+
         Parameters
         ----------
         pert : pandas.Series
@@ -478,12 +478,12 @@ class Lpc():
                 continue
             lpc = frame.loc[mat, mt]
             prt = pert.loc[mat, mt]
-            eprt = prt.index.get_level_values("E").unique().values # get cov energies
-            elpc = lpc.index.get_level_values("E").unique().values # get lpc energies
+            eprt = prt.index.get_level_values("E").unique().values  # get cov energies
+            elpc = lpc.index.get_level_values("E").unique().values  # get lpc energies
             eg = np.array(sorted(set(eprt) | set(elpc)))
             eg = eg[(eg <= max(elpc)) & (eg >= min(elpc))]  # limit to lpc range
             lpc_copy = lpc.reindex(eg)
-            df_notnan = lpc_copy.dropna(axis="columns", thresh=2) # cut P columns with less than 2 not-NaN
+            df_notnan = lpc_copy.dropna(axis="columns", thresh=2)  # cut P columns with less than 2 not-NaN
             df_notnan = df_notnan.interpolate(method='slinear')
             lpc_copy.update(df_notnan)
             for l, _ in prt.groupby("L"):
@@ -531,7 +531,7 @@ class Lpc():
         Warnings
         --------
         `logging.warn`
-            skip section if coefficiets request an interpolation scheme over 
+            skip section if coefficiets request an interpolation scheme over
             energy that is not lin-lin.
         """
         tape = endf6.filter_by(listmf=[4])

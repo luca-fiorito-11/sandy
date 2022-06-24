@@ -43,20 +43,20 @@ class Samples():
     Attributes
     ----------
     condition_number
-        
+
     data
-        
+
 
     Methods
     -------
     filter_by
-        
+
     from_csv
-        
+
     regression_coefficients
-        
+
     sm_ols
-        
+
     """
 
     def __init__(self, df):
@@ -255,7 +255,7 @@ class Samples():
         >>> csv = df.to_csv()
         >>> sandy.Samples.from_csv(io.StringIO(csv), sep="\s+", cov33csv=True)
                                         0            1            2
-        MAT  MT  E                                                 
+        MAT  MT  E
         9437 102 1.00000e-05  1.62435e+00 -6.11756e-01 -5.28172e-01
                  1.00000e-01 -1.07297e+00  8.65408e-01 -2.30154e+00
                  1.00000e+01  1.74481e+00 -7.61207e-01  3.19039e-01

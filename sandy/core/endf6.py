@@ -1326,27 +1326,27 @@ class Endf6(_FormattedFile):
         from .mf1 import write
         tape = self.copy()
         for mat in sorted(tape.index.get_level_values('MAT').unique()):
-            sec = self.read_section(mat,1,451)
-            records = pd.DataFrame(sec["RECORDS"], columns=["MF","MT","NC","MOD"]).set_index(["MF","MT"])
+            sec = self.read_section(mat, 1, 451)
+            records = pd.DataFrame(sec["RECORDS"], columns=["MF", "MT", "NC", "MOD"]).set_index(["MF", "MT"])
             new_records = []
-            dfmat=tape.loc[mat]
+            dfmat = tape.loc[mat]
 #            for (mf,mt),text in sorted(tape.loc[mat].query('MT!=451'.format(mat)).TEXT.items()):
-            for (mf,mt),text in sorted(dfmat[dfmat.index.get_level_values("MT")!=451].TEXT.items()):
+            for (mf, mt), text in sorted(dfmat[dfmat.index.get_level_values("MT") != 451].TEXT.items()):
                 nc = len(text.splitlines())
                 # when copying PENDF sections (MF2/MT152) mod is not present in the dictionary
                 try:
-                    mod = records.MOD.loc[mf,mt]
+                    mod = records.MOD.loc[mf, mt]
                 except:
                     mod = 0
-                new_records.append((mf,mt,nc,mod))
+                new_records.append((mf, mt, nc, mod))
             if descr is not None:
                 sec["TEXT"] = descr
             nc = 4 + len(sec["TEXT"]) + len(new_records) + 1
-            mod = records.MOD.loc[1,451]
-            new_records = [(1,451,nc,mod)] + new_records
+            mod = records.MOD.loc[1, 451]
+            new_records = [(1, 451, nc, mod)] + new_records
             sec["RECORDS"] = new_records
             text = write(sec)
-            tape.loc[mat,1,451].TEXT = text
+            tape.loc[mat, 1, 451].TEXT = text
         return Endf6(tape)
 
     def parse(self):
@@ -1356,7 +1356,7 @@ class Endf6(_FormattedFile):
         self.mat = self.endf = mats[0]
         if hasattr(self, "tape"):
             self.filename = os.path.basename(self.tape)
-        INFO = self.read_section(mats[0], 1 ,451)
+        INFO = self.read_section(mats[0], 1, 451)
         del INFO["TEXT"], INFO["RECORDS"]
         self.__dict__.update(**INFO)
         self.SECTIONS = self.loc[INFO["MAT"]].reset_index()["MF"].unique()
@@ -1383,7 +1383,7 @@ class Endf6(_FormattedFile):
         -----
         .. note:: a warning is raised if more than one MAT is found.
                   Only the ID corresponding to the lowest MAT will be returned.
- 
+
         Examples
         --------
         Extract ID for H1 file using NNDC and ALEPH methods
@@ -1523,7 +1523,7 @@ class Endf6(_FormattedFile):
         stop
 
         >>> pendf
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          2          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0         99  ...
@@ -1755,7 +1755,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         Test `ign` and `ek`
         >>> assert out.get_xs().data[(125, 1)].size == 12
-        
+
         Test `to_file`
         >>> out = endf6.get_errorr(to_file="out.err")
         >>> assert os.path.isfile('out.err')
@@ -1928,9 +1928,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
         3 /
         1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
          0.00000000 0.00000000          0          0          1          4
-                  4          1                                            
+                  4          1
          1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000
-         3.00000000 1.00000000                                            
+         3.00000000 1.00000000
         /
         stop
 
@@ -1954,9 +1954,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
         3 /
         1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
          0.00000000 0.00000000          0          0          1          4
-                  4          1                                            
+                  4          1
          1.000000-5 1.00000000 3.000000-2 2.00000000 5.800000-2 3.00000000
-         3.00000000 2.00000000                                            
+         3.00000000 2.00000000
         /
         3/
         0/
@@ -1969,9 +1969,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
         3 /
         1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
          0.00000000 0.00000000          0          0          1          4
-                  4          1                                            
+                  4          1
          1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000
-         3.00000000 1.00000000                                            
+         3.00000000 1.00000000
         /
         stop
 
@@ -1992,10 +1992,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
         0 33 0/
         3 /
         1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
-         1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000  3.00000000 1.00000000                                            
+         1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000  3.00000000 1.00000000
         /
         stop
-    
+
         Test for MT:
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> out = endf6.get_errorr(verbose=True, mt=[1, 2], ek_errorr=sandy.energy_grids.CASMO12)
@@ -2017,11 +2017,11 @@ If you want to process 0K cross sections use `temperature=0.1`.
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         stop
-        
+
         Keywords `mt` and `groupr` are incompatible
         >>> with pytest.raises(sandy.SandyError):
         ...    sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, mt=1, groupr=True)
-            
+
         Test content of output `Errorr` file
         >>> out = sandy.get_endf6_file('jeff_33', "xs", 922350).get_errorr(err=1., irespr=0, mubar=False, chi=False)
         >>> keys = [(9228, 1, 451), (9228, 3, 456), (9228, 33, 456), (9228, 3, 1), (9228, 3, 2), (9228, 3, 4), (9228, 3, 16), (9228, 3, 17), (9228, 3, 18), (9228, 3, 37), (9228, 3, 102), (9228, 33, 1), (9228, 33, 2), (9228, 33, 4), (9228, 33, 16), (9228, 33, 17), (9228, 33, 18), (9228, 33, 37), (9228, 33, 102)]
@@ -2362,9 +2362,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
         3 /
         1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
          0.00000000 0.00000000          0          0          1          4
-                  4          1                                            
+                  4          1
          1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000
-         3.00000000 1.00000000                                            
+         3.00000000 1.00000000
         /
         3/
         0/

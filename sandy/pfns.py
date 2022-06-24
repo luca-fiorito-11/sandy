@@ -481,11 +481,11 @@ class Edistr():
 
         # New energy grid:
         energy_grid = self.data.loc[:, 'EOUT'].unique()
-        enew = np.union1d(energy_grid, pert.right.index)
+        enew = np.union1d(energy_grid, pert_.right.index)
         enew = enew[(enew <= energy_grid.max()) & (enew >= energy_grid.min())]
 
         # Reshape to new energy grid and columns estructure:
-        u_pert = pert.reshape(enew, right_values=0).right
+        u_pert = pert_.reshape(enew, right_values=0).right
 
         # Apply the perturbation:
         def foo(df, pert):
@@ -510,37 +510,37 @@ class Edistr():
 
     def _perturb(self, pert, method=2, normalize=True, **kwargs):
         """Perturb energy distributions given a set of perturbations.
-        
+
         Parameters
         ----------
         pert : pandas.Series
             multigroup perturbations from sandy.EdistrSamples
         method : int
-            * 1 : samples outside the range [0, 2*_mean_] are set to _mean_. 
+            * 1 : samples outside the range [0, 2*_mean_] are set to _mean_.
             * 2 : samples outside the range [0, 2*_mean_] are set to 0 or 2*_mean_ respectively if they fall below or above the defined range.
         normalize : bool
             apply normalization
-        
+
         Returns
         -------
         sandy.Edistr
         """
         frame = self.copy()
-        for (mat,mt,k),S in self.groupby(["MAT", "MT", "K"]):
-            if (mat,mt) not in pert.index:
+        for (mat, mt, k), S in self.groupby(["MAT", "MT", "K"]):
+            if (mat, mt) not in pert.index:
                 continue
-            for ein,edistr in S.loc[mat,mt,k].iterrows():
-                for (elo,ehi),P in pert.loc[mat,mt].groupby(["ELO","EHI"]):
+            for ein, edistr in S.loc[mat, mt, k].iterrows():
+                for (elo, ehi), P in pert.loc[mat, mt].groupby(["ELO", "EHI"]):
                     if ein >= elo and ein <= ehi:
-                        P = P[elo,ehi]
+                        P = P[elo, ehi]
                         eg = sorted(set(edistr.index) | set(P.index))
                         P = P.reindex(eg).ffill().fillna(0).reindex(edistr.index)
                         if method == 2:
-                            P = P.where(P>=-edistr, -edistr)
-                            P = P.where(P<=edistr, edistr)
+                            P = P.where(P >= -edistr, -edistr)
+                            P = P.where(P <= edistr, edistr)
                         elif method == 1:
                             P = np.where(P.abs() <= edistr, P, 0)
-                        frame.loc[mat,mt,k,ein] = edistr + P
+                        frame.loc[mat, mt, k, ein] = edistr + P
                         break
         edistr = Edistr(frame)
         if normalize:

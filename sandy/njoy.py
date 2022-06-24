@@ -12,15 +12,15 @@ Summary
 =======
 This module contains template inputs for NJOY routines and functions to run them.
 
-Two major functions `process` and `process_protons` are provided to process nuclear data 
-files with NJOY into ACE format, respectively for fast neutron-induced and proton-induced 
+Two major functions `process` and `process_protons` are provided to process nuclear data
+files with NJOY into ACE format, respectively for fast neutron-induced and proton-induced
 nuclear data.
 
-Given any nuclear data evaluation file for incident neutrons (fast, not SAB) function `process` 
+Given any nuclear data evaluation file for incident neutrons (fast, not SAB) function `process`
 generates the correspoding ACE filea for a given set of temperatures (one file per temperature).
-If no keyword argument is provided, function `process` runs with default options, which include 
+If no keyword argument is provided, function `process` runs with default options, which include
 NJOY routines RECONR, BROADR, THERMR, HEATR, GASPR, PURR, ACER.
-Keyword arguments can be changed to add/remove NJOY routines using `True/False` flags, or to change 
+Keyword arguments can be changed to add/remove NJOY routines using `True/False` flags, or to change
 a routine's input parameters.
 
 Major default parmameters:
@@ -91,31 +91,31 @@ from sandy.settings import SandyError
 __author__ = "Luca Fiorito"
 __all__ = ["process", "process_proton", "get_njoy"]
 
-sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
-                                  [42,125,0,8,221,'tol'],
-                                  [59,1425,0,1,221,'si'],
-                                  [37,125,11,2,223,'pol'],
-                                  [2,125,0,2,221,'ph'],
-                                  [12,128,0,2,221,'pd'],
-                                  [75,825,1,1,239,'ouo2'],
-                                  [48,825,0,3,221,'osap'],
-                                  [51,825,0,1,222,'ohw'],
-                                  [46,825,3,1,237,'obeo'],
-                                  [3,125,0,2,221,'oh2'],
-                                  [13,128,0,2,221,'od2'],
-                                  [52,1225,0,1,249,'mg'],
-                                  [38,125,0,12,221,'mesi'],
-                                  [10,125,1,2,221,'ice'],
-                                  [7,125,12,1,225,'hzr'],
-                                  [1,125,0,2,222,'lw'],
-                                  [8,125,0,2,249,'hca'],
-                                  [31,600,1,1,229,'gr'],
-                                  [11,128,0,2,221,'dhw'],
-                                  [59,2025,0,1,249,'cah'],
-                                  [27,425,3,1,233,'bbeo'],
-                                  [26,425,2,1,231,'be'],
-                                  [60,1325,0,2,221,'asap']],
-            columns = ['matde','matdp','icoh','natom','mtref','ext'])
+sab = pd.DataFrame.from_records([[48, 9237, 1, 1, 241, 'uuo2'],
+                                 [42, 125, 0, 8, 221, 'tol'],
+                                 [59, 1425, 0, 1, 221, 'si'],
+                                 [37, 125, 11, 2, 223, 'pol'],
+                                 [2, 125, 0, 2, 221, 'ph'],
+                                 [12, 128, 0, 2, 221, 'pd'],
+                                 [75, 825, 1, 1, 239, 'ouo2'],
+                                 [48, 825, 0, 3, 221, 'osap'],
+                                 [51, 825, 0, 1, 222, 'ohw'],
+                                 [46, 825, 3, 1, 237, 'obeo'],
+                                 [3, 125, 0, 2, 221, 'oh2'],
+                                 [13, 128, 0, 2, 221, 'od2'],
+                                 [52, 1225, 0, 1, 249, 'mg'],
+                                 [38, 125, 0, 12, 221, 'mesi'],
+                                 [10, 125, 1, 2, 221, 'ice'],
+                                 [7, 125, 12, 1, 225, 'hzr'],
+                                 [1, 125, 0, 2, 222, 'lw'],
+                                 [8, 125, 0, 2, 249, 'hca'],
+                                 [31, 600, 1, 1, 229, 'gr'],
+                                 [11, 128, 0, 2, 221, 'dhw'],
+                                 [59, 2025, 0, 1, 249, 'cah'],
+                                 [27, 425, 3, 1, 233, 'bbeo'],
+                                 [26, 425, 2, 1, 231, 'be'],
+                                 [60, 1325, 0, 2, 221, 'asap']],
+            columns=['matde', 'matdp', 'icoh', 'natom', 'mtref', 'ext'])
 
 tmp2ext = {
     293.6: "02",
@@ -624,7 +624,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         (default is 1, 1% sensitivity method)
     iwt_errorr : `int`, optional
         weight function option (default is 2, constant)
-        
+
         .. note:: this parameter will not be used if keyword argument
                   `spect` is provided
 
@@ -745,7 +745,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 293.6 /
     1 33 1/
     2 0 /
-    1 2 /    
+    1 2 /
 
     Test keyword `mt` as `int`:
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt=2))
@@ -845,7 +845,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         print option (default is `False`)
     iwt_groupr : `int`, optional
         weight function option (default is 2, constant)
-        
+
         .. note:: this parameter will not be used if keyword argument
                   `spect` is provided
 
@@ -933,7 +933,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     3/
     0/
     0/
-    
+
     Test argument `ek_groupr`
     >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ek_groupr=[1e-2, 1e3, 2e5], xs=True))
     groupr
@@ -1026,7 +1026,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     3 1 /
     3 2 /
     0/
-    0/       
+    0/
 
     Test keyword `mt` as `int`
     >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=2, xs=True))

@@ -259,7 +259,7 @@ class Pert():
         >>> sandy.Pert(pert).reshape([0, 1, 5,  25, 50, 100, 1.95000e+08]).data
         MAT	                    2631
         MT	                    5	        2
-                      ENERGY		
+                      ENERGY
                   (0.0, 1.0]	1.00000e+00	1.05000e+00
                   (1.0, 5.0]	1.00000e+00	1.05000e+00
                  (5.0, 10.0]	1.00000e+00	1.05000e+00
@@ -344,7 +344,7 @@ class Pert():
         >>> sandy.Pert(pert).truncate().data
         MAT	            2631
         MT	            5	        2
-               ENERGY		
+               ENERGY
           (0.0, 10.0]	0.00000e+00	2.00000e+00
         (10.0, 100.0]	2.00000e+00	0.00000e+00
 
@@ -387,14 +387,14 @@ class Pert():
         >>> sandy.Pert(pert).recenter().data
         MAT	            2631
         MT	            5	        2
-               ENERGY		
+               ENERGY
           (0.0, 10.0]	1.00000e+00	1.00000e+00
         (10.0, 100.0]	1.00000e+00	1.00000e+00
 
         >>> pert_ind = pd.Series([-1, 2.05], index=pd.IntervalIndex.from_breaks(pd.Index([10, 100]).insert(0, 0)))
         >>> sandy.Pert(pert_ind).recenter().data
                                   0
-               ENERGY	
+               ENERGY
           (0.0, 10.0]	1.00000e+00
         (10.0, 100.0]	1.00000e+00
         """

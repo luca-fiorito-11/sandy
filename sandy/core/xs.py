@@ -113,7 +113,7 @@ class Xs():
         >>> sandy.Xs([1, 2], index=index, columns=columns)
         MAT                9437
         MT                    1
-        E                      
+        E
         1.00000e-05 1.00000e+00
         2.00000e+07 2.00000e+00
         """
@@ -217,7 +217,7 @@ class Xs():
         >>> (pert_xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3)]] / xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3)]]).round(2)
         MAT	        2631
         MT	        1           2	        3
-                  E			
+                  E
         1.92000e+08	1.00000e+00	1.00000e+00	1.00000e+00
         1.94000e+08	1.00000e+00	1.00000e+00	1.00000e+00
         1.96000e+08	1.03000e+00	1.05000e+00	1.00000e+00
@@ -230,7 +230,7 @@ class Xs():
         >>> pert_xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]] / xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]]
         MAT	        2631
         MT	        1	        2	        3	        5
-                  E				
+                  E
         1.92000e+08	1.03353e+00	1.05000e+00	1.00121e+00	1.00000e+00
         1.94000e+08	1.03360e+00	1.05000e+00	1.00106e+00	1.00000e+00
         1.96000e+08	1.01702e+00	1.00000e+00	1.05085e+00	1.05000e+00
@@ -243,7 +243,7 @@ class Xs():
         >>> pert_xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]] / xs.data.loc[[1.92000e+08, 1.94000e+08, 1.96000e+08, 1.98000e+08], [(2631, 1), (2631, 2), (2631, 3), (2631, 5)]]
         MAT	        2631
         MT	        1	         2	        3	        5
-                  E				
+                  E
         1.92000e+08	1.03353e+00	1.05000e+00	1.00121e+00	1.00000e+00
         1.94000e+08	1.03360e+00	1.05000e+00	1.00106e+00	1.00000e+00
         1.96000e+08	1.01702e+00	1.00000e+00	1.05085e+00	1.05000e+00
@@ -474,7 +474,7 @@ class Xs():
             for parent, daughters in sorted(redundant_xs.items(), reverse=True):
                 daughters = [x for x in daughters if x in df[mat]]
                 if daughters:
-                    df[mat,parent] = df[mat][daughters].sum(axis=1)
+                    df[mat, parent] = df[mat][daughters].sum(axis=1)
             # keep only mts present in the original file
             if drop:
                 todrop = [x for x in df[mat].columns if x not in self.data[mat].columns]
@@ -504,9 +504,9 @@ class Xs():
         pert : pandas.Series
             multigroup perturbations from sandy.XsSamples
         method : int
-            * 1 : samples outside the range [0, 2*_mean_] are set to _mean_. 
+            * 1 : samples outside the range [0, 2*_mean_] are set to _mean_.
             * 2 : samples outside the range [0, 2*_mean_] are set to 0 or 2*_mean_ respectively if they fall below or above the defined range.
-        
+
         Returns
         -------
         `sandy.formats.utils.Xs`
@@ -529,15 +529,15 @@ class Xs():
                             break
                 if not mtPert:
                     continue
-                P = pert.loc[mat,mtPert]
-                P = P.reindex(P.index.union(frame[mat,mt].index)).ffill().fillna(1).reindex(frame[mat,mt].index)
+                P = pert.loc[mat, mtPert]
+                P = P.reindex(P.index.union(frame[mat, mt].index)).ffill().fillna(1).reindex(frame[mat, mt].index)
                 if method == 2:
-                    P = P.where(P>0, 0.0)
-                    P = P.where(P<2, 2.0)
+                    P = P.where(P > 0, 0.0)
+                    P = P.where(P < 2, 2.0)
                 elif method == 1:
-                    P = P.where((P>0) & (P<2), 1.0)
-                xs = frame[mat,mt].multiply(P, axis="index")
-                frame[mat,mt] = xs
+                    P = P.where((P > 0) & (P < 2), 1.0)
+                xs = frame[mat, mt].multiply(P, axis="index")
+                frame[mat, mt] = xs
         return Xs(frame).reconstruct_sums()
 
     @classmethod
@@ -559,12 +559,12 @@ class Xs():
         eg = errorr.energy_grid
         tape = errorr.filter_by(listmf=[3])
         listxs = []
-        for (mat,mf,mt),text in tape.TEXT.iteritems():
+        for (mat, mf, mt), text in tape.TEXT.iteritems():
             X = tape.read_section(mat, mf, mt)
             xs = pd.Series(
                       X["XS"],
                       index=errorr.energy_grid[:-1],
-                      name=(mat,mt)
+                      name=(mat, mt)
                       ).rename_axis("E").to_frame()
             listxs.append(xs)
         if not listxs:
@@ -595,9 +595,9 @@ class Xs():
         --------
         >>> file = os.path.join(sandy.data.__path__[0], "h1.pendf")
         >>> sandy.Xs.from_file(file).data.head()
-        MAT                 125                        
+        MAT                 125
         MT                  1           2           102
-        E                                              
+        E
         1.00000e-05 3.71363e+01 2.04363e+01 1.66999e+01
         1.03125e-05 3.68813e+01 2.04363e+01 1.64450e+01
         1.06250e-05 3.66377e+01 2.04363e+01 1.62013e+01
@@ -626,7 +626,7 @@ class Xs():
         >>> sandy.Xs([1, 2], index=index, columns=columns).eV2MeV()
         MAT                9437
         MT                    1
-        E                      
+        E
         1.00000e-11 1.00000e+00
         2.00000e+01 2.00000e+00
         """
