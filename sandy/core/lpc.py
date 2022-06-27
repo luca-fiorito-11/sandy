@@ -188,14 +188,8 @@ class Lpc():
 
         Parameters
         ----------
-        pert : `sandy.Pert`
+        pert : `sandy.Pert` or pd.Dataframe
             tabulated perturbations
-        mat : `int`, optional
-            MAT material number. The default is None.
-        mt : `int`, optional
-            MT reaction number. The default is None.
-        p : `int`, optional
-            order of the Legendre polynomial coefficient. The default is None.
 
         Returns
         -------
@@ -224,6 +218,7 @@ class Lpc():
         Name: 1, dtype: float64
         """
         pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
+        # Endf6 mf=34 incosistency solver:
         if 'L' in pert_.data.columns.names:
             pert_.data.columns = pert_.data.columns.set_names('P', level='L')
 

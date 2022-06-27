@@ -423,17 +423,17 @@ class Edistr():
         1  9437  18  0 2.00000e+00 1.00000e+00
         """
         integrals = self.get_integrals()
-        data = self.data.copy()
-        keys = ["MAT", "MT", "K", "EIN"]
-        out = []
-        for (mat, mt, k, ein), chi in data.groupby(keys):
-            mask = (integrals.MAT == mat) & \
-                   (integrals.MT == mt) & \
-                   (integrals.K == k) & \
-                   (integrals.EIN == ein)
-            chi.loc[:, "VALUE"] /= integrals[mask].INTEGRAL.squeeze()
-            out.append(chi)
-        df = pd.concat(out)
+
+        def foo(df, integrals):
+            data = df.iloc[0]
+            mask = (integrals.MAT == data.MAT) & \
+                   (integrals.MT == data.MT) & \
+                   (integrals.K == data.K) & \
+                   (integrals.EIN == data.EIN)
+            df.loc[:, "VALUE"] /= integrals[mask].INTEGRAL.squeeze()
+            return df
+
+        df = self.data.groupby(["MAT", "MT", "K", "EIN"]).apply(foo, integrals)
         return self.__class__(df)
 
     def custom_perturbation(self, pert):
@@ -445,7 +445,7 @@ class Edistr():
 
         Parameters
         ----------
-        pert : `sandy.Pert` or `pd.Series`
+        pert : `sandy.Pert` or `pd.DataFrame`
             perturbation object.
 
         Returns
@@ -504,8 +504,10 @@ class Edistr():
                              .values.flatten()
                 df["VALUE"] = df['VALUE'].values + pert_
             return df
+
         pert_edistr = self.data.groupby(['MAT', 'MT', 'K', 'EIN'])\
                           .apply(foo, u_pert)
+
         return self.__class__(pert_edistr).normalize()
 
     def _perturb(self, pert, method=2, normalize=True, **kwargs):

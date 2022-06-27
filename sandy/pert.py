@@ -29,8 +29,8 @@ class Pert():
 
     Attributes
     ----------
-    data : `pandas.Series`
-        series of groupwise perturbation coefficients
+    data : `pandas.DataFrame`
+        DataFrame of groupwise perturbation coefficients
     left : `pandas.Series`
         perturbation coefficients with left-bounds of the energy intervals as
         index
@@ -114,7 +114,7 @@ class Pert():
 
         Returns
         -------
-        `pandas.Series`
+        `pandas.DataFrame`
             perturbations
 
         Examples
@@ -240,6 +240,9 @@ class Pert():
             monotonic energy grid with non-negative values
         inplace : `bool`, optional, default is `False`
             apply changes **inplace** and return `None`
+        right_values: `float`, optional, default is 1
+            This value will be used to fill in for requested points outside of
+            the data range at the upper limit.
 
         Returns
         -------

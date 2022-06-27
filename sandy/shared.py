@@ -306,6 +306,12 @@ def reshape_bfill(x, y, xnew, left_values="first", right_values=0):
         new energy grid
     y : `numpy.ndarray` with at least two entries and same length as `x`
         array to interpolate
+    left_values:`str` or `float`
+        This value will be used to fill in for requested points outside of the
+        data range at the lower limit.ç
+    right_values:`str` or `float`
+        This value will be used to fill in for requested points outside of the
+        data range at the upper limit.
 
     Returns
     -------

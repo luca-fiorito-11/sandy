@@ -165,10 +165,6 @@ class Xs():
         pert : `sandy.Pert` or `pd.Dataframe`
             tabulated perturbations with the index representing the energy grid
             and the columns representing MT.
-        mat : `int`, optional
-            MAT number. The default is None.
-        mt : `int`, optional
-            MT number. The default is None.
         **kwargs : `dict`
             keyword argument to pass to `sandy.Xs._recontruct_sums`.
 
