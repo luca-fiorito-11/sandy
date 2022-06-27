@@ -230,7 +230,8 @@ def get_fy_cov(endf6):
 
     """
     global init
-    fy = sandy.Fy.from_endf6(endf6.filter_by(listmat=init.mat, listmt=init.mt))
+    mt = [454, 459] if init.mt is None else init.mt
+    fy = sandy.Fy.from_endf6(endf6.filter_by(listmat=init.mat, listmt=mt))
     fy_cov = fy.data.groupby(['MAT', 'MT', 'E'])["DFY"]\
                .apply(lambda x: sandy.CategoryCov.from_stdev(x))
     return fy_cov
@@ -297,7 +298,7 @@ def get_cov(endf6):
                                                 mf=mf_extract,
                                                 mt=init.mt,
                                                 njoy=init.njoy,
-                                                temperature=0,
+                                                temperature=0, 
                                                 p=init.max_polynomial)})
     elif len(mf_process) + len(mf_extract) >= 1:
         cov.update(endf6.get_cov(process_mf=mf_process,
@@ -466,7 +467,7 @@ def pert_by_mf(samples, pert_objects, i, mat):
 
     # Output files:
     output = os.path.join(init.outdir, '{}-{}'.format(outname, i))
-
+    
     return pert_endf6.to_file(output)
 
 
@@ -568,7 +569,7 @@ def sampling(iargs=None):
 
     # Perturbed endf:
     perturbation_manager(samples, ftape)
-
+    
     # Produce ACE files:
     if init.acer:
         ace_files()
