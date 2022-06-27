@@ -43,20 +43,20 @@ class Samples():
     Attributes
     ----------
     condition_number
-        
+
     data
-        
+
 
     Methods
     -------
     filter_by
-        
+
     from_csv
-        
+
     regression_coefficients
-        
+
     sm_ols
-        
+
     """
 
     def __init__(self, df):
@@ -89,6 +89,7 @@ class Samples():
     @data.setter
     def data(self, data):
         self._data = data
+        self._data.index.name = 'SMP'
 
     @property
     def condition_number(self):
@@ -254,7 +255,7 @@ class Samples():
         >>> csv = df.to_csv()
         >>> sandy.Samples.from_csv(io.StringIO(csv), sep="\s+", cov33csv=True)
                                         0            1            2
-        MAT  MT  E                                                 
+        MAT  MT  E
         9437 102 1.00000e-05  1.62435e+00 -6.11756e-01 -5.28172e-01
                  1.00000e-01 -1.07297e+00  8.65408e-01 -2.30154e+00
                  1.00000e+01  1.74481e+00 -7.61207e-01  3.19039e-01
@@ -262,3 +263,98 @@ class Samples():
         """
         df = pd.read_csv(file, **kwargs)
         return cls(df)
+
+    def to_pert(self, smp=None):
+        """
+        Samples in the format of `Sandy.Pert`. If the sample number is not
+        entered, a `pd.DataFrame` is created with a multiindex, the first level
+        being the sample number and the second the energy grid.
+
+        Parameters
+        ----------
+        smp : `int`, optional
+            Number of the sample. The default is None.
+
+        Returns
+        -------
+        `sandy.Pert` or `pd.DataFrame`
+            Samples in `sandy.Pert` format.
+
+        Examples
+        --------
+        >>> samples = pd.DataFrame([[0.5, 1.5], [0.75, 1.25]] , index=[0, 1])
+        >>> samples.columns = pd.MultiIndex.from_arrays([[125, 125], [2, 2], [1e-05, 19970500.0]], names=['MAT', 'MT', 'E'])
+        >>> sandy.Samples(samples).to_pert()
+        	MAT	        125
+            MT	        2
+        SMP	          E
+          0	1.00000e-05	5.00000e-01
+            1.99705e+07	1.50000e+00
+          1	1.00000e-05	7.50000e-01
+            1.99705e+07	1.25000e+00
+
+        >>> sandy.Samples(samples).to_pert(smp=0)
+        MAT                         125
+        MT                            2
+        ENERGY
+        (0.0, 1e-05]        5.00000e-01
+        (1e-05, 19970500.0] 1.50000e+00
+
+        >>> samples = pd.DataFrame([[0.5, 1.5], [0.75, 1.25]] , index=[0, 1])
+        >>> samples.columns = pd.MultiIndex.from_arrays([[125, 125], [2, 2], [1.00000e-05, 1.00000e-05], [1.00000e-05, 	1.00000e-05], [1e-05, 19970500.0]], names=['MAT', 'MT', 'ELO', 'EHI', 'E'])
+        >>> sandy.Samples(samples).to_pert()
+        	MAT	        125
+            MT	        2
+            ELO	        1.00000e-05
+            EHI	        1.00000e-05
+        SMP	          E
+          0	1.00000e-05	5.00000e-01
+            1.99705e+07	1.50000e+00
+          1	1.00000e-05	7.50000e-01
+            1.99705e+07	1.25000e+00
+
+        >>> sandy.Samples(samples).to_pert(smp=0)
+        MAT                         125
+        MT                            2
+        ELO                 1.00000e-05
+        EHI                 1.00000e-05
+        ENERGY
+        (0.0, 1e-05]        5.00000e-01
+        (1e-05, 19970500.0] 1.50000e+00
+
+        >>> samples = pd.DataFrame([[0.5, 1.5], [0.75, 1.25]] , index=[0, 1])
+        >>> samples.columns = pd.MultiIndex.from_arrays([[125, 125], [2, 2], [1, 1], [1e-05, 19970500.0]], names=['MAT', 'MT', 'L', 'E'])
+        >>> sandy.Samples(samples).to_pert()
+            MAT	        125
+            MT	        2
+            L	        1
+        SMP	          E
+          0	1.00000e-05	5.00000e-01
+            1.99705e+07	1.50000e+00
+          1	1.00000e-05	7.50000e-01
+            1.99705e+07	1.25000e+00
+
+        >>> sandy.Samples(samples).to_pert(smp=0)
+        MAT                         125
+        MT                            2
+        L                             1
+        ENERGY
+        (0.0, 1e-05]        5.00000e-01
+        (1e-05, 19970500.0] 1.50000e+00
+        """
+        data = self.data.copy()
+        levels = list(np.arange(data.columns.nlevels))
+        if smp is not None:
+            if isinstance(smp, int) and smp in data.index:
+                pert = data.loc[smp].to_frame().unstack(level=levels[0:-1])
+                pert.columns = pert.columns.droplevel(level=None)
+                pert = sandy.Pert(pert)
+            else:
+                print(f"{smp} is not correct or do not exist")
+        else:
+            def foo(df):
+                df = df.stack()
+                df.index = df.index.droplevel(level='SMP')
+                return df
+            pert = data.groupby('SMP').apply(foo).fillna(0)
+        return pert

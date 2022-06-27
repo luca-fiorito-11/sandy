@@ -1329,27 +1329,27 @@ class Endf6(_FormattedFile):
         from .mf1 import write
         tape = self.copy()
         for mat in sorted(tape.index.get_level_values('MAT').unique()):
-            sec = self.read_section(mat,1,451)
-            records = pd.DataFrame(sec["RECORDS"], columns=["MF","MT","NC","MOD"]).set_index(["MF","MT"])
+            sec = self.read_section(mat, 1, 451)
+            records = pd.DataFrame(sec["RECORDS"], columns=["MF", "MT", "NC", "MOD"]).set_index(["MF", "MT"])
             new_records = []
-            dfmat=tape.loc[mat]
+            dfmat = tape.loc[mat]
 #            for (mf,mt),text in sorted(tape.loc[mat].query('MT!=451'.format(mat)).TEXT.items()):
-            for (mf,mt),text in sorted(dfmat[dfmat.index.get_level_values("MT")!=451].TEXT.items()):
+            for (mf, mt), text in sorted(dfmat[dfmat.index.get_level_values("MT") != 451].TEXT.items()):
                 nc = len(text.splitlines())
                 # when copying PENDF sections (MF2/MT152) mod is not present in the dictionary
                 try:
-                    mod = records.MOD.loc[mf,mt]
+                    mod = records.MOD.loc[mf, mt]
                 except:
                     mod = 0
-                new_records.append((mf,mt,nc,mod))
+                new_records.append((mf, mt, nc, mod))
             if descr is not None:
                 sec["TEXT"] = descr
             nc = 4 + len(sec["TEXT"]) + len(new_records) + 1
-            mod = records.MOD.loc[1,451]
-            new_records = [(1,451,nc,mod)] + new_records
+            mod = records.MOD.loc[1, 451]
+            new_records = [(1, 451, nc, mod)] + new_records
             sec["RECORDS"] = new_records
             text = write(sec)
-            tape.loc[mat,1,451].TEXT = text
+            tape.loc[mat, 1, 451].TEXT = text
         return Endf6(tape)
 
     def parse(self):
@@ -1359,7 +1359,7 @@ class Endf6(_FormattedFile):
         self.mat = self.endf = mats[0]
         if hasattr(self, "tape"):
             self.filename = os.path.basename(self.tape)
-        INFO = self.read_section(mats[0], 1 ,451)
+        INFO = self.read_section(mats[0], 1, 451)
         del INFO["TEXT"], INFO["RECORDS"]
         self.__dict__.update(**INFO)
         self.SECTIONS = self.loc[INFO["MAT"]].reset_index()["MF"].unique()
@@ -1386,7 +1386,7 @@ class Endf6(_FormattedFile):
         -----
         .. note:: a warning is raised if more than one MAT is found.
                   Only the ID corresponding to the lowest MAT will be returned.
- 
+
         Examples
         --------
         Extract ID for H1 file using NNDC and ALEPH methods
@@ -1526,7 +1526,7 @@ class Endf6(_FormattedFile):
         stop
 
         >>> pendf
-        MAT  MF  MT 
+        MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          2          0  ...
              2   151     1.001000+3 9.991673-1          0          0  ...
              3   1       1.001000+3 9.991673-1          0         99  ...
@@ -1758,7 +1758,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         Test `ign` and `ek`
         >>> assert out.get_xs().data[(125, 1)].size == 12
-        
+
         Test `to_file`
         >>> out = endf6.get_errorr(to_file="out.err")
         >>> assert os.path.isfile('out.err')
@@ -1871,7 +1871,13 @@ If you want to process 0K cross sections use `temperature=0.1`.
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         3/
+        3 452 'nu' /
+        3 455 'nu' /
+        3 456 'nu' /
         3 251 'mubar' /
+        3 252 'xi' /
+        3 253 'gamma' /
+        3 259 '1_v' /
         5/
         5 18 'chi' /
         0/
@@ -1925,9 +1931,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
         3 /
         1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
          0.00000000 0.00000000          0          0          1          4
-                  4          1                                            
+                  4          1
          1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000
-         3.00000000 1.00000000                                            
+         3.00000000 1.00000000
         /
         stop
 
@@ -1951,9 +1957,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
         3 /
         1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
          0.00000000 0.00000000          0          0          1          4
-                  4          1                                            
+                  4          1
          1.000000-5 1.00000000 3.000000-2 2.00000000 5.800000-2 3.00000000
-         3.00000000 2.00000000                                            
+         3.00000000 2.00000000
         /
         3/
         0/
@@ -1966,9 +1972,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
         3 /
         1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
          0.00000000 0.00000000          0          0          1          4
-                  4          1                                            
+                  4          1
          1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000
-         3.00000000 1.00000000                                            
+         3.00000000 1.00000000
         /
         stop
 
@@ -1989,10 +1995,10 @@ If you want to process 0K cross sections use `temperature=0.1`.
         0 33 0/
         3 /
         1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
-         1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000  3.00000000 1.00000000                                            
+         1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000  3.00000000 1.00000000
         /
         stop
-    
+
         Test for MT:
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> out = endf6.get_errorr(verbose=True, mt=[1, 2], ek_errorr=sandy.energy_grids.CASMO12)
@@ -2014,11 +2020,11 @@ If you want to process 0K cross sections use `temperature=0.1`.
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         stop
-        
+
         Keywords `mt` and `groupr` are incompatible
         >>> with pytest.raises(sandy.SandyError):
         ...    sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, mt=1, groupr=True)
-            
+
         Test content of output `Errorr` file
         >>> out = sandy.get_endf6_file('jeff_33', "xs", 922350).get_errorr(err=1., irespr=0, mubar=False, chi=False)
         >>> keys = [(9228, 1, 451), (9228, 3, 456), (9228, 33, 456), (9228, 3, 1), (9228, 3, 2), (9228, 3, 4), (9228, 3, 16), (9228, 3, 17), (9228, 3, 18), (9228, 3, 37), (9228, 3, 102), (9228, 33, 1), (9228, 33, 2), (9228, 33, 4), (9228, 33, 16), (9228, 33, 17), (9228, 33, 18), (9228, 33, 37), (9228, 33, 102)]
@@ -2317,7 +2323,13 @@ If you want to process 0K cross sections use `temperature=0.1`.
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         3/
+        3 452 'nu' /
+        3 455 'nu' /
+        3 456 'nu' /
         3 251 'mubar' /
+        3 252 'xi' /
+        3 253 'gamma' /
+        3 259 '1_v' /
         5/
         5 18 'chi' /
         0/
@@ -2353,9 +2365,9 @@ If you want to process 0K cross sections use `temperature=0.1`.
         3 /
         1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
          0.00000000 0.00000000          0          0          1          4
-                  4          1                                            
+                  4          1
          1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000
-         3.00000000 1.00000000                                            
+         3.00000000 1.00000000
         /
         3/
         0/
@@ -2478,3 +2490,327 @@ If you want to process 0K cross sections use `temperature=0.1`.
             'chi': run_chi if chi else False,
             }
         return cov_info
+
+    def _get_xs_cov(self, mf=[33], mt=None, mat=None):
+        """
+        Extract from endf6 file the cross section/nubar covariance matrices.
+
+        Parameters
+        ----------
+        mf : `int` or `list`, optional
+            MF number. The default is [31, 33].
+        mt : `int` or `list`, optional
+            MT number. The default is None.
+        mat : `int` or `list`, optional
+            MAT number. The default is None.
+
+        Returns
+        -------
+        `sandy.CategoryCov`
+            Covariance matrix.
+
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
+        >>> cov = endf6._get_xs_cov(mf=[31, 33])
+        >>> xs_cov = sandy.XsCov.from_endf6(endf6)
+        >>> assert (cov.data == xs_cov).all().all()
+        """
+        listmf_ = [mf] if isinstance(mf, int) else mf
+        mt_ = range(1, 10000) if mt is None else mt
+        listmt_ = [mt_] if isinstance(mt_, int) else mt_
+        mat_ = range(1, 10000) if mat is None else mat
+        listmat_ = [mat_] if isinstance(mat_, int) else mat_
+        tape = self.filter_by(listmf=listmf_, listmt=listmt_, listmat=listmat_)
+        data = []
+        for mat, mf, mt in tape.data:
+            sec = tape.read_section(mat, mf, mt)
+            for sub in sec["SUB"].values():
+                mat1 = sub['MAT1'] if sub['MAT1'] != 0 else mat
+                mt1 = sub['MT1']
+                covs = []
+                # Loop NI-type covariances
+                for nisec in sub["NI"].values():
+                    lb = nisec["LB"]
+                    if lb == 5:
+                        if nisec["LS"] == 0:
+                            foo = sandy.EnergyCov.from_lb5_asym
+                        else:
+                            foo = sandy.EnergyCov.from_lb5_sym
+                        cov = foo(nisec["EK"], nisec["FKK"])
+                    elif lb == 1:
+                        foo = sandy.EnergyCov.from_lb1
+                        cov = foo(nisec["EK"], nisec["FK"])
+                    elif lb == 2:
+                        foo = sandy.EnergyCov.from_lb2
+                        cov = foo(nisec["EK"], nisec["FK"])
+                    elif lb == 6:
+                        foo = sandy.EnergyCov.from_lb6
+                        cov = foo(nisec["EK"], nisec["EL"], nisec["FKL"])
+                    else:
+                        logging.warning(f"skip 'LB={lb}' covariance for"
+                                        f" [({mat}/{mt}), ({mat1}/{mt1})]")
+                        continue
+                    covs.append(cov)
+                if not covs:
+                    continue
+                cov = sandy.EnergyCov.sum_covs(*covs)
+                idx = pd.MultiIndex.from_product(
+                    [[mat], [mt], list(cov.data.index)],
+                    names=["MAT", "MT", "E"],
+                    )
+                idx1 = pd.MultiIndex.from_product(
+                    [[mat], [mt1], list(cov.data.columns)],
+                    names=["MAT1", "MT1", "E1"],
+                    )
+                df = pd.DataFrame(cov.data.values, index=idx, columns=idx1) \
+                       .stack(level=["MAT1", "MT1", "E1"]) \
+                       .rename("VAL") \
+                       .reset_index()
+                data.append(df)
+        if not data:
+            return None
+        df = pd.concat(data)
+        return sandy.CategoryCov.from_stack(df, index=["MAT", "MT", "E"],
+                                            columns=["MAT1", "MT1", "E1"],
+                                            values='VAL')
+
+    def _get_lpc_cov(self, mt=None, mat=None, p=None):
+        """
+        Extract global Legendre Polynomials coefficients covariance matrix
+        from `sandy.Endf6` instance.
+
+        Parameters
+        ----------
+        mat : `int` or `list`, optional
+            MAT number. The default is None.
+        mt : `int` or `list`, optional
+            MT number. The default is None.
+        p : `int`, optional
+            maximum order of Legendre polynomial coefficients
+
+        Returns
+        -------
+        `sandy.CategoryCov`
+            Covariance matrix divided according to mat, mt, index of the
+            Legendre coefficient and energy.
+
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922380)
+        >>> out = tape._get_lpc_cov()
+        >>> out.data.index.get_level_values("MT").unique()
+        Int64Index([2], dtype='int64', name='MT')
+
+        >>> out.data.index.get_level_values("L").unique()
+        Int64Index([1, 2, 3, 4, 5, 6], dtype='int64', name='L')
+
+        Filter p:
+        >>> out = tape._get_lpc_cov(p=4)
+        >>> out.data.index.get_level_values("L").unique()
+        Int64Index([1, 2, 3, 4], dtype='int64', name='L')
+        """
+        mt_ = range(1, 10000) if mt is None else mt
+        listmt_ = [mt_] if isinstance(mt_, int) else mt_
+        mat_ = range(1, 10000) if mat is None else mat
+        listmat_ = [mat_] if isinstance(mat_, int) else mat_
+        tape = self.filter_by(listmf=[34],
+                              listmt=listmt_,
+                              listmat=listmat_)
+        data = []
+        for mat, mf, mt in tape.data:
+            sec = tape.read_section(mat, mf, mt)
+            for (mat1, mt1), rsec in sec["REAC"].items():
+                if mat1 == 0:
+                    mat1 = mat
+                for (l, l1), psec in rsec["P"].items():
+                    covs = []
+                    for i, nisec in psec["NI"].items():
+                        if nisec["LB"] == 5:
+                            foo = sandy.EnergyCov.from_lb5_asym if nisec["LS"] == 0 else sandy.EnergyCov.from_lb5_sym
+                            cov = foo(nisec["EK"], nisec["FKK"])
+                            covs.append(cov)
+                        elif nisec["LB"] == 1:
+                            cov = sandy.EnergyCov.from_lb1(nisec["EK"],
+                                                           nisec["FK"])
+                            covs.append(cov)
+                        elif nisec["LB"] == 2:
+                            cov = sandy.EnergyCov.from_lb2(nisec["EK"],
+                                                           nisec["FK"])
+                            covs.append(cov)
+                        elif nisec["LB"] == 6:
+                            cov = sandy.EnergyCov.from_lb6(nisec["EK"],
+                                                           nisec["EL"],
+                                                           nisec["FKL"])
+                            covs.append(cov)
+                        else:
+                            lb = nisec["LB"]
+                            logging.warning("skip LB={lb} covariance for [({mat}/{mt}), ({nat1}/{mt1})]")
+                            continue
+                    if len(covs) == 0:
+                        logging.debug("\tsubsection MAT1={}/MT1={} did not provide accetable covariances"
+                                      .format(mat1, mt1))
+                        continue
+                    cov = sandy.EnergyCov.sum_covs(*covs)
+                    index = pd.MultiIndex.from_product(
+                        [[mat], [mt], [l], cov.data.index],
+                        names=["MAT", "MT", "L", "E"],
+                        )
+                    columns = pd.MultiIndex.from_product(
+                        [[mat1], [mt1], [l1], cov.data.index],
+                        names=["MAT1", "MT1", "L1", "E1"],
+                        )
+                    df = pd.DataFrame(cov.data.values,
+                                      index=index,
+                                      columns=columns)\
+                        .stack(level=["MAT1", "MT1", "L1", "E1"])\
+                        .rename("VAL").reset_index()
+                    data.append(df)
+        if not data:
+            return pd.DataFrame()
+        data = pd.concat(data)
+        if p is not None:
+            data = data.query(f"L <= {p} & L1 <= {p}")
+        return sandy.CategoryCov.from_stack(data,
+                                            index=["MAT", "MT", "L", "E"],
+                                            columns=["MAT1", "MT1", "L1", "E1"],
+                                            values='VAL')
+
+    def _get_edistr_cov(self, mt=None, mat=None):
+        """
+        Extract energy distribution coefficients covariance matrix
+        from `sandy.Endf6` instance.
+        Parameters
+        ----------
+        mat : `int`, optional
+            MAT number. The default is None.
+        mt : `int`, optional
+            MT number. The default is None.
+        Returns
+        -------
+        `sandy.CategoryCov`
+            Covariance matrix.
+        """
+        mt_ = range(1, 10000) if mt is None else mt
+        listmt_ = [mt_] if isinstance(mt_, int) else mt_
+        mat_ = range(1, 10000) if mat is None else mat
+        listmat_ = [mat_] if isinstance(mat_, int) else mat_
+        tape = self.filter_by(listmf=[35],
+                              listmt=listmt_,
+                              listmat=listmat_)
+        data = []
+        for mat, mf, mt in tape.data:
+            sec = tape.read_section(mat, mf, mt)
+            for sub, sub_info in sec["SUB"].items():
+                Ek = np.array(sub_info["EK"])
+                Fkk = np.array(sub_info["FKK"])
+                NE = sub_info["NE"]
+                # Covariance
+                cov_upper = np.zeros([NE-1, NE-1])
+                indices = np.triu_indices(NE-1)
+                cov_upper[indices] = Fkk
+                cov = sandy.cov.triu_matrix(cov_upper).data.values
+                # Normalize covariance matrix dividing by the energy bin.
+                dE = 1./(Ek[1:]-Ek[:-1])
+                cov = sandy.cov.corr2cov(cov, dE)
+                # Add zero row and column at the end of the matrix
+                cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
+                cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
+                # multiindex:
+                index = pd.MultiIndex.from_product(
+                    [[mat], [mt], [sub_info["ELO"]], [sub_info["EHI"]], Ek],
+                    names=["MAT", "MT", "ELO", "EHI", "E"],
+                )
+                columns = pd.MultiIndex.from_product(
+                    [[mat], [mt], [sub_info["ELO"]], [sub_info["EHI"]], Ek],
+                    names=["MAT1", "MT1", "ELO1", "EHI1", "E1"],
+                )
+                df = pd.DataFrame(cov,
+                                  index=index,
+                                  columns=columns)\
+                       .stack(level=["MAT1", "MT1", "ELO1", "EHI1", "E1"])\
+                       .rename("VAL").reset_index()
+                data.append(df)
+        data = pd.concat(data)
+        return sandy.CategoryCov.from_stack(data,
+                                            index=["MAT", "MT", "ELO", "EHI", "E"],
+                                            columns=["MAT1", "MT1", "ELO1", "EHI1", "E1"],
+                                            values='VAL',
+                                            kind='all')
+
+    def get_cov(self, process_mf=[31, 33], mf=[34, 35], **kwds_njoy):
+        """
+        Get covariance matrices for nubar/xs/energy distribution/Legendre
+        polynomial coefficients from Endf6 or process with NJOY.
+
+        Parameters
+        ----------
+        process_mf : `int` or `list`, optional
+            DESCRIPTION. The default is [].
+        mf : `int` or `list`, optional
+            DESCRIPTION. The default is None.
+        **kwds_njoy : `dict`
+            Extra arguments for proccessing the covariance matrix with NJOY.
+
+        Returns
+        -------
+        cov : `dict` or `sandy.CategoryCov`
+            Dictionary containing the covariance matrix of different mf data.
+            If only one mf is introduced, the method returns the
+            `sandy.CategoryCov` object directly.
+
+        Examples
+        --------
+        Nubar covariance matrix from endf6 file:
+        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
+        >>> xs_cov = sandy.XsCov.from_endf6(endf6)
+        >>> nubar_cov = endf6.get_cov(mf=31, process_mf=[])
+        >>> assert (nubar_cov.data.values == xs_cov.loc[(9237, 456), (9237, 456)].values).all().all()
+
+        Xs covariance matrix from endf6 file:
+        >>> endf_xs_cov = endf6.get_cov(mf=33, process_mf=[])
+        >>> size = len(endf_xs_cov.data)
+        >>> assert (endf_xs_cov.data.values == xs_cov.iloc[:size, :size].values).all().all()
+
+        Both together:
+        >>> endf_xs_cov = endf6.get_cov(mf=[31, 33], process_mf=[])
+        >>> size = len(endf_xs_cov[33].data)
+        >>> assert (endf_xs_cov[33].data.values == xs_cov.iloc[:size, :size].values).all().all()
+        """
+        # Select the mf:
+        if mf is not None:
+            listmf_ = [mf] if isinstance(mf, int) else mf
+        else:
+            listmf_ = list(self.to_series().index.get_level_values("MF")
+                               .intersection([31, 33, 34, 35]))
+
+        # Dividing the list information:
+        list_process = [process_mf] if isinstance(process_mf, int) else process_mf
+        listmf_ = list(pd.Index(listmf_).difference(pd.Index(list_process)))
+        if len(list_process) != 0:
+            kwds_njoy["nubar"] = True if 31 in list_process else False
+            kwds_njoy["xs"] = True if 33 in list_process else False
+            kwds_njoy["chi"] = True if 34 in list_process else False
+            kwds_njoy["mubar"] = True if 35 in list_process else False
+            out = self.get_errorr(**kwds_njoy)
+            if len(list_process) == 1:
+                cov = {}
+                cov[list_process[0]] = out.get_cov(mf=list_process)
+            else:
+                cov = out.get_cov(mf=list_process)
+        if len(listmf_) != 0:
+            cov = {} if len(list_process) == 0 else cov
+            mt = kwds_njoy.get("mt", None)
+            if 31 in listmf_:
+                cov[31] = self._get_xs_cov(mf=[31], mt=mt)
+            if 33 in listmf_:
+                cov[33] = self._get_xs_cov(mf=[33], mt=mt)
+            if 34 in listmf_:
+                p = kwds_njoy.get("p", None)
+                cov[34] = self._get_lpc_cov(p=p, mt=mt)
+            if 35 in listmf_:
+                cov[35] = self._get_edistr_cov(mt=mt)
+        # If only one mf is calculated, the return is directly the `CategoryCov` object
+        if len(cov) == 1:
+            [(key, cov)] = cov.items()
+        return cov

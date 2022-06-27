@@ -389,7 +389,7 @@ class Fy():
             ).fillna(0)
         return mass_yield_sensitivity
 
-    def custom_perturbation(self, zam, mt, e, zap, pert):
+    def custom_perturbation(self, pert, **kwargs):
         """
         Apply a custom perturbation to a given fission yield.
 
@@ -407,7 +407,7 @@ class Fy():
         zap : `int`
             ZAP of the product to which perturbations are to be
             applied.
-        pert : `float`
+        pert : `float` or 1D iterable
             Perturbation coefficients as ratio values.
 
         Returns
@@ -419,13 +419,40 @@ class Fy():
         --------
         >>> tape = sandy.get_endf6_file("jeff_33", 'nfpy', 'all')
         >>> nfpy = Fy.from_endf6(tape)
-        >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, 551370, 0.9)
+        >>> nfpy_pert = nfpy.custom_perturbation(0.9, zam=922350, mt=459, e=0.0253, zap=551370)
         >>> comp = nfpy_pert.data.query('ZAM==922350 & ZAP==551370 & MT==459 & E==0.0253').squeeze().FY
         >>> assert np.setdiff1d(nfpy_pert.data.values, nfpy.data.values) == comp
+
+        Same perturbation for IFY and CFY:
+        >>> nfpy_pert = nfpy.custom_perturbation(0.9, zam=922350, e=0.0253, zap=551370)
+        >>> comp = nfpy_pert.data.query('ZAM==922350 & ZAP==551370 & E==0.0253').squeeze().FY
+        >>> assert (np.setdiff1d(nfpy_pert.data.values, nfpy.data.values) == comp).all()
+
+        Different perturbation for IFY and CFY:
+        >>> nfpy_pert = nfpy.custom_perturbation([0.9, 1.2], zam=922350, e=0.0253, zap=551370)
+        >>> comp = nfpy_pert.data.query('ZAM==922350 & ZAP==551370 & E==0.0253').squeeze().FY
+        >>> assert (np.setdiff1d(nfpy_pert.data.values, nfpy.data.values) == comp).all()
+
+        Perturb all values:
+        >>> nfpy_pert = nfpy.custom_perturbation(0.9)
+        >>> (nfpy_pert.data.FY.values.sum()/nfpy.data.FY.values.sum()).round(2)
+        0.9
         """
         df = self.data.copy()
-        mask = (df.ZAM == zam) & (df.ZAP == zap) & (df.MT == mt) & (df.E == e)
-        df.loc[mask, "FY"] = df[mask].squeeze().FY * pert
+        pert_ = pd.Series(pert).values
+        if "zam" in kwargs or "zap" in kwargs or "mt" in kwargs or "e" in kwargs or 'mat' in kwargs:
+            mask = ""
+            for key, value in kwargs.items():
+                key = key.upper()
+                mask += key + f" == {value} & "
+            mask = mask[:mask.rfind('&')]
+            pert_index = df.query(mask).FY.index
+            pert = pd.DataFrame({"FY": df.query(mask).FY.values * pert_},
+                                index=pert_index)
+        else:
+            pert = pd.DataFrame({"FY": df.FY.values * pert_},
+                                index=df.index)
+        df.update(pert)
         return self.__class__(df)
 
     def apply_bmatrix(self, zam, e, decay_data, keep_fy_index=False):

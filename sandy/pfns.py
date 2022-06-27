@@ -186,6 +186,64 @@ class Edistr():
             .sort_index(axis="index") \
             .sort_index(axis="columns")
 
+    def reshape(self, enew):
+        """
+        Reshape the outgoing energy.
+
+        Parameters
+        ----------
+        enew : 1D iterable or `float`
+            new energy grid.
+
+        Returns
+        -------
+        `sandy.Edistr`
+            Energy distribution instance over new grid.
+
+        Examples
+        --------
+        >>> orig = Edistr(minimal_edistrtest)
+        >>> orig.reshape(1.5)
+            MAT  MT  K         EIN        EOUT       VALUE
+        0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
+        1  9437  18  0 1.00000e+00 1.50000e+00 4.00000e-01
+        2  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01
+        3  9437  18  0 2.00000e+00 1.00000e-04 2.00000e-01
+        4  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
+        5  9437  18  0 2.00000e+00 1.50000e+00 7.00000e-01
+        6  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
+
+        >>> orig.reshape([1.5e-5, 1.5, 15e6])
+            MAT  MT  K         EIN        EOUT       VALUE
+        0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
+        1  9437  18  0 1.00000e+00 1.50000e-05 4.00000e-01
+        2  9437  18  0 1.00000e+00 1.50000e+00 4.00000e-01
+        3  9437  18  0 1.00000e+00 1.50000e+07 5.50000e-01
+        4  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01
+        5  9437  18  0 2.00000e+00 1.00000e-04 2.00000e-01
+        6  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
+        7  9437  18  0 2.00000e+00 1.50000e+00 7.00000e-01
+        8  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
+        """
+        enew_ = np.array(enew) if isinstance(enew, np.ndarray) else enew
+
+        def foo(df, enew):
+            df_ = df.loc[:, ["EOUT", "VALUE"]].set_index("EOUT")
+            enew_ = np.union1d(df_.index.values, enew)
+            enew_ = enew_[(enew_ >= df_.index.min()) & (enew_ <= df_.index.max())]
+            new_edistr = sandy.shared.reshape_differential(
+                                                            df_.index.values,
+                                                            df_.values,
+                                                            enew_,
+                                                          )
+            new_edistr = pd.DataFrame(new_edistr, index=enew_,
+                                      columns=df_.columns)
+            new_edistr.index.name = 'EOUT'
+            return new_edistr
+        edistr_reshape = self.data.groupby(['MAT', 'MT', 'K', 'EIN'])\
+                             .apply(foo, enew_).reset_index()
+        return self.__class__(edistr_reshape)
+
     def add_energy_point(self, mat, mt, k, enew):
         """
         Add outgoing energy distribution at one additional incident energy by
@@ -365,20 +423,20 @@ class Edistr():
         1  9437  18  0 2.00000e+00 1.00000e+00
         """
         integrals = self.get_integrals()
-        data = self.data.copy()
-        keys = ["MAT", "MT", "K", "EIN"]
-        out = []
-        for (mat, mt, k, ein), chi in data.groupby(keys):
-            mask = (integrals.MAT == mat) & \
-                   (integrals.MT == mt) & \
-                   (integrals.K == k) & \
-                   (integrals.EIN == ein)
-            chi.loc[:, "VALUE"] /= integrals[mask].INTEGRAL.squeeze()
-            out.append(chi)
-        df = pd.concat(out)
+
+        def foo(df, integrals):
+            data = df.iloc[0]
+            mask = (integrals.MAT == data.MAT) & \
+                   (integrals.MT == data.MT) & \
+                   (integrals.K == data.K) & \
+                   (integrals.EIN == data.EIN)
+            df.loc[:, "VALUE"] /= integrals[mask].INTEGRAL.squeeze()
+            return df
+
+        df = self.data.groupby(["MAT", "MT", "K", "EIN"]).apply(foo, integrals)
         return self.__class__(df)
 
-    def custom_perturbation(self, pert, mat, mt, k, ein_low, ein_high):
+    def custom_perturbation(self, pert):
         """
         Given a peruration object (fractions), a MAT number, a MT number,
         a subsection number, a lower and an upper incoming energy bound,
@@ -387,18 +445,8 @@ class Edistr():
 
         Parameters
         ----------
-        pert : `sandy.Pert`
+        pert : `sandy.Pert` or `pd.DataFrame`
             perturbation object.
-        mat : `int`
-            MAT number.
-        mt : `int`
-            MT number.
-        k : `int`
-            subsection.
-        ein_low : TYPE
-            lower energy boundary in eV.
-        ein_high : TYPE
-            upper energy boundary in eV.
 
         Returns
         -------
@@ -417,65 +465,84 @@ class Edistr():
         Examples
         --------
         >>> orig = Edistr(minimal_edistrtest)
-        >>> pert = sandy.Pert([1.3], index=[1e-3])
-        >>> orig.custom_perturbation(pert, 9437, 18, 0, 1.5, 2.5)
+        >>> pert = pd.Series([1.3], index=[1e-3])
+        >>> columns = pd.MultiIndex.from_product([[9437], [18], [0], [1.5], [2.5]], names=['MAT', 'MT', 'K', 'ELO', 'EHI'])
+        >>> df = pd.DataFrame(pert.values, index=pert.index, columns=columns)
+        >>> pert_ = sandy.Pert(df)
+        >>> orig.custom_perturbation(pert_)
             MAT  MT  K         EIN        EOUT       VALUE
-        0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
-        1  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01
-        2  9437  18  0 2.00000e+00 1.00000e-04 2.60000e-01
-        3  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
-        4  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
+        0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-08
+        1  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-08
+        2  9437  18  0 2.00000e+00 1.00000e-04 3.75000e-07
+        3  9437  18  0 2.00000e+00 1.00000e+00 1.75000e-07
+        4  9437  18  0 2.00000e+00 1.00000e+07 2.50000e-08
         """
-        data = self.data.copy()
-        condition = (data.MT == mt) &\
-                    (data.MAT == mat) &\
-                    (data.K == k) &\
-                    (data.EIN < ein_high) &\
-                    (data.EIN >= ein_low)
-        dfs = []
-        dfs.append(data[~condition])
-        for ein, df in data[condition].groupby("EIN"):
-            series = pert.reshape(df.EOUT).data.loc[df.EOUT]
-            # truncate extremes and replace them with boundaries
-            px = sandy.Pert(series).truncate()
-            df.VALUE *= px.data.values
-            dfs.append(df)
-        out = pd.concat(dfs)
-        return self.__class__(out)
+        pert_ = sandy.Pert(pert) if not isinstance(pert, sandy.Pert) else pert
+
+        # New energy grid:
+        energy_grid = self.data.loc[:, 'EOUT'].unique()
+        enew = np.union1d(energy_grid, pert_.right.index)
+        enew = enew[(enew <= energy_grid.max()) & (enew >= energy_grid.min())]
+
+        # Reshape to new energy grid and columns estructure:
+        u_pert = pert_.reshape(enew, right_values=0).right
+
+        # Apply the perturbation:
+        def foo(df, pert):
+            ein = df.loc[:, 'EIN'].unique()[0]
+            mat = df.loc[:, 'MAT'].unique()[0]
+            mt = df.loc[:, 'MT'].unique()[0]
+            col = pert.columns
+            mask = (mat == col.get_level_values('MAT')) & \
+                   (mt == col.get_level_values('MT')) & \
+                   (ein >= col.get_level_values('ELO')) & \
+                   (ein <= col.get_level_values('EHI'))
+            pert_ = pert.loc[:, mask]
+            if not pert_.empty:
+                pert_ = pert_.iloc[:, [0]]\
+                             .reindex(index=df.loc[:, "EOUT"].values)\
+                             .values.flatten()
+                df["VALUE"] = df['VALUE'].values + pert_
+            return df
+
+        pert_edistr = self.data.groupby(['MAT', 'MT', 'K', 'EIN'])\
+                          .apply(foo, u_pert)
+
+        return self.__class__(pert_edistr).normalize()
 
     def _perturb(self, pert, method=2, normalize=True, **kwargs):
         """Perturb energy distributions given a set of perturbations.
-        
+
         Parameters
         ----------
         pert : pandas.Series
             multigroup perturbations from sandy.EdistrSamples
         method : int
-            * 1 : samples outside the range [0, 2*_mean_] are set to _mean_. 
+            * 1 : samples outside the range [0, 2*_mean_] are set to _mean_.
             * 2 : samples outside the range [0, 2*_mean_] are set to 0 or 2*_mean_ respectively if they fall below or above the defined range.
         normalize : bool
             apply normalization
-        
+
         Returns
         -------
         sandy.Edistr
         """
         frame = self.copy()
-        for (mat,mt,k),S in self.groupby(["MAT", "MT", "K"]):
-            if (mat,mt) not in pert.index:
+        for (mat, mt, k), S in self.groupby(["MAT", "MT", "K"]):
+            if (mat, mt) not in pert.index:
                 continue
-            for ein,edistr in S.loc[mat,mt,k].iterrows():
-                for (elo,ehi),P in pert.loc[mat,mt].groupby(["ELO","EHI"]):
+            for ein, edistr in S.loc[mat, mt, k].iterrows():
+                for (elo, ehi), P in pert.loc[mat, mt].groupby(["ELO", "EHI"]):
                     if ein >= elo and ein <= ehi:
-                        P = P[elo,ehi]
+                        P = P[elo, ehi]
                         eg = sorted(set(edistr.index) | set(P.index))
                         P = P.reindex(eg).ffill().fillna(0).reindex(edistr.index)
                         if method == 2:
-                            P = P.where(P>=-edistr, -edistr)
-                            P = P.where(P<=edistr, edistr)
+                            P = P.where(P >= -edistr, -edistr)
+                            P = P.where(P <= edistr, edistr)
                         elif method == 1:
                             P = np.where(P.abs() <= edistr, P, 0)
-                        frame.loc[mat,mt,k,ein] = edistr + P
+                        frame.loc[mat, mt, k, ein] = edistr + P
                         break
         edistr = Edistr(frame)
         if normalize:
@@ -527,3 +594,45 @@ class Edistr():
         if not data:
             raise sandy.Error("no tabulated energy distribution was found")
         return cls(data)
+
+    def to_endf6(self, endf6):
+        """
+        Update cross sections in `Endf6` instance with those available in a
+        `Fy` instance.
+        Parameters
+        ----------
+        `endf6` : `sandy.Endf6`
+           `Endf6` instance
+        Returns
+        -------
+        `sandy.Endf6`
+           `Endf6` instance with updated IFY and CFY
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 922380)
+        >>> edistr = sandy.Edistr.from_endf6(endf6)
+        >>> out_endf = edistr.to_endf6(endf6)
+        >>> assert type(out_endf) == sandy.core.endf6.Endf6
+        >>> out_df = out_endf._get_section_df(9237, 5, 18).apply(pd.to_numeric, errors='coerce').fillna(0)
+        >>> input_df = endf6._get_section_df(9237, 5, 18).apply(pd.to_numeric, errors='coerce').fillna(0)
+        >>> assert out_df.equals(input_df)
+        """
+        data = endf6.data.copy()
+        for (mat, mt, k), data_edistr in self.data.groupby(['MAT', 'MT', 'K']):
+            sec = endf6.read_section(mat, 5, mt)
+            new_values = {}
+            mask = f"MAT == {mat} & MT == {mt} & K == {k}"
+            data_ein = data_edistr.query(mask)
+            for ein in data_ein["EIN"].unique():
+                mask = f"EIN == {ein}"
+                new_data = data_ein.query(mask)
+                NBT = len(new_data["EOUT"].values)
+                new_values[ein] = {
+                        "EOUT": new_data["EOUT"].values,
+                        "EDISTR": new_data["VALUE"].values,
+                        "NBT": [NBT],
+                        "INT": [2],
+                        }
+            sec["PDISTR"][k]['EIN'] = new_values
+            data[(mat, 5, mt)] = sandy.sections.mf5.write_mf5(sec)
+        return sandy.Endf6(data)

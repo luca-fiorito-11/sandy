@@ -368,7 +368,7 @@ class CategoryCov():
         Notes
         -----
         .. note:: only the real part of the eigenvalues is preserved
-        
+
         .. note:: the discussion associated to the implementeation
                   of this algorithm is available [here](https://github.com/luca-fiorito-11/sandy/discussions/135)
 
@@ -467,7 +467,7 @@ class CategoryCov():
             coeff = np.true_divide(1, self.get_std().values)
             coeff[~ np.isfinite(coeff)] = 0   # -inf inf NaN
         corr = np.multiply(np.multiply(cov, coeff).T, coeff)
-        df =  pd.DataFrame(
+        df = pd.DataFrame(
             corr,
             index=self.data.index,
             columns=self.data.columns,
@@ -626,7 +626,7 @@ class CategoryCov():
         dtype: float64
 
         Reindexing example
-        
+
         """
         mu_ = pd.Series(mu)
         mu_.index = self.data.index
@@ -682,17 +682,18 @@ class CategoryCov():
         --------
         Draw 3 sets of samples using custom seed:
         >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11)
-                     0            1
-        0 -7.49455e-01 -2.13159e+00
-        1  1.28607e+00  1.10684e+00
-        2  1.48457e+00  9.00879e-01
+                       0            1
+        SMP
+          0 -7.49455e-01 -2.13159e+00
+          1  1.28607e+00  1.10684e+00
+          2  1.48457e+00  9.00879e-01
 
         >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, rows=1)
-                     0            1
-        0 -7.49455e-01 -2.13159e+00
-        1  1.28607e+00  1.10684e+00
-        2  1.48457e+00  9.00879e-01
-
+                       0            1
+        SMP
+          0 -7.49455e-01 -2.13159e+00
+          1  1.28607e+00  1.10684e+00
+          2  1.48457e+00  9.00879e-01
         >>> sample = sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(1000000, seed=11)
         >>> sample.data.cov()
                     0           1
@@ -701,10 +702,11 @@ class CategoryCov():
 
         Small negative eigenvalue:
         >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, tolerance=0)
-                    0           1
-        0 2.74945e+00 5.21505e+00
-        1 7.13927e-01 1.07147e+00
-        2 5.15435e-01 1.64683e+00
+                      0           1
+        SMP
+          0 2.74945e+00 5.21505e+00
+          1 7.13927e-01 1.07147e+00
+          2 5.15435e-01 1.64683e+00
 
         >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, tolerance=0).data.cov()
                      0            1
@@ -713,16 +715,18 @@ class CategoryCov():
 
         Sampling with different `pdf`:
         >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, pdf='uniform', tolerance=0)
-                     0           1
-        0 -1.07578e-01 2.34960e+00
-        1 -6.64587e-01 5.21222e-01
-        2  8.72585e-01 9.12563e-01
+                       0           1
+        SMP
+          0 -1.07578e-01 2.34960e+00
+          1 -6.64587e-01 5.21222e-01
+          2  8.72585e-01 9.12563e-01
 
         >>> sandy.CategoryCov([[1, .2],[.2, 3]]).sampling(3, seed=11, pdf='lognormal', tolerance=0)
-                    0           1
-        0 3.03419e+00 1.57919e+01
-        1 5.57248e-01 4.74160e-01
-        2 4.72366e-01 6.50840e-01
+                      0           1
+        SMP
+          0 3.03419e+00 1.57919e+01
+          1 5.57248e-01 4.74160e-01
+          2 4.72366e-01 6.50840e-01
 
         >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0).data.cov()
                      0            1
@@ -911,7 +915,7 @@ class CategoryCov():
         >>> S = S[S['cov'] != 0]
         >>> sandy.CategoryCov.from_stack(S, index=['dim1'], columns=['dim2'], values='cov', kind='all')
         dim2           0           1           2
-        dim1                                    
+        dim1
         0    1.00000e+00 1.00000e+00 1.00000e+00
         1    1.00000e+00 2.00000e+00 1.00000e+00
         2    1.00000e+00 1.00000e+00 1.00000e+00
@@ -923,7 +927,7 @@ class CategoryCov():
         	        MAT1	    9437
                     MT1	        2	                    102
                     E1	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
-        MAT	   MT	E				
+        MAT	   MT	E
         9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
                     2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
               102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
@@ -934,7 +938,7 @@ class CategoryCov():
         	        MAT1	    9437
                     MT1	        2	                    102
                     E1	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
-        MAT	   MT	E				
+        MAT	   MT	E
         9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
                     2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
               102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
@@ -949,7 +953,7 @@ class CategoryCov():
         	        MAT	        9437
                     MT	        2	                    102
                     E	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
-        MAT1  MT1	E1				
+        MAT1  MT1	E1
         9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
                     2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
               102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
@@ -960,7 +964,7 @@ class CategoryCov():
         	        MAT 	    9437
                     MT	        2	                    102
                     E	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
-        MAT1  MT1	E1				
+        MAT1  MT1	E1
         9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
                     2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
               102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
@@ -1182,10 +1186,10 @@ class CategoryCov():
         >>> string = StringIO(cov.to_csv())
         >>> pos = [0, 1, 2]
         >>> sandy.CategoryCov.from_csv(string, index_col=pos, header=pos)
-        MAT                        9437            
-        MT                           18            
+        MAT                        9437
+        MT                           18
         E                         1e-05   1000000.0
-        MAT  MT E                                  
+        MAT  MT E
         9437 18 1.00000e-05 1.00000e+00 4.00000e-01
                 1.00000e+06 4.00000e-01 1.00000e+00
         """
@@ -1402,21 +1406,21 @@ class EnergyCov(CategoryCov):
     Methods
     -------
     add
-    
+
     change_grid
-        
+
     from_lb1
-        
+
     from_lb2
-        
+
     from_lb5_sym
-        
+
     from_lb5_asym
-        
+
     from_lb6
-        
+
     sum_covs
-       
+
     Raises
     ------
     `sandy.Error`
@@ -1503,7 +1507,7 @@ class EnergyCov(CategoryCov):
         >>> C = sandy.EnergyCov.random_corr(2, seed=1, index=eg, columns=eg)
         >>> C.change_grid([0, 1, 1e6, 1e7], [0, 1, 1e6, 1e7])
         E            0.00000e+00  1.00000e+00  1.00000e+06  1.00000e+07
-        E                                                              
+        E
         0.00000e+00  0.00000e+00  0.00000e+00  0.00000e+00  0.00000e+00
         1.00000e+00  0.00000e+00  1.00000e+00  4.40649e-01  4.40649e-01
         1.00000e+06  0.00000e+00  4.40649e-01  1.00000e+00  1.00000e+00
@@ -1561,7 +1565,7 @@ class EnergyCov(CategoryCov):
         >>> C = sandy.EnergyCov.random_corr(2, seed=1, index=eg, columns=eg)
         >>> C.add(C)
         E            1.00000e-02  1.00000e+06
-        E                                    
+        E
         1.00000e-02  2.00000e+00  8.81298e-01
         1.00000e+06  8.81298e-01  2.00000e+00
 
@@ -1569,7 +1573,7 @@ class EnergyCov(CategoryCov):
         >>> D = sandy.EnergyCov.random_corr(2, seed=5, index=eg, columns=eg)
         >>> C.add(D)
         E            1.00000e-02  1.00000e-01  1.00000e+00  1.00000e+06
-        E                                                              
+        E
         1.00000e-02  1.00000e+00  1.00000e+00  1.00000e+00  4.40649e-01
         1.00000e-01  1.00000e+00  2.00000e+00  1.74146e+00  1.18211e+00
         1.00000e+00  1.00000e+00  1.74146e+00  2.00000e+00  1.44065e+00
@@ -1611,7 +1615,7 @@ class EnergyCov(CategoryCov):
         >>> D = sandy.EnergyCov.random_corr(2, seed=5, index=eg, columns=eg)
         >>> sandy.EnergyCov.sum_covs(C, D)
         E            1.00000e-02  1.00000e-01  1.00000e+00  1.00000e+06
-        E                                                              
+        E
         1.00000e-02  1.00000e+00  1.00000e+00  1.00000e+00  4.40649e-01
         1.00000e-01  1.00000e+00  2.00000e+00  1.74146e+00  1.18211e+00
         1.00000e+00  1.00000e+00  1.74146e+00  2.00000e+00  1.44065e+00
@@ -1623,14 +1627,14 @@ class EnergyCov(CategoryCov):
     def from_lb1(cls, evalues, fvalues):
         """Extract square covariance matrix from NI-type sub-subsection data 
         with flag `lb=1`.
-        
+
         Parameters
         ----------
         evalues : iterable
             covariance energy grid (same for both axes)
         fvalues : iterable
             array of F-values (covriance matrix diagonal)
-        
+
         Returns
         -------
         `sandy.EnergyCov`
@@ -1643,35 +1647,35 @@ class EnergyCov(CategoryCov):
     def from_lb2(cls, evalues, fvalues):
         """Extract square covariance matrix from NI-type sub-subsection data 
         with flag `lb=2`.
-        
+
         Parameters
         ----------
         evalues : `iterable`
             covariance energy grid for both axis
         fvalues : `iterable`
             array of F-values
-        
+
         Returns
         -------
         `sandy.formats.utils.EnergyCov`
             Multi-group covariance matrix.
         """
         f = np.array(fvalues)
-        cov = f*f.reshape(-1,1)
+        cov = f*f.reshape(-1, 1)
         return cls(cov, index=evalues, columns=evalues)
 
     @classmethod
     def from_lb5_sym(cls, evalues, fvalues):
-        """Extract square symmetric covariance matrix from NI-type sub-subsection data 
+        """Extract square symmetric covariance matrix from NI-type sub-subsection data
         with flag `lb=5`.
-        
+
         Parameters
         ----------
         evalues : `iterable`
             covariance energy grid for both axis
         fvalues : `iterable`
             array of F-values (flattened upper triangular matrix coefficients)
-        
+
         Returns
         -------
         `sandy.formats.utils.EnergyCov`
@@ -1692,14 +1696,14 @@ class EnergyCov(CategoryCov):
         """
         Extract square asymmetric covariance matrix from NI-type sub-subsection data 
         with flag `lb=5`.
-        
+
         Parameters
         ----------
         evalues : `iterable`
             covariance energy grid for both axis
         fvalues : `iterable`
             array of F-values (flattened full matrix)
-        
+
         Returns
         -------
         `sandy.formats.utils.EnergyCov`
@@ -1716,7 +1720,7 @@ class EnergyCov(CategoryCov):
     def from_lb6(cls, evalues_r, evalues_c, fvalues):
         """Extract covariance matrix from NI-type sub-subsection data 
         with flag `lb6`.
-        
+
         Parameters
         ----------
         evalues_r : `iterable`
@@ -1725,7 +1729,7 @@ class EnergyCov(CategoryCov):
             covariance energy grid for column axis
         fvalues : `iterable`
             array of F-values (flattened full matrix)
-        
+
         Returns
         -------
         `sandy.formats.utils.EnergyCov`
@@ -1745,14 +1749,14 @@ class GlobalCov(CategoryCov):
     @classmethod
     def from_list(cls, iterable):
         """
-        Extract global cross section/nubar covariance matrix from iterables 
+        Extract global cross section/nubar covariance matrix from iterables
         of `EnergyCovs`.
-        
+
         Parameters
         ----------
         iterable : iterable
             list of tuples/lists/iterables with content `[mat, mt, mat1, mt1, EnergyCov]`
-        
+
         Returns
         -------
         `XsCov` or `pandas.DataFrame`
@@ -1761,7 +1765,7 @@ class GlobalCov(CategoryCov):
         columns = ["KEYS_ROWS", "KEYS_COLS", "COV"]
         # Reindex the cross-reaction matrices
         covs = pd.DataFrame.from_records(iterable).set_axis(columns, axis=1).set_index(columns[:-1]).COV
-        for (keys_rows,keys_cols), cov in covs.iteritems():
+        for (keys_rows, keys_cols), cov in covs.iteritems():
             if keys_rows == keys_cols: # diagonal terms
                 if cov.data.shape[0] != cov.data.shape[1]:
                     raise SandyError("non-symmetric covariance matrix for ({}, {})".format(keys_rows, keys_cols))
@@ -1975,9 +1979,8 @@ def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):
             index=index,
             columns=columns,
             values=values,
-            fill_value=0,
             aggfunc=np.sum,
-            )
+            ).fillna(0)
         pivot_matrix.append(partial_pivot)
     pivot_matrix = pd.concat(pivot_matrix).fillna(0)
     # Because the default axis to concatenate is the 0, some duplicate
@@ -2036,7 +2039,7 @@ def triu_matrix(matrix, kind='upper'):
     0 3.00000e+00 5.00000e+00 1.00000e+00
     1 5.00000e+00 2.00000e+00 2.00000e+00
     2 1.00000e+00 2.00000e+00 1.00000e+00
-    
+
     Overwrite the upper triangular part of the matrix:
     >>> S = pd.DataFrame(np.array([[3, 5, -9], [5, 2, 8], [1, 2, 1]]))
     >>> triu_matrix(S, kind='lower').data
@@ -2049,7 +2052,7 @@ def triu_matrix(matrix, kind='upper'):
     index = matrix_.index
     columns = matrix_.columns
     values = matrix_.values
-    if kind == 'upper':    
+    if kind == 'upper':
         index_lower = np.tril_indices(matrix_.shape[0], -1)
         values[index_lower] = values.T[index_lower]
     elif kind == 'lower':
@@ -2178,7 +2181,7 @@ def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
     -------
     y : `np.array`
         Numpy array with the random numbers.
-        
+
     Notes
     -----
     .. note:: the implementation of the lognormal distribution sampling is
@@ -2190,7 +2193,7 @@ def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
                 $$
             More details can be found in reference: https://linkinghub.elsevier.com/retrieve/pii/S0168900213008450
                                                     DOI: 10.1016/J.NIMA.2013.06.025
-   
+
     Examples
     --------
     >>> sandy.cov.sample_distribution(2, 3, seed=11)
@@ -2200,7 +2203,7 @@ def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
     >>> sandy.cov.sample_distribution(2, 3, seed=11, pdf='uniform')
     array([[-0.10757829, -0.66458659,  0.87258524],
            [ 1.77919399,  0.72357718,  0.94951799]])
-    
+
     >>> sandy.cov.sample_distribution(2, 3, seed=11, pdf='lognormal')
     array([[3.03418551, 0.55724795, 0.4723663 ],
            [0.07764515, 0.70224636, 0.54189439]])
