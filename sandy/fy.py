@@ -1053,14 +1053,14 @@ class Fy():
                   459     96245.0000 242.960000          2          0  ...
         dtype: object
         """
-        data_endf6 = endf6.data.copy()
+        data_endf6 = sandy.Endf6(endf6.data.copy())
         mf = 8
         for (mat, mt, e), data_fy in self.data.groupby(['MAT', 'MT', 'E']):
-            sec = endf6.read_section(mat, mf, mt)
+            sec = data_endf6.read_section(mat, mf, mt)
             new_data = data_fy.set_index('ZAP')[['FY', 'DFY']].T.to_dict()
             sec['E'][e]['ZAP'] = new_data
-            data_endf6[(mat, mf, mt)] = sandy.write_mf8(sec)
-        return sandy.Endf6(data_endf6)
+            data_endf6.data[(mat, mf, mt)] = sandy.write_mf8(sec)
+        return data_endf6
 
     def to_hdf5(self, file, library):
         """
