@@ -633,7 +633,7 @@ class CategoryCov():
         return np.log(mu_**2 / np.sqrt(np.diag(self.data) + mu_**2))
 
     def sampling(self, nsmp, seed=None, rows=None, pdf='normal',
-                 tolerance=None, relative=True):
+                 tolerance=None, relative=True, truncate=True):
         """
         Extract perturbation coefficients according to chosen distribution with
         covariance from given covariance matrix. See note for non-normal
@@ -663,6 +663,10 @@ class CategoryCov():
             handling
                 * `True`: samples' mean will be 1
                 * `False`: samples' mean will be 0
+        truncate : `bool`, optional, default is `True`
+            flag to perform a symmetrical cut. All the negative perturbation 
+            coefficients will be set equal to 0 and the ones larger than 2 will
+            be set equal to 2
 
         Returns
         -------
@@ -676,43 +680,45 @@ class CategoryCov():
 
         .. note:: sampling with lognormal distribution gives a set of samples
             with mean=1 as lognormal distribution can not have mean=0.
-            Therefore, `relative` parameter does not apply to it.
+            Therefore, `relative` parameter does not apply to it. The lognormal
+            distribution does not have negative values, so the `truncate`
+            parameter does not apply to it.
 
         Examples
         --------
         Draw 3 sets of samples using custom seed:
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11)
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, truncate=False)
                      0            1
         0 -7.49455e-01 -2.13159e+00
         1  1.28607e+00  1.10684e+00
         2  1.48457e+00  9.00879e-01
 
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, rows=1)
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, rows=1, truncate=False)
                      0            1
         0 -7.49455e-01 -2.13159e+00
         1  1.28607e+00  1.10684e+00
         2  1.48457e+00  9.00879e-01
 
-        >>> sample = sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(1000000, seed=11)
+        >>> sample = sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(1000000, seed=11, truncate=False)
         >>> sample.data.cov()
                     0           1
         0 9.98662e-01 3.99417e-01
         1 3.99417e-01 9.98156e-01
 
         Small negative eigenvalue:
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, tolerance=0)
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, tolerance=0, truncate=False)
                     0           1
         0 2.74945e+00 5.21505e+00
         1 7.13927e-01 1.07147e+00
         2 5.15435e-01 1.64683e+00
 
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, tolerance=0).data.cov()
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, tolerance=0, truncate=False).data.cov()
                      0            1
         0  9.98662e-01 -1.99822e-01
         1 -1.99822e-01  2.99437e+00
 
         Sampling with different `pdf`:
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, pdf='uniform', tolerance=0)
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, pdf='uniform', tolerance=0, truncate=False)
                      0           1
         0 -1.07578e-01 2.34960e+00
         1 -6.64587e-01 5.21222e-01
@@ -724,7 +730,7 @@ class CategoryCov():
         1 5.57248e-01 4.74160e-01
         2 4.72366e-01 6.50840e-01
 
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0).data.cov()
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, truncate=False).data.cov()
                      0            1
         0  1.00042e+00 -1.58806e-03
         1 -1.58806e-03  3.00327e+00
@@ -735,28 +741,28 @@ class CategoryCov():
         1 1.99199e-01 3.02605e+00
 
         `relative` kwarg usage:
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=True).data.mean(axis=0)
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=True, truncate=False).data.mean(axis=0)
         0   1.00014e+00
         1   9.99350e-01
         dtype: float64
 
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=False).data.mean(axis=0)
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=False, truncate=False).data.mean(axis=0)
         0    1.41735e-04
         1   -6.49679e-04
         dtype: float64
 
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=True).data.mean(axis=0)
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=True, truncate=False).data.mean(axis=0)
         0   9.98106e-01
         1   9.99284e-01
         dtype: float64
 
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=False).data.mean(axis=0)
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=False, truncate=False).data.mean(axis=0)
         0   -1.89367e-03
         1   -7.15929e-04
         dtype: float64
 
         Lognormal distribution sampling indeoendency from `relative` kwarg
-        >>> sandy.CategoryCov([[1, .2],[.2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=True).data.mean(axis=0)
+        >>> sandy.CategoryCov([[1, .2],[.2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=True, truncate=False).data.mean(axis=0)
         0   9.99902e-01
         1   9.99284e-01
         dtype: float64
@@ -765,9 +771,29 @@ class CategoryCov():
         0   9.99902e-01
         1   9.99284e-01
         dtype: float64
+
+        Cut negative perturbation coefficients:
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, pdf='normal', truncate=True)
+                    0           1
+        0 0.00000e+00 0.00000e+00
+        1 1.28607e+00 1.10684e+00
+        2 1.48457e+00 9.00879e-01
+
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, pdf='uniform', truncate=True)
+                    0           1
+        0 0.00000e+00 1.77919e+00
+        1 0.00000e+00 7.23577e-01
+        2 8.72585e-01 9.49518e-01
+
+        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, tolerance=0, truncate=True)
+                    0           1
+        0 2.00000e+00 2.00000e+00
+        1 7.13927e-01 1.07147e+00
+        2 5.15435e-01 1.64683e+00
         """
         dim = self.data.shape[0]
         pdf_ = pdf if pdf != 'lognormal' else 'normal'
+        truncate_ = truncate if pdf != 'lognormal' else False
         y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf_) - 1
         y = sps.csc_matrix(y)
         # the covariance matrix to decompose is created depending on the chosen
@@ -789,6 +815,11 @@ class CategoryCov():
             samples = np.exp(samples.add(self.log2norm_mean(ones), axis=0))
         elif relative:
             samples += 1
+        if truncate_:
+            lower_bound = samples > 0
+            upper_bound = samples < 2
+            samples = samples.where(lower_bound, 0)
+            samples = samples.where(upper_bound, 2)
         return sandy.Samples(samples.T)
 
     @classmethod
