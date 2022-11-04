@@ -237,7 +237,11 @@ class OutputFile():
         data = {}
         inp, rest = re.split(summary_header, self.text, maxsplit=1)
         # remove the last part of the aleph file, i.e., details on running time
-        keep, rest = re.split(info_header, rest, maxsplit=1)
+        # in some older aleph version this might not be present
+        if re.search(info_header, rest):
+            keep, rest = re.split(info_header, rest, maxsplit=1)
+        else:
+            keep = rest
         # remove "Contact gamma dose" introduced in ALEPH-2.9.1
         keep = re.sub(r"Contact gamma dose.*\n", "", keep)
         tab_items = re.split(table_header, keep)
@@ -366,14 +370,18 @@ class Table():
                     flags=re.MULTILINE,
                     )
                 df1 = parse_table_nuclide(content, index="ZAM")
-                absol, rel = re.split(
-                    contributor_header,
-                    rest,
-                    maxsplit=2,
-                    flags=re.MULTILINE,
-                    )[1:]
-                df2 = parse_table_contributor(absol)
-                df3 = parse_table_contributor(rel)
+                if df1.empty:
+                    df2 = None
+                    df3 = None
+                else:
+                    absol, rel = re.split(
+                        contributor_header,
+                        rest,
+                        maxsplit=2,
+                        flags=re.MULTILINE,
+                        )[1:]
+                    df2 = parse_table_contributor(absol)
+                    df3 = parse_table_contributor(rel)
                 df = SubTable(df1, df2, df3)
             elif self.number == 5 or self.number == 6 or self.number == 7:
                 SubTable = namedtuple(
