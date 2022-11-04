@@ -41,6 +41,8 @@ from sandy.libraries import (
     NFPY_FILES_JENDL_40U_IAEA,
     URL_NFPY_JEFF_33_IAEA,
     NFPY_FILES_JEFF_33_IAEA,
+    URL_NFPY_JEFF_311_IAEA,
+    NFPY_FILES_JEFF_311_IAEA,
     URL_DECAY_ENDFB_71_IAEA,
     DECAY_FILES_ENDFB_71_IAEA,
     URL_DECAY_ENDFB_80_IAEA,
@@ -172,8 +174,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * `'jendl_40u`
         for 'nfpy'
             * `'endfb_71'`
-            * `'jeff_33'`
             * `'endfb_80'`
+            * `'jeff_311'`
+            * `'jeff_33'`
             * `'jendl_40u`
         for decay:
             * `'endfb_71'`
@@ -254,6 +257,10 @@ def get_endf6_file(library, kind, zam, to_file=False):
 
     Import Neutron-Induced Fission Product Yields for Th-232 from JEFF-3.3
     >>> tape = sandy.get_endf6_file("jeff_33", 'nfpy', 902320)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import Neutron-Induced Fission Product Yields for Th-232 from JEFF-3.1.1
+    >>> tape = sandy.get_endf6_file("jeff_311", 'nfpy', 902320)
     >>> assert type(tape) is sandy.Endf6
 
     Import Radioactive Decay Data for H-1 from JEFF-3.3
@@ -345,6 +352,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             "endfb_71".upper(),
             "endfb_80".upper(),
             "jendl_40u".upper(),
+            "jeff_311".upper(),
             "jeff_33".upper(),
             )
         library_ = library.lower()
@@ -360,6 +368,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jeff_33":
             url = URL_NFPY_JEFF_33_IAEA
             files = NFPY_FILES_JEFF_33_IAEA
+        elif library_ == "jeff_311":
+            url = URL_NFPY_JEFF_311_IAEA
+            files = NFPY_FILES_JEFF_311_IAEA
         else:
             raise ValueError(
                 f"""library '{library}' is not available.

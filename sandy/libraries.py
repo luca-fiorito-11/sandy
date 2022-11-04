@@ -3158,6 +3158,30 @@ NFPY_FILES_JEFF_33_IAEA = {
     962450: "nfpy_9640_96-Cm-245.dat",
 }
 
+# Neutron-Induced Fission Product Yields for JEFF-3.1.1 from the IAEA website
+URL_NFPY_JEFF_311_IAEA = "https://www-nds.iaea.org/public/download-endf/JEFF-3.1.1/nfpy/"
+NFPY_FILES_JEFF_311_IAEA = {
+    902320: "nfpy_3486_90-Th-232.dat",
+    922330: "nfpy_3540_92-U-233.dat",
+    922340: "nfpy_3541_92-U-234.dat",
+    922350: "nfpy_3542_92-U-235.dat",
+    922360: "nfpy_3544_92-U-236.dat",
+    922380: "nfpy_3546_92-U-238.dat",
+    932370: "nfpy_3564_93-Np-237.dat",
+    932380: "nfpy_3565_93-Np-238.dat",
+    942380: "nfpy_3585_94-Pu-238.dat",
+    942390: "nfpy_3586_94-Pu-239.dat",
+    942400: "nfpy_3587_94-Pu-240.dat",
+    942410: "nfpy_3588_94-Pu-241.dat",
+    942420: "nfpy_3589_94-Pu-242.dat",
+    952410: "nfpy_3605_95-Am-241.dat",
+    952421: "nfpy_3607_95-Am-242M.dat",
+    952430: "nfpy_3609_95-Am-243.dat",
+    962430: "nfpy_3628_96-Cm-243.dat",
+    962440: "nfpy_3629_96-Cm-244.dat",
+    962450: "nfpy_3631_96-Cm-245.dat",
+}
+
 # Radioactive Decay Data for ENDF-B-VII.1 from the IAEA website
 URL_DECAY_ENDFB_71_IAEA = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VII.1/decay/"
 DECAY_FILES_ENDFB_71_IAEA = {
