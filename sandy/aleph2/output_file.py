@@ -35,6 +35,7 @@ table_header = "\n".join((
 material_header = "\*\*\*\*\*   Material (?P<material_number>[0-9\s]{7})\n"
 element_header = "\*\*\*\*\*   Per element.*\n"
 contributor_header = "Main contributors.*\n\n\n"
+info_header = "\*+\n\n\nALEPH info:"
 
 table_footer = "^\s+Total"
 
@@ -211,27 +212,48 @@ class OutputFile():
             "DKEFF": dkeff,
             }, index=index)
 
-    def parse_tables(self):
+    def parse_tables(self, keep_tables=[], verbose=True):
         """
         Parse ALEPH-2 output file, extract output tables and store them
         in attribute `data`.
+
+        Parameters
+        ----------
+        keep_tables : `list`
+            list of tables to be read. If empty keep all. Default is all.
+        verbose : `bool`
+            If `True`, print what tbale is read. Default is `True`.
 
         Returns
         -------
         None.
 
+        Notes
+        -----
+        .. note:: 'Contact gamma doses' introduced in ALEPH-2.9.1 are not
+                  parsed. The integration of this piece of information in the
+                  parsing algorithm has not yet been implemented.
         """
         data = {}
         inp, rest = re.split(summary_header, self.text, maxsplit=1)
-        tab_items = re.split(table_header, rest)
+        # remove the last part of the aleph file, i.e., details on running time
+        keep, rest = re.split(info_header, rest, maxsplit=1)
+        # remove "Contact gamma dose" introduced in ALEPH-2.9.1
+        keep = re.sub(r"Contact gamma dose.*\n", "", keep)
+        tab_items = re.split(table_header, keep)
         summary, tab_items = tab_items[0], tab_items[1:]
         tab_numbers = map(int, tab_items[0::3])
         tab_titles = map(lambda x: x.strip(), tab_items[1::3])
         tab_texts = tab_items[2::3]
         tab_zipped = zip(tab_numbers, tab_titles, tab_texts)
         for num, title, tab_txt in tab_zipped:
+            if len(keep_tables) != 0:
+                if num not in keep_tables:
+                    continue
             if num > 8 and num != 11:
                 continue
+            if verbose:
+                print(f"Reading Table {num:2d} ...")
             data[num] = Table(num, title, tab_txt)
         self.data = data
 
