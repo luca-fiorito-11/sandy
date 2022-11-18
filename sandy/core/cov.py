@@ -669,7 +669,7 @@ class CategoryCov():
             be set equal to 2
         cutzeros : `bool`, optional, default is `False`
             flag to adjust the distrtibution standard deviation in such a way
-            that negative samples are avoited. This option is only available
+            that negative samples are avoided. This option is only available
             for `pdf=='uniform'`
 
         Returns
