@@ -633,7 +633,7 @@ class CategoryCov():
         return np.log(mu_**2 / np.sqrt(np.diag(self.data) + mu_**2))
 
     def sampling(self, nsmp, seed=None, rows=None, pdf='normal',
-                 tolerance=None, relative=True, truncate=True):
+                 tolerance=None, relative=True, truncate=True, cutzeros=False):
         """
         Extract perturbation coefficients according to chosen distribution with
         covariance from given covariance matrix. See note for non-normal
@@ -667,6 +667,10 @@ class CategoryCov():
             flag to perform a symmetrical cut. All the negative perturbation 
             coefficients will be set equal to 0 and the ones larger than 2 will
             be set equal to 2
+        cutzeros : `bool`, optional, default is `False`
+            flag to adjust the distrtibution standard deviation in such a way
+            that negative samples are avoited. This option is only available
+            for `pdf=='uniform'`
 
         Returns
         -------
@@ -790,6 +794,13 @@ class CategoryCov():
         0 2.00000e+00 2.00000e+00
         1 7.13927e-01 1.07147e+00
         2 5.15435e-01 1.64683e+00
+
+        `cutzeros` kwarg usage:
+        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, pdf='uniform', truncate=False, cutzeros=True)
+                    0           1
+        0 3.60539e-01 1.44987e+00
+        1 3.89505e-02 8.40407e-01
+        2 9.26437e-01 9.70854e-01
         """
         dim = self.data.shape[0]
         pdf_ = pdf if pdf != 'lognormal' else 'normal'
@@ -800,6 +811,11 @@ class CategoryCov():
         # pdf
         if pdf == 'uniform':
             to_decompose = self.__class__(np.diag(np.diag(self.data)))
+            if cutzeros:
+                a = np.sqrt(12) / 2
+                std = pd.DataFrame(np.sqrt(np.diag(np.diag(self.data))))
+                condition = std < 1 / a
+                to_decompose = self.__class__(to_decompose.data.where(condition, (1 / a**2)))
         elif pdf == 'lognormal':
             ones = np.ones(self.data.shape[0])
             to_decompose = self.log2norm_cov(ones)
