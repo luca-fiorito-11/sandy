@@ -389,7 +389,7 @@ class Fy():
             ).fillna(0)
         return mass_yield_sensitivity
 
-    def custom_perturbation(self, zam, mt, e, zap, pert):
+    def custom_perturbation(self, zam, mt, e, pert):
         """
         Apply a custom perturbation to a given fission yield.
 
@@ -404,9 +404,7 @@ class Fy():
         e : `float`
             Energy of the fissioning system to which which perturbations
             are to be applied.
-        zap : `int` or `list`
-            ZAP of the products to which perturbations are to be applied.
-        pert : `float` or `pd.Series`
+        pert : `pd.Series`
             Perturbation coefficients as ratio values. `pert` index should be
             the corrisponding ZAP numbers.
 
@@ -419,12 +417,13 @@ class Fy():
         --------
         >>> tape = sandy.get_endf6_file("jeff_33", 'nfpy', 'all')
         >>> nfpy = Fy.from_endf6(tape)
-        >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, 551370, 0.9)
+        >>> pert = pd.Series([0.9], index=[551370])
+        >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, pert)
         >>> comp = nfpy_pert.data.query('ZAM==922350 & ZAP==551370 & MT==459 & E==0.0253').squeeze().FY
         >>> assert np.setdiff1d(nfpy_pert.data.values, nfpy.data.values) == comp
 
         >>> pert = pd.Series([0.9, 0.5], index=[541350, 551370])
-        >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, [541350, 551370], pert)
+        >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, pert)
         >>> comp1 = nfpy_pert.data.query('ZAM==922350 & ZAP==551370 & MT==459 & E==0.0253').squeeze().FY
         >>> f1 = nfpy.data.query('ZAM==922350 & ZAP==551370 & MT==459 & E==0.0253').squeeze().FY
         >>> assert f1 * 0.5 == comp1
@@ -433,7 +432,7 @@ class Fy():
         >>> assert f2 * 0.9 == comp2
         """
         df = self.data.copy()
-        idx = df.query(f"ZAM=={zam} & ZAP=={zap} & MT=={mt} & E=={e}").index
+        idx = df.query(f"ZAM=={zam} & ZAP=={list(pert.index)} & MT=={mt} & E=={e}").index
         fy_pert = df.loc[idx, :].set_index("ZAP").FY * pert
         fy_pert.index = idx
         fy_pert.name = 'FY'
@@ -547,7 +546,7 @@ class Fy():
         decay_data : `sandy.DecayData`
             Radioactive nuclide data for several isotopes.
         cut_hl: `bool`, optional, default is `True`
-            cut all the decay modes of the nuclides with an half life larger
+            cut all the decay modes of the nuclides with a half life larger
             than 100 years.
         keep_fy_index : `bool`, optional, default is `False`
             Option that allows you to output only the CFY results that were
