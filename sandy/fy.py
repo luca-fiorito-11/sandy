@@ -389,7 +389,7 @@ class Fy():
             ).fillna(0)
         return mass_yield_sensitivity
 
-    def custom_perturbation(self, zam, mt, e, zap, pert):
+    def custom_perturbation(self, zam, mt, e, pert):
         """
         Apply a custom perturbation to a given fission yield.
 
@@ -404,11 +404,9 @@ class Fy():
         e : `float`
             Energy of the fissioning system to which which perturbations
             are to be applied.
-        zap : `int`
-            ZAP of the product to which perturbations are to be
-            applied.
-        pert : `float`
-            Perturbation coefficients as ratio values.
+        pert : `pd.Series`
+            Perturbation coefficients as ratio values. `pert` index should be
+            the corrisponding ZAP numbers.
 
         Returns
         -------
@@ -419,13 +417,26 @@ class Fy():
         --------
         >>> tape = sandy.get_endf6_file("jeff_33", 'nfpy', 'all')
         >>> nfpy = Fy.from_endf6(tape)
-        >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, 551370, 0.9)
+        >>> pert = pd.Series([0.9], index=[551370])
+        >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, pert)
         >>> comp = nfpy_pert.data.query('ZAM==922350 & ZAP==551370 & MT==459 & E==0.0253').squeeze().FY
         >>> assert np.setdiff1d(nfpy_pert.data.values, nfpy.data.values) == comp
+
+        >>> pert = pd.Series([0.9, 0.5], index=[541350, 551370])
+        >>> nfpy_pert = nfpy.custom_perturbation(922350, 459, 0.0253, pert)
+        >>> comp1 = nfpy_pert.data.query('ZAM==922350 & ZAP==551370 & MT==459 & E==0.0253').squeeze().FY
+        >>> f1 = nfpy.data.query('ZAM==922350 & ZAP==551370 & MT==459 & E==0.0253').squeeze().FY
+        >>> assert f1 * 0.5 == comp1
+        >>> comp2 = nfpy_pert.data.query('ZAM==922350 & ZAP==541350 & MT==459 & E==0.0253').squeeze().FY
+        >>> f2 = nfpy.data.query('ZAM==922350 & ZAP==541350 & MT==459 & E==0.0253').squeeze().FY
+        >>> assert f2 * 0.9 == comp2
         """
         df = self.data.copy()
-        mask = (df.ZAM == zam) & (df.ZAP == zap) & (df.MT == mt) & (df.E == e)
-        df.loc[mask, "FY"] = df[mask].squeeze().FY * pert
+        idx = df.query(f"ZAM=={zam} & ZAP=={list(pert.index)} & MT=={mt} & E=={e}").index
+        fy_pert = df.loc[idx, :].set_index("ZAP").FY * pert
+        fy_pert.index = idx
+        fy_pert.name = 'FY'
+        df.update(fy_pert)
         return self.__class__(df)
 
     def apply_bmatrix(self, zam, e, decay_data, keep_fy_index=False):
@@ -520,7 +531,7 @@ class Fy():
         data = pd.concat([data, calc_values], ignore_index=True)
         return self.__class__(data)
 
-    def apply_qmatrix(self, zam, energy, decay_data, keep_fy_index=False):
+    def apply_qmatrix(self, zam, energy, decay_data, cut_hl=True, keep_fy_index=False):
         """
         Perform CFY = Q * IFY equation to calculate CFY in a given zam
         for a given energy and apply into the original data.
@@ -534,9 +545,12 @@ class Fy():
             Energy to which calculations are to be applied.
         decay_data : `sandy.DecayData`
             Radioactive nuclide data for several isotopes.
+        cut_hl: `bool`, optional, default is `True`
+            cut all the decay modes of the nuclides with a half life larger
+            than 100 years.
         keep_fy_index : `bool`, optional, default is `False`
             Option that allows you to output only the CFY results that were
-            part of the original `sandy.Fy` object. The default is False.
+            part of the original `sandy.Fy` object.
 
         Returns
         -------
@@ -555,13 +569,21 @@ class Fy():
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
-        >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest)
+        >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, cut_hl=False)
         >>> npfy_pert.data.query("MT==459")
             MAT   MT     ZAM     ZAP           E          FY         DFY
         3  9437  459  942390  591480 5.00000e+05 1.00000e-01 4.00000e-02
         4  9437  459  942390  591481 5.00000e+05 2.00000e-01 5.00000e-02
         5  9437  459  942390  601480 5.00000e+05 6.00000e-01 6.48074e-02
         6  9437  459  942390  621480 5.00000e+05 6.00000e-01 6.48074e-02
+
+        >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, cut_hl=True)
+        >>> npfy_pert.data.query("MT==459")
+            MAT   MT     ZAM     ZAP           E          FY         DFY
+        3  9437  459  942390  591480 5.00000e+05 1.00000e-01 4.00000e-02
+        4  9437  459  942390  591481 5.00000e+05 2.00000e-01 5.00000e-02
+        5  9437  459  942390  601480 5.00000e+05 6.00000e-01 6.48074e-02
+        6  9437  459  942390  621480 5.00000e+05 0.00000e+00 0.00000e+00
 
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
@@ -583,7 +605,7 @@ class Fy():
         fy_data = fy_data.set_index('ZAP')['FY']
         if keep_fy_index:
             original_index = fy_data.index
-        Q = decay_data.get_qmatrix()
+        Q = decay_data.get_qmatrix(cut_hl=cut_hl)
         # Put the data in a approppiate format:
         mask = (data.ZAM == zam) & (data.MT == 459) & (data.E == energy)
         data = data.loc[~mask]
