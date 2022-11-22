@@ -22,45 +22,53 @@ import numpy as np
 import sandy
 from sandy.libraries import (
     N_FILES_ENDFB_71_IAEA,
+    N_FILES_ENDFB_80_IAEA,
     N_FILES_JEFF_32_NEA,
     N_FILES_JEFF_33_IAEA,
     N_FILES_JEFF_40T0_NEA,
-    N_FILES_ENDFB_80_IAEA,
     N_FILES_JENDL_40U_IAEA,
+    N_FILES_IRDFF_2_IAEA,
     URL_N_ENDFB_71_IAEA,
     URL_N_JEFF_32_NEA,
     URL_N_JEFF_33_IAEA,
     URL_N_JEFF_40T0_NEA,
     URL_N_ENDFB_80_IAEA,
     URL_N_JENDL_40U_IAEA,
-    URL_NFPY_ENDFB_80_IAEA,
-    NFPY_FILES_ENDFB_80_IAEA,
-    URL_NFPY_ENDFB_71_IAEA,
-    NFPY_FILES_ENDFB_71_IAEA,
-    URL_NFPY_JENDL_40U_IAEA,
-    NFPY_FILES_JENDL_40U_IAEA,
-    URL_NFPY_JEFF_311_IAEA,
-    NFPY_FILES_JEFF_311_IAEA,    
-    URL_NFPY_JEFF_33_IAEA,
-    NFPY_FILES_JEFF_33_IAEA,
-    URL_DECAY_ENDFB_71_IAEA,
-    DECAY_FILES_ENDFB_71_IAEA,
-    URL_DECAY_ENDFB_80_IAEA,
-    DECAY_FILES_ENDFB_80_IAEA,
-    URL_DECAY_JEFF_311_IAEA,
-    DECAY_FILES_JEFF_311_IAEA,
-    URL_DECAY_JEFF_33_IAEA,
-    DECAY_FILES_JEFF_33_IAEA,
-    URL_TSL_ENDFB_71_IAEA,
-    TSL_FILES_ENDFB_71_IAEA,
-    URL_TSL_ENDFB_80_IAEA,
-    TSL_FILES_ENDFB_80_IAEA,
-    URL_TSL_JEFF_33_IAEA,
-    TSL_FILES_JEFF_33_IAEA,
-    URL_TSL_JENDL_40U_IAEA,
-    TSL_FILES_JENDL_40U_IAEA,
     URL_N_IRDFF_2_IAEA,
-    N_FILES_IRDFF_2_IAEA,
+
+    NFPY_FILES_ENDFB_71_IAEA,
+    NFPY_FILES_ENDFB_80_IAEA,
+    NFPY_FILES_JEFF_311_IAEA,
+    NFPY_FILES_JEFF_33_IAEA,
+    NFPY_FILES_JENDL_40U_IAEA,
+    URL_NFPY_ENDFB_71_IAEA,
+    URL_NFPY_ENDFB_80_IAEA,
+    URL_NFPY_JEFF_311_IAEA,
+    URL_NFPY_JEFF_33_IAEA,
+    URL_NFPY_JENDL_40U_IAEA,
+
+    DECAY_FILES_ENDFB_71_IAEA,
+    DECAY_FILES_ENDFB_80_IAEA,
+    DECAY_FILES_JEFF_311_IAEA,
+    DECAY_FILES_JEFF_33_IAEA,
+    URL_DECAY_ENDFB_71_IAEA,
+    URL_DECAY_ENDFB_80_IAEA,
+    URL_DECAY_JEFF_311_IAEA,
+    URL_DECAY_JEFF_33_IAEA,
+
+    TSL_FILES_ENDFB_71_IAEA,
+    TSL_FILES_ENDFB_80_IAEA,
+    TSL_FILES_JEFF_33_IAEA,
+    TSL_FILES_JENDL_40U_IAEA,
+    URL_TSL_JENDL_40U_IAEA,
+    URL_TSL_ENDFB_71_IAEA,
+    URL_TSL_ENDFB_80_IAEA,
+    URL_TSL_JEFF_33_IAEA,
+
+    DXS_FILES_JEFF_33_IAEA,
+    DXS_FILES_PROTON_IAEA,
+    URL_DXS_JEFF_33_IAEA,
+    URL_DXS_PROTON_IAEA
     )
 
 
@@ -190,14 +198,17 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * `'jeff_33'`
             * `'endfb_80'`
             * `'jendl_40u'`
+        for 'dxs':
+            * `'jeff_33'`
+            * `'proton'`
     kind : `str`
         nuclear data type:
             * 'xs' is a standard neutron-induced nuclear data file
             * 'nfpy' is a Neutron-Induced Fission Product Yields nuclear data
               file
             * 'decay' is a Radioactive Decay Data nuclear data file
+            * 'dxs' is displacement cross section data file
             * 'tsl' is a Thermal Neutron Scattering Data file
-            * 'eig_val' is Eigenvalues of Covariance Matrices
     zam : `int` or 'all' or iterable
         zam = 'int' (individual nuclides) or iterable (group of nuclides)
             ZAM nuclide identifier $Z \\times 10000 + A \\times 10 + M$ where:
@@ -352,6 +363,28 @@ def get_endf6_file(library, kind, zam, to_file=False):
                 Available libraries are: {available_libs}
                 """
                 )
+    if kind == 'dxs':
+        available_libs = (
+            "jeff_33".upper(),
+            "proton".upper(),
+            )
+        library_ = library.lower()
+        if library_ == "jeff_33":
+            url = URL_DXS_JEFF_33_IAEA
+            files = DXS_FILES_JEFF_33_IAEA
+            foo_read = Endf6.read_url
+            foo_get = Endf6.from_url
+        elif library_ == "proton":
+            url = URL_DXS_PROTON_IAEA
+            files = DXS_FILES_PROTON_IAEA
+            foo_read = Endf6.read_url
+            foo_get = Endf6.from_url
+        else:
+            raise ValueError(
+                f"""library '{library}' is not available.
+                Available libraries are: {available_libs}
+                """
+                )
     elif kind == 'nfpy':
         available_libs = (
             "endfb_71".upper(),
@@ -434,8 +467,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
                 Available libraries are: {available_libs}
                 """
                     )
+
     if str(zam).lower() == 'all':
-        if kind.lower() == 'xs':
+        if kind.lower() == 'xs' or kind.lower() == 'dxs':
             raise ValueError("'all' option is not available for xs")
         text = "".join([foo_read(name, url) for name in files.values()])
         tape = Endf6.from_text(text)
