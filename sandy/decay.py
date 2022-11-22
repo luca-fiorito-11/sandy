@@ -348,13 +348,17 @@ class DecayData():
         else:
             return DecayEnergy(df.E)
 
-    def get_decay_chains(self, skip_parents=False, **kwargs):
+    def get_decay_chains(self, skip_parents=False, cut_hl=False, **kwargs):
         """
         Extract decay chains into dataframe.
 
         Parameters
         ----------
-        skip_parent : `bool`, optional, default is `False`
+        skip_parents : `bool`, optional, default is `False`
+            flag to skip the parent information
+        cut_hl: `bool`, optional, default is `False`
+            cut all the dacay modes of the nuclides with an half life larger
+            than 100 years
 
         Returns
         -------
@@ -376,6 +380,22 @@ class DecayData():
         >>> rdd.get_decay_chains(skip_parents=True)
            PARENT  DAUGHTER        YIELD      LAMBDA
         0  270600    280600  1.00000e+00 4.16705e-09
+
+        Cut the dacay modes of the nuclides with an half life larger
+        than 100 years:
+        >>> tape = sandy.get_endf6_file("jeff_33", "decay", 601440)
+        >>> rdd = sandy.DecayData.from_endf6(tape)
+        >>> rdd.get_decay_chains(cut_hl=False)
+           PARENT  DAUGHTER        YIELD      LAMBDA
+        0  601440     20040  1.00000e+00 9.59169e-24
+        1  601440    581400  1.00000e+00 9.59169e-24
+        2  601440    601440 -1.00000e+00 9.59169e-24
+        
+        >>> rdd.get_decay_chains(cut_hl=True)
+           PARENT  DAUGHTER        YIELD      LAMBDA
+        0  601440     20040  0.00000e+00 9.59169e-24
+        1  601440    581400  0.00000e+00 9.59169e-24
+        2  601440    601440 -1.00000e+00 9.59169e-24
         """
         items = []
         columns = ["PARENT", "DAUGHTER", "YIELD", "LAMBDA"]
@@ -393,6 +413,8 @@ class DecayData():
                 continue
             for (rtyp, rfs), decay_mode in nucl["decay_modes"].items():
                 br = decay_mode["branching_ratio"]
+                if cut_hl and nucl['half_life'] > 3153600000: # 100 years in seconds
+                    br = 0
                 if "decay_products" not in decay_mode:
                     continue  # S.F.
                 for zap, yld in decay_mode["decay_products"].items():
@@ -491,7 +513,6 @@ class DecayData():
         581470 	0.00000e+00 	1.50000e-03 	0.00000e+00 	0.00000e+00
         581480 	0.00000e+00 	9.98500e-01 	0.00000e+00 	0.00000e+00
 
-
         >>> h1 = sandy.endf6.get_endf6_file("endfb_71", "decay", 551480)
         >>> h2 = sandy.endf6.get_endf6_file("endfb_71", "decay", 551490)
         >>> h3 = h1.merge(h2)
@@ -527,15 +548,22 @@ class DecayData():
 
         Optional argument
         -------
-        Thereshold: 'int'
-            Optional argument to avoid numerical fluctuations or
+        kwargs : `dict`
+            keyword arguments for method `get_decay_chains`
+        thereshold: `int`, optional, default is `None`
+            argument to avoid numerical fluctuations or
             values so small that they do not have to be taken into
-            account.
+            account
+        keep_neutrons : `bool`, optional, default is `False`
+            flag to skip the column with neutron data
+
         Returns
         -------
         `pandas.DataFrame`
             Q-matrix associated to the given decay chains
 
+        Examples
+        --------
         >>> file = os.path.join(sandy.data.__path__[0], "rdd.endf")
         >>> endf6 = sandy.Endf6.from_file(file)
         >>> rdd = sandy.DecayData.from_endf6(endf6)
@@ -550,7 +578,6 @@ class DecayData():
         >>> comp.columns.name = "PARENT"
         >>> pd.testing.assert_frame_equal(comp, out)
 
-
         >>> h1 = sandy.endf6.get_endf6_file("endfb_71","decay",551480)
         >>> h2 = sandy.endf6.get_endf6_file("endfb_71","decay",551490)
         >>> h3 = h1.merge(h2)
@@ -564,6 +591,42 @@ class DecayData():
         561470 	2.18447e-01 	4.09780e-07 	0.00000e+00 	1.00000e+00 	0.00000e+00 	0.00000e+00
         561480 	7.81380e-01 	6.88450e-01 	0.00000e+00 	0.00000e+00 	1.00000e+00 	0.00000e+00
         561490 	0.00000e+00 	3.11550e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	1.00000e+00
+
+        Cut the dacay modes of the nuclides with an half life larger
+        than 100 years:
+        >>> tape = sandy.get_endf6_file("jeff_33", "decay", 601440)
+        >>> rdd = sandy.DecayData.from_endf6(tape)
+        >>> rdd.get_qmatrix(cut_hl=False)
+        PARENT        20040       581400      601440
+        DAUGHTER                                    
+        20040    1.00000e+00 0.00000e+00 1.00000e+00
+        581400   0.00000e+00 1.00000e+00 1.00000e+00
+        601440   0.00000e+00 0.00000e+00 1.00000e+00
+
+        >>> rdd.get_qmatrix(cut_hl=True)
+        PARENT        20040       581400      601440
+        DAUGHTER                                    
+        20040    1.00000e+00 0.00000e+00 0.00000e+00
+        581400   0.00000e+00 1.00000e+00 0.00000e+00
+        601440   0.00000e+00 0.00000e+00 1.00000e+00
+
+        Skip column with neutron information:
+        >>> tape = sandy.endf6.get_endf6_file("endfb_71", 'decay', 571480)
+        >>> rdd = sandy.DecayData.from_endf6(tape)
+        >>> rdd.get_qmatrix(keep_neutrons=False)
+        PARENT        571480      581470      581480
+        DAUGHTER                                    
+        571480   1.00000e+00 0.00000e+00 0.00000e+00
+        581470   1.50000e-03 1.00000e+00 0.00000e+00
+        581480   9.98500e-01 0.00000e+00 1.00000e+00
+
+        >>> rdd.get_qmatrix(keep_neutrons=True)
+        PARENT        10          571480      581470      581480
+        DAUGHTER                                                
+        10       1.00000e+00 1.50000e-03 0.00000e+00 0.00000e+00
+        571480   0.00000e+00 1.00000e+00 0.00000e+00 0.00000e+00
+        581470   0.00000e+00 1.50000e-03 1.00000e+00 0.00000e+00
+        581480   0.00000e+00 9.98500e-01 0.00000e+00 1.00000e+00
         """
         B = self.get_bmatrix(**kwargs)
         if not keep_neutrons:
@@ -763,6 +826,7 @@ class DecayData():
         ----------
         `endf6` : `sandy.Endf6`
             `Endf6` instance
+
         Returns
         -------
         `sandy.Endf6`
