@@ -474,57 +474,81 @@ class CategoryCov():
             )
         return self.__class__(df)
 
-    def invert(self, rows=None):
+    def invert(self):
         """
         Method for calculating the inverse matrix.
-
-        Parameters
-        ----------
-        tables : `bool`, optional
-            Option to use row calculation for matrix calculations. The
-            default is False.
-        rows : `int`, optional
-            Option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
-            The default is None.
+        If zeros are found on the matrix diagonal, the corresponding rows and columns
+        are removed to invert a non-singolar matrix.
+        The zeros are put back into place in the inverted matrix.
 
         Returns
         -------
-        `CategoryCov`
+        `pandas.DataFrame`
             The inverse matrix.
 
-        Examples
-        --------
-        >>> S = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
-        >>> S.invert()
+        Notes
+        -----
+        Many covariance matrices for nuclear data are ill-defined and might have condition numbers that
+        make the matrix inversion process impossible.
+        To make up for this limitation we produce the (Moore-Penrose) pseudo-inverse of a Hermitian
+        matrix, as implemented in scipy.
+        Default options are used.
+        This method does not require any pre-processing of the covariance data, e.g. removing zeros
+        from the matrix diagonal or truncating eigenvalues.
+        
+        >>> c = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
+        >>> c.invert()
                     0           1           2
         0 1.00000e+00 0.00000e+00 0.00000e+00
         1 0.00000e+00 5.00000e-01 0.00000e+00
         2 0.00000e+00 0.00000e+00 3.33333e-01
 
-        >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3])))
-        >>> S.invert()
-                    0           1           2
-        0 0.00000e+00 0.00000e+00 0.00000e+00
-        1 0.00000e+00 5.00000e-01 0.00000e+00
-        2 0.00000e+00 0.00000e+00 3.33333e-01
+        Test product $A^T A = 1$.
+        >>> c = sandy.CategoryCov([[2, 0.5], [0.5, 2]])
+        >>> np.testing.assert_array_almost_equal(c.data @ c.invert(), np.eye(2))
 
-        >>> S = sandy.CategoryCov(np.diag(np.array([0, 2, 3])))
-        >>> S.invert(rows=1)
-                    0           1           2
-        0 0.00000e+00 0.00000e+00 0.00000e+00
-        1 0.00000e+00 5.00000e-01 0.00000e+00
-        2 0.00000e+00 0.00000e+00 3.33333e-01
+        Test inverse of inverse.
+        >>> c = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
+        >>> np.testing.assert_array_equal(sandy.CategoryCov(c.invert()).invert(), c.data)
+        
+        Test on real ND covariance. With previous implementation this test failed.
+        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, mt=[102]).get_cov(multigroup=False)
+        >>> cinv = c.invert()
+        >>> np.testing.assert_array_almost_equal(c.data, np.linalg.pinv(cinv, hermitian=True))
+        >>> assert (cinv.index == c.data.index).all()
+        >>> assert (cinv.columns == c.data.columns).all()
         """
-        index = self.data.index
-        columns = self.data.columns
-        M_nonzero_idxs, M_reduce = reduce_size(self.data)
-        cov = sps.csc_matrix(M_reduce.values)
-        rows_ = cov.shape[0] if rows is None else rows
-        data = sparse_tables_inv(cov, rows=rows_)
-        M_inv = restore_size(M_nonzero_idxs, data, len(self.data))
-        M_inv = pd.DataFrame(M_inv.values, index=index, columns=columns)
-        return self.__class__(M_inv)
+        return pd.DataFrame(
+            np.linalg.pinv(self.data, hermitian=True),
+            index=self.data.index,
+            columns=self.data.columns,
+        )  # do not return CategoryCov because variance can be negative
+
+    def _double_invert(self):
+        """
+        Test method get a covariance matrix without negative eigs.
+        BEcause of the properties of pinv, this should be equivalent to
+        reconstructing the matrix as `V @ E @ V`, where `V` are the
+        eigenvectors and `E` are truncated eigenvalues.
+
+        Returns
+        -------
+        `sandy.CategoryCov`
+            matrix without problematic eigenvalues
+
+        Test on real ND covariance.
+        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, mt=[102]).get_cov(multigroup=False)
+        >>> c2 = c._double_invert()
+        >>> np.testing.assert_array_almost_equal(c.data, c2.data)
+        >>> assert (c2.data.index == c.data.index).all()
+        >>> assert (c2.data.columns == c.data.columns).all()
+        """
+        cinv = self.invert()
+        return self.__class__(
+            np.linalg.pinv(cinv, hermitian=True),
+            index=self.data.index,
+            columns=self.data.columns,
+        )
 
     def log2norm_cov(self, mu):
         """
@@ -1914,52 +1938,6 @@ def sparse_tables_dot(a, b, rows=1000):
     f.close()
     os.remove('dot.h5')
     return dot_product
-
-
-def sparse_tables_inv(a, rows=1000):
-    """
-    Function to perform matrix inversion stored on local
-    disk instead of memory.
-
-    Parameters
-    ----------
-    a : 2D iterable
-        Matrix to be inverted.
-    rows : `int`, optional.
-        Number of rows to be calculated in each loop. The default is 1000.
-
-    Returns
-    -------
-    invert_matrix : "numpy.ndarray"
-        The inverted matrix.
-
-    Example
-    -------
-    >>> S = sandy.CategoryCov(np.diag(np.array([1, 2, 3]))).data.values
-    >>> sandy.cov.sparse_tables_inv(S, 1).round(2)
-    array([[1.  , 0.  , 0.  ],
-           [0.  , 0.5 , 0.  ],
-           [0.  , 0.  , 0.33]])
-    """
-    a_ = sps.csc_matrix(a)
-    l, n = a_.shape[0], a_.shape[1]
-    LU = spsl.splu(a_)
-    f = tb.open_file('inv.h5', 'w')
-    filters = tb.Filters(complevel=5, complib='blosc')
-    out_data = f.create_carray(f.root, 'data', tb.Float64Atom(),
-                               shape=(l, n), filters=filters)
-    Identity = np.hsplit(sps.diags([1], shape=a_.shape).toarray(), l/rows)
-    j = 0
-    for i in range(0, l, rows):
-        I_split = Identity[j]
-        tmpResult = LU.solve(I_split)
-        out_data[:, i:min(i+rows, l)] = tmpResult
-        f.flush()
-        j += 1
-    invert_matrix = sps.csr_matrix(out_data).toarray()
-    f.close()
-    os.remove('inv.h5')
-    return invert_matrix
 
 
 def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):
