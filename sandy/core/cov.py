@@ -527,13 +527,13 @@ class CategoryCov():
         """
         Test method get a covariance matrix without negative eigs.
         BEcause of the properties of pinv, this should be equivalent to
-        reconstructing the matrix as `V @ E @ V`, where `V` are the
+        reconstructing the matrix as `V @ E @ V^T`, where `V` are the
         eigenvectors and `E` are truncated eigenvalues.
 
         Returns
         -------
         `sandy.CategoryCov`
-            matrix without problematic eigenvalues
+            inverse of the inverted matrix
 
         Test on real ND covariance.
         >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, mt=[102]).get_cov(multigroup=False)
