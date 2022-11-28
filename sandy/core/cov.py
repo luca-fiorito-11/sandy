@@ -477,9 +477,6 @@ class CategoryCov():
     def invert(self):
         """
         Method for calculating the inverse matrix.
-        If zeros are found on the matrix diagonal, the corresponding rows and columns
-        are removed to invert a non-singolar matrix.
-        The zeros are put back into place in the inverted matrix.
 
         Returns
         -------
@@ -488,13 +485,15 @@ class CategoryCov():
 
         Notes
         -----
-        Many covariance matrices for nuclear data are ill-defined and might have condition numbers that
-        make the matrix inversion process impossible.
-        To make up for this limitation we produce the (Moore-Penrose) pseudo-inverse of a Hermitian
-        matrix, as implemented in scipy.
+        Many covariance matrices for nuclear data are ill-defined and might
+        have condition numbers that make the matrix inversion process
+        impossible.
+        To make up for this limitation we produce the (Moore-Penrose)
+        pseudo-inverse of a Hermitian matrix, as implemented in `numpy`.
         Default options are used.
-        This method does not require any pre-processing of the covariance data, e.g. removing zeros
-        from the matrix diagonal or truncating eigenvalues.
+        This method does not require any pre-processing of the covariance
+        data, e.g. removing zeros from the matrix diagonal or truncating
+        eigenvalues.
         
         >>> c = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
         >>> c.invert()
