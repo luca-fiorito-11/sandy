@@ -23,9 +23,26 @@ from sandy.formats.records import (
         write_cont,
         write_tab1,
         read_control,
-        read_text
+        read_text,
+        wreal
         )
 
+@pytest.mark.records
+@pytest.mark.read
+@pytest.mark.wreal
+def test_wreal():
+    string = " 0.000000+0"
+    value = 0.
+    assert string == wreal(value)
+
+    string = " 1000000.00"
+    value = 1.e6
+    assert string == wreal(value)
+    
+    string = " 1.00000+19"
+    value = 1.0e19
+    assert string == wreal(value)
+    
 @pytest.mark.records
 @pytest.mark.read
 @pytest.mark.ilist

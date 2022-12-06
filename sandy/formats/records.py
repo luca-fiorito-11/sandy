@@ -9,6 +9,7 @@ import numpy as np
 from collections import namedtuple
 import pdb
 
+import fortranformat as ff
 import rwf
 from ..settings import SandyError
 
@@ -16,15 +17,62 @@ __author__ = "Luca Fiorito"
 __all__ = ["read_control", "read_cont", "write_cont", "read_text", "read_list", 
            "write_list", "read_tab2", "write_tab2", "read_tab1", "write_tab1"]
 
+def wreal(x):
+    line = None
+    if abs(x) > 1e-1 and abs(x) < 1e1:
+        line = ff.FortranRecordWriter('(F11.8)')
+        line = line.write([x])
+    elif abs(x) >= 1e1 and abs(x) < 1e2:
+        line = ff.FortranRecordWriter('(F11.7)')
+        line = line.write([x])
+    elif abs(x) >= 1e2 and abs(x) < 1e3:
+        line = ff.FortranRecordWriter('(F11.6)')
+        line = line.write([x])
+    elif abs(x) >= 1e3 and abs(x) < 1e4:
+        line = ff.FortranRecordWriter('(F11.5)')
+        line = line.write([x])
+    elif abs(x) >= 1e4 and abs(x) < 1e5:
+        line = ff.FortranRecordWriter('(F11.4)')
+        line = line.write([x])
+    elif abs(x) >= 1e5 and abs(x) < 1e6:
+        line = ff.FortranRecordWriter('(F11.3)')
+        line = line.write([x])
+    elif abs(x) >= 1e6 and abs(x) < 1e7:
+        line = ff.FortranRecordWriter('(F11.2)')
+        line = line.write([x])
+    elif abs(x) >= 1e7 and abs(x) < 1e8:
+        line = ff.FortranRecordWriter('(F11.1)')
+        line = line.write([x])
+    elif abs(x) >= 1e8 and abs(x) < 1e9:
+        line = ff.FortranRecordWriter('(F11.0)')
+        line = line.write([x])
+    else:
+        line = ff.FortranRecordWriter('(1PE13.6)')
+        line = line.write([x])
+        
+        if line[11] == '0':
+            line = line[1:9] + line[10] + line[12]
+            line2 = ff.FortranRecordWriter('A11')
+            line = line2.write([line])
+        else:
+            line = line[0:8] + line[10:13]
+            line2 = ff.FortranRecordWriter('A11')
+            line = line2.write([line])
+
+    return line
+
 def read_control(string):
     mat = np.array(0, dtype=int)
     mf = np.array(0, dtype=int)
     mt = np.array(0, dtype=int)
     ns = np.array(0, dtype=int)
     io_status = np.array(0, dtype=int)
-    rwf.rcontrol(string[66:], io_status, mat, mf, mt, ns)
-    if io_status != 0:
-        raise SandyError("line '{}' is not in CONTROL format".format(string))
+    line = ff.FortranRecordReader('(I4,I2,I3,I5)')
+    line = line.read(string[66:])
+    mat = line[0]
+    mf = line[1]
+    mt = line[2]
+    ns =  line[3]
     return int(mat), int(mf), int(mt), int(ns)
 
 def read_cont(text, ipos):
@@ -58,9 +106,14 @@ def read_cont(text, ipos):
     n1 = np.array(0, dtype=int)
     n2 = np.array(0, dtype=int)
     io_status = np.array(0, dtype=int)
-    rwf.rcont(string, io_status, c1, c2, l1, l2, n1, n2)
-    if io_status != 0:
-        raise SandyError("line '{}' is not in CONT format".format(string))
+    line = ff.FortranRecordReader('(2E11.0,4I11)')
+    line = line.read(string)
+    c1 = line[0]
+    c2 = line[1]
+    l1 = line[2]
+    l2 = line[3]
+    n1 = line[4]
+    n2 = line[5]
     ipos += 1
     return CONT(float(c1), float(c2), int(l1), int(l2), int(n1), int(n2)), ipos
 
@@ -78,8 +131,11 @@ def write_cont(C1, C2, L1, L2, N1, N2):
     N1 = np.array(N1, dtype=int)
     N2 = np.array(N2, dtype=int)
     string = np.array("*"*67)
-    rwf.wcont(string, C1, C2, L1, L2, N1, N2)
-    string = str(string, 'utf-8')[:66] # byte string coming from f2py must be converted
+    c1_str = wreal(C1)
+    c2_str = wreal(C2)
+    line = ff.FortranRecordWriter('(2A11,4I11)')
+    string = line.write([c1_str,c2_str,L1,L2,N1,N2])
+    string = string[:66] # byte string coming from f2py must be converted
     return [string]
 
 def read_text(text, ipos):
@@ -92,32 +148,45 @@ def read_text(text, ipos):
 
 def read_ilist(string):
     array = np.zeros(6, dtype=np.int64)
-    io_status = np.array(0, dtype=int)
-    rwf.rilist(string, io_status, array, 6)
-    if io_status != 0:
-        raise SandyError("line '{}' is not in ILIST format".format(string))
+    line = ff.FortranRecordReader('(6I11)')
+    line = line.read(string)
+    for idx,value in enumerate(line):
+        array[idx] = line[idx]
     return array.tolist()
 
 def write_ilist(b):
     length = len(b)*11
     string = np.array("*"*(length + 1))
-    rwf.wilist(string, b, length)
-    string = str(string, 'utf-8')[:length]
+    #rwf.wilist(string, b, length)
+    total = ""
+    for i in range(0,len(b)):
+        line = ff.FortranRecordWriter('(I11)')
+        line = line.write([b[i]])
+        total += line
+    string = total
     return [string[0+i:66+i] + ' '*(66-len(string[0+i:66+i])) for i in range(0, len(string), 66)]
 
 def read_dlist(string):
     array = np.zeros(6, dtype=float)
-    io_status = np.array(0, dtype=int)
-    rwf.rlist(string, io_status, array, 6)
-    if io_status != 0:
-        raise SandyError("line '{}' is not in DLIST format".format(string))
+    line = ff.FortranRecordReader('(6E11.0)')
+    line = line.read(string)
+    for idx,value in enumerate(line):
+        array[idx] = line[idx]
     return array.tolist()
 
 def write_dlist(b):
     length = len(b)*11
     string = np.array("*"*(length + 1))
-    rwf.wlist(string, b, length)
-    string = str(string, 'utf-8')[:length]
+    #rwf.wlist(string, b, length)
+    total = ""
+    for i in range(0,len(b)):
+        #line = ff.FortranRecordWriter('(F11.8)')
+        #line.write([b[i]])
+        line = wreal(b[i])
+        string = line
+        total += string
+    #string = str(total, 'utf-8')[:length]
+    string = total
     return [string[0+i:66+i] + ' '*(66-len(string[0+i:66+i])) for i in range(0, len(string), 66)]
 
 def read_tab2(text, ipos):

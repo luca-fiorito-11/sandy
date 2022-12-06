@@ -471,9 +471,11 @@ def test_njoy_process_sig0():
     """Test njoy.process for different sig0"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
     pendftape = "pendf"
-    input, inputs, outputs = sandy.njoy.process(endftape, pendftape=pendftape, dryrun=True, broadr=False, gaspr=False,
-                               thermr=False, acer=False, purr=True, heatr=False, keep_pendf=False,
-                               sig0=[1e10, 1E9, 100000000])
+    (input, inputs, outputs) = sandy.njoy.process(endftape, pendftape=pendftape, \
+                                                dryrun=True, broadr=False, gaspr=False, \
+                                                thermr=False, acer=False, purr=True, \
+                                                heatr=False, keep_pendf=False, \
+                                                sig0=[1e10, 1E9, 100000000])
     text = """moder
 20 -21 /
 moder
