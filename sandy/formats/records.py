@@ -10,7 +10,6 @@ from collections import namedtuple
 import pdb
 
 import fortranformat as ff
-import rwf
 from ..settings import SandyError
 
 __author__ = "Luca Fiorito"
@@ -70,10 +69,27 @@ def read_control(string):
     line = ff.FortranRecordReader('(I4,I2,I3,I5)')
     line = line.read(string[66:])
     mat = line[0]
+    try:
+        mat = int(mat)
+    except:
+        pass
     mf = line[1]
+    try:
+        mf = int(mf)
+    except:
+        pass
     mt = line[2]
+    try:
+        mt = int(mt)
+    except:
+        pass
     ns =  line[3]
-    return int(mat), int(mf), int(mt), int(ns)
+    try:
+        ns = int(ns)
+    except:
+        pass
+    
+    return mat, mf, mt, ns
 
 def read_cont(text, ipos):
     """

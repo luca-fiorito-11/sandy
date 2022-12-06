@@ -30,12 +30,12 @@ setup(
           "pytest",
           ],
       include_package_data=True,
-      ext_modules=extensions,
       entry_points={
           'console_scripts': [
               'sandy=sandy.sampling:run',
               ],
           },
+
       )
 
 #import sandy
