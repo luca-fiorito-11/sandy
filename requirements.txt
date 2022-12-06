@@ -1,3 +1,4 @@
+fortranformat
 h5py
 jupyterlab
 matplotlib >= 2.2.23

@@ -9,6 +9,7 @@ pytest >= 3.3
 pyyaml
 scipy
 sphinx
+fortranformat
 seaborn >= 0.9
 statsmodels
 pytables
