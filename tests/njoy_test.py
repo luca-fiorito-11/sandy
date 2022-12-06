@@ -40,7 +40,7 @@ def test_get_njoy_from_environ_error():
 def test_njoy_process_dryrun():
     """Test default options for njoy.process"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True)
+    input = sandy.njoy.process(endftape, dryrun=True)
     text = """moder
 20 -21 /
 reconr
@@ -87,16 +87,12 @@ acer
 /
 stop"""
     assert input == text
-    assert inputs['tape20'] == endftape
-    assert outputs['tape30'] == '2003.pendf'
-    assert outputs['tape50'] == '2003.02c'
-    assert outputs['tape70'] == '2003.02c.xsd'
 
 @pytest.mark.njoy
 def test_njoy_process_no_broadr():
     """Test njoy.process without broadr"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False)
+    input = sandy.njoy.process(endftape, dryrun=True, broadr=False)
     text = """moder
 20 -21 /
 reconr
@@ -137,16 +133,12 @@ acer
 /
 stop"""
     assert input == text
-    assert inputs['tape20'] == endftape
-    assert outputs['tape30'] == '2003.pendf'
-    assert outputs['tape50'] == '2003.02c'
-    assert outputs['tape70'] == '2003.02c.xsd'
 
 @pytest.mark.njoy
 def test_njoy_process_no_gaspr():
     """Test njoy.process without gaspr"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False)
+    input = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False)
     text = """moder
 20 -21 /
 reconr
@@ -185,16 +177,12 @@ acer
 /
 stop"""
     assert input == text
-    assert inputs['tape20'] == endftape
-    assert outputs['tape30'] == '2003.pendf'
-    assert outputs['tape50'] == '2003.02c'
-    assert outputs['tape70'] == '2003.02c.xsd'
 
 @pytest.mark.njoy
 def test_njoy_process_no_thermr():
     """Test njoy.process without thermr"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
+    input = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
                                thermr=False)
     text = """moder
 20 -21 /
@@ -229,16 +217,12 @@ acer
 /
 stop"""
     assert input == text
-    assert inputs['tape20'] == endftape
-    assert outputs['tape30'] == '2003.pendf'
-    assert outputs['tape50'] == '2003.02c'
-    assert outputs['tape70'] == '2003.02c.xsd'
 
 @pytest.mark.njoy
 def test_njoy_process_no_acer():
     """Test njoy.process without acer"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
+    input = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
                                thermr=False, acer=False)
     text = """moder
 20 -21 /
@@ -266,14 +250,12 @@ moder
 -25 30 /
 stop"""
     assert input == text
-    assert inputs['tape20'] == endftape
-    assert outputs['tape30'] == '2003.pendf'
 
 @pytest.mark.njoy
 def test_njoy_process_no_purr():
     """Test njoy.process without acer"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False, 
+    input = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False, 
                                thermr=False, acer=False, purr=False)
     text = """moder
 20 -21 /
@@ -295,14 +277,12 @@ moder
 -24 30 /
 stop"""
     assert input == text
-    assert inputs['tape20'] == endftape
-    assert outputs['tape30'] == '2003.pendf'
 
 @pytest.mark.njoy
 def test_njoy_process_no_heatr():
     """Test njoy.process without heatr"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
+    input = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
                                thermr=False, acer=False, purr=False, heatr=False)
     text = """moder
 20 -21 /
@@ -316,14 +296,12 @@ moder
 -22 30 /
 stop"""
     assert input == text
-    assert inputs['tape20'] == endftape
-    assert outputs['tape30'] == '2003.pendf'
 
 @pytest.mark.njoy
 def test_njoy_process_no_keep_pendf():
     """Test njoy.process and do not keep pendf"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
-    input, inputs, outputs = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
+    input = sandy.njoy.process(endftape, dryrun=True, broadr=False, gaspr=False,
                                thermr=False, acer=False, purr=False, heatr=False, keep_pendf=False)
     text = """moder
 20 -21 /
@@ -335,15 +313,13 @@ reconr
 0/
 stop"""
     assert input == text
-    assert inputs['tape20'] == endftape
-    assert not outputs
 
 @pytest.mark.njoy
 def test_njoy_process_pendftape():
     """Test njoy.process using argument pendftape (skip reconr)"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
     pendftape = "pendf"
-    input, inputs, outputs = sandy.njoy.process(endftape, pendftape=pendftape, dryrun=True, broadr=False, gaspr=False,
+    input = sandy.njoy.process(endftape, pendftape=pendftape, dryrun=True, broadr=False, gaspr=False,
                                thermr=False, acer=False, purr=False, heatr=False, keep_pendf=False)
     text = """moder
 20 -21 /
@@ -351,15 +327,13 @@ moder
 99 -22 /
 stop"""
     assert input == text
-    assert inputs['tape20'] == endftape
-    assert inputs['tape99'] == pendftape
-
+    
 @pytest.mark.njoy
 def test_njoy_process_temperatures():
     """Test njoy.process for different temperatures"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
     pendftape = "pendf"
-    input, inputs, outputs = sandy.njoy.process(endftape, pendftape=pendftape, dryrun=True, gaspr=False,
+    input = sandy.njoy.process(endftape, pendftape=pendftape, dryrun=True, gaspr=False,
                                thermr=False, acer=False, purr=False, heatr=False, keep_pendf=False,
                                temperatures=[300, 600.0000, 900.001])
     text = """moder
@@ -374,16 +348,13 @@ broadr
 0 /
 stop"""
     assert input == text
-    assert inputs['tape20'] == endftape
-    assert inputs['tape99'] == pendftape
-    assert not outputs
 
 @pytest.mark.njoy
 def test_njoy_process_acer():
     """Test njoy.process for acer at different temperatures"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
     pendftape = "pendf"
-    input, inputs, outputs = sandy.njoy.process(endftape, pendftape=pendftape, dryrun=True, broadr=False, gaspr=False,
+    input = sandy.njoy.process(endftape, pendftape=pendftape, dryrun=True, broadr=False, gaspr=False,
                                thermr=False, acer=True, purr=False, heatr=False, keep_pendf=False,
                                temperatures=[300, 600.0000, 900.001])
     text = """moder
@@ -413,21 +384,13 @@ acer
 /
 stop"""
     assert input == text
-    assert inputs['tape20'] == endftape
-    assert inputs['tape99'] == pendftape
-    assert outputs['tape50'] == '2003.03c'
-    assert outputs['tape70'] == '2003.03c.xsd'
-    assert outputs['tape51'] == '2003.06c'
-    assert outputs['tape71'] == '2003.06c.xsd'
-    assert outputs['tape52'] == '2003.09c'
-    assert outputs['tape72'] == '2003.09c.xsd'
 
 @pytest.mark.njoy
 def test_njoy_process_suffixes():
     """Test njoy.process for acer at different temperatures"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
     pendftape = "pendf"
-    input, inputs, outputs = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, broadr=False, gaspr=False,
+    input = sandy.njoy.process(endftape, pendftape="pendf", dryrun=True, broadr=False, gaspr=False,
                                thermr=False, acer=True, purr=False, heatr=False, keep_pendf=False,
                                temperatures=[300, 600.0000, 900.001], suffixes=["01", "02", "06"])
     text = """moder
@@ -457,21 +420,13 @@ acer
 /
 stop"""
     assert input == text
-    assert inputs['tape20'] == endftape
-    assert inputs['tape99'] == pendftape
-    assert outputs['tape50'] == '2003.01c'
-    assert outputs['tape70'] == '2003.01c.xsd'
-    assert outputs['tape51'] == '2003.02c'
-    assert outputs['tape71'] == '2003.02c.xsd'
-    assert outputs['tape52'] == '2003.06c'
-    assert outputs['tape72'] == '2003.06c.xsd'
 
 @pytest.mark.njoy
 def test_njoy_process_sig0():
     """Test njoy.process for different sig0"""
     endftape = os.path.join(os.path.dirname(__file__), "data", "n-002_He_003.endf")
     pendftape = "pendf"
-    (input, inputs, outputs) = sandy.njoy.process(endftape, pendftape=pendftape, \
+    input = sandy.njoy.process(endftape, pendftape=pendftape, \
                                                 dryrun=True, broadr=False, gaspr=False, \
                                                 thermr=False, acer=False, purr=True, \
                                                 heatr=False, keep_pendf=False, \
@@ -488,9 +443,6 @@ purr
 0 /
 stop"""
     assert input == text
-    assert inputs['tape20'] == endftape
-    assert inputs['tape99'] == pendftape
-    assert not outputs
 
 @pytest.mark.njoy
 @pytest.mark.njoy_exe
