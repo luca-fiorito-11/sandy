@@ -6,11 +6,6 @@ import logging
 
 __author__ = "Luca Fiorito"
 
-extensions = [
-        Extension(name='rwf',
-                  sources=[os.path.join(*['fortran', 'rwfortran.f'])]
-                  ),
-        ]
 keywords = ['uncertainty', 'nuclear data', 'covariance', 'sampling', 'ENDF-6']
 requirements = "requirements.txt"
 
