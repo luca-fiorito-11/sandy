@@ -1,16 +1,8 @@
-from setuptools import find_packages
-from numpy.distutils.core import setup, Extension
+from numpy.distutils.core import setup
 import os
-import sys
-import logging
 
 __author__ = "Luca Fiorito"
 
-extensions = [
-        Extension(name='rwf',
-                  sources=[os.path.join(*['fortran', 'rwfortran.f'])]
-                  ),
-        ]
 keywords = ['uncertainty', 'nuclear data', 'covariance', 'sampling', 'ENDF-6']
 requirements = "requirements.txt"
 
@@ -26,26 +18,16 @@ setup(
           'Programming Language :: Python :: 3',
           ],
       keywords=", ".join(keywords),
-      # packages = find_packages(),
       data_files=[(x[0], list(map(lambda y: x[0]+'/'+y, x[2]))) for x in os.walk('sandy')],
       install_requires=open(requirements).read().splitlines(),
       zip_safe=False,
-      # setup_requires=["pytest-runner",],
       tests_require=[
           "pytest",
           ],
       include_package_data=True,
-      ext_modules=extensions,
       entry_points={
           'console_scripts': [
               'sandy=sandy.sampling:run',
               ],
           },
       )
-
-#import sandy
-#
-#try:
-#    sandy.get_njoy()
-#except sandy.SandyError:
-#    logging.warning("env variable 'NJOY' is not assigned. SANDY might not behave as expected.")

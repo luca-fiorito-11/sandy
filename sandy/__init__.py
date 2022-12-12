@@ -1,7 +1,6 @@
 import logging
 import sys
 
-from .formats import read_formatted_file
 from .settings import *
 from .constants import *
 from .decay import *
