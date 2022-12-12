@@ -57,6 +57,7 @@ PATTERN_ADENSITY = re.compile("^\s+Density\s+\(at/\(b\*cm\)\)\s+(?P<data>.*?)$",
 PATTERN_TEMPERATURE = re.compile("^\s+Temperature\s+\(K\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
 PATTERN_SOURCE = re.compile("^\s+Source strength\s+\(part/s\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
 PATTERN_NFLUX = re.compile("^\s+Neutron flux\s+\(n/\(cm2\*s\)\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_HFLUX = re.compile("^\s+Proton flux\s+\(h/\(cm2\*s\)\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
 PATTERN_POWER = re.compile("^\s+Thermal power\s+\(MW\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
 PATTERN_BURNUP = re.compile("^\s+Fuel burnup\s+\(MWd/kg HM\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
 PATTERN_TOTBURNUP = re.compile("^\s+Total burnup \(MWd/kg HM\):\s+(?P<data>.*?)$", flags=re.MULTILINE)
@@ -782,7 +783,17 @@ def parse_materials_output(text):
                 ),
             "total_fissions": total_fissions,
             })
+        if PATTERN_HFLUX.search(v):
+            hflux = _search_pattern_flist(v, PATTERN_HFLUX)
+            material.update({
+            "proton_flux": pd.Series(
+                hflux,
+                index=time,
+                name="proton flux [h/cm2/s]",
+                ),
+            })
         materials[mat_number] = material
+        
     return AlephMaterials(materials)
 
 
