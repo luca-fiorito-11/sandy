@@ -42,6 +42,7 @@ table_footer = "^\s+Total"
 PATTERN_TIMEKEFF = re.compile("\s+Global neutronics parameters\n\s+\-+\n\s+Time\s+\((?P<unit>[a-z]+)\)\s+(?P<data>.*?)\n")
 PATTERN_BURNUP = re.compile("^\sFuel burnup \(MWd/kg HM\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
 PATTERN_KEFF = re.compile("^\s+Keff  eff. mult. factor\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_KEFF_NPS = re.compile("^\s+Keff estimate NPS problem\s+(?P<data>.*?)$", flags=re.MULTILINE)
 PATTERN_DKEFF = re.compile("^\s+Relative std. deviation\s+(?P<data>.*?)$", flags=re.MULTILINE)
 
 PATTERN_MAT_BEGIN = re.compile("\s+Irradiated materials\n\s+\-{20}")
@@ -198,6 +199,8 @@ class OutputFile():
         """
         summary =  self.summary
         match = PATTERN_KEFF.search(summary)
+        if not match:
+            match = PATTERN_KEFF_NPS.search(summary)
         data = match.group("data")
         keff = np.array([float(x) for x in data.split()])
         match = PATTERN_DKEFF.search(summary)
