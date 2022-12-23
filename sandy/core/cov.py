@@ -4,7 +4,6 @@ import numpy as np
 import scipy
 import scipy.linalg
 import scipy.sparse as sps
-import scipy.sparse.linalg as spsl
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -423,7 +422,7 @@ class CategoryCov():
         Real test on H1 file
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> ek = sandy.energy_grids.CASMO12
-        >>> err = endf6.get_errorr(ek_errorr=ek, err=1)
+        >>> err = endf6.get_errorr(errorr_kws=dict(ek=ek), err=1)["errorr33"]
         >>> cov = err.get_cov()
         >>> cov.get_eig()[0].sort_values(ascending=False).head(7)
         0    3.66411e-01
@@ -511,7 +510,7 @@ class CategoryCov():
         >>> np.testing.assert_array_equal(sandy.CategoryCov(c.invert()).invert(), c.data)
         
         Test on real ND covariance. With previous implementation this test failed.
-        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, mt=[102]).get_cov(multigroup=False)
+        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, errorr_kws=dict(mt=102))["errorr33"].get_cov(multigroup=False)
         >>> cinv = c.invert()
         >>> np.testing.assert_array_almost_equal(c.data, np.linalg.pinv(cinv, hermitian=True))
         >>> assert (cinv.index == c.data.index).all()
@@ -526,7 +525,7 @@ class CategoryCov():
     def _double_invert(self):
         """
         Test method get a covariance matrix without negative eigs.
-        BEcause of the properties of pinv, this should be equivalent to
+        Because of the properties of pinv, this should be equivalent to
         reconstructing the matrix as `V @ E @ V^T`, where `V` are the
         eigenvectors and `E` are truncated eigenvalues.
 
@@ -536,7 +535,7 @@ class CategoryCov():
             inverse of the inverted matrix
 
         Test on real ND covariance.
-        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, mt=[102]).get_cov(multigroup=False)
+        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, errorr_kws=dict(mt=102))["errorr33"].get_cov(multigroup=False)
         >>> c2 = c._double_invert()
         >>> np.testing.assert_array_almost_equal(c.data, c2.data)
         >>> assert (c2.data.index == c.data.index).all()
@@ -656,7 +655,7 @@ class CategoryCov():
         return np.log(mu_**2 / np.sqrt(np.diag(self.data) + mu_**2))
 
     def sampling(self, nsmp, seed=None, rows=None, pdf='normal',
-                 tolerance=None, relative=True):
+                 tolerance=0, relative=True):
         """
         Extract perturbation coefficients according to chosen distribution with
         covariance from given covariance matrix. See note for non-normal

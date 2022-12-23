@@ -1,77 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Outline
-=======
-1. Summary_
-2. Examples_
-3. Routines_
-
-.. _Summary:
-
-Summary
-=======
-This module contains template inputs for NJOY routines and functions to run them.
-
-Two major functions `process` and `process_protons` are provided to process nuclear data 
-files with NJOY into ACE format, respectively for fast neutron-induced and proton-induced 
-nuclear data.
-
-Given any nuclear data evaluation file for incident neutrons (fast, not SAB) function `process` 
-generates the correspoding ACE filea for a given set of temperatures (one file per temperature).
-If no keyword argument is provided, function `process` runs with default options, which include 
-NJOY routines RECONR, BROADR, THERMR, HEATR, GASPR, PURR, ACER.
-Keyword arguments can be changed to add/remove NJOY routines using `True/False` flags, or to change 
-a routine's input parameters.
-
-Major default parmameters:
-
-+------------------+-----------------------------------------------------------+------------------------------+ 
-| Parameter        | Value                                                     | Description                  |
-+==================+===========================================================+==============================+
-| err              | `0.001`                                                   | xs reconstruction tolerance  |
-+------------------+-----------------------------------------------------------+------------------------------+ 
-| temperatures     | `[293.6]`                                                 | `list` of temperatures (K)   |
-+------------------+-----------------------------------------------------------+------------------------------+ 
-| bins             | `20`                                                      | # probability bins (PURR)    |
-+------------------+-----------------------------------------------------------+------------------------------+ 
-| ladders          | `32`                                                      | # resonance ladders (PURR)   |
-+------------------+-----------------------------------------------------------+------------------------------+ 
-| iprint           | `False`                                                   | output verbosity             |
-+------------------+-----------------------------------------------------------+------------------------------+ 
-| kermas           | `[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447]` | `list` of KERMA factors (MT) |
-+------------------+-----------------------------------------------------------+------------------------------+ 
-
-.. _Examples:
-
-Examples
-========
-
-Extract njoy executable
------------------------
-
-#>>> import sandy
-#>>> exe = sandy.get_njoy()
-
-It raises an error if the system environment variable `NJOY` is not set.
-
-Default njoy processing of a neutron file
------------------------------------------
-Process a ENDF-6 neutron file "my_file.endf6" using NJOY with default options
-
-#>>> import sandy.njoy
-#>>> endftape = "my_file.endf6"
-#>>> input, inputs, outputs = sandy.njoy.process(endftape)
-
-
-.. _Routines:
-
-Routines
-========
-
-* get_njoy
-* process
-* process_proton
-"""
 
 import os
 from os.path import join
@@ -79,17 +5,20 @@ import shutil
 import re
 import logging
 import pdb
-import tempfile
+from tempfile import TemporaryDirectory
 import subprocess as sp
 
 import pandas as pd
 import numpy as np
 
 import sandy
-from sandy.settings import SandyError
 
 __author__ = "Luca Fiorito"
-__all__ = ["process", "process_proton", "get_njoy"]
+__all__ = [
+    "process_neutron",
+    "process_proton",
+    "get_njoy",
+    ]
 
 sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [42,125,0,8,221,'tol'],
@@ -139,16 +68,9 @@ tmp2ext = {
     1300: "13",
     1400: "14",
     1500: "15",
-    1600: "16",
-    1700: "17",
     1800: "18",
-    1900: "19",
-    2000: "20",
     2100: "21",
-    2200: "22",
-    2300: "23",
     2400: "24",
-    2500: "25",
     }
 
 tmp2ext_meta = {
@@ -175,10 +97,7 @@ tmp2ext_meta = {
     1500: "52",
     1800: "53",
     2100: "54",
-    2200: "56",
-    2300: "57",
-    2400: "58",
-    2500: "59",
+    2400: "55",
     }
 
 
@@ -196,51 +115,117 @@ def get_njoy():
     -------
     `string`
         njoy executable
-
-    Raises
-    ------
-    `SandyError`
-        if environment variable `NJOY` is not assigned
     """
-    if "NJOY" in os.environ:
-        exe = os.environ["NJOY"]
-    else:
-        raise ValueError("environment variable 'NJOY' is not assigned")
-    return exe
+    return os.environ["NJOY"]
 
 
-def get_suffix(temp, meta, method=None):
+def get_temperature_suffix(temperature, meta=False):
     """
     Determine suffix saccording to temperature value.
+    The following table is used, in line with the ALEPH manual.
+    
+    |                  |   EXT |   META |
+    |:-----------------|------:|-------:|
+    | [275.0, 325.0)   |    03 |     31 |
+    | [325.0, 375.0)   |    35 |     32 |
+    | [375.0, 425.0)   |    04 |     33 |
+    | [425.0, 475.0)   |    45 |     34 |
+    | [475.0, 525.0)   |    05 |     36 |
+    | [525.0, 575.0)   |    55 |     37 |
+    | [575.0, 625.0)   |    06 |     38 |
+    | [625.0, 675.0)   |    65 |     39 |
+    | [675.0, 725.0)   |    07 |     40 |
+    | [725.0, 775.0)   |    75 |     41 |
+    | [775.0, 825.0)   |    08 |     42 |
+    | [825.0, 875.0)   |    85 |     43 |
+    | [875.0, 925.0)   |    09 |     44 |
+    | [925.0, 975.0)   |    95 |     46 |
+    | [975.0, 1050.0)  |    10 |     47 |
+    | [1050.0, 1150.0) |    11 |     48 |
+    | [1150.0, 1250.0) |    12 |     49 |
+    | [1250.0, 1350.0) |    13 |     50 |
+    | [1350.0, 1450.0) |    14 |     51 |
+    | [1450.0, 1650.0) |    15 |     52 |
+    | [1650.0, 1950.0) |    18 |     53 |
+    | [1950.0, 2250.0) |    21 |     54 |
 
+    If temperature is outside the interval range given above, suffix `'00'` is
+    returned.
+    If temperature is 293.6 K, suffix `'02'` and `'30'` are returned
+    respectively for ground and meta states.
+    
     Parameters
     ----------
-    temp : `float`
+    temperature : `float`
         processing temperature
-    meta : `int`
-        metastate number
-    method : `str`, optional, default `None`
-        use `method="aleph"` to treat metastate extensions using ALEPH rules
-
-    Raise
-    -----
-    `ValueError`
-        if extension was not found for given temperature
+    meta : `bool`, optional, default is `True`
+        `True` if metastable (any), `False` if ground level
 
     Returns
     -------
     `str`
         suffix
+
+    Examples
+    -------- 
+    Test temperatures outside range
+    >>> assert get_temperature_suffix(3000, True) == get_temperature_suffix(3000, False)
+    >>> assert get_temperature_suffix(3000, True) == get_temperature_suffix(0, True)
+    >>> assert get_temperature_suffix(3000, True) == get_temperature_suffix(0, False)
+    
+    Test reference ALEPH temperatures for ground and meta states
+    >>> for k, v in sandy.njoy.tmp2ext.items():
+    ...    assert v == get_temperature_suffix(k)
+    ...    assert v == get_temperature_suffix(k, 0)
+
+    >>> for k, v in sandy.njoy.tmp2ext_meta.items():
+    ...    assert v == get_temperature_suffix(k, meta=True)
+    ...    assert v == get_temperature_suffix(k, 1)
+    ...    assert v == get_temperature_suffix(k, 2)
     """
-    dct = tmp2ext_meta if meta and method == "aleph" else tmp2ext
-    if temp in dct:
-        temp_in_dict = temp
+    closed = "left"
+    
+    if temperature == 293.6:
+        return "30" if meta else "02"
+
+    # Up to 1000 K temperatures are split every 50 degrees.
+    splitter = 50
+    idx = pd.IntervalIndex.from_breaks(np.arange(300-splitter/2, 1000+splitter/2, splitter).tolist() + [(1100+1000)/2], closed=closed)
+    suffix1 = pd.DataFrame({
+        "EXT": ["03", "35", "04", "45", "05", "55", "06", "65", "07", "75", "08", "85", "09", "95", "10"],
+        "META": ["31", "32", "33", "34", "36", "37", "38", "39", "40", "41", "42", "43", "44", "46", "47"],
+    }, index=idx)
+
+    # Between 1000 K and 1500 K temperatures are split every 100 degrees.
+    splitter = 100
+    idx = pd.IntervalIndex.from_breaks(np.arange(1100-splitter/2, 1500+splitter/2, splitter).tolist() + [(1800+1500)/2], closed=closed)
+    suffix2 = pd.DataFrame({
+        "EXT": ["11", "12", "13", "14", "15"],
+        "META": ["48", "49", "50", "51", "52"],
+    }, index=idx)
+    suffix = pd.concat([suffix1, suffix2])
+
+    # Between 1500 K and 2400 K temperatures are split every 300 degrees.
+    splitter = 300
+    idx = pd.IntervalIndex.from_breaks(np.arange(1800-splitter/2, 2400+splitter/2, splitter).tolist() + [2400+splitter/2], closed=closed)
+    suffix3 = pd.DataFrame({
+        "EXT": ["18", "21", "24"],
+        "META": ["53", "54", "55"],
+    }, index=idx)
+
+    suffix = pd.concat([suffix1, suffix2, suffix3])
+    
+    mask = suffix.index.contains(temperature)
+    if suffix[mask].empty:
+        suff = "00"
+        msg = f"extension '{suffix}' will be used for temperature '{temperature}'"
+        logging.warning(msg)
     else:
-        splitter = 50 if temp < 1000 else 100
-        temp_in_dict = int(round(temp / splitter) * splitter)
-    if temp_in_dict not in dct:
-        raise ValueError(f"extension was not found for temperature '{temp}'")
-    return dct[temp_in_dict]
+        if meta:
+            suff = suffix[mask].META.squeeze()
+        else:
+            suff = suffix[mask].EXT.squeeze()
+    return suff
 
 
 def _moder_input(nin, nout, **kwargs):
@@ -279,10 +264,10 @@ def _reconr_input(endfin, pendfout, mat,
         tape number for output PENDF file
     mat : `int`
         MAT number
-    header : `str`
-        file header (default is "sandy runs njoy")
     err : `float`
         tolerance (default is 0.001)
+    header : `str`
+        file header (default is "sandy runs njoy")
 
     Returns
     -------
@@ -315,10 +300,10 @@ def _broadr_input(endfin, pendfin, pendfout, mat,
         tape number for output PENDF file
     mat : `int`
         MAT number
-    temperatures : iterable of `float`
-        iterable of temperature values in K (default is 293.6 K)
     err : `float`
         tolerance (default is 0.001)
+    temperatures : iterable of `float`
+        iterable of temperature values in K (default is 293.6 K)
 
     Returns
     -------
@@ -535,10 +520,10 @@ def _heatr_input(endfin, pendfin, pendfout, mat, pks,
 
 
 def _acer_input(endfin, pendfin, aceout, dirout, mat,
-                temp=NJOY_TEMPERATURES[0],
+                temperature=NJOY_TEMPERATURES[0],
                 iprint=False,
                 itype=1,
-                suff=".00",
+                suffix=".00",
                 header="sandy runs acer",
                 photons=True,
                 **kwargs):
@@ -557,21 +542,19 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
         tape number for output ACE file
     mat : `int`
         MAT number
-    temp : `float`
-        temperature in K (default is 293.6 K)
-    local : `bool`
-        option to deposit gamma rays locally (default is `False`)
+    header : `str`
+        descriptive character string of max. 70 characters
+        (default is "sandy runs acer")
     iprint : `bool`
         print option (default is `False`)
     itype : `int`
         ace output type: 1, 2, or 3 (default is 1)
-    suff : `str`
-        id suffix for zaid (default is ".00")
-    header : `str`
-        descriptive character string of max. 70 characters
-        (default is "sandy runs acer")
     photons : `bool`
         detailed photons (default is `True`)
+    suffix : `str`
+        id suffix for zaid (default is ".00")
+    temperature : `float`
+        temperature in K (default is 293.6 K)
 
     Returns
     -------
@@ -581,9 +564,9 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
     text = ["acer"]
     text += [f"{endfin:d} {pendfin:d} 0 {aceout:d} {dirout:d} /"]
     printflag = int(iprint)
-    text += [f"1 {printflag:d} {itype:d} {suff} 0 /"]
+    text += [f"1 {printflag:d} {itype:d} {suffix} 0 /"]
     text += [f"'{header}'/"]
-    text += [f"{mat:d} {temp:.1f} /"]
+    text += [f"{mat:d} {temperature:.1f} /"]
     photonsflag = int(photons)
     text += [f"1 {photonsflag:d} /"]
     text += ["/"]
@@ -591,10 +574,10 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 
 
 def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
-                  ign_errorr=2, ek_errorr=None, spectrum_errorr=None,
-                  iwt_errorr=2, relative=True,
+                  ign=2, ek=None, spectrum=None,
+                  iwt=2, relative=True,
                   mt=None, irespr=1,
-                  temp=NJOY_TEMPERATURES[0], mfcov=33,
+                  temperature=NJOY_TEMPERATURES[0], mfcov=33,
                   iprint=False,
                   **kwargs):
     """
@@ -612,32 +595,40 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         tape number for output ERRORR file
     mat : `int`
         MAT number
-    ek_errorr : iterable, optional
+    ek : iterable, optional
         derived cross section energy bounds (default is None)
-    ign_errorr : `int`, optional
+    ign : `int`, optional
         neutron group option (default is 2, csewg 239-group structure)
+
+        .. note:: this parameter will not be used if keyword argument
+                  `ek` is provided.
+
     iprint : `bool`, optional
         print option (default is `False`)
     irespr: `int`, optional
         processing for resonance parameter covariances
         (default is 1, 1% sensitivity method)
-    iwt_errorr : `int`, optional
+    iwt : `int`, optional
         weight function option (default is 2, constant)
-        
+
         .. note:: this parameter will not be used if keyword argument
-                  `spect` is provided
+                  `spect` is provided.
 
     relative: `bool`
         use relative covariance form (default is `True`)
-    temp : `float`, optional
-        temperature in K (default is 293.6 K)
     mfcov : `int`
         endf covariance file to be processed (default is 33)
-    mt: `int` or iterable of `int`, optional
+    mt : `int` or iterable of `int`, optional
         run errorr only for the selected mt numbers
         (default is `None`, i.e., process all MT)
-    spectrum_errorr : iterable, optional
+
+        .. note:: this parameter will not be used if keyword argument
+                  `mfcov!=33`.
+
+    spectrum : iterable, optional
         weight function (default is `None`)
+    temperature : `float`, optional
+        temperature in K (default is 293.6 K)
 
     Returns
     -------
@@ -654,24 +645,24 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 293.6 /
     0 33 1/
 
-    Test argument `temp`
-    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9440, temp=600))
+    Test argument `temperature`
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9440, temperature=600))
     errorr
     20 21 0 22 0 /
     9440 2 2 0 1 /
     0 600.0 /
     0 33 1/
 
-    Test argument `iwt_errorr`
-    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, iwt_errorr=6))
+    Test argument `iwt`
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, iwt=6))
     errorr
     20 21 0 22 0 /
     9237 2 6 0 1 /
     0 293.6 /
     0 33 1/
 
-    Test argument `ek_errorr`
-    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, ek_errorr=[1e-2, 1e3, 2e5]))
+    Test argument `ek`
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, ek=[1e-2, 1e3, 2e5]))
     errorr
     20 21 0 22 0 /
     9237 1 2 0 1 /
@@ -680,8 +671,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     2 /
     1.00000e-02 1.00000e+03 2.00000e+05 /
 
-    Test argument `ign_errorr`
-    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, ign_errorr=3))
+    Test argument `ign`
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, ign=3))
     errorr
     20 21 0 22 0 /
     9237 3 2 0 1 /
@@ -711,14 +702,6 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     9237 2 2 0 1 /
     0 293.6 /
     0 35 1/
-
-    Test radioactive nuclide production
-    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=40))
-    errorr
-    20 21 0 22 0 /
-    9237 2 2 0 1 /
-    0 293.6 /
-    0 40 1/
 
     Test keyword `relative`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, relative=False))
@@ -757,14 +740,14 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     2 /    
     """
     irelco = 0 if relative is False else 1
-    iread = 1 if mt is not None else 0 
-    iwt_ = 1 if spectrum_errorr is not None else iwt_errorr
-    ign_ = 1 if ek_errorr is not None else ign_errorr
+    iread = 1 if (mt is not None and mfcov == 33) else 0
+    iwt_ = 1 if spectrum is not None else iwt
+    ign_ = 1 if ek is not None else ign
     text = ["errorr"]
     text += [f"{endfin:d} {pendfin:d} {gendfin:d} {errorrout:d} 0 /"]
     printflag = int(iprint)
     text += [f"{mat:d} {ign_:d} {iwt_:d} {printflag:d} {irelco} /"]
-    text += [f"{printflag:d} {temp:.1f} /"]
+    text += [f"{printflag:d} {temperature:.1f} /"]
     text += [f"{iread:d} {mfcov} {irespr:d}/"]
     if iread == 1:  # only specific mts
         mtlist = [mt] if isinstance(mt, int) else mt
@@ -772,27 +755,27 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         text += [f"{nmt:d} 0 /"]
         text += [" ".join(map(str, mtlist)) + " /"]
     if ign_ == 1:
-        nk = len(ek_errorr) - 1
+        nk = len(ek) - 1
         text += [f"{nk} /"]
-        text += [" ".join(map("{:.5e}".format, ek_errorr)) + " /"]
+        text += [" ".join(map("{:.5e}".format, ek)) + " /"]
     if iwt_ == 1:
         INT = 1               # constant interpolation
-        NBT = int(len(spectrum_errorr) / 2)  # only 1 interpolation group
+        NBT = int(len(spectrum) / 2)  # only 1 interpolation group
         tab1 = "\n".join(sandy.write_tab1(0, 0, 0, 0, [NBT], [INT],
-                                          spectrum_errorr[::2],
-                                          spectrum_errorr[1::2]))
+                                          spectrum[::2],
+                                          spectrum[1::2]))
         text += [tab1]
         text += ["/"]
     return "\n".join(text) + "\n"
 
 
 def _groupr_input(endfin, pendfin, gendfout, mat,
-                  ign_groupr=2, ek_groupr=None, igg=0, ep=None,
-                  iwt_groupr=2, lord=0, sigz=[1e+10],
-                  temp=NJOY_TEMPERATURES[0],
-                  spectrum_groupr=None, mt=None,
-                  iprint=False, nubar=False, mubar=False, chi=False,
-                  nuclide_production=False,
+                  ign=2, ek=None, igg=0, ep=None,
+                  iwt=2, lord=0, sigz=[1e+10],
+                  temperature=NJOY_TEMPERATURES[0],
+                  spectrum=None, mt=None,
+                  iprint=False,
+                  mubar=False, chi=False, nubar=False,
                   **kwargs):
     """
     Write GROUPR input
@@ -809,21 +792,21 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         MAT number
     chi : `bool`, optional
         Process chi (default is `False`)
-    ek_groupr : iterable, optional
+    ek : iterable, optional
         derived cross section energy bounds (default is None)
     ep : iterable, optional
         derived gamma cross section energy bounds (default is None)
     igg : `int`, optional
         gamma group option (default is 0, no structure)
-    ign_groupr : `int`, optional
+    ign : `int`, optional
         neutron group option (default is 2, csewg 239-group structure)
     iprint : `bool`, optional
         print option (default is `False`)
-    iwt_groupr : `int`, optional
+    iwt : `int`, optional
         weight function option (default is 2, constant)
         
         .. note:: this parameter will not be used if keyword argument
-                  `spect` is provided
+                  `spectrum` is provided
 
     lord : `int`, optional
         Legendre order (default is 0)
@@ -838,9 +821,9 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         process MF10 (default is `False`)
     sigz : iterable of `float`
         sigma zero values (he default is 1.0e10)
-    spectrum_groupr : iterable, optional
+    spectrum : iterable, optional
         weight function (default is `None`)
-    temp : iterable of `float`
+    temperature : iterable of `float`
         iterable of temperature values in K (default is 293.6 K)
 
     Returns
@@ -862,8 +845,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    Test argument `temp`
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9440, temp=600))
+    Test argument `temperature`
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9440, temperature=600))
     groupr
     20 21 0 22 /
     9440 2 0 2 0 1 1 0 /
@@ -874,8 +857,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    Test argument `iwt_groupr`
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, iwt_groupr=6))
+    Test argument `iwt`
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, iwt=6))
     groupr
     20 21 0 22 /
     9237 2 0 6 0 1 1 0 /
@@ -886,8 +869,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    Test argument `ign_groupr`
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, ign_groupr=3))
+    Test argument `ign`
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, ign=3))
     groupr
     20 21 0 22 /
     9237 3 0 2 0 1 1 0 /
@@ -910,8 +893,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
     
-    Test argument `ek_groupr`
-    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ek_groupr=[1e-2, 1e3, 2e5]))
+    Test argument `ek`
+    >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ek=[1e-2, 1e3, 2e5]))
     groupr
     20 21 0 0 /
     22 1 0 2 0 1 1 0 /
@@ -959,7 +942,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     293.6/
     10000000000.0/
     3/
-    3 251 'mubar' /
+    3 251 /
     0/
     0/
 
@@ -973,20 +956,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     10000000000.0/
     3/
     5/
-    5 18 'chi' /
-    0/
-    0/
-
-    Test radioactive nuclide production:
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, nuclide_production=True))
-    groupr
-    20 21 0 22 /
-    9237 2 0 2 0 1 1 0 /
-    'sandy runs groupr' /
-    293.6/
-    10000000000.0/
-    3/
-    10/
+    5 18 /
     0/
     0/
 
@@ -1015,52 +985,56 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/       
     """
-    iwt_ = 1 if spectrum_groupr is not None else iwt_groupr
-    ign_ = 1 if ek_groupr is not None else ign_groupr
+    iwt_ = 1 if spectrum is not None else iwt
+    ign_ = 1 if ek is not None else ign
     igg_ = 1 if ep is not None else igg
+    sigzlist = sigz if hasattr(sigz, "__len__") else [sigz]
     text = ["groupr"]
     text += [f"{endfin:d} {pendfin:d} 0 {gendfout:d} /"]
-    nsigz = len(sigz)
+    nsigz = len(sigzlist)
     printflag = int(iprint)
     text += [f"{mat:d} {ign_:d} {igg_:d} {iwt_:d} {lord:d} 1 {nsigz:d} {printflag:d} /"]
     text += ["'sandy runs groupr' /"]  # run label
-    text += [f"{temp:.1f}/"]
-    text += [" ".join(map("{:.1f}".format, sigz)) + "/"]
+    text += [f"{temperature:.1f}/"]
+    text += [" ".join(map("{:.1f}".format, sigzlist)) + "/"]
     if ign_ == 1:
-        nk = len(ek_groupr) - 1
+        nk = len(ek) - 1
         text += [f"{nk} /"]
-        text += [" ".join(map("{:.5e}".format, ek_groupr)) + " /"]
+        text += [" ".join(map("{:.5e}".format, ek)) + " /"]
     if igg_ == 1:
         pk = len(ep) - 1
         text += [f"{pk} /"]
         text += [" ".join(map("{:.5e}".format, ep)) + " /"]
     if iwt_ == 1:
         INT = 1               # constant interpolation
-        NBT = int(len(spectrum_groupr) / 2)  # only 1 interpolation group
+        NBT = int(len(spectrum) / 2)  # only 1 interpolation group
         tab1 = "\n".join(sandy.write_tab1(0, 0, 0, 0, [NBT], [INT],
-                                          spectrum_groupr[::2],
-                                          spectrum_groupr[1::2]))
+                                          spectrum[::2],
+                                          spectrum[1::2]))
         text += [tab1]
         text += ["/"]
+
     if mt is None:
         text += ["3/"]  # by default process all cross sections (MF=3)
     else:
-        mtlist = [mt] if isinstance(mt, int) else mt
+        mtlist = mt if hasattr(mt, "__len__") else [mt]
         for mt_ in mtlist:
             text += [f"3 {mt_:d} /"]
+    if nubar:
+        text += [f"3 452 /"]
+        text += [f"3 455 /"]
+        text += [f"3 456 /"]
     if mubar:
-        text += ["3 251 'mubar' /"]
+        text += [f"3 251 /"]
     if chi:
         text += ["5/"]
-        text += ["5 18 'chi' /"]
-    if nuclide_production:
-        text += ["10/"]
-    text += ["0/"]  # terimnate list of reactions for this material
+        text += ["5 18 /"]
+    text += ["0/"]  # terminate list of reactions for this material
     text += ["0/"]  # terminate materials (only 1 allowed)
     return "\n".join(text) + "\n"
 
 
-def _run_njoy(text, inputs, outputs, exe=None):
+def _run_njoy(text, endf, pendf=None, exe=None):
     """
     Run njoy executable for given input.
 
@@ -1077,13 +1051,12 @@ def _run_njoy(text, inputs, outputs, exe=None):
     """
     if exe is None:
         exe = get_njoy()
-    logging.debug("Use NJOY executable '{}'".format(exe))
     stdout = stderr = None
     stdin = text.encode()
-    with tempfile.TemporaryDirectory() as tmpdir:
-        logging.debug("Create temporary directory '{}'".format(tmpdir))
-        for tape, src in inputs.items():
-            shutil.copy(src, os.path.join(tmpdir, tape))
+    with TemporaryDirectory() as tmpdir:
+        shutil.copy(endf, os.path.join(tmpdir, "tape20"))
+        if pendf:
+            shutil.copy(pendf, os.path.join(tmpdir, "tape99"))
         process = sp.Popen(exe,
                            shell=True,
                            cwd=tmpdir,
@@ -1096,60 +1069,75 @@ def _run_njoy(text, inputs, outputs, exe=None):
         retrn = process.returncode
         if retrn != 0:
             msg = f"process status={retrn}, cannot run njoy executable"
-            raise SandyError(msg)
-        for tape, dst in outputs.items():
-            path = os.path.split(dst)[0]
-            if path:
-                os.makedirs(path, exist_ok=True)
-            shutil.move(os.path.join(tmpdir, tape), dst)
+            raise ValueError(msg)
+
+        # Move outputs
+        tapes = {
+            30: "pendf",
+            40: "gendf",
+            31: "errorr31",
+            33: "errorr33",
+            34: "errorr34",
+            35: "errorr35",
+            }
+        outputs = {}
+        for k, v in tapes.items():
+            out = os.path.join(tmpdir, f"tape{k}")
+            if os.path.exists(out):
+                with open(out, mode="r") as f:
+                    outputs[v] = f.read()
+        text = ""
+        for k in range(50, 70):
+            out = os.path.join(tmpdir, f"tape{k}")
+            if os.path.exists(out):
+                with open(out, mode="r") as f:
+                    text += f.read()
+        if text:
+            outputs["ace"] = text
+        text = ""
+        for k in range(70, 90):
+            out = os.path.join(tmpdir, f"tape{k}")
+            if os.path.exists(out):
+                with open(out, mode="r") as f:
+                    text += f.read()
+        if text:
+            outputs["xsdir"] = text
+        return outputs
 
 
-def process(
-        endftape,
-        pendftape=None,
-        kermas=[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447],
-        temperatures=[293.6],
-        suffixes=None,
+def _prepare_njoy_input(
+        mat, temperatures, suffixes,
+        acer=True,
         broadr=True,
+        gaspr=True,
+        groupr=False,
+        heatr=True,
+        purr=True,
+        reconr=True,
         thermr=True,
         unresr=False,
-        heatr=True,
-        gaspr=True,
-        purr=True,
-        errorr=False,
-        groupr=False,
-        acer=True,
-        wdir="",
-        dryrun=False,
-        tag="",
-        method=None,
-        exe=None,
-        keep_pendf=True,
-        route="0",
-        addpath=None,
-        verbose=False,
+        errorr33=False,
+        errorr31=False,
+        errorr34=False,
+        errorr35=False,
+        acer_kws={},
+        broadr_kws={},
+        gaspr_kws={},
+        groupr_kws={},
+        heatr_kws={},
+        purr_kws={},
+        reconr_kws={},
+        thermr_kws={},
+        unresr_kws={},
+        errorr31_kws={},
+        errorr33_kws={},
+        errorr34_kws={},
+        errorr35_kws={},
         **kwargs,
         ):
     """
-    Run sequence to process file with njoy.
-
     Parameters
     ----------
-    pendftape : `str`, optional, default is `None`
-        name (with absolute of relative path) of a pendf file.
-        If given, skip module reconr and use this PENDF file, else run reconr
-    kermas : iterable of `int`, optional, default is
-             `[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447]`
-        MT numbers for partial kermas to pass to heatr.
-        .. note:: `MT=301` is the KERMA total (energy balance) and is
-                  always calculated
-    temperatures : iterable of `float`, optional, default is [293.6]
-        iterable of temperature values in K
-    suffixes : iterable of `int`, optional, default is `None`
-        iterable of suffix values for ACE files: if `None` is given,
-        use internal routine to determine suffixes
-        .. warning:: `suffixes` must match the number of entries in
-        `temperatures`
     broadr : `bool`, optional, default is `True`
         option to run module broadr
     thermr : `bool`, optional, default is `True`
@@ -1168,219 +1156,207 @@ def process(
         option to run module errorr
     acer : `bool`, optional, default is `True`
         option to run module acer
-    wdir : `str`, optional, default is `""`
-        working directory (absolute or relative) where all output files are
-        saved
-        .. note:: `wdir` will appear as part of the `filename` in any
-        `xsdir` file if `addpath` is not set
-    addpath : `str`, optional, default is `None`
-        path to add in xsdir, by default use `wdir`
+
+    Notes
+    -----
+    .. note:: the four calls to NJOY module ERRORR (for MF31, MF33, MF34
+              and MF35) are treated as if four different NJOY modules were
+              to be run.
+    """
+    
+    e = 21
+    p = e + 1
+    text = _moder_input(20, -e)
+
+    # this part produces a single PENDF file
+    if reconr:
+        text += _reconr_input(-e, -p,
+                              mat=mat, temperatures=temperatures,
+                              **reconr_kws)
+    else:
+        text += _moder_input(99, -p)
+    if broadr:
+        o = p + 1
+        text += _broadr_input(-e, -p, -o,
+                              mat=mat, temperatures=temperatures,
+                              **broadr_kws)
+        p = o
+    if thermr:
+        o = p + 1
+        text += _thermr_input(0, -p, -o,
+                              mat=mat, temperatures=temperatures,
+                              **thermr_kws)
+        p = o
+    if unresr:
+        o = p + 1
+        text += _unresr_input(-e, -p, -o,
+                              mat=mat, temperatures=temperatures,
+                              **unresr_kws)
+        p = o
+    if heatr:
+        kermas=[302, 303, 304, 318, 402, 442, 443, 444, 445, 446, 447]
+        for i in range(0, len(kermas), 7):
+            o = p + 1
+            pks = kermas[i:i+7]
+            text += _heatr_input(-e, -p, -o,
+                                 mat=mat, temperatures=temperatures, pks=pks,
+                                 **heatr_kws)
+            p = o
+    if gaspr:
+        o = p + 1
+        text += _gaspr_input(-e, -p, -o,
+                             mat=mat, temperatures=temperatures,
+                             **gaspr_kws)
+        p = o
+    if purr:
+        o = p + 1
+        text += _purr_input(-e, -p, -o,
+                            mat=mat, temperatures=temperatures,
+                            **purr_kws)
+        p = o
+    o = 30
+    text += _moder_input(-p, o)
+    
+    # this part produces a single GENDF file
+    if errorr31 or errorr34 or errorr35:
+        groupr_ = True  # groupr is needed by ERRORR31, 34 and 35
+    else:
+        groupr_ = groupr
+    if groupr_:
+        if len(temperatures) > 1:
+            logging.info("Multiple temperatures were requested.\nGROUPR will only process the first.")
+        temperature = temperatures[0]
+        g = 39
+        text += _groupr_input(-e, -p, -g, 
+                              mat=mat, temperature=temperature,
+                              **groupr_kws)
+        o = 40
+        text += _moder_input(-g, o)
+
+    # this part produces a maximimum of four ERRORR files, one per data type
+    if errorr33 or errorr31 or errorr34 or errorr35:
+        if len(temperatures) > 1:
+            logging.info("Multiple temperatures were requested.\nERRORR will only process the first.")
+        temperature = temperatures[0]
+    if errorr33:
+        # ERRORR for xs never uses a GENDF file
+        o = errorr33_kws["mfcov"] = 33
+#        text += _errorr_input(-e, -p, 0, o,
+        text += _errorr_input(-e, 0, -g, o,
+                              mat=mat, temperature=temperature,
+                              **errorr33_kws)
+    if errorr31:
+        o = errorr31_kws["mfcov"] = 31
+        text += _errorr_input(-e, 0, -g, o,
+                              mat=mat, temperature=temperature,
+                              **errorr31_kws)
+    # NJOY's errorr module WILL produce a MF35 covariance tape
+    # if the errorr module called before the errorr call to produce a MF34
+    if errorr35:
+        o = errorr35_kws["mfcov"] = 35
+        text += _errorr_input(-e, 0, -g, o,
+                              mat=mat, temperature=temperature,
+                              **errorr35_kws)
+    if errorr34:
+        o = errorr34_kws["mfcov"] = 34
+        text += _errorr_input(-e, 0, -g, o,
+                              mat=mat, temperature=temperature,
+                              **errorr34_kws)
+
+    # this part produces multiple ACE files (one per temperature)
+    if acer:
+        for i, (temperature, suffix) in enumerate(zip(temperatures, suffixes)):
+            a = 50 + i
+            x = 70 + i
+            text += _acer_input(-e, -p, a, x,
+                                mat=mat, temperature=temperature, suffix=suffix,
+                                **acer_kws)
+    text += "stop"
+    return text
+
+
+def process_neutron(
+        endftape,
+        temperatures,
+        pendftape=None,
+        suffixes=None,
+        zaid="nndc",
+        route="0",
+        exe=None,
+        verbose=True,
+        dryrun=False,
+        **kwargs,
+        ):
+    """
+    Run sequence to process file with njoy.
+
+    Parameters
+    ----------
+    pendftape : `str`, optional, default is `None`
+        name (with absolute of relative path) of a pendf file.
+        If given, skip module reconr and use this PENDF file, else run reconr
+    temperatures : iterable of `float`, optional, default is [293.6]
+        iterable of temperature values in K
     dryrun : `bool`, optional, default is `False`
         option to produce the njoy input file without running njoy
-    tag : `str`, optional, default is `""`
-        tag to append to each output filename before the extension
-        (default is `None`)
-        .. hint:: to process JEFF-3.3 files you could set `tag = "_j33"`
     exe : `str`, optional, default is `None`
         njoy executable (with path)
         .. note:: if no executable is given, SANDY looks for a default
                   executable in `PATH` and in env variable `NJOY`
-    keep_pendf : `bool`, optional, default is `True`
-        save output PENDF file
     route : `str`, optional, default is `0`
         xsdir "route" parameter
+    suffixes : iterable of `int`, optional, default is `None`
+        iterable of suffix values for ACE files: if `None` is given,
+        use internal routine to determine suffixes
+        
+        .. warning :: `suffixes` must match the number of entries in
+                     `temperatures`
+
     verbose : `bool`, optional, default is `False`
         flag to print NJOY input to screen before running the executable
 
     Returns
     -------
-    input : `str`
-        njoy input text
-    inputs : `map`
-        map of {`tape` : `file`) for input files
     outputs : `map`
-        map of {`tape` : `file`) for ouptut files
+        map of {`tape` : `text`) for ouptut files
     """
     tape = sandy.Endf6.from_file(endftape)
     mat = tape.mat[0]
     info = tape.read_section(mat, 1, 451)
-    meta = info["LISO"]
     za = int(info["ZA"])
-    zam = za*10 + meta
-    za_new = za + meta*100 + 300 if meta else za
-    outprefix = zam if method == "aleph" else za_new
-    inputs = {}
-    outputs = {}
-    # Only kwargs are passed to NJOY inputs, then add temperatures and mat
-    kwargs.update({
-        "temperatures": temperatures,
-        "mat": mat,
-        })
-    # Check input args
-    if not suffixes:
-        suffixes = [get_suffix(temp, meta, method) for temp in temperatures]
-    if len(suffixes) != len(temperatures):
-        msg = "number of suffixes must match number of temperatures"
-        raise ValueError(msg)
-    inputs["tape20"] = endftape
-    e = 21
-    p = e + 1
-    text = _moder_input(20, -e)
-    if pendftape:
-        inputs["tape99"] = pendftape
-        text += _moder_input(99, -p)
+    meta = info["LISO"]
+
+    kwargs["reconr"] = False if pendftape else True
+
+    # Prepare njoy input
+    temperatures_ = temperatures if hasattr(temperatures, "__len__") else [temperatures]
+    if suffixes:
+        suffixes_ = suffixes if hasattr(suffixes, "__len__") else [suffixes]
     else:
-        text += _reconr_input(-e, -p, **kwargs)
-    if broadr:
-        o = p + 1
-        text += _broadr_input(-e, -p, -o, **kwargs)
-        p = o
-    if thermr:
-        o = p + 1
-        text += _thermr_input(0, -p, -o, **kwargs)
-        p = o
-    if unresr:
-        o = p + 1
-        text += _unresr_input(-e, -p, -o, **kwargs)
-        p = o
-    if heatr:
-        for i in range(0, len(kermas), 7):
-            o = p + 1
-            kwargs["pks"] = kermas[i:i+7]
-            text += _heatr_input(-e, -p, -o, **kwargs)
-            p = o
-    if gaspr:
-        o = p + 1
-        text += _gaspr_input(-e, -p, -o, **kwargs)
-        p = o
-    if purr:
-        o = p + 1
-        text += _purr_input(-e, -p, -o, **kwargs)
-        p = o
-    if keep_pendf:
-        o = 30
-        text += _moder_input(-p, o)
-        outputs[f"tape{o}"] = join(
-            wdir,
-            f"{outprefix}{tag}.pendf",
-            )
-    if groupr and errorr is False:
-        for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
-            kwargs["temp"] = temp
-            kwargs["suff"] = suff = f".{suff}"
-            g = o + 1 + i
-            text += _groupr_input(-e, -p, -g, **kwargs)
-            o = 32 + i
-            text += _moder_input(-g, o)
-            outputs[f"tape{o}"] = join(
-                wdir,
-                f"{outprefix}{tag}{suff}.gendf",
-                )
-    if errorr:
-        g = p+1
-        p_ = 0 if groupr else p
-        g_ = g if groupr else 0
-        outputs = {}
-        for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
-            kwargs["temp"] = temp
-            kwargs["suff"] = suff = f".{suff}"
-            if groupr:
-                text += _groupr_input(-e, -p, -g_, **kwargs)
-            if kwargs['nubar']:
-                o = 31 + i * 5
-                kwargs['mfcov'] = mfcov = 31
-                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
-                outputs[f"tape{o}"] = join(
-                    wdir,
-                    f"{outprefix}{tag}{suff}_{mfcov}.errorr",
-                    )
-            if kwargs['xs']:
-                o = 33 + i * 5
-                kwargs['mfcov'] = mfcov = 33
-                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
-                outputs[f"tape{o}"] = join(
-                    wdir,
-                    f"{outprefix}{tag}{suff}_{mfcov}.errorr",
-                    )
-            # NJOY's errorr module WILL produce a MF35 covariance tape
-            # if the errorr module called before the errorr call to produce a MF34
-            if kwargs['chi']:
-                o = 35 + i * 5
-                kwargs['mfcov'] = mfcov = 35
-                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
-                outputs[f"tape{o}"] = join(
-                    wdir,
-                    f"{outprefix}{tag}{suff}_{mfcov}.errorr",
-                    )
-            if kwargs['mubar']:
-                o = 34 + i * 5
-                kwargs['mfcov'] = mfcov = 34
-                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
-                outputs[f"tape{o}"] = join(
-                    wdir,
-                    f"{outprefix}{tag}{suff}_{mfcov}.errorr",
-                    )
-    if acer:
-        for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
-            a = 50 + i
-            x = 70 + i
-            kwargs["temp"] = temp
-            kwargs["suff"] = suff = f".{suff}"
-            text += _acer_input(-e, -p, a, x, **kwargs)
-            outputs[f"tape{a}"] = join(
-                wdir,
-                f"{outprefix}{tag}{suff}c",
-                )
-            outputs[f"tape{x}"] = join(
-                wdir,
-                f"{outprefix}{tag}{suff}c.xsd",
-                )
-    text += "stop"
-    # stop here if a dryrun is requested
+        meta_ = 0 if zaid == "nndc" else meta
+        suffixes_ = ["." + get_temperature_suffix(t, meta_) for t in temperatures_]
+    text = _prepare_njoy_input(mat, temperatures_, suffixes_, **kwargs)
     if verbose:
         print(text)
+
+    # Run njoy
     if dryrun:
         return text
-
-    _run_njoy(text, inputs, outputs, exe=exe)
-    if acer:
-        # Change route and filename in xsdir file.
-        for i, (temp, suff) in enumerate(zip(temperatures, suffixes)):
-            a = 50 + i
-            x = 70 + i
-            acefile = outputs["tape{}".format(a)]
-            if addpath is None:
-                filename = acefile
-            else:
-                filename = os.path.basename(acefile)
-                if addpath:
-                    filename = os.path.join(addpath, filename)
-            xsdfile = outputs["tape{}".format(x)]
-            text_xsd = open(xsdfile).read() \
-                                    .replace("route", route) \
-                                    .replace("filename", filename)
-            text_xsd = " ".join(text_xsd.split())
-            # If isotope is metatable rewrite ZA in xsdir and ace as
-            # ZA = Z*1000 + 300 + A + META*100.
-            if meta and method != "aleph":
-                pattern = f'{za:d}' + '\.(?P<ext>\d{2}[ct])'
-                found = re.search(pattern, text_xsd)
-                ext = found.group("ext")
-                text_xsd = text_xsd.replace(
-                    f"{za:d}.{ext}",
-                    f"{za_new:d}.{ext}",
-                    1,
-                    )
-                text_ace = open(acefile).read().replace(
-                    f"{za:d}.{ext}",
-                    f"{za_new:d}.{ext}",
-                    1,
-                    )
-                with open(acefile, 'w') as f:
-                    f.write(text_ace)
-            with open(xsdfile, 'w') as f:
-                f.write(text_xsd)
-    return text, inputs, outputs
+    outputs = _run_njoy(text, endftape, pendftape, exe=exe)
+    
+    # Minimal output post-processing
+    if "xsdir" in outputs:
+        outputs["xsdir"] = outputs["xsdir"].replace("route", route)
+    if zaid == "nndc":
+        za_new = sandy.zam.zam2za(za*10 + meta, method=zaid)[0]
+        for s in suffixes_:
+            pattern = f"{za}{s}[c]"
+            new_pattern = f"{za_new}{s}c"
+            if "xsdir" in outputs:
+                outputs["xsdir"] = re.sub(pattern, new_pattern, outputs["xsdir"])
+            if "acer" in outputs:
+                outputs["acer"] = re.sub(pattern, new_pattern, outputs["acer"])
+    return outputs
 
 
 def process_proton(

@@ -434,6 +434,63 @@ class Xs():
                 frame[mat,mt] = xs
         return Xs(frame).reconstruct_sums()
 
+    def perturb(self, s):
+        """
+        Apply perturbations to cross sections.
+
+        Parameters
+        ----------
+        s : `pd.DataFrame`
+            input perturbations or samples. Index and columns must have the
+            same names and be the same type as in `self.data`.
+
+        Returns
+        -------
+        xs : :func:`~Xs`
+            perturbed cross section object.
+
+        Examples
+        --------
+        >>> index = pd.IntervalIndex.from_breaks([1e-5, 3e7], name="E", closed="right")
+        >>> columns = pd.MultiIndex.from_product([[9437], [2, 4]], names=["MAT", "MT"])
+        >>> s = pd.DataFrame(1, index=index, columns=columns)
+        >>> xp = xs.perturb(s)
+        >>> assert xp.data.equals(xs.data)
+        
+        >>> s = pd.DataFrame([[1, 2]], index=index, columns=columns)
+        >>> xp = xs.perturb(s)
+        >>> assert not xp.data.equals(xs.data)
+        >>> assert xp.data.loc[:, xp.data.columns != (9437, 4)].equals(xp.data.loc[:, xs.data.columns != (9437, 4)])
+        >>> assert xp.data[(9437, 4)].equals(xs.data[(9437, 4)] * 2)
+        
+        >>> index = pd.IntervalIndex.from_breaks([1e-5, 2e7], name="E", closed="right")
+        >>> columns = pd.MultiIndex.from_product([[9437], [2, 4]], names=["MAT", "MT"])
+        >>> s = pd.DataFrame([[1, 2]], index=index, columns=columns)
+        >>> xp = xs.perturb(s)
+        >>> assert not xp.data.equals(xs.data)
+        >>> assert xp.data.loc[:, xp.data.columns != (9437, 4)].equals(xp.data.loc[:, xs.data.columns != (9437, 4)])
+        >>> assert xp.data.loc[:2e7, (9437, 4)].equals(xs.data.loc[:2e7, (9437, 4)] * 2)
+        >>> assert xp.data.loc[2e7:, (9437, 4)].iloc[1:].equals(xs.data.loc[2e7:, (9437, 4)].iloc[1:])
+        """
+        x = self.data
+        
+        # reshape indices (energy)
+        idx = s.index.get_indexer(x.index)
+        # need to copy, or else it returns a view
+        # seed https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+        s_ = s.iloc[idx].copy()
+        s_.index = x.index
+        s_.loc[idx < 0, :] = 1.  # idx = -1 indicates out of range lines
+
+        # reshape columns (MAT and MT)
+        idx = s_.columns.get_indexer(x.columns)
+        s_ = s_.iloc[:, idx]
+        s_.columns = x.columns
+        s_.loc[:, idx < 0] = 1.  # idx = -1 indicates out of range lines
+        
+        xs = self.__class__(s_ * x)
+        return xs
+
     @classmethod
     def _from_errorr(cls, errorr):
         """

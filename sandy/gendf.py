@@ -6,15 +6,15 @@ from sandy.core.endf6 import _FormattedFile
 
 __author__ = "Luca Fiorito"
 __all__ = [
-        "Groupr",
+        "Gendf",
         ]
 
 pd.options.display.float_format = '{:.5e}'.format
 
 
-class Groupr(_FormattedFile):
+class Gendf(_FormattedFile):
     """
-    Container for groupr information grouped by MAT, MF and MT numbers.
+    Container for gendf information grouped by MAT, MF and MT numbers.
     """
 
     def get_n_energy_grid(self, **kwargs):
@@ -24,21 +24,18 @@ class Groupr(_FormattedFile):
         Returns
         -------
         `np.array`
-            The energy grid of the `sandy.Groupr` object.
+            The energy grid of the :func:`~sandy.Gendf` object.
 
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> groupr = endf6.get_gendf(verborse=True)
-        >>> len(groupr.get_n_energy_grid())
-        241
+        >>> gendf = endf6.get_gendf(verborse=True)
+        >>> assert len(gendf.get_n_energy_grid()) == 241
 
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> groupr = endf6.get_gendf(verborse=True, ek_groupr=sandy.energy_grids.CASMO12)
-        >>> groupr.get_n_energy_grid()
-        array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
-               3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
-               8.2100e+05, 2.2310e+06, 1.0000e+07])
+        >>> gendf = endf6.get_gendf(groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
+        >>> np.testing.assert_allclose(gendf.get_n_energy_grid(), sandy.energy_grids.CASMO12, atol=1e-14, rtol=1e-14)
+        >>> np.testing.assert_allclose(gendf.get_n_energy_grid(mat=125), sandy.energy_grids.CASMO12, atol=1e-14, rtol=1e-14)
         """
         mat_ = kwargs.get('mat', self.mat[0])
         mf1 = read_mf1(self, mat_)
@@ -51,21 +48,14 @@ class Groupr(_FormattedFile):
         Returns
         -------
         `np.array`
-            The energy grid of the `sandy.Gendf` object.
+            The energy grid of the :func:`~sandy.Gendf` object.
 
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> groupr = endf6.get_gendf(verborse=True, ep=sandy.energy_grids.CASMO12)
-        >>> groupr.get_g_energy_grid()
-        array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
-               3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
-               8.2100e+05, 2.2310e+06, 1.0000e+07])
-
-        >>> groupr.get_g_energy_grid(mat=125)
-        array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
-               3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
-               8.2100e+05, 2.2310e+06, 1.0000e+07])
+        >>> gendf = endf6.get_gendf(groupr_kws=dict(ep=sandy.energy_grids.CASMO12))
+        >>> np.testing.assert_allclose(gendf.get_g_energy_grid(), sandy.energy_grids.CASMO12, atol=1e-14, rtol=1e-14)
+        >>> np.testing.assert_allclose(gendf.get_g_energy_grid(mat=125), sandy.energy_grids.CASMO12, atol=1e-14, rtol=1e-14)
         """
         mat_ = kwargs.get('mat', self.mat[0])
         mf1 = read_mf1(self, mat_)
@@ -77,31 +67,31 @@ class Groupr(_FormattedFile):
 
         Returns
         -------
-        xs : `sandy.Xs`
+        xs : :func:`~sandy.Xs`
             multigroup cross sections
 
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> groupr = endf6.get_gendf(verborse=True, ek_groupr=sandy.energy_grids.CASMO12)
-        >>> groupr.get_xs()
-        MAT                     125                        
-        MT                      1           2           102
-        E                                                          
-        (1e-05, 0.03]           4.74500e+01 4.68507e+01 5.99276e-01
-        (0.03, 0.058]           2.66592e+01 2.64039e+01 2.55277e-01
-        (0.058, 0.14]           2.33852e+01 2.32133e+01 1.71860e-01
-        (0.14, 0.28]            2.18356e+01 2.17186e+01 1.17013e-01
-        (0.28, 0.35]            2.13559e+01 2.12616e+01 9.43025e-02
-        (0.35, 0.625]           2.10611e+01 2.09845e+01 7.66054e-02
-        (0.625, 4.0]            2.06169e+01 2.05790e+01 3.79424e-02
-        (4.0, 48.052]           2.04594e+01 2.04475e+01 1.18527e-02
-        (48.052, 5530.0]        2.00729e+01 2.00716e+01 1.28270e-03
-        (5530.0, 821000.0]      8.05819e+00 8.05812e+00 6.41591e-05
-        (821000.0, 2231000.0]   3.48869e+00 3.48866e+00 3.54245e-05
-        (2231000.0, 10000000.0] 1.52409e+00 1.52406e+00 3.44005e-05
+        >>> gendf = endf6.get_gendf(minimal_processing=True, err=0.005, temperature=293.6, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
+        >>> gendf.get_xs()
+        MAT                             125
+        MT                              1           2           102         251
+        E
+        (1e-05, 0.03]           4.74500e+01 4.68507e+01 5.99276e-01 6.67348e-01
+        (0.03, 0.058]           2.66592e+01 2.64039e+01 2.55277e-01 6.67289e-01
+        (0.058, 0.14]           2.33852e+01 2.32133e+01 1.71860e-01 6.67323e-01
+        (0.14, 0.28]            2.18356e+01 2.17186e+01 1.17013e-01 6.67259e-01
+        (0.28, 0.35]            2.13559e+01 2.12616e+01 9.43025e-02 6.67231e-01
+        (0.35, 0.625]           2.10611e+01 2.09845e+01 7.66054e-02 6.67220e-01
+        (0.625, 4.0]            2.06169e+01 2.05790e+01 3.79424e-02 6.67215e-01
+        (4.0, 48.052]           2.04594e+01 2.04475e+01 1.18527e-02 6.67220e-01
+        (48.052, 5530.0]        2.00729e+01 2.00716e+01 1.28270e-03 6.67237e-01
+        (5530.0, 821000.0]      8.05819e+00 8.05812e+00 6.41591e-05 6.67120e-01
+        (821000.0, 2231000.0]   3.48869e+00 3.48866e+00 3.54245e-05 6.66838e-01
+        (2231000.0, 10000000.0] 1.52409e+00 1.52406e+00 3.44005e-05 6.65044e-01
 
-        >>> groupr.get_xs(mt=1)
+        >>> gendf.get_xs(mt=1)
         MAT                             125
         MT                                1
         E                                  
@@ -118,7 +108,7 @@ class Groupr(_FormattedFile):
         (821000.0, 2231000.0]   3.48869e+00
         (2231000.0, 10000000.0] 1.52409e+00
 
-        >>> groupr.get_xs(mt=[1, 2])
+        >>> gendf.get_xs(mt=[1, 2])
         MAT                             125            
         MT                                1           2
         E                                              
@@ -135,9 +125,10 @@ class Groupr(_FormattedFile):
         (821000.0, 2231000.0]   3.48869e+00 3.48866e+00
         (2231000.0, 10000000.0] 1.52409e+00 1.52406e+00
 
+        `err=1` or else it takes too long
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922350)
-        >>> groupr = endf6.get_gendf(ek_groupr=sandy.energy_grids.CASMO12)
-        >>> groupr.get_xs(mt=[4, 5])
+        >>> gendf = endf6.get_gendf(minimal_processing=True, err=1, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
+        >>> gendf.get_xs(mt=[4, 5])
         MAT                            9228            
         MT                                4           5
         E                                              
@@ -165,7 +156,7 @@ class Groupr(_FormattedFile):
         for mat, mf, mt in self.filter_by(listmf=[3],
                                           listmt=listmt_,
                                           listmat=listmat_).data:
-            mf3 = sandy.groupr.read_mf3(self, mat, mt)
+            mf3 = sandy.gendf.read_mf3(self, mat, mt)
             lowest_range = mf3["GROUPS"][0]["IG"] - 1
             xs = np.array([x["DATA"][1].tolist() for x in mf3["GROUPS"]])
             xs = np.insert(xs, [0]*lowest_range, 0) if lowest_range != 0 else xs
@@ -188,8 +179,8 @@ class Groupr(_FormattedFile):
         Examples
         --------
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> groupr = endf6.get_gendf(verborse=True, ek_groupr=sandy.energy_grids.CASMO12)
-        >>> groupr.get_flux()
+        >>> gendf = endf6.get_gendf(minimal_processing=True, err=1, temperature=293.6, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
+        >>> gendf.get_flux()
         (1e-05, 0.03]             2.99900e-02
         (0.03, 0.058]             2.80000e-02
         (0.058, 0.14]             8.20000e-02
@@ -204,7 +195,7 @@ class Groupr(_FormattedFile):
         (2231000.0, 10000000.0]   7.76900e+06
         Name: iwt, dtype: float64
 
-        >>> groupr.get_flux(mat=125, mt=2)
+        >>> gendf.get_flux(mat=125, mt=2)
         (1e-05, 0.03]             2.99900e-02
         (0.03, 0.058]             2.80000e-02
         (0.058, 0.14]             8.20000e-02
@@ -238,7 +229,7 @@ def read_mf1(tape, mat):
 
     Parameters
     ----------
-    tape : `sandy.Errorr`
+    tape : :func:`~sandy.Gendf`
         endf6 object containing requested section
     mat : `int`
         MAT number
@@ -253,8 +244,8 @@ def read_mf1(tape, mat):
     Examples
     --------
     >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-    >>> groupr = endf6.get_gendf(verborse=True, ek_groupr=sandy.energy_grids.CASMO12)
-    >>> mf1 = sandy.groupr.read_mf1(groupr, 125)
+    >>> gendf = endf6.get_gendf(groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
+    >>> mf1 = sandy.gendf.read_mf1(gendf, 125)
     >>> mf1['AWR'] = round(mf1['AWR'], 3)
     >>> mf1
     {'MAT': 125,
@@ -263,7 +254,7 @@ def read_mf1(tape, mat):
      'ZA': 1001.0,
      'AWR': 0.999,
      'LRP': -1,
-     'TEMPIN': 293.6,
+     'TEMPIN': 0.0,
      'TITLE': [0.0],
      'SIGZ': [10000000000.0],
      'EGN': array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
@@ -310,7 +301,7 @@ def read_mf3(tape, mat, mt):
 
     Parameters
     ----------
-    tape : `sandy.Errorr`
+    tape : :func:`~sandy.Gendf`
         endf6 object containing requested section
     mat : `int`
         MAT number
@@ -325,8 +316,8 @@ def read_mf3(tape, mat, mt):
     Examples
     --------
     >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-    >>> groupr = endf6.get_gendf(verborse=True, ek_groupr=sandy.energy_grids.CASMO12)
-    >>> sandy.groupr.read_mf3(groupr, 125, 1)['GROUPS'][0]
+    >>> gendf = endf6.get_gendf(temperature=293.6, err=0.005, minimal_processing=True, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
+    >>> sandy.gendf.read_mf3(gendf, 125, 1)['GROUPS'][0]
     {'TEMPIN': 293.6,
      'NG2': 2,
      'IG2LO': 1,

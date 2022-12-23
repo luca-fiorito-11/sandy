@@ -7,7 +7,7 @@ from .constants import *
 from .decay import *
 from .energy_grids import *
 from .errorr import *
-from .groupr import *
+from .gendf import *
 from .fy import *
 from .tsl import *
 from .gls import *
@@ -23,6 +23,7 @@ from .shared import *
 from .utils import *
 from .core import *
 from .sampling import *
+from .spectra import *
 import sandy.mcnp
 import sandy.aleph2
 import sandy.tools

@@ -15,11 +15,21 @@ pd.options.display.float_format = '{:.5e}'.format
 class Errorr(_FormattedFile):
     """
     Container for ERRORR file text grouped by MAT, MF and MT numbers.
+    
+    Methods
+    -------
+    get_cov
+        Extract mulitgroup covariance matrix.
+    get_energy_grid
+        Extract breaks of multi-group energy grid from ERRORR output file.
+    get_xs
+        Extract multigroup xs values.
     """
 
     def get_energy_grid(self, **kwargs):
         """
-        Obtaining the energy grid.
+                Extract breaks of multi-group energy grid from ERRORR
+                output file.
 
         Parameters
         ----------
@@ -33,17 +43,11 @@ class Errorr(_FormattedFile):
 
         Examples
         --------
-        >>> endf6_2 = sandy.get_endf6_file("jeff_33", "xs", 942410)
-        >>> err = endf6_2.get_errorr(ek_errorr=sandy.energy_grids.CASMO12, err=1, ek_groupr=sandy.energy_grids.CASMO12)
-        >>> err.get_energy_grid()
-        array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
-               3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
-               8.2100e+05, 2.2310e+06, 1.0000e+07])
-
-        >>> err.get_energy_grid(mat=9443)
-        array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
-               3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
-               8.2100e+05, 2.2310e+06, 1.0000e+07])
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> ek = sandy.energy_grids.CASMO12
+        >>> err = e6.get_errorr(errorr_kws=dict(ek=ek), err=1)['errorr33']
+        >>> np.testing.assert_allclose(err.get_energy_grid(), ek, atol=1e-14, rtol=1e-14)
+        >>> np.testing.assert_allclose(err.get_energy_grid(mat=125), ek, atol=1e-14, rtol=1e-14)
         """
         mat_ = kwargs.get('mat', self.mat[0])
         mf1 = read_mf1(self, mat_)
@@ -51,7 +55,7 @@ class Errorr(_FormattedFile):
 
     def get_xs(self, **kwargs):
         """
-        Obtain the xs values across the energy grid.
+        Extract multigroup xs values.
 
         Returns
         -------
@@ -60,8 +64,9 @@ class Errorr(_FormattedFile):
 
         Examples
         --------
-        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> err = endf6.get_errorr(ek_errorr=sandy.energy_grids.CASMO12, err=1)
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> ek = sandy.energy_grids.CASMO12
+        >>> err = e6.get_errorr(err=1, errorr_kws=dict(ek=ek))['errorr33']
         >>> err.get_xs()
         MAT                     125                        
         MT                      1           2           102
@@ -143,9 +148,10 @@ class Errorr(_FormattedFile):
 
         Examples
         --------
-        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> err = endf6.get_errorr(ek_errorr=[1e-2, 1e1, 2e7], err=1)
-        >>> err.get_cov().data
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1)['errorr33']
+        >>> datamg = err.get_cov().data
+        >>> datamg
 		MAT1	                   125
         MT1	                       1	                            2	                                102
                 E1	               (0.01, 10.0]	(10.0, 20000000.0]	(0.01, 10.0]	(10.0, 20000000.0]	(0.01, 10.0]	(10.0, 20000000.0]
@@ -157,20 +163,15 @@ class Errorr(_FormattedFile):
             102	      (0.01, 10.0]	1.07035e-06	       7.58742e-09	 0.00000e+00	       0.00000e+00	6.51764e-04	           3.40163e-04
                 (10.0, 20000000.0]	5.58627e-07	       1.49541e-06	 0.00000e+00	       0.00000e+00	3.40163e-04	           6.70431e-02
 
-        >>> err.get_cov(multigroup=False).data
-                MAT1    125
-                MT1	    1	                                2	                                102
-                E1	    1.00000e-02	1.00000e+01	2.00000e+07	1.00000e-02	1.00000e+01	2.00000e+07	1.00000e-02	1.00000e+01	2.00000e+07
-        MAT	 MT	E									
-        125	  1	        1.00000e-02	8.74838e-06	4.62556e-05	0.00000e+00	8.76101e-06	4.62566e-05	0.00000e+00	1.07035e-06	5.58627e-07	0.00000e+00
-                        1.00000e+01	4.62556e-05	2.47644e-04	0.00000e+00	4.63317e-05	2.47650e-04	0.00000e+00	7.58742e-09	1.49541e-06	0.00000e+00
-                        2.00000e+07	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
-              2	        1.00000e-02	8.76101e-06	4.63317e-05	0.00000e+00	8.77542e-06	4.63327e-05	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
-                        1.00000e+01	4.62566e-05	2.47650e-04	0.00000e+00	4.63327e-05	2.47655e-04	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
-                        2.00000e+07	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00
-            102	        1.00000e-02	1.07035e-06	7.58742e-09	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	6.51764e-04	3.40163e-04	0.00000e+00
-                        1.00000e+01	5.58627e-07	1.49541e-06	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	3.40163e-04	6.70431e-02	0.00000e+00
-                        2.00000e+07	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00   
+        >>> data = err.get_cov(multigroup=False).data
+        >>> np.testing.assert_array_equal(
+        ...     data.index.get_level_values("E").unique()[:-1],
+        ...     datamg.index.get_level_values("E").left.unique(),
+        ... )
+        >>> np.testing.assert_array_equal(
+        ...     data.index.get_level_values("E").unique()[1:],
+        ...     datamg.index.get_level_values("E").right.unique(),
+        ... )
         """
         eg = self.get_energy_grid()
         if multigroup:
@@ -207,14 +208,14 @@ def read_mf1(tape, mat):
     """
     Parse MAT/MF=1/MT=451 section from `sandy.Errorr` object and return
     structured content in nested dcitionaries.
+
     Parameters
     ----------
     tape : `sandy.Errorr`
         endf6 object containing requested section
     mat : `int`
         MAT number
-    mt : `int`
-        MT number
+
     Returns
     -------
     out : `dict`
@@ -248,6 +249,7 @@ def read_mf3(tape, mat, mt):
     """
     Parse MAT/MF=33/MT section from `sandy.Errorr` object and return
     structured content in nested dcitionaries.
+
     Parameters
     ----------
     tape : `sandy.Errorr`
@@ -256,6 +258,7 @@ def read_mf3(tape, mat, mt):
         MAT number
     mt : `int`
         MT number
+
     Returns
     -------
     out : `dict`
@@ -281,6 +284,7 @@ def read_mf33(tape, mat, mt):
     """
     Parse MAT/MF=33/MT section from `sandy.Errorr` object and return
     structured content in nested dcitionaries.
+
     Parameters
     ----------
     tape : `sandy.Errorr`
@@ -289,6 +293,7 @@ def read_mf33(tape, mat, mt):
         MAT number
     mt : `int`
         MT number
+
     Returns
     -------
     out : `dict`
