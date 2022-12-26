@@ -136,7 +136,7 @@ class Errorr(_FormattedFile):
         data = pd.concat(data, axis=1).fillna(0)
         return sandy.Xs(data)
 
-    def get_cov(self, multigroup=True):
+    def get_cov(self, multigroup=True, mt=None):
         """
         Extract cross section/nubar covariance from `Errorr` instance.
 
@@ -176,21 +176,27 @@ class Errorr(_FormattedFile):
         eg = self.get_energy_grid()
         if multigroup:
             eg = pd.IntervalIndex.from_breaks(eg)
+
         data = []
-        for mat, mf, mt in self.filter_by(listmf=[31, 33]).data:
-            mf33 = sandy.errorr.read_mf33(self, mat, mt)
+        for mat_, mf_, mt_ in self.filter_by(listmf=[31, 33]).data:
+            if mt and mt_ not in mt:
+                continue
+            mf33 = sandy.errorr.read_mf33(self, mat_, mt_)
+
             for mt1, cov in mf33["COVS"].items():
+                if mt and mt1 not in mt:
+                    continue
                 if not multigroup:
                     # add zero row and column at the end of the matrix
                     # (this must be done for ERRORR covariance matrices)
                     cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
                     cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
                 idx = pd.MultiIndex.from_product(
-                    [[mat], [mt], eg],
+                    [[mat_], [mt_], eg],
                     names=["MAT", "MT", "E"],
                     )
                 idx1 = pd.MultiIndex.from_product(
-                    [[mat], [mt1], eg],
+                    [[mat_], [mt1], eg],
                     names=["MAT1", "MT1", "E1"],
                     )
                 df = pd.DataFrame(cov, index=idx, columns=idx1) \
@@ -199,9 +205,14 @@ class Errorr(_FormattedFile):
                        .reset_index()
                 data.append(df)
         data = pd.concat(data)
-        return sandy.CategoryCov.from_stack(data, index=["MAT", "MT", "E"],
-                                            columns=["MAT1", "MT1", "E1"],
-                                            values='VAL')
+        
+        out = sandy.CategoryCov.from_stack(
+            data,
+            index=["MAT", "MT", "E"],
+            columns=["MAT1", "MT1", "E1"],
+            values='VAL',
+            )
+        return out
 
 
 def read_mf1(tape, mat):
