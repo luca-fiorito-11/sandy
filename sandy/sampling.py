@@ -825,6 +825,7 @@ def apply_perturbations(
         endf6,
         smp,
         processes=1,
+        verbose=False,
         ):
     tape = sandy.Endf6.from_file(endf6)
     pendfs = []
@@ -833,9 +834,13 @@ def apply_perturbations(
     map33 = None
     if 33 in smp:
         pendf = tape.get_pendf(err=1, minimal_processing=True)
-        xs = sandy.Xs.from_endf6(tape)
+        xs = sandy.Xs.from_endf6(pendf)
         s = smp[33].unstack(level=[0, 1])  # levels to be defined
-        pendfs = {n: xs.perturb(p.droplevel("SMP", axis=1)).to_endf6(pendf) for n, p in s.groupby(axis=1, level="SMP")}
+        pendfs = {}
+        for n, p in s.groupby(axis=1, level="SMP"):
+            if verbose:
+                print(f"Processing sample {n}...")
+            pendfs[n] = xs.perturb(p.droplevel("SMP", axis=1))#.to_endf6(pendf)
 
     if processes > 1 and platform.system() == "Windows":
         logging.info("Running on Windows does not allow parallel processing")

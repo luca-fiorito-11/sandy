@@ -1887,7 +1887,6 @@ class Endf6(_FormattedFile):
         if errorr35 or errorr34 or errorr31:
             groupr = True
         kwargs["groupr"] = groupr
-        kwargs["groupr"] = True
 
         # Always deactivate acer
         kwargs["acer"] = False

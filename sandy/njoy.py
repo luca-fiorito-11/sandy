@@ -1222,11 +1222,11 @@ def _prepare_njoy_input(
         groupr_ = True  # groupr is needed by ERRORR31, 34 and 35
     else:
         groupr_ = groupr
+    g = 39
     if groupr_:
         if len(temperatures) > 1:
             logging.info("Multiple temperatures were requested.\nGROUPR will only process the first.")
         temperature = temperatures[0]
-        g = 39
         text += _groupr_input(-e, -p, -g, 
                               mat=mat, temperature=temperature,
                               **groupr_kws)
@@ -1241,8 +1241,9 @@ def _prepare_njoy_input(
     if errorr33:
         # ERRORR for xs never uses a GENDF file
         o = errorr33_kws["mfcov"] = 33
-#        text += _errorr_input(-e, -p, 0, o,
-        text += _errorr_input(-e, 0, -g, o,
+        p_ = 0 if groupr_ else p
+        g_ = g if groupr_ else 0
+        text += _errorr_input(-e, -p_, -g_, o,
                               mat=mat, temperature=temperature,
                               **errorr33_kws)
     if errorr31:
