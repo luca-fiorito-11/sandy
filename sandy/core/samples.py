@@ -40,6 +40,8 @@ def cov33csv(func):
 
 class Samples():
     """
+    Container for samples.
+    
     Attributes
     ----------
     condition_number
@@ -52,15 +54,13 @@ class Samples():
     filter_by
         
     from_csv
-        
-    regression_coefficients
-        
-    sm_ols
-        
+       
     """
 
-    def __init__(self, df):
-        self.data = pd.DataFrame(df, dtype=float)
+    _columnsname = "SMP"
+
+    def __init__(self, df, *args, **kwargs):
+        self.data = pd.DataFrame(df, *args, dtype=float, **kwargs)
 
     def __repr__(self):
         return self.data.__repr__()
@@ -88,7 +88,7 @@ class Samples():
 
     @data.setter
     def data(self, data):
-        self._data = data
+        self._data = data.rename_axis(self.__class__._columnsname, axis=1)
 
     @property
     def condition_number(self):
@@ -111,50 +111,23 @@ class Samples():
         eigs = np.linalg.eigvals(norm_xtx)
         return np.sqrt(eigs.max() / eigs.min())
 
-    @property
-    def mean(self):
+    def get_mean(self):
         return self.data.mean(axis=1).rename("MEAN")
 
-    @property
-    def rstd(self):
-        return (self.std / self.mean).rename("RSTD")
+    def get_cov(self):
+        return self.data.T.cov()
 
-    @property
-    def std(self):
+    def get_std(self):
         return self.data.std(axis=1).rename("STD")
 
-    def filter_by(self, key, value):
-        """
-        Apply condition to source data and return filtered results.
+    def get_rstd(self):
+        return (self.get_std() / self.get_mean()).rename("RSTD")
 
-        Parameters
-        ----------
-        `key` : `str`
-            any label present in the columns of `data`
-        `value` : `int` or `float`
-            value used as filtering condition
-
-        Returns
-        -------
-        `sandy.Samples`
-            filtered dataframe of samples
-
-        Raises
-        ------
-        `sandy.Error`
-            if applied filter returned empty dataframe
-
-        Notes
-        -----
-        .. note:: The primary function of this method is to make sure that
-                  the filtered dataframe is still returned as a `Samples`
-                  object.
-        """
-        condition = self.data.index.get_level_values(key) == value
-        out = self.data.copy()[condition]
-        if out.empty:
-            raise sandy.Error("applied filter returned empty dataframe")
-        return self.__class__(out)
+    def iterate_xs_samples(self):
+        levels = sandy.Xs._columnsnames
+        df = self.data.unstack(level=levels)
+        for n, p in df.groupby(axis=1, level=self._columnsname):
+            yield n, p.droplevel(self._columnsname, axis=1)
 
     def _std_convergence(self):
         smp = self.data
@@ -167,56 +140,6 @@ class Samples():
         rng = range(1, smp.shape[0])
         foo = lambda x: smp.loc[:x].mean()
         return pd.DataFrame(map(foo, rng), index=rng)
-
-    def _heatmap(self, vmin=-1, vmax=1, cmap="bwr", **kwargs):
-        corr = np.corrcoef(self.data)
-        return sns.heatmap(corr, vmin=vmin, vmax=vmax, cmap=cmap, **kwargs)
-
-    def sm_ols(self, Y, normalized=False, intercept=False):
-        X = self.data.T.copy()
-        NX, MX = X.shape
-        NY = Y.size
-        N = min(NX, NY)
-        if NX != NY:
-            print(f"X and Y have different size, fit only first {N} samples")
-        if normalized:
-            X = X.divide(X.mean()).fillna(0)
-            Y = Y.divide(Y.mean()).fillna(0)
-        if intercept:
-            X = sm.add_constant(X)
-        model = sm.OLS(Y.iloc[:N].values, X[:N].values)
-        out = model.fit()
-        return out
-
-    def regression_coefficients(self, Y, **kwargs):
-        """
-        Calculate regression coefficients from OLS model given an output
-        population.
-
-        Parameters
-        ----------
-        Y : `pandas.Series`
-            tabulated output population
-        kwargs : keyword arguments, optional
-            arguments to pass to method `sm_ols`
-
-        Returns
-        -------
-        `pandas.DataFrame`
-            Dataframe with regression coefficients and standard errors.
-        """
-        X = self.data
-        MX, NX = X.shape
-        index = X.index
-        res = self.sm_ols(Y, **kwargs)
-        params = res.params
-        bse = res.bse
-        start_at = 0 if params.size == MX else 1
-        coeff = pd.DataFrame({
-            "coeff": params[start_at:],
-            "stderr": bse[start_at:],
-            }, index=index)
-        return coeff
 
     @classmethod
     @cov33csv

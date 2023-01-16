@@ -33,8 +33,6 @@ __author__ = "Luca Fiorito"
 __all__ = [
         "SamplingManager",
         "sampling",
-        "get_perturbations",
-        "apply_perturbations",
         ]
 
 
@@ -777,79 +775,6 @@ def sampling_csv33(ftape, csv):
             eig=init.eig,
             seed=init.seed33
             )
-
-def get_perturbations(
-        endf6,
-        nsmp=100,
-        to_excel=None,
-        errorr_kws={},
-        **kwargs,
-        ):
-    """
-    Construct multivariate normal distributions with a unit vector for 
-    mean and with relative covariances taken from the evaluated files.
-    Perturbation factors are sampled with the same multigroup structure of 
-    the covariance matrix, and are applied to the pointwise data to produce 
-    the perturbed files.
-    """
-    smp = {}
-
-    tape = sandy.Endf6.from_file(endf6)
-    outs = tape.get_errorr(**errorr_kws)
-
-    if "errorr31" in outs:
-        smp[31] = outs["errorr31"].get_cov().sampling(nsmp).data.T
-    if "errorr33" in outs:
-        smp[33] = outs["errorr33"].get_cov().sampling(nsmp).data.T
-    if to_excel and smp:
-        with pd.ExcelWriter(to_excel) as writer:
-            for k, v in smp.items():
-                v.to_excel(writer, sheet_name=f'MF{k}')
-    return smp
-
-
-def _to_file(method):
-    def inner(
-            self,
-            to_file=False
-            **kwargs,
-            ):
-        outs = method(self, **kawrgs)
-        if to_file:
-            pass
-        return outs
-    return inner
-
-
-def apply_perturbations(
-        endf6,
-        smp,
-        processes=1,
-        verbose=False,
-        ):
-    tape = sandy.Endf6.from_file(endf6)
-    pendfs = []
-    endf6 = []
-
-    map33 = None
-    if 33 in smp:
-        pendf = tape.get_pendf(err=1, minimal_processing=True)
-        xs = sandy.Xs.from_endf6(pendf)
-        s = smp[33].unstack(level=[0, 1])  # levels to be defined
-        pendfs = {}
-        for n, p in s.groupby(axis=1, level="SMP"):
-            if verbose:
-                print(f"Processing sample {n}...")
-            pendfs[n] = xs.perturb(p.droplevel("SMP", axis=1))#.to_endf6(pendf)
-
-    if processes > 1 and platform.system() == "Windows":
-        logging.info("Running on Windows does not allow parallel processing")
-    if processes > 1:
-        raise ValueError("multiprocessing is not yet implemented")
-
-    return pendfs
-
-
 
 
 def sampling(iargs=None):

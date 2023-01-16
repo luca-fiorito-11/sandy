@@ -12,8 +12,10 @@ import logging
 from urllib.request import urlopen, Request, urlretrieve
 from zipfile import ZipFile
 import re
+import types
 import pytest
 
+import multiprocessing as mp
 import numpy as np
 import pandas as pd
 import numpy as np
@@ -1274,7 +1276,76 @@ class Endf6(_FormattedFile):
         Extract tabulated MAT, MF and MT numbers.
     read_section
         Parse MAT/MF/MT section.
+    update_intro
+        Update MF1/MT451.
     """
+
+    def update_intro(self, **kwargs):
+        """
+        Method to update MF1/MT451 of each MAT based on the file content
+        (concistency is enforced) and user-given keyword arguments.
+        
+        Parameters
+        ----------
+        **kwargs : `dict`
+            dictionary of elements to be modified in section MF1/MT451 (it
+            applies to all MAT numbers).
+
+        Returns
+        -------
+        :func:`~sandy.Endf6`
+            :func:`~sandy.Endf6` with updated MF1/MT451.
+
+        
+        Examples
+        --------
+        Check how many lines of description and how many sections are recorded
+        in a file.
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> intro = tape.read_section(125, 1, 451)
+        >>> assert len(intro["DESCRIPTION"]) == 87
+        >>> assert len(intro["SECTIONS"]) == 10
+
+        By removing sections in the `Endf6` instance, the recorded number of
+        sections does not change.
+        >>> tape2 = tape.delete_sections([(125, 33, 1), (125, 33, 2)])
+        >>> intro = tape2.read_section(125, 1, 451)
+        >>> assert len(intro["DESCRIPTION"]) == 87
+        >>> assert len(intro["SECTIONS"]) == 10
+
+        Running `updated intro` updates the recorded number of sections.
+        >>> tape2 = tape.delete_sections([(125, 33, 1), (125, 33, 2)]).update_intro()
+        >>> intro = tape2.read_section(125, 1, 451)
+        >>> assert len(intro["DESCRIPTION"]) == 87
+        >>> assert len(intro["SECTIONS"]) == 8
+
+        It can also be used to update the lines of description.
+        >>> intro = tape2.update_intro(**dict(DESCRIPTION=[" new description"])).read_section(125, 1, 451)
+        >>> print(sandy.write_mf1(intro))
+         1001.00000 9.991673-1          0          0          2          5 125 1451    1
+         0.00000000 0.00000000          0          0          0          6 125 1451    2
+         1.00000000 20000000.0          3          0         10          3 125 1451    3
+         0.00000000 0.00000000          0          0          1          8 125 1451    4
+         new description                                                   125 1451    5
+                                        1        451         13          0 125 1451    6
+                                        2        151          4          0 125 1451    7
+                                        3          1         35          0 125 1451    8
+                                        3          2         35          0 125 1451    9
+                                        3        102         35          0 125 1451   10
+                                        4          2        196          0 125 1451   11
+                                        6        102        201          0 125 1451   12
+                                       33        102         21          0 125 1451   13
+        """
+        tape = self.data.copy()
+        for mat, g in self.to_series().groupby("MAT"):
+            intro = self.read_section(mat, 1, 451)
+            intro.update(**kwargs)
+            new_records = [(mf, mt, sec.count('\n') + 1, 0) for (mat, mf, mt), sec in g.items()]
+            NWD, NXC = len(intro["DESCRIPTION"]), g.shape[0]
+            new_records[0] = (1, 451, NWD+NXC+4, 0)
+            intro["SECTIONS"] = new_records
+            tape[(mat, 1, 451)] = sandy.write_mf1(intro)
+        return self.__class__(tape)
 
     def get_nsub(self):
         """
@@ -1882,12 +1953,6 @@ class Endf6(_FormattedFile):
             errorr35=errorr35,
             ))
 
-        # Activate groupr if errorr requires multigroup data
-        groupr = kwargs.get("groupr", False)
-        if errorr35 or errorr34 or errorr31:
-            groupr = True
-        kwargs["groupr"] = groupr
-
         # Always deactivate acer
         kwargs["acer"] = False
 
@@ -1950,3 +2015,200 @@ class Endf6(_FormattedFile):
         """
         df = self.to_series().rename("TEXT").reset_index().drop("TEXT", axis=1)
         return df
+
+    def get_perturbations(
+        self,
+        nsmp,
+        to_excel=None,
+        njoy_kws={},
+        smp_kws={},
+        **kwargs,
+        ):
+        """
+        Construct multivariate distributions with a unit vector for 
+        mean and with relative covariances taken from the evaluated files
+        processed with the NJOY module ERRORR.
+
+        Perturbation factors are sampled with the same multigroup structure of 
+        the covariance matrix and are returned by nuclear datatype as a `dict`
+        of `pd.Dataframe` instances .
+
+        Parameters
+        ----------
+        nsmp : TYPE
+            DESCRIPTION.
+        to_excel : TYPE, optional
+            DESCRIPTION. The default is None.
+        njoy_kws : TYPE, optional
+            DESCRIPTION. The default is {}.
+        smp_kws : TYPE, optional
+            DESCRIPTION. The default is {}.
+        **kwargs : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        smp : TYPE
+            DESCRIPTION.
+
+        Examples
+        --------
+        Generate a couple of samples from the H1 file of JEFF-3.3.
+        >>> njoy_kws = dict(err=1, errorr_kws=dict(mt=102))
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> smps = tape.get_perturbations(nsmp=2, njoy_kws=njoy_kws)
+        >>> assert len(smps) == 1
+        >>> assert isinstance(smps[33], sandy.Samples)
+        >>> assert (smps[33].data.index.get_level_values("MT") == 102).all()
+        """
+        smp = {}
+    
+        outs = self.get_errorr(**njoy_kws)
+
+        if "errorr31" in outs:
+            smp[31] = outs["errorr31"].get_cov().sampling(nsmp, **smp_kws)
+        if "errorr33" in outs:
+            smp[33] = outs["errorr33"].get_cov().sampling(nsmp, **smp_kws)
+        if to_excel and smp:
+            with pd.ExcelWriter(to_excel) as writer:
+                for k, v in smp.items():
+                    v.to_excel(writer, sheet_name=f'MF{k}')
+        return smp
+
+    def _handle_pert_to_file(method):
+        """
+        Decorator .
+        """
+        def inner(
+                self,
+                *args,
+                to_file=None,
+                verbose=False,
+                **kwargs,
+                ):
+            """
+            
+
+            Parameters
+            ----------
+            *args : TYPE
+                DESCRIPTION.
+            to_file : TYPE, optional
+                DESCRIPTION. The default is None.
+            verbose : TYPE, optional
+                DESCRIPTION. The default is False.
+            **kwargs : TYPE
+                DESCRIPTION.
+             : TYPE
+                DESCRIPTION.
+
+            Returns
+            -------
+            TYPE
+                DESCRIPTION.
+
+            """
+            if to_file:
+                for n, e6 in method(self, *args, verbose=False, **kwargs):
+                    filename = to_file.format(SMP=n)
+                    if verbose:
+                        print(f"creating file '{filename}'...")
+                    e6.to_file(filename)
+            else:
+                return method(self, *args, verbose=verbose, **kwargs)
+
+        return inner
+
+    @_handle_pert_to_file
+    def apply_perturbations(self, smp, processes=1, **kwargs):
+        """
+        
+
+        Parameters
+        ----------
+        smp : TYPE
+            DESCRIPTION.
+        processes : TYPE, optional
+            DESCRIPTION. The default is 1.
+        **kwargs : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        Examples
+        --------
+        Get a couple of samples from H1 file of JEFF-3.3.
+        >>> njoy_kws = dict(err=1, errorr_kws=dict(mt=102))
+        >>> nsmp = 2
+        >>> smps = sandy.get_endf6_file("jeff_33", "xs", 10010).get_perturbations(nsmp=nsmp, njoy_kws=njoy_kws)
+        
+        Process PENDF file.
+        >>> pendf = sandy.get_endf6_file("jeff_33", "xs", 10010).get_pendf(minimal_processing=True)
+
+        Apply samples to xs in PENDF file.
+        >>> outs = pendf.apply_perturbations(smps[33], verbose=True)
+
+        The output is a generator.
+        >>> assert isinstance(outs, types.GeneratorType)
+        >>> outs = dict(outs)
+        Processing xs sample 0...
+        Processing xs sample 1...
+
+        We have as amany files as samples.
+        >>> assert list(outs.keys()) == list(range(nsmp))
+        
+        Assert that only perturbed xs sections are different in perturbed files.
+        >>> for mat, mf, mt in outs[0].keys:
+        ...    if mt != 102:
+        ...        assert outs[0].data[(mat, mf, mt)] == outs[1].data[(mat, mf, mt)]
+        >>> assert outs[0].data[(125, 3, 102)] != outs[1].data[(125, 3, 102)]
+
+        .. note:: the total cross section is not perturbed
+
+        Apply samples to xs in PENDF file using multiprocessing.
+        >>> outs_mp = pendf.apply_perturbations(smps[33])
+        
+        Assert that multiprocessing and singleprocessing results are identical.
+        >>> for n in outs:
+        ...    for key in outs[n].data:
+        ...        assert outs_mp[n].data[key] == outs[n].data[key]
+        """
+        if smp.data.index.names == [*sandy.Xs._columnsnames] + [sandy.Xs._indexname]:
+            if processes == 1:
+                return self._apply_xs_perturbations(smp, **kwargs)
+            else:
+                return self._mp_apply_xs_perturbations(smp, processes=processes, **kwargs)
+
+
+    def _mp_apply_xs_perturbations(self, smp, processes, verbose=False, **kwargs):
+        xs = sandy.Xs.from_endf6(self)
+        pool = mp.Pool(processes=processes)
+        seq = dict(smp.iterate_xs_samples()).items()
+        kw = dict(verbose=verbose)
+        outs = {n: pool.apply_async(endf6_xs_perturb_worker, (self, n, p, xs), kw) for n, p in seq}
+        outs = {n: out.get() for n, out in outs.items()}
+        pool.close()
+        pool.join()
+        return outs
+
+    def _apply_xs_perturbations(self, smp, **kwargs):
+        xs = sandy.Xs.from_endf6(self)
+        for n, x in xs.perturb(smp, **kwargs):
+            # instead of defining the function twice, just call the worker also here
+            yield n, endf6_perturb_worker(self, n, x)
+
+
+def endf6_perturb_worker(e6, n, xs, verbose=False):
+    if verbose:
+        print(f"Processing xs sample {n} on PID={os.getpid()}...")
+    return xs.to_endf6(e6).update_intro()
+
+
+def endf6_xs_perturb_worker(e6, n, s, xs, verbose=False):
+    # for some reason i cannot use the worker in sandy.core.xs or i get a pickle error
+    out1 = xs._perturb(s, verbose=verbose).reconstruct_sums(drop=True)
+    out2 = endf6_perturb_worker(e6, n, out1, verbose=verbose)
+    return out2

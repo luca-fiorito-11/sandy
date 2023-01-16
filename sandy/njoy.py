@@ -1219,7 +1219,9 @@ def _prepare_njoy_input(
     
     # this part produces a single GENDF file
     if errorr31 or errorr34 or errorr35:
-        groupr_ = True  # groupr is needed by ERRORR31, 34 and 35
+        # groupr is needed by ERRORR31, 34 and 35
+        # this is the only place where we make this check
+        groupr_ = True
     else:
         groupr_ = groupr
     g = 39
@@ -1239,10 +1241,11 @@ def _prepare_njoy_input(
             logging.info("Multiple temperatures were requested.\nERRORR will only process the first.")
         temperature = temperatures[0]
     if errorr33:
-        # ERRORR for xs never uses a GENDF file
+        # for xs use a GENDF file only if explicitely asked, not just if
+        # groupr_=True because chi or nubar were present
         o = errorr33_kws["mfcov"] = 33
-        p_ = 0 if groupr_ else p
-        g_ = g if groupr_ else 0
+        p_ = 0 if groupr else p
+        g_ = g if groupr else 0
         text += _errorr_input(-e, -p_, -g_, o,
                               mat=mat, temperature=temperature,
                               **errorr33_kws)
