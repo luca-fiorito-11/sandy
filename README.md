@@ -55,6 +55,12 @@ The installation instructions are available [here](https://github.com/luca-fiori
 
 <br>
 
+## :hourglass: Development history and releases
+
+The [latest](https://github.com/luca-fiorito-11/sandy/releases/latest) and older releases of SANDY are available [here](https://github.com/luca-fiorito-11/sandy/releases). 
+
+<br>
+
 ## :notebook_with_decorative_cover: Documentation
 
 The official SANDY documentation can be found [here](https://luca-fiorito-11.github.io/sandy-docs/index.html).
