@@ -2066,8 +2066,10 @@ class Endf6(_FormattedFile):
         outs = self.get_errorr(**njoy_kws)
 
         if "errorr31" in outs:
+            smp_kws["seed"] = smp_kws.get("seed31", None)
             smp[31] = outs["errorr31"].get_cov().sampling(nsmp, **smp_kws)
         if "errorr33" in outs:
+            smp_kws["seed"] = smp_kws.get("seed33", None)
             smp[33] = outs["errorr33"].get_cov().sampling(nsmp, **smp_kws)
         if to_excel and smp:
             with pd.ExcelWriter(to_excel) as writer:
@@ -2079,13 +2081,7 @@ class Endf6(_FormattedFile):
         """
         Decorator .
         """
-        def inner(
-                self,
-                *args,
-                to_file=None,
-                verbose=False,
-                **kwargs,
-                ):
+        def inner(self, *args, to_file=None, verbose=False, **kwargs):
             """
             
 
@@ -2099,14 +2095,11 @@ class Endf6(_FormattedFile):
                 DESCRIPTION. The default is False.
             **kwargs : TYPE
                 DESCRIPTION.
-             : TYPE
-                DESCRIPTION.
 
             Returns
             -------
             TYPE
                 DESCRIPTION.
-
             """
             if to_file:
                 for n, e6 in method(self, *args, verbose=False, **kwargs):
@@ -2169,7 +2162,7 @@ class Endf6(_FormattedFile):
         .. note:: the total cross section is not perturbed
 
         Apply samples to xs in PENDF file using multiprocessing.
-        >>> outs_mp = pendf.apply_perturbations(smps[33])
+        >>> outs_mp = pendf.apply_perturbations(smps[33], processes=2)
         
         Assert that multiprocessing and singleprocessing results are identical.
         >>> for n in outs:
@@ -2180,15 +2173,47 @@ class Endf6(_FormattedFile):
             if processes == 1:
                 return self._apply_xs_perturbations(smp, **kwargs)
             else:
-                return self._mp_apply_xs_perturbations(smp, processes=processes, **kwargs)
+                return self._mp_apply_perturbations(smp, processes=processes, **kwargs)
 
 
-    def _mp_apply_xs_perturbations(self, smp, processes, verbose=False, **kwargs):
-        xs = sandy.Xs.from_endf6(self)
+    def _mp_apply_xs_perturbations(self, smp, processes, **kwargs):
+        # need to pass xs.data (dataframe), because sandy.Xs instance cannot be pickled
+        xs = sandy.Xs.from_endf6(self).data
+        seq = smp.iterate_xs_samples()
+
         pool = mp.Pool(processes=processes)
-        seq = dict(smp.iterate_xs_samples()).items()
-        kw = dict(verbose=verbose)
-        outs = {n: pool.apply_async(endf6_xs_perturb_worker, (self, n, p, xs), kw) for n, p in seq}
+        outs = {n: pool.apply_async(pendf_xs_perturb_worker, (self, xs, n, p), kwargs) for n, p in seq}
+        outs = {n: out.get() for n, out in outs.items()}
+        pool.close()
+        pool.join()
+        return outs
+
+    def _mp_apply_perturbations(self, smps, processes,
+                                pendf_kws={},
+                                **kwargs):
+        # Passed NEDF-6 and PENDF as dictionaries because class instances cannot be pickled
+        endf6 = self.data
+        if 33 in smps:
+            pendf = self.get_pendf(**pendf_kws).data
+            kwargs["process_xs"] = True
+
+        # Samples passed as generator in apply_async
+        def null_gen():
+            "generator mimicking dictionary and returning only None"
+            while True:
+                yield None, None
+
+        def get_key(*lst):
+            return np.array([x for x in lst if x is not None]).item()
+
+        seq_xs = smps[33].iterate_xs_samples() if 33 in smps else null_gen()
+        seq_nu = smps[31].iterate_xs_samples() if 31 in smps else null_gen()
+        seqs = zip(seq_xs, seq_nu)
+
+
+        pool = mp.Pool(processes=processes)
+        outs = {get_key(nxs, nnu): pool.apply_async(endf6_perturb_worker, (endf6, pendf, nxs, pxs), kwargs)
+                for (nxs, pxs), (nnu, pnu) in seqs}
         outs = {n: out.get() for n, out in outs.items()}
         pool.close()
         pool.join()
@@ -2198,17 +2223,130 @@ class Endf6(_FormattedFile):
         xs = sandy.Xs.from_endf6(self)
         for n, x in xs.perturb(smp, **kwargs):
             # instead of defining the function twice, just call the worker also here
-            yield n, endf6_perturb_worker(self, n, x)
+            yield n, pendf_perturb_worker(self, n, x, **kwargs)
 
 
-def endf6_perturb_worker(e6, n, xs, verbose=False):
-    if verbose:
-        print(f"Processing xs sample {n} on PID={os.getpid()}...")
-    return xs.to_endf6(e6).update_intro()
+def pendf_perturb_worker(e6, n, xs, **kwargs):
+    # This is the function that needs to be changed for any concatenation
+    # in the pendf reconstruction pipeline
+    out = xs.reconstruct_sums(drop=True).to_endf6(e6).update_intro()
+    return out
 
 
-def endf6_xs_perturb_worker(e6, n, s, xs, verbose=False):
-    # for some reason i cannot use the worker in sandy.core.xs or i get a pickle error
-    out1 = xs._perturb(s, verbose=verbose).reconstruct_sums(drop=True)
-    out2 = endf6_perturb_worker(e6, n, out1, verbose=verbose)
-    return out2
+def endf6_perturb_worker(e6, pendf, nxs, pxs,
+                         verbose=False,
+                         process_xs=False,
+                         process_nu=False,
+                         process_lpc=False,
+                         process_chi=False,
+                         to_ace=False,
+                         to_file=False,
+                         filename="{ZA}_{SMP}",
+                         ace_kws={},
+                         **kwargs):
+    """
+    
+
+    Parameters
+    ----------
+    e6 : TYPE
+        DESCRIPTION.
+    pendf : TYPE
+        DESCRIPTION.
+    nxs : TYPE
+        DESCRIPTION.
+    pxs : TYPE
+        DESCRIPTION.
+    verbose : TYPE, optional
+        DESCRIPTION. The default is False.
+    process_xs : TYPE, optional
+        DESCRIPTION. The default is False.
+    process_nu : TYPE, optional
+        DESCRIPTION. The default is False.
+    process_lpc : TYPE, optional
+        DESCRIPTION. The default is False.
+    process_chi : TYPE, optional
+        DESCRIPTION. The default is False.
+    to_ace : TYPE, optional
+        DESCRIPTION. The default is False.
+    to_file : TYPE, optional
+        DESCRIPTION. The default is False.
+    filename : TYPE, optional
+        DESCRIPTION. The default is "{ZA}_{SMP:d}".
+    ace_kws : TYPE, optional
+        DESCRIPTION. The default is {}.
+    **kwargs : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """
+    # default initialization
+    endf6_pert = sandy.Endf6(e6.copy())
+    pendf_pert = None
+
+    # filename options, in case we erite to file
+    ismp = np.array([x for x in [nxs] if x is not None]).item()
+    mat = endf6_pert.mat[0]
+    intro = endf6_pert.read_section(mat, 1, 451)
+    za = int(intro["ZA"])
+    meta = int(intro["LISO"])
+    zam = sandy.zam.za2zam(za, meta=meta)
+    temperature = ace_kws["temperature"] = ace_kws.get("temperature", 0)
+    params = dict(
+        MAT=mat,
+        ZAM=zam,
+        ZA=za,
+        META=meta,
+        SMP=ismp,
+        )
+    fn = filename.format(**params)
+
+    # apply xs perturbation
+    if process_xs:
+        pendf_ = sandy.Endf6(pendf)
+        xs = sandy.Xs.from_endf6(pendf_)
+        xs_pert = sandy.core.xs.xs_perturb_worker(xs, nxs, pxs, verbose=verbose)
+        pendf_pert = xs_pert.reconstruct_sums(drop=True).to_endf6(pendf_).update_intro()
+
+    # Run NJOY and convert to ace
+    if to_ace:
+        suffix = ace_kws.get("suffix", sandy.njoy.get_temperature_suffix(temperature))
+        ace_kws["suffix"] = "." + suffix
+        ace = endf6_pert.get_ace(pendf=pendf_pert, **ace_kws)
+
+        if to_file:
+            file = f"{fn}.{suffix}c"
+            with open(file, "w") as f:
+                if verbose:
+                    print(f"writing to file '{file}'")
+                f.write(ace["ace"])
+            file = f"{file}.xsd"
+            with open(file, "w") as f:
+                if verbose:
+                    print(f"writing to file '{file}'")
+                f.write(ace["xsdir"])
+            return
+
+        return ace
+
+    out = {"endf6": endf6_pert}
+    if pendf_pert:
+        out["pendf"] = pendf_pert
+
+    if to_file:
+        file = f"{fn}.endf6"
+        if verbose:
+            print(f"writing to file '{file}'")
+        endf6_pert.to_file(file)
+        if pendf_pert:
+            file = f"{fn}.pendf"
+            if verbose:
+                print(f"writing to file '{file}'")
+            pendf_pert.to_file(file)
+        return
+
+    return out

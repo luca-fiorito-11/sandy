@@ -624,5 +624,5 @@ class Xs():
 
 def xs_perturb_worker(xs, n, s, verbose=False):
     if verbose:
-        print(f"Processing xs sample {n} on PID={os.getpid()}...")
+        print(f"Processing xs sample {n}...")
     return xs._perturb(s)

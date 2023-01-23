@@ -218,7 +218,7 @@ def get_temperature_suffix(temperature, meta=False):
     mask = suffix.index.contains(temperature)
     if suffix[mask].empty:
         suff = "00"
-        msg = f"extension '{suffix}' will be used for temperature '{temperature}'"
+        msg = f"extension '{suff}' will be used for temperature '{temperature}'"
         logging.warning(msg)
     else:
         if meta:

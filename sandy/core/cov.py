@@ -655,7 +655,7 @@ class CategoryCov():
         return np.log(mu_**2 / np.sqrt(np.diag(self.data) + mu_**2))
 
     def sampling(self, nsmp, seed=None, rows=None, pdf='normal',
-                 tolerance=0, relative=True):
+                 tolerance=0, relative=True, **kwargs):
         """
         Extract perturbation coefficients according to chosen distribution with
         covariance from given covariance matrix. See note for non-normal
@@ -708,7 +708,7 @@ class CategoryCov():
 
         Examples
         --------
-        Draw 3 sets of samples using custom seed:
+        Draw 3 sets of samples using custom seed.
         >>> index = columns = ["A", "B"]
         >>> c = pd.DataFrame([[1, 0.4],[0.4, 1]], index=index, columns=index)
         >>> cov = sandy.CategoryCov(c)
@@ -812,6 +812,7 @@ class CategoryCov():
         pdf_ = pdf if pdf != 'lognormal' else 'normal'
         y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf_) - 1
         y = sps.csc_matrix(y)
+
         # the covariance matrix to decompose is created depending on the chosen
         # pdf
         if pdf == 'uniform':
@@ -828,20 +829,27 @@ class CategoryCov():
             to_decompose = self.log2norm_cov(ones)
         else:
             to_decompose = self
+
         L = sps.csr_matrix(to_decompose.get_L(rows=rows,
                                               tolerance=tolerance))
-        samples = pd.DataFrame(L.dot(y).toarray(), index=self.data.index,
-                               columns=list(range(nsmp)))
+        samples = pd.DataFrame(
+            L.dot(y).toarray(),
+            index=self.data.index,
+            columns=list(range(nsmp)),
+            )
+
         if pdf == 'lognormal':
             # mean value of lognormally sampled distributions will be one by
             # defaul
             samples = np.exp(samples.add(self.log2norm_mean(ones), axis=0))
+
         elif relative:
             samples += 1
             lower_bound = samples > 0
             upper_bound = samples < 2
             samples = samples.where(lower_bound, 0)
             samples = samples.where(upper_bound, 2)
+
         return sandy.Samples(samples)
 
     @classmethod
@@ -2253,6 +2261,8 @@ def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
         mn = 2 * np.log(ml) - .5 * np.log(sl**2 + np.exp(2 * np.log(ml))) # required mean of the corresponding normal distibution (note reference in the docstring)
         sn = np.sqrt(2 * (np.log(ml) - mn)) # required standard deviation of the corresponding normal distibution (note reference in the docstring)
         y = np.random.lognormal(mn, sn, (dim, nsmp))
+    else:
+        raise ValueError(f"Value '{pdf}' not allowed for kwarg 'pdf'")
     return y
 
 
