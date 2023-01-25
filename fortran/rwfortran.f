@@ -153,7 +153,7 @@ c
 c
       subroutine rilist(string,io_status,ilist,n)
       integer  :: n,i,io_status
-      integer*8 :: ilist(n)
+      integer*4 :: ilist(n)
       character*80 :: string
 Cf2py intent(inout) string
 Cf2py intent(inout) io_status
