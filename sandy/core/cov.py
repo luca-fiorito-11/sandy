@@ -1987,9 +1987,8 @@ def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):
             index=index,
             columns=columns,
             values=values,
-            fill_value=0,
             aggfunc=np.sum,
-            )
+            ).fillna(0)
         pivot_matrix.append(partial_pivot)
     pivot_matrix = pd.concat(pivot_matrix).fillna(0)
     # Because the default axis to concatenate is the 0, some duplicate
