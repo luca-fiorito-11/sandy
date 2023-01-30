@@ -2533,3 +2533,162 @@ If you want to process 0K cross sections use `temperature=0.1`.
             'chi': run_chi if chi else False,
             }
         return cov_info
+
+    def _get_xs_cov(self, mf=[31, 33], mt=range(1, 10000),
+                    mat=range(1, 10000)):
+        """
+        Extract from endf6 file the cross section/nubar covariance matrices.
+
+        Parameters
+        ----------
+        mf : `int` or `list`, optional
+            MF number. The default is [31, 33].
+        mt : `int` or `list`, optional
+            MT number. The default is range(1, 10000).
+        mat : `int` or `list`, optional
+            MAT number. The default is range(1, 10000).
+
+        Returns
+        -------
+        `sandy.CategoryCov` or None if no covariance information is found.
+            Covariance matrix.
+
+        Examples
+        --------
+        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
+        >>> cov = endf6._get_xs_cov()
+        >>> xs_cov = sandy.XsCov.from_endf6(endf6)
+        >>> assert (cov.data == xs_cov).all().all()
+        """
+        listmf_ = [mf] if isinstance(mf, int) else mf
+        listmt_ = [mt] if isinstance(mt, int) else mt
+        listmat_ = [mat] if isinstance(mat, int) else mat
+        tape = self.filter_by(listmf=listmf_, listmt=listmt_, listmat=listmat_)
+        data = []
+        for mat, mf, mt in tape.data:
+            sec = tape.read_section(mat, mf, mt)
+            for sub in sec["SUB"].values():
+                mat1 = sub['MAT1'] if sub['MAT1'] != 0 else mat
+                mt1 = sub['MT1']
+                covs = []
+                # Loop NI-type covariances
+                for nisec in sub["NI"].values():
+                    lb = nisec["LB"]
+                    if lb == 5:
+                        if nisec["LS"] == 0:
+                            foo = sandy.EnergyCov.from_lb5_asym
+                        else:
+                            foo = sandy.EnergyCov.from_lb5_sym
+                        cov = foo(nisec["EK"], nisec["FKK"])
+                    elif lb == 1:
+                        foo = sandy.EnergyCov.from_lb1
+                        cov = foo(nisec["EK"], nisec["FK"])
+                    elif lb == 2:
+                        foo = sandy.EnergyCov.from_lb2
+                        cov = foo(nisec["EK"], nisec["FK"])
+                    elif lb == 6:
+                        foo = sandy.EnergyCov.from_lb6
+                        cov = foo(nisec["EK"], nisec["EL"], nisec["FKL"])
+                    else:
+                        logging.warning(f"skip 'LB={lb}' covariance for"
+                                        f" [({mat}/{mt}), ({mat1}/{mt1})]")
+                        continue
+                    covs.append(cov)
+                if not covs:
+                    continue
+                cov = sandy.EnergyCov.sum_covs(*covs)
+                idx = pd.MultiIndex.from_product(
+                    [[mat], [mt], list(cov.data.index)],
+                    names=["MAT", "MT", "E"],
+                    )
+                idx1 = pd.MultiIndex.from_product(
+                    [[mat], [mt1], list(cov.data.columns)],
+                    names=["MAT1", "MT1", "E1"],
+                    )
+                df = pd.DataFrame(cov.data.values, index=idx, columns=idx1) \
+                       .stack(level=["MAT1", "MT1", "E1"]) \
+                       .rename("VAL") \
+                       .reset_index()
+                data.append(df)
+        if not data:
+            return None
+        df = pd.concat(data)
+        return sandy.CategoryCov.from_stack(df, index=["MAT", "MT", "E"],
+                                            columns=["MAT1", "MT1", "E1"],
+                                            values='VAL')
+
+    def _get_lpc_cov(self):
+        return
+
+    def _get_edistr_cov(self):
+        return
+
+    def get_cov(self, process_mf=[], mf=None, mt=None, **kwds_njoy):
+        """
+        Get covariance matrices for nubar/xs/energy distribution/Legendre
+        polynomial coefficients from Endf6 or process with NJOY.
+
+        Parameters
+        ----------
+        process_mf : `int` or `list`, optional
+            DESCRIPTION. The default is [].
+        mf : `int` or `list`, optional
+            MF number. The default is None.
+        **kwds_njoy : `dict`
+            Extra arguments for proccessing the covariance matrix with NJOY.
+
+        Returns
+        -------
+        cov : `dict` or `sandy.CategoryCov`
+            Dictionary containing the covariance matrix of different mf data.
+            If only one mf is introduced, the method returns the
+            `sandy.CategoryCov` object directly.
+
+        Examples
+        --------
+        Nubar covariance matrix from endf6 file:
+        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
+        >>> xs_cov = sandy.XsCov.from_endf6(endf6)
+        >>> nubar_cov = endf6.get_cov(mf=31)
+        >>> assert (nubar_cov.data.values == xs_cov.loc[(9237, 456), (9237, 456)].values).all().all()
+
+        Xs covariance matrix from endf6 file:
+        >>> endf_xs_cov = endf6.get_cov(mf=33)
+        >>> size = len(endf_xs_cov.data)
+        >>> assert (endf_xs_cov.data.values == xs_cov.iloc[:size, :size].values).all().all()
+
+        Both together:
+        >>> endf_xs_cov = endf6.get_cov(mf=[31, 33])
+        >>> size = len(endf_xs_cov[33].data)
+        >>> assert (endf_xs_cov[33].data.values == xs_cov.iloc[:size, :size].values).all().all()
+        """
+        # Select the mf:
+        if mf is not None:
+            listmf_ = [mf] if isinstance(mf, int) else mf
+        else:
+            listmf_ = list(self.to_series().index.get_level_values("MF")
+                               .intersection([31, 33, 34, 35]))
+        list_process = [process_mf] if isinstance(process_mf, int) else process_mf
+        # Dividing the list information:
+        listmf_ = list(pd.Index(listmf_).difference(pd.Index(list_process)))
+        if len(list_process) != 0:
+            kwds_njoy["nubar"] = True if 31 in list_process else False
+            kwds_njoy["xs"] = True if 33 in list_process else False
+            kwds_njoy["chi"] = True if 35 in list_process else False
+            kwds_njoy["mubar"] = True if 34 in list_process else False
+            out = self.get_errorr(**kwds_njoy)
+            cov = out.get_cov(mf=list_process)
+        if len(listmf_) != 0:
+            cov = {} if len(list_process) == 0 else cov
+            if 31 in listmf_:
+                cov[31] = self._get_xs_cov(mf=[31])
+            if 33 in listmf_:
+                cov[33] = self._get_xs_cov(mf=[33])
+            if 34 in listmf_:
+                cov[34] = self._get_lpc_cov()
+            if 35 in listmf_:
+                cov[35] = self._get_edistr_cov()
+        # If only one mf is calculated, the return is directly the `CategoryCov` object
+        if len(cov) == 1:
+            [(key, cov)] = cov.items()
+        return cov
