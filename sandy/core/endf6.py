@@ -1731,6 +1731,11 @@ If you want to process 0K cross sections use `temperature=0.1`.
         **kwargs : `dict`
             keyword argument to pass to `sandy.njoy.process`.
 
+        Parameters to insert dummy MF=33 file
+        -------------------------------------
+        mt_rlm: `int` or `list`
+            mt number to be reconstructed with RML methods.
+
         Parameters for RECONR
         ---------------------
         err : `float`, optional
@@ -1765,7 +1770,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
             processing for resonance parameter covariances
             (default is 1, 1% sensitivity method)
         mt: `int` or iterable of `int`, optional
-            list of MT reactions to be processed
+            list of xs MT reactions to be processed
 
             .. note:: this list will be used for all covariance types, i.e.,
                       MF31, MF33, MF34, MF35.
@@ -1926,7 +1931,13 @@ If you want to process 0K cross sections use `temperature=0.1`.
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         3/
+        3 452 'nu' /
+        3 455 'nu' /
+        3 456 'nu' /
         3 251 'mubar' /
+        3 252 'xi' /
+        3 253 'gamma' /
+        3 259 '1_v' /
         5/
         5 18 'chi' /
         0/
@@ -2104,7 +2115,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         kwds_njoy.update(cov_info)
 
         # Mandatory groupr module activation
-        groupr_ = True if (kwds_njoy["nubar"] or kwds_njoy["chi"] or "ek_groupr" in kwds_njoy or "spectrum_groupr" in kwds_njoy) else groupr
+        groupr_ = True if (kwds_njoy["nubar"] or kwds_njoy["chi"] or "ek_groupr" in kwds_njoy or "spectrum_groupr" in kwds_njoy or kwds_njoy['urr']) else groupr
 
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
@@ -2174,7 +2185,7 @@ If you want to process 0K cross sections use `temperature=0.1`.
         mubar : `bool`, optional
             Proccess multigroup mubar (default is `False`)
         mt: `int` or iterable of `int`, optional
-            run groupr only for the selected MT numbers
+            run groupr for xs for the selected MT numbers
         nubar : `bool`, optional
             Proccess multigroup nubar (default is `False`)
         nuclide_production : `bool`, optional
@@ -2372,7 +2383,54 @@ If you want to process 0K cross sections use `temperature=0.1`.
         12 /
         1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
         3/
+        3 452 'nu' /
+        3 455 'nu' /
+        3 456 'nu' /
         3 251 'mubar' /
+        3 252 'xi' /
+        3 253 'gamma' /
+        3 259 '1_v' /
+        5/
+        5 18 'chi' /
+        0/
+        0/
+        moder
+        -24 32 /
+        stop
+
+        U-238 for selected mt:
+        >>> out = endf6.get_gendf(mt=[18, 102], ek_groupr=sandy.energy_grids.CASMO12, verbose=True, err=1, nubar=True, mubar=True, chi=True)
+        moder
+        20 -21 /
+        reconr
+        -21 -22 /
+        'sandy runs njoy'/
+        9237 0 0 /
+        1 0. /
+        0/
+        broadr
+        -21 -22 -23 /
+        9237 1 0 0 0. /
+        1 /
+        293.6 /
+        0 /
+        groupr
+        -21 -23 0 -24 /
+        9237 1 0 2 0 1 1 0 /
+        'sandy runs groupr' /
+        293.6/
+        10000000000.0/
+        12 /
+        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
+        3 18 /
+        3 102 /
+        3 452 'nu' /
+        3 455 'nu' /
+        3 456 'nu' /
+        3 251 'mubar' /
+        3 252 'xi' /
+        3 253 'gamma' /
+        3 259 '1_v' /
         5/
         5 18 'chi' /
         0/
@@ -2440,10 +2498,11 @@ If you want to process 0K cross sections use `temperature=0.1`.
         kwds_njoy["acer"] = False
         kwds_njoy["keep_pendf"] = False
 
-        kwds_njoy["nubar"] = nubar
-        kwds_njoy["xs"] = xs
-        kwds_njoy["chi"] = chi
-        kwds_njoy["mubar"] = mubar
+        cov_info = self.covariance_info(nubar=nubar, xs=xs,
+                                        mubar=mubar, chi=chi)
+        if not np.any(list(cov_info.values())):
+            return  # no covariance found or wanted
+        kwds_njoy.update(cov_info)
 
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
@@ -2496,32 +2555,33 @@ If you want to process 0K cross sections use `temperature=0.1`.
         Check file contatining MF31, MF33, MF34 and MF35
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922380)
         >>> endf6.covariance_info()
-        {'nubar': True, 'xs': True, 'mubar': True, 'chi': True}
+        {'nubar': True, 'xs': True, 'mubar': True, 'chi': True, 'urr': False}
 
         Set all values to `False`
         >>> endf6.covariance_info(xs=False, mubar=False, chi=False, nubar=False)
-        {'nubar': False, 'xs': False, 'mubar': False, 'chi': False}
+        {'nubar': False, 'xs': False, 'mubar': False, 'chi': False, 'urr': False}
 
         2nd example without MF34
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350)
         >>> endf6.covariance_info()
-        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True}
+        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True, 'urr': False}
 
         If MF34 is not found, setting `mubar=True` won't change anything'
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350)
         >>> endf6.covariance_info(mubar=True)
-        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True}
+        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True, 'urr': False}
 
         All infos are `False` if no covariance is found
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10030)
         >>> endf6.covariance_info()
-        {'nubar': False, 'xs': False, 'mubar': False, 'chi': False}
+        {'nubar': False, 'xs': False, 'mubar': False, 'chi': False, 'urr': False}
         """
-        supported_mf = [31, 33, 34, 35]
+        supported_mf = [31, 32, 33, 34, 35]
         endf6_cov_mf = self.to_series().index.get_level_values("MF")\
                            .intersection(supported_mf)
 
         run_nubar = True if 31 in endf6_cov_mf else False
+        run_urr = True if 32 in endf6_cov_mf else False
         run_xs = True if 33 in endf6_cov_mf else False
         run_mubar = True if 34 in endf6_cov_mf else False
         run_chi = True if 35 in endf6_cov_mf else False
@@ -2531,5 +2591,6 @@ If you want to process 0K cross sections use `temperature=0.1`.
             'xs': run_xs if xs else False,
             'mubar': run_mubar if mubar else False,
             'chi': run_chi if chi else False,
+            'urr': run_urr if not run_xs else False,
             }
         return cov_info

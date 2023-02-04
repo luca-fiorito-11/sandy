@@ -81,6 +81,7 @@ import logging
 import pdb
 import tempfile
 import subprocess as sp
+import pytest
 
 import pandas as pd
 import numpy as np
@@ -186,6 +187,7 @@ NJOY_TOLER = 0.001
 NJOY_TEMPERATURES = [293.6]
 NJOY_SIG0 = [1e10]
 NJOY_THERMR_EMAX = 10
+banned_xs = [251, 252, 253, 259, 452, 455, 459]
 
 
 def get_njoy():
@@ -261,6 +263,47 @@ def _moder_input(nin, nout, **kwargs):
     """
     text = ["moder"]
     text += [f"{nin:d} {nout:d} /"]
+    return "\n".join(text) + "\n"
+
+
+def _error_input(endfin, pendfin, mt_rlm):
+    """
+    Write dummy ERRORR input.
+
+    Parameters
+    ----------
+    endfin : `int`
+        tape number for input ENDF-6 file
+    pendfin : `int`
+        tape number for input PENDF file
+    mt_rlm : `int` or `list`
+        mt in the dummy files.
+
+    Returns
+    -------
+    `str`
+        errorr input text.
+
+    Examples
+    --------
+    >>> print(sandy.njoy._error_input(20, 21, [1, 2, 102]))
+    errorr
+    999/
+    20 21 /
+    1/
+    2/
+    102/
+    0/
+    """
+    text = ["errorr"]
+    text += ["999/"]
+    text += [f"{endfin:d} {pendfin:d} /"]
+    if mt_rlm is None:
+        raise SyntaxError("Not mt_rlm introduced")
+    mtlist = [mt_rlm] if isinstance(mt_rlm, int) else mt_rlm
+    for mt_ in mtlist:
+        text += [f"{mt_:d}/"]
+    text += ["0/"]
     return "\n".join(text) + "\n"
 
 
@@ -634,7 +677,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     mfcov : `int`
         endf covariance file to be processed (default is 33)
     mt: `int` or iterable of `int`, optional
-        run errorr only for the selected mt numbers
+        run errorr for xs for the selected MT numbers
         (default is `None`, i.e., process all MT)
     spectrum_errorr : iterable, optional
         weight function (default is `None`)
@@ -754,10 +797,20 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 293.6 /
     1 33 1/
     1 0 /
-    2 /    
+    2 /
+
+    Test of wrong mt number:
+    >>> with pytest.raises(SyntaxError): sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt=455)
     """
     irelco = 0 if relative is False else 1
-    iread = 1 if mt is not None else 0 
+    if mt is not None:
+        mtlist = [mt] if isinstance(mt, int) else mt
+        for xs_ban in banned_xs:
+            if xs_ban in mtlist and mfcov == 33:
+                raise SyntaxError("Introduced mt are not appropriate for mf=33")
+    else:
+        mtlist = []
+    iread = 1 if len(mtlist) != 0 and mfcov == 33 else 0
     iwt_ = 1 if spectrum_errorr is not None else iwt_errorr
     ign_ = 1 if ek_errorr is not None else ign_errorr
     text = ["errorr"]
@@ -766,8 +819,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     text += [f"{mat:d} {ign_:d} {iwt_:d} {printflag:d} {irelco} /"]
     text += [f"{printflag:d} {temp:.1f} /"]
     text += [f"{iread:d} {mfcov} {irespr:d}/"]
-    if iread == 1:  # only specific mts
-        mtlist = [mt] if isinstance(mt, int) else mt
+    if iread == 1 and mfcov == 33:  # only specific mts
         nmt = len(mtlist)
         text += [f"{nmt:d} 0 /"]
         text += [" ".join(map(str, mtlist)) + " /"]
@@ -791,7 +843,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
                   iwt_groupr=2, lord=0, sigz=[1e+10],
                   temp=NJOY_TEMPERATURES[0],
                   spectrum_groupr=None, mt=None,
-                  iprint=False, nubar=False, mubar=False, chi=False,
+                  iprint=False, nubar=False, mubar=False, chi=False, xs=True,
                   nuclide_production=False,
                   **kwargs):
     """
@@ -807,8 +859,6 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         tape number for output PENDF file
     mat : `int`
         MAT number
-    chi : `bool`, optional
-        Process chi (default is `False`)
     ek_groupr : iterable, optional
         derived cross section energy bounds (default is None)
     ep : iterable, optional
@@ -828,12 +878,16 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     lord : `int`, optional
         Legendre order (default is 0)
     mt: `int` or iterable of `int`, optional
-        run groupr only for the selected MT numbers
+        run groupr for xs for the selected MT numbers
         (default is `None`, i.e., process all MT)
+    chi : `bool`, optional
+        Process chi (default is `False`)
     mubar : `bool`, optional
         Proccess mubar (default is `False`)
     nubar : `bool`, optional
         Proccess nubar (default is `False`)
+    xs : `bool`, optional
+        Proccess multigroup xs (default is `True`)
     nuclide_production : `bool`, optional
         process MF10 (default is `False`)
     sigz : iterable of `float`
@@ -951,27 +1005,28 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
 
     Test mubar:
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, mubar=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, mubar=True, xs=False))
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
     'sandy runs groupr' /
     293.6/
     10000000000.0/
-    3/
     3 251 'mubar' /
+    3 252 'xi' /
+    3 253 'gamma' /
+    3 259 '1_v' /
     0/
     0/
 
     Test chi:
-    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, chi=True))
+    >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, chi=True, xs=False))
     groupr
     20 21 0 22 /
     9237 2 0 2 0 1 1 0 /
     'sandy runs groupr' /
     293.6/
     10000000000.0/
-    3/
     5/
     5 18 'chi' /
     0/
@@ -1013,7 +1068,10 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     10000000000.0/
     3 2 /
     0/
-    0/       
+    0/
+
+    Test the wrong mt number:
+    >>> with pytest.raises(SyntaxError): sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[102, 455])
     """
     iwt_ = 1 if spectrum_groupr is not None else iwt_groupr
     ign_ = 1 if ek_groupr is not None else ign_groupr
@@ -1042,14 +1100,26 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
                                           spectrum_groupr[1::2]))
         text += [tab1]
         text += ["/"]
-    if mt is None:
-        text += ["3/"]  # by default process all cross sections (MF=3)
-    else:
-        mtlist = [mt] if isinstance(mt, int) else mt
-        for mt_ in mtlist:
-            text += [f"3 {mt_:d} /"]
+    if xs:
+        if mt is None:
+            text += ["3/"]  # by default process all cross sections (MF=3)
+        else:
+            mtlist = [mt] if isinstance(mt, int) else mt
+            for xs_ban in banned_xs:
+                if xs_ban in mtlist:
+                    raise SyntaxError("Introduced mt are not appropriate for xs")
+            else:
+                for mt_ in mtlist:
+                    text += [f"3 {mt_:d} /"]
+    if nubar:
+        text += ["3 452 'nu' /"]
+        text += ["3 455 'nu' /"]
+        text += ["3 456 'nu' /"]
     if mubar:
         text += ["3 251 'mubar' /"]
+        text += ["3 252 'xi' /"]
+        text += ["3 253 'gamma' /"]
+        text += ["3 259 '1_v' /"]
     if chi:
         text += ["5/"]
         text += ["5 18 'chi' /"]
@@ -1119,6 +1189,7 @@ def process(
         errorr=False,
         groupr=False,
         acer=True,
+        urr=False,
         wdir="",
         dryrun=False,
         tag="",
@@ -1225,19 +1296,23 @@ def process(
     inputs["tape20"] = endftape
     e = 21
     p = e + 1
-    text = _moder_input(20, -e)
+    if urr:
+        text = _error_input(20, e, kwargs["mt_rlm"])
+        kwargs['xs'] = True
+    else:
+        text = _moder_input(20, -e)
     if pendftape:
         inputs["tape99"] = pendftape
         text += _moder_input(99, -p)
     else:
-        text += _reconr_input(-e, -p, **kwargs)
+        text += _reconr_input(-e, -p, **kwargs) if not urr else _reconr_input(e, p, **kwargs)
     if broadr:
         o = p + 1
-        text += _broadr_input(-e, -p, -o, **kwargs)
+        text += _broadr_input(-e, -p, -o, **kwargs) if not urr else _broadr_input(e, p, o, **kwargs)
         p = o
     if thermr:
         o = p + 1
-        text += _thermr_input(0, -p, -o, **kwargs)
+        text += _thermr_input(0, -p, -o, **kwargs) 
         p = o
     if unresr:
         o = p + 1
@@ -1269,9 +1344,9 @@ def process(
             kwargs["temp"] = temp
             kwargs["suff"] = suff = f".{suff}"
             g = o + 1 + i
-            text += _groupr_input(-e, -p, -g, **kwargs)
+            text += _groupr_input(-e, -p, -g, **kwargs) if not urr else _groupr_input(e, p, g, **kwargs)
             o = 32 + i
-            text += _moder_input(-g, o)
+            text += _moder_input(-g, o) if not urr else _moder_input(g, o, **kwargs)
             outputs[f"tape{o}"] = join(
                 wdir,
                 f"{outprefix}{tag}{suff}.gendf",
@@ -1285,11 +1360,11 @@ def process(
             kwargs["temp"] = temp
             kwargs["suff"] = suff = f".{suff}"
             if groupr:
-                text += _groupr_input(-e, -p, -g_, **kwargs)
+                text += _groupr_input(-e, -p, -g_, **kwargs) if not urr else _groupr_input(e, p, g_,**kwargs)
             if kwargs['nubar']:
                 o = 31 + i * 5
                 kwargs['mfcov'] = mfcov = 31
-                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
+                text += _errorr_input(-e, -p_, -g_, o, **kwargs) if not urr else _errorr_input(e, p, g_, o,**kwargs)
                 outputs[f"tape{o}"] = join(
                     wdir,
                     f"{outprefix}{tag}{suff}_{mfcov}.errorr",
@@ -1297,7 +1372,7 @@ def process(
             if kwargs['xs']:
                 o = 33 + i * 5
                 kwargs['mfcov'] = mfcov = 33
-                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
+                text += _errorr_input(-e, -p_, -g_, o, **kwargs) if not urr else _errorr_input(e, p, g_, o,**kwargs)
                 outputs[f"tape{o}"] = join(
                     wdir,
                     f"{outprefix}{tag}{suff}_{mfcov}.errorr",
@@ -1307,7 +1382,7 @@ def process(
             if kwargs['chi']:
                 o = 35 + i * 5
                 kwargs['mfcov'] = mfcov = 35
-                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
+                text += _errorr_input(-e, -p_, -g_, o, **kwargs) if not urr else _errorr_input(e, p, g_, o,**kwargs)
                 outputs[f"tape{o}"] = join(
                     wdir,
                     f"{outprefix}{tag}{suff}_{mfcov}.errorr",
@@ -1315,7 +1390,7 @@ def process(
             if kwargs['mubar']:
                 o = 34 + i * 5
                 kwargs['mfcov'] = mfcov = 34
-                text += _errorr_input(-e, -p_, -g_, o, **kwargs)
+                text += _errorr_input(-e, -p_, -g_, o, **kwargs) if not urr else _errorr_input(e, p, g_, o,**kwargs)
                 outputs[f"tape{o}"] = join(
                     wdir,
                     f"{outprefix}{tag}{suff}_{mfcov}.errorr",
