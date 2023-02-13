@@ -857,10 +857,33 @@ def get_meta_letter(m, skip_ground=False):
         meta = ""
     return meta
 
-def nuclide2latex(nuclide, atomic_number=False, sep=""):
-    """
-    New function added to directly convert nuclides from string to latex
-    format useful for plotting.
-    """ 
-    out = zam2latex(nuclide2zam(nuclide, atomic_number = atomic_number, sep = sep))
-    return out 
+def nuclide2latex(nuclide, **kwargs):
+   """
+   Convert string with symbol and mass number to LaTeX formatting
+
+   Parameters
+   ----------
+   nuclide : `str`
+       nuclide expressed with symbol and mass.
+   **kwargs : `dict`
+       keyword argument to pass to `sandy.zam.nuclide2zam`.
+
+   Returns
+   -------
+   `string`
+       nuclide expressed with symbol and mass, with LaTeX formatting.
+
+   Examples
+   --------
+   >>> zam2nuclide('U235')
+   '$^{235}$U'
+
+   >>> zam2nuclide('92U235', atomic_number=True)
+   '$^{235}$U'
+
+   nuclide2latex('Am242m')
+   '$^{242m}$Am'
+   """
+   out = zam2latex(nuclide2zam(nuclide, **kwargs))
+   return out 
+
