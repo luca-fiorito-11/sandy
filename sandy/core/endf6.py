@@ -2189,12 +2189,12 @@ class Endf6(_FormattedFile):
         return outs
 
     def _mp_apply_perturbations(self, smps, processes,
-                                pendf_kws={},
+                                njoy_kws={},
                                 **kwargs):
         # Passed NEDF-6 and PENDF as dictionaries because class instances cannot be pickled
         endf6 = self.data
         if 33 in smps:
-            pendf = self.get_pendf(**pendf_kws).data
+            pendf = self.get_pendf(**njoy_kws).data
             kwargs["process_xs"] = True
 
         # Samples passed as generator in apply_async
@@ -2218,6 +2218,39 @@ class Endf6(_FormattedFile):
         pool.close()
         pool.join()
         return outs
+
+    def _mp_apply_perturbations_fdc(self, smps, processes,
+                                njoy_kws={},
+                                **kwargs):
+        # Passed NEDF-6 and PENDF as dictionaries because class instances cannot be pickled
+        endf6 = self.data
+        if 33 in smps:
+            pendf = self.get_pendf(**njoy_kws).data
+            kwargs["process_xs"] = True
+
+        # Samples passed as generator in apply_async
+        def null_gen():
+            "generator mimicking dictionary and returning only None"
+            while True:
+                yield None, None
+
+
+        seq_xs = smps[33].iterate_xs_samples() if 33 in smps else null_gen()
+        seq_nu = smps[31].iterate_xs_samples() if 31 in smps else null_gen()
+        seqs = zip(seq_xs, seq_nu)
+
+        if processes > 1:
+            pool = mp.Pool(processes=processes)
+            outs = {nxs: pool.apply_async(endf6_perturb_worker, (endf6, pendf, nxs, pxs), kwargs)
+                    for (nxs, pxs), (nnu, pnu) in seqs}
+            outs = {n: out.get() for n, out in outs.items()}
+            pool.close()
+            pool.join()
+            return outs
+        else:
+            outs = {nxs: endf6_perturb_worker(endf6, pendf, nxs, pxs, **kwargs) for (nxs, pxs), (nnu, pnu) in seqs}
+            return outs
+
 
     def _apply_xs_perturbations(self, smp, **kwargs):
         xs = sandy.Xs.from_endf6(self)

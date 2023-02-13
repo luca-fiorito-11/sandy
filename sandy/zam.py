@@ -856,3 +856,11 @@ def get_meta_letter(m, skip_ground=False):
     if skip_ground and m == 0:
         meta = ""
     return meta
+
+def nuclide2latex(nuclide, atomic_number=False, sep=""):
+    """
+    New function added to directly convert nuclides from string to latex
+    format useful for plotting.
+    """ 
+    out = zam2latex(nuclide2zam(nuclide, atomic_number = atomic_number, sep = sep))
+    return out 
