@@ -2070,6 +2070,7 @@ class Endf6(_FormattedFile):
             smp[31] = outs["errorr31"].get_cov().sampling(nsmp, **smp_kws)
         if "errorr33" in outs:
             smp_kws["seed"] = smp_kws.get("seed33", None)
+            print(smp_kws)
             smp[33] = outs["errorr33"].get_cov().sampling(nsmp, **smp_kws)
         if to_excel and smp:
             with pd.ExcelWriter(to_excel) as writer:
