@@ -859,7 +859,7 @@ def get_meta_letter(m, skip_ground=False):
 
 def nuclide2latex(nuclide, **kwargs):
    """
-   Convert string with symbol and mass number to LaTeX formatting
+   Convert string with symbol and mass number to LaTeX formatting.
 
    Parameters
    ----------
