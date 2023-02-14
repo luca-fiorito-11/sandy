@@ -875,10 +875,10 @@ def nuclide2latex(nuclide, **kwargs):
 
    Examples
    --------
-   >>> zam2nuclide('U235')
+   >>> nuclide2latex('U235')
    '$^{235}$U'
 
-   >>> zam2nuclide('92U235', atomic_number=True)
+   >>> nuclide2latex('92U235', atomic_number=True)
    '$^{235}$U'
 
    nuclide2latex('Am242m')
