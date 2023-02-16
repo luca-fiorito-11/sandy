@@ -154,7 +154,7 @@ class Samples():
         ...             df = smps.test_shapiro(pdf=pdf, size=n)
         ...             idx = df.statistic.idxmin()
         ...             w = df.loc[idx]
-        ...             t = "reject" if w.pvalue < pthreshold else (pdf if w.statistic > threshold else f"not-{pdf}")
+        ...             t = "reject" if w.pvalue < pthreshold else (pdf if w.statistic > threshold else "reject")
         ...             data.append({"PDF": pdf, "test":t, "# SMP": n})
         ...     df = pd.DataFrame(data).pivot_table(index="# SMP", columns="PDF", values="test", aggfunc=lambda x: ' '.join(x))
         ...     return df
