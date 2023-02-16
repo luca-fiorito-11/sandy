@@ -132,60 +132,65 @@ class Samples():
 
         Examples
         --------
-        Generate 5000 xs samples normally and log-normally distributed
+        Generate 5000 xs samples normally, log-normally and uniform distributed
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> njoy_kws = dict(err=1, errorr33_kws=dict(mt=102))
         >>> nsmp = 5000
-        >>> smp_norm = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=1, pdf="normal"))[33]
-        >>> smp_lognorm = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=1, pdf="lognormal"))[33]
-
-        The Shapiro-Wilks test proves right for the normal samples and the normal distribution.
-        >>> stat_norm = []
-        >>> stat_lognorm = []
-        >>> for nsmp in [10, 50, 100, 500, 1000, 5000]:
-        ...    df = smp_norm.test_shapiro(pdf="normal", size=nsmp)
-        ...    idx = df.statistic.idxmin()
-        ...    stat_norm.append(df.loc[idx].rename(nsmp))
-        ...
-        ...    df = smp_norm.test_shapiro(pdf="lognormal", size=nsmp)
-        ...    idx = df.statistic.idxmin()
-        ...    stat_lognorm.append(df.loc[idx].rename(nsmp))
+        >>> seed = 5
         >>>
-        >>> opts = dict(left_index=True, right_index=True, suffixes=("_norm", "_lognorm"))
-        >>> df = pd.DataFrame(stat_norm).merge(pd.DataFrame(stat_lognorm), **opts).rename_axis("# SMP")
-        >>> print(df)
-               statistic_norm  pvalue_norm  statistic_lognorm  pvalue_lognorm
-        # SMP                                                                
-        10        9.19610e-01  3.15408e-01        9.40333e-01     6.43714e-41
-        50        9.44342e-01  1.84070e-02        9.40333e-01     6.43714e-41
-        100       9.78776e-01  1.03195e-01        9.40333e-01     6.43714e-41
-        500       9.85038e-01  5.02533e-05        9.40333e-01     6.43714e-41
-        1000      9.89657e-01  1.68679e-06        9.40333e-01     6.43714e-41
-        5000      9.90618e-01  1.03590e-17        9.40333e-01     6.43714e-41
+        >>> smp_norm = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=seed, pdf="normal"))[33]
+        >>> smp_lognorm = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=seed, pdf="lognormal"))[33]
+        >>> smp_uniform = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=seed, pdf="uniform"))[33]
+
+        In this example we defined the following arbitrary convergence criteria:
+            - if the p value is larger than 0.05 we fail to reject the null-hypothesis and we accept the results
+            - if the first condition is accepted, we confirm the pdf if the statistics is larger than 0.95
+        >>> threshold = 0.95
+        >>> pthreshold = 0.05
+        >>> def test(smps):
+        ...     data = []
+        ...     for n in [10, 50, 100, 500, 1000, 5000]:
+        ...         for pdf in ("normal", "lognormal"):
+        ...             df = smps.test_shapiro(pdf=pdf, size=n)
+        ...             idx = df.statistic.idxmin()
+        ...             w = df.loc[idx]
+        ...             t = "reject" if w.pvalue < pthreshold else (pdf if w.statistic > threshold else f"not-{pdf}")
+        ...             data.append({"PDF": pdf, "test":t, "# SMP": n})
+        ...     df = pd.DataFrame(data).pivot_table(index="# SMP", columns="PDF", values="test", aggfunc=lambda x: ' '.join(x))
+        ...     return df
+
+        The Shapiro-Wilks test proves wrong the normal samples because of the tail truncation.
+        >>> print(test(smp_norm))
+        PDF   lognormal      normal
+        # SMP                      
+        10       reject  not-normal
+        50       reject      reject
+        100      reject      reject
+        500      reject      reject
+        1000     reject      reject
+        5000     reject      reject
 
         The Shapiro-Wilks test proves right for the lognormal samples and the lognormal distribution.
-        >>> stat_norm = []
-        >>> stat_lognorm = []
-        >>> for nsmp in [10, 50, 100, 500, 1000, 5000]:
-        ...    df = smp_lognorm.test_shapiro(pdf="normal", size=nsmp)
-        ...    idx = df.statistic.idxmin()
-        ...    stat_norm.append(df.loc[idx].rename(nsmp))
-        ...
-        ...    df = smp_lognorm.test_shapiro(pdf="lognormal", size=nsmp)
-        ...    idx = df.statistic.idxmin()
-        ...    stat_lognorm.append(df.loc[idx].rename(nsmp))
-        >>>
-        >>> opts = dict(left_index=True, right_index=True, suffixes=("_norm", "_lognorm"))
-        >>> df = pd.DataFrame(stat_norm).merge(pd.DataFrame(stat_lognorm), **opts).rename_axis("# SMP")
-        >>> print(df)
-               statistic_norm  pvalue_norm  statistic_lognorm  pvalue_lognorm
-        # SMP                                                                
-        10        6.97781e-01  4.38032e-04        9.99319e-01     5.41511e-02
-        50        8.19990e-01  2.17409e-06        9.99319e-01     5.41511e-02
-        100       7.90146e-01  1.08222e-10        9.99319e-01     5.41511e-02
-        500       8.99920e-01  1.35794e-17        9.99319e-01     5.41511e-02
-        1000      9.14015e-01  2.26424e-23        9.99319e-01     5.41511e-02
-        5000      9.02778e-01  0.00000e+00        9.99319e-01     5.41511e-02
+        >>> print(test(smp_lognorm))
+        PDF    lognormal  normal
+        # SMP                   
+        10     lognormal  reject
+        50     lognormal  reject
+        100    lognormal  reject
+        500    lognormal  reject
+        1000   lognormal  reject
+        5000   lognormal  reject
+
+        The Shapiro-Wilks gives too low p-values for the uniform samples.
+        >>> print(test(smp_uniform))
+        PDF   lognormal  normal
+        # SMP                  
+        10       reject  reject
+        50       reject  reject
+        100      reject  reject
+        500      reject  reject
+        1000     reject  reject
+        5000     reject  reject
         """
         size_ = size or self.data.shape[1]
         names = ["statistic", "pvalue"]
