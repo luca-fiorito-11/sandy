@@ -191,6 +191,7 @@ def run(cli):
     Produce perturbed ENDF6 and PENDF files.
     >>> cli = "H1.jeff33 --samples 2 --processes 2 --outname=H1_{MAT}_{SMP} --mt 102"
     >>> sandy.sampling.run(cli)
+    >>> os.listdir()
 
     >>> assert filecmp.cmp("H1_125_0.endf6", "H1_125_1.endf6")
     >>> assert filecmp.cmp("H1_125_0.endf6", "H1.jeff33")
