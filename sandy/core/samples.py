@@ -163,7 +163,7 @@ class Samples():
         >>> print(test(smp_norm))
         PDF   lognormal      normal
         # SMP                      
-        10       reject  not-normal
+        10       reject      reject
         50       reject      reject
         100      reject      reject
         500      reject      reject
