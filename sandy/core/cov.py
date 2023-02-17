@@ -244,6 +244,8 @@ class CategoryCov():
         deviation vector
     from_stack
         create a covariance matrix from a stacked `pd.DataFrame`
+    from_stdev
+        construct a covariance matrix from a standard deviation vector
     from_var
         construct a covariance matrix from a variance vector
     get_corr
@@ -376,6 +378,36 @@ class CategoryCov():
         corr = random_corr(size, correlations=correlations, seed=seed)
         std = np.random.uniform(stdmin, stdmax, size)
         return CategoryCov(corr).corr2cov(std)
+
+    @classmethod
+    def from_stdev(cls, std):
+        """
+        Construct the covariance matrix from the standard deviation vector.
+
+        Parameters
+        ----------
+        var : 1D iterable
+            Standar deviation vector.
+
+        Returns
+        -------
+        `CategoryCov`
+            Object containing the covariance matrix.
+
+        Example
+        -------
+        Create covariance from stdev in `pd.Series`.
+        >>> var = pd.Series(np.array([0, 2, 3]), index=pd.Index(["A", "B", "C"]))
+        >>> std = np.sqrt(var)
+        >>> cov = sandy.CategoryCov.from_stdev(std)
+        >>> cov
+                    A           B           C
+        A 0.00000e+00 0.00000e+00 0.00000e+00
+        B 0.00000e+00 2.00000e+00 0.00000e+00
+        C 0.00000e+00 0.00000e+00 3.00000e+00
+        """
+        std_ = pd.Series(std)
+        return cls.from_var(std_ * std_)
 
     @classmethod
     def from_var(cls, var):
