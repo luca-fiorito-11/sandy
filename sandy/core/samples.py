@@ -16,17 +16,25 @@ class Samples():
     
     Attributes
     ----------
-    condition_number
-        
     data
-        
+        Dataframe of samples.
 
     Methods
     -------
-    filter_by
-        
-    from_csv
-       
+    get_condition_number
+        Return condition number of samples.
+    get_cov
+        Return covariance matrix of samples.
+    get_mean
+        Return mean vector of samples.
+    get_std
+        Return standard deviation vector of samples.
+    get_rstd
+        Return relative standard deviation vector of samples.   
+    iterate_xs_samples
+        Generator that iterates over each sample (in the form of :func:`sandy.Xs`).
+    test_shapiro
+        Perform the Shapiro-Wilk test for normality on the samples.
     """
 
     _columnsname = "SMP"
@@ -62,8 +70,7 @@ class Samples():
     def data(self, data):
         self._data = data.rename_axis(self.__class__._columnsname, axis=1)
 
-    @property
-    def condition_number(self):
+    def get_condition_number(self):
         """
         Return condition number of samples.
 
@@ -116,19 +123,27 @@ class Samples():
     
     def test_shapiro(self, size=None, pdf="normal"):
         """
+        Perform the Shapiro-Wilk test for normality on the samples.
+        The test can be performed also for a lognormal distribution by testing
+        for normality the logarithm of the samples.
         
+        The Shapiro-Wilk test tests the null hypothesis that the data was
+        drawn from a normal distribution.
 
         Parameters
         ----------
-        size : TYPE, optional
-            DESCRIPTION. The default is None.
-        pdf : TYPE, optional
-            DESCRIPTION. The default is "normal".
+        size : `int`, optional
+            number of samples (starting from the first) that need to be
+            considered for the test. The default is `None`, i.e., all samples.
+        pdf : `str`, optional
+            the pdf used to test the samples. Either `"normal"` or
+            `"lognormal"`. The default is "normal".
 
         Returns
         -------
-        TYPE
-            DESCRIPTION.
+        pd.DataFrame
+            Dataframe with Shapriro-Wilk results (statistic and pvalue) for
+            each variable considered in the :func:`~Samples` instance.
 
         Examples
         --------
@@ -195,7 +210,7 @@ class Samples():
         size_ = size or self.data.shape[1]
         names = ["statistic", "pvalue"]
 
-        data = self.data.loc[:, :size_]
+        data = self.data.iloc[:, :size_]
         if pdf.lower() == "lognormal":
             data = np.log(self.data)
 
