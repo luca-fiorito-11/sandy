@@ -2179,9 +2179,9 @@ class Endf6(_FormattedFile):
     def mp_apply_perturbations(self, smps, 
                                processes=1,
                                temperature=0,
-                               to_ace = False,
+                               to_ace=False,
                                implicit_effect=False,
-                               to_file = False,
+                               to_file=False,
                                filename="{ZA}_{SMP}",
                                njoy_kws={},
                                **kwargs
