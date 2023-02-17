@@ -2176,48 +2176,130 @@ class Endf6(_FormattedFile):
                 return self._mp_apply_perturbations(smp, processes=processes, **kwargs)
 
 
-    def _mp_apply_xs_perturbations(self, smp, processes, **kwargs):
-        # need to pass xs.data (dataframe), because sandy.Xs instance cannot be pickled
-        xs = sandy.Xs.from_endf6(self).data
-        seq = smp.iterate_xs_samples()
+    def mp_apply_perturbations(self, smps, 
+                               processes=1,
+                               temperature=0,
+                               to_ace = False,
+                               implicit_effect=False,
+                               to_file = False,
+                               filename="{ZA}_{SMP}",
+                               njoy_kws={},
+                               **kwargs
+                               ):
+        """
+        
+        Apply perturbations to the data contained in ENDF6 file. At the 
+        moment only the procedure for cross sections is implemented. Options
+        are included to directly convert perturbed pendf to ace and write data
+        on files.
+        
+        Parameters
+        ----------
+        smps : samples obtained taking  the relative covariances from the 
+        evaluated files and a unit vector as mean.
+        processes : number of processes employed to complete the task.
+                    Employed to convert endf in ace format in parallel if >1.
+                    The default is 1.
+        temperature: temperature at which perturbed xs are evaluated.
+                     The default is 0.
+        to_ace: option to write ace files from perturbed pendf.
+                The default is False.
+                
+        implicit_effect: if True pendf at Temperature is generated and and 
+                         and njoy module "broadr" is not called in the 
+                         generation of ace file.
+                         If False pendf at 0K is produced and then "broadr"
+                         module is called during conversion to ace to obtain 
+                         perturbed file at requested T.
+                         The default is False.
+        to_file: option to write endf6 or ace to a file.
+                 The default is False.
+        filename: if option to_file to customize file name.
+                  The default is "{ZA}_{SMP}".
+        njoy_kws: keyword argument to pass to `tape.get_pendf()`.
+        **kwargs : keyword argument to pass to "tape.get_ace()".
 
-        pool = mp.Pool(processes=processes)
-        outs = {n: pool.apply_async(pendf_xs_perturb_worker, (self, xs, n, p), kwargs) for n, p in seq}
-        outs = {n: out.get() for n, out in outs.items()}
-        pool.close()
-        pool.join()
-        return outs
+        Returns
+        -------
+        A dictionary of endf/pendf file or ace files depending on to_ace.  
 
-    def _mp_apply_perturbations(self, smps, processes,
-                                njoy_kws={},
-                                **kwargs):
-        # Passed NEDF-6 and PENDF as dictionaries because class instances cannot be pickled
-        endf6 = self.data
+        Examples
+        --------
+        
+        """
+        
+        #to transfer keywords to the worker
+        kwargs["filename"] = filename
+        kwargs["to_file"] = to_file
+        
+        if to_ace:
+            if implicit_effect:
+                njoy_kws["temperature"] = kwargs["temperature"] = temperature
+                kwargs["broadr"] = False
+            else:
+                njoy_kws["temperature"] = 0
+                kwargs["temperature"] = temperature
+                kwargs["broadr"] = True
+        else:
+            #if I'm not creating ace I directly generate pendf at requested
+            #Temperature
+            njoy_kws["temperature"] = temperature
+            
+        
         if 33 in smps:
-            pendf = self.get_pendf(**njoy_kws).data
-            kwargs["process_xs"] = True
-
-        # Samples passed as generator in apply_async
-        def null_gen():
-            "generator mimicking dictionary and returning only None"
-            while True:
-                yield None, None
-
-        def get_key(*lst):
-            return np.array([x for x in lst if x is not None]).item()
-
-        seq_xs = smps[33].iterate_xs_samples() if 33 in smps else null_gen()
-        seq_nu = smps[31].iterate_xs_samples() if 31 in smps else null_gen()
-        seqs = zip(seq_xs, seq_nu)
-
-
-        pool = mp.Pool(processes=processes)
-        outs = {get_key(nxs, nnu): pool.apply_async(endf6_perturb_worker, (endf6, pendf, nxs, pxs), kwargs)
-                for (nxs, pxs), (nnu, pnu) in seqs}
-        outs = {n: out.get() for n, out in outs.items()}
-        pool.close()
-        pool.join()
-        return outs
+            pendf = self.get_pendf(**njoy_kws)
+            seq_xs = smps[33].iterate_xs_samples()
+            pendf_pert = iterate_pendf_pert(pendf, seq_xs)
+        
+        # if flag proceed to the creation of ace file - possibility to
+        #use multiprocessing
+        if to_ace:
+            if processes == 1:
+                # Passed ENDF-6 and PENDF as dictionaries because class 
+                #instances cannot be pickled
+                outs = {n: to_ace_worker(self.data, pendf_.data,n, **kwargs)
+                        for (n, pendf_) in pendf_pert}
+            elif processes > 1:
+                pool = mp.Pool(processes=processes)
+                # Passed ENDF-6 and PENDF as dictionaries because class 
+                #instances cannot be pickled
+                outs = {n: pool.apply_async(to_ace_worker, (self.data, pendf_.data, n), kwargs)
+                        for (n, pendf_) in pendf_pert}
+                outs = {n: out.get() for n, out in outs.items()}
+                pool.close()
+                pool.join()
+            return outs
+        else:
+        
+            # filename options, in case writing to file
+            mat = self.mat[0]
+            intro = self.read_section(mat, 1, 451)
+            za = int(intro["ZA"])
+            meta = int(intro["LISO"])
+            zam = sandy.zam.za2zam(za, meta=meta)
+            params = dict(
+                MAT=mat,
+                ZAM=zam,
+                ZA=za,
+                META=meta,
+                )
+            outs = {}
+            for (n, pendf_) in pendf_pert:
+                outs[n] = dict(endf = self, pendf = pendf_)
+                if to_file:
+                    params["SMP"] = np.array(n).item()
+                    fn = filename.format(**params)    
+                    file = f"{fn}.endf6"
+                    if "verbose" in kwargs.keys():
+                        print(f"writing to file '{file}'")
+                    self.to_file(file)
+                    if pendf_:
+                        file = f"{fn}.pendf"
+                        if "verbose" in kwargs.keys():
+                            print(f"writing to file '{file}'")
+                        pendf_.to_file(file)
+                        
+            return outs
 
 
     def _apply_xs_perturbations(self, smp, **kwargs):
@@ -2235,16 +2317,16 @@ def pendf_perturb_worker(e6, n, xs, **kwargs):
 
 
 def endf6_perturb_worker(e6, pendf, nxs, pxs,
-                         verbose=False,
-                         process_xs=False,
-                         process_nu=False,
-                         process_lpc=False,
-                         process_chi=False,
-                         to_ace=False,
-                         to_file=False,
-                         filename="{ZA}_{SMP}",
-                         ace_kws={},
-                         **kwargs):
+                          verbose=False,
+                          process_xs=False,
+                          process_nu=False,
+                          process_lpc=False,
+                          process_chi=False,
+                          to_ace=False,
+                          to_file=False,
+                          filename="{ZA}_{SMP}",
+                          ace_kws={},
+                          **kwargs):
     """
     
 
@@ -2285,6 +2367,8 @@ def endf6_perturb_worker(e6, pendf, nxs, pxs,
         DESCRIPTION.
 
     """
+
+    
     # default initialization
     endf6_pert = sandy.Endf6(e6.copy())
     pendf_pert = None
@@ -2296,7 +2380,7 @@ def endf6_perturb_worker(e6, pendf, nxs, pxs,
     za = int(intro["ZA"])
     meta = int(intro["LISO"])
     zam = sandy.zam.za2zam(za, meta=meta)
-    temperature = ace_kws["temperature"] = ace_kws.get("temperature", 0)
+    temperature = ace_kws["temperature"] = kwargs.get("temperature", 0)
     params = dict(
         MAT=mat,
         ZAM=zam,
@@ -2315,10 +2399,15 @@ def endf6_perturb_worker(e6, pendf, nxs, pxs,
 
     # Run NJOY and convert to ace
     if to_ace:
+    
+        ace_kws["broadr"] = kwargs["broadr"]
+        ace_kws["verbose"] = verbose
+        
         suffix = ace_kws.get("suffix", sandy.njoy.get_temperature_suffix(temperature))
-        ace_kws["suffix"] = "." + suffix
+        ace_kws["suffix"] = "." + suffix    
         ace = endf6_pert.get_ace(pendf=pendf_pert, **ace_kws)
-
+        ace_kws.pop("suffix") #to avoid appending during the loop
+        # ace_kws["suffix"] = ""
         if to_file:
             file = f"{fn}.{suffix}c"
             with open(file, "w") as f:
@@ -2351,3 +2440,101 @@ def endf6_perturb_worker(e6, pendf, nxs, pxs,
         return
 
     return out
+
+def iterate_pendf_pert(pendf, seq_xs):
+    
+    """
+    Perturb pendf file according to the distributions generated by
+    "tape.get_perturbations()"
+    
+    Parameters
+    ----------
+    pendf: pendf file to perturb.
+    seq_xs: iterator containing sample number and distribution.
+    
+    Returns
+    -------
+    Generator containing sample number and perturbed pendf file.
+    
+    """
+    
+    xs = sandy.Xs.from_endf6(pendf)
+   
+    for (nxs,pxs) in seq_xs:
+        xs_pert = xs._perturb(pxs)
+        pendf_pert = xs_pert.reconstruct_sums(drop=True).to_endf6(pendf).update_intro()
+        yield nxs, pendf_pert
+        
+
+def to_ace_worker(e6, pendf, n,
+                  ace_kws={},
+                  **kwargs):
+    
+    """
+    Convert perturbed pendf instance into an ACE and eventually write it into 
+    a file.
+    
+    Parameters
+    ----------
+    e6: Endf6 instance.
+    pendf: perturbed pendf.
+    n: sample number.
+    ace_kws: keywards to pass to "tape.get_ace()". The default is {}.
+    **kwargs:
+            to_file: write the output to file.
+            verbose: show njoy processes instead of having in background.
+            temperature: temperature at which ace file is generated.
+            filename: name to give to the external file.
+            
+    Returns
+    -------
+    Dict containing "ace" and "xsdir" string. If to_file the 2 strings are
+    written in a file.
+    
+    """
+    
+    
+    # to endf6
+    endf6_pert = sandy.Endf6(e6.copy())
+    
+    ace_kws["verbose"] = kwargs.get("verbose", False)
+    filename = kwargs["filename"]
+    to_file = kwargs.get("to_file", False)
+    verbose = ace_kws["verbose"] = kwargs.get("verbose", False)
+    ace_kws["broadr"] = kwargs["broadr"]
+    temperature = ace_kws["temperature"] = kwargs.get("temperature",0)
+    suffix = ace_kws.get("suffix", sandy.njoy.get_temperature_suffix(temperature))
+    ace_kws["suffix"] = "." + suffix    
+    pendf_ = sandy.Endf6(pendf.copy())
+    ace = endf6_pert.get_ace(pendf=pendf_, **ace_kws)
+    ace_kws.pop("suffix") #to avoid appending during the loop
+    
+    if to_file:
+        mat = endf6_pert.mat[0]
+        intro = endf6_pert.read_section(mat, 1, 451)
+        za = int(intro["ZA"])
+        meta = int(intro["LISO"])
+        zam = sandy.zam.za2zam(za, meta=meta)
+        ismp = n
+        params = dict(
+            MAT=mat,
+            ZAM=zam,
+            ZA=za,
+            META=meta,
+            SMP=ismp,
+            )
+        
+        fn = filename.format(**params)   
+        file = f"{fn}.{suffix}c"
+        with open(file, "w") as f:
+            if verbose:
+                print(f"writing to file '{file}'")
+            f.write(ace["ace"])
+        file = f"{file}.xsd"
+        with open(file, "w") as f:
+            if verbose:
+                print(f"writing to file '{file}'")
+            f.write(ace["xsdir"])
+        return
+    return ace
+
