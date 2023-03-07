@@ -2274,9 +2274,7 @@ class Endf6(_FormattedFile):
         if 33 in smps:
             seq_xs = smps[33].iterate_xs_samples()
             pendf_ = self.get_pendf(**njoy_kws)
-            
-            print("INFO: PENDF creation completed")
-        
+
         # if flag proceed to the creation of ace file - possibility to
         #use multiprocessing
         if to_ace:
@@ -2513,7 +2511,8 @@ def to_ace_worker(e6, pendf, n,
     pendf_ = sandy.Endf6(pendf.copy())
     ace = endf6_pert.get_ace(pendf=pendf_, **ace_kws)
     ace_kws.pop("suffix") #to avoid appending during the loop
-    print(f"ACE file of sample {n} generated. Process ID: {os.getpid()}")
+    if verbose:
+        print(f"ACE file of sample {n} generated. Process ID: {os.getpid()}")
     if to_file:
         mat = endf6_pert.mat[0]
         intro = endf6_pert.read_section(mat, 1, 451)
