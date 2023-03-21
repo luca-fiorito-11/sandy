@@ -136,7 +136,7 @@ class Errorr(_FormattedFile):
         data = pd.concat(data, axis=1).fillna(0)
         return sandy.Xs(data)
 
-    def get_cov(self, multigroup=True, mt=None):
+    def get_cov(self):
         """
         Extract cross section/nubar covariance from `Errorr` instance.
 
@@ -162,56 +162,37 @@ class Errorr(_FormattedFile):
                 (10.0, 20000000.0]	4.62566e-05	       2.47650e-04	 4.63327e-05	       2.47655e-04	0.00000e+00	           0.00000e+00
             102	      (0.01, 10.0]	1.07035e-06	       7.58742e-09	 0.00000e+00	       0.00000e+00	6.51764e-04	           3.40163e-04
                 (10.0, 20000000.0]	5.58627e-07	       1.49541e-06	 0.00000e+00	       0.00000e+00	3.40163e-04	           6.70431e-02
-
-        >>> data = err.get_cov(multigroup=False).data
-        >>> np.testing.assert_array_equal(
-        ...     data.index.get_level_values("E").unique()[:-1],
-        ...     datamg.index.get_level_values("E").left.unique(),
-        ... )
-        >>> np.testing.assert_array_equal(
-        ...     data.index.get_level_values("E").unique()[1:],
-        ...     datamg.index.get_level_values("E").right.unique(),
-        ... )
         """
         eg = self.get_energy_grid()
-        if multigroup:
-            eg = pd.IntervalIndex.from_breaks(eg)
+        eg = pd.IntervalIndex.from_breaks(eg)  # multigroup
 
-        data = []
-        for mat_, mf_, mt_ in self.filter_by(listmf=[31, 33]).data:
-            if mt and mt_ not in mt:
-                continue
-            mf33 = sandy.errorr.read_mf33(self, mat_, mt_)
-
-            for mt1, cov in mf33["COVS"].items():
-                if mt and mt1 not in mt:
-                    continue
-                if not multigroup:
-                    # add zero row and column at the end of the matrix
-                    # (this must be done for ERRORR covariance matrices)
-                    cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-                    cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-                idx = pd.MultiIndex.from_product(
-                    [[mat_], [mt_], eg],
-                    names=["MAT", "MT", "E"],
-                    )
-                idx1 = pd.MultiIndex.from_product(
-                    [[mat_], [mt1], eg],
-                    names=["MAT1", "MT1", "E1"],
-                    )
-                df = pd.DataFrame(cov, index=idx, columns=idx1) \
-                       .stack(level=["MAT1", "MT1", "E1"]) \
-                       .rename("VAL") \
-                       .reset_index()
-                data.append(df)
-        data = pd.concat(data)
+        # initialize global cov matrix with all MAT, MT
+        ix = pd.DataFrame(self.filter_by(listmf=[31, 33]).data.keys(),
+                          columns=["MAT", "MF", "MT"])[["MAT", "MT"]]
+        ix["IMIN"] = ix.index * eg.size
+        ix["IMAX"] = (ix.index + 1) * eg.size
+        nd = ix.shape[0]
+        nsize = nd * eg.size
+        c = np.zeros((nsize, nsize))
         
-        out = sandy.CategoryCov.from_stack(
-            data,
-            index=["MAT", "MT", "E"],
-            columns=["MAT1", "MT1", "E1"],
-            values='VAL',
-            )
+        # Fill matrix
+        for mat, mf, mt in self.filter_by(listmf=[31, 33]).data:
+            mf33 = sandy.errorr.read_mf33(self, mat, mt)
+        
+            for mt1, cov in mf33["COVS"].items():
+                ivals = ix.query("MAT==@mat & MT==@mt").squeeze()
+                imin, imax = ivals.IMIN, ivals.IMAX
+                jvals = ix.query("MAT==@mat & MT==@mt1").squeeze()
+                jmin, jmax = jvals.IMIN, jvals.IMAX
+                c[imin: imax, jmin: jmax] = cov
+                c[jmin: jmax, imin: imax] = cov.T
+        
+        # Add index and columns and convert to CategoryCov
+        idx = pd.MultiIndex.from_tuples(
+            [(mat, mt, e) for i, (mat, mt) in ix[["MAT", "MT"]].iterrows() for e in eg],
+            names=["MAT", "MT", "E"],
+        )
+        out = sandy.CategoryCov(c, index=idx, columns=idx)        
         return out
 
 
