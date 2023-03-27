@@ -149,7 +149,7 @@ def parse(iargs=None):
     return init
 
 
-def run(cli):
+def run(cli="--help"):
     """
     
 
@@ -204,11 +204,7 @@ def run(cli):
     iargs = parse(cli.split())
 
     endf6 = sandy.Endf6.from_file(iargs.file)
-    
-    njoy_kws = dict(
-        err=0.01,
-        temperature=0,
-        )
+    njoy_kws = {}
     if iargs.mt33:
         njoy_kws["errorr33_kws"] = dict(mt=iargs.mt33)
 
@@ -224,16 +220,19 @@ def run(cli):
 
     smps = endf6.get_perturbations(iargs.samples, njoy_kws=njoy_kws, smp_kws=smp_kws)
     
-    ace_kws = dict(
-        temperature=iargs.temperatures[0] if hasattr(iargs.temperatures, "__len__") else iargs.temperatures
-        )
-    endf6._mp_apply_perturbations(
+    if iargs.temperatures:
+        temperature = iargs.temperatures[0] if hasattr(iargs.temperatures, "__len__") else iargs.temperatures
+    else:
+        temperature = 0
+        
+    endf6.apply_perturbations(
         smps,
         processes=iargs.processes,
         to_file=True,
         to_ace=iargs.acer,
         filename=iargs.outname,
-        ace_kws=ace_kws,
+        njoy_kws=dict(err=0.005),
+        ace_kws=dict(temperature=temperature, err=0.005),
         verbose=iargs.verbose,
     )
 
