@@ -157,16 +157,16 @@ class Samples():
         return self.__class__(out)
 
     def _std_convergence(self):
-        smp = self.data
+        smp = self.data.T
         rng = range(2, smp.shape[0])
         foo = lambda x: smp.loc[:x].std()
-        return pd.DataFrame(map(foo, rng), index=rng)
+        return pd.DataFrame(map(foo, rng), index=rng).T
 
     def _mean_convergence(self):
-        smp = self.data
+        smp = self.data.T
         rng = range(1, smp.shape[0])
         foo = lambda x: smp.loc[:x].mean()
-        return pd.DataFrame(map(foo, rng), index=rng)
+        return pd.DataFrame(map(foo, rng), index=rng).T
 
     def _heatmap(self, vmin=-1, vmax=1, cmap="bwr", **kwargs):
         corr = np.corrcoef(self.data)
