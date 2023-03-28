@@ -25,7 +25,7 @@ jobs:
           # The branch, tag or SHA to checkout. When checking out the repository that
           # triggered a workflow, this defaults to the reference or SHA for that event.
           # Otherwise, defaults to `master`.
-          ref: 'develop'
+          ref: 'v1.0'
       - uses: actions/setup-python@v3
         with:
           python-version: "3.7.15"
@@ -58,4 +58,4 @@ jobs:
           destination-repository-name: 'sandy_notebooks'
           user-email: lucafiorito.11@gmail.com
           commit-message: pushing notebooks...
-          target-branch: executed_notebooks
+          target-branch: executed_notebooks_v1.0
