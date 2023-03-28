@@ -739,7 +739,7 @@ class CategoryCov():
         >>> np.testing.assert_array_equal(sandy.CategoryCov(c.invert()).invert(), c.data)
         
         Test on real ND covariance. With previous implementation this test failed.
-        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, errorr_kws=dict(mt=102))["errorr33"].get_cov(multigroup=False)
+        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, errorr_kws=dict(mt=102))["errorr33"].get_cov()
         >>> cinv = c.invert()
         >>> np.testing.assert_array_almost_equal(c.data, np.linalg.pinv(cinv, hermitian=True))
         >>> assert (cinv.index == c.data.index).all()
@@ -764,7 +764,7 @@ class CategoryCov():
             inverse of the inverted matrix
 
         Test on real ND covariance.
-        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, errorr_kws=dict(mt=102))["errorr33"].get_cov(multigroup=False)
+        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, errorr_kws=dict(mt=102))["errorr33"].get_cov()
         >>> c2 = c._double_invert()
         >>> np.testing.assert_array_almost_equal(c.data, c2.data)
         >>> assert (c2.data.index == c.data.index).all()
