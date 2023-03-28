@@ -2236,7 +2236,6 @@ def endf6_perturb_worker(e6, pendf, n,
         SMP=n,
         )
     fn = filename.format(**params)
-    print(os.getpid())
 
     # apply nubar perturbation
     if pnu is not None:
@@ -2266,7 +2265,7 @@ def endf6_perturb_worker(e6, pendf, n,
         ace = endf6_pert.get_ace(pendf=pendf_pert, **ace_kws)
 
         if to_file:
-            file = f"{fn}.{suffix}c"
+            file = f"{fn}{suffix}c"
             with open(file, "w") as f:
                 if verbose:
                     print(f"writing to file '{file}'")
