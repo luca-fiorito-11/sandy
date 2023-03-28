@@ -28,8 +28,3 @@ def get_custom_spectrum(key):
     f = data.iloc[split:-1].values[::-1]
     spe = pd.Series(f, index=e).rename("SPE")
     return spe
-
-
-# Allocate all spectra in "custom_spectra" as module attributes
-for k in custom_spectra:
-    exec(f"{k} = get_custom_spectrum(k)")
