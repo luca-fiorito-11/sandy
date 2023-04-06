@@ -2233,93 +2233,99 @@ def pendf_perturb_worker(e6, n, xs, **kwargs):
     return out
 
 
-def endf6_perturb_worker(e6, pendf, nxs, pxs,
-                         verbose=False,
-                         process_xs=False,
-                         process_nu=False,
-                         process_lpc=False,
-                         process_chi=False,
-                         to_ace=False,
-                         to_file=False,
-                         filename="{ZA}_{SMP}",
-                         ace_kws={},
-                         **kwargs):
+def endf6_perturb_worker(e6, pendf, n,
+                        pxs=None,
+                        pnu=None,
+                        plpc=None,
+                        pedistr=None,
+                        verbose=False,
+                        to_ace=False,
+                        to_file=False,
+                        filename="{ZA}_{SMP}",
+                        ace_kws={},
+                        **kwargs):
     """
-    
 
-    Parameters
-    ----------
-    e6 : TYPE
-        DESCRIPTION.
-    pendf : TYPE
-        DESCRIPTION.
-    nxs : TYPE
-        DESCRIPTION.
-    pxs : TYPE
-        DESCRIPTION.
-    verbose : TYPE, optional
-        DESCRIPTION. The default is False.
-    process_xs : TYPE, optional
-        DESCRIPTION. The default is False.
-    process_nu : TYPE, optional
-        DESCRIPTION. The default is False.
-    process_lpc : TYPE, optional
-        DESCRIPTION. The default is False.
-    process_chi : TYPE, optional
-        DESCRIPTION. The default is False.
-    to_ace : TYPE, optional
-        DESCRIPTION. The default is False.
-    to_file : TYPE, optional
-        DESCRIPTION. The default is False.
-    filename : TYPE, optional
-        DESCRIPTION. The default is "{ZA}_{SMP:d}".
-    ace_kws : TYPE, optional
-        DESCRIPTION. The default is {}.
-    **kwargs : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    TYPE
-        DESCRIPTION.
-
-    """
+    Parameters
+    ----------
+    e6 : TYPE
+        DESCRIPTION.
+    pendf : TYPE
+        DESCRIPTION.
+    n : TYPE
+        DESCRIPTION.
+    pxs : TYPE
+        DESCRIPTION.
+    verbose : TYPE, optional
+        DESCRIPTION. The default is False.
+    to_ace : TYPE, optional
+        DESCRIPTION. The default is False.
+    to_file : TYPE, optional
+        DESCRIPTION. The default is False.
+    filename : TYPE, optional
+        DESCRIPTION. The default is "{ZA}_{SMP:d}".
+    ace_kws : TYPE, optional
+        DESCRIPTION. The default is {}.
+    **kwargs : TYPE
+        DESCRIPTION.
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+    """
     # default initialization
     endf6_pert = sandy.Endf6(e6.copy())
     pendf_pert = None
 
-    # filename options, in case we erite to file
-    ismp = np.array([x for x in [nxs] if x is not None]).item()
+
+    # filename options, in case we write to file
     mat = endf6_pert.mat[0]
     intro = endf6_pert.read_section(mat, 1, 451)
     za = int(intro["ZA"])
     meta = int(intro["LISO"])
     zam = sandy.zam.za2zam(za, meta=meta)
-    temperature = ace_kws["temperature"] = ace_kws.get("temperature", 0)
     params = dict(
         MAT=mat,
         ZAM=zam,
         ZA=za,
         META=meta,
-        SMP=ismp,
+        SMP=n,
         )
     fn = filename.format(**params)
 
+    # apply nubar perturbation
+    if pnu is not None:
+        nu = sandy.Xs.from_endf6(endf6_pert.filter_by(listmt = [452, 455, 456]))
+        nu_pert = sandy.core.xs.xs_perturb_worker(nu, n, pnu, verbose=verbose)
+        endf6_pert = nu_pert.reconstruct_sums(drop=True).to_endf6(endf6_pert).update_intro()
+
+    
+    # apply lpc perturbation
+    if plpc is not None:
+        pass
+
+    
+    # apply edistr perturbation
+    if pedistr is not None:
+        pass
+
+    
     # apply xs perturbation
-    if process_xs:
+    if pxs is not None:
         pendf_ = sandy.Endf6(pendf)
         xs = sandy.Xs.from_endf6(pendf_)
-        xs_pert = sandy.core.xs.xs_perturb_worker(xs, nxs, pxs, verbose=verbose)
+        xs_pert = sandy.core.xs.xs_perturb_worker(xs, n, pxs, verbose=verbose)
         pendf_pert = xs_pert.reconstruct_sums(drop=True).to_endf6(pendf_).update_intro()
 
+    
     # Run NJOY and convert to ace
     if to_ace:
-        suffix = ace_kws.get("suffix", sandy.njoy.get_temperature_suffix(temperature))
-        ace_kws["suffix"] = "." + suffix
+        temperature = ace_kws.get("temperature", 0)
+        suffix = ace_kws.get("suffix", "." + sandy.njoy.get_temperature_suffix(temperature))
         ace = endf6_pert.get_ace(pendf=pendf_pert, **ace_kws)
 
         if to_file:
-            file = f"{fn}.{suffix}c"
+            file = f"{fn}{suffix}c"
             with open(file, "w") as f:
                 if verbose:
                     print(f"writing to file '{file}'")
@@ -2333,20 +2339,23 @@ def endf6_perturb_worker(e6, pendf, nxs, pxs,
 
         return ace
 
-    out = {"endf6": endf6_pert}
-    if pendf_pert:
-        out["pendf"] = pendf_pert
-
-    if to_file:
-        file = f"{fn}.endf6"
-        if verbose:
-            print(f"writing to file '{file}'")
-        endf6_pert.to_file(file)
+    else:
+        out = {"endf6": endf6_pert.data}
         if pendf_pert:
-            file = f"{fn}.pendf"
+            out["pendf"] = pendf_pert.data
+
+            
+        if to_file:
+            file = f"{fn}.endf6"
             if verbose:
                 print(f"writing to file '{file}'")
-            pendf_pert.to_file(file)
-        return
+            endf6_pert.to_file(file)
+            if pendf_pert:
+                file = f"{fn}.pendf"
+                if verbose:
+                    print(f"writing to file '{file}'")
+                pendf_pert.to_file(file)
+            return
 
-    return out
+
+        return out
