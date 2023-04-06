@@ -2112,68 +2112,94 @@ class Endf6(_FormattedFile):
 
         return inner
 
-    @_handle_pert_to_file
-    def apply_perturbations(self, smp, processes=1, **kwargs):
+    def apply_perturbations(self, smps, processes=1, njoy_kws={}, **kwargs):
         """
+        Apply perturbations to the data contained in ENDF6 file. At the 
+        moment only the procedure for cross sections is implemented. Options
+        are included to directly convert perturbed pendf to ace and write data
+        on files.
+
+        Parameters
+        ----------
+        smps : samples obtained taking  the relative covariances from the 
+        evaluated files and a unit vector as mean.
+        processes : number of processes employed to complete the task.
+                    Employed to convert endf in ace format in parallel if >1.
+                    The default is 1.
+        temperature: temperature at which perturbed xs are evaluated.
+                     The default is 0.
+        to_ace: option to write ace files from perturbed pendf.
+                The default is False.
+        implicit_effect: if True pendf at Temperature is generated and 
+                         njoy module "broadr" is not called for the 
+                         generation of ace file.
+                         If False pendf at 0K is produced and then "broadr"
+                         module is called during conversion to ace to obtain 
+                         perturbed file at requested T.
+                         The default is False.
+        to_file: option to write endf6 or ace to a file.
+                 The default is False.
+
+        filename: if option to_file to customize file name.
+                  The default is "{ZA}_{SMP}".
+        verbose : `bool`, optional
+                  flag to print reminder of file generation of screen.
+                  The default is False.
+        njoy_kws: keyword argument to pass to `tape.get_pendf()`.
+        **kwargs : keyword argument to pass to "tape.get_ace()".
+        Returns
+        -------
+        A dictionary of endf/pendf file or ace files depending on to_ace.  
+        Examples
+        --------
+
+        """
+
+        def null_gen():
+            "generator mimicking dictionary and returning only None"
+            while True:
+                yield None, None
+
+        def get_key(*list):
+            return next((el for el in list if el is not None), None)
+
+#       Cross section settings    
+
+        if 33 in smps:
+            pendf = self.get_pendf(**njoy_kws)
+            seq_xs = smps[33].iterate_xs_samples()
+        else:
+            seq_xs = null_gen()
+
+#       Nubar settings
         
+        seq_nu = smps[31].iterate_xs_samples() if 31 in smps else null_gen()
 
-        Parameters
-        ----------
-        smp : TYPE
-            DESCRIPTION.
-        processes : TYPE, optional
-            DESCRIPTION. The default is 1.
-        **kwargs : TYPE
-            DESCRIPTION.
+#        if 34 in smps:
+#            seq_lpc = smps[31].iterate_lpc_samples()
+#        if 35 in smps:
+#            seq_chi = smps[35].iterate_chi_samples()
 
-        Returns
-        -------
-        TYPE
-            DESCRIPTION.
+        seq = zip(seq_xs, seq_nu)
 
-        Examples
-        --------
-        Get a couple of samples from H1 file of JEFF-3.3.
-        >>> njoy_kws = dict(err=1, errorr_kws=dict(mt=102))
-        >>> nsmp = 2
-        >>> smps = sandy.get_endf6_file("jeff_33", "xs", 10010).get_perturbations(nsmp=nsmp, njoy_kws=njoy_kws)
-        
-        Process PENDF file.
-        >>> pendf = sandy.get_endf6_file("jeff_33", "xs", 10010).get_pendf(minimal_processing=True)
+        if processes == 1:
+            outs = {}
+            outs =  {get_key(nxs, nnu) : endf6_perturb_worker(e6 = self.data, pendf = pendf.data,
+                                                n = get_key(nxs, nnu), pxs = pxs, pnu = pnu, 
+                                                **kwargs) for (nxs, pxs),(nnu, pnu) in seq} 
 
-        Apply samples to xs in PENDF file.
-        >>> outs = pendf.apply_perturbations(smps[33], verbose=True)
+       
+        elif processes > 1:
+            pool = mp.Pool(processes=processes)
+            outs = {}
+            outs = {get_key(nxs, nnu): pool.apply_async(endf6_perturb_worker, 
+                                                (self.data, pendf.data, get_key(nnu,nxs), pxs, pnu), 
+                                                kwargs) for (nxs, pxs), (nnu, pnu) in seq}
+            outs = {n: out.get() for n, out in outs.items()}
+            pool.close()
+            pool.join()
 
-        The output is a generator.
-        >>> assert isinstance(outs, types.GeneratorType)
-        >>> outs = dict(outs)
-        Processing xs sample 0...
-        Processing xs sample 1...
-
-        We have as amany files as samples.
-        >>> assert list(outs.keys()) == list(range(nsmp))
-        
-        Assert that only perturbed xs sections are different in perturbed files.
-        >>> for mat, mf, mt in outs[0].keys:
-        ...    if mt != 102:
-        ...        assert outs[0].data[(mat, mf, mt)] == outs[1].data[(mat, mf, mt)]
-        >>> assert outs[0].data[(125, 3, 102)] != outs[1].data[(125, 3, 102)]
-
-        .. note:: the total cross section is not perturbed
-
-        Apply samples to xs in PENDF file using multiprocessing.
-        >>> outs_mp = pendf.apply_perturbations(smps[33], processes=2)
-        
-        Assert that multiprocessing and singleprocessing results are identical.
-        >>> for n in outs:
-        ...    for key in outs[n].data:
-        ...        assert outs_mp[n].data[key] == outs[n].data[key]
-        """
-        if smp.data.index.names == [*sandy.Xs._columnsnames] + [sandy.Xs._indexname]:
-            if processes == 1:
-                return self._apply_xs_perturbations(smp, **kwargs)
-            else:
-                return self._mp_apply_perturbations(smp, processes=processes, **kwargs)
+        return outs
 
 
     def _mp_apply_xs_perturbations(self, smp, processes, **kwargs):
