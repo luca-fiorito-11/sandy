@@ -2166,7 +2166,7 @@ class Endf6(_FormattedFile):
 #       Cross section settings    
 
         if 33 in smps:
-            pendf = self.get_pendf(**njoy_kws)
+            kwargs["pendf"] = self.get_pendf(**njoy_kws).data
             seq_xs = smps[33].iterate_xs_samples()
         else:
             seq_xs = null_gen()
@@ -2184,17 +2184,17 @@ class Endf6(_FormattedFile):
 
         if processes == 1:
             outs = {}
-            outs =  {get_key(nxs, nnu) : endf6_perturb_worker(e6 = self.data, pendf = pendf.data,
-                                                n = get_key(nxs, nnu), pxs = pxs, pnu = pnu, 
-                                                **kwargs) for (nxs, pxs),(nnu, pnu) in seq} 
+            outs =  {get_key(nxs, nnu) : endf6_perturb_worker(e6 = self.data, n = get_key(nxs, nnu),
+                                                pxs = pxs, pnu = pnu, **kwargs) 
+                                                for (nxs, pxs),(nnu, pnu) in seq}
 
        
         elif processes > 1:
             pool = mp.Pool(processes=processes)
             outs = {}
-            outs = {get_key(nxs, nnu): pool.apply_async(endf6_perturb_worker, 
-                                                (self.data, pendf.data, get_key(nnu,nxs), pxs, pnu), 
-                                                kwargs) for (nxs, pxs), (nnu, pnu) in seq}
+            outs = {get_key(nxs, nnu): pool.apply_async(endf6_perturb_worker, (self.data,
+                                                get_key(nnu,nxs), pxs, pnu), kwargs) 
+                                                for (nxs, pxs), (nnu, pnu) in seq}
             outs = {n: out.get() for n, out in outs.items()}
             pool.close()
             pool.join()
@@ -2259,11 +2259,12 @@ def pendf_perturb_worker(e6, n, xs, **kwargs):
     return out
 
 
-def endf6_perturb_worker(e6, pendf, n,
+def endf6_perturb_worker(e6, n,
                         pxs=None,
                         pnu=None,
                         plpc=None,
                         pedistr=None,
+                        pendf = None,
                         verbose=False,
                         to_ace=False,
                         to_file=False,
