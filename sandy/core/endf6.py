@@ -2533,3 +2533,102 @@ If you want to process 0K cross sections use `temperature=0.1`.
             'chi': run_chi if chi else False,
             }
         return cov_info
+
+    def _get_lpc_cov(self, mt=range(1, 10000), mat=range(1, 10000), p=None):
+        """
+        Extract global Legendre Polynomials coefficients covariance matrix
+        from `sandy.Endf6` instance.
+
+        Parameters
+        ----------
+        mat : `int` or `list`, optional
+            MAT number. The default is range(1, 10000).
+        mt : `int` or `list`, optional
+            MT number. The default is range(1, 1000).
+        p : `int`, optional
+            maximum order of Legendre polynomial coefficients
+
+        Returns
+        -------
+        `sandy.CategoryCov`
+            Covariance matrix divided according to mat, mt, index of the
+            Legendre coefficient and energy.
+
+        Examples
+        --------
+        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922380)
+        >>> out = tape._get_lpc_cov()
+        >>> out.data.index.get_level_values("MT").unique()
+        Int64Index([2], dtype='int64', name='MT')
+
+        >>> out.data.index.get_level_values("L").unique()
+        Int64Index([1, 2, 3, 4, 5, 6], dtype='int64', name='L')
+
+        Filter p:
+        >>> out = tape._get_lpc_cov(p=4)
+        >>> out.data.index.get_level_values("L").unique()
+        Int64Index([1, 2, 3, 4], dtype='int64', name='L')
+        """
+        listmt_ = [mt] if isinstance(mt, int) else mt
+        listmat_ = [mat] if isinstance(mat, int) else mat
+        tape = self.filter_by(listmf=[34],
+                              listmt=listmt_,
+                              listmat=listmat_)
+        data = []
+        for mat, mf, mt in tape.data:
+            sec = tape.read_section(mat, mf, mt)
+            for (mat1, mt1), rsec in sec["REAC"].items():
+                if mat1 == 0:
+                    mat1 = mat
+                for (l, l1), psec in rsec["P"].items():
+                    covs = []
+                    for i, nisec in psec["NI"].items():
+                        if nisec["LB"] == 5:
+                            foo = sandy.EnergyCov.from_lb5_asym if nisec["LS"] == 0 else sandy.EnergyCov.from_lb5_sym
+                            cov = foo(nisec["EK"], nisec["FKK"])
+                            covs.append(cov)
+                        elif nisec["LB"] == 1:
+                            cov = sandy.EnergyCov.from_lb1(nisec["EK"],
+                                                           nisec["FK"])
+                            covs.append(cov)
+                        elif nisec["LB"] == 2:
+                            cov = sandy.EnergyCov.from_lb2(nisec["EK"],
+                                                           nisec["FK"])
+                            covs.append(cov)
+                        elif nisec["LB"] == 6:
+                            cov = sandy.EnergyCov.from_lb6(nisec["EK"],
+                                                           nisec["EL"],
+                                                           nisec["FKL"])
+                            covs.append(cov)
+                        else:
+                            lb = nisec["LB"]
+                            logging.warning("skip LB={lb} covariance for [({mat}/{mt}), ({nat1}/{mt1})]")
+                            continue
+                    if len(covs) == 0:
+                        logging.debug("\tsubsection MAT1={}/MT1={} did not provide accetable covariances"
+                                      .format(mat1, mt1))
+                        continue
+                    cov = sandy.EnergyCov.sum_covs(*covs)
+                    index = pd.MultiIndex.from_product(
+                        [[mat], [mt], [l], cov.data.index],
+                        names=["MAT", "MT", "L", "E"],
+                        )
+                    columns = pd.MultiIndex.from_product(
+                        [[mat1], [mt1], [l1], cov.data.index],
+                        names=["MAT1", "MT1", "L1", "E1"],
+                        )
+                    df = pd.DataFrame(cov.data.values,
+                                      index=index,
+                                      columns=columns)\
+                        .stack(level=["MAT1", "MT1", "L1", "E1"])\
+                        .rename("VAL").reset_index()
+                    data.append(df)
+        if not data:
+            return pd.DataFrame()
+        data = pd.concat(data)
+        if p is not None:
+            data = data.query(f"L <= {p} & L1 <= {p}")
+        return sandy.CategoryCov.from_stack(data,
+                                            index=["MAT", "MT", "L", "E"],
+                                            columns=["MAT1", "MT1", "L1", "E1"],
+                                            values='VAL')
