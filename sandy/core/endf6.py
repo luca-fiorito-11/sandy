@@ -2103,36 +2103,28 @@ class Endf6(_FormattedFile):
         
         Parameters
         ----------
-        smps : samples obtained taking  the relative covariances from the 
+        smps : samples obtained taking the relative covariances from the 
         evaluated files and a unit vector as mean.
-        processes : number of processes employed to complete the task.
-                    Employed to convert endf in ace format in parallel if >1.
+        processes : number of processes used to complete the task.
+                    Creation of perturbed pendf files and conversion to ACE 
+                    format is done in parallel if processes>1.
                     The default is 1.
-        temperature: temperature at which perturbed xs are evaluated.
-                     The default is 0.
-        to_ace: option to write ace files from perturbed pendf.
-                The default is False.
-        implicit_effect: if True pendf at Temperature is generated and 
-                         njoy module "broadr" is not called for the 
-                         generation of ace file.
-                         If False pendf at 0K is produced and then "broadr"
-                         module is called during conversion to ace to obtain 
-                         perturbed file at requested T.
-                         The default is False.
-        to_file: option to write endf6 or ace to a file.
-                 The default is False.
-                
-        filename: if option to_file to customize file name.
-                  The default is "{ZA}_{SMP}".
-        verbose : `bool`, optional
-                  flag to print reminder of file generation of screen.
-                  The default is False.
-        njoy_kws: keyword argument to pass to `tape.get_pendf()`.
-        **kwargs : keyword argument to pass to "tape.get_ace()".
+        njoy_kws: keyword argument to pass to "tape.get_pendf()".
+        **kwargs : keyword argument to pass to "tape.get_ace()" plus keywords
+                   to pass to "endf6_perturb_worker".
 
         Returns
         -------
         A dictionary of endf/pendf file or ace files depending on to_ace.  
+
+        Notes
+        -----
+        .. note:: ACE file temperature. Two options are implemented:
+                  - Generation of pendf file at 0K and broadening to the 
+                    required temperature when ACE file is created.
+                  - Generation of pendf file at temperature and broadening not 
+                    performed when ACE is created. This approach take into 
+                    account implicit effect.
 
         Examples
         --------
