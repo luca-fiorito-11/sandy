@@ -2227,7 +2227,7 @@ def endf6_perturb_worker(e6, pendf, n,
     zam = sandy.zam.za2zam(za, meta=meta,method="")
     zaid = ace_kws.get("zaid", "nndc")
     if zaid == "nndc":
-        za = sandy.zam.zam2za(zam, method="nndc")[0]
+        za = sandy.zam.zam2za(zam, method=zaid)[0]
     params = dict(
         MAT=mat,
         ZAM=zam,
