@@ -1634,13 +1634,18 @@ class Endf6(_FormattedFile):
         >>> assert "1001.07c" in ace
         >>> assert "sandy runs acer" in ace
         >>> assert "mat 125" in ace
-
+        
         Check that ace is processed at a different temperature.
         >>> ace = e6.get_ace(temperature=800, err=1, minimal_processing=True)["ace"]
         >>> assert "1001.08c" in ace
         Check xsdir.
         >>> print(outs[xsdir])
         1001.08c    0.999167 filename 0 1   1     3297     0     0 6.894E-08
+
+        Check that ace file follows "nndc" nomenclature for metastable nuclides.
+        >>> e6_m = sandy.get_endf6_file("jeff_33", "xs",521291)
+        >>> ace_m = e6_m.get_ace(temperature=800, err=1, minimal_processing=True)["ace"]
+        >>> assert "52529.08c" in ace_m
 
         Check that using option `pendf` results in the same output.
         >>> pendf = e6.get_pendf(temperature=0, err=1)
@@ -2123,7 +2128,7 @@ class Endf6(_FormattedFile):
                   - Generation of pendf file at 0K and broadening to the 
                     required temperature when ACE file is created.
                   - Generation of pendf file at temperature and broadening not 
-                    performed when ACE is created. This approach take into 
+                    performed when ACE is created. This approach takes into 
                     account implicit effect.
 
         Examples
@@ -2219,12 +2224,15 @@ def endf6_perturb_worker(e6, pendf, n,
     intro = endf6_pert.read_section(mat, 1, 451)
     za = int(intro["ZA"])
     meta = int(intro["LISO"])
-    zam = sandy.zam.za2zam(za, meta=meta)
+    zam = sandy.zam.za2zam(za, meta=meta,method="")
+    zaid = ace_kws.get("zaid", "nndc")
+    if zaid == "nndc":
+        za = sandy.zam.zam2za(zam, method="nndc")[0]
     params = dict(
         MAT=mat,
         ZAM=zam,
-        ZA=za,
         META=meta,
+        ZA = za,
         SMP=n,
         )
     fn = filename.format(**params)

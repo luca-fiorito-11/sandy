@@ -1358,8 +1358,8 @@ def process_neutron(
             new_pattern = f"{za_new}{s}c"
             if "xsdir" in outputs:
                 outputs["xsdir"] = re.sub(pattern, new_pattern, outputs["xsdir"])
-            if "acer" in outputs:
-                outputs["acer"] = re.sub(pattern, new_pattern, outputs["acer"])
+            if "ace" in outputs:
+                outputs["ace"] = re.sub(pattern, new_pattern, outputs["ace"])
     return outputs
 
 
