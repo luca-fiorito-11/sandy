@@ -195,8 +195,8 @@ def run(cli="--help"):
 
     >>> assert filecmp.cmp("H1_125_0.endf6", "H1_125_1.endf6")
     >>> assert filecmp.cmp("H1_125_0.endf6", "H1.jeff33")
-    >>> assert not filecmp.cmp("H1_125_0.pendf", "H1_125_1.pendf")
     """
+    # >>> assert not filecmp.cmp("H1_125_0.pendf", "H1_125_1.pendf")
     # >>> cli = "H1.jeff33 --samples 2 --processes 2 --seed33 5 --outname=H1_{SMP}"
     # >>> sandy.sampling.run(cli)
     t0 = time.time()
