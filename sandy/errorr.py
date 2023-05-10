@@ -325,16 +325,16 @@ def read_mf33(tape, mat, mf, mt):
     reaction_pairs = {}
     for rp in range(C.N2):  # number of reaction pairs
         C, i = sandy.read_cont(df, i)
-        MT1 = C.L2
-        NG = C.N2 
+        MT1 = C.L2   # Second reaction MT
+        NG = C.N2    # Number of rows (first reaction) in matrix M
         M = np.zeros((NG, NG))
         while True:
             L, i = sandy.read_list(df, i)
-            NGCOL = L.L1
-            GROW = L.N2
-            GCOL = L.L2
-            M[GROW-1, GCOL-1:GCOL+NGCOL-1] = L.B
-            if GCOL+NGCOL >= NG and GROW >= NG:
+            NGCOL = L.L1  # Number of columns (second reaction) in matrix M with non zero-values
+            GROW = L.N2   # Starting point for rows in matrix M
+            GCOL = L.L2   # Starting point for columns in matrix M
+            M[GROW-1, GCOL-1:GCOL+NGCOL-1] = L.B   # List values added to NGROW row
+            if GCOL+NGCOL >= NG and GROW >= NG:    # if both 1st and 2nd reaction contain data for all the groups (or it could not work)
                 break
         reaction_pairs[MT1] = M
     out["COVS"] = reaction_pairs
