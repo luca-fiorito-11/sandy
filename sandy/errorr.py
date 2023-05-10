@@ -123,12 +123,12 @@ class Errorr(_FormattedFile):
         listmt_ = [listmt_] if isinstance(listmt_, int) else listmt_
         listmat_ = kwargs.get('mat', range(1, 10000))
         listmat_ = [listmat_] if isinstance(listmat_, int) else listmat_
-        for mat, mf, mt in self.filter_by(listmf=[3],
+        for mat, mf, mt in self.filter_by(listmf=[3, 5],
                                           listmt=listmt_,
                                           listmat=listmat_).data:
             mf1 = sandy.errorr.read_mf1(self, mat)
             egn = pd.IntervalIndex.from_breaks(mf1["EG"])
-            mf3 = sandy.errorr.read_mf3(self, mat, mt)
+            mf3 = sandy.errorr.read_mf3(self, mat, mf, mt)
             columns = pd.MultiIndex.from_tuples([(mat, mt)],
                                                 names=["MAT", "MT"])
             index = pd.Index(egn, name="E")
@@ -178,10 +178,10 @@ class Errorr(_FormattedFile):
             eg = pd.IntervalIndex.from_breaks(eg)
 
         data = []
-        for mat_, mf_, mt_ in self.filter_by(listmf=[31, 33]).data:
+        for mat_, mf_, mt_ in self.filter_by(listmf=[31, 33, 35]).data:
             if mt and mt_ not in mt:
                 continue
-            mf33 = sandy.errorr.read_mf33(self, mat_, mt_)
+            mf33 = sandy.errorr.read_mf33(self, mat_, mf_, mt_)
 
             for mt1, cov in mf33["COVS"].items():
                 if mt and mt1 not in mt:
@@ -256,7 +256,7 @@ def read_mf1(tape, mat):
     return out
 
 
-def read_mf3(tape, mat, mt):
+def read_mf3(tape, mat, mf, mt):
     """
     Parse MAT/MF=33/MT section from `sandy.Errorr` object and return
     structured content in nested dcitionaries.
@@ -275,7 +275,6 @@ def read_mf3(tape, mat, mt):
     out : `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
     """
-    mf = 3
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,
@@ -291,7 +290,7 @@ def read_mf3(tape, mat, mt):
     return out
 
 
-def read_mf33(tape, mat, mt):
+def read_mf33(tape, mat, mf, mt):
     """
     Parse MAT/MF=33/MT section from `sandy.Errorr` object and return
     structured content in nested dcitionaries.
@@ -310,7 +309,6 @@ def read_mf33(tape, mat, mt):
     out : `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
     """
-    mf = 33
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,
@@ -328,7 +326,7 @@ def read_mf33(tape, mat, mt):
     for rp in range(C.N2):  # number of reaction pairs
         C, i = sandy.read_cont(df, i)
         MT1 = C.L2
-        NG = C.N2
+        NG = C.N2 
         M = np.zeros((NG, NG))
         while True:
             L, i = sandy.read_list(df, i)
