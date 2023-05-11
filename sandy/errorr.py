@@ -148,6 +148,7 @@ class Errorr(_FormattedFile):
 
         Examples
         --------
+        Test for xs covariance matrix
         >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1)['errorr33']
         >>> datamg = err.get_cov().data
@@ -162,6 +163,20 @@ class Errorr(_FormattedFile):
                 (10.0, 20000000.0]	4.62566e-05	       2.47650e-04	 4.63327e-05	       2.47655e-04	0.00000e+00	           0.00000e+00
             102	      (0.01, 10.0]	1.07035e-06	       7.58742e-09	 0.00000e+00	       0.00000e+00	6.51764e-04	           3.40163e-04
                 (10.0, 20000000.0]	5.58627e-07	       1.49541e-06	 0.00000e+00	       0.00000e+00	3.40163e-04	           6.70431e-02
+                
+        Test for chi covariance matrix
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350)
+        >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 1e3, 1e5, 1.5e7]), err=1)['errorr35']
+        >>> datamg = err.get_cov().data
+        >>> datamg
+        MAT1                                   9228
+        MT1                                      18
+        E1                             (0.01, 10.0] (10.0, 1000.0] (1000.0, 100000.0] (100000.0, 15000000.0]
+        MAT  MT E
+        9228 18 (0.01, 10.0]            1.40033e-01    1.22734e-01        2.53846e-01           -3.65421e-02
+                (10.0, 1000.0]          1.22734e-01    1.07572e-01        2.22490e-01           -3.20279e-02
+                (1000.0, 100000.0]      2.53846e-01    2.22490e-01        4.60196e-01           -6.62479e-02
+                (100000.0, 15000000.0] -3.65421e-02   -3.20279e-02       -6.62479e-02            9.54612e-03
 
         >>> data = err.get_cov(multigroup=False).data
         >>> np.testing.assert_array_equal(
