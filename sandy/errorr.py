@@ -64,6 +64,7 @@ class Errorr(_FormattedFile):
 
         Examples
         --------
+        Test for xs
         >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> ek = sandy.energy_grids.CASMO12
         >>> err = e6.get_errorr(err=1, errorr_kws=dict(ek=ek))['errorr33']
@@ -117,6 +118,24 @@ class Errorr(_FormattedFile):
         (5530.0, 821000.0]      8.05810e+00
         (821000.0, 2231000.0]   3.48867e+00
         (2231000.0, 10000000.0] 1.52409e+00
+
+        Test for chi
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350)
+        >>> ek = [2e-5, 0.058, 0.28, 0.625, 4.0, 48.052, 5530, 8.21e5, 2.23e6, 1e7]
+        >>> err = e6.get_errorr(err=1, errorr_kws=dict(ek=ek))['errorr35']
+        >>> err.get_xs()
+        MAT                            9228
+        MT                               18
+        E
+        (2e-05, 0.058]          1.10121e-10
+        (0.058, 0.28]           1.10121e-10
+        (0.28, 0.625]           1.05356e-10
+        (0.625, 4.0]            3.35715e-10
+        (4.0, 48.052]           1.55325e-08
+        (48.052, 5530.0]        7.49925e-06
+        (5530.0, 821000.0]      5.85238e-03
+        (821000.0, 2230000.0]   1.72394e-02
+        (2230000.0, 10000000.0] 6.29781e-03
         """
         data = []
         listmt_ = kwargs.get('mt', range(1, 10000))
@@ -163,7 +182,7 @@ class Errorr(_FormattedFile):
                 (10.0, 20000000.0]	4.62566e-05	       2.47650e-04	 4.63327e-05	       2.47655e-04	0.00000e+00	           0.00000e+00
             102	      (0.01, 10.0]	1.07035e-06	       7.58742e-09	 0.00000e+00	       0.00000e+00	6.51764e-04	           3.40163e-04
                 (10.0, 20000000.0]	5.58627e-07	       1.49541e-06	 0.00000e+00	       0.00000e+00	3.40163e-04	           6.70431e-02
-                
+
         Test for chi covariance matrix
         >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350)
         >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 1e3, 1e5, 1.5e7]), err=1)['errorr35']
