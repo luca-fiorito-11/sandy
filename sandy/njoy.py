@@ -759,7 +759,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     if efmean:
         text += [f"{iread:d} {mfcov} {irespr:d} 1 {ifissp} {efmean} /"]   # Default for legord is one
     else:
-        text += [f"{iread:d} {mfcov} {irespr:d}/"]
+        text += [f"{iread:d} {mfcov} {irespr:d} 1 {ifissp} /"] 
     if iread == 1:  # only specific mts
         mtlist = [mt] if isinstance(mt, int) else mt
         nmt = len(mtlist)
