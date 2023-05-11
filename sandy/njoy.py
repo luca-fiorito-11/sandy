@@ -737,7 +737,15 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 293.6 /
     1 33 1/
     1 0 /
-    2 /    
+    2 / 
+
+    Test specific incident energy (1e6 eV) for ERRORR input
+    >>> print(sandy.njoy._errorr_input(-21, 0, -39, 35, 9228, efmean=1e6))
+    errorr
+    -21 0 -39 35 0 /
+    9228 2 2 0 1 /
+    0 293.6 /
+    0 33 1 1 -1 1000000.0 /
     """
     irelco = 0 if relative is False else 1
     iread = 1 if (mt is not None and mfcov == 33) else 0
@@ -749,7 +757,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     text += [f"{mat:d} {ign_:d} {iwt_:d} {printflag:d} {irelco} /"]
     text += [f"{printflag:d} {temperature:.1f} /"]
     if efmean:
-        text += [f"{iread:d} {mfcov} {irespr:d} 1 {ifissp} {efmean} /"]
+        text += [f"{iread:d} {mfcov} {irespr:d} 1 {ifissp} {efmean} /"]   # Default for legord is one
     else:
         text += [f"{iread:d} {mfcov} {irespr:d}/"]
     if iread == 1:  # only specific mts
