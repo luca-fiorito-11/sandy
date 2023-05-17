@@ -162,7 +162,7 @@ class Errorr(_FormattedFile):
                     (10.0, 20000000.0]	5.59219e-07 	       1.49541e-06	 0.00000e+00	       0.00000e+00	3.40163e-04	           6.70430e-02
             
             This example shows the cross correlation among two MT taken from a
-            cross section covariance matrix (MF=33)with 3 energy groups at high
+            cross section covariance matrix (MF=33) with 3 energy groups at high
             energy. There is no correlation in the last two groups. 
             >>> tape = sandy.get_endf6_file("jeff_33", "xs", 641530)
             >>> out = tape.get_errorr(err=1, errorr33_kws=dict(irespr=0, mt=[1, 51, 52],ek=[1e7,2e7,2.4e7, 2.8e7]))
