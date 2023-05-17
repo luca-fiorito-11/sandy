@@ -160,6 +160,20 @@ class Errorr(_FormattedFile):
                     (10.0, 20000000.0]	4.62566e-05	       2.47649e-04	 4.63327e-05	       2.47655e-04	0.00000e+00	           0.00000e+00
                 102	      (0.01, 10.0]	1.07148e-06 	       7.58743e-09	 0.00000e+00	       0.00000e+00	6.51764e-04	           3.40163e-04
                     (10.0, 20000000.0]	5.59219e-07 	       1.49541e-06	 0.00000e+00	       0.00000e+00	3.40163e-04	           6.70430e-02
+            
+            This example shows the cross correlation among two MT taken from a
+            cross section covariance matrix (MF=33)with 3 energy groups at high
+            energy. There is no correlation in the last two groups. 
+            >>> tape = sandy.get_endf6_file("jeff_33", "xs", 641530)
+            >>> out = tape.get_errorr(err=1, errorr33_kws=dict(irespr=0, mt=[1, 51, 52],ek=[1e7,2e7,2.4e7, 2.8e7]))
+            >>> cov = out["errorr33"].get_cov().data
+            >>> cov.loc[(6428,1)][(6428,51)]
+            E                         (10000000.0, 20000000.0]  (20000000.0, 24000000.0]  (24000000.0, 28000000.0]
+            E
+            (10000000.0, 20000000.0]               8.66651e-03               0.00000e+00               0.00000e+00
+            (20000000.0, 24000000.0]               6.81128e-02               0.00000e+00               0.00000e+00
+            (24000000.0, 28000000.0]               7.52293e-02               0.00000e+00               0.00000e+00
+                        
             """
             eg = self.get_energy_grid()
             eg = pd.IntervalIndex.from_breaks(eg)  # multigroup
@@ -315,7 +329,7 @@ def read_mf33(tape, mat, mt):
             GROW = L.N2
             GCOL = L.L2
             M[GROW-1, GCOL-1:GCOL+NGCOL-1] = L.B
-            if GCOL+NGCOL >= NG and GROW >= NG:
+            if GROW >= NG:
                 break
         reaction_pairs[MT1] = M
     out["COVS"] = reaction_pairs
