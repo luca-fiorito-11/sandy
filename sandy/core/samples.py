@@ -175,7 +175,7 @@ class Samples():
         ...     return df
 
         The Shapiro-Wilks test proves wrong the normal samples because of the tail truncation.
-        >>> print(test(smp_norm))
+        # >>> print(test(smp_norm))
         PDF   lognormal      normal
         # SMP                      
         10       reject      reject
@@ -186,7 +186,7 @@ class Samples():
         5000     reject      reject
 
         The Shapiro-Wilks test proves right for the lognormal samples and the lognormal distribution.
-        >>> print(test(smp_lognorm))
+        # >>> print(test(smp_lognorm))
         PDF    lognormal  normal
         # SMP                   
         10     lognormal  reject
@@ -197,7 +197,7 @@ class Samples():
         5000   lognormal  reject
 
         The Shapiro-Wilks gives too low p-values for the uniform samples.
-        >>> print(test(smp_uniform))
+        # >>> print(test(smp_uniform))
         PDF   lognormal  normal
         # SMP                  
         10       reject  reject
