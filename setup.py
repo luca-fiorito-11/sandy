@@ -6,17 +6,12 @@ import logging
 
 __author__ = "Luca Fiorito"
 
-extensions = [
-        Extension(name='rwf',
-                  sources=[os.path.join(*['fortran', 'rwfortran.f'])]
-                  ),
-        ]
 keywords = ['uncertainty', 'nuclear data', 'covariance', 'sampling', 'ENDF-6']
 requirements = "requirements.txt"
 
 setup(
       name='sandy',
-      version='0.1',
+      version='1.0',
       description='SANDY: sampling of nuclear data and uncertainty',
       url='https://github.com/luca-fiorito-11/sandy',
       author='Luca Fiorito',
@@ -31,21 +26,6 @@ setup(
       install_requires=open(requirements).read().splitlines(),
       zip_safe=False,
       # setup_requires=["pytest-runner",],
-      tests_require=[
-          "pytest",
-          ],
+      tests_require=["pytest",],
       include_package_data=True,
-      ext_modules=extensions,
-      entry_points={
-          'console_scripts': [
-              'sandy=sandy.sampling:run',
-              ],
-          },
       )
-
-#import sandy
-#
-#try:
-#    sandy.get_njoy()
-#except sandy.SandyError:
-#    logging.warning("env variable 'NJOY' is not assigned. SANDY might not behave as expected.")
