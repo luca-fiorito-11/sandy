@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
 """
 This module contains all classes and functions specific for processing fission
 yield data.
 """
-from tables import NaturalNameWarning
-import h5py
 import logging
-import warnings
 
 import pandas as pd
 import numpy as np
@@ -20,7 +16,6 @@ import re
 __author__ = "Luca Fiorito"
 __all__ = [
         "Fy",
-        "fy2hdf",
         ]
 
 
@@ -378,6 +373,7 @@ class Fy():
                       .set_index('A')[['ZAP']]
         # Create mass yield sensitivity
         groups = fy_data.groupby(fy_data.index)['ZAP'].value_counts()
+        return groups.reset_index().pivot_table(index='A', columns='ZAP', values="count", aggfunc="sum").fillna(0)
         groups = groups.to_frame()\
                        .rename(columns={'ZAP': 'value'})\
                        .reset_index()
@@ -704,7 +700,7 @@ class Fy():
         >>> nfpy = sandy.Fy.from_endf6(tape)
         >>> S = pd.DataFrame(np.ones(len(nfpy.data.query("E==400000 & MT==454").ZAP)), index=nfpy.data.query("E==400000 & MT==454").ZAP.to_list()).T
         >>> nfpy_post = nfpy.gls_update(922340, 400000, S, y_constraint)[0]
-        >>> assert sum(nfpy_post.data.query("MT==454").FY) == 2
+        >>> np.testing.assert_almost_equal(sum(nfpy_post.data.query("MT==454").FY), 2)
         """
         fy_data = self.data.query(f"ZAM=={zam} & E=={e} & MT==454").set_index('ZAP')
         mat = fy_data.MAT.iloc[0]
@@ -972,53 +968,6 @@ class Fy():
             data_endf6.data[(mat, mf, mt)] = sandy.write_mf8(sec)
         return data_endf6
 
-    def to_hdf5(self, file, library):
-        """
-        Write fission yield data to hdf5 file.
-
-        Parameters
-        ----------
-        `file` : `str`
-            HDF5 file
-        `library` : `str`
-            library name
-
-        Warnings
-        --------
-        `logging.warning`
-            raise a warning if any hdf5 group key is already in used, still
-            the existing group will be replaced
-
-        Notes
-        -----
-        .. note:: the group key for each set of fission yields contains
-                    * library: the lowercase name of the library
-                    * fy: key "fy"
-                    * kind: "independent" or "cumulative"
-                    * ZAM: the ZAM number proceeded by prefix "i"
-        .. note:: the energy values in the HDF5 file are in MeV
-        """
-        warnings.filterwarnings("ignore", category=NaturalNameWarning)
-        lib = library
-        with h5py.File(file, "a") as f:
-            for (zam, mt), df in self.data.groupby(["ZAM", "MT"]):
-                kind = "independent" if mt == 454 else "cumulative"
-                library = lib.lower()
-                key = f"{library}/fy/{kind}/{zam}"
-                if key in f:
-                    msg = f"hdf5 dataset '{key}' already exists and " +\
-                           "will be replaced"
-                    logging.warning(msg)
-                    del f[key]
-                else:
-                    logging.info(f"creating hdf5 dataset '{key}'")
-                group = f.create_group(key)
-                group.attrs["nuclide"] = zam  # redunant
-                group.attrs["kind"] = kind    # redunant
-                group.attrs["library"] = lib  # redunant
-                tab = self.energy_table(zam, by="ZAM", kind=kind)
-                tab.index *= 1e-6
-                tab.to_hdf(file, key, format="fixed")
 
 
 def _gls_setup(model_sensitivity_object, kind):
@@ -1053,24 +1002,4 @@ def _gls_setup(model_sensitivity_object, kind):
     else:
         raise ValueError('Keyword argument "kind" is not valid')
     return S
-
-
-def fy2hdf(e6file, h5file, lib):
-    """
-    Write to disk a HDF5 file that reproduces the content of a FY file in
-    ENDF6 format.
-
-    Parameters
-    ----------
-    e6file : `str`
-        ENDF-6 filename
-    h5file : `str`
-        HDF5 filename
-    lib : `str`
-        library name (it will appear as a hdf5 group)
-    """
-    # This function os tested in an ALEPH notebook
-    endf6 = sandy.Endf6.from_file(e6file)
-    logging.info(f"adding FY to '{lib}' in '{h5file}'")
-    Fy.from_endf6(endf6, verbose=True).to_hdf5(h5file, lib)
 

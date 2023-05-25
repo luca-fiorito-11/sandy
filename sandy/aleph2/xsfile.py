@@ -1,9 +1,6 @@
-import pytest
 import re
-import h5py
 import logging
 from io import StringIO
-import itertools
 import os
 from copy import deepcopy
 

@@ -221,7 +221,7 @@ class Xs():
     def _nubar_to_endf6(self, endf6):
         data = endf6.data.copy()
         mf = 1
-        for (mat, mt), xs in self.data.iteritems():
+        for (mat, mt), xs in self.data.items():
             # Must read original section to extract info not given in `Xs`
             if (mat, mf, mt) not in endf6.keys:
                 continue
@@ -242,7 +242,7 @@ class Xs():
     def _xs_to_endf6(self, endf6):
         data = endf6.data.copy()
         mf = 3
-        for (mat, mt), xs in self.data.iteritems():
+        for (mat, mt), xs in self.data.items():
             # Must read original section to extract info not given in `Xs`
             # instance, e.g. QI, QM
             if (mat, mf, mt) not in endf6.keys:
@@ -430,29 +430,6 @@ class Xs():
 
         return self.__class__(df)
 
-    def _mp_multi_perturb(self, smp, processes, verbose=False):
-        pool = mp.Pool(processes=processes)
-        seq = dict(smp.iterate_xs_samples()).items()
-        kw = dict(verbose=verbose)
-        outs = {n: pool.apply_async(xs_perturb_worker, (self, n, p), kw) for n, p in seq}
-        outs = {n: out.get() for n, out in outs.items()}
-        pool.close()
-        pool.join()
-        return outs
-
-    def _multi_perturb(self, smp, verbose=False):
-        """
-        Decorator to handle :func:`~sandy.Samples` instance as input of method
-        :func:`~sandy.Xs.perturb`.
-        Multiple perturbed :func:`~sandy.Xs` instances are returned as a
-        generator as they mimic dict comprehension.
-        """
-        for n, p in smp.iterate_xs_samples():
-            if verbose:
-                print(f"Processing xs sample {n}...")
-            # instead of defining the function twice, just call the worker also here
-            yield n, xs_perturb_worker(self, n, p)
-
     def _perturb(self, s):
         """
         Apply perturbations to cross sections.
@@ -488,13 +465,13 @@ class Xs():
         >>> index = pd.IntervalIndex.from_breaks([1e-5, 3e7], name="E", closed="right")
         >>> columns = pd.MultiIndex.from_product([[9437], [2, 4]], names=["MAT", "MT"])
         >>> s = pd.DataFrame(1, index=index, columns=columns)
-        >>> xp = xs.perturb(s)
+        >>> xp = xs._perturb(s)
         >>> assert xp.data.equals(xs.data)
         
         Apply multiplication coefficients equal to 1 and to 2 respectively to
         elastic and inelastic scattering cross sections up to 3e7 eV (upper xs energy limit)
         >>> s = pd.DataFrame([[1, 2]], index=index, columns=columns)
-        >>> xp = xs.perturb(s)
+        >>> xp = xs._perturb(s)
         >>> assert not xp.data.equals(xs.data)
         >>> assert xp.data.loc[:, xp.data.columns != (9437, 4)].equals(xp.data.loc[:, xs.data.columns != (9437, 4)])
         >>> assert xp.data[(9437, 4)].equals(xs.data[(9437, 4)] * 2)
@@ -504,7 +481,7 @@ class Xs():
         >>> index = pd.IntervalIndex.from_breaks([1e-5, 2e7], name="E", closed="right")
         >>> columns = pd.MultiIndex.from_product([[9437], [2, 4]], names=["MAT", "MT"])
         >>> s = pd.DataFrame([[1, 2]], index=index, columns=columns)
-        >>> xp = xs.perturb(s)
+        >>> xp = xs._perturb(s)
         >>> assert not xp.data.equals(xs.data)
         >>> assert xp.data.loc[:, xp.data.columns != (9437, 4)].equals(xp.data.loc[:, xs.data.columns != (9437, 4)])
         >>> assert xp.data.loc[:2e7, (9437, 4)].equals(xs.data.loc[:2e7, (9437, 4)] * 2)
@@ -529,64 +506,6 @@ class Xs():
         xs = self.__class__(s_ * x)
         return xs
     
-    def perturb(self, smp, processes=1, **kwargs):
-        """
-        
-
-        Parameters
-        ----------
-        smp : TYPE
-            DESCRIPTION.
-        processes : TYPE, optional
-            DESCRIPTION. The default is 1.
-        **kwargs : TYPE
-            DESCRIPTION.
-
-        Returns
-        -------
-        TYPE
-            DESCRIPTION.
-
-        Examples
-        --------
-        Create two H1 samples.
-        >>> njoy_kws = dict(err=1, errorr_kws=dict(mt=102))
-        >>> nsmp = 2
-        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> smps = tape.get_perturbations(nsmp=nsmp, njoy_kws=njoy_kws)
-        
-        Extract H1 xs.
-        >>> pendf = tape.get_pendf(minimal_processing=True)
-        >>> xs = sandy.Xs.from_endf6(pendf)
-
-        Apply perturbations to xs without multiprocessing.
-        >>> outs = xs.perturb(smps[33], processes=1, verbose=True)
-        
-        The output is a generator.
-        >>> assert isinstance(outs, types.GeneratorType)
-        >>> outs = dict(outs)
-        Processing xs sample 0...
-        Processing xs sample 1...
-
-        Apply perturbations to xs with multiprocessing.
-        >>> outs_mp = xs.perturb(smps[33], processes=2, verbose=True)
-
-        The output is a dict.
-        >>> assert isinstance(outs_mp, dict)
-
-        The two outputs are identical.
-        >>> for k in outs:
-        ...    assert outs[k].data.equals(outs_mp[k].data)
-        """
-        if not isinstance(smp, sandy.Samples):
-            return self._perturb(smp)
-        
-        if processes==1:
-            return self._multi_perturb(smp, **kwargs)
-        else:
-            return self._mp_multi_perturb(smp, processes=processes, **kwargs)
-    
-
     @classmethod
     def _from_errorr(cls, errorr):
         """

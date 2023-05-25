@@ -1,14 +1,6 @@
-h5py
-jupyterlab
-matplotlib >= 2.2.23
 numpy
-numpydoc
-numba
-pandas >= 1
-pytest >= 3.3
+pandas >= 2.0
 pyyaml
+pytest >= 3.3
 scipy
-sphinx
-seaborn >= 0.9
-statsmodels
 tables

@@ -65,4 +65,4 @@ logging.getLogger().addHandler(ShutdownHandler(level=40))
 # logging.getLogger().addFilter(DuplicateFilter())
 
 
-__version__ = '1.0'
+__version__ = '1.0.37'

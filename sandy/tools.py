@@ -5,7 +5,6 @@ import pdb
 import os
 import time
 import ctypes
-import h5py
 import sys
 from ast import literal_eval
 
@@ -13,86 +12,6 @@ import numpy as np
 
 __author__ = "Luca Fiorito"
 __all__ = []
-
-
-def save_dict_to_hdf5(dic, filename):
-    """
-    ....
-    """
-    with h5py.File(filename, 'w') as h5file:
-        recursively_save_dict_contents_to_group(h5file, '/', dic)
-
-
-def load_dict_from_hdf5(filename):
-    """
-    ....
-    """
-    with h5py.File(filename, 'r') as h5file:
-        return recursively_load_dict_contents_from_group(h5file, '/')
-
-
-def recursively_save_dict_contents_to_group(h5file, path, dic):
-    """
-    ....
-    """
-    dtypes = (np.ndarray, np.int64, np.float64, str, bytes, int, float)
-    for key, item in dic.items():
-        newentry = f"{path}{key}"
-        if isinstance(item, dtypes):
-            if newentry in h5file:
-                del h5file[newentry]
-            h5file[newentry] = item
-        elif isinstance(item, dict):
-            newpath = f"{newentry}/"
-            recursively_save_dict_contents_to_group(h5file, newpath, item)
-        elif isinstance(item, list):
-            newpath = f"{newentry}/"
-            recursively_save_list_contents_to_group(h5file, newpath, item)
-        else:
-            raise ValueError(f"Cannot save '{type(item)}' type")
-
-
-def recursively_save_list_contents_to_group(h5file, path, dic):
-    """
-    ....
-    """
-    dtypes = (np.ndarray, np.int64, np.float64, str, bytes, int, float)
-    for key, item in dic:
-        newentry = f"{path}{key}"
-        if isinstance(item, dtypes):
-            if newentry in h5file:
-                del h5file[newentry]
-            h5file[newentry] = item
-        elif isinstance(item, dict):
-            newpath = f"{newentry}/"
-            recursively_save_dict_contents_to_group(h5file, newpath, item)
-        elif isinstance(item, list):
-            newpath = f"{newentry}/"
-            recursively_save_list_contents_to_group(h5file, newpath, item)
-        else:
-            raise ValueError(f"Cannot save '{type(item)}' type")
-
-
-def recursively_load_dict_contents_from_group(h5file, path):
-    """
-    ....
-    """
-    ans = {}
-    for key, item in h5file[path].items():
-        try:
-            kdict = int(key)
-        except ValueError:
-            try:
-                kdict = literal_eval(key) #to convert string into float or tuple
-            except ValueError:
-                kdict = key
-        if isinstance(item, h5py._hl.dataset.Dataset):
-            ans[kdict] = item[()]
-        elif isinstance(item, h5py._hl.group.Group):
-            group = path + key + '/'
-            out = recursively_load_dict_contents_from_group(h5file, group)
-            ans[kdict] = out
-    return ans
 
 
 def is_valid_file(parser, arg, r=True, w=False, x=False):

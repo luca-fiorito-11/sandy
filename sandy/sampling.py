@@ -219,7 +219,6 @@ def run(cli="--help"):
         smp_kws["seed35"] = iargs.seed35
 
     smps = endf6.get_perturbations(iargs.samples, njoy_kws=njoy_kws, smp_kws=smp_kws)
-    
     if iargs.temperatures:
         temperature = iargs.temperatures[0] if hasattr(iargs.temperatures, "__len__") else iargs.temperatures
     else:
