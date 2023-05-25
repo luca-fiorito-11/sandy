@@ -1,5 +1,5 @@
 numpy
-pandas >= 2.0
+pandas
 pyyaml
 pytest >= 3.3
 scipy
