@@ -311,9 +311,8 @@ class CategoryCov():
         if not (np.diag(data) >= 0).all():
             raise TypeError("Covariance matrix must have positive variance")
 
-        sym_limit = 10
-        # Round to avoid numerical fluctuations
-        if not (data.values.round(sym_limit) == data.values.T.round(sym_limit)).all():
+        treshold = 1e-7
+        if (1-data.T/data).abs().max().max() > treshold:
             raise TypeError("Covariance matrix must be symmetric")
 
     @property
