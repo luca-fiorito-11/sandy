@@ -95,15 +95,6 @@ def recursively_load_dict_contents_from_group(h5file, path):
     return ans
 
 
-def str2bool(v):
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-
-
 def is_valid_file(parser, arg, r=True, w=False, x=False):
     if not os.path.isfile(arg):
         parser.error("File {} does not exist".format(arg))
@@ -176,48 +167,3 @@ def mkl_get_max_threads():
 def mkl_set_num_threads(cores):
     mkl_rt = ctypes.CDLL('libmkl_rt.so')
     return mkl_rt.mkl_set_num_threads(ctypes.byref(ctypes.c_int(cores)))
-
-
-def query_yes_no(question, default="yes"):
-    """
-    Ask a yes/no question via `input()` and return their answer.
-
-    Parameters
-    ----------
-    question : `srt`
-        string that is presented to the user.
-    default : `str`, optional, default is `"yes"`
-        it is the presumed answer if the user just hits <Enter>.
-        It must be "yes" (the default), "no" or None (meaning
-        an answer is required of the user).
-
-    Returns
-    -------
-    `bool`
-        The "answer" return value is `True` for `"yes"` or `False` for `"no"`.
-    
-    Raises
-    ------
-    `ValueError`
-        if `default` is not a valid option
-    """
-    valid = {"yes": True, "y": True, "ye": True,
-             "no": False, "n": False}
-    if default is None:
-        prompt = " [y/n] "
-    elif default == "yes":
-        prompt = " [Y/n] "
-    elif default == "no":
-        prompt = " [y/N] "
-    else:
-        raise ValueError("invalid default answer: '%s'" % default)
-    while True:
-        sys.stdout.write(question + prompt)
-        choice = input().lower()
-        if default is not None and choice == '':
-            return valid[default]
-        elif choice in valid:
-            return valid[choice]
-        else:
-            sys.stdout.write("Please respond with 'yes' or 'no' "
-                             "(or 'y' or 'n').\n")

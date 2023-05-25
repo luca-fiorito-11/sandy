@@ -1,5 +1,5 @@
-import pdb
 import logging
+import re
 
 import sandy
 
@@ -20,7 +20,7 @@ mf = 1
 
 
 def read_mf1(tape, mat, mt):
-    """
+    r"""
     Parse MAT/MF=3/MT section from `sandy.Endf6` object and return structured
     content in nested dcitionaries.
 
@@ -45,7 +45,7 @@ def read_mf1(tape, mat, mt):
 
     **mt = 451** :
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350)
-    >>> test = read_mf1(tape, 9228, 451)
+    >>> test = sandy.read_mf1(tape, 9228, 451)
     >>> test['SECTIONS'][::5]
     [(1, 451, 934, 7),
     (1, 460, 253745, 0),
@@ -75,14 +75,84 @@ def read_mf1(tape, mat, mt):
     (33, 2, 113418, 7),
     (33, 102, 23060, 7)]
 
+    **mt = 452** :
+    >>> test = sandy.read_mf1(tape, 9228, 452)
+    >>> test['E']
+    array([1.00e-05, 2.53e-02, 5.00e-02, 1.00e+01, 1.00e+02, 1.00e+03,
+        5.50e+03, 7.75e+03, 1.00e+04, 1.50e+04, 2.00e+04, 3.00e+04,
+        4.00e+04, 5.00e+04, 6.00e+04, 7.00e+04, 8.00e+04, 9.00e+04,
+        1.00e+05, 1.20e+05, 1.30e+05, 1.40e+05, 1.50e+05, 1.70e+05,
+        2.00e+05, 2.50e+05, 3.00e+05, 3.50e+05, 4.00e+05, 5.00e+05,
+        6.00e+05, 7.00e+05, 8.00e+05, 9.00e+05, 1.00e+06, 1.20e+06,
+        1.40e+06, 1.60e+06, 1.80e+06, 2.00e+06, 2.20e+06, 2.40e+06,
+        2.60e+06, 2.80e+06, 3.00e+06, 3.50e+06, 4.00e+06, 4.50e+06,
+        5.00e+06, 5.50e+06, 6.00e+06, 6.50e+06, 7.00e+06, 7.50e+06,
+        8.00e+06, 8.50e+06, 9.00e+06, 9.50e+06, 1.00e+07, 1.05e+07,
+        1.10e+07, 1.15e+07, 1.20e+07, 1.25e+07, 1.30e+07, 1.35e+07,
+        1.40e+07, 1.45e+07, 1.50e+07, 1.55e+07, 1.60e+07, 1.65e+07,
+        1.70e+07, 1.75e+07, 1.80e+07, 1.85e+07, 1.90e+07, 1.95e+07,
+        2.00e+07])
+
+    **mt = 455** :
+    >>> test = sandy.read_mf1(tape, 9228, 455)
+    >>> test['LAMBDA']
+    [0.013336, 0.032739, 0.12078, 0.30278, 0.84949, 2.853]
+    >>> test['NU']
+    array([0.01585, 0.01585, 0.0167 , 0.0167 , 0.009  , 0.009  ])
+
+    **mt = 456** :
+    >>> test = sandy.read_mf1(tape, 9228, 456)
+    >>> test['NU']
+    array([2.42085 , 2.42085 , 2.42085 , 2.42085 , 2.417948, 2.417933,
+        2.417857, 2.417818, 2.41778 , 2.414463, 2.412632, 2.409341,
+        2.407132, 2.406774, 2.408063, 2.410846, 2.414175, 2.417648,
+        2.421063, 2.428448, 2.431798, 2.434909, 2.43778 , 2.444676,
+        2.451972, 2.455226, 2.45777 , 2.459884, 2.461767, 2.466965,
+        2.472104, 2.481385, 2.491777, 2.502975, 2.516006, 2.540238,
+        2.565402, 2.590224, 2.613985, 2.636654, 2.658912, 2.681288,
+        2.703809, 2.727271, 2.7515  , 2.811124, 2.87605 , 2.95168 ,
+        3.031212, 3.119151, 3.210984, 3.306917, 3.396401, 3.467412,
+        3.535635, 3.608747, 3.680833, 3.752163, 3.821917, 3.890283,
+        3.957945, 4.02513 , 4.092022, 4.160664, 4.232148, 4.305359,
+        4.379344, 4.453294, 4.52846 , 4.605076, 4.681103, 4.754749,
+        4.824436, 4.890934, 4.955851, 5.019246, 5.081174, 5.141692,
+        5.200845])
+
+    **mt = 458** :
+    >>> test = sandy.read_mf1(tape, 9228, 458)
+    >>> test['POLYNOMIALS'][1]
+    {'EFR': -0.266,
+    'DEFR': 0.0266,
+    'ENP': 0.3004,
+    'DENP': 0.03004,
+    'END': 0.0,
+    'DEND': 0.0,
+    'EGP': 0.0777,
+    'DEGP': 0.00777,
+    'EGD': -0.075,
+    'DEGD': 0.0075,
+    'EB': -0.075,
+    'DEB': 0.0075,
+    'ENU': -0.1,
+    'DENU': 0.01,
+    'ER': -0.0379,
+    'DER': 0.00379,
+    'ET': -0.1379,
+    'DET': 0.01379}
+
     >>> tape = sandy.get_endf6_file("endfb_71", 'nfpy', 922350)
     >>> test = read_mf1(tape, 9228, 451)
     >>> test['SECTIONS']
     [(1, 451, 17, 2), (8, 454, 2501, 2), (8, 459, 2501, 2)]
 
     >>> tape = sandy.get_endf6_file("endfb_71", 'decay', 922350)
-    >>> test = read_mf1(tape, 3515, 451)
-    >>> print(test['DESCRIPTION'])
+    >>> test = sandy.read_mf1(tape, 3515, 451)
+    >>> print("\n".join(test['DESCRIPTION']))
+     92-U -235  BNL        EVAL-NOV05 Conversion from ENSDF           
+     /ENSDF/                                               20111222   
+    ----ENDF/B-VII.1      Material 3515                               
+    -----RADIOACTIVE DECAY DATA                                       
+    ------ENDF-6 FORMAT                                               
     *********************** Begin Description ***********************
     **         ENDF/B-VII.1 RADIOACTIVE DECAY DATA FILE            **
     **         Produced at the NNDC from the ENSDF database        **
@@ -110,75 +180,6 @@ def read_mf1(tape, mat, mt):
     Missing Energy:         5.951E1 keV
     Deviation:              1.272E0 %
     ************************ End Description ************************
-
-    **mt = 452** :
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350)
-    >>> test = sandy.sections.mf1.read_mf1(tape, 9228, 452)
-    >>> test['E']
-    array([1.00e-05, 2.53e-02, 5.00e-02, 1.00e+01, 1.00e+02, 1.00e+03,
-        5.50e+03, 7.75e+03, 1.00e+04, 1.50e+04, 2.00e+04, 3.00e+04,
-        4.00e+04, 5.00e+04, 6.00e+04, 7.00e+04, 8.00e+04, 9.00e+04,
-        1.00e+05, 1.20e+05, 1.30e+05, 1.40e+05, 1.50e+05, 1.70e+05,
-        2.00e+05, 2.50e+05, 3.00e+05, 3.50e+05, 4.00e+05, 5.00e+05,
-        6.00e+05, 7.00e+05, 8.00e+05, 9.00e+05, 1.00e+06, 1.20e+06,
-        1.40e+06, 1.60e+06, 1.80e+06, 2.00e+06, 2.20e+06, 2.40e+06,
-        2.60e+06, 2.80e+06, 3.00e+06, 3.50e+06, 4.00e+06, 4.50e+06,
-        5.00e+06, 5.50e+06, 6.00e+06, 6.50e+06, 7.00e+06, 7.50e+06,
-        8.00e+06, 8.50e+06, 9.00e+06, 9.50e+06, 1.00e+07, 1.05e+07,
-        1.10e+07, 1.15e+07, 1.20e+07, 1.25e+07, 1.30e+07, 1.35e+07,
-        1.40e+07, 1.45e+07, 1.50e+07, 1.55e+07, 1.60e+07, 1.65e+07,
-        1.70e+07, 1.75e+07, 1.80e+07, 1.85e+07, 1.90e+07, 1.95e+07,
-        2.00e+07])
-
-    **mt = 455** :
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350)
-    >>> test = sandy.sections.mf1.read_mf1(tape, 9228, 455)
-    >>> test['LAMBDA']
-    [0.013336, 0.032739, 0.12078, 0.30278, 0.84949, 2.853]
-    >>> test['NU']
-    array([0.01585, 0.01585, 0.0167 , 0.0167 , 0.009  , 0.009  ])
-
-    **mt = 456** :
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350)
-    >>> test = sandy.sections.mf1.read_mf1(tape, 9228, 456)
-    >>> test['NU']
-    array([2.42085 , 2.42085 , 2.42085 , 2.42085 , 2.417948, 2.417933,
-        2.417857, 2.417818, 2.41778 , 2.414463, 2.412632, 2.409341,
-        2.407132, 2.406774, 2.408063, 2.410846, 2.414175, 2.417648,
-        2.421063, 2.428448, 2.431798, 2.434909, 2.43778 , 2.444676,
-        2.451972, 2.455226, 2.45777 , 2.459884, 2.461767, 2.466965,
-        2.472104, 2.481385, 2.491777, 2.502975, 2.516006, 2.540238,
-        2.565402, 2.590224, 2.613985, 2.636654, 2.658912, 2.681288,
-        2.703809, 2.727271, 2.7515  , 2.811124, 2.87605 , 2.95168 ,
-        3.031212, 3.119151, 3.210984, 3.306917, 3.396401, 3.467412,
-        3.535635, 3.608747, 3.680833, 3.752163, 3.821917, 3.890283,
-        3.957945, 4.02513 , 4.092022, 4.160664, 4.232148, 4.305359,
-        4.379344, 4.453294, 4.52846 , 4.605076, 4.681103, 4.754749,
-        4.824436, 4.890934, 4.955851, 5.019246, 5.081174, 5.141692,
-        5.200845])
-
-    **mt = 458** :
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350)
-    >>> test = sandy.sections.mf1.read_mf1(tape, 9228, 458)
-    >>> test['POLYNOMIALS'][1]
-    {'EFR': -0.266,
-    'DEFR': 0.0266,
-    'ENP': 0.3004,
-    'DENP': 0.03004,
-    'END': 0.0,
-    'DEND': 0.0,
-    'EGP': 0.0777,
-    'DEGP': 0.00777,
-    'EGD': -0.075,
-    'DEGD': 0.0075,
-    'EB': -0.075,
-    'DEB': 0.0075,
-    'ENU': -0.1,
-    'DENU': 0.01,
-    'ER': -0.0379,
-    'DER': 0.00379,
-    'ET': -0.1379,
-    'DET': 0.01379}
     """
     if mt == 451:
         out = _read_intro(tape, mat)
@@ -191,7 +192,7 @@ def read_mf1(tape, mat, mt):
     elif mt == 458:
         out = _read_fission_energy(tape, mat)
     elif mt in allowed_mt:
-        raise sandy.Error("'MF={mf}/MT={mt}' not yet implemented")
+        raise ValueError("'MF={mf}/MT={mt}' not yet implemented")
     else:
         raise ValueError("'MF={mf}/MT={mt}' not allowed")
     return out
@@ -424,51 +425,66 @@ def _read_intro(tape, mat):
     add = {
             "TEMP": C.C1,  # Target temperature (Kelvin) for data that have been generated by Doppler broadening
             "LDRV": C.L1,  # Special derived material flag that distinguishes between different evaluations with the same material keys
-            "NWD": NWD,    # Number of records with descriptive text for this material
-            "NXC": NXC,    # Number of records in the directory for this material
+#            "NWD": NWD,    # Number of records with descriptive text for this material
+#            "NXC": NXC,    # Number of records in the directory for this material
             }
     out.update(add)
-    T, i = sandy.read_text(df, i)
-    add = {
-            "ZSYMAM": T.HL[:11],   # Character representation of the material
-            "ALAB": T.HL[11:22],   # Mnemonic for the originating laboratory(s)
-            "EDATE": T.HL[22:32],  # Date of evaluation
-            "AUTH": T.HL[33:],     # Author(s) name(s)
-            }
-    out.update(add)
-    T, i = sandy.read_text(df, i)
-    add = {
-            "REF": T.HL[1:22],      # Primary reference for the evaluation
-            "DDATE": T.HL[22:32],   # Original distribution date
-            "RDATE": T.HL[33:43],   # Date and number of the last revision to this evaluation
-            "ENDATE": T.HL[55:63],  # Author(s) name(s)
-            }
-    out.update(add)
-    H1, i = sandy.read_text(df, i)
-    H2, i = sandy.read_text(df, i)
-    H3, i = sandy.read_text(df, i)
-    add = {
-            "HSUB": "\n".join([H1.HL, H2.HL, H3.HL])
-            }
-    out.update(add)
-    lines = []
-    for j in range(NWD - 5):
+    descr = []
+    for j in range(NWD):
         T, i = sandy.read_text(df, i)
-        lines.append(T.HL)
-    add = "\n".join(lines)
+        descr.append(T[0])
+    add = {
+        "DESCRIPTION": descr,
+        }
+    out.update(add)
+    # add = {
+    #         "ZSYMAM": T.HL[:11],   # Character representation of the material
+    #         "ALAB": T.HL[11:22],   # Mnemonic for the originating laboratory(s)
+    #         "EDATE": T.HL[22:32],  # Date of evaluation
+    #         "AUTH": T.HL[33:],     # Author(s) name(s)
+    #         }
+    # out.update(add)
+    # T, i = sandy.read_text(df, i)
+    # add = {
+    #         "REF": T.HL[1:22],      # Primary reference for the evaluation
+    #         "DDATE": T.HL[22:32],   # Original distribution date
+    #         "RDATE": T.HL[33:43],   # Date and number of the last revision to this evaluation
+    #         "ENDATE": T.HL[55:63],  # Author(s) name(s)
+    #         }
+    # out.update(add)
+    # H1, i = sandy.read_text(df, i)
+    # H2, i = sandy.read_text(df, i)
+    # H3, i = sandy.read_text(df, i)
+    # add = {
+    #         "HSUB": "\n".join([H1.HL, H2.HL, H3.HL])
+    #         }
+    # out.update(add)
+    # lines = []
+    # for j in range(NWD - 5):
+    #     T, i = sandy.read_text(df, i)
+    #     lines.append(T.HL)
+    # add = "\n".join(lines)
+    # out.update({
+    #     "DESCRIPTION": add,
+    #     })
+    # try:
+    #     sections = _get_sections(df.iloc[-NXC:])
+    # except Exception as e:
+    #     msg = f"reported sections in MAT{mat}/MF1/MT451 are not consistent"
+    #     logging.warning(msg)
+    #     logging.warning(f"captured error: '{e}'")
+    # else:
+    #     out.update({
+    #         "SECTIONS": sections,
+    #         })
+    sections = []
+    for j in range(NXC):
+        T, i = sandy.read_text(df, i)
+        s = tuple(map(int, re.findall(".{11}" , T[0])[2:]))
+        sections.append(s)
     out.update({
-        "DESCRIPTION": add,
+        "SECTIONS": sections,
         })
-    try:
-        sections = _get_sections(df.iloc[-NXC:])
-    except Exception as e:
-        msg = f"reported sections in MAT{mat}/MF1/MT451 are not consistent"
-        logging.warning(msg)
-        logging.warning(f"captured error: '{e}'")
-    else:
-        out.update({
-            "SECTIONS": sections,
-            })
     return out
 
 
@@ -564,8 +580,8 @@ def write_mf1(sec):
 
     **mt = 452** :
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350)
-    >>> sec = sandy.sections.mf1.read_mf1(tape, 9228, 452)
-    >>> text = sandy.sections.mf1.write_mf1(sec)
+    >>> sec = sandy.read_mf1(tape, 9228, 452)
+    >>> text = sandy.write_mf1(sec)
     >>> print(text[:1000])
     92235.0000 233.024800          0          2          0          09228 1452    1
     0.00000000 0.00000000          0          0          1         799228 1452    2
@@ -582,9 +598,8 @@ def write_mf1(sec):
     350000.000 2.47658400 40000
 
     **mt = 455** :
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350)
-    >>> sec = sandy.sections.mf1.read_mf1(tape, 9228, 455)
-    >>> text = sandy.sections.mf1.write_mf1(sec)
+    >>> sec = sandy.read_mf1(tape, 9228, 455)
+    >>> text = sandy.write_mf1(sec)
     >>> print(text[:1000])
     92235.0000 233.024800          0          2          0          09228 1455    1
     0.00000000 0.00000000          0          0          6          09228 1455    2
@@ -595,9 +610,8 @@ def write_mf1(sec):
     4000000.00 1.670000-2 7000000.00 9.000000-3 20000000.0 9.000000-39228 1455    7
 
     **mt = 456** :
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350)
-    >>> sec = sandy.sections.mf1.read_mf1(tape, 9228, 456)
-    >>> text = sandy.sections.mf1.write_mf1(sec)
+    >>> sec = sandy.read_mf1(tape, 9228, 456)
+    >>> text = sandy.write_mf1(sec)
     >>> print(text[:1000])
     92235.0000 233.024800          0          2          0          09228 1456    1
     0.00000000 0.00000000          0          0          1         799228 1456    2
@@ -614,14 +628,16 @@ def write_mf1(sec):
     350000.000 2.45988400 40000
     """
     mt = sec["MT"]
-    if mt == 452:
+    if mt == 451:
+        out = _write_intro(sec)
+    elif mt == 452:
         out = _write_nubar(sec)
     elif mt == 455:
         out = _write_dnubar(sec)
     elif mt == 456:
         out = _write_pnubar(sec)
     elif mt in allowed_mt:
-        raise sandy.Error(f"'MT={mt}' not yet implemented")
+        raise ValueError(f"'MT={mt}' not yet implemented")
     else:
         raise ValueError(f"'MT={mt}' not allowed")
     return out
@@ -816,4 +832,49 @@ def _write_dnubar(sec):
                 )
     else:
         raise ValueError(f"'(LDG, LNU)' cannot be '({LDG}, {LNU})'")
+    return "\n".join(sandy.write_eol(lines, mat, mf, mt))
+
+
+def _write_intro(sec):
+    mat = sec["MAT"]
+    mt = 451
+    lines = sandy.write_cont(
+            sec["ZA"],
+            sec["AWR"],
+            sec["LRP"],
+            sec["LFI"],
+            sec["NLIB"],
+            sec["MOD"],
+            )
+    lines += sandy.write_cont(
+            sec["ELIS"],
+            sec["STA"],
+            sec["LIS"],
+            sec["LISO"],
+            0,
+            sec["NFOR"],
+            )
+    lines += sandy.write_cont(
+            sec["AWI"],
+            sec["EMAX"],
+            sec["LREL"],
+            0,
+            sec["NSUB"],
+            sec["NVER"],
+            )
+    NWD = len(sec["DESCRIPTION"])
+    NXC = len(sec["SECTIONS"])
+    lines += sandy.write_cont(
+            sec["TEMP"],
+            0,
+            sec["LDRV"],
+            0,
+            NWD,
+            NXC,
+            )
+    for t in sec["DESCRIPTION"]:
+        lines += sandy.write_text(t)
+    for MF, MT, NL, MOD in sec["SECTIONS"]:
+        t = " "*22 + f"{MF:>11d}{MT:>11d}{NL:>11d}{MOD:>11d}"
+        lines += sandy.write_text(t)
     return "\n".join(sandy.write_eol(lines, mat, mf, mt))
