@@ -197,7 +197,8 @@ class Errorr(_FormattedFile):
                     jvals = ix.query("MAT==@mat & MT==@mt1").squeeze()
                     jmin, jmax = jvals.IMIN, jvals.IMAX
                     c[imin: imax, jmin: jmax] = cov
-                    c[jmin: jmax, imin: imax] = cov.T
+                    if mt != mt1:
+                        c[jmin: jmax, imin: imax] = cov.T
             
             # Add index and columns and convert to CategoryCov
             idx = pd.MultiIndex.from_tuples(
