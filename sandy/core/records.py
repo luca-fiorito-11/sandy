@@ -25,6 +25,7 @@ __all__ = [
         "line_numbers",
         "write_line",
         "write_eol",
+        "write_text",
         ]
 
 
@@ -118,6 +119,20 @@ def read_text(df, ipos):
         ])
     ipos += 1
     return TEXT(HL), ipos
+
+
+def write_text(text):
+    """
+    Write ENDF-6 `TEXT` record in formatted fortran.
+
+    Returns
+    -------
+    `str`
+        list of 66-characters-long ENDF-6 formatted string
+
+    """
+    line = f"{text[:66]:66}"
+    return [line]
 
 
 def write_integer_list(lst):

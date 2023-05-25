@@ -7,9 +7,11 @@ section values.
 import os
 import logging
 import functools
+import types
 
 import numpy as np
 import pandas as pd
+import multiprocessing as mp
 
 import sandy
 
@@ -48,14 +50,16 @@ class Xs():
 
     Methods
     -------
-    reshape
-        Interpolate cross sections over new grid structure
     custom_perturbation
         Apply a custom perturbation to a given cross section
-    to_endf6
-        Update cross sections in `Endf6` instance
     from_endf6
         Extract cross sections/nubar from `Endf6` instance
+    perturb
+        
+    reshape
+        Interpolate cross sections over new grid structure
+    to_endf6
+        Update cross sections in `Endf6` instance
     """
 
     redundant_xs = {
@@ -123,9 +127,8 @@ class Xs():
     def data(self, data):
         self._data = data.rename_axis(self.__class__._indexname, axis=0)\
                          .rename_axis(self.__class__._columnsnames, axis=1)
-        self._data.index = self._data.index
         if not data.index.is_monotonic_increasing:
-            raise sandy.Error("energy grid is not monotonically increasing")
+            raise ValueError("energy grid is not monotonically increasing")
 
     def reshape(self, eg):
         """
@@ -188,11 +191,6 @@ class Xs():
             u_pert = pert.reshape(enew)
             u_xs.data[(mat, mt)] = u_xs.data[(mat, mt)] * u_pert.right.values
         return self.__class__(u_xs.data)
-
-    def filter_energies(self, energies):
-        mask = self.data.index.isin(energies)
-        data = self.data.loc[mask]
-        return self.__class__(data)
 
     def to_endf6(self, endf6):
         """
@@ -271,6 +269,9 @@ class Xs():
         .. note:: missing points are linearly interpolated if inside the energy
                   domain, else zero is assigned.
 
+        .. note:: Duplicate energy points will be removed, only the first one
+                  is kept.
+
         Parameters
         ----------
         `endf6` : `sandy.Endf6`
@@ -285,23 +286,28 @@ class Xs():
         ------
         `sandy.Error`
             if interpolation scheme is not lin-lin
-        `sandy.Error`
-            if requested cross section was not found
 
         Warns
         -----
         `logging.warning`
             if duplicate energy points are found
 
-        Notes
-        -----
-        .. note:: Cross sections are linearized on a unique grid.
-
-        .. note:: Missing points are linearly interpolated if inside the energy
-                  domain, else zero is assigned.
-
-        .. note:: Duplicate energy points will be removed, only the first one
-                  is kept.
+        Examples
+        --------
+        Get H1 file and process it to PENDF.
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> pendf = tape.get_pendf(minimal_processing=True)
+        
+        Show content of `sandy.Xs` instance.
+        >>> sandy.Xs.from_endf6(pendf).data.head()
+        MAT                 125                        
+        MT                  1           2           102
+        E                                              
+        1.00000e-05 3.71363e+01 2.04363e+01 1.66999e+01
+        1.03125e-05 3.68813e+01 2.04363e+01 1.64450e+01
+        1.06250e-05 3.66377e+01 2.04363e+01 1.62013e+01
+        1.09375e-05 3.64045e+01 2.04363e+01 1.59682e+01
+        1.12500e-05 3.61812e+01 2.04363e+01 1.57448e+01
         """
         data = []
         # read cross sections
@@ -359,80 +365,227 @@ class Xs():
                       .fillna(0)
         return cls(df)
 
-    def _reconstruct_sums(self, drop=True, inplace=False):
+    def reconstruct_sums(self, drop=True):
         """
-        Reconstruct redundant xs.
-        """
-        df = self.data.copy()
-        for mat in self.data.columns.get_level_values("MAT").unique():
-            for parent, daughters in sorted(redundant_xs.items(), reverse=True):
-                daughters = [x for x in daughters if x in df[mat]]
-                if daughters:
-                    df[mat,parent] = df[mat][daughters].sum(axis=1)
-            # keep only mts present in the original file
-            if drop:
-                todrop = [x for x in df[mat].columns if x not in self.data[mat].columns]
-                cols_to_drop = pd.MultiIndex.from_product([[mat], todrop])
-                df.drop(cols_to_drop, axis=1, inplace=True)
-        if inplace:
-            self.data = df
-        else:
-            return Xs(df)
-#        frame = self.copy()
-#        for mat in frame.columns.get_level_values("MAT").unique():
-#            for parent, daughters in sorted(Xs.redundant_xs.items(), reverse=True):
-#                daughters = [ x for x in daughters if x in frame[mat]]
-#                if daughters:
-#                    frame[mat,parent] = frame[mat][daughters].sum(axis=1)
-#            # keep only mts present in the original file
-#            if drop:
-#                todrop = [ x for x in frame[mat].columns if x not in self.columns.get_level_values("MT") ]
-#                frame.drop(pd.MultiIndex.from_product([[mat], todrop]), axis=1, inplace=True)
-#        return Xs(frame)
+        Reconstruct redundant xs according to ENDF-6 rules in Appendix B.
+        Redundant cross sections are available in `dict`
+        :func:`~sandy.redundant_xs`.
 
-    def _perturb(self, pert, method=2, **kwargs):
-        """Perturb cross sections/nubar given a set of perturbations.
-        
         Parameters
         ----------
-        pert : pandas.Series
-            multigroup perturbations from sandy.XsSamples
-        method : int
-            * 1 : samples outside the range [0, 2*_mean_] are set to _mean_. 
-            * 2 : samples outside the range [0, 2*_mean_] are set to 0 or 2*_mean_ respectively if they fall below or above the defined range.
-        
+        drop : `bool`, optional
+            keep in output only the MT number originally present.
+            The default is True.
+
         Returns
         -------
-        `sandy.formats.utils.Xs`
+        :func:`~sandy.Xs`
+            Cross section instance where reconstruction rules are enforced.
+
+        Examples
+        --------
+        Get ENDF-6 file for H1, process it in PENDF and extract xs.
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> pendf = tape.get_pendf(minimal_processing=True)
+        >>> xs = sandy.Xs.from_endf6(pendf)
+
+        We introduce a perturbation to the elastic scattering xs
+        >>> xs.data[(125, 2)] *= 2
+        >>> assert not xs.data[(125, 1)].equals(xs.data[(125, 2)] + xs.data[(125, 102)])
+
+        Reconstruciting xs enforces consistency.
+        >>> xs1 = xs.reconstruct_sums(drop=True).data
+        >>> assert xs1.columns.equals(xs.data.columns)
+        >>> assert xs1[(125, 1)].equals(xs1[(125, 2)] + xs1[(125, 102)])
+
+        We can keep all redundant xs with keyword `drop=True`
+        >>> xs2 = xs.reconstruct_sums(drop=False).data
+        >>> assert not xs2.columns.equals(xs.data.columns)
+        >>> assert xs2[xs1.columns].equals(xs1)
+
+        >>> assert xs2[(125, 101)].equals(xs2[(125, 102)])
+        >>> assert xs2[(125, 27)].equals(xs2[(125, 101)])
+        >>> assert xs2[(125, 3)].equals(xs2[(125, 27)])
         """
-        frame = self.copy()
-        for mat in frame.columns.get_level_values("MAT").unique():
-            if mat not in pert.index.get_level_values("MAT"):
-                continue
-            for mt in frame[mat].columns.get_level_values("MT").unique():
-                lmtp = pert.loc[mat].index.get_level_values("MT").unique()
-                mtPert = None
-                if lmtp.max() == 3 and mt >= 3:
-                    mtPert = 3
-                elif mt in lmtp:
-                    mtPert = mt
-                else:
-                    for parent, daughters in sorted(self.__class__.redundant_xs.items(), reverse=True):
-                        if mt in daughters and not list(filter(lambda x: x in lmtp, daughters)) and parent in lmtp:
-                            mtPert = parent
-                            break
-                if not mtPert:
-                    continue
-                P = pert.loc[mat,mtPert]
-                P = P.reindex(P.index.union(frame[mat,mt].index)).ffill().fillna(1).reindex(frame[mat,mt].index)
-                if method == 2:
-                    P = P.where(P>0, 0.0)
-                    P = P.where(P<2, 2.0)
-                elif method == 1:
-                    P = P.where((P>0) & (P<2), 1.0)
-                xs = frame[mat,mt].multiply(P, axis="index")
-                frame[mat,mt] = xs
-        return Xs(frame).reconstruct_sums()
+        df = self.data.copy()
+        for mat, group in df.groupby("MAT", axis=1):
+        
+            # starting from the lat redundant cross section, find daughters and sum them
+            for parent, daughters in sorted(sandy.redundant_xs.items(), reverse=True):
+                # it must be df, not group, because df is updated
+                x = df[mat].T.query("MT in @daughters").T  # need to transpose to query on columns
+                if not x.empty:
+                    df[(mat, parent)] = x.sum(axis=1)
+
+            # keep only mts present in the original file
+            if drop:
+                keep = group[mat].columns
+                # same filtering method as above
+                todrop = df[mat].T.query("MT not in @keep").index
+                df.drop(
+                    pd.MultiIndex.from_product([[mat], todrop]),
+                    axis=1,
+                    inplace=True,
+                    )
+
+        return self.__class__(df)
+
+    def _mp_multi_perturb(self, smp, processes, verbose=False):
+        pool = mp.Pool(processes=processes)
+        seq = dict(smp.iterate_xs_samples()).items()
+        kw = dict(verbose=verbose)
+        outs = {n: pool.apply_async(xs_perturb_worker, (self, n, p), kw) for n, p in seq}
+        outs = {n: out.get() for n, out in outs.items()}
+        pool.close()
+        pool.join()
+        return outs
+
+    def _multi_perturb(self, smp, verbose=False):
+        """
+        Decorator to handle :func:`~sandy.Samples` instance as input of method
+        :func:`~sandy.Xs.perturb`.
+        Multiple perturbed :func:`~sandy.Xs` instances are returned as a
+        generator as they mimic dict comprehension.
+        """
+        for n, p in smp.iterate_xs_samples():
+            if verbose:
+                print(f"Processing xs sample {n}...")
+            # instead of defining the function twice, just call the worker also here
+            yield n, xs_perturb_worker(self, n, p)
+
+    def _perturb(self, s):
+        """
+        Apply perturbations to cross sections.
+
+        Parameters
+        ----------
+        s : `pandas.DataFrame` or :func:`~sandy.Samples`
+            input perturbations or samples.
+            If `s` is a `pandas.DataFrame`, its index and columns must have the
+            same names and structure as in `self.data`.
+            
+            .. note:: the energy grid of `s` must be multigroup, i.e., 
+                      rendered by a (right-closed) `pd.IntervalIndex`.
+            
+            If `s` is a :func:`~sandy.Samples` instance, see
+            :func:`~sandy.Xs._multi_pert`.
+
+        Returns
+        -------
+        xs : :func:`~Xs` or `dict` of :func:`~Xs`
+            perturbed cross section object if `s` is a `pandas.DataFrame`,
+            otherwise dictionary of perturbed cross section objects with
+            sample numbers as key.
+
+        Examples
+        --------
+        Get plutonium cross sections
+        >>> pendf = sandy.get_endf6_file("jeff_33", "xs", 942390).get_pendf(err=1, minimal_processing=True)
+        >>> xs = sandy.Xs.from_endf6(pendf)
+
+        Apply multiplication coefficient equal to 1 to elastic and inelastic
+        scattering cross sections up to 3e7 eV (upper xs energy limit)
+        >>> index = pd.IntervalIndex.from_breaks([1e-5, 3e7], name="E", closed="right")
+        >>> columns = pd.MultiIndex.from_product([[9437], [2, 4]], names=["MAT", "MT"])
+        >>> s = pd.DataFrame(1, index=index, columns=columns)
+        >>> xp = xs.perturb(s)
+        >>> assert xp.data.equals(xs.data)
+        
+        Apply multiplication coefficients equal to 1 and to 2 respectively to
+        elastic and inelastic scattering cross sections up to 3e7 eV (upper xs energy limit)
+        >>> s = pd.DataFrame([[1, 2]], index=index, columns=columns)
+        >>> xp = xs.perturb(s)
+        >>> assert not xp.data.equals(xs.data)
+        >>> assert xp.data.loc[:, xp.data.columns != (9437, 4)].equals(xp.data.loc[:, xs.data.columns != (9437, 4)])
+        >>> assert xp.data[(9437, 4)].equals(xs.data[(9437, 4)] * 2)
+        
+        Apply multiplication coefficients equal to 1 and to 2 respectively to
+        elastic and inelastic scattering cross sections up to 2e7 eV
+        >>> index = pd.IntervalIndex.from_breaks([1e-5, 2e7], name="E", closed="right")
+        >>> columns = pd.MultiIndex.from_product([[9437], [2, 4]], names=["MAT", "MT"])
+        >>> s = pd.DataFrame([[1, 2]], index=index, columns=columns)
+        >>> xp = xs.perturb(s)
+        >>> assert not xp.data.equals(xs.data)
+        >>> assert xp.data.loc[:, xp.data.columns != (9437, 4)].equals(xp.data.loc[:, xs.data.columns != (9437, 4)])
+        >>> assert xp.data.loc[:2e7, (9437, 4)].equals(xs.data.loc[:2e7, (9437, 4)] * 2)
+        >>> assert xp.data.loc[2e7:, (9437, 4)].iloc[1:].equals(xs.data.loc[2e7:, (9437, 4)].iloc[1:])
+        """
+        x = self.data
+        
+        # reshape indices (energy)
+        idx = s.index.get_indexer(x.index)
+        # need to copy, or else it returns a view
+        # seed https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+        s_ = s.iloc[idx].copy()
+        s_.index = x.index
+        s_.loc[idx < 0, :] = 1.  # idx = -1 indicates out of range lines
+
+        # reshape columns (MAT and MT)
+        idx = s_.columns.get_indexer(x.columns)
+        s_ = s_.iloc[:, idx]
+        s_.columns = x.columns
+        s_.loc[:, idx < 0] = 1.  # idx = -1 indicates out of range lines
+        
+        xs = self.__class__(s_ * x)
+        return xs
+    
+    def perturb(self, smp, processes=1, **kwargs):
+        """
+        
+
+        Parameters
+        ----------
+        smp : TYPE
+            DESCRIPTION.
+        processes : TYPE, optional
+            DESCRIPTION. The default is 1.
+        **kwargs : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        Examples
+        --------
+        Create two H1 samples.
+        >>> njoy_kws = dict(err=1, errorr_kws=dict(mt=102))
+        >>> nsmp = 2
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> smps = tape.get_perturbations(nsmp=nsmp, njoy_kws=njoy_kws)
+        
+        Extract H1 xs.
+        >>> pendf = tape.get_pendf(minimal_processing=True)
+        >>> xs = sandy.Xs.from_endf6(pendf)
+
+        Apply perturbations to xs without multiprocessing.
+        >>> outs = xs.perturb(smps[33], processes=1, verbose=True)
+        
+        The output is a generator.
+        >>> assert isinstance(outs, types.GeneratorType)
+        >>> outs = dict(outs)
+        Processing xs sample 0...
+        Processing xs sample 1...
+
+        Apply perturbations to xs with multiprocessing.
+        >>> outs_mp = xs.perturb(smps[33], processes=2, verbose=True)
+
+        The output is a dict.
+        >>> assert isinstance(outs_mp, dict)
+
+        The two outputs are identical.
+        >>> for k in outs:
+        ...    assert outs[k].data.equals(outs_mp[k].data)
+        """
+        if not isinstance(smp, sandy.Samples):
+            return self._perturb(smp)
+        
+        if processes==1:
+            return self._multi_perturb(smp, **kwargs)
+        else:
+            return self._mp_multi_perturb(smp, processes=processes, **kwargs)
+    
 
     @classmethod
     def _from_errorr(cls, errorr):
@@ -468,62 +621,8 @@ class Xs():
         frame = pd.concat(listxs, axis=1).reindex(eg, method="ffill")
         return Xs(frame)
 
-    @classmethod
-    def from_file(cls, file, kind="endf6"):
-        """
-        Read cross sections directly from file.
 
-        Parameters
-        ----------
-        file : `str`
-            file name with relative or absolute path
-        kind : `str`, optional, default is `'endf6'`
-            type of file
-
-        Returns
-        -------
-        `sandy.Xs`
-            cross sections tabulated data
-
-        Examples
-        --------
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.pendf")
-        >>> sandy.Xs.from_file(file).data.head()
-        MAT                 125                        
-        MT                  1           2           102
-        E                                              
-        1.00000e-05 3.71363e+01 2.04363e+01 1.66999e+01
-        1.03125e-05 3.68813e+01 2.04363e+01 1.64450e+01
-        1.06250e-05 3.66377e+01 2.04363e+01 1.62013e+01
-        1.09375e-05 3.64045e+01 2.04363e+01 1.59682e+01
-        1.12500e-05 3.61812e+01 2.04363e+01 1.57448e+01
-        """
-        if kind != "endf6":
-            raise ValueError("sandy can only read cross sections from 'endf6' "
-                             "files")
-        tape = sandy.Endf6.from_file(file)
-        return cls.from_endf6(tape)
-
-    def eV2MeV(self):
-        """
-        Produce dataframe of cross sections with index in MeV instead of eV.
-
-        Returns
-        -------
-        `pandas.DataFrame`
-            dataframe of cross sections with enery index in MeV
-
-        Examples
-        --------
-        >>> index = [1e-5, 2e7]
-        >>> columns = pd.MultiIndex.from_tuples([(9437, 1)])
-        >>> sandy.Xs([1, 2], index=index, columns=columns).eV2MeV()
-        MAT                9437
-        MT                    1
-        E                      
-        1.00000e-11 1.00000e+00
-        2.00000e+01 2.00000e+00
-        """
-        df = self.data.copy()
-        df.index = df.index * 1e-6
-        return df
+def xs_perturb_worker(xs, n, s, verbose=False):
+    if verbose:
+        print(f"Processing xs sample {n}...")
+    return xs._perturb(s)
