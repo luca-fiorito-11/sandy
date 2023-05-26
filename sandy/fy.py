@@ -374,16 +374,6 @@ class Fy():
         # Create mass yield sensitivity
         groups = fy_data.groupby(fy_data.index)['ZAP'].value_counts().rename("COUNT")
         return groups.reset_index().pivot_table(index='A', columns='ZAP', values="COUNT", aggfunc="sum").fillna(0)
-        groups = groups.to_frame()\
-                       .rename(columns={'ZAP': 'value'})\
-                       .reset_index()
-        mass_yield_sensitivity = groups.pivot_table(
-            index='A',
-            columns='ZAP',
-            values='value',
-            aggfunc="sum"
-            ).fillna(0)
-        return mass_yield_sensitivity
 
     def custom_perturbation(self, zam, mt, e, pert):
         """
