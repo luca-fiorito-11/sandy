@@ -11,7 +11,6 @@ import os
 from sandy.gls import sandwich, _gls_cov_update
 
 import sandy
-import pytest
 pd.options.display.float_format = '{:.5e}'.format
 
 __author__ = "Luca Fiorito"
@@ -108,6 +107,7 @@ class CategoryCov():
 
         Examples
         --------
+        >>> import pytest
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array[1])
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array([[1, 2], [2, -4]]))
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array([[1, 2], [3, 4]]))
@@ -652,6 +652,7 @@ class CategoryCov():
         >>> smp_0 = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=0)
         >>> np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=2)
         >>> smp_inf = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=np.inf)
+        >>> import pytest
         >>> with pytest.raises(Exception):
         ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
 

@@ -3,7 +3,6 @@ import time
 import logging
 import argparse
 import filecmp
-import pytest
 
 import sandy
 from sandy.tools import is_valid_dir, is_valid_file

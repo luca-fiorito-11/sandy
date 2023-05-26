@@ -9,11 +9,9 @@ import os
 from functools import reduce
 from tempfile import TemporaryDirectory
 import logging
-from urllib.request import urlopen, Request, urlretrieve
+from urllib.request import urlopen, Request
 from zipfile import ZipFile
 import re
-import types
-import pytest
 
 import multiprocessing as mp
 import numpy as np
@@ -1657,6 +1655,7 @@ class Endf6(_FormattedFile):
         >>> assert "1001.85c" in ace
 
         Check input pendf file
+        >>> import pytest
         >>> with pytest.raises(Exception) as e_info:
         >>>    e6.get_ace(pendf=e6)
         """
