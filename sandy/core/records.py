@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from collections import namedtuple
 import itertools
-import pytest
 
 import numpy as np
 
@@ -333,6 +332,7 @@ def write_int(x):
     >>> sandy.write_int(-1e5)
     '    -100000'
 
+    >>> import pytest
     >>> with pytest.raises(ValueError): sandy.write_int(-1e10)
     """
     y = f"{int(x):>11d}"

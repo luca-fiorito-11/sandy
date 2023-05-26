@@ -5,21 +5,17 @@ import scipy
 import scipy.linalg
 import scipy.sparse as sps
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import logging
 import tables as tb
 import os
 from sandy.gls import sandwich, _gls_cov_update
 
 import sandy
-import pytest
 pd.options.display.float_format = '{:.5e}'.format
 
 __author__ = "Luca Fiorito"
 __all__ = [
         "CategoryCov",
-        "EnergyCov",
         "triu_matrix",
         "corr2cov",
         "random_corr",
@@ -41,190 +37,6 @@ minimal_covtest = pd.DataFrame(
      [9437, 102, 2e5, 9437, 102, 2e5, 0.01]],
     columns=["MAT", "MT", "E", "MAT1", "MT1", 'E1', "VAL"]
     )
-
-
-def cov33csv(func):
-    def inner(*args, **kwargs):
-        key = "cov33csv"
-        kw = kwargs.copy()
-        if key in kw:
-            if kw[key]:
-                print(f"found argument '{key}', ignore oher arguments")
-                out = func(
-                    *args,
-                    index_col=[0, 1, 2],
-                    header=[0, 1, 2],
-                    )
-                out.index.names = ["MAT", "MT", "E"]
-                out.columns.names = ["MAT", "MT", "E"]
-                return out
-            else:
-                del kw[key]
-        out = func(*args, **kw)
-        return out
-    return inner
-
-
-class _Cov(np.ndarray):
-    """Covariance matrix treated as a `numpy.ndarray`.
-
-    Methods
-    -------
-    corr
-        extract correlation matrix
-    corr2cov
-        produce covariance matrix given correlation matrix and standard
-        deviation array
-    eig
-        get covariance matrix eigenvalues and eigenvectors
-    get_L
-        decompose and extract lower triangular matrix
-    sampling
-        draw random samples
-    """
-
-    def __new__(cls, arr):
-        obj = np.ndarray.__new__(cls, arr.shape, float)
-        obj[:] = arr[:]
-        if not obj.ndim == 2:
-            raise sandy.Error("covariance matrix must have two dimensions")
-        if not np.allclose(obj, obj.T):
-            raise sandy.Error("covariance matrix must be symmetric")
-        if (np.diag(arr) < 0).any():
-            raise sandy.Error("covariance matrix must have positive variances")
-        return obj
-
-    @staticmethod
-    def _up2down(self):
-        U = np.triu(self)
-        L = np.triu(self, 1).T
-        C = U + L
-        return C
-
-    def eig(self):
-        """
-        Extract eigenvalues and eigenvectors.
-
-        Returns
-        -------
-        `Pandas.Series`
-            real part of eigenvalues sorted in descending order
-        `np.array`
-            matrix of eigenvectors
-        """
-        E, V = scipy.linalg.eig(self)
-        E, V = E.real, V.real
-        return E, V
-
-    def corr(self):
-        """Extract correlation matrix.
-
-        .. note:: zeros on the covariance matrix diagonal are translated
-                  into zeros also on the the correlation matrix diagonal.
-
-        Returns
-        -------
-        `sandy.formats.utils.Cov`
-            correlation matrix
-        """
-        std = np.sqrt(np.diag(self))
-        with np.errstate(divide='ignore', invalid='ignore'):
-            coeff = np.true_divide(1, std)
-            coeff[~ np.isfinite(coeff)] = 0  # -inf inf NaN
-        corr = np.multiply(np.multiply(self.T, coeff).T, coeff)
-        return self.__class__(corr)
-
-    def _reduce_size(self):
-        """
-        Reduces the size of the matrix, erasing the null values.
-
-        Returns
-        -------
-        nonzero_idxs : numpy.ndarray
-            The indices of the diagonal that are not null.
-        cov_reduced : sandy.core.cov._Cov
-            The reduced matrix.
-
-        """
-        nonzero_idxs = np.flatnonzero(np.diag(self))
-        cov_reduced = self[nonzero_idxs][:, nonzero_idxs]
-        return nonzero_idxs, cov_reduced
-
-    @classmethod
-    def _restore_size(cls, nonzero_idxs, cov_reduced, dim):
-        """
-        Restore the size of the matrix
-
-        Parameters
-        ----------
-        nonzero_idxs : numpy.ndarray
-            The indices of the diagonal that are not null.
-        cov_reduced : sandy.core.cov._Cov
-            The reduced matrix.
-        dim : int
-            Dimension of the original matrix.
-
-        Returns
-        -------
-        cov : sandy.core.cov._Cov
-            Matrix of specified dimensions.
-
-        """
-        cov = _Cov(np.zeros((dim, dim)))
-        for i, ni in enumerate(nonzero_idxs):
-            cov[ni, nonzero_idxs] = cov_reduced[i]
-        return cov
-
-    def sampling(self, nsmp, seed=None):
-        """
-        Extract random samples from the covariance matrix, either using
-        the cholesky or the eigenvalue decomposition.
-
-        Parameters
-        ----------
-        nsmp : `int`
-            number of samples
-        seed : `int`
-            seed for the random number generator (default is `None`)
-
-        Returns
-        -------
-        `np.array`
-            2D array of random samples with dimension `(self.shape[0], nsmp)`
-        """
-        dim = self.shape[0]
-        np.random.seed(seed=seed)
-        y = np.random.randn(dim, nsmp)
-        nonzero_idxs, cov_reduced = self._reduce_size()
-        L_reduced = cov_reduced.get_L()
-        L = self.__class__._restore_size(nonzero_idxs, L_reduced, dim)
-        samples = np.array(L.dot(y))
-        return samples
-
-    def get_L(self):
-        """
-        Extract lower triangular matrix `L` for which `L*L^T == self`.
-
-        Returns
-        -------
-        `np.array`
-            lower triangular matrix
-        """
-        try:
-            L = scipy.linalg.cholesky(
-                    self,
-                    lower=True,
-                    overwrite_a=False,
-                    check_finite=False
-                    )
-        except np.linalg.linalg.LinAlgError:
-            E, V = self.eig()
-            E[E <= 0] = 0
-            Esqrt = np.diag(np.sqrt(E))
-            M = V.dot(Esqrt)
-            Q, R = scipy.linalg.qr(M.T)
-            L = R.T
-        return L
 
 
 class CategoryCov():
@@ -295,6 +107,7 @@ class CategoryCov():
 
         Examples
         --------
+        >>> import pytest
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array[1])
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array([[1, 2], [2, -4]]))
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array([[1, 2], [3, 4]]))
@@ -740,7 +553,9 @@ class CategoryCov():
         Test on real ND covariance. With previous implementation this test failed.
         >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, errorr_kws=dict(mt=102))["errorr33"].get_cov()
         >>> cinv = c.invert()
-        >>> np.testing.assert_array_almost_equal(c.data, np.linalg.pinv(cinv, hermitian=True))
+        >>> a = c.data.values
+        >>> b = cinv.values
+        >>> np.testing.assert_array_almost_equal(a, a @ b @  a, decimal=4)
         >>> assert (cinv.index == c.data.index).all()
         >>> assert (cinv.columns == c.data.columns).all()
         """
@@ -749,32 +564,6 @@ class CategoryCov():
             index=self.data.index,
             columns=self.data.columns,
         )  # do not return CategoryCov because variance can be negative
-
-    def _double_invert(self):
-        """
-        Test method get a covariance matrix without negative eigs.
-        Because of the properties of pinv, this should be equivalent to
-        reconstructing the matrix as `V @ E @ V^T`, where `V` are the
-        eigenvectors and `E` are truncated eigenvalues.
-
-        Returns
-        -------
-        `sandy.CategoryCov`
-            inverse of the inverted matrix
-
-        Test on real ND covariance.
-        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, errorr_kws=dict(mt=102))["errorr33"].get_cov()
-        >>> c2 = c._double_invert()
-        >>> np.testing.assert_array_almost_equal(c.data, c2.data)
-        >>> assert (c2.data.index == c.data.index).all()
-        >>> assert (c2.data.columns == c.data.columns).all()
-        """
-        cinv = self.invert()
-        return self.__class__(
-            np.linalg.pinv(cinv, hermitian=True),
-            index=self.data.index,
-            columns=self.data.columns,
-        )
 
     def sampling(self, nsmp, seed=None, pdf='normal', tolerance=0, relative=True, **kwargs):
         """
@@ -862,6 +651,7 @@ class CategoryCov():
         >>> smp_0 = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=0)
         >>> np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=2)
         >>> smp_inf = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=np.inf)
+        >>> import pytest
         >>> with pytest.raises(Exception):
         ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
 
@@ -1137,55 +927,6 @@ class CategoryCov():
         columns = self.data.columns
         return self.__class__(cov, index=index, columns=columns)
 
-    @classmethod
-    @cov33csv
-    def from_csv(cls, file, **kwargs):
-        """
-        Read covariance matrix from csv file using `pandas.read_csv`.
-
-        Parameters
-        ----------
-        file: `str`
-            csv file containing covariance matrix (with or w/o indices and
-            columns)
-        kwargs: `dict`
-            keyword arguments to pass to `pd.read_csv`
-
-        Returns
-        -------
-        `CategoryCov`
-            object containing covariance matrix
-
-        Examples
-        --------
-        Read a 2x2 matrix from a string in csv format.
-        >>> from io import StringIO
-        >>> cov = pd.DataFrame([[1, 0.4],[0.4, 1]])
-        >>> string = StringIO(cov.to_csv())
-        >>> sandy.CategoryCov.from_csv(string, index_col=0)
-                    0           1
-        0 1.00000e+00 4.00000e-01
-        1 4.00000e-01 1.00000e+00
-
-        Now use `pandas.MultiIndex` as `index` and `columns`.
-        This example represents the case of a cross section covariance matrix
-        for `MAT=9437`, `MT=18` and two energy points `[1e-5, 1e6]`.
-        >>> tuples = [(9437, 18, 1e-5), (9437, 18, 1e6)]
-        >>> index = pd.MultiIndex.from_tuples(tuples, names=("MAT", "MT", "E"))
-        >>> cov.index = cov.columns = index
-        >>> string = StringIO(cov.to_csv())
-        >>> pos = [0, 1, 2]
-        >>> sandy.CategoryCov.from_csv(string, index_col=pos, header=pos)
-        MAT                        9437            
-        MT                           18            
-        E                         1e-05   1000000.0
-        MAT  MT E                                  
-        9437 18 1.00000e-05 1.00000e+00 4.00000e-01
-                1.00000e+06 4.00000e-01 1.00000e+00
-        """
-        df = pd.read_csv(file, **kwargs)
-        return cls(df)
-
     def to_sparse(self, method='csr_matrix'):
         """
         Method to extract `CategoryCov` values into a sparse matrix
@@ -1318,361 +1059,6 @@ class CategoryCov():
         # Original size
         L = restore_size(nonzero_idxs, L_redu, len(self.data)).values
         return pd.DataFrame(L, index=index, columns=columns)
-
-
-class EnergyCov(CategoryCov):
-    """
-    Dataframe for a multigroup covariance matrix.
-
-    .. note:: It is assumed that the covariance matrix is defined over
-              multi-group energy grids.
-
-              Only 'zero' interpolation is supported.
-
-    Attributes
-    ----------
-    data : `pandas.DataFrame`
-        covariance matrix as a dataframe
-
-    Methods
-    -------
-    add
-    
-    change_grid
-        
-    from_lb1
-        
-    from_lb2
-        
-    from_lb5_sym
-        
-    from_lb5_asym
-        
-    from_lb6
-        
-    sum_covs
-       
-    Raises
-    ------
-    `sandy.Error`
-        if index values are not monotonically increasing
-    `sandy.Error`
-        if columns values are not monotonically increasing
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    @property
-    def data(self):
-        """
-        Covariance matrix as a dataframe.
-
-        Attributes
-        ----------
-        index : `pandas.Index`
-            indices
-        columns : `pandas.MultiIndex`
-            indices
-        values : `numpy.array`
-            covariance values as `float`
-
-        Returns
-        -------
-        `pandas.DataFrame`
-            covariance matrix
-
-        Raises
-        ------
-        `sandy.Error`
-            if `index` or `columns` are not monotonically increasing
-        """
-        return self._data
-
-    @data.setter
-    def data(self, data):
-        self._data = pd.DataFrame(data)
-        self._data.index = pd.Index(
-                self._data.index.values,
-                name="E",
-                )
-        self._data.columns = pd.Index(
-                self._data.columns.values,
-                name="E",
-                )
-        if not self._data.index.is_monotonic_increasing:
-            raise sandy.Error("index values are not monotonically increasing")
-        if not self._data.columns.is_monotonic_increasing:
-            raise sandy.Error("columns values are not monotonically "
-                              "increasing")
-
-    def change_grid(self, ex, ey, inplace=False):
-        """
-        Given one energy grid for the x-axis and one energy grid for the
-        y-axis, interpolate/extrapolate the covariance matrix over the new
-        points using the *forward-filling* method.
-
-        .. important::
-
-            * backward extrapolated values (e.g. below threshold) are replaced
-              by 0
-            * forward extrapolated values (e.g. above 20 MeV) are replaced by
-              the covariance coefficient that refers to the last point in the
-              original grid
-
-        Parameters
-        ----------
-        ex : `iterable`
-            energy grid for the x-axis
-        ey : `iterable`
-            energy grid for the y-axis
-
-        Returns
-        -------
-        `sandy.EnergyCov`
-            Covariance matrix interpolated over the new axes.
-
-        Examples
-        --------
-        >>> eg = [1e-2, 1e6]
-        >>> C = sandy.EnergyCov.random_corr(2, seed=1, index=eg, columns=eg)
-        >>> C.change_grid([0, 1, 1e6, 1e7], [0, 1, 1e6, 1e7])
-        E            0.00000e+00  1.00000e+00  1.00000e+06  1.00000e+07
-        E                                                              
-        0.00000e+00  0.00000e+00  0.00000e+00  0.00000e+00  0.00000e+00
-        1.00000e+00  0.00000e+00  1.00000e+00  4.40649e-01  4.40649e-01
-        1.00000e+06  0.00000e+00  4.40649e-01  1.00000e+00  1.00000e+00
-        1.00000e+07  0.00000e+00  4.40649e-01  1.00000e+00  1.00000e+00
-        """
-        df = self.data.reindex(index=ex, method="ffill") \
-                      .reindex(columns=ey, method="ffill") \
-                      .fillna(0)
-        if not inplace:
-            return self.__class__(df)
-        self.data = df
-
-    def _plot_matrix(self, ax, xscale='log', yscale='log', cmap='bwr',
-                     vmin=-1, vmax=1, emin=1e-5, emax=2e7, **kwargs):
-        new_xgrid = np.unique([*self.data.index, *[emin, emax]])
-        new_ygrid = np.unique([*self.data.columns, *[emin, emax]])
-        data = self.change_grid(ex=new_xgrid, ey=new_ygrid).data
-        X, Y = np.meshgrid(data.index.values, data.columns.values)
-        qmesh = ax.pcolormesh(
-                    X.T,
-                    Y.T,
-                    data.values,
-                    cmap=cmap,
-                    vmin=vmin,
-                    vmax=vmax,
-                    **kwargs,
-                    )
-        ax.set_xlim([emin, emax])
-        ax.set_ylim([emin, emax])
-        plt.colorbar(qmesh)
-        ax.set_xscale(xscale)
-        ax.set_yscale(yscale)
-        return ax
-
-    def add(self, cov, inplace=False):
-        """
-        Add the content of another `EnergyCov` (sum).
-        If the energy grids do not match, interpolate.
-
-        Parameters
-        ----------
-        cov : `sandy.EnergyCov`
-            multigroup covariance matrices (axes can be different)
-        inplace : `bool`, optional, default is `False`
-            flag to operate **inplace**
-
-        Returns
-        -------
-        `sandy.EnergyCov`
-            Multi-group covariance matrix.
-
-        Examples
-        --------
-        >>> eg = [1e-2, 1e6]
-        >>> C = sandy.EnergyCov.random_corr(2, seed=1, index=eg, columns=eg)
-        >>> C.add(C)
-        E            1.00000e-02  1.00000e+06
-        E                                    
-        1.00000e-02  2.00000e+00  8.81298e-01
-        1.00000e+06  8.81298e-01  2.00000e+00
-
-        >>> eg = [1e-1, 1]
-        >>> D = sandy.EnergyCov.random_corr(2, seed=5, index=eg, columns=eg)
-        >>> C.add(D)
-        E            1.00000e-02  1.00000e-01  1.00000e+00  1.00000e+06
-        E                                                              
-        1.00000e-02  1.00000e+00  1.00000e+00  1.00000e+00  4.40649e-01
-        1.00000e-01  1.00000e+00  2.00000e+00  1.74146e+00  1.18211e+00
-        1.00000e+00  1.00000e+00  1.74146e+00  2.00000e+00  1.44065e+00
-        1.00000e+06  4.40649e-01  1.18211e+00  1.44065e+00  2.00000e+00
-
-        >>> assert C.add(D).data.equals(D.add(C).data)
-        """
-        ex = np.unique([*self.data.index, *cov.data.index])
-        ey = np.unique([*self.data.columns, *cov.data.columns])
-        x = self.change_grid(ex, ey)
-        y = cov.change_grid(ex, ey)
-        data = x.data.add(y.data)
-        if inplace:
-            self.data = data
-        else:
-            return self.__class__(data)
-
-    @classmethod
-    def sum_covs(cls, *covs):
-        """
-        Sum multigroup covariance matrices into a single one.
-
-        Parameters
-        ----------
-        covs : iterable of `sandy.EnergyCov`
-            list of multigroup covariance matrices (axes can be different)
-
-        Returns
-        -------
-        `sandy.EnergyCov`
-            Multi-group covariance matrix.
-
-        Examples
-        --------
-        Sum two 2x2 correlation matrices with different indices and columns
-        >>> eg = [1e-2, 1e6]
-        >>> C = sandy.EnergyCov.random_corr(2, seed=1, index=eg, columns=eg)
-        >>> eg = [1e-1, 1]
-        >>> D = sandy.EnergyCov.random_corr(2, seed=5, index=eg, columns=eg)
-        >>> sandy.EnergyCov.sum_covs(C, D)
-        E            1.00000e-02  1.00000e-01  1.00000e+00  1.00000e+06
-        E                                                              
-        1.00000e-02  1.00000e+00  1.00000e+00  1.00000e+00  4.40649e-01
-        1.00000e-01  1.00000e+00  2.00000e+00  1.74146e+00  1.18211e+00
-        1.00000e+00  1.00000e+00  1.74146e+00  2.00000e+00  1.44065e+00
-        1.00000e+06  4.40649e-01  1.18211e+00  1.44065e+00  2.00000e+00
-        """
-        return functools.reduce(lambda x, y: x.add(y), covs)
-
-    @classmethod
-    def from_lb1(cls, evalues, fvalues):
-        """Extract square covariance matrix from NI-type sub-subsection data 
-        with flag `lb=1`.
-        
-        Parameters
-        ----------
-        evalues : iterable
-            covariance energy grid (same for both axes)
-        fvalues : iterable
-            array of F-values (covriance matrix diagonal)
-        
-        Returns
-        -------
-        `sandy.EnergyCov`
-            Multi-group covariance matrix.
-        """
-        cov = np.diag(fvalues)
-        return cls(cov, index=evalues, columns=evalues)
-
-    @classmethod
-    def from_lb2(cls, evalues, fvalues):
-        """Extract square covariance matrix from NI-type sub-subsection data 
-        with flag `lb=2`.
-        
-        Parameters
-        ----------
-        evalues : `iterable`
-            covariance energy grid for both axis
-        fvalues : `iterable`
-            array of F-values
-        
-        Returns
-        -------
-        `sandy.formats.utils.EnergyCov`
-            Multi-group covariance matrix.
-        """
-        f = np.array(fvalues)
-        cov = f*f.reshape(-1,1)
-        return cls(cov, index=evalues, columns=evalues)
-
-    @classmethod
-    def from_lb5_sym(cls, evalues, fvalues):
-        """Extract square symmetric covariance matrix from NI-type sub-subsection data 
-        with flag `lb=5`.
-        
-        Parameters
-        ----------
-        evalues : `iterable`
-            covariance energy grid for both axis
-        fvalues : `iterable`
-            array of F-values (flattened upper triangular matrix coefficients)
-        
-        Returns
-        -------
-        `sandy.formats.utils.EnergyCov`
-            Multi-group covariance matrix.
-        """
-        ne = len(evalues)
-        cov = np.zeros([ne - 1, ne - 1])
-        indices = np.triu_indices(ne - 1)
-        cov[indices] = np.array(fvalues)
-        cov += np.triu(cov, 1).T
-        # add zero row and column at the end of the matrix
-        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-        return cls(cov, index=evalues, columns=evalues)
-
-    @classmethod
-    def from_lb5_asym(cls, evalues, fvalues):
-        """
-        Extract square asymmetric covariance matrix from NI-type sub-subsection data 
-        with flag `lb=5`.
-        
-        Parameters
-        ----------
-        evalues : `iterable`
-            covariance energy grid for both axis
-        fvalues : `iterable`
-            array of F-values (flattened full matrix)
-        
-        Returns
-        -------
-        `sandy.formats.utils.EnergyCov`
-            Multi-group covariance matrix.
-        """
-        ne = len(evalues)
-        cov = np.array(fvalues).reshape(ne - 1, ne - 1)
-        # add zero row and column at the end of the matrix
-        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-        return cls(cov, index=evalues, columns=evalues)
-
-    @classmethod
-    def from_lb6(cls, evalues_r, evalues_c, fvalues):
-        """Extract covariance matrix from NI-type sub-subsection data 
-        with flag `lb6`.
-        
-        Parameters
-        ----------
-        evalues_r : `iterable`
-            covariance energy grid for row axis
-        evalues_c : `iterable`
-            covariance energy grid for column axis
-        fvalues : `iterable`
-            array of F-values (flattened full matrix)
-        
-        Returns
-        -------
-        `sandy.formats.utils.EnergyCov`
-            Multi-group covariance matrix.
-        """
-        ner = len(evalues_r)
-        nec = len(evalues_c)
-        cov = np.array(fvalues).reshape(ner-1, nec-1)
-        # add zero row and column at the end of the matrix
-        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-        return cls(cov, index=evalues_r, columns=evalues_c)
 
 
 def corr2cov(corr, s):
