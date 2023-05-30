@@ -39,6 +39,8 @@ jobs:
         run: pip install sphinx sphinx_rtd_theme codecov numpydoc coveralls pytest-cov nbval
       - name: install sandy's requirements
         run: pip install -r requirements.txt
+      - name: install jupyter packages to run notebooks
+        run: pip install jupyterlab
       - name: install sandy
         run: python setup.py install --user
       - name: run notebooks
