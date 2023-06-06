@@ -427,7 +427,7 @@ class Xs():
             # keep only mts present in the original file
             if drop:
                 keep = group[mat].columns
-                todrop = df[mat].columns.difference(keep, sort=True)
+                todrop = df[mat].columns.difference(keep)
                 df.drop(
                     pd.MultiIndex.from_product([[mat], todrop]),
                     axis=1,
