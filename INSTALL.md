@@ -8,9 +8,9 @@ We advise to install the SANDY dependences in a python environment that was not 
 conda update --name base conda
 conda create -y --name sandy-devel -c conda-forge python numpy scipy pandas pyyaml pytables
 ```
-This environment covers all hard dependencies of SANDY, but i usually like to add a few more packages depending on my goal:
+This environment covers all hard dependencies of SANDY, but i usually like to add a few more packages (such as `ipython`) depending on my goal:
  - data analysis and visualization: `matplotlib`, `seaborn`, `scikit-learn`
- - testing: `pytest`, `numpydoc` , `nbval`
+ - testing: `pytest`, `numpydoc` , `nbval`, `codecov`, `coveralls`, `pytest-cov`
  - packaging projects: `build`, `twine`
  - jupyter notebooks: `jupyterlab`, `jupyter_nbextensions_configurator`, `jupyter_contrib_nbextensions`
 
@@ -42,6 +42,9 @@ import sandy
 ```
 
 Now, if `sandy` is available you are ready to roll!
+
+Still, many of the features of SANDY require running NJOY.
+Here we assume that 
 
 
 ## Installation using Anaconda

@@ -23,6 +23,8 @@ class Samples():
     -------
     get_condition_number
         Return condition number of samples.
+    get_corr
+        Return correlation matrix of samples.
     get_cov
         Return covariance matrix of samples.
     get_mean
@@ -94,6 +96,9 @@ class Samples():
     def get_mean(self):
         return self.data.mean(axis=1).rename("MEAN")
 
+    def get_corr(self):
+        return self.data.T.corr()
+
     def get_cov(self):
         return self.data.T.cov()
 
@@ -104,10 +109,36 @@ class Samples():
         return (self.get_std() / self.get_mean()).rename("RSTD")
 
     def iterate_xs_samples(self):
+        """
+        Iterate samples one by one and shape them as a :func:`sandy.Xs`
+        dataframe, but with mutligroup structure.
+        This output should be passed to :func:`sandy.Xs._perturb`.
+        The function is called by :func:`sandy.Endf6.apply_perturbations`
+
+        Yields
+        ------
+        n : `int`
+            .
+        s : `pd.DataFrame`
+            dataframe of perturbation coefficients with:
+                
+                - columns: `pd.MultiIndex` with levels `"MAT"` and `"MT"`
+                - index: `pd.IntervalIndex` with multigroup structure
+        """
         levels = sandy.Xs._columnsnames
         df = self.data.unstack(level=levels)
         for n, p in df.groupby(axis=1, level=self._columnsname):
-            yield n, p.droplevel(self._columnsname, axis=1)
+            s = p.droplevel(self._columnsname, axis=1)
+            for mat in s.columns.get_level_values("MAT").unique():
+                for k, v in sandy.redundant_xs.items():
+                    if not (mat, k) in s.columns:
+                        continue
+                    daughters = pd.MultiIndex.from_product([[mat], v], names=["MAT", "MT"])
+                    # Only give perturbation for redundant xs to daughters if no perturbation
+                    # for partial cross section is found
+                    if s.columns.intersection(daughters).empty:
+                        s[daughters] = np.tile(s[(mat, k)].values, (daughters.size, 1)).T
+            yield n, s
 
     def _std_convergence(self):
         smp = self.data
