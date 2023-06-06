@@ -550,8 +550,6 @@ class _FormattedFile():
 
     @property
     def data(self):
-        """
-        """
         return self._data
 
     @data.setter
@@ -836,7 +834,8 @@ class _FormattedFile():
         Examples
         --------
         Read hydrogen tape from endf-6 formatted file.
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
+        >>> file = "h1.endf"
+        >>> sandy.get_endf6_file("jeff_33", "xs", 10010).to_file(file)
         >>> _FormattedFile.from_file(file)
         MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          0          0  ...
@@ -876,7 +875,8 @@ class _FormattedFile():
 
     @classmethod
     def from_text(cls, text):
-        """Create dataframe from endf6 text in string.
+        """
+        Create dataframe from endf6 text in string.
 
         Parameters
         ----------
@@ -891,7 +891,8 @@ class _FormattedFile():
         Examples
         --------
         Read hydrogen tape from text.
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
+        >>> file = "h1.endf"
+        >>> sandy.get_endf6_file("jeff_33", "xs", 10010).to_file(file)
         >>> text = open(file).read()
         >>> _FormattedFile.from_text(text)
         MAT  MF  MT
@@ -1018,8 +1019,7 @@ class _FormattedFile():
         Examples
         --------
         Delete capture cross section from hydrogen file.
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
-        >>> tape = _FormattedFile.from_file(file)
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> new = tape.delete_section(125, 3, 102)
         >>> new
         MAT  MF  MT
@@ -1040,16 +1040,6 @@ class _FormattedFile():
             pass
         else:
             del d[key]
-        return self.__class__(d)
-
-    def delete_sections(self, sections, raise_error=True):
-        d = self.data.copy()
-        for mat, mf, mt in sections:
-            key = (mat, mf, mt)
-            if key not in d and raise_error is False:
-                pass
-            else:
-                del d[key]
         return self.__class__(d)
 
     def merge(self, *iterable):
@@ -1124,15 +1114,12 @@ class _FormattedFile():
 
         Returns
         -------
-        `sandy.formats.endf6.BaseFile` or derived instance
+        `sandy._FormattedFile` or derived instance
             Copy of the original instance with filtered MAT, MF and MT sections
         """
-        series = self.to_series()
-        cond_mat = series.index.get_level_values("MAT").isin(listmat)
-        cond_mf = series.index.get_level_values("MF").isin(listmf)
-        cond_mt = series.index.get_level_values("MT").isin(listmt)
-        d = series.loc[cond_mat & cond_mf & cond_mt].to_dict()
-        return self.__class__(d, file=self.file)
+        df = self.to_series().to_frame()
+        d = df.query("MAT in @listmat and MF in @listmf and MT in @listmt").squeeze(axis=1).to_dict()
+        return self.__class__(d)
 
     def get_value(self, mat, mf, mt, line_number, pos):
         return self._get_section_df(mat, mf, mt)[pos.upper()] \
@@ -1155,13 +1142,6 @@ class _FormattedFile():
         else:
             return new_tape
         print(new_text)
-
-    @classmethod
-    def _from_old_format(cls, old_endf6):
-        """
-        Convert old endf6 tape into new one!
-        """
-        return cls(old_endf6.TEXT.to_dict())
 
     def write_string(self, title=""):
         """
@@ -1306,13 +1286,13 @@ class Endf6(_FormattedFile):
 
         By removing sections in the `Endf6` instance, the recorded number of
         sections does not change.
-        >>> tape2 = tape.delete_sections([(125, 33, 1), (125, 33, 2)])
+        >>> tape2 = tape.delete_section(125, 33, 1).delete_section(125, 33, 2)
         >>> intro = tape2.read_section(125, 1, 451)
         >>> assert len(intro["DESCRIPTION"]) == 87
         >>> assert len(intro["SECTIONS"]) == 10
 
         Running `updated intro` updates the recorded number of sections.
-        >>> tape2 = tape.delete_sections([(125, 33, 1), (125, 33, 2)]).update_intro()
+        >>> tape2 = tape.delete_section(125, 33, 1).delete_section(125, 33, 2).update_intro()
         >>> intro = tape2.read_section(125, 1, 451)
         >>> assert len(intro["DESCRIPTION"]) == 87
         >>> assert len(intro["SECTIONS"]) == 8
@@ -1668,7 +1648,7 @@ class Endf6(_FormattedFile):
             # we don not call to_pendf because we might want to pass a pendf in input
             if pendf:
                 if pendf.kind != 'pendf':
-                    raise TypeError(f"kw argument 'pendf' does not contain a PENDF file")
+                    raise TypeError("kw argument 'pendf' does not contain a PENDF file")
                 pendftape = os.path.join(td, "pendf_file")
                 pendf.to_file(pendftape)
             else:
@@ -2066,14 +2046,17 @@ class Endf6(_FormattedFile):
         >>> assert (smps[33].data.index.get_level_values("MT") == 102).all()
         """
         smp = {}
+        seeds = {}
     
         outs = self.get_errorr(**njoy_kws)
 
         if "errorr31" in outs:
-            smp_kws["seed"] = smp_kws.get("seed31", None)
+            smp_kws["seed"] = seed = smp_kws.get("seed31", sandy.get_seed())
+            seeds["errorr31"] = seed
             smp[31] = outs["errorr31"].get_cov().sampling(nsmp, **smp_kws)
         if "errorr33" in outs:
-            smp_kws["seed"] = smp_kws.get("seed33", None)
+            smp_kws["seed"] = seed = smp_kws.get("seed33", sandy.get_seed())
+            seeds["errorr33"] = seed
             smp[33] = outs["errorr33"].get_cov().sampling(nsmp, **smp_kws)
         if to_excel and smp:
             with pd.ExcelWriter(to_excel) as writer:
@@ -2115,40 +2098,108 @@ class Endf6(_FormattedFile):
 
         Examples
         --------
+        Example to produce and apply perturbations to Pu-239 xs and nubar.
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 942390)
+        >>> smps = tape.get_perturbations(2, njoy_kws=dict(err=1, chi=False, mubar=False, errorr33_kws=dict(mt=[2, 4, 18]),), smp_kws=dict(seed31=1, seed33=3))
         
-        """
-        if 33 in smps:
-            pendf = self.get_pendf(**njoy_kws)
+        Let's apply both nubar and xs perturbations, then only nubar and then only xs.
+        >>> outs_31_33 = tape.apply_perturbations(smps, njoy_kws=dict(err=1), processes=1)
+        >>> outs_31 = tape.apply_perturbations({31: smps[31]}, njoy_kws=dict(err=1), processes=1)
+        >>> outs_33 = tape.apply_perturbations({33: smps[33]}, njoy_kws=dict(err=1), processes=1)
 
-#        if 31 in smps:
-#            seq_nu = smps[31].iterate_nu_samples()
+        Check that files are different for different samples.
+        >>> for i in range(2):
+        ...    assert(outs_33[i]["endf6"].data == tape.data)
+        ...    assert(outs_31[i]["endf6"].data != tape.data)
+        ...    assert(outs_31[i]["endf6"].data == outs_31_33[i]["endf6"].data)
+        ...    assert(outs_33[i]["pendf"].data != outs_31[i]["pendf"].data)
+        ...    assert(outs_33[i]["pendf"].data == outs_31_33[i]["pendf"].data)
+
+        Check that method is consistent only nubar, only xs or both nubar and xs are perturbed.
+        >>> assert outs_33[0]["pendf"].data != outs_33[1]["pendf"].data
+        >>> assert outs_33[0]["endf6"].data == outs_33[1]["endf6"].data
+        >>> assert outs_31[0]["pendf"].data == outs_31[1]["pendf"].data
+        >>> assert outs_31[0]["endf6"].data != outs_31[1]["endf6"].data
+
+        Check that redundant nubar is also perturbed.
+        >>> nu0 = sandy.Xs.from_endf6(outs_31[0]["endf6"].filter_by(listmt=[452, 455, 456]))
+        >>> nu1 = sandy.Xs.from_endf6(outs_31[1]["endf6"].filter_by(listmt=[452, 455, 456]))
+        >>> assert not nu0.data[9437, 452].equals(nu1.data[9437, 452])
+        >>> assert nu0.data[9437, 455].equals(nu1.data[9437, 455])
+        >>> assert not nu0.data[9437, 456].equals(nu1.data[9437, 456])
+        
+        Check that redundant and partial cross sections are correctly perturbed.
+        >>> xs0 = sandy.Xs.from_endf6(outs_33[0]["pendf"].filter_by(listmf=[3]))
+        >>> xs1 = sandy.Xs.from_endf6(outs_33[1]["pendf"].filter_by(listmf=[3]))
+        >>> assert not xs0.data[9437, 1].equals(xs1.data[9437, 1])
+        >>> assert not xs0.data[9437, 2].equals(xs1.data[9437, 2])
+        >>> assert not xs0.data[9437, 4].equals(xs1.data[9437, 4])
+        >>> assert not xs0.data[9437, 18].equals(xs1.data[9437, 18])
+        >>> assert not xs0.data[9437, 51].equals(xs1.data[9437, 51])
+        >>> assert xs0.data[9437, 16].equals(xs1.data[9437, 16])
+        >>> assert xs0.data[9437, 102].equals(xs1.data[9437, 102])
+        >>> assert xs0.data[9437, 103].equals(xs1.data[9437, 103])
+        >>> assert xs0.data[9437, 107].equals(xs1.data[9437, 107])
+        """
+        pendf = self.get_pendf(**njoy_kws)
+
+        seqs = []
+        ids = []
+        if 31 in smps:
+            seq_nu = smps[31].iterate_xs_samples()
+            seqs.append(seq_nu)
+            ids.append("pnu")
         if 33 in smps:
             seq_xs = smps[33].iterate_xs_samples()
-#        if 34 in smps:
-#            seq_lpc = smps[31].iterate_lpc_samples()
-#        if 35 in smps:
-#            seq_chi = smps[35].iterate_chi_samples()
+            seqs.append(seq_xs)
+            ids.append("pxs")
+        data = dict(zip(ids, seqs))
 
         if processes == 1:
             outs = {}
-            for (nxs, pxs) in seq_xs:
-                outs[nxs] = endf6_perturb_worker(
-                        self.data, pendf.data, nxs, pxs,
-                        **kwargs,
-                        )
+
+            while True:
+                kws = {}
+                for k, v in data.items():
+                    item = next(v, False)
+                    if not item:
+                        break
+                    n, s = item
+                    kws[k] = s
+                if not item:
+                    break
+                kws.update(**kwargs)
+                outs[n] = endf6_perturb_worker(self.data, pendf.data, n, **kws)
 
         elif processes > 1:
             pool = mp.Pool(processes=processes)
             outs = {}
-            for (nxs, pxs) in seq_xs:
-                outs[nxs] = pool.apply_async(
-                                endf6_perturb_worker,
-                                (self.data, pendf.data, nxs, pxs),
-                                kwargs,
-                                )
+
+            while True:
+                kws = {}
+                for k, v in data.items():
+                    item = next(v, False)
+                    if not item:
+                        break
+                    n, s = item
+                    kws[k] = s
+                if not item:
+                    break
+                kws.update(**kwargs)
+                outs[n] = pool.apply_async(
+                    endf6_perturb_worker,
+                    (self.data, pendf.data, n),
+                    kws,
+                    )
+
             outs = {n: out.get() for n, out in outs.items()}
             pool.close()
             pool.join()
+
+        # if we keep ENDF6 and PENDF files in memory, convert them back into
+        # sandy Endf6 instances
+        if not kwargs.get("to_file", False) and not kwargs.get("to_ace", False):
+            outs = {k: {k1: sandy.Endf6(v1) for k1, v1 in v.items()} for k, v in outs.items()}
 
         return outs
     
@@ -2199,7 +2250,8 @@ def endf6_perturb_worker(e6, pendf, n,
     """
     # default initialization
     endf6_pert = sandy.Endf6(e6.copy())
-    pendf_pert = None
+    pendf_pert = sandy.Endf6(pendf.copy())
+
 
     # filename options, in case we write to file
     mat = endf6_pert.mat[0]
@@ -2221,8 +2273,8 @@ def endf6_perturb_worker(e6, pendf, n,
 
     # apply nubar perturbation
     if pnu is not None:
-        nu = sandy.Xs.from_endf6(pendf_).filter_by()
-        nu_pert = sandy.core.xs.xs_perturb_worker(xs, n, pnu, verbose=verbose)
+        nu = sandy.Xs.from_endf6(endf6_pert.filter_by(listmt=[452, 455, 456]))
+        nu_pert = sandy.core.xs.xs_perturb_worker(nu, n, pnu, verbose=verbose)
         endf6_pert = nu_pert.reconstruct_sums(drop=True).to_endf6(endf6_pert).update_intro()
 
     # apply lpc perturbation
@@ -2235,10 +2287,9 @@ def endf6_perturb_worker(e6, pendf, n,
 
     # apply xs perturbation
     if pxs is not None:
-        pendf_ = sandy.Endf6(pendf)
-        xs = sandy.Xs.from_endf6(pendf_)
+        xs = sandy.Xs.from_endf6(pendf_pert)
         xs_pert = sandy.core.xs.xs_perturb_worker(xs, n, pxs, verbose=verbose)
-        pendf_pert = xs_pert.reconstruct_sums(drop=True).to_endf6(pendf_).update_intro()
+        pendf_pert = xs_pert.reconstruct_sums(drop=True).to_endf6(pendf_pert).update_intro()
 
     # Run NJOY and convert to ace
     if to_ace:
@@ -2262,9 +2313,10 @@ def endf6_perturb_worker(e6, pendf, n,
         return ace
 
     else:
-        out = {"endf6": endf6_pert.data}
-        if pendf_pert:
-            out["pendf"] = pendf_pert.data
+        out = {
+            "endf6": endf6_pert.data,
+            "pendf": pendf_pert.data,
+            }
 
         if to_file:
             file = f"{fn}.endf6"

@@ -35,7 +35,7 @@ def parse(iargs=None):
                         )
 
     parser.add_argument('file',
-                        type=lambda x: is_valid_file(parser, x),
+#                        type=lambda x: is_valid_file(parser, x),
                         help="ENDF-6 file")
 
     parser.add_argument('--acer',
@@ -97,28 +97,28 @@ def parse(iargs=None):
 
     parser.add_argument('--seed31',
                         type=int,
-                        default=None,
+                        default=sandy.get_seed(),
                         metavar="S31",
                         help="seed for random sampling of MF31 covariance "
                              "matrix (default = random)")
 
     parser.add_argument('--seed33',
                         type=int,
-                        default=None,
+                        default=sandy.get_seed(),
                         metavar="S33",
                         help="seed for random sampling of MF33 covariance "
                              "matrix (default = random)")
 
     parser.add_argument('--seed34',
                         type=int,
-                        default=None,
+                        default=sandy.get_seed(),
                         metavar="S34",
                         help="seed for random sampling of MF34 covariance "
                              "matrix (default = random)")
 
     parser.add_argument('--seed35',
                         type=int,
-                        default=None,
+                        default=sandy.get_seed(),
                         metavar="S35",
                         help="seed for random sampling of MF35 covariance "
                              "matrix (default = random)")
@@ -148,9 +148,47 @@ def parse(iargs=None):
     return init
 
 
-def run(cli="--help"):
+def multi_run(foo):
     """
-    
+    Decorator to handle keyword arguments for NJOY before running
+    the executable.
+
+    Examples
+    --------
+    Test that `minimal_processing` filters unwanted modules.
+    >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, minimal_processing=True, temperature=300, dryrun=True)
+    >>> assert "broadr" in g and "reconr" in g
+    >>> assert "thermr" not in g and "purr" not in g and "heatr" not in g and "unresr" not in g and "gaspr" not in g
+
+    Test `minimal_processing=False`.
+    >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, temperature=300, dryrun=True)
+    >>> assert "broadr" in g and "reconr" in g
+    >>> assert "thermr" in g and "purr" in g and "heatr" in g and "gaspr" in g
+
+    Check that for `temperature=0` the calculation stops after RECONR.
+    >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, dryrun=True)
+    >>> assert "reconr" in g
+    >>> assert "broadr" not in g and "thermr" not in g and "purr" not in g and "heatr" not in g and "unresr" not in g and "gaspr" not in g
+    """
+    def inner(cli="--help"):
+        """
+        Parameters
+        ----------
+        """
+        iargs = parse(cli.split())
+        if os.path.isdir(iargs.file):
+            path = iargs.file
+            for file in os.listdir(path):
+                iargs.file = os.path.join(path, file)
+                foo(iargs)
+        else:
+            foo(iargs)
+    return inner
+
+
+@multi_run
+def run(iargs):
+    """
 
     Parameters
     ----------
@@ -199,8 +237,6 @@ def run(cli="--help"):
     # >>> cli = "H1.jeff33 --samples 2 --processes 2 --seed33 5 --outname=H1_{SMP}"
     # >>> sandy.sampling.run(cli)
     t0 = time.time()
-    
-    iargs = parse(cli.split())
 
     endf6 = sandy.Endf6.from_file(iargs.file)
     njoy_kws = {}
@@ -208,14 +244,10 @@ def run(cli="--help"):
         njoy_kws["errorr33_kws"] = dict(mt=iargs.mt33)
 
     smp_kws = {}
-    if iargs.seed31:
-        smp_kws["seed31"] = iargs.seed31
-    if iargs.seed33:
-        smp_kws["seed33"] = iargs.seed33
-    if iargs.seed34:
-        smp_kws["seed34"] = iargs.seed34
-    if iargs.seed34:
-        smp_kws["seed35"] = iargs.seed35
+    smp_kws["seed31"] = iargs.seed31
+    smp_kws["seed33"] = iargs.seed33
+    smp_kws["seed34"] = iargs.seed34
+    smp_kws["seed35"] = iargs.seed35
 
     smps = endf6.get_perturbations(iargs.samples, njoy_kws=njoy_kws, smp_kws=smp_kws)
     if iargs.temperatures:

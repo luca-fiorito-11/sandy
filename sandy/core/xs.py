@@ -386,14 +386,14 @@ class Xs():
         --------
         Get ENDF-6 file for H1, process it in PENDF and extract xs.
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> pendf = tape.get_pendf(minimal_processing=True)
+        >>> pendf = tape.get_pendf(minimal_processing=True, err=1)
         >>> xs = sandy.Xs.from_endf6(pendf)
 
         We introduce a perturbation to the elastic scattering xs
         >>> xs.data[(125, 2)] *= 2
         >>> assert not xs.data[(125, 1)].equals(xs.data[(125, 2)] + xs.data[(125, 102)])
 
-        Reconstruciting xs enforces consistency.
+        Reconstructing xs enforces consistency.
         >>> xs1 = xs.reconstruct_sums(drop=True).data
         >>> assert xs1.columns.equals(xs.data.columns)
         >>> assert xs1[(125, 1)].equals(xs1[(125, 2)] + xs1[(125, 102)])
@@ -406,6 +406,13 @@ class Xs():
         >>> assert xs2[(125, 101)].equals(xs2[(125, 102)])
         >>> assert xs2[(125, 27)].equals(xs2[(125, 101)])
         >>> assert xs2[(125, 3)].equals(xs2[(125, 27)])
+
+        This example shows that also the inelastic cross section is correclty reconstructed
+        >>> pendf = sandy.get_endf6_file("jeff_33", "xs", 952410).get_pendf(minimal_processing=True, err=1)
+        >>> xs = sandy.Xs.from_endf6(pendf)
+        >>> xsr = xs.reconstruct_sums(drop=True)
+        >>> assert not xs.data[(9543, 4)].equals(xs.data[9543].loc[:, 50:91].sum(axis=1))
+        >>> assert xsr.data[(9543, 4)].equals(xsr.data[9543].loc[:, 50:91].sum(axis=1))
         """
         df = self.data.copy()
         for mat, group in df.groupby("MAT", axis=1):
@@ -413,15 +420,14 @@ class Xs():
             # starting from the lat redundant cross section, find daughters and sum them
             for parent, daughters in sorted(sandy.redundant_xs.items(), reverse=True):
                 # it must be df, not group, because df is updated
-                x = df[mat].T.query("MT in @daughters").T  # need to transpose to query on columns
-                if not x.empty:
-                    df[(mat, parent)] = x.sum(axis=1)
+                mask = df[mat].columns.intersection(daughters)
+                if not mask.empty:
+                    df[(mat, parent)] = df[mat][mask].sum(axis=1)
 
             # keep only mts present in the original file
             if drop:
                 keep = group[mat].columns
-                # same filtering method as above
-                todrop = df[mat].T.query("MT not in @keep").index
+                todrop = df[mat].columns.difference(keep)
                 df.drop(
                     pd.MultiIndex.from_product([[mat], todrop]),
                     axis=1,
@@ -436,16 +442,13 @@ class Xs():
 
         Parameters
         ----------
-        s : `pandas.DataFrame` or :func:`~sandy.Samples`
+        s : `pandas.DataFrame`
             input perturbations or samples.
-            If `s` is a `pandas.DataFrame`, its index and columns must have the
-            same names and structure as in `self.data`.
+            Index and columns of the dataframe must have the same names and
+            structure as in `self.data`.
             
             .. note:: the energy grid of `s` must be multigroup, i.e., 
                       rendered by a (right-closed) `pd.IntervalIndex`.
-            
-            If `s` is a :func:`~sandy.Samples` instance, see
-            :func:`~sandy.Xs._multi_pert`.
 
         Returns
         -------
@@ -542,6 +545,26 @@ class Xs():
 
 
 def xs_perturb_worker(xs, n, s, verbose=False):
+    """
+    
+
+    Parameters
+    ----------
+    xs : TYPE
+        DESCRIPTION.
+    n : TYPE
+        DESCRIPTION.
+    s : `pd.DataFrame`
+        see :func:`~sandy.Xs._perturb`
+    verbose : TYPE, optional
+        DESCRIPTION. The default is False.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """
     if verbose:
         print(f"Processing xs sample {n}...")
     return xs._perturb(s)
