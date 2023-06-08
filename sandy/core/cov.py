@@ -4,6 +4,7 @@ import numpy as np
 import scipy
 import scipy.linalg
 import scipy.sparse as sps
+from scipy import sparse
 import pandas as pd
 import logging
 import tables as tb
@@ -486,6 +487,9 @@ class CategoryCov():
             E[E/E.max() < tolerance] = 0
         return E, V
 
+    def get_svd(self, check_finite=False, **kwargs):
+        return scipy.linalg.svd(self.data, check_finite=check_finite, **kwargs)
+        
     def get_corr(self):
         """
         Extract correlation matrix.
@@ -565,7 +569,7 @@ class CategoryCov():
             columns=self.data.columns,
         )  # do not return CategoryCov because variance can be negative
 
-    def sampling(self, nsmp, seed=None, pdf='normal', tolerance=0, relative=True, **kwargs):
+    def sampling(self, nsmp, seed=None, pdf='normal', tolerance=1e-10, relative=True, **kwargs):
         """
         Extract perturbation coefficients according to chosen distribution with
         covariance from given covariance matrix. See note for non-normal
@@ -733,13 +737,7 @@ class CategoryCov():
         L = to_decompose.get_L(tolerance=tolerance)
 
         # -- Apply covariance to samples
-        sparse = False  # it seems to me that a sparse inner product is only marginally faster
-        if sparse:
-            y = sps.csc_matrix(y)
-            L = scipy.sparse.csr_matrix(L)
-            inner = (L @ y).toarray()
-        else:
-            inner = L @ y
+        inner = (sparse.csr_matrix(L.values) @ sparse.csr_matrix(y)).todense()
 
         index = self.data.index
         columns = list(range(nsmp_))
@@ -977,7 +975,7 @@ class CategoryCov():
             raise ValueError('The method does not exist in scipy.sparse')
         return data_sp
 
-    def get_L(self, rows=None, tolerance=None):
+    def get_L(self, tolerance=None):
         """
         Extract lower triangular matrix `L` for which `L*L^T == self`.
 
@@ -1011,18 +1009,6 @@ class CategoryCov():
         1	-6.00000e+00	1.00000e+00	0.00000e+00
         2	 8.00000e+00	5.00000e+00	3.00000e+00
 
-        >>> sandy.CategoryCov(a).get_L(rows=1)
-                       0	          1	          2
-        0	-2.00000e+00	0.00000e+00	0.00000e+00
-        1	-6.00000e+00	1.00000e+00	0.00000e+00
-        2	 8.00000e+00	5.00000e+00	3.00000e+00
-
-        Matrix with negative eigenvalues
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(rows=1, tolerance=0)
-                       0	          1
-        0	-1.08204e+00	0.00000e+00
-        1	 1.75078e+00	0.00000e+00
-
         >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(tolerance=0)
                        0	          1
         0	-1.08204e+00	0.00000e+00
@@ -1045,19 +1031,22 @@ class CategoryCov():
         """
         index = self.data.index
         columns = self.data.columns
-        # Reduces the size of the matrix, erasing the zero values
-        nonzero_idxs, cov_reduced = reduce_size(self.data)
-        # Obtain the eigenvalues and eigenvectors:
-        E, V = sandy.CategoryCov(cov_reduced).get_eig(tolerance=tolerance)
-        E = sps.diags(np.sqrt(E)).toarray()
-        # Construct the matrix:
-        rows_ = cov_reduced.shape[0] if rows is None else rows
-        A = sandy.cov.sparse_tables_dot(V, E, rows=rows_).T.toarray()
-        # QR decomposition:
-        Q, R = scipy.linalg.qr(A)
-        L_redu = R.T
-        # Original size
-        L = restore_size(nonzero_idxs, L_redu, len(self.data)).values
+
+        # Obtain the eigenvalues and eigenvectors
+        E, V = sandy.CategoryCov(self.data).get_eig(tolerance=tolerance)
+
+        # need sparse because much faster for large matrices (2kx2k from J33 Pu9)
+        # with a lot of zero eigs
+        # this is exactly equivalent to V.values @ np.diag(np.sqrt(E.values))
+        A = (sparse.csr_matrix(V.values) @ sparse.csr_matrix(np.diag(np.sqrt(E.values)))).todense()
+        
+#        u, s, vh = self.get_svd()
+#        A = (sparse.csr_matrix(u) @ sparse.csr_matrix(np.diag(np.sqrt(s)))).todense()
+
+        # QR decomposition
+        Q, R = scipy.linalg.qr(A.T)
+        L = R.T
+
         return pd.DataFrame(L, index=index, columns=columns)
 
 
