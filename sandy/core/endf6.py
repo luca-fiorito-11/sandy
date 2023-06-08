@@ -2140,6 +2140,22 @@ class Endf6(_FormattedFile):
         >>> assert xs0.data[9437, 102].equals(xs1.data[9437, 102])
         >>> assert xs0.data[9437, 103].equals(xs1.data[9437, 103])
         >>> assert xs0.data[9437, 107].equals(xs1.data[9437, 107])
+
+        Check that ENDF6 and PENDF output filenames are correct
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010)
+        >>> smps = endf6.get_perturbations(2, njoy_kws=dict(err=0.1))
+        >>> outs = endf6.apply_perturbations(smps, to_file=True)
+        >>> assert outs[0]["endf6"] == '1001_0.endf6' and os.path.isfile('1001_0.endf6')
+        >>> assert outs[0]["pendf"] == '1001_0.pendf' and os.path.isfile('1001_0.endf6')
+        >>> assert outs[1]["endf6"] == '1001_1.endf6' and os.path.isfile('1001_1.endf6')
+        >>> assert outs[1]["pendf"] == '1001_1.pendf' and os.path.isfile('1001_1.pendf')
+
+        Check that ACE output filenames are correct
+        >>> outs = endf6.apply_perturbations(smps, to_file=True, to_ace=True, ace_kws=dict(err=1, temperature=300, purr=False, heatr=False, thermr=False, gaspr=False))
+        >>> assert outs[0]["ace"] == '1001_0.03c' and os.path.isfile('1001_0.03c')
+        >>> assert outs[0]["xsdir"] == '1001_0.03c.xsd' and os.path.isfile('1001_0.03c.xsd')
+        >>> assert outs[1]["ace"] == '1001_1.03c' and os.path.isfile('1001_1.03c')
+        >>> assert outs[1]["xsdir"] == '1001_1.03c.xsd' and os.path.isfile('1001_1.03c.xsd')
         """
         pendf = self.get_pendf(**njoy_kws)
 
@@ -2197,10 +2213,9 @@ class Endf6(_FormattedFile):
             pool.join()
 
         # if we keep ENDF6 and PENDF files in memory, convert them back into
-        # sandy Endf6 instances
+        # sandy Endf6 instances (must do it here because Endf6 object cannot be pickled)
         if not kwargs.get("to_file", False) and not kwargs.get("to_ace", False):
             outs = {k: {k1: sandy.Endf6(v1) for k1, v1 in v.items()} for k, v in outs.items()}
-
         return outs
     
 
@@ -2298,18 +2313,20 @@ def endf6_perturb_worker(e6, pendf, n,
         ace = endf6_pert.get_ace(pendf=pendf_pert, **ace_kws)
 
         if to_file:
+            outfiles = {}
             file = f"{fn}{suffix}c"
             with open(file, "w") as f:
                 if verbose:
                     print(f"writing to file '{file}'")
                 f.write(ace["ace"])
+            outfiles["ace"] = file
             file = f"{file}.xsd"
             with open(file, "w") as f:
                 if verbose:
                     print(f"writing to file '{file}'")
                 f.write(ace["xsdir"])
-            return
-
+            outfiles["xsdir"] = file
+            return outfiles
         return ace
 
     else:
@@ -2319,16 +2336,19 @@ def endf6_perturb_worker(e6, pendf, n,
             }
 
         if to_file:
+            outfiles = {}
             file = f"{fn}.endf6"
             if verbose:
                 print(f"writing to file '{file}'")
             endf6_pert.to_file(file)
+            outfiles["endf6"] = file
             if pendf_pert:
                 file = f"{fn}.pendf"
                 if verbose:
                     print(f"writing to file '{file}'")
                 pendf_pert.to_file(file)
-            return
+                outfiles["pendf"] = file
+            return outfiles
 
         return out
 

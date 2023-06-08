@@ -35,7 +35,6 @@ def parse(iargs=None):
                         )
 
     parser.add_argument('file',
-#                        type=lambda x: is_valid_file(parser, x),
                         help="ENDF-6 file")
 
     parser.add_argument('--acer',
@@ -44,6 +43,11 @@ def parse(iargs=None):
                         help="Process each perturbed file into ACE format "
                         "(default = False)\n"
                         "(--temperatures is required)")
+
+    parser.add_argument('--debug',
+                        default=False,
+                        action="store_true",
+                        help="activate debug options (err=1, verbose=True, minimal_processing=True)")
 
     parser.add_argument('--mat',
                         type=int,
@@ -137,10 +141,6 @@ def parse(iargs=None):
                         version='%(prog)s {}'.format(sandy.__version__),
                         help="SANDY's version.")
 
-    parser.add_argument('--verbose',
-                        default=False,
-                        action="store_true",
-                        help="print additional details to screen during execution")
 
     init = parser.parse_known_args(args=iargs)[0]
     if init.acer and not init.temperatures:
@@ -237,11 +237,26 @@ def run(iargs):
     # >>> cli = "H1.jeff33 --samples 2 --processes 2 --seed33 5 --outname=H1_{SMP}"
     # >>> sandy.sampling.run(cli)
     t0 = time.time()
+    
+    err_pendf = 0.005
+    err_ace = 0.005
+    err_errorr = 0.1
+    if iargs.debug:
+        err_errorr = err_ace = err_pendf = 1
 
     endf6 = sandy.Endf6.from_file(iargs.file)
-    njoy_kws = {}
+
+    # ERRORR KEYWORDS
+    errorr_kws = dict(
+        verbose=iargs.debug,
+        err=err_errorr,
+        nubar=bool(31 in iargs.mf),
+        xs=bool(33 in iargs.mf),
+        mubar=bool(34 in iargs.mf),
+        chi=bool(35 in iargs.mf),
+        )
     if iargs.mt33:
-        njoy_kws["errorr33_kws"] = dict(mt=iargs.mt33)
+        errorr_kws["errorr33_kws"] = dict(mt=iargs.mt33)
 
     smp_kws = {}
     smp_kws["seed31"] = iargs.seed31
@@ -249,11 +264,29 @@ def run(iargs):
     smp_kws["seed34"] = iargs.seed34
     smp_kws["seed35"] = iargs.seed35
 
-    smps = endf6.get_perturbations(iargs.samples, njoy_kws=njoy_kws, smp_kws=smp_kws)
+    smps = endf6.get_perturbations(iargs.samples, njoy_kws=errorr_kws, smp_kws=smp_kws)
+
+
     if iargs.temperatures:
         temperature = iargs.temperatures[0] if hasattr(iargs.temperatures, "__len__") else iargs.temperatures
     else:
         temperature = 0
+
+    # PENDF KEYWORDS
+    pendf_kws = dict(
+        verbose=iargs.debug,
+        err=err_pendf,
+        minimal_processing=iargs.debug,
+        )
+
+    # ACE KEYWORDS
+    ace_kws = dict(
+        verbose=iargs.debug,
+        err=err_ace,
+        minimal_processing=iargs.debug,
+        temperature=temperature,
+        )
+
         
     endf6.apply_perturbations(
         smps,
@@ -261,9 +294,9 @@ def run(iargs):
         to_file=True,
         to_ace=iargs.acer,
         filename=iargs.outname,
-        njoy_kws=dict(err=0.005),
-        ace_kws=dict(temperature=temperature, err=0.005),
-        verbose=iargs.verbose,
+        njoy_kws=pendf_kws,
+        ace_kws=ace_kws,
+        verbose=iargs.debug,
     )
 
     dt = time.time() - t0
