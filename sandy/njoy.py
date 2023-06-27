@@ -576,7 +576,7 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
                   ign=2, ek=None, spectrum=None,
                   iwt=2, relative=True,
-                  mt=None, irespr=1,
+                  mt=None, irespr=1, ifissp=-1, efmean=None,
                   temperature=NJOY_TEMPERATURES[0], mfcov=33,
                   iprint=False,
                   **kwargs):
@@ -748,7 +748,10 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     printflag = int(iprint)
     text += [f"{mat:d} {ign_:d} {iwt_:d} {printflag:d} {irelco} /"]
     text += [f"{printflag:d} {temperature:.1f} /"]
-    text += [f"{iread:d} {mfcov} {irespr:d}/"]
+    if efmean:
+        text += [f"{iread:d} {mfcov} {irespr:d} 1 -1 {efmean}/"]
+    else:
+        text += [f"{iread:d} {mfcov} {irespr:d} 1 {ifissp}/"]
     if iread == 1:  # only specific mts
         mtlist = [mt] if isinstance(mt, int) else mt
         nmt = len(mtlist)

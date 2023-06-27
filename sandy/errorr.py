@@ -179,7 +179,7 @@ class Errorr(_FormattedFile):
             eg = pd.IntervalIndex.from_breaks(eg)  # multigroup
     
             # initialize global cov matrix with all MAT, MT
-            ix = pd.DataFrame(self.filter_by(listmf=[31, 33]).data.keys(),
+            ix = pd.DataFrame(self.filter_by(listmf=[31, 33, 35]).data.keys(),
                               columns=["MAT", "MF", "MT"])[["MAT", "MT"]]
             ix["IMIN"] = ix.index * eg.size
             ix["IMAX"] = (ix.index + 1) * eg.size
@@ -188,8 +188,8 @@ class Errorr(_FormattedFile):
             c = np.zeros((nsize, nsize))
             
             # Fill matrix
-            for mat, mf, mt in self.filter_by(listmf=[31, 33]).data:
-                mf33 = sandy.errorr.read_mf33(self, mat, mt)
+            for mat, mf, mt in self.filter_by(listmf=[31, 33, 35]).data:
+                mf33 = sandy.errorr.read_mf33(self, mat, mf, mt)
             
                 for mt1, cov in mf33["COVS"].items():
                     ivals = ix.query("MAT==@mat & MT==@mt").squeeze()
@@ -250,7 +250,7 @@ def read_mf1(tape, mat):
     return out
 
 
-def read_mf3(tape, mat, mt):
+def read_mf3(tape, mat, mf, mt):
     """
     Parse MAT/MF=33/MT section from `sandy.Errorr` object and return
     structured content in nested dcitionaries.
@@ -269,7 +269,6 @@ def read_mf3(tape, mat, mt):
     out : `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
     """
-    mf = 3
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,
@@ -285,7 +284,7 @@ def read_mf3(tape, mat, mt):
     return out
 
 
-def read_mf33(tape, mat, mt):
+def read_mf33(tape, mat, mf, mt):
     """
     Parse MAT/MF=33/MT section from `sandy.Errorr` object and return
     structured content in nested dcitionaries.
@@ -304,7 +303,6 @@ def read_mf33(tape, mat, mt):
     out : `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
     """
-    mf = 33
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,
