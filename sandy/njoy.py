@@ -576,7 +576,7 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
                   ign=2, ek=None, spectrum=None,
                   iwt=2, relative=True,
-                  mt=None, irespr=1,
+                  mt=None, irespr=0,
                   temperature=NJOY_TEMPERATURES[0], mfcov=33,
                   iprint=False,
                   **kwargs):
