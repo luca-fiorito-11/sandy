@@ -60,10 +60,10 @@ def parse(iargs=None):
 
     parser.add_argument('--mf',
                         type=int,
-                        default=[31, 33, 34, 35],
+                        default=[31, 33,],
                         action='store',
                         nargs="+",
-                        metavar="{31,33,34,35}",
+                        metavar="{31,33}",
                         help="draw samples only from the selected MF sections "
                              "(default = keep all)")
 
@@ -170,12 +170,12 @@ def multi_run(foo):
     >>> assert "reconr" in g
     >>> assert "broadr" not in g and "thermr" not in g and "purr" not in g and "heatr" not in g and "unresr" not in g and "gaspr" not in g
     """
-    def inner(cli="--help"):
+    def inner(cli=None):
         """
         Parameters
         ----------
         """
-        iargs = parse(cli.split())
+        iargs = parse(cli)
         if os.path.isdir(iargs.file):
             path = iargs.file
             for file in os.listdir(path):
@@ -237,9 +237,10 @@ def run(iargs):
     # >>> cli = "H1.jeff33 --samples 2 --processes 2 --seed33 5 --outname=H1_{SMP}"
     # >>> sandy.sampling.run(cli)
     t0 = time.time()
+    logging.info(f"processing file: '{iargs.file}'")
     
-    err_pendf = 0.005
-    err_ace = 0.005
+    err_pendf = 0.01
+    err_ace = 0.01
     err_errorr = 0.1
     if iargs.debug:
         err_errorr = err_ace = err_pendf = 1
@@ -247,13 +248,19 @@ def run(iargs):
     endf6 = sandy.Endf6.from_file(iargs.file)
 
     # ERRORR KEYWORDS
+    nubar = bool(31 in iargs.mf) and (31 in endf6.mf)
+    xs = bool(33 in iargs.mf) and (33 in endf6.mf)
+    mubar = False
+    chi = False
     errorr_kws = dict(
         verbose=iargs.debug,
         err=err_errorr,
-        nubar=bool(31 in iargs.mf),
-        xs=bool(33 in iargs.mf),
-        mubar=bool(34 in iargs.mf),
-        chi=bool(35 in iargs.mf),
+        xs=xs,
+        nubar=nubar,
+        chi=chi,
+        mubar=mubar,
+        groupr_kws=dict(nubar=nubar, chi=chi, mubar=mubar, ign=3),
+        errorr_kws=dict(ign=3)
         )
     if iargs.mt33:
         errorr_kws["errorr33_kws"] = dict(mt=iargs.mt33)
@@ -285,6 +292,7 @@ def run(iargs):
         err=err_ace,
         minimal_processing=iargs.debug,
         temperature=temperature,
+        purr=False,
         )
 
         
