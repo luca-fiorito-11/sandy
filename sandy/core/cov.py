@@ -125,8 +125,7 @@ class CategoryCov():
         if not (np.diag(data) >= 0).all():
             raise TypeError("Covariance matrix must have positive variance")
 
-        threshold = 1e-7
-        if (1-data.T/data).abs().max().max() > threshold:
+        if not np.allclose(data.values, data.values.T):
             raise TypeError("Covariance matrix must be symmetric")
 
     @property
