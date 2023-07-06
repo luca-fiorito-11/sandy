@@ -2059,18 +2059,31 @@ class Endf6(_FormattedFile):
             smp_kws["seed"] = seed = smp_kws.get("seed33", sandy.get_seed())
             seeds["errorr33"] = seed
             smp[33] = outs["errorr33"].get_cov().sampling(nsmp, **smp_kws)
+        if "errorr35" in outs:
+            smp_kws["seed"] = seed = smp_kws.get("seed35", sandy.get_seed())
+            seeds["errorr35"] = seed
+            njoy_kws["xs"] = njoy_kws["nubar"] = njoy_kws["mubar"] = False
+            mf35_eg = self.get_incident_ene()
+            frames = []
+            for ifissp, ein in enumerate(mf35_eg, 1):
+                errorr = self.get_errorr(errorr35_kws=dict(ifissp=ifissp), **njoy_kws)
+                data = errorr["errorr35"].get_cov().sampling(nsmp, **smp_kws).data
+                data.index = pd.MultiIndex.from_product([self.mat, [18], [0], [ein], data.index.get_level_values(2).unique()],
+                                                         names=[*sandy.Edistr._columnsnames, sandy.Edistr._indexname])
+                frames.append(data)
+            smp[35] = sandy.Samples(pd.concat(frames))
         if to_excel and smp:
             with pd.ExcelWriter(to_excel) as writer:
                 for k, v in smp.items():
                     v.to_excel(writer, sheet_name=f'MF{k}')
         return smp
     
+    
     def apply_perturbations(self, smps, processes=1, njoy_kws={}, **kwargs):
         """
         Apply perturbations to the data contained in ENDF6 file. At the 
-        moment only the procedure for cross sections is implemented. Options
-        are included to directly convert perturbed pendf to ace and write data
-        on files.
+        moment only the procedure for cross sections, nubar and energy distributions is implemented. 
+        Options are included to directly convert perturbed pendf to ace and write data on files.
         
         Parameters
         ----------
