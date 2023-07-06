@@ -609,6 +609,12 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
         processing for resonance parameter covariances (default is 0)
         - 0: area sensitivity method
         - 1: 1% sensitivity method
+    ifissp: `int`, optional 
+        subsection of the fission spectrum covariance matrix to process
+        (default is -1)
+    efmean: `float`, optional 
+        incident neutron energy (eV). Process the covariance matrix
+        subsection whose energy interval includes efmean. (default is 2e6)
     iwt : `int`, optional
         weight function option (default is 2, constant)
 
@@ -644,7 +650,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 33 0/
+    0 33 0 1 -1/
 
     Test argument `temperature`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9440, temperature=600))
@@ -652,7 +658,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9440 2 2 0 1 /
     0 600.0 /
-    0 33 0/
+    0 33 0 1 -1/
 
     Test argument `iwt`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, iwt=6))
@@ -660,7 +666,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 6 0 1 /
     0 293.6 /
-    0 33 0/
+    0 33 0 1 -1/
 
     Test argument `ek`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, ek=[1e-2, 1e3, 2e5]))
@@ -668,7 +674,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 1 2 0 1 /
     0 293.6 /
-    0 33 0/
+    0 33 0 1 -1/
     2 /
     1.00000e-02 1.00000e+03 2.00000e+05 /
 
@@ -678,7 +684,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 3 2 0 1 /
     0 293.6 /
-    0 33 0/
+    0 33 0 1 -1/
 
     Test nubar
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=31))
@@ -686,7 +692,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 31 0/
+    0 31 0 1 -1/
 
     Test mubar
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=34))
@@ -694,7 +700,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 34 0/
+    0 34 0 1 -1/
 
     Test chi
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=35))
@@ -702,7 +708,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 35 0/
+    0 35 0 1 -1/
 
     Test keyword `relative`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, relative=False))
@@ -710,7 +716,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 0 /
     0 293.6 /
-    0 33 0/
+    0 33 0 1 -1/
 
     Test keyword `irespr`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, irespr=1))
@@ -718,7 +724,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 33 1/
+    0 33 1 1 -1/
 
     Test keyword `mt` as `list`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt=[1, 2]))
@@ -726,7 +732,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    1 33 0/
+    1 33 0 1 -1/
     2 0 /
     1 2 /    
 
@@ -736,7 +742,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    1 33 0/
+    1 33 0 1 -1/
     1 0 /
     2 /    
     """
@@ -752,7 +758,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     if efmean:
         text += [f"{iread:d} {mfcov} {irespr:d} 1 -1 {efmean}/"]
     else:
-        text += [f"{iread:d} {mfcov} {irespr:d} 1 {ifissp}/"]
+        text += [f"{iread:d} {mfcov} {irespr:d} 1 {ifissp}/"]   # Legord is 1 by default. If mt=34, method must be changed
     if iread == 1:  # only specific mts
         mtlist = [mt] if isinstance(mt, int) else mt
         nmt = len(mtlist)
