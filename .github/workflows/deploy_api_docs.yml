@@ -9,6 +9,8 @@ jobs:
   deployment:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
       - name: make docs
         run: bash make_docs.sh html
       - name: Pushes to another repository
