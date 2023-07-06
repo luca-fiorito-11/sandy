@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>sandy.formats package &mdash; SANDY API 0 documentation</title>
@@ -11,10 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -27,14 +28,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> SANDY API
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SANDY API
           </a>
               <div class="version">
                 1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -51,7 +56,6 @@
 <li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
@@ -75,9 +79,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="sandy.html">sandy package</a> &raquo;</li>
-      <li>sandy.formats package</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="sandy.html">sandy package</a></li>
+      <li class="breadcrumb-item active">sandy.formats package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/sandy.formats.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -87,43 +91,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-sandy.formats">
-<span id="sandy-formats-package"></span><h1>sandy.formats package<a class="headerlink" href="#module-sandy.formats" title="Permalink to this headline"></a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.get_file_format">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.</span></span><span class="sig-name descname"><span class="pre">get_file_format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.get_file_format" title="Permalink to this definition"></a></dt>
-<dd><p>Given a file in input return the name of the file format.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>file</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>input file</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>str</cite></dt><dd></dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.read_formatted_file">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.</span></span><span class="sig-name descname"><span class="pre">read_formatted_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">listmat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">listmf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">listmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.read_formatted_file" title="Permalink to this definition"></a></dt>
-<dd><p>Read formatted file and return either Errorr, Gendf or Endf6 instance
-according to file format.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>Errorr</cite> or <cite>Gendf</cite> or <cite>Endf6</cite></dt><dd></dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
+  <section id="sandy-formats-package">
+<h1>sandy.formats package<a class="headerlink" href="#sandy-formats-package" title="Permalink to this heading"></a></h1>
 <section id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline"></a></h2>
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="sandy.formats.endf6.html">sandy.formats.endf6 module</a></li>
@@ -140,11 +111,7 @@ according to file format.</p>
 <li class="toctree-l1"><a class="reference internal" href="sandy.formats.mf8.html">sandy.formats.mf8 module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sandy.formats.rdd_fy.html">sandy.formats.rdd_fy module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sandy.formats.records.html">sandy.formats.records module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.formats.utils.html">sandy.formats.utils module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="sandy.formats.utils.html#nuclear-data-objects-ndo">Nuclear Data Objects (NDO)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sandy.formats.utils.html#nuclear-data-covariance-objects-ndco">Nuclear Data Covariance Objects (NDCO)</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.formats.utils.html">sandy.formats.utils module</a></li>
 </ul>
 </div>
 </section>
@@ -161,7 +128,7 @@ according to file format.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+    <p>&#169; Copyright 2023, Luca Fiorito.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

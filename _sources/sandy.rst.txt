@@ -16,7 +16,6 @@ Subpackages
    sandy.core
    sandy.data
    sandy.formats
-   sandy.integrals
    sandy.mcnp
    sandy.replace
    sandy.sections
@@ -33,6 +32,7 @@ Submodules
    sandy.errorr
    sandy.functions
    sandy.fy
+   sandy.gls
    sandy.groupr
    sandy.h5file
    sandy.libraries
@@ -44,5 +44,6 @@ Submodules
    sandy.settings
    sandy.shared
    sandy.tools
+   sandy.tsl
    sandy.utils
    sandy.zam

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>sandy.formats.records module &mdash; SANDY API 0 documentation</title>
@@ -11,11 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
-        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -28,14 +28,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> SANDY API
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SANDY API
           </a>
               <div class="version">
                 1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -52,7 +56,6 @@
 <li class="toctree-l4 current"><a class="reference internal" href="sandy.formats.html#submodules">Submodules</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
@@ -76,10 +79,10 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="sandy.html">sandy package</a> &raquo;</li>
-          <li><a href="sandy.formats.html">sandy.formats package</a> &raquo;</li>
-      <li>sandy.formats.records module</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="sandy.html">sandy package</a></li>
+          <li class="breadcrumb-item"><a href="sandy.formats.html">sandy.formats package</a></li>
+      <li class="breadcrumb-item active">sandy.formats.records module</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/sandy.formats.records.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -89,226 +92,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-sandy.formats.records">
-<span id="sandy-formats-records-module"></span><h1>sandy.formats.records module<a class="headerlink" href="#module-sandy.formats.records" title="Permalink to this headline"></a></h1>
-<p>Created on Thu Jun 14 10:22:58 2018</p>
-<p>&#64;author: fiorito_l</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.records.read_cont">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.records.</span></span><span class="sig-name descname"><span class="pre">read_cont</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ipos</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.records.read_cont" title="Permalink to this definition"></a></dt>
-<dd><p>Read <code class="docutils literal notranslate"><span class="pre">ENDF-6</span></code> <code class="docutils literal notranslate"><span class="pre">CONT</span></code> record in formatted fortran.</p>
-<dl class="simple">
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><dl class="field-list simple">
-<dt class="field-odd"><code class="docutils literal notranslate"><span class="pre">out</span></code></dt>
-<dd class="field-odd"><p>:
-(tuple) content of <code class="docutils literal notranslate"><span class="pre">CONT</span></code> record</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-<dt>Found error in:</dt><dd><ul class="simple">
-<li><p>n-17-Cl-035.jeff32</p></li>
-<li><p>n-3-Li-007.jeff32</p></li>
-<li><p>n-63-Eu-152.jeff32</p></li>
-<li><p>n-63-Eu-153.jeff32</p></li>
-<li><p>n-64-Gd-155.jeff32</p></li>
-<li><p>n-77-Ir-193.jeff32</p></li>
-<li><p>n-90-Th-229.jeff32</p></li>
-<li><p>n-94-Pu-238.jeff32</p></li>
-<li><p>n-94-Pu-241.jeff32</p></li>
-<li><p>n-94-Pu-242.jeff32</p></li>
-<li><p>n-97-Bk-250.jeff32</p></li>
-<li><p>n-98-Cf-254.jeff32</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.records.read_control">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.records.</span></span><span class="sig-name descname"><span class="pre">read_control</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.records.read_control" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.records.read_list">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.records.</span></span><span class="sig-name descname"><span class="pre">read_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ipos</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.records.read_list" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.records.read_tab1">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.records.</span></span><span class="sig-name descname"><span class="pre">read_tab1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ipos</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.records.read_tab1" title="Permalink to this definition"></a></dt>
-<dd><p>Read ENDF-6 <strong>tab1</strong> record.
-These records are used for one-dimensional tabulated functions such as
-<span class="math notranslate nohighlight">\(y(x)\)</span>.
-The data needed to specify a one-dimensional tabulated function are
-the interpolation tables <em>nbt</em> and <em>int</em> for each of the <em>nr</em> ranges,
-and the <em>np</em> tabulated pairs of <span class="math notranslate nohighlight">\(x(n)\)</span> and <span class="math notranslate nohighlight">\(y(n)\)</span>.</p>
-<dl class="simple">
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>c1 :</dt><dd><p>(float) first element of string</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>c2 :</dt><dd><p>(float) second element of string</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>l1 :</dt><dd><p>(int) third element of string</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>l2 :</dt><dd><p>(int) fourth element of string</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>nr :</dt><dd><p>(int) number of interpolation ranges</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>nz :</dt><dd><p>(int) number of <span class="math notranslate nohighlight">\(z\)</span> to be given</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>nbt :</dt><dd><p>(list of int) upper limits of the interpolation ranges</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>interp :</dt><dd><p>(list of int) interpolation functions</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>x, y :</dt><dd><p>tabulated pairs of <span class="math notranslate nohighlight">\(x(n)\)</span> and <span class="math notranslate nohighlight">\(y(n)\)</span></p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.records.read_tab2">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.records.</span></span><span class="sig-name descname"><span class="pre">read_tab2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ipos</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.records.read_tab2" title="Permalink to this definition"></a></dt>
-<dd><p>Read ENDF-6 <strong>tab2</strong> record.
-This record is used to control the tabulation of a 2-dimensional
-function <span class="math notranslate nohighlight">\(y(x,z)\)</span>.
-It specifies how many values of z are to be given and how to
-interpolate between the successive values of <span class="math notranslate nohighlight">\(z\)</span>.
-Tabulated values of <span class="math notranslate nohighlight">\(y_l(x)\)</span> at each value of <span class="math notranslate nohighlight">\(z_l\)</span>
-are given in ENDF-6 <strong>tab1</strong> or <strong>list</strong> records following the
-ENDF-6 <strong>tab2</strong> record, with the appropriate value of <span class="math notranslate nohighlight">\(z\)</span>
-in the field designated as <em>c2</em>.</p>
-<dl class="simple">
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>c1 :</dt><dd><p>(float) first element of string</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>c2 :</dt><dd><p>(float) second element of string</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>l1 :</dt><dd><p>(int) third element of string</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>l2 :</dt><dd><p>(int) fourth element of string</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>nr :</dt><dd><p>(int) number of interpolation ranges</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>nz :</dt><dd><p>(int) number of <span class="math notranslate nohighlight">\(z\)</span> to be given</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>nbt :</dt><dd><p>(list of int) upper limits of the interpolation ranges</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>interp :</dt><dd><p>(list of int) interpolation functions</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.records.read_text">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.records.</span></span><span class="sig-name descname"><span class="pre">read_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ipos</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.records.read_text" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.records.write_cont">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.records.</span></span><span class="sig-name descname"><span class="pre">write_cont</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.records.write_cont" title="Permalink to this definition"></a></dt>
-<dd><p>Write ENDF-6 <strong>cont</strong> record.</p>
-<dl class="simple">
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><p>list of string</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.records.write_list">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.records.</span></span><span class="sig-name descname"><span class="pre">write_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.records.write_list" title="Permalink to this definition"></a></dt>
-<dd><p>Write ENDF-6 <strong>list</strong> record.</p>
-<dl class="simple">
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><p>list of string</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.records.write_tab1">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.records.</span></span><span class="sig-name descname"><span class="pre">write_tab1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">NBT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.records.write_tab1" title="Permalink to this definition"></a></dt>
-<dd><p>Write ENDF-6 <strong>tab1</strong> record.</p>
-<dl class="simple">
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><p>list of string</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.records.write_tab2">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.records.</span></span><span class="sig-name descname"><span class="pre">write_tab2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">NBT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INT</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.records.write_tab2" title="Permalink to this definition"></a></dt>
-<dd><p>Write ENDF-6 <strong>tab2</strong> record.</p>
-<dl class="simple">
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><p>list of string</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
+  <section id="sandy-formats-records-module">
+<h1>sandy.formats.records module<a class="headerlink" href="#sandy-formats-records-module" title="Permalink to this heading"></a></h1>
 </section>
 
 
@@ -322,7 +107,7 @@ in the field designated as <em>c2</em>.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+    <p>&#169; Copyright 2023, Luca Fiorito.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

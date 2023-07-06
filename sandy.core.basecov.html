@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>sandy.core.basecov module &mdash; SANDY API 0 documentation</title>
@@ -11,10 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -27,14 +28,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> SANDY API
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SANDY API
           </a>
               <div class="version">
                 1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -51,7 +56,6 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
@@ -75,10 +79,10 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="sandy.html">sandy package</a> &raquo;</li>
-          <li><a href="sandy.core.html">sandy.core package</a> &raquo;</li>
-      <li>sandy.core.basecov module</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="sandy.html">sandy package</a></li>
+          <li class="breadcrumb-item"><a href="sandy.core.html">sandy.core package</a></li>
+      <li class="breadcrumb-item active">sandy.core.basecov module</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/sandy.core.basecov.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -88,197 +92,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-sandy.core.basecov">
-<span id="sandy-core-basecov-module"></span><h1>sandy.core.basecov module<a class="headerlink" href="#module-sandy.core.basecov" title="Permalink to this headline"></a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="sandy.core.basecov.BaseCov">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.core.basecov.</span></span><span class="sig-name descname"><span class="pre">BaseCov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Collection</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Collection</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">ExtensionDtype</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">numpy.dtype</span><span class="p"><span class="pre">,</span> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">complex</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.basecov.BaseCov" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.core.frame.DataFrame</span></code></p>
-<p>Base covariance class inheriting from <cite>pandas.DataFrame</cite>.
-Must be used as superclass by all other Nuclear Data Covariance Objects.</p>
-<dl class="field-list">
-<dt class="field-odd">Attributes</dt>
-<dd class="field-odd"><dl>
-<dt><strong>mat</strong><span class="classifier"><cite>numpy.array</cite></span></dt><dd><p>array of unique MAT number found in index</p>
-</dd>
-<dt><strong>mt</strong><span class="classifier"><cite>numpy.array</cite></span></dt><dd><p>array of unique MT number found in index</p>
-</dd>
-<dt><strong>index</strong><span class="classifier"><cite>pandas.MultiIndex</cite></span></dt><dd><p>index with at least level <cite>“MAT”</cite> and <cite>“MT”</cite></p>
-</dd>
-<dt><strong>columns</strong><span class="classifier"><cite>pandas.MultiIndex</cite></span></dt><dd><p>index with at least level <cite>“MAT”</cite> and <cite>“MT”</cite></p>
-</dd>
-<dt><strong>`values`</strong><span class="classifier"><cite>numpy array</cite></span></dt><dd><p>matrix coefficients</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Methods</p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.basecov.BaseCov.corr" title="sandy.core.basecov.BaseCov.corr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">corr</span></code></a>()</p></td>
-<td><p>Extract correlation matrix.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.basecov.BaseCov.eig" title="sandy.core.basecov.BaseCov.eig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eig</span></code></a>()</p></td>
-<td><p>Extract eigenvalues in descending order.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.basecov.BaseCov.get_var" title="sandy.core.basecov.BaseCov.get_var"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_var</span></code></a>()</p></td>
-<td><p>Extract diagonal.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.basecov.BaseCov.get_std" title="sandy.core.basecov.BaseCov.get_std"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_std</span></code></a>()</p></td>
-<td><p>Extract square root of diagonal.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.basecov.BaseCov.to_matrix" title="sandy.core.basecov.BaseCov.to_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_matrix</span></code></a>()</p></td>
-<td><p>Extract dataframe values as a <cite>Cov</cite> instance</p></td>
-</tr>
-</tbody>
-</table>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 16%" />
-<col style="width: 84%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><strong>from_list</strong></p></td>
-<td><p>extract global cross section/nubar covariance matrix from iterables</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.basecov.BaseCov.check_diagonal">
-<span class="sig-name descname"><span class="pre">check_diagonal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.basecov.BaseCov.check_diagonal" title="Permalink to this definition"></a></dt>
-<dd><p>Check if any of the diagonal elements is negative.
-Return count of negative variances.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>verbose</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>If <cite>True</cite> print list of negative variances</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>int</cite></dt><dd></dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.basecov.BaseCov.corr">
-<span class="sig-name descname"><span class="pre">corr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.basecov.BaseCov.corr" title="Permalink to this definition"></a></dt>
-<dd><p>Extract correlation matrix.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>sandy.BaseCov</cite> or daughter instance</dt><dd><p>correlation matrix</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.basecov.BaseCov.eig">
-<span class="sig-name descname"><span class="pre">eig</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.basecov.BaseCov.eig" title="Permalink to this definition"></a></dt>
-<dd><p>Extract eigenvalues in descending order.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>pandas.Series</cite></dt><dd><p>sorted list of eigenvalues</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.basecov.BaseCov.filter_by">
-<span class="sig-name descname"><span class="pre">filter_by</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns_values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.basecov.BaseCov.filter_by" title="Permalink to this definition"></a></dt>
-<dd><p>Filter dataframe based on given index and allowed values.</p>
-<div class="admonition hint">
-<p class="admonition-title">Hint</p>
-<p>use this method to filter the dataframe other than <cite>.loc</cite> as 
-it returns a <cite>BaseCov</cite> (or daughter) instance.</p>
-</div>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>index_key</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>index level name to which to consider, e.g. “MAT”, “MT”</p>
-</dd>
-<dt><strong>index_values</strong><span class="classifier">iterable</span></dt><dd><p>list of values to include in the filtered matrix</p>
-</dd>
-<dt><strong>columns_key</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>columns level name to which to consider, e.g. “MAT”, “MT”</p>
-</dd>
-<dt><strong>columns_values</strong><span class="classifier">iterable</span></dt><dd><p>list of values to include in the filtered matrix</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>BaseCov</cite> or daughter instance</dt><dd></dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.basecov.BaseCov.get_std">
-<span class="sig-name descname"><span class="pre">get_std</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.basecov.BaseCov.get_std" title="Permalink to this definition"></a></dt>
-<dd><p>Extract square root of diagonal.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>pandas.Series</cite></dt><dd><p>array of standard deviations</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.basecov.BaseCov.get_var">
-<span class="sig-name descname"><span class="pre">get_var</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.basecov.BaseCov.get_var" title="Permalink to this definition"></a></dt>
-<dd><p>Extract diagonal.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>pandas.Series</cite></dt><dd><p>array of variances</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="sandy.core.basecov.BaseCov.mat">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">mat</span></span><a class="headerlink" href="#sandy.core.basecov.BaseCov.mat" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="sandy.core.basecov.BaseCov.mt">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">mt</span></span><a class="headerlink" href="#sandy.core.basecov.BaseCov.mt" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.basecov.BaseCov.to_matrix">
-<span class="sig-name descname"><span class="pre">to_matrix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.basecov.BaseCov.to_matrix" title="Permalink to this definition"></a></dt>
-<dd><p>Extract dataframe values as a <cite>Cov</cite> instance</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>sandy.Cov</cite></dt><dd><p>covariance matrix as a <cite>numpy</cite> array</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
+  <section id="sandy-core-basecov-module">
+<h1>sandy.core.basecov module<a class="headerlink" href="#sandy-core-basecov-module" title="Permalink to this heading"></a></h1>
 </section>
 
 
@@ -292,7 +107,7 @@ it returns a <cite>BaseCov</cite> (or daughter) instance.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+    <p>&#169; Copyright 2023, Luca Fiorito.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

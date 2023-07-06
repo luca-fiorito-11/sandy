@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>sandy.formats.rdd_fy module &mdash; SANDY API 0 documentation</title>
@@ -11,10 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -27,14 +28,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> SANDY API
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SANDY API
           </a>
               <div class="version">
                 1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -51,7 +56,6 @@
 <li class="toctree-l4 current"><a class="reference internal" href="sandy.formats.html#submodules">Submodules</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
@@ -75,10 +79,10 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="sandy.html">sandy package</a> &raquo;</li>
-          <li><a href="sandy.formats.html">sandy.formats package</a> &raquo;</li>
-      <li>sandy.formats.rdd_fy module</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="sandy.html">sandy package</a></li>
+          <li class="breadcrumb-item"><a href="sandy.formats.html">sandy.formats package</a></li>
+      <li class="breadcrumb-item active">sandy.formats.rdd_fy module</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/sandy.formats.rdd_fy.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -88,91 +92,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-sandy.formats.rdd_fy">
-<span id="sandy-formats-rdd-fy-module"></span><h1>sandy.formats.rdd_fy module<a class="headerlink" href="#module-sandy.formats.rdd_fy" title="Permalink to this headline"></a></h1>
-<p>Created on Fri Apr 20 16:42:45 2018</p>
-<p>&#64;author: lucaf</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.rdd_fy.B2Q">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.rdd_fy.</span></span><span class="sig-name descname"><span class="pre">B2Q</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dfB</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.rdd_fy.B2Q" title="Permalink to this definition"></a></dt>
-<dd><p>Convert dataframe B-matrix into dataframe Q-matrix.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="sandy.formats.rdd_fy.FYFile">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.formats.rdd_fy.</span></span><span class="sig-name descname"><span class="pre">FYFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.rdd_fy.FYFile" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p class="rubric">Methods</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 58%" />
-<col style="width: 42%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><strong>extract_fy</strong></p></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.formats.rdd_fy.FYFile.extract_fy">
-<span class="sig-name descname"><span class="pre">extract_fy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.rdd_fy.FYFile.extract_fy" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="sandy.formats.rdd_fy.RDDFile">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.formats.rdd_fy.</span></span><span class="sig-name descname"><span class="pre">RDDFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.rdd_fy.RDDFile" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p class="rubric">Methods</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 70%" />
-<col style="width: 30%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><strong>extract_bmatrix</strong></p></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><p><strong>extract_decaychains</strong></p></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><p><strong>extract_lambdas</strong></p></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><p><strong>extract_qmatrix</strong></p></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.formats.rdd_fy.RDDFile.extract_bmatrix">
-<span class="sig-name descname"><span class="pre">extract_bmatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timelimit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.rdd_fy.RDDFile.extract_bmatrix" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.formats.rdd_fy.RDDFile.extract_decaychains">
-<span class="sig-name descname"><span class="pre">extract_decaychains</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.rdd_fy.RDDFile.extract_decaychains" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.formats.rdd_fy.RDDFile.extract_lambdas">
-<span class="sig-name descname"><span class="pre">extract_lambdas</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.rdd_fy.RDDFile.extract_lambdas" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.formats.rdd_fy.RDDFile.extract_qmatrix">
-<span class="sig-name descname"><span class="pre">extract_qmatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timelimit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.rdd_fy.RDDFile.extract_qmatrix" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.formats.rdd_fy.check_rdd_fy">
-<span class="sig-prename descclassname"><span class="pre">sandy.formats.rdd_fy.</span></span><span class="sig-name descname"><span class="pre">check_rdd_fy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">RDD</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">FY</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.formats.rdd_fy.check_rdd_fy" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
+  <section id="sandy-formats-rdd-fy-module">
+<h1>sandy.formats.rdd_fy module<a class="headerlink" href="#sandy-formats-rdd-fy-module" title="Permalink to this heading"></a></h1>
 </section>
 
 
@@ -186,7 +107,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+    <p>&#169; Copyright 2023, Luca Fiorito.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

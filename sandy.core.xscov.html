@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>sandy.core.xscov module &mdash; SANDY API 0 documentation</title>
@@ -11,10 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -27,14 +28,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> SANDY API
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SANDY API
           </a>
               <div class="version">
                 1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -51,7 +56,6 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
@@ -75,10 +79,10 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="sandy.html">sandy package</a> &raquo;</li>
-          <li><a href="sandy.core.html">sandy.core package</a> &raquo;</li>
-      <li>sandy.core.xscov module</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="sandy.html">sandy package</a></li>
+          <li class="breadcrumb-item"><a href="sandy.core.html">sandy.core package</a></li>
+      <li class="breadcrumb-item active">sandy.core.xscov module</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/sandy.core.xscov.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -88,209 +92,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-sandy.core.xscov">
-<span id="sandy-core-xscov-module"></span><h1>sandy.core.xscov module<a class="headerlink" href="#module-sandy.core.xscov" title="Permalink to this headline"></a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="sandy.core.xscov.XsCov">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.core.xscov.</span></span><span class="sig-name descname"><span class="pre">XsCov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xscov.XsCov" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="sandy.core.basecov.html#sandy.core.basecov.BaseCov" title="sandy.core.basecov.BaseCov"><code class="xref py py-class docutils literal notranslate"><span class="pre">sandy.core.basecov.BaseCov</span></code></a></p>
-<p>Dataframe to contain cross section/nubar covariance matrices.
-Covariances can be stored for:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>individual reactions,</p></li>
-<li><p>cross reactions,</p></li>
-<li><p>cross isotopes,</p></li>
-<li><p>cross sections vs nubar</p></li>
-</ul>
-</div></blockquote>
-<p><strong>Index</strong>:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>MAT : (<cite>int</cite>) MAT number to identify the isotope</p></li>
-<li><p>MT : (<cite>int</cite>) MT number to identify the reaction</p></li>
-<li><p>E : (<cite>float</cite>) energy of the incident particle</p></li>
-</ul>
-</div></blockquote>
-<p><strong>Columns</strong>:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>MAT : (<cite>int</cite>) MAT number to identify the isotope</p></li>
-<li><p>MT : (<cite>int</cite>) MT number to identify the reaction</p></li>
-<li><p>E : (<cite>float</cite>) energy of the incident particle</p></li>
-</ul>
-</div></blockquote>
-<p><strong>Values</strong>: matrix coefficients</p>
-<dl class="field-list simple">
-<dt class="field-odd">Attributes</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>T</strong></dt><dd></dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">at</span></code></dt><dd><p>Access a single value for a row/column label pair.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">attrs</span></code></dt><dd><p>Dictionary of global attributes on this object.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">axes</span></code></dt><dd><p>Return a list representing the axes of the DataFrame.</p>
-</dd>
-<dt><strong>columns</strong></dt><dd><p>The column labels of the DataFrame.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">dtypes</span></code></dt><dd><p>Return the dtypes in the DataFrame.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">empty</span></code></dt><dd><p>Indicator whether DataFrame is empty.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">iat</span></code></dt><dd><p>Access a single value for a row/column pair by integer position.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">iloc</span></code></dt><dd><p>Purely integer-location based indexing for selection by position.</p>
-</dd>
-<dt><strong>index</strong></dt><dd><p>The index (row labels) of the DataFrame.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">loc</span></code></dt><dd><p>Access a group of rows and columns by label(s) or a boolean array.</p>
-</dd>
-<dt><strong>mat</strong></dt><dd></dd>
-<dt><strong>mt</strong></dt><dd></dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndim</span></code></dt><dd><p>Return an int representing the number of axes / array dimensions.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code></dt><dd><p>Return a tuple representing the dimensionality of the DataFrame.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">size</span></code></dt><dd><p>Return an int representing the number of elements in this object.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">style</span></code></dt><dd><p>Returns a Styler object.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">values</span></code></dt><dd><p>Return a Numpy representation of the DataFrame.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Methods</p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.xscov.XsCov.from_endf6" title="sandy.core.xscov.XsCov.from_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_endf6</span></code></a>(endf6)</p></td>
-<td><p>Extract cross section/nubar covariance from <cite>Endf6</cite> instance.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.xscov.XsCov.from_errorr" title="sandy.core.xscov.XsCov.from_errorr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_errorr</span></code></a>(errorr)</p></td>
-<td><p>Extract cross section/nubar covariance from <cite>Errorr</cite> instance.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.xscov.XsCov.get_section" title="sandy.core.xscov.XsCov.get_section"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_section</span></code></a>(mat, mt, mat1, mt1)</p></td>
-<td><p>Extract section of the global covariance/correlation matrix.</p></td>
-</tr>
-</tbody>
-</table>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 17%" />
-<col style="width: 83%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><strong>get_samples</strong></p></td>
-<td><p>extract perturbations from global cross section/nubar covariance matrix</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.xscov.XsCov.from_csv">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xscov.XsCov.from_csv" title="Permalink to this definition"></a></dt>
-<dd><p>Read multigroup xs covariance matrix from csv file.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>file</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>csv file</p>
-</dd>
-<dt><strong>**kwargs</strong><span class="classifier">keyword arguments, optional</span></dt><dd><p>keyword arguments to pass to <cite>pandas.DataFrame</cite></p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>XsCov</cite></dt><dd><p>multi-group cross secrion covariance matrix object</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.xscov.XsCov.from_endf6">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endf6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xscov.XsCov.from_endf6" title="Permalink to this definition"></a></dt>
-<dd><p>Extract cross section/nubar covariance from <cite>Endf6</cite> instance.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>endf6</strong><span class="classifier"><cite>sandy.formats.endf6.Endf6</cite></span></dt><dd><p><cite>Endf6</cite> instance containing covariance sections</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>XsCov</cite></dt><dd><p>global xs/nubar covariance matrix from ENDF6 file</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.xscov.XsCov.from_errorr">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_errorr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">errorr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xscov.XsCov.from_errorr" title="Permalink to this definition"></a></dt>
-<dd><p>Extract cross section/nubar covariance from <cite>Errorr</cite> instance.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>errorr</strong><span class="classifier"><cite>sandy.formats.endf6.Errorr</cite></span></dt><dd><p><cite>Errorr</cite> instance containing covariance sections</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>XsCov</cite></dt><dd><p>global xs/nubar covariance matrix from ERRORR file</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.xscov.XsCov.get_samples">
-<span class="sig-name descname"><span class="pre">get_samples</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nsmp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xscov.XsCov.get_samples" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.xscov.XsCov.get_section">
-<span class="sig-name descname"><span class="pre">get_section</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mat1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xscov.XsCov.get_section" title="Permalink to this definition"></a></dt>
-<dd><p>Extract section of the global covariance/correlation matrix.
-A section is defined by a unique combination of MAT/MT and MAT1/MT1
-numbers.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>mat</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT number for index</p>
-</dd>
-<dt><strong>mt</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT number for index</p>
-</dd>
-<dt><strong>mat1</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT number for columns</p>
-</dd>
-<dt><strong>mt1</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MT number for columns</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>sandy.EnergyCov</cite></dt><dd><p>section of the global covariance matrix</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="sandy.core.xscov.XsCov.labels">
-<span class="sig-name descname"><span class="pre">labels</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['MAT',</span> <span class="pre">'MT',</span> <span class="pre">'E']</span></em><a class="headerlink" href="#sandy.core.xscov.XsCov.labels" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
+  <section id="sandy-core-xscov-module">
+<h1>sandy.core.xscov module<a class="headerlink" href="#sandy-core-xscov-module" title="Permalink to this heading"></a></h1>
 </section>
 
 
@@ -304,7 +107,7 @@ numbers.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+    <p>&#169; Copyright 2023, Luca Fiorito.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>sandy.sections.mf33 module &mdash; SANDY API 0 documentation</title>
@@ -11,15 +11,16 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="sandy.sections.mf4 module" href="sandy.sections.mf4.html" />
-    <link rel="prev" title="sandy.sections.mf31 module" href="sandy.sections.mf31.html" /> 
+    <link rel="next" title="sandy.sections.mf34 module" href="sandy.sections.mf34.html" />
+    <link rel="prev" title="sandy.sections.mf32 module" href="sandy.sections.mf32.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -27,14 +28,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> SANDY API
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SANDY API
           </a>
               <div class="version">
                 1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -48,7 +53,6 @@
 <li class="toctree-l3"><a class="reference internal" href="sandy.core.html">sandy.core package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a><ul class="current">
@@ -75,10 +79,10 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="sandy.html">sandy package</a> &raquo;</li>
-          <li><a href="sandy.sections.html">sandy.sections package</a> &raquo;</li>
-      <li>sandy.sections.mf33 module</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="sandy.html">sandy package</a></li>
+          <li class="breadcrumb-item"><a href="sandy.sections.html">sandy.sections package</a></li>
+      <li class="breadcrumb-item active">sandy.sections.mf33 module</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/sandy.sections.mf33.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -88,55 +92,22 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-sandy.sections.mf33">
-<span id="sandy-sections-mf33-module"></span><h1>sandy.sections.mf33 module<a class="headerlink" href="#module-sandy.sections.mf33" title="Permalink to this headline"></a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.sections.mf33.read_mf33">
-<span class="sig-prename descclassname"><span class="pre">sandy.sections.mf33.</span></span><span class="sig-name descname"><span class="pre">read_mf33</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">33</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sections.mf33.read_mf33" title="Permalink to this definition"></a></dt>
-<dd><p>Parse MAT/MF=8/MT section for MF31/33 covariance matrix from
-<cite>sandy.Endf6</cite> object and return structured content in nested dcitionaries.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>tape</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p>endf6 object containing requested section</p>
-</dd>
-<dt><strong>mat</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT number</p>
-</dd>
-<dt><strong>mtt</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MT number</p>
-</dd>
-<dt><strong>mf</strong><span class="classifier"><cite>int</cite>, optional, default is <cite>33</cite></span></dt><dd><p>MF number, it also allows parsing nubar covariances with MF=31</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>dict</cite></dt><dd><p>Content of the ENDF-6 tape structured as nested <cite>dict</cite>.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Notes</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>this function can parse MF=31 sections if <cite>mf=31</cite> is passed
-as argument</p>
-</div>
-</dd></dl>
-
+  <section id="sandy-sections-mf33-module">
+<h1>sandy.sections.mf33 module<a class="headerlink" href="#sandy-sections-mf33-module" title="Permalink to this heading"></a></h1>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="sandy.sections.mf31.html" class="btn btn-neutral float-left" title="sandy.sections.mf31 module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="sandy.sections.mf4.html" class="btn btn-neutral float-right" title="sandy.sections.mf4 module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="sandy.sections.mf32.html" class="btn btn-neutral float-left" title="sandy.sections.mf32 module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.sections.mf34.html" class="btn btn-neutral float-right" title="sandy.sections.mf34 module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+    <p>&#169; Copyright 2023, Luca Fiorito.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

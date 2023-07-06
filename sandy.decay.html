@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>sandy.decay module &mdash; SANDY API 0 documentation</title>
@@ -11,10 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -27,14 +28,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> SANDY API
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SANDY API
           </a>
               <div class="version">
                 1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -51,6 +56,7 @@
 <li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gls.html">sandy.gls module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
@@ -62,6 +68,7 @@
 <li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html">sandy.tsl module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.zam.html">sandy.zam module</a></li>
 </ul>
@@ -83,9 +90,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="sandy.html">sandy package</a> &raquo;</li>
-      <li>sandy.decay module</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="sandy.html">sandy package</a></li>
+      <li class="breadcrumb-item active">sandy.decay module</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/sandy.decay.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -95,446 +102,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-sandy.decay">
-<span id="sandy-decay-module"></span><h1>sandy.decay module<a class="headerlink" href="#module-sandy.decay" title="Permalink to this headline"></a></h1>
-<p>This module contains all classes and functions dedicated to the processing and
-analysis of a decay data.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="sandy.decay.DecayData">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.decay.</span></span><span class="sig-name descname"><span class="pre">DecayData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dct</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Container of radioactive nuclide data for several isotopes.</p>
-<dl class="field-list">
-<dt class="field-odd">Attributes</dt>
-<dd class="field-odd"><dl>
-<dt><a class="reference internal" href="#sandy.decay.DecayData.data" title="sandy.decay.DecayData.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a><span class="classifier"><cite>dict</cite></span></dt><dd><p>Dictionary of RDD content.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Methods</p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.DecayData.from_endf6" title="sandy.decay.DecayData.from_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_endf6</span></code></a>(endf6[, verbose])</p></td>
-<td><p>Extract hierarchical structure of decay data from <cite>sandy.Endf6</cite> instance.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#sandy.decay.DecayData.from_hdf5" title="sandy.decay.DecayData.from_hdf5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_hdf5</span></code></a>(filename, lib[, zam])</p></td>
-<td><p>Extract hierarchical structure of decay data from hdf5 file.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.DecayData.get_bmatrix" title="sandy.decay.DecayData.get_bmatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_bmatrix</span></code></a>(**kwargs)</p></td>
-<td><p>Extract B-matrix into dataframe.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#sandy.decay.DecayData.get_decay_chains" title="sandy.decay.DecayData.get_decay_chains"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_decay_chains</span></code></a>([skip_parents])</p></td>
-<td><p>Extract decay chains into dataframe.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.DecayData.get_qmatrix" title="sandy.decay.DecayData.get_qmatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_qmatrix</span></code></a>([keep_neutrons, threshold])</p></td>
-<td><p>Extract Q-matrix dataframe.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#sandy.decay.DecayData.get_transition_matrix" title="sandy.decay.DecayData.get_transition_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_transition_matrix</span></code></a>()</p></td>
-<td><p>Extract transition matrix into dataframe.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.DecayData.to_hdf5" title="sandy.decay.DecayData.to_hdf5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_hdf5</span></code></a>(filename, lib[, mode])</p></td>
-<td><p>Dump decay data to hdf5 file.</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py property">
-<dt class="sig sig-object py" id="sandy.decay.DecayData.data">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sandy.decay.DecayData.data" title="Permalink to this definition"></a></dt>
-<dd><p>Dictionary of RDD content.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>dict</cite></dt><dd><p>hierarchical RDD content</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.decay.DecayData.from_endf6">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endf6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.from_endf6" title="Permalink to this definition"></a></dt>
-<dd><p>Extract hierarchical structure of decay data from <cite>sandy.Endf6</cite>
-instance.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>tape</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p>instance containing decay data</p>
-</dd>
-<dt><strong>verbose</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>flag to print information when reading ENDF-6 file</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>dict</cite></dt><dd><p>structured container with RDD.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-odd">Raises</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>sandy.Error</cite></dt><dd><p>if no decay data is found</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<p>Load test ENDF-6 file with data for H1 and Co60.
-&gt;&gt;&gt; file = os.path.join(sandy.data.__path__[0], “rdd.endf”)
-&gt;&gt;&gt; endf6 = sandy.Endf6.from_file(file)
-&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(endf6)
-&gt;&gt;&gt; print(yaml.dump(rdd))
-!!python/object:sandy.decay.DecayData
-_data:</p>
-<blockquote>
-<div><dl>
-<dt>10010:</dt><dd><p>decay_constant: 0
-decay_energy:</p>
-<blockquote>
-<div><p>alpha: 0.0
-beta: 0.0
-gamma: 0.0
-total: 0.0</p>
-</div></blockquote>
-<dl class="simple">
-<dt>decay_energy_uncertainties:</dt><dd><p>alpha: 0.0
-beta: 0.0
-gamma: 0.0
-total: 0.0</p>
-</dd>
-</dl>
-<p>half_life: 0.0
-parity: 1.0
-spin: 0.5
-stable: true</p>
-</dd>
-<dt>270600:</dt><dd><p>decay_constant: 4.167050502344267e-09
-decay_energy:</p>
-<blockquote>
-<div><p>alpha: 0.0
-beta: 96522.0
-gamma: 2503840.0
-total: 2600362.0</p>
-</div></blockquote>
-<dl>
-<dt>decay_energy_uncertainties:</dt><dd><p>alpha: 0.0
-beta: 202.529
-gamma: 352.186
-total: 406.26712202318316</p>
-</dd>
-<dt>decay_modes:</dt><dd><dl>
-<dt>10x0:</dt><dd><p>branching_ratio: 1.0
-branching_ratio_uncertainty: 0.0
-decay_products:</p>
-<blockquote>
-<div><p>280600: 1.0</p>
-</div></blockquote>
-</dd>
-</dl>
-</dd>
-</dl>
-<p>half_life: 166340000.0
-parity: 1.0
-spin: 5.0
-stable: false</p>
-</dd>
-<dt>280600:</dt><dd><p>decay_constant: 0
-decay_energy:</p>
-<blockquote>
-<div><p>alpha: 0.0
-beta: 0.0
-gamma: 0.0
-total: 0.0</p>
-</div></blockquote>
-<dl class="simple">
-<dt>decay_energy_uncertainties:</dt><dd><p>alpha: 0.0
-beta: 0.0
-gamma: 0.0
-total: 0.0</p>
-</dd>
-</dl>
-<p>half_life: 0.0
-parity: 1.0
-spin: 0.0
-stable: true</p>
-</dd>
-</dl>
-</div></blockquote>
-<p>&lt;BLANKLINE&gt;</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.decay.DecayData.from_hdf5">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_hdf5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lib</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.from_hdf5" title="Permalink to this definition"></a></dt>
-<dd><p>Extract hierarchical structure of decay data from hdf5 file.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>filename</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>hdf5 filename (absolute or relative)</p>
-</dd>
-<dt><strong>lib</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>library ID contained in the hdf5 file</p>
-</dd>
-<dt><strong>zam</strong><span class="classifier"><cite>int</cite>, optional, default is <cite>None</cite></span></dt><dd><p>optional selection of individual nuclide (avoid loading all
-library)</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>DecayData</cite></dt><dd><p>decay data object</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<p>Examples are in method <cite>to_hdf5</cite></p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.decay.DecayData.get_bmatrix">
-<span class="sig-name descname"><span class="pre">get_bmatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_bmatrix" title="Permalink to this definition"></a></dt>
-<dd><p>Extract B-matrix into dataframe.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>kwargs</strong><span class="classifier"><cite>dict</cite></span></dt><dd><p>keyword arguments for method <cite>get_decay_chains</cite></p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>pandas.DataFrame</cite></dt><dd><p>B-matrix associated to the given decay chains</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;rdd.endf&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Endf6</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_bmatrix</span><span class="p">()</span>
-<span class="go">PARENT        10010       270600      280600</span>
-<span class="go">DAUGHTER</span>
-<span class="go">10010    0.00000e+00 0.00000e+00 0.00000e+00</span>
-<span class="go">270600   0.00000e+00 0.00000e+00 0.00000e+00</span>
-<span class="go">280600   0.00000e+00 1.00000e+00 0.00000e+00</span>
-</pre></div>
-</div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">endf6</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="mi">571480</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_data</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_data</span><span class="o">.</span><span class="n">get_bmatrix</span><span class="p">()</span>
-<span class="go">PARENT         10              571480           581470         581480</span>
-<span class="go">DAUGHTER</span>
-<span class="go">10          0.00000e+00         1.50000e-03     0.00000e+00     0.00000e+00</span>
-<span class="go">571480  0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
-<span class="go">581470  0.00000e+00     1.50000e-03     0.00000e+00     0.00000e+00</span>
-<span class="go">581480  0.00000e+00     9.98500e-01     0.00000e+00     0.00000e+00</span>
-</pre></div>
-</div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">h1</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">endf6</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span><span class="s2">&quot;decay&quot;</span><span class="p">,</span><span class="mi">551480</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">h2</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">endf6</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span><span class="s2">&quot;decay&quot;</span><span class="p">,</span><span class="mi">551490</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">h3</span> <span class="o">=</span> <span class="n">h1</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">h3</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_bmatrix</span><span class="p">()</span>
-<span class="go">PARENT         10                551480              551490          561460          561470          561480          561490</span>
-<span class="go">DAUGHTER</span>
-<span class="go">10          0.00000e+00         2.18793e-01     6.88450e-01     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
-<span class="go">551480  0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
-<span class="go">551490  0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
-<span class="go">561460  0.00000e+00     1.72560e-04     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
-<span class="go">561470  0.00000e+00     2.18447e-01     4.09780e-07     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
-<span class="go">561480  0.00000e+00     7.81380e-01     6.88450e-01     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
-<span class="go">561490  0.00000e+00     0.00000e+00     3.11550e-01     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.decay.DecayData.get_decay_chains">
-<span class="sig-name descname"><span class="pre">get_decay_chains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">skip_parents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_decay_chains" title="Permalink to this definition"></a></dt>
-<dd><p>Extract decay chains into dataframe.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>skip_parent</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd></dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>pandas.DataFrame</cite></dt><dd><p>decay chains dataframe</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;rdd.endf&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Endf6</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_decay_chains</span><span class="p">()</span>
-<span class="go">   PARENT  DAUGHTER        YIELD      LAMBDA</span>
-<span class="go">0   10010     10010  0.00000e+00 0.00000e+00</span>
-<span class="go">1  270600    270600 -1.00000e+00 4.16705e-09</span>
-<span class="go">2  270600    280600  1.00000e+00 4.16705e-09</span>
-<span class="go">3  280600    280600  0.00000e+00 0.00000e+00</span>
-</pre></div>
-</div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_decay_chains</span><span class="p">(</span><span class="n">skip_parents</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="go">   PARENT  DAUGHTER        YIELD      LAMBDA</span>
-<span class="go">0  270600    280600  1.00000e+00 4.16705e-09</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.decay.DecayData.get_halflives">
-<span class="sig-name descname"><span class="pre">get_halflives</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_halflives" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.decay.DecayData.get_nuclides">
-<span class="sig-name descname"><span class="pre">get_nuclides</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_nuclides" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.decay.DecayData.get_pn">
-<span class="sig-name descname"><span class="pre">get_pn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_pn" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.decay.DecayData.get_qmatrix">
-<span class="sig-name descname"><span class="pre">get_qmatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keep_neutrons</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_qmatrix" title="Permalink to this definition"></a></dt>
-<dd><p>Extract Q-matrix dataframe.</p>
-<dl class="simple">
-<dt>Thereshold: ‘int’</dt><dd><p>Optional argument to avoid numerical fluctuations or
-values so small that they do not have to be taken into
-account.</p>
-</dd>
-</dl>
-<dl class="simple">
-<dt><cite>pandas.DataFrame</cite></dt><dd><p>Q-matrix associated to the given decay chains</p>
-</dd>
-</dl>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;rdd.endf&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Endf6</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">out</span> <span class="o">=</span> <span class="n">rdd</span><span class="o">.</span><span class="n">get_qmatrix</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">comp</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-<span class="gp">... </span>                     <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-<span class="gp">... </span>                     <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
-<span class="gp">... </span>                    <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-<span class="gp">... </span>                    <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="mi">10010</span><span class="p">,</span> <span class="mi">270600</span><span class="p">,</span> <span class="mi">280600</span><span class="p">],</span>
-<span class="gp">... </span>                    <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="mi">10010</span><span class="p">,</span> <span class="mi">270600</span><span class="p">,</span> <span class="mi">280600</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">comp</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;DAUGHTER&quot;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">comp</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;PARENT&quot;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">pd</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_frame_equal</span><span class="p">(</span><span class="n">comp</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">h1</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">endf6</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span><span class="s2">&quot;decay&quot;</span><span class="p">,</span><span class="mi">551480</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">h2</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">endf6</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span><span class="s2">&quot;decay&quot;</span><span class="p">,</span><span class="mi">551490</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">h3</span> <span class="o">=</span> <span class="n">h1</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">h3</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_qmatrix</span><span class="p">()</span>
-<span class="go">PARENT       551480          551490          561460          561470          561480          561490</span>
-<span class="go">DAUGHTER</span>
-<span class="go">551480  1.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
-<span class="go">551490  0.00000e+00     1.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
-<span class="go">561460  1.72560e-04     0.00000e+00     1.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
-<span class="go">561470  2.18447e-01     4.09780e-07     0.00000e+00     1.00000e+00     0.00000e+00     0.00000e+00</span>
-<span class="go">561480  7.81380e-01     6.88450e-01     0.00000e+00     0.00000e+00     1.00000e+00     0.00000e+00</span>
-<span class="go">561490  0.00000e+00     3.11550e-01     0.00000e+00     0.00000e+00     0.00000e+00     1.00000e+00</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.decay.DecayData.get_transition_matrix">
-<span class="sig-name descname"><span class="pre">get_transition_matrix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_transition_matrix" title="Permalink to this definition"></a></dt>
-<dd><p>Extract transition matrix into dataframe.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>pandas.DataFrame</cite></dt><dd><p>transition matrix associated to the given decay chains</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;rdd.endf&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Endf6</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_transition_matrix</span><span class="p">()</span>
-<span class="go">PARENT        10010        270600      280600</span>
-<span class="go">DAUGHTER</span>
-<span class="go">10010    0.00000e+00  0.00000e+00 0.00000e+00</span>
-<span class="go">270600   0.00000e+00 -4.16705e-09 0.00000e+00</span>
-<span class="go">280600   0.00000e+00  4.16705e-09 0.00000e+00</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.decay.DecayData.to_hdf5">
-<span class="sig-name descname"><span class="pre">to_hdf5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lib</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'a'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.to_hdf5" title="Permalink to this definition"></a></dt>
-<dd><p>Dump decay data to hdf5 file.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>filename</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>name of the hdf5 file (with absolute or relative path)</p>
-</dd>
-<dt><strong>lib</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>name of the library that will be used</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Notes</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>decay data are saved in groups with key <cite>‘{lib}/rdd/{zam}’</cite>,
-where <cite>‘{lib}’</cite> and <cite>‘{zam}’</cite> are the library and ZAM
-identifiers.
-The rest of the contents is the structured following the
-nested dictionaries.</p>
-</div>
-<p class="rubric">Examples</p>
-<p>Write file into hdf5 format
-&gt;&gt;&gt; file = os.path.join(sandy.data.__path__[0], “rdd.endf”)
-&gt;&gt;&gt; endf6 = sandy.Endf6.from_file(file)
-&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(endf6)
-&gt;&gt;&gt; f = tempfile.TemporaryDirectory()
-&gt;&gt;&gt; path = os.path.join(f.name, “test.h5”)
-&gt;&gt;&gt; rdd.to_hdf5(path, “jeff_33”)</p>
-<p>Then, make sure <cite>sandy</cite> reads it correctly
-&gt;&gt;&gt; rdd.from_hdf5(path, “jeff_33”)
-{10010: {‘decay_constant’: 0, ‘decay_energy’: {‘alpha’: 0.0, ‘beta’: 0.0, ‘gamma’: 0.0, ‘total’: 0.0}, ‘decay_energy_uncertainties’: {‘alpha’: 0.0, ‘beta’: 0.0, ‘gamma’: 0.0, ‘total’: 0.0}, ‘half_life’: 0.0, ‘parity’: 1.0, ‘spin’: 0.5, ‘stable’: True}, 270600: {‘decay_constant’: 4.167050502344267e-09, ‘decay_energy’: {‘alpha’: 0.0, ‘beta’: 96522.0, ‘gamma’: 2503840.0, ‘total’: 2600362.0}, ‘decay_energy_uncertainties’: {‘alpha’: 0.0, ‘beta’: 202.529, ‘gamma’: 352.186, ‘total’: 406.26712202318316}, ‘decay_modes’: {‘10x0’: {‘branching_ratio’: 1.0, ‘branching_ratio_uncertainty’: 0.0, ‘decay_products’: {280600: 1.0}}}, ‘half_life’: 166340000.0, ‘parity’: 1.0, ‘spin’: 5.0, ‘stable’: False}, 280600: {‘decay_constant’: 0, ‘decay_energy’: {‘alpha’: 0.0, ‘beta’: 0.0, ‘gamma’: 0.0, ‘total’: 0.0}, ‘decay_energy_uncertainties’: {‘alpha’: 0.0, ‘beta’: 0.0, ‘gamma’: 0.0, ‘total’: 0.0}, ‘half_life’: 0.0, ‘parity’: 1.0, ‘spin’: 0.0, ‘stable’: True}}
-&gt;&gt;&gt; f.cleanup()</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.decay.rdd2hdf">
-<span class="sig-prename descclassname"><span class="pre">sandy.decay.</span></span><span class="sig-name descname"><span class="pre">rdd2hdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">e6file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h5file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lib</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.rdd2hdf" title="Permalink to this definition"></a></dt>
-<dd><p>Write to disk a HDF5 file that reproduces the content of a RDD file in
-ENDF6 format.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>e6file</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>ENDF-6 filename</p>
-</dd>
-<dt><strong>h5file</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>HDF5 filename</p>
-</dd>
-<dt><strong>lib</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>library name (it will appear as a hdf5 group)</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
+  <section id="sandy-decay-module">
+<h1>sandy.decay module<a class="headerlink" href="#sandy-decay-module" title="Permalink to this heading"></a></h1>
 </section>
 
 
@@ -548,7 +117,7 @@ ENDF6 format.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+    <p>&#169; Copyright 2023, Luca Fiorito.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>sandy.core.endf6 module &mdash; SANDY API 0 documentation</title>
@@ -11,10 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -27,14 +28,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> SANDY API
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SANDY API
           </a>
               <div class="version">
                 1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -51,7 +56,6 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
@@ -75,10 +79,10 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="sandy.html">sandy package</a> &raquo;</li>
-          <li><a href="sandy.core.html">sandy.core package</a> &raquo;</li>
-      <li>sandy.core.endf6 module</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="sandy.html">sandy package</a></li>
+          <li class="breadcrumb-item"><a href="sandy.core.html">sandy.core package</a></li>
+      <li class="breadcrumb-item active">sandy.core.endf6 module</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/sandy.core.endf6.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -88,456 +92,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-sandy.core.endf6">
-<span id="sandy-core-endf6-module"></span><h1>sandy.core.endf6 module<a class="headerlink" href="#module-sandy.core.endf6" title="Permalink to this headline"></a></h1>
-<p>Created on Wed Dec  4 14:50:33 2019</p>
-<p>&#64;author: lfiorito</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="sandy.core.endf6.Endf6">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.core.endf6.</span></span><span class="sig-name descname"><span class="pre">Endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">sandy.core.endf6._FormattedFile</span></code></p>
-<p>Container for ENDF-6 file text grouped by MAT, MF and MT numbers.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Attributes</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>data</strong></dt><dd></dd>
-<dt><strong>is_empty</strong></dt><dd></dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">keys</span></code></dt><dd><p>List of keys <cite>(MAT, MF, MT)</cite> used to identify each tape section.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">kind</span></code></dt><dd><p>Kind of ENDF-6 formatted file (<cite>‘endf6’</cite>, <cite>‘pendf’</cite>, <cite>‘gendf’</cite>, <cite>‘errorr’</cite>) .</p>
-</dd>
-<dt><strong>mat</strong></dt><dd></dd>
-<dt><strong>mf</strong></dt><dd></dd>
-<dt><strong>mt</strong></dt><dd></dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Methods</p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.endf6.Endf6.read_section" title="sandy.core.endf6.Endf6.read_section"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_section</span></code></a>(mat, mf, mt[, raise_error])</p></td>
-<td><p>Parse MAT/MF/MT section.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.endf6.Endf6.write_string" title="sandy.core.endf6.Endf6.write_string"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_string</span></code></a>([title, skip_title, skip_fend])</p></td>
-<td><p><div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>OUTDATED, use <cite>to_file</cite>.</p>
-</div>
-</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.get_ace">
-<span class="sig-name descname"><span class="pre">get_ace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">temperature</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">njoy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pendf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.get_ace" title="Permalink to this definition"></a></dt>
-<dd><p>Process <cite>Endf6</cite> instance into an ACE file using NJOY.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>temperature</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>temperature of the cross sections in K.</p>
-</dd>
-<dt><strong>njoy</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>None</cite></span></dt><dd><p>NJOY executable, if <cite>None</cite> search in the system path.</p>
-</dd>
-<dt><strong>verbose</strong><span class="classifier">TYPE, optional, default is <cite>False</cite></span></dt><dd><p>flag to print NJOY input file to screen before running the
-executable.</p>
-</dd>
-<dt><strong>**kwargs</strong><span class="classifier">TYPE</span></dt><dd><p>keyword argument to pass to <cite>sandy.njoy.process</cite>.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl>
-<dt><strong>outs</strong><span class="classifier"><cite>dict</cite></span></dt><dd><p>output with <cite>‘ace’</cite> and <cite>‘xsdir’</cite> as keys pointing to the
-filenames of the corresponding ACE and xsdir files generated in
-the run.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;xs&quot;</span><span class="p">,</span> <span class="mi">10010</span><span class="p">)</span><span class="o">.</span><span class="n">get_ace</span><span class="p">(</span><span class="mi">700</span><span class="p">)</span>
-<span class="go">{&#39;ace&#39;: &#39;1001.07c&#39;, &#39;xsdir&#39;: &#39;1001.07c.xsd&#39;}</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.get_errorr">
-<span class="sig-name descname"><span class="pre">get_errorr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">njoy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pendf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.get_errorr" title="Permalink to this definition"></a></dt>
-<dd><div class="admonition important">
-<p class="admonition-title">Important</p>
-<p>this module uses <cite>read_formatted_file</cite>, which is no
-longer supported.</p>
-</div>
-<p class="rubric">Examples</p>
-<p>#&gt;&gt;&gt; file = os.path.join(sandy.data.__path__[0], “h1.endf”)
-#&gt;&gt;&gt; endf6 = sandy.Endf6.from_file(file)
-#&gt;&gt;&gt; endf6.get_errorr(“/home/lfiorito/vc/NJOY2016/bin/njoy”)</p>
-<blockquote>
-<div><p>TEXT</p>
-</div></blockquote>
-<p>MAT MF MT 
-125 1  451   1.001000+3 9.991673-1          6          0  …</p>
-<blockquote>
-<div><dl class="simple">
-<dt>3  1     1.001000+3 0.000000+0          0          0  …</dt><dd><p>2     1.001000+3 0.000000+0          0          0  …
-102   1.001000+3 0.000000+0          0          0  …</p>
-</dd>
-<dt>33 1     1.001000+3 9.991673-1          0          0  …</dt><dd><p>2     1.001000+3 9.991673-1          0          0  …
-102   1.001000+3 9.991673-1          0          0  …</p>
-</dd>
-</dl>
-</div></blockquote>
-<p>#&gt;&gt;&gt; file = os.path.join(sandy.data.__path__[0], “h1.pendf”)
-#&gt;&gt;&gt; pendf = sandy.Endf6.from_file(file)
-#&gt;&gt;&gt; pendf.get_errorr(“/home/lfiorito/vc/NJOY2016/bin/njoy”)</p>
-<p>#&gt;&gt;&gt;endf6.get_errorr(“/home/lfiorito/vc/NJOY2016/bin/njoy”, pendf=pendf)</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.get_pendf">
-<span class="sig-name descname"><span class="pre">get_pendf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">njoy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.get_pendf" title="Permalink to this definition"></a></dt>
-<dd><p>Process <cite>Endf6</cite> instance into an PENDF file using NJOY.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>temperature</strong><span class="classifier"><cite>float</cite>, optional, default is <cite>0</cite>.</span></dt><dd><p>temperature of the cross sections in K.
-If not given, stop the processing after RECONR (before BROADR).</p>
-</dd>
-<dt><strong>njoy</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>None</cite></span></dt><dd><p>NJOY executable, if <cite>None</cite> search in the system path.</p>
-</dd>
-<dt><strong>to_file</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>flag to write processed PENDF data to file.
-The name of the PENDF file is defined by an internal routine.</p>
-</dd>
-<dt><strong>verbose</strong><span class="classifier">TYPE, optional, default is <cite>False</cite></span></dt><dd><p>flag to print NJOY input file to screen before running the
-executable.</p>
-</dd>
-<dt><strong>**kwargs</strong><span class="classifier">TYPE</span></dt><dd><p>keyword argument to pass to <cite>sandy.njoy.process</cite>.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl>
-<dt><strong>pendf</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p><cite>Endf6</cite> instance constaining the nuclear data of the PENDF file.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<p>Process H1 file from ENDF/B-VII.1 into PENDF
-&gt;&gt;&gt; pendf =sandy.get_endf6_file(“endfb_71”, “xs”, 10010).get_pendf(verbose=True)
-moder
-20 -21 /
-reconr
--21 -22 /
-‘sandy runs njoy’/
-125 0 0 /
-0.001 0. /
-0/
-moder
--22 30 /
-stop</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pendf</span>
-<span class="go">MAT  MF  MT </span>
-<span class="go">125  1   451     1.001000+3 9.991673-1          2          0  ...</span>
-<span class="go">     2   151     1.001000+3 9.991673-1          0          0  ...</span>
-<span class="go">     3   1       1.001000+3 9.991673-1          0         99  ...</span>
-<span class="go">         2       1.001000+3 9.991673-1          0          0  ...</span>
-<span class="go">         102     1.001000+3 9.991673-1          0          0  ...</span>
-<span class="go">dtype: object</span>
-</pre></div>
-</div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pendf</span><span class="o">.</span><span class="n">kind</span>
-<span class="go">&#39;pendf&#39;</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.merge_pendf">
-<span class="sig-name descname"><span class="pre">merge_pendf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pendf</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.merge_pendf" title="Permalink to this definition"></a></dt>
-<dd><p>Merge endf-6 file content with that of a pendf file.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>pendf</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p><cite>Endf6</cite> object containing pendf tape.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>sandy.Endf6</cite></dt><dd><p><cite>Endf6</cite> object with MF3 and MF1MT451 from PENDF</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Notes</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>the <cite>Endf6</cite> object in output has attribute <cite>kind=’pendf’</cite>.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>the <cite>Endf6</cite> object in output contains all sections from the
-original endf-6 file, but for all MF=3 and MF=1 MT=451.</p>
-</div>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;h1.endf&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Endf6</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;h1.pendf&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">pendf</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Endf6</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">merged</span> <span class="o">=</span> <span class="n">endf6</span><span class="o">.</span><span class="n">merge_pendf</span><span class="p">(</span><span class="n">pendf</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">merged</span>
-<span class="go">MAT  MF  MT</span>
-<span class="go">125  1   451     1.001000+3 9.991673-1          2          0  ...</span>
-<span class="go">     2   151     1.001000+3 9.991673-1          0          0  ...</span>
-<span class="go">     3   1       1.001000+3 9.991673-1          0         99  ...</span>
-<span class="go">         2       1.001000+3 9.991673-1          0          0  ...</span>
-<span class="go">         102     1.001000+3 9.991673-1          0          0  ...</span>
-<span class="go">     4   2       1.001000+3 9.991673-1          0          1  ...</span>
-<span class="go">     6   102     1.001000+3 9.991673-1          0          2  ...</span>
-<span class="go">     33  1       1.001000+3 9.991673-1          0          0  ...</span>
-<span class="go">         2       1.001000+3 9.991673-1          0          0  ...</span>
-<span class="go">         102     1.001000+3 9.991673-1          0          0  ...</span>
-<span class="go">dtype: object</span>
-</pre></div>
-</div>
-<p>The cross section in the merged file come from the pendf.
-&gt;&gt;&gt; assert merged.data[125, 3, 1] == pendf.data[125, 3, 1]
-&gt;&gt;&gt; assert merged.data[125, 3, 1] != endf6.data[125, 3, 1]</p>
-<p>The new file is also a pendf.
-&gt;&gt;&gt; merged.kind
-‘pendf’</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.parse">
-<span class="sig-name descname"><span class="pre">parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.parse" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.read_section">
-<span class="sig-name descname"><span class="pre">read_section</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raise_error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.read_section" title="Permalink to this definition"></a></dt>
-<dd><p>Parse MAT/MF/MT section.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>`mat`</strong><span class="classifier">int</span></dt><dd><p>MAT number</p>
-</dd>
-<dt><strong>`mf`</strong><span class="classifier">int</span></dt><dd><p>MF number</p>
-</dd>
-<dt><strong>`mt`</strong><span class="classifier">int</span></dt><dd><p>MT number</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>dict</cite></dt><dd></dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.to_file">
-<span class="sig-name descname"><span class="pre">to_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.to_file" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.to_string">
-<span class="sig-name descname"><span class="pre">to_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_fend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.to_string" title="Permalink to this definition"></a></dt>
-<dd><p>Write <cite>Endf6.data</cite> content to string according to the ENDF-6 file
-rules.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>title</strong><span class="classifier"><cite>str</cite>, optional, default is an empty string</span></dt><dd><p>first line of the file</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>str</cite></dt><dd><p>string containing the ENDF-6 information stored in this instance.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Notes</p>
-<dl class="simple">
-<dt>..note:: no modification is implemented to the actual content of</dt><dd><p>the <cite>Endf6.data</cite> object.</p>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;h1.endf&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">string</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Endf6</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span><span class="o">.</span><span class="n">write_string</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">string</span><span class="p">[:</span><span class="mi">81</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
-<span class="go">                                                                     1 0  0    0</span>
-<span class="go"> 1.001000+3 9.991673-1          0          0          2          5 125 1451    1</span>
-<span class="go"> 0.000000+0 0.000000+0          0          0          0          6 125 1451    2</span>
-<span class="go"> 1.000000+0 2.000000+7          3          0         10          3 125 1451    3</span>
-</pre></div>
-</div>
-<p>if no modification is applied to the <cite>Endf6</cite> content, the
-<cite>write_string</cite> returns an output identical to the file ASCII content.
-&gt;&gt;&gt; assert string == open(file).read()</p>
-<dl class="simple">
-<dt>..note:: differences might appear from the way zeros were handled at</dt><dd><p>the end of ENDF-6 section, or if a different fiel title is
-given</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.write_string">
-<span class="sig-name descname"><span class="pre">write_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_fend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.write_string" title="Permalink to this definition"></a></dt>
-<dd><div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>OUTDATED, use <cite>to_file</cite>.</p>
-</div>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.core.endf6.get_endf6_file">
-<span class="sig-prename descclassname"><span class="pre">sandy.core.endf6.</span></span><span class="sig-name descname"><span class="pre">get_endf6_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">library</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.get_endf6_file" title="Permalink to this definition"></a></dt>
-<dd><blockquote>
-<div><p>Given a library and a nuclide import the corresponding ENDF-6 nuclear
-data file directly from internet.</p>
-</div></blockquote>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>library</strong><span class="classifier"><cite>str</cite></span></dt><dd><blockquote>
-<div><p>nuclear data library. Available libraries are:
-for <cite>xs</cite></p>
-<blockquote>
-<div><ul class="simple">
-<li><p><cite>‘endfb_71’</cite></p></li>
-<li><p><cite>‘jeff_32’</cite></p></li>
-<li><p><cite>‘jeff_33’</cite></p></li>
-<li><p><cite>‘jeff_40t0’</cite></p></li>
-<li><p><cite>‘endfb_80’</cite></p></li>
-<li><p><cite>‘jendl_40u</cite></p></li>
-</ul>
-</div></blockquote>
-<dl class="simple">
-<dt>for ‘nfpy’</dt><dd><ul class="simple">
-<li><p><cite>‘endfb_71’</cite></p></li>
-<li><p><cite>‘jeff_33’</cite></p></li>
-<li><p><cite>‘endfb_80’</cite></p></li>
-<li><p><cite>‘jendl_40u</cite></p></li>
-</ul>
-</dd>
-<dt>for decay:</dt><dd><ul class="simple">
-<li><p><cite>‘endfb_71’</cite></p></li>
-<li><p><cite>‘jeff_33’</cite></p></li>
-<li><p><cite>‘endfb_80’</cite></p></li>
-</ul>
-</dd>
-</dl>
-</div></blockquote>
-<dl>
-<dt>kind<span class="classifier"><cite>str</cite></span></dt><dd><dl class="simple">
-<dt>nuclear data type:</dt><dd><ul class="simple">
-<li><p><cite>xs</cite> is a standard neutron-induced nuclear data file</p></li>
-<li><p>‘nfpy’ is a Neutron-Induced Fission Product Yields nuclear data
-file</p></li>
-<li><p>‘decay’ is a Radioactive Decay Data nuclear data file</p></li>
-</ul>
-</dd>
-</dl>
-</dd>
-<dt>zam<span class="classifier"><cite>int</cite> or ‘all’</span></dt><dd><dl>
-<dt>zam = ‘int’ (individual nuclides)</dt><dd><dl class="simple">
-<dt>ZAM nuclide identifier $Z times 10000 + A times 10 + M$ where:</dt><dd><ul class="simple">
-<li><p>$Z$ is the charge number</p></li>
-<li><p>$A$ is the mass number</p></li>
-<li><p>$M$ is the metastate level (0=ground, 1=1st level)</p></li>
-</ul>
-</dd>
-</dl>
-</dd>
-<dt>zam = ‘all’</dt><dd><p>We obtain the information of all the library. Actually,
-the only all libraries available are:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>for ‘nfpy’: ‘jeff_33’</p></li>
-<li><p>for ‘decay’: ‘jeff_33’</p></li>
-</ul>
-</div></blockquote>
-</dd>
-</dl>
-</dd>
-</dl>
-<dl class="simple">
-<dt>ValueError</dt><dd><p>if library is not among available selection.</p>
-</dd>
-<dt>ValueError</dt><dd><p>if when you select ‘xs’, you select zam = ‘all’</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>Endf6</cite></dt><dd><p><cite>Endf6</cite> object with ENDF-6 data for specified library and nuclide.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<p>#    Import hydrogen file from JEFF-4.0T0.
-#    &gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_40t0”, ‘xs’, 10010)
-#    &gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-<blockquote>
-<div><p>Import hydrogen file from JEFF-3.3.
-&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, ‘xs’, 10010)
-&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-<p>Import hydrogen file from ENDF/B-VII.1.
-&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘xs’, 10010)
-&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-<p>Import hydrogen file from ENDF/B-VIII.0.
-&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘xs’, 10010)
-&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-<p>Import hydrogen file from JENDL-4.0u
-&gt;&gt;&gt; tape = sandy.get_endf6_file(“jendl_40u”, ‘xs’, 10010)
-&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-<p>Import Neutron-Induced Fission Product Yields for Th-227 from ENDF/B-VII.1.
-&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘nfpy’, 902270)
-&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-<p>Import Neutron-Induced Fission Product Yields for Th-227 from ENDF/B-VIII.0
-&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘nfpy’, 902270)
-&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-<p>Import Neutron-Induced Fission Product Yields for Th-227 from JENDL-4.0u
-&gt;&gt;&gt; tape = sandy.get_endf6_file(“jendl_40u”, ‘nfpy’, 902270)
-&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-<p>Import Neutron-Induced Fission Product Yields for Th-232 from JEFF-3.3
-&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, ‘nfpy’, 902320)
-&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-<p>Import Radioactive Decay Data for H-1 from JEFF-3.3
-&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, ‘decay’, 10010)
-&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-<p>Import Radioactive Decay Data for H-1 from ENDF/B-VII.1.
-&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘decay’, 10010)
-&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-<p>Import Radioactive Decay Data for H-1 from ENDF/B-VIII.0.
-&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘decay’, 10010)
-&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-<p>Import all Neutron-Induced Fission Product Yields from ENDF/B-VII.1.
-&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘nfpy’, ‘all’)
-&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-</div></blockquote>
-<p>#    Checked, but the test takes too long(~10 min), that’s why it is commented.
-#    Import all Radioactive Decay Data from ENDF/B-VIII.0.
-#    &gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘decay’, ‘all’)
-#    &gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
-</dd></dl>
-
+  <section id="sandy-core-endf6-module">
+<h1>sandy.core.endf6 module<a class="headerlink" href="#sandy-core-endf6-module" title="Permalink to this heading"></a></h1>
 </section>
 
 
@@ -551,7 +107,7 @@ the only all libraries available are:</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+    <p>&#169; Copyright 2023, Luca Fiorito.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

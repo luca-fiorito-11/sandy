@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>sandy.core.samples module &mdash; SANDY API 0 documentation</title>
@@ -11,10 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -27,14 +28,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> SANDY API
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SANDY API
           </a>
               <div class="version">
                 1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -51,7 +56,6 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.integrals.html">sandy.integrals package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
@@ -75,10 +79,10 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="sandy.html">sandy package</a> &raquo;</li>
-          <li><a href="sandy.core.html">sandy.core package</a> &raquo;</li>
-      <li>sandy.core.samples module</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="sandy.html">sandy package</a></li>
+          <li class="breadcrumb-item"><a href="sandy.core.html">sandy.core package</a></li>
+      <li class="breadcrumb-item active">sandy.core.samples module</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/sandy.core.samples.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -88,168 +92,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-sandy.core.samples">
-<span id="sandy-core-samples-module"></span><h1>sandy.core.samples module<a class="headerlink" href="#module-sandy.core.samples" title="Permalink to this headline"></a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="sandy.core.samples.Samples">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sandy.core.samples.</span></span><span class="sig-name descname"><span class="pre">Samples</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<dl class="field-list simple">
-<dt class="field-odd">Attributes</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><a class="reference internal" href="#sandy.core.samples.Samples.condition_number" title="sandy.core.samples.Samples.condition_number"><code class="xref py py-obj docutils literal notranslate"><span class="pre">condition_number</span></code></a></dt><dd><p>Return condition number of samples.</p>
-</dd>
-<dt><a class="reference internal" href="#sandy.core.samples.Samples.data" title="sandy.core.samples.Samples.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a></dt><dd><p>Dataframe of samples.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Methods</p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.samples.Samples.filter_by" title="sandy.core.samples.Samples.filter_by"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_by</span></code></a>(key, value)</p></td>
-<td><p>Apply condition to source data and return filtered results.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.samples.Samples.regression_coefficients" title="sandy.core.samples.Samples.regression_coefficients"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression_coefficients</span></code></a>(Y, **kwargs)</p></td>
-<td><p>Calculate regression coefficients from OLS model given an output population.</p></td>
-</tr>
-</tbody>
-</table>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 55%" />
-<col style="width: 45%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><strong>from_csv</strong></p></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><p><strong>sm_ols</strong></p></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<dl class="py property">
-<dt class="sig sig-object py" id="sandy.core.samples.Samples.condition_number">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">condition_number</span></span><a class="headerlink" href="#sandy.core.samples.Samples.condition_number" title="Permalink to this definition"></a></dt>
-<dd><p>Return condition number of samples.</p>
-<p class="rubric">Notes</p>
-<p>..note:: the condition number can help assess multicollinearity.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="sandy.core.samples.Samples.data">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sandy.core.samples.Samples.data" title="Permalink to this definition"></a></dt>
-<dd><p>Dataframe of samples.</p>
-<dl class="field-list">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>pandas.DataFrame</cite></dt><dd><p>tabulated samples</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Attributes</dt>
-<dd class="field-even"><dl>
-<dt><strong>index</strong><span class="classifier"><cite>pandas.Index</cite> or <cite>pandas.MultiIndex</cite></span></dt><dd><p>indices</p>
-</dd>
-<dt><strong>columns</strong><span class="classifier"><cite>pandas.Index</cite></span></dt><dd><p>samples numbering</p>
-</dd>
-<dt><strong>values</strong><span class="classifier"><cite>numpy.array</cite></span></dt><dd><p>sample values as <cite>float</cite></p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.samples.Samples.filter_by">
-<span class="sig-name descname"><span class="pre">filter_by</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples.filter_by" title="Permalink to this definition"></a></dt>
-<dd><p>Apply condition to source data and return filtered results.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>`key`</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>any label present in the columns of <cite>data</cite></p>
-</dd>
-<dt><strong>`value`</strong><span class="classifier"><cite>int</cite> or <cite>float</cite></span></dt><dd><p>value used as filtering condition</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>sandy.Samples</cite></dt><dd><p>filtered dataframe of samples</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-odd">Raises</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><cite>sandy.Error</cite></dt><dd><p>if applied filter returned empty dataframe</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Notes</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The primary function of this method is to make sure that
-the filtered dataframe is still returned as a <cite>Samples</cite>
-object.</p>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.samples.Samples.from_csv">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">from_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples.from_csv" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="sandy.core.samples.Samples.mean">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">mean</span></span><a class="headerlink" href="#sandy.core.samples.Samples.mean" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.samples.Samples.regression_coefficients">
-<span class="sig-name descname"><span class="pre">regression_coefficients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples.regression_coefficients" title="Permalink to this definition"></a></dt>
-<dd><p>Calculate regression coefficients from OLS model given an output
-population.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>Y</strong><span class="classifier"><cite>pandas.Series</cite></span></dt><dd><p>tabulated output population</p>
-</dd>
-<dt><strong>kwargs</strong><span class="classifier">keyword arguments, optional</span></dt><dd><p>arguments to pass to method <cite>sm_ols</cite></p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>pandas.DataFrame</cite></dt><dd><p>Dataframe with regression coefficients and standard errors.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="sandy.core.samples.Samples.rstd">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">rstd</span></span><a class="headerlink" href="#sandy.core.samples.Samples.rstd" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="sandy.core.samples.Samples.sm_ols">
-<span class="sig-name descname"><span class="pre">sm_ols</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalized</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intercept</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples.sm_ols" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="sandy.core.samples.Samples.std">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">std</span></span><a class="headerlink" href="#sandy.core.samples.Samples.std" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
+  <section id="sandy-core-samples-module">
+<h1>sandy.core.samples module<a class="headerlink" href="#sandy-core-samples-module" title="Permalink to this heading"></a></h1>
 </section>
 
 
@@ -263,7 +107,7 @@ population.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+    <p>&#169; Copyright 2023, Luca Fiorito.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

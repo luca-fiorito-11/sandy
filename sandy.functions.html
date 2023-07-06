@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>sandy.functions module &mdash; SANDY API 0 documentation</title>
@@ -11,10 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -27,14 +28,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> SANDY API
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SANDY API
           </a>
               <div class="version">
                 1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -51,6 +56,7 @@
 <li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.functions module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gls.html">sandy.gls module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
@@ -62,6 +68,7 @@
 <li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html">sandy.tsl module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.zam.html">sandy.zam module</a></li>
 </ul>
@@ -83,9 +90,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="sandy.html">sandy package</a> &raquo;</li>
-      <li>sandy.functions module</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="sandy.html">sandy package</a></li>
+      <li class="breadcrumb-item active">sandy.functions module</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/sandy.functions.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -95,315 +102,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-sandy.functions">
-<span id="sandy-functions-module"></span><h1>sandy.functions module<a class="headerlink" href="#module-sandy.functions" title="Permalink to this headline"></a></h1>
-<p>Created on Thu Jan 12 11:10:49 2017</p>
-<p>&#64;author: lfiorito</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.contains">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">contains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmax</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.contains" title="Permalink to this definition"></a></dt>
-<dd><p>Check if item is included in a given domain.</p>
-<dl class="simple">
-<dt>Inputs:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>item :</dt><dd><p>(scalar or iterable) x-value(s) to check</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>xmin :</dt><dd><p>(scalar) lower bound of the domain</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>xmax :</dt><dd><p>(scalar) upper bound of the domain</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>mask:</dt><dd><p>(boolean array/scalar) True if item is included, otherwise False</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.convert_za">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">convert_za</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">za</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.convert_za" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.div0">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">div0</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.div0" title="Permalink to this definition"></a></dt>
-<dd><p>Ignore division by zero.</p>
-<dl class="simple">
-<dt>Inputs:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>a :</dt><dd><p>(array or scalar) numerator</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>b :</dt><dd><p>(array or scalar) denominator</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>value :</dt><dd><p>(scalar) standard replacer when division by zero is found (default is zero)</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>c :</dt><dd><p>(array or scalar) a/b</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
-<p>..Example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">div0</span><span class="p">(</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">0</span> <span class="p">)</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.find_nearest">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">find_nearest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">my_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">my_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'below'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.find_nearest" title="Permalink to this definition"></a></dt>
-<dd><p>Find the nearest value in an array.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.force_symlink">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">force_symlink</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.force_symlink" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.gls">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">gls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cy</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.gls" title="Permalink to this definition"></a></dt>
-<dd><p>Run GLS adjustment.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.isnum">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">isnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rais</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.isnum" title="Permalink to this definition"></a></dt>
-<dd><p>Return true if input <em>item</em> is a scalar number, otherwise false.
-Raise error if input <em>rais</em> is true.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.log10">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">log10</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.log10" title="Permalink to this definition"></a></dt>
-<dd><p>Ignore division by zero.</p>
-<dl class="simple">
-<dt>Inputs:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>a :</dt><dd><p>numerator</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>b :</dt><dd><p>denominator</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>value :</dt><dd><p>standard replacer when division by zero is found</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><p>c: a/b</p></li>
-</ul>
-</dd>
-</dl>
-<p>..Example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">div0</span><span class="p">(</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">0</span> <span class="p">)</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.printProgress">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">printProgress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iteration</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decimals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">barLength</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.printProgress" title="Permalink to this definition"></a></dt>
-<dd><p>Call in a loop to create terminal progress bar
-&#64;params:</p>
-<blockquote>
-<div><p>iteration   - Required  : current iteration (Int)
-total       - Required  : total iterations (Int)
-prefix      - Optional  : prefix string (Str)
-suffix      - Optional  : suffix string (Str)
-decimals    - Optional  : positive number of decimals in percent complete (Int)
-barLength   - Optional  : character length of bar (Int)</p>
-</div></blockquote>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.run_process">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">run_process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cwd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">36000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.run_process" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.split_by_n">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">split_by_n</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.split_by_n" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.uniform_loggrid">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">uniform_loggrid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.uniform_loggrid" title="Permalink to this definition"></a></dt>
-<dd><p>Given lower and upper limits, produce a grid with a number of points <cite>npoints</cite>
-that define equivalent intervals in log scale.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>xmin</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>lower bound of the grid structure</p>
-</dd>
-<dt><strong>xmax</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>upper bound of the grid structure</p>
-</dd>
-<dt><strong>npoints</strong><span class="classifier"><cite>int</cite>, optional, default <cite>100</cite></span></dt><dd></dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt><cite>numpy</cite> array</dt><dd><p>grid equally spaced in logarithmic scale</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.union_grid">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">union_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">xgrids</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.union_grid" title="Permalink to this definition"></a></dt>
-<dd><p>Return union grid from a list of grids.</p>
-<dl class="simple">
-<dt>Inputs:</dt><dd><ul class="simple">
-<li><dl class="field-list simple">
-<dt class="field-odd"><code class="docutils literal notranslate"><span class="pre">xgrids</span></code></dt>
-<dd class="field-odd"><p>:
-(list) input grids</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><dl class="field-list simple">
-<dt class="field-odd"><code class="docutils literal notranslate"><span class="pre">ug</span></code></dt>
-<dd class="field-odd"><p>:
-(<code class="docutils literal notranslate"><span class="pre">records.Grid</span></code> instance) sorted union grid in 1D-array</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.zero_interp">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">zero_interp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xx_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xx_new</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.zero_interp" title="Permalink to this definition"></a></dt>
-<dd><p>Reshape array on its first dimension by using zero interpolation.
-If some x-values of the new grid exceed the bounds of the old grid, set
-the corresponing interpolated array to zero in those positions.</p>
-<dl class="simple">
-<dt>Inputs:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>xx_old :</dt><dd><p>old array of tabulated x-values.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>xx_new :</dt><dd><p>new array of tabulated x-values.</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>arr_new :</dt><dd><p>array reshaped according to xx_new.</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.zero_interp_1d">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">zero_interp_1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xx_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xx_new</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.zero_interp_1d" title="Permalink to this definition"></a></dt>
-<dd><p>Reshape array on its first dimension by using zero interpolation.
-If some x-values of the new grid exceed the bounds of the old grid, set
-the corresponing interpolated array to zero in those positions.</p>
-<dl class="simple">
-<dt>Inputs:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>xx_old :</dt><dd><p>old array of tabulated x-values.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>xx_new :</dt><dd><p>new array of tabulated x-values.</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>arr_new :</dt><dd><p>array reshaped according to xx_new.</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sandy.functions.zero_interp_2d">
-<span class="sig-prename descclassname"><span class="pre">sandy.functions.</span></span><span class="sig-name descname"><span class="pre">zero_interp_2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xx_old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xx_new</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.functions.zero_interp_2d" title="Permalink to this definition"></a></dt>
-<dd><p>Reshape array on its first dimension by using zero interpolation.
-If some x-values of the new grid exceed the bounds of the old grid, set
-the corresponing interpolated array to zero in those positions.</p>
-<dl class="simple">
-<dt>Inputs:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>xx_old :</dt><dd><p>old array of tabulated x-values.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>xx_new :</dt><dd><p>new array of tabulated x-values.</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-<dt>Outputs:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>arr_new :</dt><dd><p>array reshaped according to xx_new.</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
+  <section id="sandy-functions-module">
+<h1>sandy.functions module<a class="headerlink" href="#sandy-functions-module" title="Permalink to this heading"></a></h1>
 </section>
 
 
@@ -417,7 +117,7 @@ the corresponing interpolated array to zero in those positions.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Luca Fiorito.</p>
+    <p>&#169; Copyright 2023, Luca Fiorito.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
