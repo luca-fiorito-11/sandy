@@ -1,6 +1,5 @@
 numpy
 pandas
 pyyaml
-pytest >= 3.3
 scipy
 tables
