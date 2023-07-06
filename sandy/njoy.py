@@ -576,7 +576,7 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
                   ign=2, ek=None, spectrum=None,
                   iwt=2, relative=True,
-                  mt=None, irespr=1, ifissp=-1, efmean=None,
+                  mt=None, irespr=0, ifissp=-1, efmean=None,
                   temperature=NJOY_TEMPERATURES[0], mfcov=33,
                   iprint=False,
                   **kwargs):
@@ -606,8 +606,9 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     iprint : `bool`, optional
         print option (default is `False`)
     irespr: `int`, optional
-        processing for resonance parameter covariances
-        (default is 1, 1% sensitivity method)
+        processing for resonance parameter covariances (default is 0)
+        - 0: area sensitivity method
+        - 1: 1% sensitivity method
     iwt : `int`, optional
         weight function option (default is 2, constant)
 
@@ -643,7 +644,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 33 1/
+    0 33 0/
 
     Test argument `temperature`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9440, temperature=600))
@@ -651,7 +652,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9440 2 2 0 1 /
     0 600.0 /
-    0 33 1/
+    0 33 0/
 
     Test argument `iwt`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, iwt=6))
@@ -659,7 +660,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 6 0 1 /
     0 293.6 /
-    0 33 1/
+    0 33 0/
 
     Test argument `ek`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, ek=[1e-2, 1e3, 2e5]))
@@ -667,7 +668,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 1 2 0 1 /
     0 293.6 /
-    0 33 1/
+    0 33 0/
     2 /
     1.00000e-02 1.00000e+03 2.00000e+05 /
 
@@ -677,7 +678,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 3 2 0 1 /
     0 293.6 /
-    0 33 1/
+    0 33 0/
 
     Test nubar
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=31))
@@ -685,7 +686,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 31 1/
+    0 31 0/
 
     Test mubar
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=34))
@@ -693,7 +694,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 34 1/
+    0 34 0/
 
     Test chi
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=35))
@@ -701,7 +702,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 35 1/
+    0 35 0/
 
     Test keyword `relative`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, relative=False))
@@ -709,7 +710,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 0 /
     0 293.6 /
-    0 33 1/
+    0 33 0/
 
     Test keyword `irespr`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, irespr=1))
@@ -725,7 +726,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    1 33 1/
+    1 33 0/
     2 0 /
     1 2 /    
 
@@ -735,7 +736,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    1 33 1/
+    1 33 0/
     1 0 /
     2 /    
     """

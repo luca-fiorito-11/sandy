@@ -1470,6 +1470,7 @@ class Endf6(_FormattedFile):
             """
             fission = 18 in self.get_records().query("MF==3").MT.values
             groupr_kws["nubar"] = fission
+            fission = 18 in self.get_records().query("MF==5").MT.values
             groupr_kws["chi"] = fission
             groupr_kws["mubar"] = True
             return method(self, groupr_kws=groupr_kws, **kwargs)
@@ -2157,6 +2158,12 @@ class Endf6(_FormattedFile):
         >>> assert outs[1]["ace"] == '1001_1.03c' and os.path.isfile('1001_1.03c')
         >>> assert outs[1]["xsdir"] == '1001_1.03c.xsd' and os.path.isfile('1001_1.03c.xsd')
         """
+
+        if 33 not in smps and 31 not in smps:
+            logging.info("no perturbation coefficient was found.")
+            return
+
+
         pendf = self.get_pendf(**njoy_kws)
 
         seqs = []

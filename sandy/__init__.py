@@ -19,12 +19,13 @@ from .sections import *
 from .shared import *
 from .utils import *
 from .core import *
-from .sampling import *
+# from .sampling import *  # don't do this
 from .spectra import *
 import sandy.mcnp
 import sandy.aleph2
 import sandy.tools
 import sandy.shared
+import sandy.sampling
 
 testdir = "tests"
 
@@ -65,4 +66,4 @@ logging.getLogger().addHandler(ShutdownHandler(level=40))
 # logging.getLogger().addFilter(DuplicateFilter())
 
 
-__version__ = '1.0.37'
+__version__ = '1.0.38'
