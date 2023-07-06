@@ -214,28 +214,30 @@ class Samples():
         # iterate over samples
         for n, p in df.groupby(axis=1, level=self._columnsname):
             s = p.droplevel(self._columnsname, axis=1)
-            adds = []
-            for mat in s.columns.get_level_values("MAT").unique():
-                
-                # sort from MT107 to MT1
-                for k, v in sandy.redundant_xs.items():
-                    if not (mat, k) in s.columns:
-                        continue
-                    daughters = pd.MultiIndex.from_product([[mat], v], names=["MAT", "MT"])
-                    # Only give perturbation for redundant xs to daughters if no perturbation
-                    # for partial cross section is found
-                    if s.columns.intersection(daughters).empty:
-                        
-                        # This goes only 1 level deep.
-                        # Then, MT=1 perturbations will be given to MT=2 and MT=3
-                        # without descending any further
-                        add = pd.DataFrame(
-                            np.tile(s[(mat, k)].values, (daughters.size, 1)).T,
-                            index=s.index,
-                            columns=daughters,
-                            )
-                        adds.append(add)
-            s = pd.concat([s, *adds], axis=1)
+            
+            if kind == "xs":
+                adds = []
+                for mat in s.columns.get_level_values("MAT").unique():
+                    
+                    # sort from MT107 to MT1
+                    for k, v in sandy.redundant_xs.items():
+                        if not (mat, k) in s.columns:
+                            continue
+                        daughters = pd.MultiIndex.from_product([[mat], v], names=["MAT", "MT"])
+                        # Only give perturbation for redundant xs to daughters if no perturbation
+                        # for partial cross section is found
+                        if s.columns.intersection(daughters).empty:
+                            
+                            # This goes only 1 level deep.
+                            # Then, MT=1 perturbations will be given to MT=2 and MT=3
+                            # without descending any further
+                            add = pd.DataFrame(
+                                np.tile(s[(mat, k)].values, (daughters.size, 1)).T,
+                                index=s.index,
+                                columns=daughters,
+                                )
+                            adds.append(add)
+                s = pd.concat([s, *adds], axis=1)
             yield n, s
 
     def _std_convergence(self):

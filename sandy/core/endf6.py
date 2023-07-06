@@ -2351,7 +2351,7 @@ def endf6_perturb_worker(e6, pendf, n,
 
     # apply edistr perturbation
     if pchi is not None:
-        edistr = sandy.Edistr.from_endf6(e6)
+        edistr = sandy.Edistr.from_endf6(endf6_pert)
         edistr_pert = edistr._perturb(pchi)
         endf6_pert = edistr_pert.normalize().to_endf6(endf6_pert).update_intro()
 
