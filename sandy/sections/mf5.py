@@ -158,3 +158,43 @@ def read_mf5(tape, mat, mt):
     if pdistr:
         out["PDISTR"] = pdistr
     return out
+
+def write_mf5(sec):
+    """Write MT section for MF5
+    
+    Parameters
+    ----------
+    sec : `sandy.utils.Section`
+        dictionary with MT section for MF5
+    
+    Returns
+    -------
+    `str`
+        section content in a single string
+    """
+    text = sandy.write_cont(sec["ZA"], sec["AWR"], 0, 0, len(sec["PDISTR"]), 0)
+    for k, sub in sorted(sec["PDISTR"].items()):
+        U = sub['U'] if 'U' in sub else 0
+        text += sandy.write_tab1(U, 0, 0, sub["LF"], sub["NBT_P"], sub["INT_P"], sub["E_P"], sub["P"])
+        if sub["LF"] == 1:
+            text += sandy.write_tab2(0, 0, 0, 0, len(sub['EIN']), sub["NBT_EIN"], sub["INT_EIN"])
+            for ein, distr in sorted(sub['EIN'].items()):
+                text += sandy.write_tab1(0, ein, 0, 0, distr["NBT"], distr["INT"], distr["EOUT"], distr["EDISTR"])
+        elif sub["LF"] == 5:
+            text += sandy.write_tab1(0, 0, 0, 0, sub["NBT_THETA"], sub["INT_THETA"], sub["E_THETA"], sub["THETA"])
+            text += sandy.write_tab1(0, 0, 0, 0, sub["NBT_G"], sub["INT_G"], sub["E_G"], sub["G"])
+        elif sub["LF"] in (7,9):
+            text += sandy.write_tab1(0, 0, 0, 0, sub["NBT_THETA"], sub["INT_THETA"], sub["E_THETA"], sub["THETA"])
+        elif sub["LF"] == 11:
+            text += sandy.write_tab1(0, 0, 0, 0, sub["NBT_A"], sub["INT_A"], sub["E_A"], sub["A"])
+            text += sandy.write_tab1(0, 0, 0, 0, sub["NBT_B"], sub["INT_B"], sub["E_B"], sub["B"])
+        elif sub["LF"] == 12:
+            text += sandy.write_tab1(0, 0, 0, 0, sub["NBT_TM"], sub["INT_TM"], sub["E_TM"], sub["TM"])
+    textout = []
+    iline = 1
+    for line in text:
+        if iline > 99999:
+            iline = 1
+        textout.append("{:<66}{:4}{:2}{:3}{:5}\n".format(line, sec["MAT"], sec["MF"], sec["MT"], iline))
+        iline += 1
+    return "".join(textout)
