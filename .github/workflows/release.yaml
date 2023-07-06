@@ -13,6 +13,11 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v2
+        with:
+          # The branch, tag or SHA to checkout. When checking out the repository that
+          # triggered a workflow, this defaults to the reference or SHA for that event.
+          # Otherwise, defaults to `master`.
+          ref: 'v1.0'
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
@@ -27,4 +32,4 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
-        run: twine upload dist/*
+        run: twine upload dist/* --verbose
