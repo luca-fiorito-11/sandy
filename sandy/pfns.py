@@ -17,12 +17,13 @@ __all__ = [
     ]
 
 minimal_edistrtest = pd.DataFrame(
-    [[9437, 18, 0, 1e0, 1e-5, 0.4],
-     [9437, 18, 0, 1e0, 2e7, 0.6],
-     [9437, 18, 0, 2e0, 1e-4, 0.2],
-     [9437, 18, 0, 2e0, 1e0, 0.7],
-     [9437, 18, 0, 2e0, 1e7, 0.1]],
-    columns=["MAT", "MT", "K", "EIN", "EOUT", "VALUE"]
+    [[0.4, 0],
+     [0, 0.2],
+     [0, 0.7],
+     [0, 0.1],
+     [0.6, 0]],
+    index=[1e-5, 1e-4, 1, 1e7, 2e7],
+    columns=pd.MultiIndex.from_product([[9437],[18],[0],[1e0, 2e0]])
     )
 
 
@@ -33,7 +34,7 @@ class Edistr():
     Attributes
     ----------
     data : `pandas.DataFrame`
-        dataframe of energy distribution data with the following columns
+        dataframe of energy distribution data 
 
     Methods
     -------
@@ -48,16 +49,20 @@ class Edistr():
     filter_by
         apply condition to source data and return filtered results
     from_endf6
-        etract energy distributions from `Endf6` instance
+        extract energy distributions from `Endf6` instance
     get_integrals
         calculate the integral of each energy distribution
     get_table
         pivot dataframe of tabulated energy spectra
     normalize
         renormalize each outgoing energy distribution to 1
+    to_endf6
+        Given the `Edistr` instance, the `Endf6` instance is obtained 
+        with the relative information on the energy distribution
     """
 
-    _labels = ["MAT", "MT", "K", "EIN"]
+    _indexname = ("EOUT")
+    _columnsnames = ("MAT", "MT", "K", "EIN")
 
     def __repr__(self):
         return self.data.__repr__()
@@ -68,14 +73,8 @@ class Edistr():
     @property
     def data(self):
         """
-        Dataframe of energy distribution data with the following columns:
-
-            - `MAT` : MAT number
-            - `MT` : MT number
-            - `K` : subsection number
-            - `EIN` : incoming energy
-            - `EOUT` : outgoing energy
-            - `VALUE` : tabulated value of the distribution
+        Dataframe of energy distribution data with index as outgoing energy
+        and columns as pd.MultiIndex with last level as incident energy
 
         Returns
         -------
@@ -89,19 +88,25 @@ class Edistr():
         Examples
         --------
         >>> Edistr(minimal_edistrtest)
-            MAT  MT  K         EIN        EOUT       VALUE
-        0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-01
-        1  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-01
-        2  9437  18  0 2.00000e+00 1.00000e-04 2.00000e-01
-        3  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
-        4  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
+        MAT                9437
+        MT                   18
+        K                     0
+        EIN         1.00000e+00 2.00000e+00
+        EOUT
+        1.00000e-05 4.00000e-01 0.00000e+00
+        1.00000e-04 0.00000e+00 2.00000e-01
+        1.00000e+00 0.00000e+00 7.00000e-01
+        1.00000e+07 0.00000e+00 1.00000e-01
+        2.00000e+07 6.00000e-01 0.00000e+00
         """
         return self._data
 
     @data.setter
     def data(self, data):
-        self._data = data.sort_values(by=["MAT", "MT", "K", "EIN", "EOUT"]) \
-                         .reset_index(drop=True)
+        self._data = data.rename_axis(self.__class__._indexname, axis=0)\
+                         .rename_axis(self.__class__._columnsnames, axis=1)
+        if not data.index.is_monotonic_increasing:
+            raise ValueError("energy grid is not monotonically increasing")
 
     def filter_by(self, key, value):
         """
@@ -319,26 +324,15 @@ class Edistr():
         Examples
         --------
         >>> Edistr(minimal_edistrtest).get_integrals()
-            MAT  MT  K         EIN    INTEGRAL
-        0  9437  18  0 1.00000e+00 1.00000e+07
-        1  9437  18  0 2.00000e+00 4.00000e+06
+                                INTEGRAL
+        MAT  MT K EIN
+        9437 18 0 1.00000e+00 3.00000e+06
+                  2.00000e+00 4.50000e+06
         """
-        keys = ["MAT", "MT", "K", "EIN"]
-        data = []
-        for (mat, mt, k, ein), chi in self.data.groupby(keys):
-            dx = np.diff(chi.EOUT.values)
-            values = chi.VALUE.values
-            y = (values[1:] + values[:-1]) / 2.
-            integral = y.dot(dx)
-            data.append({
-                "MAT": mat,
-                "MT": mt,
-                "K": k,
-                "EIN": ein,
-                "INTEGRAL": integral,
-                })
-        return pd.DataFrame(data)
-
+        data = self.data
+        integrals = data.apply(lambda x: np.trapz(x, x.index))
+        df = integrals.to_frame(name="INTEGRAL")
+        return df
     def normalize(self):
         """
         Renormalize each outgoing energy distribution to 1.
@@ -352,30 +346,30 @@ class Edistr():
         --------
         >>> new = Edistr(minimal_edistrtest).normalize()
         >>> new
-            MAT  MT  K         EIN        EOUT       VALUE
-        0  9437  18  0 1.00000e+00 1.00000e-05 4.00000e-08
-        1  9437  18  0 1.00000e+00 2.00000e+07 6.00000e-08
-        2  9437  18  0 2.00000e+00 1.00000e-04 5.00000e-08
-        3  9437  18  0 2.00000e+00 1.00000e+00 1.75000e-07
-        4  9437  18  0 2.00000e+00 1.00000e+07 2.50000e-08
+        MAT                9437
+        MT                   18
+        K                     0
+        EIN         1.00000e+00 2.00000e+00
+        EOUT
+        1.00000e-05 1.33333e-07 0.00000e+00
+        1.00000e-04 0.00000e+00 4.44444e-08
+        1.00000e+00 0.00000e+00 1.55556e-07
+        1.00000e+07 0.00000e+00 2.22222e-08
+        2.00000e+07 2.00000e-07 0.00000e+00
 
         >>> new.get_integrals()
-            MAT  MT  K         EIN    INTEGRAL
-        0  9437  18  0 1.00000e+00 1.00000e+00
-        1  9437  18  0 2.00000e+00 1.00000e+00
+                                INTEGRAL
+        MAT  MT K EIN
+        9437 18 0 1.00000e+00 1.00000e+00
+                  2.00000e+00 1.00000e+00
         """
         integrals = self.get_integrals()
-        data = self.data.copy()
-        keys = ["MAT", "MT", "K", "EIN"]
-        out = []
-        for (mat, mt, k, ein), chi in data.groupby(keys):
-            mask = (integrals.MAT == mat) & \
-                   (integrals.MT == mt) & \
-                   (integrals.K == k) & \
-                   (integrals.EIN == ein)
-            chi.loc[:, "VALUE"] /= integrals[mask].INTEGRAL.squeeze()
-            out.append(chi)
-        df = pd.concat(out)
+        data = self.data
+        b = np.array([[val]*data.shape[0]
+                     for val in integrals.values.squeeze()]).T
+        df = pd.DataFrame(data.values/b, 
+                          index=data.index, 
+                          columns=data.columns)
         return self.__class__(df)
 
     def custom_perturbation(self, pert, mat, mt, k, ein_low, ein_high):
@@ -443,41 +437,70 @@ class Edistr():
         out = pd.concat(dfs)
         return self.__class__(out)
 
-    def _perturb(self, pert, method=2, normalize=True, **kwargs):
-        """Perturb energy distributions given a set of perturbations.
-        
+    def _perturb(self, s, normalize=True):
+        """
+        Apply perturbations to energy distributions.
+
         Parameters
         ----------
-        pert : pandas.Series
-            multigroup perturbations from sandy.EdistrSamples
-        method : int
-            * 1 : samples outside the range [0, 2*_mean_] are set to _mean_. 
-            * 2 : samples outside the range [0, 2*_mean_] are set to 0 or 2*_mean_ respectively if they fall below or above the defined range.
-        normalize : bool
-            apply normalization
-        
+        s : `pandas.DataFrame` or :func:`~sandy.Samples`
+            input perturbations or samples.
+            If `s` is a `pandas.DataFrame`, its index and columns must have the
+            same names and structure as in `self.data`.
+            
+            .. note:: the energy grid of `s` must be multigroup, i.e., 
+                    rendered by a (right-closed) `pd.IntervalIndex`.
+            
+            If `s` is a :func:`~sandy.Samples` instance
+
         Returns
         -------
-        sandy.Edistr
+        Edistr : :func:`~Edistr` or `dict` of :func:`~Edistr`
+            perturbed chi object if `s` is a `pandas.DataFrame`,
+            otherwise dictionary of perturbed chi objects with
+            sample numbers as key.
+
+        Examples
+        --------
+        Get plutonium energy distributions
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 942390)
+        >>> edistr = sandy.Edistr.from_endf6(e6)
+
+        Apply multiplication coefficient equal to 1 to outgoing energy up to 3e7 eV (upper xs energy limit)
+        and incidnet energy of 2e6 eV. 
+        >>> index = pd.IntervalIndex.from_breaks([9e-6, 3e7], name="EOUT", closed="right")
+        >>> columns = pd.MultiIndex.from_product([[9437], [18], [0], [2e6]], names=["MAT", "MT", "K", "EIN"])
+        >>> s = pd.DataFrame(1, index=index, columns=columns)
+        >>> ep = edistr._perturb(s, normalize=False)   # Because the normalization changes the values
+        >>> assert ep.data.equals(edistr.data)
+        
+        Apply multiplication coefficients equal to 1.20 to outgoing energy up to 3e7 eV (upper xs energy limit)
+        and incidnet energy of 2e6 eV. 
+        >>> s = pd.DataFrame(1.20, index=index, columns=columns)
+        >>> ep = edistr._perturb(s, normalize=False)    # Because being multily for 1.2 the norm. deletes it
+        >>> assert not ep.data.equals(edistr.data)
+        >>> assert ep.data.loc[:, ep.data.columns != (9437, 18, 0, 2e6)].equals(edistr.data.loc[:, edistr.data.columns != (9437, 18, 0, 2e6)])
+        >>> assert ep.data[(9437, 18, 0, 2e6)].equals(edistr.data[(9437, 18, 0, 2e6)] * 1.20)
+        
         """
-        frame = self.copy()
-        for (mat,mt,k),S in self.groupby(["MAT", "MT", "K"]):
-            if (mat,mt) not in pert.index:
-                continue
-            for ein,edistr in S.loc[mat,mt,k].iterrows():
-                for (elo,ehi),P in pert.loc[mat,mt].groupby(["ELO","EHI"]):
-                    if ein >= elo and ein <= ehi:
-                        P = P[elo,ehi]
-                        eg = sorted(set(edistr.index) | set(P.index))
-                        P = P.reindex(eg).ffill().fillna(0).reindex(edistr.index)
-                        if method == 2:
-                            P = P.where(P>=-edistr, -edistr)
-                            P = P.where(P<=edistr, edistr)
-                        elif method == 1:
-                            P = np.where(P.abs() <= edistr, P, 0)
-                        frame.loc[mat,mt,k,ein] = edistr + P
-                        break
-        edistr = Edistr(frame)
+        x = self.data
+        
+        # reshape indices (energy)
+        idx = s.index.get_indexer(x.index)
+        # need to copy, or else it returns a view
+        # seed https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+        s_ = s.iloc[idx].copy()
+        s_.index = x.index
+        s_.loc[idx < 0, :] = 1.  # idx = -1 indicates out of range lines
+
+        # reshape columns (MAT and MT)
+        idx = s_.columns.get_indexer(x.columns)
+        s_ = s_.iloc[:, idx].copy()
+        s_.columns = x.columns
+        s_.loc[:, idx < 0] = 1.  # idx = -1 indicates out of range lines
+        
+        edistr = self.__class__(s_ * x)
+
         if normalize:
             edistr = edistr.normalize()
         return edistr
@@ -496,9 +519,22 @@ class Edistr():
         -------
         `sandy.Edistr`
             object with tabulated energy distributions
+
+        Show content of `sandy.Edistr` instance.
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 942390)
+        >>> sandy.Edistr.from_endf6(e6).data.head().iloc[:, 1:5]  
+        MAT                9437
+        MT                   18
+        K                     0
+        EIN         5.00000e+02 1.00000e+03 1.00000e+04 5.00000e+04
+        EOUT
+        1.00000e-05 1.85342e-12 1.85341e-12 1.85329e-12 1.85274e-12
+        2.00000e-05 2.62113e-12 2.62112e-12 2.62095e-12 2.62017e-12
+        4.00000e-05 3.70684e-12 3.70683e-12 3.70658e-12 3.70548e-12
+        6.00000e-05 4.53994e-12 4.53992e-12 4.53962e-12 4.53827e-12
+        8.00000e-05 5.24227e-12 5.24225e-12 5.24190e-12 5.24035e-12
         """
         tape = endf6.filter_by(listmf=[5])
-        data = []
         for mat, mf, mt in tape.data:
             sec = tape.read_section(mat, mf, mt)
             for k, pdistr in sec["PDISTR"].items():
@@ -512,18 +548,54 @@ class Edistr():
                          f"distribution for MAT{mat}/MF{mf}/MT{mt}," +\
                          f" subsection {k}"
                     logging.warning(msg)
-                    continue
+                    continue  
+                data = []
                 for ein, v in sorted(pdistr["EIN"].items()):
-                    for eout, val in zip(v["EOUT"], v["EDISTR"]):
-                        dct = {
-                            "MAT": mat,
-                            "MT": mt,
-                            "K": k,
-                            "EIN": ein,
-                            "EOUT": eout,
-                            "VALUE": val,
-                            }
-                        data.append(dct)
+                    series  = pd.Series(v["EDISTR"],
+                                        index=v["EOUT"],
+                                        name=(mat, mt, k, ein)).to_frame()
+                    data.append(series)
         if not data:
             raise sandy.Error("no tabulated energy distribution was found")
-        return cls(data)
+        df = pd.concat(data, axis=1).interpolate(method='slinear', axis=0) \
+                      .fillna(0)
+        return cls(df)
+    def to_endf6(self, endf6):
+        """
+        Update energy distributions in `Endf6` instance with those available
+        in a `Edistr` instance.
+
+        .. warning:: only chi with `(MAT,MT)` combinations that are originally
+                    present in the `Endf6` instance are modififed, the others
+                    are discarded.
+                    The reason behind this is that to reconstruct a endf6
+                    section we need info that is not available in the `Edistr`
+                    instance itself.
+
+        Parameters
+        ----------
+        `endf6` : `sandy.Endf6`
+            `Endf6` instance
+
+        Returns
+        -------
+        `sandy.Endf6`
+            `Endf6` instance with updated chi
+        """
+        data = endf6.data.copy()
+        mf = 5
+        for (mat, mt, k), edistr in self.data.groupby(axis=1, level=[0,1,2]):
+            # Must read original section to extract info not given in `Xs`
+            # instance, e.g. QI, QM
+            frame = edistr[mat, mt, k]
+            if (mat, mf, mt) not in endf6.keys:
+                continue
+            sec = endf6.read_section(mat, mf, mt)
+            sec["PDISTR"][k]["NBT_EIN"] = [len(frame.columns.unique())]
+            sec["PDISTR"][k]["E_P"] = frame.columns.unique().values[[0,-1]]
+            for ein, fk in frame.iteritems():
+                sec["PDISTR"][k]["EIN"][ein]["EOUT"] = fk.index.values
+                sec["PDISTR"][k]["EIN"][ein]["EDISTR"] = fk.values
+                sec["PDISTR"][k]["EIN"][ein]["NBT"] = [len(fk.index)]
+            data[mat, mf, mt] = sandy.mf5.write_mf5(sec)
+        return sandy.Endf6(data)
