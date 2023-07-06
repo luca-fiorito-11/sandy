@@ -2000,7 +2000,36 @@ class Endf6(_FormattedFile):
         """
         df = self.to_series().rename("TEXT").reset_index().drop("TEXT", axis=1)
         return df
+    def get_incident_ene(self):
+        """
+        Obtain the incident neutron energy intervals for the chi (pfns)
+        that are available in the ENDF-6 file.
 
+        Parameters
+        ----------
+        endf6 : `sandy.Endf6`
+            endf6 object of the nuclide to process
+        
+        Returns
+        -------
+        out : `pandas.IntervalIndex`
+            Intervals of the energy groups available
+        """
+        mat = self.mat[0]
+        df = self._get_section_df(mat, 35, 18)
+
+        i = 0
+        C, i = sandy.read_cont(df, i)
+        
+        grid = []
+        for en_in in range(C.N1):
+            C, i = sandy.read_list(df, i)
+            grid.append(C.C1)
+        grid.append(C.C2)
+        grid = pd.IntervalIndex.from_breaks(grid, closed="left")
+        
+        return grid
+    
     def get_perturbations(
         self,
         nsmp,
@@ -2172,7 +2201,7 @@ class Endf6(_FormattedFile):
         >>> assert outs[1]["xsdir"] == '1001_1.03c.xsd' and os.path.isfile('1001_1.03c.xsd')
         """
 
-        if 33 not in smps and 31 not in smps:
+        if 33 not in smps and 31 not in smps and 35 not in smps:
             logging.info("no perturbation coefficient was found.")
             return
 
@@ -2182,13 +2211,17 @@ class Endf6(_FormattedFile):
         seqs = []
         ids = []
         if 31 in smps:
-            seq_nu = smps[31].iterate_xs_samples()
+            seq_nu = smps[31].iterate_samples("xs")
             seqs.append(seq_nu)
             ids.append("pnu")
         if 33 in smps:
-            seq_xs = smps[33].iterate_xs_samples()
+            seq_xs = smps[33].iterate_samples("xs")
             seqs.append(seq_xs)
             ids.append("pxs")
+        if 35 in smps:
+            seq_chi = smps[35].iterate_samples("chi")
+            seqs.append(seq_chi)
+            ids.append("pchi")
         data = dict(zip(ids, seqs))
 
         if processes == 1:
@@ -2244,7 +2277,7 @@ def endf6_perturb_worker(e6, pendf, n,
                          pxs=None,
                          pnu=None,
                          plpc=None,
-                         pedistr=None,
+                         pchi=None,
                          verbose=False,
                          to_ace=False,
                          to_file=False,
@@ -2317,8 +2350,10 @@ def endf6_perturb_worker(e6, pendf, n,
         pass
 
     # apply edistr perturbation
-    if pedistr is not None:
-        pass
+    if pchi is not None:
+        edistr = sandy.Edistr.from_endf6(e6)
+        edistr_pert = edistr._perturb(pchi)
+        endf6_pert = edistr_pert.normalize().to_endf6(endf6_pert).update_intro()
 
     # apply xs perturbation
     if pxs is not None:

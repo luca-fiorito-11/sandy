@@ -437,7 +437,7 @@ class Edistr():
         out = pd.concat(dfs)
         return self.__class__(out)
 
-    def _perturb(self, s, normalize=True):
+    def _perturb(self, s):
         """
         Apply perturbations to energy distributions.
 
@@ -471,13 +471,13 @@ class Edistr():
         >>> index = pd.IntervalIndex.from_breaks([9e-6, 3e7], name="EOUT", closed="right")
         >>> columns = pd.MultiIndex.from_product([[9437], [18], [0], [2e6]], names=["MAT", "MT", "K", "EIN"])
         >>> s = pd.DataFrame(1, index=index, columns=columns)
-        >>> ep = edistr._perturb(s, normalize=False)   # Because the normalization changes the values
+        >>> ep = edistr._perturb(s) 
         >>> assert ep.data.equals(edistr.data)
         
         Apply multiplication coefficients equal to 1.20 to outgoing energy up to 3e7 eV (upper xs energy limit)
         and incidnet energy of 2e6 eV. 
         >>> s = pd.DataFrame(1.20, index=index, columns=columns)
-        >>> ep = edistr._perturb(s, normalize=False)    # Because being multily for 1.2 the norm. deletes it
+        >>> ep = edistr._perturb(s)  
         >>> assert not ep.data.equals(edistr.data)
         >>> assert ep.data.loc[:, ep.data.columns != (9437, 18, 0, 2e6)].equals(edistr.data.loc[:, edistr.data.columns != (9437, 18, 0, 2e6)])
         >>> assert ep.data[(9437, 18, 0, 2e6)].equals(edistr.data[(9437, 18, 0, 2e6)] * 1.20)
@@ -499,11 +499,7 @@ class Edistr():
         s_.columns = x.columns
         s_.loc[:, idx < 0] = 1.  # idx = -1 indicates out of range lines
         
-        edistr = self.__class__(s_ * x)
-
-        if normalize:
-            edistr = edistr.normalize()
-        return edistr
+        return self.__class__(s_ * x)
 
     @classmethod
     def from_endf6(cls, endf6):
