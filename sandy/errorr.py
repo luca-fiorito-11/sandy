@@ -55,12 +55,13 @@ class Errorr(_FormattedFile):
 
     def get_xs(self, **kwargs):
         """
-        Extract multigroup xs values.
+        Extract multigroup xs/nubar/chi values.
 
         Returns
         -------
         xs : `pd.Series`
-            For a given mat and mt, the xs values in the energy grid.
+            For a given mat and mt, the xs/ nubar/chi values in the energy grid.
+        Note: This is valid also for the nubar and energy distributions
 
         Examples
         --------
@@ -117,18 +118,30 @@ class Errorr(_FormattedFile):
         (5530.0, 821000.0]      8.05810e+00
         (821000.0, 2231000.0]   3.48867e+00
         (2231000.0, 10000000.0] 1.52409e+00
+
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 942390)
+        >>> ek = [2e-5, 1e4, 1e5, 2e6, 1e7]
+        >>> err = e6.get_errorr(err=1, errorr_kws=dict(ek=ek))['errorr35']
+        >>> err.get_xs()
+        MAT                            9437
+        MT                               18
+        E
+        (2e-05, 10000.0]        2.07433e-05
+        (10000.0, 100000.0]     8.20392e-04
+        (100000.0, 2000000.0]   1.22772e-02
+        (2000000.0, 10000000.0] 7.20088e-03
         """
         data = []
         listmt_ = kwargs.get('mt', range(1, 10000))
         listmt_ = [listmt_] if isinstance(listmt_, int) else listmt_
         listmat_ = kwargs.get('mat', range(1, 10000))
         listmat_ = [listmat_] if isinstance(listmat_, int) else listmat_
-        for mat, mf, mt in self.filter_by(listmf=[3],
+        for mat, mf, mt in self.filter_by(listmf=[3, 5],
                                           listmt=listmt_,
                                           listmat=listmat_).data:
             mf1 = sandy.errorr.read_mf1(self, mat)
             egn = pd.IntervalIndex.from_breaks(mf1["EG"])
-            mf3 = sandy.errorr.read_mf3(self, mat, mt)
+            mf3 = sandy.errorr.read_mf3(self, mat, mf, mt)
             columns = pd.MultiIndex.from_tuples([(mat, mt)],
                                                 names=["MAT", "MT"])
             index = pd.Index(egn, name="E")
@@ -138,11 +151,11 @@ class Errorr(_FormattedFile):
 
     def get_cov(self):
             """
-            Extract cross section/nubar covariance from `Errorr` instance.
+            Extract cross section/nubar/chi covariance from `Errorr` instance.
             Returns
             -------
             data : `sandy CategoryCov`
-                xs/nubar covariance matrix for all cross section/nubar
+                xs/nubar/chi covariance matrix for all cross section/nubar/chi
                 MAT/MT in ERRORR file.
             Examples
             --------
@@ -173,8 +186,18 @@ class Errorr(_FormattedFile):
             (10000000.0, 20000000.0]               8.66651e-03               0.00000e+00               0.00000e+00
             (20000000.0, 24000000.0]               6.81128e-02               0.00000e+00               0.00000e+00
             (24000000.0, 28000000.0]               7.52293e-02               0.00000e+00               0.00000e+00
-                        
+
+            >>> tape = sandy.get_endf6_file("jeff_33", "xs", 942390)
+            >>> out = tape.get_errorr(err=1, errorr35_kws=dict(ek=[2e-5, 1e5, 2e6, 1e7]))
+            >>> cov = out["errorr35"].get_cov().data
+            >>> cov.loc[9437, 18][9437, 18]
+            E                        (2e-05, 100000.0]  (100000.0, 2000000.0]  (2000000.0, 10000000.0]
+            E
+            (2e-05, 100000.0]              4.77630e-01            9.11740e-01             -1.53083e+00
+            (100000.0, 2000000.0]          9.11740e-01            1.74870e+00             -2.93507e+00
+            (2000000.0, 10000000.0]       -1.53083e+00           -2.93507e+00              4.92670e+00
             """
+
             eg = self.get_energy_grid()
             eg = pd.IntervalIndex.from_breaks(eg)  # multigroup
     
@@ -254,6 +277,7 @@ def read_mf3(tape, mat, mf, mt):
     """
     Parse MAT/MF=33/MT section from `sandy.Errorr` object and return
     structured content in nested dcitionaries.
+    Now, it is working also for other mf but its value needs to be set.
 
     Parameters
     ----------
