@@ -31,4 +31,4 @@ jobs:
           destination-repository-name: 'sandy'
           user-email: lucafiorito.11@gmail.com
           commit-message: pushing api docs...
-          target-branch: gh_pages
+          target-branch: gh-pages
