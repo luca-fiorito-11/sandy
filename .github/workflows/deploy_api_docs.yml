@@ -26,9 +26,9 @@ jobs:
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
-          source-directory: api_docs/
+          source-directory: api_docs/build/html
           destination-github-username: 'luca-fiorito-11'
-          destination-repository-name: 'sandy_notebooks'
+          destination-repository-name: 'sandy'
           user-email: lucafiorito.11@gmail.com
           commit-message: pushing api docs...
-          target-branch: api_docs
+          target-branch: gh_pages
