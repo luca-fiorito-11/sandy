@@ -87,9 +87,11 @@ SANDY was conceived and developed as a part of the PhD thesis on *Nuclear data u
 
 ## :clipboard: Reference
 
-Among the publications about SANDY, please use the following as a reference for citation.
+Among the publications about SANDY, please use the following as references for citation.
 
-L. Fiorito, G. Žerovnik, A. Stankovskiy, G. Van den Eynde, P.E. Labeau, [*Nuclear data uncertainty propagation to integral responses using SANDY*](http://www.sciencedirect.com/science/article/pii/S0306454916305278), Annals of Nuclear Energy, Volume 101, 2017, Pages 359-366, ISSN 0306-4549.
+ - L. Fiorito, J. Dyrda and M. Fleming, [*JEFF-3.3 covariance application to ICSBEP using SANDY and NDAST*](https://doi.org/10.1051/epjconf/201921107003), EPJ Web of Conferences 211, 07003 (2019)
+
+ - L. Fiorito, G. Žerovnik, A. Stankovskiy, G. Van den Eynde, P.E. Labeau, [*Nuclear data uncertainty propagation to integral responses using SANDY*](http://www.sciencedirect.com/science/article/pii/S0306454916305278), Annals of Nuclear Energy, Volume 101, 2017, Pages 359-366, ISSN 0306-4549.
 
 <br>
 
