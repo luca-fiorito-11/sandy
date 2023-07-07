@@ -1,0 +1,36 @@
+name: API docs deployment
+
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+        with:
+          # The branch, tag or SHA to checkout. When checking out the repository that
+          # triggered a workflow, this defaults to the reference or SHA for that event.
+          # Otherwise, defaults to `master`.
+          ref: 'v1.0'
+      - uses: actions/setup-python@v3
+        with:
+          python-version: "3.x"
+      - name: install general python dependencies
+        run: pip install sphinx sphinx_rtd_theme codecov numpydoc sandy
+      - name: make docs
+        run: bash make_docs.sh html
+      - name: Pushes to another repository
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: api_docs/build/html
+          destination-github-username: 'luca-fiorito-11'
+          destination-repository-name: 'sandy'
+          user-email: lucafiorito.11@gmail.com
+          commit-message: pushing api docs...
+          target-branch: gh-pages
