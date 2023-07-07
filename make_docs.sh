@@ -7,7 +7,7 @@ sphinx-quickstart --sep --dot _ --language en --suffix .rst --master index --mak
 sed -i '13i\   sandy' api_docs/source/index.rst
 sed -i "s/alabaster/sphinx_rtd_theme/" api_docs/source/conf.py
 # add folder with sources
-sed -i '1 i\import os\nimport sys\nsys.path.insert(0, os.path.abspath(os.path.join("..", "..", "sandy")))\nprint(sys.path)' api_docs/source/conf.py
+sed -i '1 i\import os\nimport sys\nsys.path.insert(0, os.path.abspath(os.path.join("..", "..", "sandy")))\nsys.path.insert(0, os.path.abspath("../"))\nprint(sys.path)' api_docs/source/conf.py
 cat api_docs/source/conf.py
 ls sandy
 pwd
