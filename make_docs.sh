@@ -11,4 +11,4 @@ sed -i "s/alabaster/sphinx_rtd_theme/" api_docs/source/conf.py
 sphinx-apidoc --separate --force --module-first -o api_docs/source sandy
 
 # Run make
-[[ -n $1 ]] && (cd api_docs && make $1) >/dev/null 2>&1
+[[ -n $1 ]] && (cd api_docs && make $1)
