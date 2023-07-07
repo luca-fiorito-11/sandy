@@ -1,6 +1,6 @@
 # Installation and configuration
 
-## Installation on Windows/Linux with pip/conda
+## Installing SANDY on Windows/Linux with pip/conda
 The recommended way to install SANDY both on Windows and Linux is on an Anaconda virtual environment that already includes several python packages. Click [here](#anaconda) for more details on Anaconda.
 
 We advise to install the SANDY dependences in a python environment that was not previously altered. You can do so from a terminal/Anaconda Prompt using the package/environment management system `conda` included in Anaconda, as
@@ -27,10 +27,8 @@ To manage your python environments read the [conda cheatsheet](https://docs.cond
 Once the virtual environment is set up and active, you can install SANDY with `pip`.
 
 ```sh
-pip install -i https://test.pypi.org/simple/ sandy
+pip install sandy
 ```
-
-> This distribution is only temporarily available on a separate instance of the [Python Package index](https://test.pypi.org/project/sandy/).
 
 ## Running SANDY in a python shell
 1. Open a terminal/Anaconda Prompt.
@@ -41,21 +39,10 @@ pip install -i https://test.pypi.org/simple/ sandy
 import sandy
 ```
 
-Now, if `sandy` is available you are ready to roll!
-
-Still, many of the features of SANDY require running NJOY.
-Here we assume that 
+Now, if `sandy` is available and if you have a running version of NJOY2016 you are ready to roll!
 
 
-## Installation using Anaconda
-
-### Downloading Anaconda
-The recommended way to install the SANDY requirements (especially on Windows) is with the Anaconda distribution, which already includes several python packages and few other cool tools. The installer for the most recent Anaconda distributions can be found [here](https://www.anaconda.com/products/individual). For the Anaconda installation documentation, click [here](https://docs.anaconda.com/anaconda/install/).
-
-### Getting started with Anaconda
-The user guide to get yourself acquainted with Anaconda is available [here](https://docs.anaconda.com/anaconda/user-guide/). On a Windows machine we recommend that you use the Anaconda Prompt terminal.
-
-# Installation from source
+## Installing SANDY from source
 The source code of SANDY is available as a git repository. The recommended way to get SANDY is by cloning the source package using your local git distribution (*click [here](https://git-scm.com/downloads) to download it!*).
 
 ```sh
@@ -69,69 +56,15 @@ If a `SSL Certificate problem` appears when pushing or pulling with git, one can
 git config --global http.sslVerify false
 ```
 
-Move to the folder `sandy` that you cloned with git and install the requirements
-
-**with conda**
+Move to the folder `sandy` that you cloned with git and run the installation command,
 ```sh
-conda install --force-reinstall -y -c conda-forge --file requirements_conda.txt
-```
-
-**with pip**
-```sh
-pip install -r requirements.txt
-```
-
-> The difference between files `'requirements.txt'` and `'requirements_conda.txt'` is all in how they call the python package `pytables`. For more info have a look at the pytables [installation website](https://www.pytables.org/usersguide/installation.html). If you are aware of a better way of doing it, please get in touch with us!
-
-Now you can simply add the `sandy` folder to your `PYTHONPATH` and you are ready to go.
-
-**in Linux**
-```sh
-export PYTHONPATH="/path/to/sandy:${PYTHONPATH}"
-```
-> Add the previous command to your `${HOME}/.bashrc` or `${HOME}/.bash_profile` file to make your changes permanent.
-
-**in Windows**
-```dos
-set PYTHONPATH=%PYTHONPATH%;C:\path\to\sandy
-```
-> Alternatively, use the environment variable editor in **Control panel** &rarr; **View advanced system settings**.
-
-Alternatively, you can add sandy to the python packages of your environent (although not necessary). Then, once you are in the folder `sandy`, run the installation command,
-```sh
+cd sandy
 python setup.py install --user
 ```
 > Don't forget to activate the virtual environment if you are using one.
 
 SANDY is installed! Now go back to run it in a python shell.
 
-## Testing SANDY
-If you installed SANDY from source you can test if it works correctly by runnning a number (far away from being extensive enough) of unit tests. First, make sure you istalled the following packages
-
-```sh
-conda install -y --name sandy-devel -c conda-forge numpydoc nbval
-```
-
-Then, you can run the tests from a terminal/Anaconda Prompt from the `sandy` folder with
-```sh
-conda activate sandy-devel
-mkdir tests
-cd tests
-pytest ../sandy
-```
-
-Hopefully they are all green!
-
-
-## Running SANDY in a Jupyter notebook
-
-For combatibility issues we recommend installing a python kernel specific for the `sandy-devel` environment.
-For that, you can run the following after making sure that `ipykernel` is installed in the virtual environment.
-
-```sh
-conda activate sandy-devel
-python -m ipykernel install --user --name sandy-devel --display-name "Python3 (sandy-devel)"
-```
 
 ## Running SANDY with NJOY
 SANDY also works as a wrapper to the NJOY code to process nuclear data files into PENDF and ACE formats.
@@ -142,11 +75,25 @@ You can find the source on its [github repository](https://github.com/njoy/NJOY2
 
 To install NJOY you can do the following
 
-**in Linux**
+### NJOY on Linux
 
 Clone NJOY2016 with `git` and follow the installation instructions provided on the [NJOY website](https://docs.njoy21.io/install.html).
 
-**in Windows**
+Then, add the NJOY executable to the environment variables, as
+```sh
+export NJOY=/path/to/njoy
+```
+
+or make this permanent by adding it to your `.bashrc`.
+
+You can see that `sandy` recongnizes the NJOY executable if you open a python terminal and type
+```sh
+import sandy
+sandy.get_njoy()
+```
+
+
+### NJOY on Windows
 
 1. Download [Cygwin64](https://cygwin.com/install.html).
 2. Follow the instructions of the installation wizard.
@@ -219,3 +166,33 @@ To check if NJOY works you can:
  * run `C:\path\to\cygwin64\home\your_username\NJOY2016\bin\njoy.exe`.
 
 NJOY should now be running in your terminal!
+
+
+## Testing SANDY
+If you installed SANDY from source you can test if it works correctly by runnning a number of unit tests.
+First, make sure you istalled the following packages
+
+```sh
+conda install -y --name sandy-devel -c conda-forge pytest numpydoc nbval
+```
+
+Then, you can run the tests from a terminal/Anaconda Prompt from the `sandy` folder with
+```sh
+conda activate sandy-devel
+mkdir tests
+cd tests
+pytest ../sandy
+```
+
+Hopefully they are all green!
+
+
+## Running SANDY in a Jupyter notebook
+
+For combatibility issues we recommend installing a python kernel specific for the `sandy-devel` environment.
+For that, you can run the following after making sure that `ipykernel` is installed in the virtual environment.
+
+```sh
+conda activate sandy-devel
+python -m ipykernel install --user --name sandy-devel --display-name "Python3 (sandy-devel)"
+```
