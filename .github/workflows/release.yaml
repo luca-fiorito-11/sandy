@@ -17,7 +17,7 @@ jobs:
           # The branch, tag or SHA to checkout. When checking out the repository that
           # triggered a workflow, this defaults to the reference or SHA for that event.
           # Otherwise, defaults to `master`.
-          ref: 'v1.0'
+          ref: 'develop'
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
