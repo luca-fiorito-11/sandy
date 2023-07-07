@@ -1,0 +1,7 @@
+sandy.spectra module
+====================
+
+.. automodule:: sandy.spectra
+   :members:
+   :undoc-members:
+   :show-inheritance:

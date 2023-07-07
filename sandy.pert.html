@@ -48,6 +48,9 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
@@ -56,17 +59,19 @@
 <li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html">sandy.gendf module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.gls.html">sandy.gls module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.pert module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.pert module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.pert.Pert"><code class="docutils literal notranslate"><span class="pre">Pert</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.spectra.html">sandy.spectra module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html">sandy.tsl module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
@@ -102,8 +107,269 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-pert-module">
-<h1>sandy.pert module<a class="headerlink" href="#sandy-pert-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.pert">
+<span id="sandy-pert-module"></span><h1>sandy.pert module<a class="headerlink" href="#module-sandy.pert" title="Permalink to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.pert.Pert">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.pert.</span></span><span class="sig-name descname"><span class="pre">Pert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">series</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pert.Pert" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Container for tabulated multigroup perturbation coefficients.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><a class="reference internal" href="#sandy.pert.Pert.data" title="sandy.pert.Pert.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a><span class="classifier"><cite>pandas.Series</cite></span></dt><dd><p>Series of groupwise perturbation coefficients.</p>
+</dd>
+<dt><a class="reference internal" href="#sandy.pert.Pert.left" title="sandy.pert.Pert.left"><code class="xref py py-obj docutils literal notranslate"><span class="pre">left</span></code></a><span class="classifier"><cite>pandas.Series</cite></span></dt><dd><p>Pertrubations with left-bounds of the energy intervals as index.</p>
+</dd>
+<dt><a class="reference internal" href="#sandy.pert.Pert.mid" title="sandy.pert.Pert.mid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mid</span></code></a><span class="classifier"><cite>pandas.Series</cite></span></dt><dd><p>Pertrubations with mid-values of the energy intervals as index.</p>
+</dd>
+<dt><a class="reference internal" href="#sandy.pert.Pert.right" title="sandy.pert.Pert.right"><code class="xref py py-obj docutils literal notranslate"><span class="pre">right</span></code></a><span class="classifier"><cite>pandas.Series</cite></span></dt><dd><p>Pertrubations with right-bounds of the energy intervals as index.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.pert.Pert.from_bin" title="sandy.pert.Pert.from_bin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_bin</span></code></a>(elow, ehigh, coeff)</p></td>
+<td><p>Generate a <cite>Pert</cite> object from a pair of energy bins <cite>(elow, ehigh]</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.pert.Pert.reshape" title="sandy.pert.Pert.reshape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reshape</span></code></a>(eg[, inplace])</p></td>
+<td><p>Interpolate perturbation over new energy grid structure using <cite>bfill</cite> method.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.pert.Pert.data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sandy.pert.Pert.data" title="Permalink to this definition"></a></dt>
+<dd><p>Series of groupwise perturbation coefficients.</p>
+<dl class="field-list">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.Series</cite></dt><dd><p>multigroup perturbation coefficients</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Error</cite></dt><dd><p>if <cite>data</cite> is not a <cite>pandas.Series</cite></p>
+</dd>
+<dt><cite>sandy.Error</cite></dt><dd><p>if energy grid is not monotonically increasing</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>index</strong><span class="classifier"><cite>pandas.IntervalIndex</cite></span></dt><dd><p>energy bins (in eV) over which the perturbations are defined</p>
+</dd>
+<dt><strong>values</strong><span class="classifier"><cite>numpy.array</cite></span></dt><dd><p>perturation coeffcients as ratio values</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.pert.Pert.from_bin">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_bin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">elow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ehigh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pert.Pert.from_bin" title="Permalink to this definition"></a></dt>
+<dd><p>Generate a <cite>Pert</cite> object from a pair of energy bins <cite>(elow, ehigh]</cite>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>elow</strong><span class="classifier">TYPE</span></dt><dd><p>lower energy boundary in eV.</p>
+</dd>
+<dt><strong>ehigh</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>upper energy boundary in eV.</p>
+</dd>
+<dt><strong>coeff</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>perturbation coefficient.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl>
+<dt><strong>pert</strong><span class="classifier"><cite>sandy.Pert</cite></span></dt><dd><p>perturbation object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Pert</span><span class="o">.</span><span class="n">from_bin</span><span class="p">(</span><span class="mf">1e-5</span><span class="p">,</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">)</span>
+<span class="go">ENERGY</span>
+<span class="go">(0.0, 1e-05]      1.00000e+00</span>
+<span class="go">(1e-05, 0.0001]   1.05000e+00</span>
+<span class="go">dtype: float64</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.pert.Pert.from_file">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pert.Pert.from_file" title="Permalink to this definition"></a></dt>
+<dd><p>Initialize <cite>Pert</cite> object reading perturbations from file.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>file</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>file name (absolute or relative path)</p>
+</dd>
+<dt><strong>sep</strong><span class="classifier"><cite>str</cite>, optional, default <cite>“s+”</cite></span></dt><dd><p>column separator. By default it takes blankspaces as separators.
+.. note:: for <cite>csv</cite> files use <cite>“,”</cite></p>
+</dd>
+<dt><strong>**kwargs</strong><span class="classifier"><cite>pandas.read_csv</cite> properties, optional</span></dt><dd></dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>Pert</cite></dt><dd><p>Container for binned perturbations</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.pert.Pert.left">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">left</span></span><a class="headerlink" href="#sandy.pert.Pert.left" title="Permalink to this definition"></a></dt>
+<dd><p>Pertrubations with left-bounds of the energy intervals as index.
+.. note:: the index of the series is a <cite>pandas.Index</cite> instance, not a</p>
+<blockquote>
+<div><p><cite>pandas.IntervalIndex</cite> instance.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.Series</cite></dt><dd><p>perturbations</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.pert.Pert.mid">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mid</span></span><a class="headerlink" href="#sandy.pert.Pert.mid" title="Permalink to this definition"></a></dt>
+<dd><p>Pertrubations with mid-values of the energy intervals as index.
+.. note:: the index of the series is a <cite>pandas.Index</cite> instance, not a</p>
+<blockquote>
+<div><p><cite>pandas.IntervalIndex</cite> instance.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.Series</cite></dt><dd><p>perturbations</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.pert.Pert.recenter">
+<span class="sig-name descname"><span class="pre">recenter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">low</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pert.Pert.recenter" title="Permalink to this definition"></a></dt>
+<dd><p>Truncate perturbation values when they exceed a defined lower or
+upper value.
+Every value outside the boundary is replaced with the cental
+perturbation vaule, i.e. 1, or with a value of choice.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>low</strong><span class="classifier"><cite>float</cite>, optional</span></dt><dd><p>lower limit for truncation. The default is 0.0.</p>
+</dd>
+<dt><strong>high</strong><span class="classifier"><cite>float</cite>, optional</span></dt><dd><p>upper limit for truncation. The default is 2.0.</p>
+</dd>
+<dt><strong>value</strong><span class="classifier"><cite>float</cite>, optional</span></dt><dd><p>value used to replace any perturbation exceeding the
+limiting domain. The default is 1.0.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Pert</cite></dt><dd><p>perturbation instance with truncated values.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.pert.Pert.reshape">
+<span class="sig-name descname"><span class="pre">reshape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pert.Pert.reshape" title="Permalink to this definition"></a></dt>
+<dd><p>Interpolate perturbation over new energy grid structure using <cite>bfill</cite>
+method.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>value <cite>1</cite> is given to extrapolated energies</p>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>eg</strong><span class="classifier">array-like object</span></dt><dd><p>monotonic energy grid with non-negative values</p>
+</dd>
+<dt><strong>inplace</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>apply changes <strong>inplace</strong> and return <cite>None</cite></p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Pert</cite></dt><dd><p>perturbation coefficients reshaped over a union of the original and
+new energy grids</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>aleph.Error</cite></dt><dd><p>if the given energy grid is not monotonic</p>
+</dd>
+<dt><cite>value.Error</cite></dt><dd><p>if negative values are found in the given energy grid</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.pert.Pert.right">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">right</span></span><a class="headerlink" href="#sandy.pert.Pert.right" title="Permalink to this definition"></a></dt>
+<dd><p>Pertrubations with right-bounds of the energy intervals as index.
+.. note:: the index of the series is a <cite>pandas.Index</cite> instance, not a</p>
+<blockquote>
+<div><p><cite>pandas.IntervalIndex</cite> instance.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.Series</cite></dt><dd><p>perturbations</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.pert.Pert.truncate">
+<span class="sig-name descname"><span class="pre">truncate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">low</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.pert.Pert.truncate" title="Permalink to this definition"></a></dt>
+<dd><p>Truncate perturbation values when they exceed a defined lower or
+upper value.
+Every value outside the boundary is replaced with the boundary value
+that was exceeded.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>low</strong><span class="classifier"><cite>float</cite>, optional</span></dt><dd><p>lower limit for truncation. The default is 0.0.</p>
+</dd>
+<dt><strong>high</strong><span class="classifier"><cite>float</cite>, optional</span></dt><dd><p>upper limit for truncation. The default is 2.0.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Pert</cite></dt><dd><p>perturbation instance with truncated values.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

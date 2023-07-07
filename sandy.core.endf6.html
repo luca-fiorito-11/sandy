@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="sandy.core.lpc module" href="sandy.core.lpc.html" />
-    <link rel="prev" title="sandy.core.ecov module" href="sandy.core.ecov.html" /> 
+    <link rel="prev" title="sandy.core.cov module" href="sandy.core.cov.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -48,16 +48,16 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="sandy.core.html">sandy.core package</a><ul class="current">
 <li class="toctree-l4 current"><a class="reference internal" href="sandy.core.html#submodules">Submodules</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
 </ul>
 </li>
@@ -92,15 +92,723 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-core-endf6-module">
-<h1>sandy.core.endf6 module<a class="headerlink" href="#sandy-core-endf6-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.core.endf6">
+<span id="sandy-core-endf6-module"></span><h1>sandy.core.endf6 module<a class="headerlink" href="#module-sandy.core.endf6" title="Permalink to this heading"></a></h1>
+<p>Created on Wed Dec  4 14:50:33 2019</p>
+<p>&#64;author: lfiorito</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.core.endf6.Endf6">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.core.endf6.</span></span><span class="sig-name descname"><span class="pre">Endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_FormattedFile</span></code></p>
+<p>Container for ENDF-6 file text grouped by MAT, MF and MT numbers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>data</strong></dt><dd></dd>
+<dt><strong>is_empty</strong></dt><dd></dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">keys</span></code></dt><dd><p>List of keys <cite>(MAT, MF, MT)</cite> used to identify each tape section.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">kind</span></code></dt><dd><p>Kind of ENDF-6 formatted file (<cite>‘endf6’</cite>, <cite>‘pendf’</cite>, <cite>‘gendf’</cite>, <cite>‘errorr’</cite>) .</p>
+</dd>
+<dt><strong>mat</strong></dt><dd></dd>
+<dt><strong>mf</strong></dt><dd></dd>
+<dt><strong>mt</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.endf6.Endf6.get_ace" title="sandy.core.endf6.Endf6.get_ace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_ace</span></code></a>([temperature, err, ...])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.endf6.Endf6.get_pendf" title="sandy.core.endf6.Endf6.get_pendf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_pendf</span></code></a>([temperature, err, ...])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.endf6.Endf6.get_errorr" title="sandy.core.endf6.Endf6.get_errorr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_errorr</span></code></a>([temperature, err, ...])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.endf6.Endf6.get_id" title="sandy.core.endf6.Endf6.get_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_id</span></code></a>([method])</p></td>
+<td><p>Extract ID for a given MAT for a ENDF-6 file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.endf6.Endf6.get_nsub" title="sandy.core.endf6.Endf6.get_nsub"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_nsub</span></code></a>()</p></td>
+<td><p>Determine ENDF-6 sub-library type by reading flag &quot;NSUB&quot; of first MAT in file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.endf6.Endf6.get_records" title="sandy.core.endf6.Endf6.get_records"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_records</span></code></a>()</p></td>
+<td><p>Extract MAT, MF and MT combinations avaialbel in the file and  report it in tabulated format.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.endf6.Endf6.read_section" title="sandy.core.endf6.Endf6.read_section"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_section</span></code></a>(mat, mf, mt[, raise_error])</p></td>
+<td><p>Parse MAT/MF/MT section.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.endf6.Endf6.update_intro" title="sandy.core.endf6.Endf6.update_intro"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_intro</span></code></a>(**kwargs)</p></td>
+<td><p>Method to update MF1/MT451 of each MAT based on the file content (concistency is enforced) and user-given keyword arguments.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.apply_perturbations">
+<span class="sig-name descname"><span class="pre">apply_perturbations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">smps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">njoy_kws</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.apply_perturbations" title="Permalink to this definition"></a></dt>
+<dd><p>Apply perturbations to the data contained in ENDF6 file. At the 
+moment only the procedure for cross sections is implemented. Options
+are included to directly convert perturbed pendf to ace and write data
+on files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>smps</strong><span class="classifier">samples obtained taking the relative covariances from the</span></dt><dd></dd>
+<dt><strong>evaluated files and a unit vector as mean.</strong></dt><dd></dd>
+<dt><strong>processes</strong><span class="classifier">number of processes used to complete the task.</span></dt><dd><p>Creation of perturbed pendf files and conversion to ACE 
+format is done in parallel if processes&gt;1.
+The default is 1.</p>
+</dd>
+<dt><strong>njoy_kws: keyword argument to pass to “tape.get_pendf()”.</strong></dt><dd></dd>
+<dt><strong>**kwargs</strong><span class="classifier">keyword argument to pass to “tape.get_ace()” plus keywords</span></dt><dd><p>to pass to “endf6_perturb_worker”.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>A dictionary of endf/pendf file or ace files depending on to_ace.</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>ACE file temperature. Two options are implemented:
+- Generation of pendf file at 0K and broadening to the</p>
+<blockquote>
+<div><p>required temperature when ACE file is created.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>Generation of pendf file at temperature and broadening not 
+performed when ACE is created. This approach takes into 
+account implicit effect.</p></li>
+</ul>
+</div>
+<p class="rubric">Examples</p>
+<p>Example to produce and apply perturbations to Pu-239 xs and nubar.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 942390)
+&gt;&gt;&gt; smps = tape.get_perturbations(2, njoy_kws=dict(err=1, chi=False, mubar=False, errorr33_kws=dict(mt=[2, 4, 18]),), smp_kws=dict(seed31=1, seed33=3))</p>
+<p>Let’s apply both nubar and xs perturbations, then only nubar and then only xs.
+&gt;&gt;&gt; outs_31_33 = tape.apply_perturbations(smps, njoy_kws=dict(err=1), processes=1)
+&gt;&gt;&gt; outs_31 = tape.apply_perturbations({31: smps[31]}, njoy_kws=dict(err=1), processes=1)
+&gt;&gt;&gt; outs_33 = tape.apply_perturbations({33: smps[33]}, njoy_kws=dict(err=1), processes=1)</p>
+<p>Check that files are different for different samples.
+&gt;&gt;&gt; for i in range(2):
+…    assert(outs_33[i][“endf6”].data == tape.data)
+…    assert(outs_31[i][“endf6”].data != tape.data)
+…    assert(outs_31[i][“endf6”].data == outs_31_33[i][“endf6”].data)
+…    assert(outs_33[i][“pendf”].data != outs_31[i][“pendf”].data)
+…    assert(outs_33[i][“pendf”].data == outs_31_33[i][“pendf”].data)</p>
+<p>Check that method is consistent only nubar, only xs or both nubar and xs are perturbed.
+&gt;&gt;&gt; assert outs_33[0][“pendf”].data != outs_33[1][“pendf”].data
+&gt;&gt;&gt; assert outs_33[0][“endf6”].data == outs_33[1][“endf6”].data
+&gt;&gt;&gt; assert outs_31[0][“pendf”].data == outs_31[1][“pendf”].data
+&gt;&gt;&gt; assert outs_31[0][“endf6”].data != outs_31[1][“endf6”].data</p>
+<p>Check that redundant nubar is also perturbed.
+&gt;&gt;&gt; nu0 = sandy.Xs.from_endf6(outs_31[0][“endf6”].filter_by(listmt=[452, 455, 456]))
+&gt;&gt;&gt; nu1 = sandy.Xs.from_endf6(outs_31[1][“endf6”].filter_by(listmt=[452, 455, 456]))
+&gt;&gt;&gt; assert not nu0.data[9437, 452].equals(nu1.data[9437, 452])
+&gt;&gt;&gt; assert nu0.data[9437, 455].equals(nu1.data[9437, 455])
+&gt;&gt;&gt; assert not nu0.data[9437, 456].equals(nu1.data[9437, 456])</p>
+<p>Check that redundant and partial cross sections are correctly perturbed.
+&gt;&gt;&gt; xs0 = sandy.Xs.from_endf6(outs_33[0][“pendf”].filter_by(listmf=[3]))
+&gt;&gt;&gt; xs1 = sandy.Xs.from_endf6(outs_33[1][“pendf”].filter_by(listmf=[3]))
+&gt;&gt;&gt; assert not xs0.data[9437, 1].equals(xs1.data[9437, 1])
+&gt;&gt;&gt; assert not xs0.data[9437, 2].equals(xs1.data[9437, 2])
+&gt;&gt;&gt; assert not xs0.data[9437, 4].equals(xs1.data[9437, 4])
+&gt;&gt;&gt; assert not xs0.data[9437, 18].equals(xs1.data[9437, 18])
+&gt;&gt;&gt; assert not xs0.data[9437, 51].equals(xs1.data[9437, 51])
+&gt;&gt;&gt; assert xs0.data[9437, 16].equals(xs1.data[9437, 16])
+&gt;&gt;&gt; assert xs0.data[9437, 102].equals(xs1.data[9437, 102])
+&gt;&gt;&gt; assert xs0.data[9437, 103].equals(xs1.data[9437, 103])
+&gt;&gt;&gt; assert xs0.data[9437, 107].equals(xs1.data[9437, 107])</p>
+<p>Check that ENDF6 and PENDF output filenames are correct
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(‘jeff_33’, ‘xs’, 10010)
+&gt;&gt;&gt; smps = endf6.get_perturbations(2, njoy_kws=dict(err=0.1))
+&gt;&gt;&gt; outs = endf6.apply_perturbations(smps, to_file=True)
+&gt;&gt;&gt; assert outs[0][“endf6”] == ‘1001_0.endf6’ and os.path.isfile(‘1001_0.endf6’)
+&gt;&gt;&gt; assert outs[0][“pendf”] == ‘1001_0.pendf’ and os.path.isfile(‘1001_0.endf6’)
+&gt;&gt;&gt; assert outs[1][“endf6”] == ‘1001_1.endf6’ and os.path.isfile(‘1001_1.endf6’)
+&gt;&gt;&gt; assert outs[1][“pendf”] == ‘1001_1.pendf’ and os.path.isfile(‘1001_1.pendf’)</p>
+<p>Check that ACE output filenames are correct
+&gt;&gt;&gt; outs = endf6.apply_perturbations(smps, to_file=True, to_ace=True, ace_kws=dict(err=1, temperature=300, purr=False, heatr=False, thermr=False, gaspr=False))
+&gt;&gt;&gt; assert outs[0][“ace”] == ‘1001_0.03c’ and os.path.isfile(‘1001_0.03c’)
+&gt;&gt;&gt; assert outs[0][“xsdir”] == ‘1001_0.03c.xsd’ and os.path.isfile(‘1001_0.03c.xsd’)
+&gt;&gt;&gt; assert outs[1][“ace”] == ‘1001_1.03c’ and os.path.isfile(‘1001_1.03c’)
+&gt;&gt;&gt; assert outs[1][“xsdir”] == ‘1001_1.03c.xsd’ and os.path.isfile(‘1001_1.03c.xsd’)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.get_ace">
+<span class="sig-name descname"><span class="pre">get_ace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimal_processing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.get_ace" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>err</strong><span class="classifier">TYPE, optional</span></dt><dd><p>reconstruction tolerance for RECONR, BROADR and THERMR.
+The default is 0.001.</p>
+</dd>
+<dt><strong>minimal_processing: `bool`, optional</strong></dt><dd><p>deactivate modules THERMR, GASPR, HEATR, PURR and UNRESR.
+The default is False.</p>
+</dd>
+<dt><strong>temperature</strong><span class="classifier"><cite>float</cite>, optional</span></dt><dd><p>temperature of the cross sections in K. If not given, stop
+the processing after RECONR (before BROADR). The default is 0.</p>
+</dd>
+<dt><strong>verbose</strong><span class="classifier"><cite>bool</cite>, optional</span></dt><dd><p>flag to print NJOY input file to screen before running the
+executable. The default is False.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.get_errorr">
+<span class="sig-name descname"><span class="pre">get_errorr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimal_processing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.get_errorr" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>err</strong><span class="classifier">TYPE, optional</span></dt><dd><p>reconstruction tolerance for RECONR, BROADR and THERMR.
+The default is 0.001.</p>
+</dd>
+<dt><strong>minimal_processing: `bool`, optional</strong></dt><dd><p>deactivate modules THERMR, GASPR, HEATR, PURR and UNRESR.
+The default is False.</p>
+</dd>
+<dt><strong>temperature</strong><span class="classifier"><cite>float</cite>, optional</span></dt><dd><p>temperature of the cross sections in K. If not given, stop
+the processing after RECONR (before BROADR). The default is 0.</p>
+</dd>
+<dt><strong>verbose</strong><span class="classifier"><cite>bool</cite>, optional</span></dt><dd><p>flag to print NJOY input file to screen before running the
+executable. The default is False.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.get_gendf">
+<span class="sig-name descname"><span class="pre">get_gendf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimal_processing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.get_gendf" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>err</strong><span class="classifier">TYPE, optional</span></dt><dd><p>reconstruction tolerance for RECONR, BROADR and THERMR.
+The default is 0.001.</p>
+</dd>
+<dt><strong>minimal_processing: `bool`, optional</strong></dt><dd><p>deactivate modules THERMR, GASPR, HEATR, PURR and UNRESR.
+The default is False.</p>
+</dd>
+<dt><strong>temperature</strong><span class="classifier"><cite>float</cite>, optional</span></dt><dd><p>temperature of the cross sections in K. If not given, stop
+the processing after RECONR (before BROADR). The default is 0.</p>
+</dd>
+<dt><strong>verbose</strong><span class="classifier"><cite>bool</cite>, optional</span></dt><dd><p>flag to print NJOY input file to screen before running the
+executable. The default is False.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.get_id">
+<span class="sig-name descname"><span class="pre">get_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'nndc'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.get_id" title="Permalink to this definition"></a></dt>
+<dd><p>Extract ID for a given MAT for a ENDF-6 file.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>method</strong><span class="classifier"><cite>str</cite>, optional</span></dt><dd><p>Methods adopted to produce the ID. The default is <cite>“nndc”</cite>.
+- if <cite>method=’aleph’</cite> the ID is the ZAM identifier
+- else, the ID is the ZA identifier according to the NNDC rules</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl>
+<dt><strong>ID</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>ID of the ENDF-6 file.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>a warning is raised if more than one MAT is found.
+Only the ID corresponding to the lowest MAT will be returned.</p>
+</div>
+<p class="rubric">Examples</p>
+<p>Extract ID for H1 file using NNDC and ALEPH methods
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 10010)
+&gt;&gt;&gt; assert tape.get_id() == 1001
+&gt;&gt;&gt; assert tape.get_id(method=”aleph”) == 10010</p>
+<p>Extract ID for Am242m file using NNDC and ALEPH methods
+&gt;&gt;&gt; tape2 = sandy.get_endf6_file(“jeff_33”, “xs”, 952421)
+&gt;&gt;&gt; assert tape2.get_id() == 95642
+&gt;&gt;&gt; assert tape2.get_id(method=”ALEPH”) == 952421</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">tape</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">tape2</span><span class="p">)</span><span class="o">.</span><span class="n">get_id</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1001</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">tape2</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span><span class="o">.</span><span class="n">get_id</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1001</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.get_nsub">
+<span class="sig-name descname"><span class="pre">get_nsub</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.get_nsub" title="Permalink to this definition"></a></dt>
+<dd><p>Determine ENDF-6 sub-library type by reading flag “NSUB” of first MAT
+in file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>int</cite></dt><dd><p>NSUB value</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>assert sandy.get_endf6_file(“jeff_33”, “xs”, 10010).get_nsub() == “neutron”
+assert sandy.get_endf6_file(“jeff_33”, “xs”, 10010).get_nsub().get_pendf(err=1).get_nsub() == “neutron”
+assert sandy.get_endf6_file(“jeff_33”, “nfpy”, 942410).get_nsub() == “nfpy”
+assert sandy.get_endf6_file(“jeff_33”, “decay”, 942410).get_nsub() == “decay”
+assert sandy.get_endf6_file(“jeff_33”, “dxs”, 26000).get_nsub() == “neutron”
+assert sandy.get_endf6_file(“proton”, “dxs”, 26000).get_nsub() == “proton”</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.get_pendf">
+<span class="sig-name descname"><span class="pre">get_pendf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimal_processing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.get_pendf" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>err</strong><span class="classifier">TYPE, optional</span></dt><dd><p>reconstruction tolerance for RECONR, BROADR and THERMR.
+The default is 0.001.</p>
+</dd>
+<dt><strong>minimal_processing: `bool`, optional</strong></dt><dd><p>deactivate modules THERMR, GASPR, HEATR, PURR and UNRESR.
+The default is False.</p>
+</dd>
+<dt><strong>temperature</strong><span class="classifier"><cite>float</cite>, optional</span></dt><dd><p>temperature of the cross sections in K. If not given, stop
+the processing after RECONR (before BROADR). The default is 0.</p>
+</dd>
+<dt><strong>verbose</strong><span class="classifier"><cite>bool</cite>, optional</span></dt><dd><p>flag to print NJOY input file to screen before running the
+executable. The default is False.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.get_perturbations">
+<span class="sig-name descname"><span class="pre">get_perturbations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nsmp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_excel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">njoy_kws</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smp_kws</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.get_perturbations" title="Permalink to this definition"></a></dt>
+<dd><p>Construct multivariate distributions with a unit vector for 
+mean and with relative covariances taken from the evaluated files
+processed with the NJOY module ERRORR.</p>
+<p>Perturbation factors are sampled with the same multigroup structure of 
+the covariance matrix and are returned by nuclear datatype as a <cite>dict</cite>
+of <cite>pd.Dataframe</cite> instances .</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>nsmp</strong><span class="classifier">TYPE</span></dt><dd><p>DESCRIPTION.</p>
+</dd>
+<dt><strong>to_excel</strong><span class="classifier">TYPE, optional</span></dt><dd><p>DESCRIPTION. The default is None.</p>
+</dd>
+<dt><strong>njoy_kws</strong><span class="classifier">TYPE, optional</span></dt><dd><p>DESCRIPTION. The default is {}.</p>
+</dd>
+<dt><strong>smp_kws</strong><span class="classifier">TYPE, optional</span></dt><dd><p>DESCRIPTION. The default is {}.</p>
+</dd>
+<dt><strong>**kwargs</strong><span class="classifier">TYPE</span></dt><dd><p>DESCRIPTION.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>smp</strong><span class="classifier">TYPE</span></dt><dd><p>DESCRIPTION.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Generate a couple of samples from the H1 file of JEFF-3.3.
+&gt;&gt;&gt; njoy_kws = dict(err=1, errorr_kws=dict(mt=102))
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 10010)
+&gt;&gt;&gt; smps = tape.get_perturbations(nsmp=2, njoy_kws=njoy_kws)
+&gt;&gt;&gt; assert len(smps) == 1
+&gt;&gt;&gt; assert isinstance(smps[33], sandy.Samples)
+&gt;&gt;&gt; assert (smps[33].data.index.get_level_values(“MT”) == 102).all()</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.get_records">
+<span class="sig-name descname"><span class="pre">get_records</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.get_records" title="Permalink to this definition"></a></dt>
+<dd><p>Extract MAT, MF and MT combinations avaialbel in the file and 
+report it in tabulated format.</p>
+<dl class="field-list">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>df</strong><span class="classifier"><cite>pd.DataFrame</cite></span></dt><dd><p>Dataframe with MAT, MF and MT as columns.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Short test for hydrogen
+&gt;&gt;&gt; sandy.get_endf6_file(“jeff_33”, “xs”, 10010).get_records()</p>
+<blockquote>
+<div><p>MAT MF      MT</p>
+</div></blockquote>
+<p>0       125     1       451
+1       125     2       151
+2       125     3       1
+3       125     3       2
+4       125     3       102
+5       125     4       2
+6       125     6       102
+7       125     33      1
+8       125     33      2
+9       125     33      102</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.read_section">
+<span class="sig-name descname"><span class="pre">read_section</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raise_error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.read_section" title="Permalink to this definition"></a></dt>
+<dd><p>Parse MAT/MF/MT section.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>`mat`</strong><span class="classifier">int</span></dt><dd><p>MAT number</p>
+</dd>
+<dt><strong>`mf`</strong><span class="classifier">int</span></dt><dd><p>MF number</p>
+</dd>
+<dt><strong>`mt`</strong><span class="classifier">int</span></dt><dd><p>MT number</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>dict</cite></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.endf6.Endf6.update_intro">
+<span class="sig-name descname"><span class="pre">update_intro</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.Endf6.update_intro" title="Permalink to this definition"></a></dt>
+<dd><p>Method to update MF1/MT451 of each MAT based on the file content
+(concistency is enforced) and user-given keyword arguments.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>**kwargs</strong><span class="classifier"><cite>dict</cite></span></dt><dd><p>dictionary of elements to be modified in section MF1/MT451 (it
+applies to all MAT numbers).</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><code class="xref py py-func docutils literal notranslate"><span class="pre">Endf6()</span></code></dt><dd><p><code class="xref py py-func docutils literal notranslate"><span class="pre">Endf6()</span></code> with updated MF1/MT451.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Check how many lines of description and how many sections are recorded
+in a file.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 10010)
+&gt;&gt;&gt; intro = tape.read_section(125, 1, 451)
+&gt;&gt;&gt; assert len(intro[“DESCRIPTION”]) == 87
+&gt;&gt;&gt; assert len(intro[“SECTIONS”]) == 10</p>
+<p>By removing sections in the <cite>Endf6</cite> instance, the recorded number of
+sections does not change.
+&gt;&gt;&gt; tape2 = tape.delete_section(125, 33, 1).delete_section(125, 33, 2)
+&gt;&gt;&gt; intro = tape2.read_section(125, 1, 451)
+&gt;&gt;&gt; assert len(intro[“DESCRIPTION”]) == 87
+&gt;&gt;&gt; assert len(intro[“SECTIONS”]) == 10</p>
+<p>Running <cite>updated intro</cite> updates the recorded number of sections.
+&gt;&gt;&gt; tape2 = tape.delete_section(125, 33, 1).delete_section(125, 33, 2).update_intro()
+&gt;&gt;&gt; intro = tape2.read_section(125, 1, 451)
+&gt;&gt;&gt; assert len(intro[“DESCRIPTION”]) == 87
+&gt;&gt;&gt; assert len(intro[“SECTIONS”]) == 8</p>
+<p>It can also be used to update the lines of description.
+&gt;&gt;&gt; intro = tape2.update_intro(<a href="#id1"><span class="problematic" id="id2">**</span></a>dict(DESCRIPTION=[” new description”])).read_section(125, 1, 451)
+&gt;&gt;&gt; print(sandy.write_mf1(intro))</p>
+<blockquote>
+<div><p>1001.00000 9.991673-1          0          0          2          5 125 1451    1
+0.00000000 0.00000000          0          0          0          6 125 1451    2
+1.00000000 20000000.0          3          0         10          3 125 1451    3
+0.00000000 0.00000000          0          0          1          8 125 1451    4
+new description                                                   125 1451    5</p>
+<blockquote>
+<div><blockquote>
+<div><p>1        451         13          0 125 1451    6
+2        151          4          0 125 1451    7
+3          1         35          0 125 1451    8
+3          2         35          0 125 1451    9
+3        102         35          0 125 1451   10
+4          2        196          0 125 1451   11
+6        102        201          0 125 1451   12</p>
+</div></blockquote>
+<p>33        102         21          0 125 1451   13</p>
+</div></blockquote>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.core.endf6.get_endf6_file">
+<span class="sig-prename descclassname"><span class="pre">sandy.core.endf6.</span></span><span class="sig-name descname"><span class="pre">get_endf6_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">library</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.get_endf6_file" title="Permalink to this definition"></a></dt>
+<dd><p>Given a library and a nuclide import the corresponding ENDF-6 nuclear
+data file directly from internet.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>library</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>nuclear data library. Available libraries are:
+for ‘xs’:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>‘endfb_71’</cite></p></li>
+<li><p><cite>‘endfb_80’</cite></p></li>
+<li><p><cite>‘irdff_2’</cite></p></li>
+<li><p><cite>‘jeff_32’</cite></p></li>
+<li><p><cite>‘jeff_33’</cite></p></li>
+<li><p><cite>‘jendl_40u’</cite></p></li>
+</ul>
+</div></blockquote>
+<dl class="simple">
+<dt>for ‘nfpy’:</dt><dd><ul class="simple">
+<li><p><cite>‘endfb_71’</cite></p></li>
+<li><p><cite>‘jeff_311’</cite></p></li>
+<li><p><cite>‘jeff_33’</cite></p></li>
+<li><p><cite>‘endfb_80’</cite></p></li>
+<li><p><cite>‘jendl_40u’</cite></p></li>
+</ul>
+</dd>
+<dt>for ‘decay’:</dt><dd><ul class="simple">
+<li><p><cite>‘endfb_71’</cite></p></li>
+<li><p><cite>‘jeff_311’</cite></p></li>
+<li><p><cite>‘jeff_33’</cite></p></li>
+<li><p><cite>‘endfb_80’</cite></p></li>
+</ul>
+</dd>
+<dt>for ‘tsl’: (read the note)</dt><dd><ul class="simple">
+<li><p><cite>‘endfb_71’</cite></p></li>
+<li><p><cite>‘jeff_33’</cite></p></li>
+<li><p><cite>‘endfb_80’</cite></p></li>
+<li><p><cite>‘jendl_40u’</cite></p></li>
+</ul>
+</dd>
+<dt>for ‘dxs’:</dt><dd><ul class="simple">
+<li><p><cite>‘jeff_33’</cite></p></li>
+<li><p><cite>‘proton’</cite></p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt><strong>kind</strong><span class="classifier"><cite>str</cite></span></dt><dd><dl class="simple">
+<dt>nuclear data type:</dt><dd><ul class="simple">
+<li><p>‘xs’ is a standard neutron-induced nuclear data file</p></li>
+<li><p>‘nfpy’ is a Neutron-Induced Fission Product Yields nuclear data
+file</p></li>
+<li><p>‘decay’ is a Radioactive Decay Data nuclear data file</p></li>
+<li><p>‘dxs’ is displacement cross section data file</p></li>
+<li><p>‘tsl’ is a Thermal Neutron Scattering Data file</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt><strong>zam</strong><span class="classifier"><cite>int</cite> or ‘all’ or iterable</span></dt><dd><dl class="simple">
+<dt>zam = ‘int’ (individual nuclides) or iterable (group of nuclides)</dt><dd><dl class="simple">
+<dt>ZAM nuclide identifier $Z times 10000 + A times 10 + M$ where:</dt><dd><ul class="simple">
+<li><p>$Z$ is the charge number</p></li>
+<li><p>$A$ is the mass number</p></li>
+<li><p>$M$ is the metastate level (0=ground, 1=1st level)</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt>zam = ‘all’</dt><dd><p>We obtain the information of all the library. This option is not
+available for ‘xs’</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>Endf6</cite></dt><dd><p><cite>Endf6</cite> object with ENDF-6 data for specified library and nuclide.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>ValueError</dt><dd><p>if library is not among available selection.</p>
+</dd>
+<dt>ValueError</dt><dd><p>if when you select ‘xs’, you select zam = ‘all’</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In the <cite>kind=’tls’</cite> option, instead of the zam, integers are used.
+If you need help, the <cite>get_tsl_index</cite> function contains all the
+necessary information for the correct choice of these integers.</p>
+</div>
+<p class="rubric">Examples</p>
+<p>Import hydrogen file from JEFF-3.3.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, ‘xs’, 10010)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import hydrogen file from ENDF/B-VII.1.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘xs’, 10010)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import hydrogen file from ENDF/B-VIII.0.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘xs’, 10010)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import hydrogen file from JENDL-4.0u
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jendl_40u”, ‘xs’, 10010)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import Neutron-Induced Fission Product Yields for Th-227 from ENDF/B-VII.1.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘nfpy’, 902270)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import Neutron-Induced Fission Product Yields for Th-227 from ENDF/B-VIII.0
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘nfpy’, 902270)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import Neutron-Induced Fission Product Yields for Th-227 from JENDL-4.0u
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jendl_40u”, ‘nfpy’, 902270)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import Neutron-Induced Fission Product Yields for Th-232 from JEFF-3.1.1
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_311”, ‘nfpy’, 902320)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import Neutron-Induced Fission Product Yields for Th-232 from JEFF-3.3
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, ‘nfpy’, 902320)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import Radioactive Decay Data for H-1 from JEFF-3.1.1
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_311”, ‘decay’, 10010)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import Radioactive Decay Data for H-1 from JEFF-3.3
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, ‘decay’, 10010)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import Radioactive Decay Data for H-1 from ENDF/B-VII.1.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘decay’, 10010)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import Radioactive Decay Data for H-1 from ENDF/B-VIII.0.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘decay’, 10010)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import all Neutron-Induced Fission Product Yields from ENDF/B-VII.1.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘nfpy’, ‘all’)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import a list of Decay Data for JEFF-3.3.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, ‘decay’, [380900, 551370, 541350])
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Thermal Neutron Scattering Data from ENDF/B-VII.1.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘tsl’, [1, 2, 3])
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Thermal Neutron Scattering Data from ENDF/B-VIII.0.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘tsl’, [1, 2, 3])
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Thermal Neutron Scattering Data from JEFF-3.3.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, ‘tsl’, [1, 2, 3])
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Thermal Neutron Scattering Data from JENDL-4.0u
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jendl_40u”, ‘tsl’, [1, 2, 3])
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+<p>Import natural Fe for IRDFF-II
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“irdff_2”, “xs”, 260000)
+&gt;&gt;&gt; assert type(tape) is sandy.Endf6</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.core.endf6.get_tsl_index">
+<span class="sig-prename descclassname"><span class="pre">sandy.core.endf6.</span></span><span class="sig-name descname"><span class="pre">get_tsl_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">library</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.endf6.get_tsl_index" title="Permalink to this definition"></a></dt>
+<dd><p>Obtain the index information available in the library web page.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>library</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>nuclear data library. Available libraries are:
+for ‘tsl’</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>‘endfb_71’</cite></p></li>
+<li><p><cite>‘jeff_33’</cite></p></li>
+<li><p><cite>‘endfb_80’</cite></p></li>
+<li><p><cite>‘jendl_40u</cite></p></li>
+<li><p><cite>‘irdff_ii</cite></p></li>
+</ul>
+</div></blockquote>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>ValueError</dt><dd><p>if library is not among available selection.</p>
+</dd>
+<dt>Example</dt><dd></dd>
+</dl>
+<blockquote>
+<div></div></blockquote>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sandy</span><span class="o">.</span><span class="n">endf6</span><span class="o">.</span><span class="n">get_tsl_index</span><span class="p">(</span><span class="s2">&quot;jendl_40u&quot;</span><span class="p">)</span>
+<span class="go">    Lib:         JENDL-4.0</span>
+<span class="go">    Library:     JENDL-4.0 Japanese evaluated nuclear data library, 2010</span>
+<span class="go">    Sub-library: NSUB=12      Thermal Neutron Scattering Data</span>
+</pre></div>
+</div>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>KEY Material     Lab.         Date         Authors</p></li>
+</ol>
+</div></blockquote>
+<blockquote>
+<div><blockquote>
+<div><ol class="arabic simple">
+<li><p>1 1-H(H2O)     LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0001_h(h2o).zip 412Kb</p></li>
+<li><p>2 1-Para-H     LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0002_para-H.zip 91Kb</p></li>
+<li><p>3 1-Ortho-H    LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0003_ortho-H.zip 96Kb</p></li>
+<li><p>7 1-H(ZrH)     LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0007_h(zrh).zip 448Kb</p></li>
+<li><p>11 1-D(D2O)     GA           EVAL-DEC69   KOPPEL,HOUSTON                     20.MeV   tsl_0011_D(D2O).zip 235Kb</p></li>
+<li><p>12 1-Para-D     LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0012_para-d.zip 92Kb</p></li>
+<li><p>13 1-Ortho-D    LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0013_ortho-d.zip 93Kb</p></li>
+<li><p>26 4-Be-metal   LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0026_bemetal.zip 419Kb</p></li>
+<li><p>27 4-BeO        LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0027_beo.zip 483Kb</p></li>
+</ol>
+</div></blockquote>
+<ol class="arabic simple" start="10">
+<li><p>31 6-Graphite   LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0031_graphite.zip 397Kb</p></li>
+<li><p>33 6-l-CH4      LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0033_l-ch4.zip 50Kb</p></li>
+<li><p>34 6-s-CH4      LANL         EVAL-APR93   MacFarlane                         20.MeV   tsl_0034_s-ch4.zip 42Kb</p></li>
+<li><p>37 6-H(CH2)     GA           EVAL-DEC69   KOPPEL,HOUSTON,SPREVAK             20.MeV   tsl_0037_H(CH2).zip 72Kb</p></li>
+<li><p>40 6-BENZINE    GA           EVAL-DEC69   KOPPEL,HOUSTON,BORGONOVI           20.MeV   tsl_0040_BENZINE.zip 236Kb</p></li>
+<li><p>58 40-Zr(ZrH)   LANL         EVAL-apr93   MACFARLANE                         20.MeV   tsl_0058_zr(zrh).zip 201Kb</p></li>
+</ol>
+</div></blockquote>
+<blockquote>
+<div></div></blockquote>
+<dl class="simple">
+<dt>Total: Materials:15 Size:11Mb Compressed:4Mb</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="sandy.core.ecov.html" class="btn btn-neutral float-left" title="sandy.core.ecov module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.core.cov.html" class="btn btn-neutral float-left" title="sandy.core.cov module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="sandy.core.lpc.html" class="btn btn-neutral float-right" title="sandy.core.lpc module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

@@ -48,6 +48,9 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
@@ -56,19 +59,21 @@
 <li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html">sandy.gendf module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.gls.html">sandy.gls module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.spectra.html">sandy.spectra module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.tsl module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.tsl module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.tsl.Tsl"><code class="docutils literal notranslate"><span class="pre">Tsl</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.zam.html">sandy.zam module</a></li>
 </ul>
@@ -102,8 +107,198 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-tsl-module">
-<h1>sandy.tsl module<a class="headerlink" href="#sandy-tsl-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.tsl">
+<span id="sandy-tsl-module"></span><h1>sandy.tsl module<a class="headerlink" href="#module-sandy.tsl" title="Permalink to this heading"></a></h1>
+<p>This module contains all classes and functions specific for Thermal Neutron
+Scattering Data.</p>
+<p>class <cite>Tsl</cite> class acts as a container for temperatura-dependent tabulated
+thermal neutron scattering cross section.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.tsl.Tsl">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.tsl.</span></span><span class="sig-name descname"><span class="pre">Tsl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dct</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.tsl.Tsl" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>data</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.tsl.Tsl.from_endf6" title="sandy.tsl.Tsl.from_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_endf6</span></code></a>(endf6)</p></td>
+<td><p>Extract hierarchical structure of tsl data from <cite>sandy.Endf6</cite> instance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.tsl.Tsl.get_S" title="sandy.tsl.Tsl.get_S"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_S</span></code></a>([kind])</p></td>
+<td><p>Extract stacked S matrix from the Tsl class.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.tsl.Tsl.to_endf6" title="sandy.tsl.Tsl.to_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_endf6</span></code></a>(endf6)</p></td>
+<td><p>Update S matrixs in <cite>Endf6</cite> instance with those available in a <cite>Tsl</cite> instance.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.tsl.Tsl.data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sandy.tsl.Tsl.data" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.tsl.Tsl.from_endf6">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endf6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.tsl.Tsl.from_endf6" title="Permalink to this definition"></a></dt>
+<dd><p>Extract hierarchical structure of tsl data from <cite>sandy.Endf6</cite>
+instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>tape</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p>instance containing tsl data</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Tsl</cite></dt><dd><p>structured container divided into the 3 reaction of the tsl files:
+elastic coherent scattering, elastic incoherent scattering and
+inelastic incoherent scattering.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Load test ENDF-6 file with data for Be-4:
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘tsl’, 26)
+&gt;&gt;&gt; tsl = Tsl.from_endf6(tape)</p>
+<p>Coherent elastic scattering:
+&gt;&gt;&gt; tsl.data[‘elastic coherent’][‘T’].keys()
+dict_keys([296.0, 400.0, 500.0, 600.0, 700.0, 800.0, 1000.0, 1200.0])</p>
+<p>Incoherent inelastic scattering:
+&gt;&gt;&gt; tsl.data[‘inelastic incoherent’][‘beta’][0.0][‘T’].keys()
+dict_keys([296.0, 400.0, 500.0, 600.0, 700.0, 800.0, 1000.0, 1200.0])</p>
+<p>Incoherent elastic scattering:
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘tsl’, 10)
+&gt;&gt;&gt; tsl = Tsl.from_endf6(tape)
+&gt;&gt;&gt; tsl.data[‘elastic incoherent’][‘Debye-Waller’]
+array([14.70372, 19.1224 , 20.37892, 21.65261, 21.97355, 22.94205,</p>
+<blockquote>
+<div><p>23.26671, 24.24591, 24.57398])</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.tsl.Tsl.get_S">
+<span class="sig-name descname"><span class="pre">get_S</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'elastic</span> <span class="pre">coherent'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.tsl.Tsl.get_S" title="Permalink to this definition"></a></dt>
+<dd><p>Extract stacked S matrix from the Tsl class.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>kind</strong><span class="classifier"><cite>str</cite>, optional</span></dt><dd><p>The type of reaction from where the S matrix is going to be
+extracted. The default is ‘elastic coherent’.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>pd.DataFrame</cite></dt><dd><p>Stack S matrix.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In a future, the return of this method is going to be a
+object of the class <cite>S_matrix</cite>.</p>
+</div>
+<p class="rubric">Examples</p>
+<p>Load test ENDF-6 file with data for Be-4:
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘tsl’, 26)
+&gt;&gt;&gt; tsl = Tsl.from_endf6(tape)</p>
+<p>Elastic coherent S-matrix:
+&gt;&gt;&gt; tsl.get_S(kind =’elastic coherent’).head()</p>
+<blockquote>
+<div><p>T           E               S</p>
+</div></blockquote>
+<p>0       2.96000e+02     1.62650e-03     0.00000e+00
+1       2.96000e+02     5.28450e-03     8.69813e-03
+2       2.96000e+02     6.50600e-03     1.91051e-02
+3       2.96000e+02     6.91100e-03     6.40282e-02
+4       2.96000e+02     1.17905e-02     7.49635e-02</p>
+<p>Inelastic incoherent S-matrix:
+&gt;&gt;&gt; tsl.get_S(kind =’inelastic incoherent’).head()</p>
+<blockquote>
+<div><p>beta           T           alpha               S</p>
+</div></blockquote>
+<p>0       0.00000e+00     2.96000e+02     3.05297e-03     7.52844e-05
+1       0.00000e+00     2.96000e+02     3.27092e-03     8.06581e-05
+2       0.00000e+00     2.96000e+02     3.50442e-03     8.64153e-05
+3       0.00000e+00     2.96000e+02     3.75460e-03     9.25834e-05
+4       0.00000e+00     2.96000e+02     4.02263e-03     9.91918e-05</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.tsl.Tsl.to_endf6">
+<span class="sig-name descname"><span class="pre">to_endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endf6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.tsl.Tsl.to_endf6" title="Permalink to this definition"></a></dt>
+<dd><p>Update S matrixs in <cite>Endf6</cite> instance with those available in a
+<cite>Tsl</cite> instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>`endf6`</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p><cite>Endf6</cite> instance</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Endf6</cite></dt><dd><p><cite>Endf6</cite> instance with updated S matrixs and Deby-Waller function</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The user can only add new energy grids in the coherent
+elastic scattering. For the moment, add new temperatures is
+not allow.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The user can only add new alpha grids in the incoherent
+inelastic scattering. For the moment, add new temperatures
+and beta values is not allow.</p>
+</div>
+<p class="rubric">Examples</p>
+<p>Incoherent elastic scattering
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘tsl’, 10)
+&gt;&gt;&gt; from_endf = sandy.sections.mf7.read_mf7(tape, 10, 2)
+&gt;&gt;&gt; text = sandy.sections.mf7.write_mf7(from_endf)
+&gt;&gt;&gt; tsl = sandy.Tsl.from_endf6(tape)
+&gt;&gt;&gt; new_tape = tsl.to_endf6(tape)
+&gt;&gt;&gt; new_from_endf = sandy.sections.mf7.read_mf7(tape, 10, 2)
+&gt;&gt;&gt; new_text = sandy.sections.mf7.write_mf7(new_from_endf)
+&gt;&gt;&gt; assert new_text == text</p>
+<p>Coherent elastic scattering
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘tsl’, 26)
+&gt;&gt;&gt; from_endf = sandy.sections.mf7.read_mf7(tape, 26, 2)
+&gt;&gt;&gt; text = sandy.sections.mf7.write_mf7(from_endf)
+&gt;&gt;&gt; tsl = sandy.Tsl.from_endf6(tape)
+&gt;&gt;&gt; new_tape = tsl.to_endf6(tape)
+&gt;&gt;&gt; new_from_endf = sandy.sections.mf7.read_mf7(tape, 26, 2)
+&gt;&gt;&gt; new_text = sandy.sections.mf7.write_mf7(new_from_endf)
+&gt;&gt;&gt; assert new_text == text</p>
+<p>Incoherent inelastic scattering
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, ‘tsl’, 26)
+&gt;&gt;&gt; from_endf = sandy.sections.mf7.read_mf7(tape, 26, 4)
+&gt;&gt;&gt; text = sandy.sections.mf7.write_mf7(from_endf)
+&gt;&gt;&gt; tsl = sandy.Tsl.from_endf6(tape)
+&gt;&gt;&gt; new_tape = tsl.to_endf6(tape)
+&gt;&gt;&gt; new_from_endf = sandy.sections.mf7.read_mf7(tape, 26, 4)
+&gt;&gt;&gt; new_text = sandy.sections.mf7.write_mf7(new_from_endf)
+&gt;&gt;&gt; assert new_text == text</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

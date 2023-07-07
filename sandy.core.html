@@ -19,7 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="sandy.core.basecov module" href="sandy.core.basecov.html" />
+    <link rel="next" title="sandy.core.cov module" href="sandy.core.cov.html" />
     <link rel="prev" title="sandy.aleph2.xsfile module" href="sandy.aleph2.xsfile.html" /> 
 </head>
 
@@ -48,16 +48,16 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.core package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
 </ul>
 </li>
@@ -91,22 +91,125 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-core-package">
-<h1>sandy.core package<a class="headerlink" href="#sandy-core-package" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.core">
+<span id="sandy-core-package"></span><h1>sandy.core package<a class="headerlink" href="#module-sandy.core" title="Permalink to this heading"></a></h1>
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="sandy.core.basecov.html">sandy.core.basecov module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.core.cov.html">sandy.core.cov module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.core.ecov.html">sandy.core.ecov module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.core.endf6.html">sandy.core.endf6 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.core.lpc.html">sandy.core.lpc module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.core.lpccov.html">sandy.core.lpccov module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.core.records.html">sandy.core.records module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.core.samples.html">sandy.core.samples module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.core.xs.html">sandy.core.xs module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.core.xscov.html">sandy.core.xscov module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.core.cov.html">sandy.core.cov module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov"><code class="docutils literal notranslate"><span class="pre">CategoryCov</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.corr2cov"><code class="docutils literal notranslate"><span class="pre">CategoryCov.corr2cov()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.data"><code class="docutils literal notranslate"><span class="pre">CategoryCov.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.from_stack"><code class="docutils literal notranslate"><span class="pre">CategoryCov.from_stack()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.from_stdev"><code class="docutils literal notranslate"><span class="pre">CategoryCov.from_stdev()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.from_var"><code class="docutils literal notranslate"><span class="pre">CategoryCov.from_var()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.get_L"><code class="docutils literal notranslate"><span class="pre">CategoryCov.get_L()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.get_corr"><code class="docutils literal notranslate"><span class="pre">CategoryCov.get_corr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.get_eig"><code class="docutils literal notranslate"><span class="pre">CategoryCov.get_eig()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.get_std"><code class="docutils literal notranslate"><span class="pre">CategoryCov.get_std()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.get_svd"><code class="docutils literal notranslate"><span class="pre">CategoryCov.get_svd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.gls_cov_update"><code class="docutils literal notranslate"><span class="pre">CategoryCov.gls_cov_update()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.invert"><code class="docutils literal notranslate"><span class="pre">CategoryCov.invert()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.random_corr"><code class="docutils literal notranslate"><span class="pre">CategoryCov.random_corr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.random_cov"><code class="docutils literal notranslate"><span class="pre">CategoryCov.random_cov()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.sampling"><code class="docutils literal notranslate"><span class="pre">CategoryCov.sampling()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.sandwich"><code class="docutils literal notranslate"><span class="pre">CategoryCov.sandwich()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.size"><code class="docutils literal notranslate"><span class="pre">CategoryCov.size</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov.to_sparse"><code class="docutils literal notranslate"><span class="pre">CategoryCov.to_sparse()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.corr2cov"><code class="docutils literal notranslate"><span class="pre">corr2cov()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.random_corr"><code class="docutils literal notranslate"><span class="pre">random_corr()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.random_cov"><code class="docutils literal notranslate"><span class="pre">random_cov()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.triu_matrix"><code class="docutils literal notranslate"><span class="pre">triu_matrix()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.core.endf6.html">sandy.core.endf6 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.Endf6"><code class="docutils literal notranslate"><span class="pre">Endf6</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.Endf6.apply_perturbations"><code class="docutils literal notranslate"><span class="pre">Endf6.apply_perturbations()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.Endf6.get_ace"><code class="docutils literal notranslate"><span class="pre">Endf6.get_ace()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.Endf6.get_errorr"><code class="docutils literal notranslate"><span class="pre">Endf6.get_errorr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.Endf6.get_gendf"><code class="docutils literal notranslate"><span class="pre">Endf6.get_gendf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.Endf6.get_id"><code class="docutils literal notranslate"><span class="pre">Endf6.get_id()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.Endf6.get_nsub"><code class="docutils literal notranslate"><span class="pre">Endf6.get_nsub()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.Endf6.get_pendf"><code class="docutils literal notranslate"><span class="pre">Endf6.get_pendf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.Endf6.get_perturbations"><code class="docutils literal notranslate"><span class="pre">Endf6.get_perturbations()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.Endf6.get_records"><code class="docutils literal notranslate"><span class="pre">Endf6.get_records()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.Endf6.read_section"><code class="docutils literal notranslate"><span class="pre">Endf6.read_section()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.Endf6.update_intro"><code class="docutils literal notranslate"><span class="pre">Endf6.update_intro()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.get_endf6_file"><code class="docutils literal notranslate"><span class="pre">get_endf6_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.get_tsl_index"><code class="docutils literal notranslate"><span class="pre">get_tsl_index()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.core.lpc.html">sandy.core.lpc module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.lpc.html#outline">Outline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.lpc.html#summary">Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.lpc.html#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.lpc.html#routines">Routines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.lpc.html#sandy.core.lpc.Lpc"><code class="docutils literal notranslate"><span class="pre">Lpc</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.lpc.html#sandy.core.lpc.Lpc.custom_perturbation"><code class="docutils literal notranslate"><span class="pre">Lpc.custom_perturbation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.lpc.html#sandy.core.lpc.Lpc.data"><code class="docutils literal notranslate"><span class="pre">Lpc.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.lpc.html#sandy.core.lpc.Lpc.filter_by"><code class="docutils literal notranslate"><span class="pre">Lpc.filter_by()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.lpc.html#sandy.core.lpc.Lpc.from_endf6"><code class="docutils literal notranslate"><span class="pre">Lpc.from_endf6()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.lpc.html#sandy.core.lpc.Lpc.reshape"><code class="docutils literal notranslate"><span class="pre">Lpc.reshape()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.lpc.html#sandy.core.lpc.Lpc.to_endf6"><code class="docutils literal notranslate"><span class="pre">Lpc.to_endf6()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.lpc.html#sandy.core.lpc.Lpc.to_tpd"><code class="docutils literal notranslate"><span class="pre">Lpc.to_tpd()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.lpc.html#sandy.core.lpc.lpc_to_tpd"><code class="docutils literal notranslate"><span class="pre">lpc_to_tpd()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.core.records.html">sandy.core.records module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.line_numbers"><code class="docutils literal notranslate"><span class="pre">line_numbers()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.read_cont"><code class="docutils literal notranslate"><span class="pre">read_cont()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.read_list"><code class="docutils literal notranslate"><span class="pre">read_list()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.read_tab1"><code class="docutils literal notranslate"><span class="pre">read_tab1()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.read_tab2"><code class="docutils literal notranslate"><span class="pre">read_tab2()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.read_text"><code class="docutils literal notranslate"><span class="pre">read_text()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_cont"><code class="docutils literal notranslate"><span class="pre">write_cont()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_eol"><code class="docutils literal notranslate"><span class="pre">write_eol()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_float"><code class="docutils literal notranslate"><span class="pre">write_float()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_float_list"><code class="docutils literal notranslate"><span class="pre">write_float_list()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_int"><code class="docutils literal notranslate"><span class="pre">write_int()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_integer_list"><code class="docutils literal notranslate"><span class="pre">write_integer_list()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_line"><code class="docutils literal notranslate"><span class="pre">write_line()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_list"><code class="docutils literal notranslate"><span class="pre">write_list()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_tab1"><code class="docutils literal notranslate"><span class="pre">write_tab1()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_tab2"><code class="docutils literal notranslate"><span class="pre">write_tab2()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_text"><code class="docutils literal notranslate"><span class="pre">write_text()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.core.samples.html">sandy.core.samples module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.samples.html#sandy.core.samples.Samples"><code class="docutils literal notranslate"><span class="pre">Samples</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.samples.html#sandy.core.samples.Samples.data"><code class="docutils literal notranslate"><span class="pre">Samples.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.samples.html#sandy.core.samples.Samples.get_condition_number"><code class="docutils literal notranslate"><span class="pre">Samples.get_condition_number()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.samples.html#sandy.core.samples.Samples.get_corr"><code class="docutils literal notranslate"><span class="pre">Samples.get_corr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.samples.html#sandy.core.samples.Samples.get_cov"><code class="docutils literal notranslate"><span class="pre">Samples.get_cov()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.samples.html#sandy.core.samples.Samples.get_mean"><code class="docutils literal notranslate"><span class="pre">Samples.get_mean()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.samples.html#sandy.core.samples.Samples.get_rstd"><code class="docutils literal notranslate"><span class="pre">Samples.get_rstd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.samples.html#sandy.core.samples.Samples.get_std"><code class="docutils literal notranslate"><span class="pre">Samples.get_std()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.samples.html#sandy.core.samples.Samples.iterate_xs_samples"><code class="docutils literal notranslate"><span class="pre">Samples.iterate_xs_samples()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.samples.html#sandy.core.samples.Samples.test_shapiro"><code class="docutils literal notranslate"><span class="pre">Samples.test_shapiro()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.core.xs.html">sandy.core.xs module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.core.xs.html#sandy.core.xs.Xs"><code class="docutils literal notranslate"><span class="pre">Xs</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.xs.html#sandy.core.xs.Xs.custom_perturbation"><code class="docutils literal notranslate"><span class="pre">Xs.custom_perturbation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.xs.html#sandy.core.xs.Xs.data"><code class="docutils literal notranslate"><span class="pre">Xs.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.xs.html#sandy.core.xs.Xs.from_endf6"><code class="docutils literal notranslate"><span class="pre">Xs.from_endf6()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.xs.html#sandy.core.xs.Xs.reconstruct_sums"><code class="docutils literal notranslate"><span class="pre">Xs.reconstruct_sums()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.xs.html#sandy.core.xs.Xs.redundant_xs"><code class="docutils literal notranslate"><span class="pre">Xs.redundant_xs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.xs.html#sandy.core.xs.Xs.reshape"><code class="docutils literal notranslate"><span class="pre">Xs.reshape()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.xs.html#sandy.core.xs.Xs.to_endf6"><code class="docutils literal notranslate"><span class="pre">Xs.to_endf6()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </div>
 </section>
@@ -117,7 +220,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="sandy.aleph2.xsfile.html" class="btn btn-neutral float-left" title="sandy.aleph2.xsfile module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="sandy.core.basecov.html" class="btn btn-neutral float-right" title="sandy.core.basecov module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="sandy.core.cov.html" class="btn btn-neutral float-right" title="sandy.core.cov module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

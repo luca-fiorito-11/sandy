@@ -48,16 +48,16 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="sandy.core.html">sandy.core package</a><ul class="current">
 <li class="toctree-l4 current"><a class="reference internal" href="sandy.core.html#submodules">Submodules</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
 </ul>
 </li>
@@ -92,8 +92,306 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-core-samples-module">
-<h1>sandy.core.samples module<a class="headerlink" href="#sandy-core-samples-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.core.samples">
+<span id="sandy-core-samples-module"></span><h1>sandy.core.samples module<a class="headerlink" href="#module-sandy.core.samples" title="Permalink to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.core.samples.Samples">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.core.samples.</span></span><span class="sig-name descname"><span class="pre">Samples</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Container for samples.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><a class="reference internal" href="#sandy.core.samples.Samples.data" title="sandy.core.samples.Samples.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a></dt><dd><p>Dataframe of samples.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.samples.Samples.get_condition_number" title="sandy.core.samples.Samples.get_condition_number"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_condition_number</span></code></a>()</p></td>
+<td><p>Return condition number of samples.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.samples.Samples.iterate_xs_samples" title="sandy.core.samples.Samples.iterate_xs_samples"><code class="xref py py-obj docutils literal notranslate"><span class="pre">iterate_xs_samples</span></code></a>()</p></td>
+<td><p>Iterate samples one by one and shape them as a <code class="xref py py-func docutils literal notranslate"><span class="pre">sandy.Xs()</span></code> dataframe, but with mutligroup structure.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.samples.Samples.test_shapiro" title="sandy.core.samples.Samples.test_shapiro"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_shapiro</span></code></a>([size, pdf])</p></td>
+<td><p>Perform the Shapiro-Wilk test for normality on the samples.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>get_corr</strong></p></td>
+<td><p>Return correlation matrix of samples.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_cov</strong></p></td>
+<td><p>Return covariance matrix of samples.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_mean</strong></p></td>
+<td><p>Return mean vector of samples.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_std</strong></p></td>
+<td><p>Return standard deviation vector of samples.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_rstd</strong></p></td>
+<td><p>Return relative standard deviation vector of samples.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.core.samples.Samples.data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sandy.core.samples.Samples.data" title="Permalink to this definition"></a></dt>
+<dd><p>Dataframe of samples.</p>
+<dl class="field-list">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>tabulated samples</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><dl>
+<dt><strong>index</strong><span class="classifier"><cite>pandas.Index</cite> or <cite>pandas.MultiIndex</cite></span></dt><dd><p>indices</p>
+</dd>
+<dt><strong>columns</strong><span class="classifier"><cite>pandas.Index</cite></span></dt><dd><p>samples numbering</p>
+</dd>
+<dt><strong>values</strong><span class="classifier"><cite>numpy.array</cite></span></dt><dd><p>sample values as <cite>float</cite></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.samples.Samples.get_condition_number">
+<span class="sig-name descname"><span class="pre">get_condition_number</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples.get_condition_number" title="Permalink to this definition"></a></dt>
+<dd><p>Return condition number of samples.</p>
+<p class="rubric">Notes</p>
+<p>..note:: the condition number can help assess multicollinearity.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.samples.Samples.get_corr">
+<span class="sig-name descname"><span class="pre">get_corr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples.get_corr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.samples.Samples.get_cov">
+<span class="sig-name descname"><span class="pre">get_cov</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples.get_cov" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.samples.Samples.get_mean">
+<span class="sig-name descname"><span class="pre">get_mean</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples.get_mean" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.samples.Samples.get_rstd">
+<span class="sig-name descname"><span class="pre">get_rstd</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples.get_rstd" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.samples.Samples.get_std">
+<span class="sig-name descname"><span class="pre">get_std</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples.get_std" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.samples.Samples.iterate_xs_samples">
+<span class="sig-name descname"><span class="pre">iterate_xs_samples</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples.iterate_xs_samples" title="Permalink to this definition"></a></dt>
+<dd><p>Iterate samples one by one and shape them as a <code class="xref py py-func docutils literal notranslate"><span class="pre">sandy.Xs()</span></code>
+dataframe, but with mutligroup structure.
+This output should be passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">sandy.Xs._perturb()</span></code>.
+The function is called by <code class="xref py py-func docutils literal notranslate"><span class="pre">sandy.Endf6.apply_perturbations()</span></code></p>
+<dl class="field-list">
+<dt class="field-odd">Yields<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>n</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>.</p>
+</dd>
+<dt><strong>s</strong><span class="classifier"><cite>pd.DataFrame</cite></span></dt><dd><p>dataframe of perturbation coefficients with:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>columns: <cite>pd.MultiIndex</cite> with levels <cite>“MAT”</cite> and <cite>“MT”</cite></p></li>
+<li><p>index: <cite>pd.IntervalIndex</cite> with multigroup structure</p></li>
+</ul>
+</div></blockquote>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If samples refer to redundant MT number, the same identical samples
+are passed one level down to the partial MT components.
+For instance:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>MT=4 samples will be assigned to MT=50-91</p></li>
+<li><p>MT=1 samples will be assigned to MT=2 and MT=3</p></li>
+<li><p>MT=18 samples will be assigned to MT=19-21 and MT=38</p></li>
+</ul>
+</div></blockquote>
+<dl class="simple">
+<dt>..important:: Assigning samples from redundant MT number to partial</dt><dd><p>components only applies if the partial components do not
+have their own samples, and it only goes one level deep.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Get samples fot MT=1
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(‘jeff_33’, ‘xs’, 10010)
+&gt;&gt;&gt; smps1 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=1)))[33]</p>
+<p>Copy samples each time to a redundant or partial MT
+&gt;&gt;&gt; smps3 = sandy.Samples(smps1.data.reset_index().assign(MT=3).set_index([“MAT”, “MT”, “E”]))
+&gt;&gt;&gt; smps18 = sandy.Samples(smps1.data.reset_index().assign(MT=18).set_index([“MAT”, “MT”, “E”]))
+&gt;&gt;&gt; smps19 = sandy.Samples(smps1.data.reset_index().assign(MT=19).set_index([“MAT”, “MT”, “E”]))
+&gt;&gt;&gt; smps27 = sandy.Samples(smps1.data.reset_index().assign(MT=27).set_index([“MAT”, “MT”, “E”]))
+&gt;&gt;&gt; smps4 = sandy.Samples(smps1.data.reset_index().assign(MT=4).set_index([“MAT”, “MT”, “E”]))
+&gt;&gt;&gt; smps51 = sandy.Samples(smps1.data.reset_index().assign(MT=51).set_index([“MAT”, “MT”, “E”]))
+&gt;&gt;&gt; smps101 = sandy.Samples(smps1.data.reset_index().assign(MT=101).set_index([“MAT”, “MT”, “E”]))
+&gt;&gt;&gt; smps452 = sandy.Samples(smps1.data.reset_index().assign(MT=452).set_index([“MAT”, “MT”, “E”]))</p>
+<p>Check that samples are passed correctly to daughter MTs (only one level deep)
+&gt;&gt;&gt; expected = pd.MultiIndex.from_product([[125], [51]], names=[“MAT”, “MT”])
+&gt;&gt;&gt; assert next(smps51.iterate_xs_samples())[1].columns.equals(expected)</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expected</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([[</span><span class="mi">125</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">redundant_xs</span><span class="p">[</span><span class="mi">4</span><span class="p">])],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;MAT&quot;</span><span class="p">,</span> <span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">next</span><span class="p">(</span><span class="n">smps4</span><span class="o">.</span><span class="n">iterate_xs_samples</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expected</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([[</span><span class="mi">125</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">redundant_xs</span><span class="p">[</span><span class="mi">1</span><span class="p">])],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;MAT&quot;</span><span class="p">,</span> <span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">next</span><span class="p">(</span><span class="n">smps1</span><span class="o">.</span><span class="n">iterate_xs_samples</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expected</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([[</span><span class="mi">125</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">redundant_xs</span><span class="p">[</span><span class="mi">3</span><span class="p">])],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;MAT&quot;</span><span class="p">,</span> <span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">next</span><span class="p">(</span><span class="n">smps3</span><span class="o">.</span><span class="n">iterate_xs_samples</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expected</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([[</span><span class="mi">125</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">redundant_xs</span><span class="p">[</span><span class="mi">1</span><span class="p">])],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;MAT&quot;</span><span class="p">,</span> <span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">next</span><span class="p">(</span><span class="n">smps1</span><span class="o">.</span><span class="n">iterate_xs_samples</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expected</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([[</span><span class="mi">125</span><span class="p">],</span> <span class="p">[</span><span class="mi">18</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">redundant_xs</span><span class="p">[</span><span class="mi">18</span><span class="p">])],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;MAT&quot;</span><span class="p">,</span> <span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">next</span><span class="p">(</span><span class="n">smps18</span><span class="o">.</span><span class="n">iterate_xs_samples</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expected</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([[</span><span class="mi">125</span><span class="p">],</span> <span class="p">[</span><span class="mi">27</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">redundant_xs</span><span class="p">[</span><span class="mi">27</span><span class="p">])],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;MAT&quot;</span><span class="p">,</span> <span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">next</span><span class="p">(</span><span class="n">smps27</span><span class="o">.</span><span class="n">iterate_xs_samples</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expected</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([[</span><span class="mi">125</span><span class="p">],</span> <span class="p">[</span><span class="mi">101</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">redundant_xs</span><span class="p">[</span><span class="mi">101</span><span class="p">])],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;MAT&quot;</span><span class="p">,</span> <span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">next</span><span class="p">(</span><span class="n">smps101</span><span class="o">.</span><span class="n">iterate_xs_samples</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expected</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([[</span><span class="mi">125</span><span class="p">],</span> <span class="p">[</span><span class="mi">452</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">sandy</span><span class="o">.</span><span class="n">redundant_xs</span><span class="p">[</span><span class="mi">452</span><span class="p">])],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;MAT&quot;</span><span class="p">,</span> <span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">next</span><span class="p">(</span><span class="n">smps452</span><span class="o">.</span><span class="n">iterate_xs_samples</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In this example the original covariance contains data for MT=1 and MT=51.
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(‘jeff_33’, ‘xs’, 942400)
+&gt;&gt;&gt; smps = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=[1, 51])))[33]</p>
+<p>Then, since MT=1 is redundant, samples are passed to its partial components (MT=2 and MT=3).
+&gt;&gt;&gt; expected = pd.MultiIndex.from_product([[9440], [1, 51] + list(sandy.redundant_xs[1])], names=[“MAT”, “MT”])
+&gt;&gt;&gt; assert next(smps.iterate_xs_samples())[1].columns.equals(expected)</p>
+<p>If case one of the partial components already has samples, i.e., MT=2…
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(‘jeff_33’, ‘xs’, 942400)
+&gt;&gt;&gt; smps = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=[1, 2, 51])))[33]</p>
+<p>Then the MT=1 samples are not passed to the partial components, which 
+in this case it means that MT=2 is not changed and MT=3 is not created.
+&gt;&gt;&gt; expected = pd.MultiIndex.from_product([[9440], [1, 2, 51]], names=[“MAT”, “MT”])
+&gt;&gt;&gt; assert next(smps.iterate_xs_samples())[1].columns.equals(expected)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.samples.Samples.test_shapiro">
+<span class="sig-name descname"><span class="pre">test_shapiro</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pdf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'normal'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.samples.Samples.test_shapiro" title="Permalink to this definition"></a></dt>
+<dd><p>Perform the Shapiro-Wilk test for normality on the samples.
+The test can be performed also for a lognormal distribution by testing
+for normality the logarithm of the samples.</p>
+<p>The Shapiro-Wilk test tests the null hypothesis that the data was
+drawn from a normal distribution.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>size</strong><span class="classifier"><cite>int</cite>, optional</span></dt><dd><p>number of samples (starting from the first) that need to be
+considered for the test. The default is <cite>None</cite>, i.e., all samples.</p>
+</dd>
+<dt><strong>pdf</strong><span class="classifier"><cite>str</cite>, optional</span></dt><dd><p>the pdf used to test the samples. Either <cite>“normal”</cite> or
+<cite>“lognormal”</cite>. The default is “normal”.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>pd.DataFrame</dt><dd><p>Dataframe with Shapriro-Wilk results (statistic and pvalue) for
+each variable considered in the <a class="reference internal" href="#sandy.core.samples.Samples" title="sandy.core.samples.Samples"><code class="xref py py-func docutils literal notranslate"><span class="pre">Samples()</span></code></a> instance.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Generate 5000 xs samples normally, log-normally and uniform distributed
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 10010)
+&gt;&gt;&gt; njoy_kws = dict(err=1, errorr33_kws=dict(mt=102))
+&gt;&gt;&gt; nsmp = 5000
+&gt;&gt;&gt; seed = 5
+&gt;&gt;&gt;
+&gt;&gt;&gt; smp_norm = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=seed, pdf=”normal”))[33]
+&gt;&gt;&gt; smp_lognorm = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=seed, pdf=”lognormal”))[33]
+&gt;&gt;&gt; smp_uniform = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=seed, pdf=”uniform”))[33]</p>
+<dl class="simple">
+<dt>In this example we defined the following arbitrary convergence criteria:</dt><dd><ul class="simple">
+<li><p>if the p value is larger than 0.05 we fail to reject the null-hypothesis and we accept the results</p></li>
+<li><p>if the first condition is accepted, we confirm the pdf if the statistics is larger than 0.95</p></li>
+</ul>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">threshold</span> <span class="o">=</span> <span class="mf">0.95</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pthreshold</span> <span class="o">=</span> <span class="mf">0.05</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="n">smps</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="gp">... </span>    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">5000</span><span class="p">]:</span>
+<span class="gp">... </span>        <span class="k">for</span> <span class="n">pdf</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;normal&quot;</span><span class="p">,</span> <span class="s2">&quot;lognormal&quot;</span><span class="p">):</span>
+<span class="gp">... </span>            <span class="n">df</span> <span class="o">=</span> <span class="n">smps</span><span class="o">.</span><span class="n">test_shapiro</span><span class="p">(</span><span class="n">pdf</span><span class="o">=</span><span class="n">pdf</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+<span class="gp">... </span>            <span class="n">idx</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">statistic</span><span class="o">.</span><span class="n">idxmin</span><span class="p">()</span>
+<span class="gp">... </span>            <span class="n">w</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+<span class="gp">... </span>            <span class="n">t</span> <span class="o">=</span> <span class="s2">&quot;reject&quot;</span> <span class="k">if</span> <span class="n">w</span><span class="o">.</span><span class="n">pvalue</span> <span class="o">&lt;</span> <span class="n">pthreshold</span> <span class="k">else</span> <span class="p">(</span><span class="n">pdf</span> <span class="k">if</span> <span class="n">w</span><span class="o">.</span><span class="n">statistic</span> <span class="o">&gt;</span> <span class="n">threshold</span> <span class="k">else</span> <span class="s2">&quot;reject&quot;</span><span class="p">)</span>
+<span class="gp">... </span>            <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;PDF&quot;</span><span class="p">:</span> <span class="n">pdf</span><span class="p">,</span> <span class="s2">&quot;test&quot;</span><span class="p">:</span><span class="n">t</span><span class="p">,</span> <span class="s2">&quot;# SMP&quot;</span><span class="p">:</span> <span class="n">n</span><span class="p">})</span>
+<span class="gp">... </span>    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;# SMP&quot;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">&quot;PDF&quot;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">aggfunc</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">df</span>
+</pre></div>
+</div>
+<p>The Shapiro-Wilks test proves wrong the normal samples because of the tail truncation.
+# &gt;&gt;&gt; print(test(smp_norm))
+PDF   lognormal      normal
+# SMP                      
+10       reject      reject
+50       reject      reject
+100      reject      reject
+500      reject      reject
+1000     reject      reject
+5000     reject      reject</p>
+<p>The Shapiro-Wilks test proves right for the lognormal samples and the lognormal distribution.
+# &gt;&gt;&gt; print(test(smp_lognorm))
+PDF    lognormal  normal
+# SMP                   
+10     lognormal  reject
+50     lognormal  reject
+100    lognormal  reject
+500    lognormal  reject
+1000   lognormal  reject
+5000   lognormal  reject</p>
+<p>The Shapiro-Wilks gives too low p-values for the uniform samples.
+# &gt;&gt;&gt; print(test(smp_uniform))
+PDF   lognormal  normal
+# SMP                  
+10       reject  reject
+50       reject  reject
+100      reject  reject
+500      reject  reject
+1000     reject  reject
+5000     reject  reject</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

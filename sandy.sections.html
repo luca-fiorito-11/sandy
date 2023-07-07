@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="sandy.sections.mf1 module" href="sandy.sections.mf1.html" />
-    <link rel="prev" title="sandy.replace.replace module" href="sandy.replace.replace.html" /> 
+    <link rel="prev" title="sandy.mcnp.output_file module" href="sandy.mcnp.output_file.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -48,13 +48,13 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.core.html">sandy.core package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.sections package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
 </ul>
@@ -91,27 +91,81 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-sections-package">
-<h1>sandy.sections package<a class="headerlink" href="#sandy-sections-package" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.sections">
+<span id="sandy-sections-package"></span><h1>sandy.sections package<a class="headerlink" href="#module-sandy.sections" title="Permalink to this heading"></a></h1>
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf1.html">sandy.sections.mf1 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf10.html">sandy.sections.mf10 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf2.html">sandy.sections.mf2 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf3.html">sandy.sections.mf3 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf31.html">sandy.sections.mf31 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf32.html">sandy.sections.mf32 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf33.html">sandy.sections.mf33 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf34.html">sandy.sections.mf34 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf35.html">sandy.sections.mf35 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf4.html">sandy.sections.mf4 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf5.html">sandy.sections.mf5 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf6.html">sandy.sections.mf6 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf7.html">sandy.sections.mf7 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf8.html">sandy.sections.mf8 module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf9.html">sandy.sections.mf9 module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf1.html">sandy.sections.mf1 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf1.html#sandy.sections.mf1.read_mf1"><code class="docutils literal notranslate"><span class="pre">read_mf1()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf1.html#sandy.sections.mf1.write_mf1"><code class="docutils literal notranslate"><span class="pre">write_mf1()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf10.html">sandy.sections.mf10 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf10.html#sandy.sections.mf10.read_mf10"><code class="docutils literal notranslate"><span class="pre">read_mf10()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf10.html#sandy.sections.mf10.write_mf10"><code class="docutils literal notranslate"><span class="pre">write_mf10()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf2.html">sandy.sections.mf2 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf2.html#sandy.sections.mf2.read_mf2"><code class="docutils literal notranslate"><span class="pre">read_mf2()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf2.html#sandy.sections.mf2.write_mf2"><code class="docutils literal notranslate"><span class="pre">write_mf2()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf3.html">sandy.sections.mf3 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf3.html#sandy.sections.mf3.read_mf3"><code class="docutils literal notranslate"><span class="pre">read_mf3()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf3.html#sandy.sections.mf3.write_mf3"><code class="docutils literal notranslate"><span class="pre">write_mf3()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf31.html">sandy.sections.mf31 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf31.html#sandy.sections.mf31.read_mf31"><code class="docutils literal notranslate"><span class="pre">read_mf31()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf32.html">sandy.sections.mf32 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf32.html#sandy.sections.mf32.read_mf32"><code class="docutils literal notranslate"><span class="pre">read_mf32()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf33.html">sandy.sections.mf33 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf33.html#sandy.sections.mf33.read_mf33"><code class="docutils literal notranslate"><span class="pre">read_mf33()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf34.html">sandy.sections.mf34 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf34.html#sandy.sections.mf34.read_mf34"><code class="docutils literal notranslate"><span class="pre">read_mf34()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf35.html">sandy.sections.mf35 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf35.html#sandy.sections.mf35.read_mf35"><code class="docutils literal notranslate"><span class="pre">read_mf35()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf4.html">sandy.sections.mf4 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf4.html#sandy.sections.mf4.read_mf4"><code class="docutils literal notranslate"><span class="pre">read_mf4()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf4.html#sandy.sections.mf4.write_mf4"><code class="docutils literal notranslate"><span class="pre">write_mf4()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf5.html">sandy.sections.mf5 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf5.html#sandy.sections.mf5.read_mf5"><code class="docutils literal notranslate"><span class="pre">read_mf5()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf6.html">sandy.sections.mf6 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf6.html#sandy.sections.mf6.read_mf6"><code class="docutils literal notranslate"><span class="pre">read_mf6()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf6.html#sandy.sections.mf6.write_mf6"><code class="docutils literal notranslate"><span class="pre">write_mf6()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf7.html">sandy.sections.mf7 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf7.html#sandy.sections.mf7.read_mf7"><code class="docutils literal notranslate"><span class="pre">read_mf7()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf7.html#sandy.sections.mf7.write_mf7"><code class="docutils literal notranslate"><span class="pre">write_mf7()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf8.html">sandy.sections.mf8 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf8.html#sandy.sections.mf8.read_mf8"><code class="docutils literal notranslate"><span class="pre">read_mf8()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf8.html#sandy.sections.mf8.write_mf8"><code class="docutils literal notranslate"><span class="pre">write_mf8()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.sections.mf9.html">sandy.sections.mf9 module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf9.html#sandy.sections.mf9.read_mf9"><code class="docutils literal notranslate"><span class="pre">read_mf9()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.sections.mf9.html#sandy.sections.mf9.write_mf9"><code class="docutils literal notranslate"><span class="pre">write_mf9()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </div>
 </section>
@@ -121,7 +175,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="sandy.replace.replace.html" class="btn btn-neutral float-left" title="sandy.replace.replace module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.mcnp.output_file.html" class="btn btn-neutral float-left" title="sandy.mcnp.output_file module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="sandy.sections.mf1.html" class="btn btn-neutral float-right" title="sandy.sections.mf1 module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

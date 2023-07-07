@@ -48,16 +48,16 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a><ul class="current">
 <li class="toctree-l4 current"><a class="reference internal" href="sandy.aleph2.html#submodules">Submodules</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.core.html">sandy.core package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
 </ul>
 </li>
@@ -92,8 +92,270 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-aleph2-xsfile-module">
-<h1>sandy.aleph2.xsfile module<a class="headerlink" href="#sandy-aleph2-xsfile-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.aleph2.xsfile">
+<span id="sandy-aleph2-xsfile-module"></span><h1>sandy.aleph2.xsfile module<a class="headerlink" href="#module-sandy.aleph2.xsfile" title="Permalink to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.aleph2.xsfile.AlephFile">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.aleph2.xsfile.</span></span><span class="sig-name descname"><span class="pre">AlephFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.aleph2.xsfile.AlephFile" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">inp</span> <span class="o">=</span> <span class="n">AlephFile</span><span class="o">.</span><span class="n">from_text</span><span class="p">(</span><span class="n">test_aleph2xs</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">inp</span><span class="o">.</span><span class="n">data</span>
+<span class="go">{&#39;nuclide&#39;: 952410,</span>
+<span class="go"> &#39;energies&#39;: array([1.e-11, 1.e-05, 1.e-01, 1.e+01]),</span>
+<span class="go"> &#39;fission_qvalue&#39;: 200.0,</span>
+<span class="go"> &#39;capture_qvalue&#39;: 5.0,</span>
+<span class="go"> &#39;reactions&#39;: {952420: {&#39;qval&#39;: 5.0, &#39;xs&#39;: array([1., 2., 3., 4.])},</span>
+<span class="go">  18: {&#39;qval&#39;: 200.0, &#39;xs&#39;: array([1., 2., 3., 4.])},</span>
+<span class="go">  942410: {&#39;qval&#39;: 5.0, &#39;xs&#39;: array([6., 5.])},</span>
+<span class="go">  10010: {&#39;qval&#39;: 0.7, &#39;xs&#39;: array([6., 5.])},</span>
+<span class="go">  4581: {&#39;qval&#39;: 0.0, &#39;xs&#39;: array([200., 400., 600., 800.])},</span>
+<span class="go">  4582: {&#39;qval&#39;: 0.0, &#39;xs&#39;: array([ 5., 10., 15., 20.])}}}</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>npoints</strong></dt><dd></dd>
+<dt><strong>nuclide</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.aleph2.xsfile.AlephFile.add_capture_xsenergy" title="sandy.aleph2.xsfile.AlephFile.add_capture_xsenergy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_capture_xsenergy</span></code></a>()</p></td>
+<td><p>Add</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.aleph2.xsfile.AlephFile.add_fission_xsenergy" title="sandy.aleph2.xsfile.AlephFile.add_fission_xsenergy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_fission_xsenergy</span></code></a>()</p></td>
+<td><p>Add</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.aleph2.xsfile.AlephFile.add_reaction" title="sandy.aleph2.xsfile.AlephFile.add_reaction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_reaction</span></code></a>(key, array[, qval])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.aleph2.xsfile.AlephFile.from_file" title="sandy.aleph2.xsfile.AlephFile.from_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_file</span></code></a>(file)</p></td>
+<td><p>Read ALEPH-2 cross sections from file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.aleph2.xsfile.AlephFile.from_text" title="sandy.aleph2.xsfile.AlephFile.from_text"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_text</span></code></a>(text)</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.aleph2.xsfile.AlephFile.to_dataframe" title="sandy.aleph2.xsfile.AlephFile.to_dataframe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_dataframe</span></code></a>()</p></td>
+<td><p>Order cross sections into a dataframe with energy as index and parent/daughter ZAM numbers as columns.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.aleph2.xsfile.AlephFile.to_string" title="sandy.aleph2.xsfile.AlephFile.to_string"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_string</span></code></a>()</p></td>
+<td><p>Write file content into sting.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>copy</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.aleph2.xsfile.AlephFile.add_capture_xsenergy">
+<span class="sig-name descname"><span class="pre">add_capture_xsenergy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.aleph2.xsfile.AlephFile.add_capture_xsenergy" title="Permalink to this definition"></a></dt>
+<dd><p>Add</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>None.</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.aleph2.xsfile.AlephFile.add_fission_xsenergy">
+<span class="sig-name descname"><span class="pre">add_fission_xsenergy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.aleph2.xsfile.AlephFile.add_fission_xsenergy" title="Permalink to this definition"></a></dt>
+<dd><p>Add</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>None.</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.aleph2.xsfile.AlephFile.add_reaction">
+<span class="sig-name descname"><span class="pre">add_reaction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.aleph2.xsfile.AlephFile.add_reaction" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>key</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>reaction product ZAM identifier (daughter).</p>
+</dd>
+<dt><strong>array</strong><span class="classifier"><cite>numpy.ndarray</cite></span></dt><dd><p>cross section values over original energy grid, or a selection for
+threshold reactions.</p>
+</dd>
+<dt><strong>qval</strong><span class="classifier"><cite>float</cite>, optional</span></dt><dd><p>reaction qvalue. The default is 0..</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>None.</dt><dd></dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>ValueError</dt><dd><p>If cross section array contains more entries than the energy
+points.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">inp</span> <span class="o">=</span> <span class="n">AlephFile</span><span class="o">.</span><span class="n">from_text</span><span class="p">(</span><span class="n">test_aleph2xs</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">inp2</span> <span class="o">=</span> <span class="n">inp</span><span class="o">.</span><span class="n">add_reaction</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">inp2</span><span class="o">.</span><span class="n">data</span>
+<span class="go">{&#39;nuclide&#39;: 952410,</span>
+<span class="go"> &#39;energies&#39;: array([1.e-11, 1.e-05, 1.e-01, 1.e+01]),</span>
+<span class="go"> &#39;fission_qvalue&#39;: 200.0,</span>
+<span class="go"> &#39;capture_qvalue&#39;: 5.0,</span>
+<span class="go"> &#39;reactions&#39;: {952420: {&#39;qval&#39;: 5.0, &#39;xs&#39;: array([1., 2., 3., 4.])},</span>
+<span class="go">  18: {&#39;qval&#39;: 200.0, &#39;xs&#39;: array([1., 2., 3., 4.])},</span>
+<span class="go">  942410: {&#39;qval&#39;: 5.0, &#39;xs&#39;: array([6., 5.])},</span>
+<span class="go">  10010: {&#39;qval&#39;: 0.7, &#39;xs&#39;: array([6., 5.])},</span>
+<span class="go">  4581: {&#39;qval&#39;: 0.0, &#39;xs&#39;: array([200., 400., 600., 800.])},</span>
+<span class="go">  4582: {&#39;qval&#39;: 0.0, &#39;xs&#39;: array([ 5., 10., 15., 20.])},</span>
+<span class="go">  100: {&#39;qval&#39;: 0.0, &#39;xs&#39;: array([3., 4., 5.])}}}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.aleph2.xsfile.AlephFile.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.aleph2.xsfile.AlephFile.copy" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.aleph2.xsfile.AlephFile.from_file">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.aleph2.xsfile.AlephFile.from_file" title="Permalink to this definition"></a></dt>
+<dd><p>Read ALEPH-2 cross sections from file.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>file</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>name of the file containing ALEPH-2 cross section data.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.aleph2.xsfile.AlephFile.from_text">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.aleph2.xsfile.AlephFile.from_text" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>cls</strong><span class="classifier">TYPE</span></dt><dd><p>DESCRIPTION.</p>
+</dd>
+<dt><strong>text</strong><span class="classifier">TYPE</span></dt><dd><p>DESCRIPTION.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>data</strong><span class="classifier">TYPE</span></dt><dd><p>DESCRIPTION.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.aleph2.xsfile.AlephFile.npoints">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">npoints</span></span><a class="headerlink" href="#sandy.aleph2.xsfile.AlephFile.npoints" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.aleph2.xsfile.AlephFile.nuclide">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nuclide</span></span><a class="headerlink" href="#sandy.aleph2.xsfile.AlephFile.nuclide" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.aleph2.xsfile.AlephFile.to_dataframe">
+<span class="sig-name descname"><span class="pre">to_dataframe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.aleph2.xsfile.AlephFile.to_dataframe" title="Permalink to this definition"></a></dt>
+<dd><p>Order cross sections into a dataframe with energy as index and
+parent/daughter ZAM numbers as columns.</p>
+<dl class="field-list">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>df</strong><span class="classifier"><cite>pandas.DataFrame</cite></span></dt><dd><p>dtaframe of energy-dependent cross sections.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>threshold reactions are padded with zero from the first
+energy point to the last before the threshold.</p>
+</div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AlephFile</span><span class="o">.</span><span class="n">from_text</span><span class="p">(</span><span class="n">test_aleph2xs</span><span class="p">)</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
+<span class="go">PARENT           952410</span>
+<span class="go">DAUGHTER         952420      18          942410      10010       4581        4582</span>
+<span class="go">E</span>
+<span class="go">1.00000e-11 1.00000e+00 1.00000e+00 0.00000e+00 0.00000e+00 2.00000e+02 5.00000e+00</span>
+<span class="go">1.00000e-05 2.00000e+00 2.00000e+00 0.00000e+00 0.00000e+00 4.00000e+02 1.00000e+01</span>
+<span class="go">1.00000e-01 3.00000e+00 3.00000e+00 6.00000e+00 6.00000e+00 6.00000e+02 1.50000e+01</span>
+<span class="go">1.00000e+01 4.00000e+00 4.00000e+00 5.00000e+00 5.00000e+00 8.00000e+02 2.00000e+01</span>
+</pre></div>
+</div>
+<p>PARENT           952410              …                        
+DAUGHTER         952420      18      …      4581        4582  
+E                                    …                        
+1.00000e-11 1.00000e+00 1.00000e+00  … 2.00000e+02 5.00000e+00
+1.00000e-05 2.00000e+00 2.00000e+00  … 4.00000e+02 1.00000e+01
+1.00000e-01 3.00000e+00 3.00000e+00  … 6.00000e+02 1.50000e+01
+1.00000e+01 4.00000e+00 4.00000e+00  … 8.00000e+02 2.00000e+01</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.aleph2.xsfile.AlephFile.to_string">
+<span class="sig-name descname"><span class="pre">to_string</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.aleph2.xsfile.AlephFile.to_string" title="Permalink to this definition"></a></dt>
+<dd><p>Write file content into sting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>str</cite></dt><dd><p>string with file content.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">AlephFile</span><span class="o">.</span><span class="n">from_text</span><span class="p">(</span><span class="n">test_aleph2xs</span><span class="p">)</span><span class="o">.</span><span class="n">to_string</span><span class="p">())</span>
+<span class="go">              952410                   4                   4  2.000000000000E+02</span>
+<span class="go">  5.000000000000E+00                                                            </span>
+<span class="go">  1.000000000000E-11  1.000000000000E-05  1.000000000000E-01  1.000000000000E+01</span>
+<span class="go">                  18                   0  2.000000000000E+02                    </span>
+<span class="go">  1.000000000000E+00  2.000000000000E+00  3.000000000000E+00  4.000000000000E+00</span>
+<span class="go">               10010                   2  7.000000000000E-01                    </span>
+<span class="go">  6.000000000000E+00  5.000000000000E+00                                        </span>
+<span class="go">              942410                   2  5.000000000000E+00                    </span>
+<span class="go">  6.000000000000E+00  5.000000000000E+00                                        </span>
+<span class="go">              952420                   0  5.000000000000E+00                    </span>
+<span class="go">  1.000000000000E+00  2.000000000000E+00  3.000000000000E+00  4.000000000000E+00</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

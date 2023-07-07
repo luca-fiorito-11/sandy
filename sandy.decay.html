@@ -48,25 +48,33 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.decay module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.decay module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.decay.BranchingRatio"><code class="docutils literal notranslate"><span class="pre">BranchingRatio</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.decay.DecayData"><code class="docutils literal notranslate"><span class="pre">DecayData</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.decay.DecayEnergy"><code class="docutils literal notranslate"><span class="pre">DecayEnergy</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.decay.HalfLife"><code class="docutils literal notranslate"><span class="pre">HalfLife</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.energy_grids.html">sandy.energy_grids module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html">sandy.gendf module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.gls.html">sandy.gls module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.spectra.html">sandy.spectra module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html">sandy.tsl module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
@@ -102,8 +110,980 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-decay-module">
-<h1>sandy.decay module<a class="headerlink" href="#sandy-decay-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.decay">
+<span id="sandy-decay-module"></span><h1>sandy.decay module<a class="headerlink" href="#module-sandy.decay" title="Permalink to this heading"></a></h1>
+<p>This module contains all classes and functions dedicated to the processing and
+analysis of a decay data.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.decay.BranchingRatio">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.decay.</span></span><span class="sig-name descname"><span class="pre">BranchingRatio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.BranchingRatio" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_DecayBase</span></code></p>
+<p>Extension of <cite>sandy._DecayBase</cite>. Container of best estimates and
+uncertainties of branching ratios.</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.BranchingRatio.normalize" title="sandy.decay.BranchingRatio.normalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize</span></code></a>()</p></td>
+<td><p>Normalize branching ratios.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.decay.BranchingRatio.to_decaydata" title="sandy.decay.BranchingRatio.to_decaydata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_decaydata</span></code></a>(rdd)</p></td>
+<td><p>Update branching ratios in <cite>DecayData</cite> instance with those available in a <cite>BranchingRatio</cite> instance.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.BranchingRatio.normalize">
+<span class="sig-name descname"><span class="pre">normalize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.BranchingRatio.normalize" title="Permalink to this definition"></a></dt>
+<dd><p>Normalize branching ratios.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>sandy.BranchingRatio</cite></dt><dd><p><cite>BranchingRatio</cite> object with normalized branching ratio values,
+thus respecting the constraint of their sum equal to one.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">942410</span><span class="p">,</span> <span class="mi">922350</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">br</span> <span class="o">=</span> <span class="n">rdd</span><span class="o">.</span><span class="n">get_branching_ratio</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">br_norm</span> <span class="o">=</span> <span class="n">br</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">br_norm</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;ZAM == 922350&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">BR</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">br</span> <span class="o">=</span> <span class="n">rdd</span><span class="o">.</span><span class="n">get_branching_ratio</span><span class="p">(</span><span class="n">with_uncertainty</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">br_norm</span> <span class="o">=</span> <span class="n">br</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">br_norm</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;ZAM == 922350&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">values</span> <span class="o">==</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="mi">942390</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">br</span> <span class="o">=</span> <span class="n">rdd</span><span class="o">.</span><span class="n">get_branching_ratio</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">br_norm</span> <span class="o">=</span> <span class="n">br</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">br_norm</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;ZAM == 942390&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">BR</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>Stable nuclide:
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(“jeff_33”, “decay”, 260560)
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(endf6)
+&gt;&gt;&gt; br = rdd.get_branching_ratio()
+&gt;&gt;&gt; br.normalize()
+Empty DataFrame
+Columns: [BR, DBR]
+Index: []</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.BranchingRatio.to_decaydata">
+<span class="sig-name descname"><span class="pre">to_decaydata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rdd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.BranchingRatio.to_decaydata" title="Permalink to this definition"></a></dt>
+<dd><p>Update branching ratios in <cite>DecayData</cite> instance with those available in
+a <cite>BranchingRatio</cite> instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>`rdd`</strong><span class="classifier"><cite>sandy.DecayData</cite></span></dt><dd><p><cite>DecayData</cite> instance</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.DecayData</cite></dt><dd><p><cite>DecayData</cite> instance with updated branching ratios.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="mi">922350</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">br</span> <span class="o">=</span> <span class="n">rdd</span><span class="o">.</span><span class="n">get_branching_ratio</span><span class="p">(</span><span class="n">with_uncertainty</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pert</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([{</span><span class="s2">&quot;ZAM&quot;</span><span class="p">:</span> <span class="mi">922350</span><span class="p">,</span> <span class="s2">&quot;RTYP&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;RFS&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;PERT&quot;</span><span class="p">:</span> <span class="mf">1.05</span><span class="p">}])</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s2">&quot;ZAM&quot;</span><span class="p">,</span> <span class="s2">&quot;RTYP&quot;</span><span class="p">,</span> <span class="s2">&quot;RFS&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">br_new</span> <span class="o">=</span> <span class="n">br</span><span class="o">.</span><span class="n">custom_perturbation</span><span class="p">(</span><span class="n">pert</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd_updated</span> <span class="o">=</span> <span class="n">br_new</span><span class="o">.</span><span class="n">to_decaydata</span><span class="p">(</span><span class="n">rdd</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">rdd_updated</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">922350</span><span class="p">][</span><span class="s1">&#39;decay_modes&#39;</span><span class="p">][(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">)][</span><span class="s1">&#39;branching_ratio&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">br_new</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;ZAM==922350 &amp; RTYP==4 &amp; RFS==0&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">BR</span><span class="o">.</span><span class="n">values</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">br</span> <span class="o">=</span> <span class="n">rdd</span><span class="o">.</span><span class="n">get_branching_ratio</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">br_new</span> <span class="o">=</span> <span class="n">br</span><span class="o">.</span><span class="n">custom_perturbation</span><span class="p">(</span><span class="n">pert</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd_updated</span> <span class="o">=</span> <span class="n">br_new</span><span class="o">.</span><span class="n">to_decaydata</span><span class="p">(</span><span class="n">rdd</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">rdd_updated</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">922350</span><span class="p">][</span><span class="s1">&#39;decay_modes&#39;</span><span class="p">][(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">)][</span><span class="s1">&#39;branching_ratio&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">br_new</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;ZAM==922350 &amp; RTYP==4 &amp; RFS==0&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">BR</span><span class="o">.</span><span class="n">values</span>
+</pre></div>
+</div>
+<p>Perturbing only one branching ratio of one nuclide in <cite>DecayData</cite> instance:
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(“jeff_33”, “decay”, [922350, 942410])
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(endf6)
+&gt;&gt;&gt; br = rdd.get_branching_ratio(with_uncertainty=False)
+&gt;&gt;&gt; br_new = br.custom_perturbation(pert)
+&gt;&gt;&gt; rdd_updated = br_new.to_decaydata(rdd)
+&gt;&gt;&gt; assert rdd_updated.data[922350][‘decay_modes’][(4, 0)][‘branching_ratio’] == br_new.data.query(“ZAM==922350 &amp; RTYP==4 &amp; RFS==0”).BR.values
+&gt;&gt;&gt; assert rdd_updated.data[942410][‘decay_modes’][(4, 0)][‘branching_ratio’] == br_new.data.query(“ZAM==942410 &amp; RTYP==4 &amp; RFS==0”).BR.values</p>
+<p>Perturbing only one branching ratio of each nuclide in <cite>DecayData</cite> instance:
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(“jeff_33”, “decay”, [922350, 942410])
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(endf6)
+&gt;&gt;&gt; br = rdd.get_branching_ratio(with_uncertainty=False)
+&gt;&gt;&gt; pert = pd.DataFrame([{“ZAM”: 922350, “RTYP”: 4, “RFS”: 0, “PERT”: 1.05},                                  {“ZAM”: 942410, “RTYP”: 4, “RFS”: 0, “PERT”: 1.02}]).set_index([“ZAM”,”RTYP”, “RFS”])
+&gt;&gt;&gt; br_new = br.custom_perturbation(pert)
+&gt;&gt;&gt; rdd_updated =br_new.to_decaydata(rdd)
+&gt;&gt;&gt; assert rdd_updated.data[922350][‘decay_modes’][(4, 0)][‘branching_ratio’] == br_new.data.query(“ZAM==922350 &amp; RTYP==4 &amp; RFS==0”).BR.values
+&gt;&gt;&gt; assert rdd_updated.data[942410][‘decay_modes’][(4, 0)][‘branching_ratio’] == br_new.data.query(“ZAM==942410 &amp; RTYP==4 &amp; RFS==0”).BR.values</p>
+<p>Perturbing all branching ratios of each nuclide in <cite>DecayData</cite> instance:
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(“jeff_33”, “decay”, [922350, 942410])
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(endf6)
+&gt;&gt;&gt; br = rdd.get_branching_ratio(with_uncertainty=False)
+&gt;&gt;&gt; pert = pd.DataFrame([{“ZAM”: 922350, “RTYP”: 4, “RFS”: 0, “PERT”: 1.05},                                  {“ZAM”: 922350, “RTYP”: 6, “RFS”: 0, “PERT”: 0.95},                                  {“ZAM”: 942410, “RTYP”: 4, “RFS”: 0, “PERT”: 1.02},                                  {“ZAM”: 942410, “RTYP”: 1, “RFS”: 0, “PERT”: 0.99}]).set_index([“ZAM”, “RTYP”, “RFS”])
+&gt;&gt;&gt; br_new = br.custom_perturbation(pert)
+&gt;&gt;&gt; rdd_updated = br_new.to_decaydata(rdd)
+&gt;&gt;&gt; assert rdd_updated.data[922350][‘decay_modes’][(4, 0)][‘branching_ratio’] == br_new.data.query(“ZAM==922350 &amp; RTYP==4 &amp; RFS==0”).BR.values
+&gt;&gt;&gt; assert rdd_updated.data[922350][‘decay_modes’][(6, 0)][‘branching_ratio’] == br_new.data.query(“ZAM==922350 &amp; RTYP==6 &amp; RFS==0”).BR.values
+&gt;&gt;&gt; assert rdd_updated.data[942410][‘decay_modes’][(4, 0)][‘branching_ratio’] == br_new.data.query(“ZAM==942410 &amp; RTYP==4 &amp; RFS==0”).BR.values
+&gt;&gt;&gt; assert rdd_updated.data[942410][‘decay_modes’][(1, 0)][‘branching_ratio’] == br_new.data.query(“ZAM==942410 &amp; RTYP==1 &amp; RFS==0”).BR.values</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.decay.DecayData">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.decay.</span></span><span class="sig-name descname"><span class="pre">DecayData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dct</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Container of radioactive nuclide data for several isotopes.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><a class="reference internal" href="#sandy.decay.DecayData.data" title="sandy.decay.DecayData.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a><span class="classifier"><cite>dict</cite></span></dt><dd><p>Dictionary of RDD content.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.DecayData.from_endf6" title="sandy.decay.DecayData.from_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_endf6</span></code></a>(endf6[, verbose])</p></td>
+<td><p>Extract hierarchical structure of decay data from <cite>sandy.Endf6</cite> instance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.decay.DecayData.get_bmatrix" title="sandy.decay.DecayData.get_bmatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_bmatrix</span></code></a>(**kwargs)</p></td>
+<td><p>Extract B-matrix into dataframe.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.DecayData.get_decay_chains" title="sandy.decay.DecayData.get_decay_chains"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_decay_chains</span></code></a>([skip_parents, cut_hl])</p></td>
+<td><p>Extract decay chains into dataframe.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.decay.DecayData.get_qmatrix" title="sandy.decay.DecayData.get_qmatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_qmatrix</span></code></a>([keep_neutrons, threshold])</p></td>
+<td><p>Extract Q-matrix dataframe.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.DecayData.get_transition_matrix" title="sandy.decay.DecayData.get_transition_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_transition_matrix</span></code></a>()</p></td>
+<td><p>Extract transition matrix into dataframe.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>from_hdf5</strong></p></td>
+<td><p>extract decay data from hdf5 file</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>to_hdf5</strong></p></td>
+<td><p>write decay data to hdf5 file</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.decay.DecayData.data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sandy.decay.DecayData.data" title="Permalink to this definition"></a></dt>
+<dd><p>Dictionary of RDD content.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>dict</cite></dt><dd><p>hierarchical RDD content</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.DecayData.from_endf6">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endf6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.from_endf6" title="Permalink to this definition"></a></dt>
+<dd><p>Extract hierarchical structure of decay data from <cite>sandy.Endf6</cite>
+instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>tape</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p>instance containing decay data</p>
+</dd>
+<dt><strong>verbose</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>flag to print information when reading ENDF-6 file</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>dict</cite></dt><dd><p>structured container with RDD.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>sandy.Error</cite></dt><dd><p>if no decay data is found</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Load test ENDF-6 file with data for H1 and Co60.
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(“jeff_33”, ‘decay’, [10010, 270600, 280600])
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(endf6)
+&gt;&gt;&gt; import yaml
+&gt;&gt;&gt; print(yaml.dump(rdd))
+!!python/object:sandy.decay.DecayData
+_data:</p>
+<blockquote>
+<div><dl>
+<dt>10010:</dt><dd><p>decay_constant: 0
+decay_constant_uncertainty: 0
+decay_energy:</p>
+<blockquote>
+<div><p>alpha: 0.0
+beta: 0.0
+gamma: 0.0</p>
+</div></blockquote>
+<dl class="simple">
+<dt>decay_energy_uncertainties:</dt><dd><p>alpha: 0.0
+beta: 0.0
+gamma: 0.0</p>
+</dd>
+</dl>
+<p>half_life: 0.0
+half_life_uncertainty: 0.0
+parity: 1.0
+spin: 0.5
+stable: true</p>
+</dd>
+<dt>270600:</dt><dd><p>decay_constant: 4.167050502344267e-09
+decay_constant_uncertainty: 6.324352137605637e-13
+decay_energy:</p>
+<blockquote>
+<div><p>alpha: 0.0
+beta: 96522.0
+gamma: 2503840.0</p>
+</div></blockquote>
+<dl>
+<dt>decay_energy_uncertainties:</dt><dd><p>alpha: 0.0
+beta: 202.529
+gamma: 352.186</p>
+</dd>
+<dt>decay_modes:</dt><dd><p>? !!python/tuple
+- 1
+- 0
+: branching_ratio: 1.0</p>
+<blockquote>
+<div><p>branching_ratio_uncertainty: 0.0
+decay_products:</p>
+<blockquote>
+<div><p>280600: 1.0</p>
+</div></blockquote>
+</div></blockquote>
+</dd>
+</dl>
+<p>half_life: 166340000.0
+half_life_uncertainty: 25245.5
+parity: 1.0
+spin: 5.0
+stable: false</p>
+</dd>
+<dt>280600:</dt><dd><p>decay_constant: 0
+decay_constant_uncertainty: 0
+decay_energy:</p>
+<blockquote>
+<div><p>alpha: 0.0
+beta: 0.0
+gamma: 0.0</p>
+</div></blockquote>
+<dl class="simple">
+<dt>decay_energy_uncertainties:</dt><dd><p>alpha: 0.0
+beta: 0.0
+gamma: 0.0</p>
+</dd>
+</dl>
+<p>half_life: 0.0
+half_life_uncertainty: 0.0
+parity: 1.0
+spin: 0.0
+stable: true</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>&lt;BLANKLINE&gt;</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.DecayData.get_bmatrix">
+<span class="sig-name descname"><span class="pre">get_bmatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_bmatrix" title="Permalink to this definition"></a></dt>
+<dd><p>Extract B-matrix into dataframe.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>kwargs</strong><span class="classifier"><cite>dict</cite></span></dt><dd><p>keyword arguments for method <cite>get_decay_chains</cite></p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>B-matrix associated to the given decay chains</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">10010</span><span class="p">,</span> <span class="mi">270600</span><span class="p">,</span> <span class="mi">280600</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_bmatrix</span><span class="p">()</span>
+<span class="go">PARENT        10010       270600      280600</span>
+<span class="go">DAUGHTER</span>
+<span class="go">10010    0.00000e+00 0.00000e+00 0.00000e+00</span>
+<span class="go">270600   0.00000e+00 0.00000e+00 0.00000e+00</span>
+<span class="go">280600   0.00000e+00 1.00000e+00 0.00000e+00</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">endf6</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="mi">571480</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_data</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_data</span><span class="o">.</span><span class="n">get_bmatrix</span><span class="p">()</span>
+<span class="go">PARENT         10              571480           581470         581480</span>
+<span class="go">DAUGHTER</span>
+<span class="go">10          0.00000e+00         1.50000e-03     0.00000e+00     0.00000e+00</span>
+<span class="go">571480  0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
+<span class="go">581470  0.00000e+00     1.50000e-03     0.00000e+00     0.00000e+00</span>
+<span class="go">581480  0.00000e+00     9.98500e-01     0.00000e+00     0.00000e+00</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">h1</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">endf6</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="mi">551480</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h2</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">endf6</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="mi">551490</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h3</span> <span class="o">=</span> <span class="n">h1</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">h3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_bmatrix</span><span class="p">()</span>
+<span class="go">PARENT         10                551480              551490          561460          561470          561480          561490</span>
+<span class="go">DAUGHTER</span>
+<span class="go">10          0.00000e+00         2.18793e-01     6.88450e-01     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
+<span class="go">551480  0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
+<span class="go">551490  0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
+<span class="go">561460  0.00000e+00     1.72560e-04     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
+<span class="go">561470  0.00000e+00     2.18447e-01     4.09780e-07     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
+<span class="go">561480  0.00000e+00     7.81380e-01     6.88450e-01     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
+<span class="go">561490  0.00000e+00     0.00000e+00     3.11550e-01     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.DecayData.get_branching_ratio">
+<span class="sig-name descname"><span class="pre">get_branching_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">with_uncertainty</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_branching_ratio" title="Permalink to this definition"></a></dt>
+<dd><p>Extract branching ratios and their uncertainties.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>with_uncertainty</strong><span class="classifier"><cite>bool</cite>, optional, default is ‘True’</span></dt><dd><p>makes the method return branching ratios and uncertainties
+if set equal True, or else return only the branching ratios</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.BranchingRatio</cite></dt><dd><p>object containing branching ratios and associated uncertainties or
+only branching ratios if with_uncertainty=False</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">942410</span><span class="p">,</span> <span class="mi">922350</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_branching_ratio</span><span class="p">()</span>
+<span class="go">                         BR         DBR</span>
+<span class="go">ZAM    RTYP RFS                        </span>
+<span class="go">922350 4    0   1.00000e+00 1.00000e-04</span>
+<span class="go">       6    0   7.20000e-11 2.10000e-11</span>
+<span class="go">942410 4    0   2.44000e-05 0.00000e+00</span>
+<span class="go">       1    0   9.99976e-01 0.00000e+00</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_branching_ratio</span><span class="p">(</span><span class="n">with_uncertainty</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">                         BR</span>
+<span class="go">ZAM    RTYP RFS            </span>
+<span class="go">922350 4    0   1.00000e+00</span>
+<span class="go">       6    0   7.20000e-11</span>
+<span class="go">942410 4    0   2.44000e-05</span>
+<span class="go">       1    0   9.99976e-01</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">942410</span><span class="p">,</span> <span class="mi">10010</span><span class="p">,</span> <span class="mi">922350</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_branching_ratio</span><span class="p">(</span><span class="n">with_uncertainty</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">                         BR</span>
+<span class="go">ZAM    RTYP RFS            </span>
+<span class="go">922350 4    0   1.00000e+00</span>
+<span class="go">       6    0   7.20000e-11</span>
+<span class="go">942410 4    0   2.44000e-05</span>
+<span class="go">       1    0   9.99976e-01</span>
+</pre></div>
+</div>
+<p>Decay at first isomeric state:
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(“jeff_33”, “decay”, 942390)
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(endf6)
+&gt;&gt;&gt; rdd.get_branching_ratio(with_uncertainty=False)</p>
+<blockquote>
+<div><p>BR</p>
+</div></blockquote>
+<p>ZAM    RTYP RFS            
+942390 4    0   6.00000e-04</p>
+<blockquote>
+<div><blockquote>
+<div><p>1   9.99400e-01</p>
+</div></blockquote>
+<p>6    0   3.10000e-12</p>
+</div></blockquote>
+<p>Stable nuclide:
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(“jeff_33”, “decay”, 260560)
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(endf6)
+&gt;&gt;&gt; rdd.get_branching_ratio()
+Empty DataFrame
+Columns: [BR, DBR]
+Index: []</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.DecayData.get_chain_yield_sensitivity">
+<span class="sig-name descname"><span class="pre">get_chain_yield_sensitivity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_chain_yield_sensitivity" title="Permalink to this definition"></a></dt>
+<dd><p>Extract chain fission yield sensitivity matrix.
+- Columns: nucleus represented by the ZAP (<cite>Z*1000 + A*10 + M</cite>).
+- Index: Mass number(A)
+- values: 1 (in the row (A) of that nucleus if it is stable or in the
+mass number of the products in which it decays) or a fraction
+(if that nucleus has more than one path to decay, the fraction
+represent the probability of decaying along that path. As in the
+previous case, the fraction is located in the mass number of the
+final nucleus).</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>kwargs</strong><span class="classifier"><cite>dict</cite></span></dt><dd><p>keyword arguments for method <cite>get_decay_chains</cite></p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>associated to the given decay chains</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">zam</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10010</span><span class="p">,</span> <span class="mi">10020</span><span class="p">,</span> <span class="mi">10030</span><span class="p">,</span> <span class="mi">10040</span><span class="p">,</span> <span class="mi">10050</span><span class="p">,</span> <span class="mi">10060</span><span class="p">,</span> <span class="mi">922350</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span><span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="n">zam</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_data</span> <span class="o">=</span> <span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_data</span><span class="o">.</span><span class="n">get_chain_yield_sensitivity</span><span class="p">()</span>
+<span class="go">ZAP           10010           10020           10030           10040           10050           10060          922350</span>
+<span class="go">A                                                       </span>
+<span class="go">1       1.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
+<span class="go">2       0.00000e+00     1.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
+<span class="go">3       0.00000e+00     0.00000e+00     1.00000e+00     1.00000e+00     1.00000e+00     5.00000e-01     0.00000e+00</span>
+<span class="go">4       0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     1.00000e+00</span>
+<span class="go">5       0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     5.00000e-01     0.00000e+00</span>
+<span class="go">231     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     1.00000e+00</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.DecayData.get_decay_chains">
+<span class="sig-name descname"><span class="pre">get_decay_chains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">skip_parents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cut_hl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_decay_chains" title="Permalink to this definition"></a></dt>
+<dd><p>Extract decay chains into dataframe.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>skip_parents</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>flag to skip the parent information</p>
+</dd>
+<dt><strong>cut_hl: `bool`, optional, default is `False`</strong></dt><dd><p>cut all the dacay modes of the nuclides with an half life larger
+than 100 years</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>decay chains dataframe</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">10010</span><span class="p">,</span> <span class="mi">270600</span><span class="p">,</span> <span class="mi">280600</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_decay_chains</span><span class="p">()</span>
+<span class="go">   PARENT  DAUGHTER        YIELD      LAMBDA</span>
+<span class="go">0   10010     10010  0.00000e+00 0.00000e+00</span>
+<span class="go">1  270600    270600 -1.00000e+00 4.16705e-09</span>
+<span class="go">2  270600    280600  1.00000e+00 4.16705e-09</span>
+<span class="go">3  280600    280600  0.00000e+00 0.00000e+00</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_decay_chains</span><span class="p">(</span><span class="n">skip_parents</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">   PARENT  DAUGHTER        YIELD      LAMBDA</span>
+<span class="go">0  270600    280600  1.00000e+00 4.16705e-09</span>
+</pre></div>
+</div>
+<p>Cut the dacay modes of the nuclides with an half life larger
+than 100 years:
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “decay”, 601440)
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(tape)
+&gt;&gt;&gt; rdd.get_decay_chains(cut_hl=False)</p>
+<blockquote>
+<div><p>PARENT  DAUGHTER        YIELD      LAMBDA</p>
+</div></blockquote>
+<p>0  601440     20040  1.00000e+00 9.59169e-24
+1  601440    581400  1.00000e+00 9.59169e-24
+2  601440    601440 -1.00000e+00 9.59169e-24</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_decay_chains</span><span class="p">(</span><span class="n">cut_hl</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">   PARENT  DAUGHTER        YIELD      LAMBDA</span>
+<span class="go">0  601440     20040  0.00000e+00 9.59169e-24</span>
+<span class="go">1  601440    581400  0.00000e+00 9.59169e-24</span>
+<span class="go">2  601440    601440 -1.00000e+00 9.59169e-24</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.DecayData.get_decay_energy">
+<span class="sig-name descname"><span class="pre">get_decay_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">with_uncertainty</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_decay_energy" title="Permalink to this definition"></a></dt>
+<dd><p>Extract decay energy and its uncertainty.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>with_uncertainty</strong><span class="classifier"><cite>bool</cite>, optional, default is ‘True’</span></dt><dd><p>makes the method return decay energies and uncertainties
+if set equal True, or else return only the decay energies</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.DecayEnergy</cite></dt><dd><p>object containing decay energy and associated uncertainty or
+only decay energy if with_uncertainty=False</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">942400</span><span class="p">,</span> <span class="mi">922350</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_decay_energy</span><span class="p">()</span>
+<span class="go">                       E          DE</span>
+<span class="go">ZAM    TYPE                         </span>
+<span class="go">922350 alpha 4.46460e+06 1.63255e+05</span>
+<span class="go">       beta  5.06717e+04 4.29163e+03</span>
+<span class="go">       gamma 1.63616e+05 1.70801e+03</span>
+<span class="go">942400 alpha 5.24303e+06 3.63881e+04</span>
+<span class="go">       beta  1.11164e+04 9.02572e+02</span>
+<span class="go">       gamma 1.36292e+03 1.33403e+02</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_decay_energy</span><span class="p">(</span><span class="n">with_uncertainty</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">                       E</span>
+<span class="go">ZAM    TYPE             </span>
+<span class="go">922350 alpha 4.46460e+06</span>
+<span class="go">       beta  5.06717e+04</span>
+<span class="go">       gamma 1.63616e+05</span>
+<span class="go">942400 alpha 5.24303e+06</span>
+<span class="go">       beta  1.11164e+04</span>
+<span class="go">       gamma 1.36292e+03</span>
+</pre></div>
+</div>
+<p>Stable nuclide:
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(“jeff_33”, “decay”, 260560)
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(endf6)
+&gt;&gt;&gt; rdd.get_decay_energy(with_uncertainty=False)</p>
+<blockquote>
+<div><p>E</p>
+</div></blockquote>
+<p>ZAM    TYPE             
+260560 alpha 0.00000e+00</p>
+<blockquote>
+<div><p>beta  0.00000e+00
+gamma 0.00000e+00</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.DecayData.get_half_life">
+<span class="sig-name descname"><span class="pre">get_half_life</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">with_uncertainty</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_half_life" title="Permalink to this definition"></a></dt>
+<dd><p>Extract half life and its uncertainty.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>with_uncertainty</strong><span class="classifier"><cite>bool</cite>, optional, default is ‘True’</span></dt><dd><p>makes the method return half lives and uncertainties
+if set equal True, or else return only the half lives</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.HalfLife</cite></dt><dd><p>object containing half life and associated uncertainty or
+only half life if with_uncertainty=False</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>if a nuclide is stable, half-life of zero will be assigned,
+according with the value stored in the ENDF6 format.</p>
+</div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">942400</span><span class="p">,</span> <span class="mi">922350</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_half_life</span><span class="p">()</span>
+<span class="go">                HL         DHL</span>
+<span class="go">ZAM                           </span>
+<span class="go">922350 2.22102e+16 1.57788e+13</span>
+<span class="go">942400 2.07108e+11 1.57785e+08</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_half_life</span><span class="p">(</span><span class="n">with_uncertainty</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">                HL</span>
+<span class="go">ZAM               </span>
+<span class="go">922350 2.22102e+16</span>
+<span class="go">942400 2.07108e+11</span>
+</pre></div>
+</div>
+<p>Stable nuclide:
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(“jeff_33”, “decay”, 260560)
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(endf6)
+&gt;&gt;&gt; rdd.get_half_life(with_uncertainty=False)</p>
+<blockquote>
+<div><p>HL</p>
+</div></blockquote>
+<p>ZAM               
+260560 0.00000e+00</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.DecayData.get_nuclides">
+<span class="sig-name descname"><span class="pre">get_nuclides</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_nuclides" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.DecayData.get_pn">
+<span class="sig-name descname"><span class="pre">get_pn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_pn" title="Permalink to this definition"></a></dt>
+<dd><p>Extract probability of neutron emission.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.Series</cite></dt><dd><p>panda series with ZAM index and probability of neutrom emission</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="mi">391000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_pn</span><span class="p">()</span>
+<span class="go">ZAM</span>
+<span class="go">391000   1.00000e+00</span>
+<span class="go">Name: PN, dtype: float64</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.DecayData.get_qmatrix">
+<span class="sig-name descname"><span class="pre">get_qmatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keep_neutrons</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_qmatrix" title="Permalink to this definition"></a></dt>
+<dd><p>Extract Q-matrix dataframe.</p>
+<section id="optional-argument">
+<h2>Optional argument<a class="headerlink" href="#optional-argument" title="Permalink to this heading"></a></h2>
+<dl>
+<dt>kwargs<span class="classifier"><cite>dict</cite></span></dt><dd><p>keyword arguments for method <cite>get_decay_chains</cite></p>
+</dd>
+<dt>thereshold: <cite>int</cite>, optional, default is <cite>None</cite></dt><dd><p>argument to avoid numerical fluctuations or
+values so small that they do not have to be taken into
+account</p>
+</dd>
+<dt>keep_neutrons<span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>flag to skip the column with neutron data</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>Q-matrix associated to the given decay chains</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">10010</span><span class="p">,</span> <span class="mi">270600</span><span class="p">,</span> <span class="mi">280600</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">out</span> <span class="o">=</span> <span class="n">rdd</span><span class="o">.</span><span class="n">get_qmatrix</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">comp</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+<span class="gp">... </span>                     <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+<span class="gp">... </span>                     <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
+<span class="gp">... </span>                    <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+<span class="gp">... </span>                    <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="mi">10010</span><span class="p">,</span> <span class="mi">270600</span><span class="p">,</span> <span class="mi">280600</span><span class="p">],</span>
+<span class="gp">... </span>                    <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="mi">10010</span><span class="p">,</span> <span class="mi">270600</span><span class="p">,</span> <span class="mi">280600</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">comp</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;DAUGHTER&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">comp</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;PARENT&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pd</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_frame_equal</span><span class="p">(</span><span class="n">comp</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">h1</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="mi">551480</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h2</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="mi">551490</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h3</span> <span class="o">=</span> <span class="n">h1</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">h3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_qmatrix</span><span class="p">()</span>
+<span class="go">PARENT       551480          551490          561460          561470          561480          561490</span>
+<span class="go">DAUGHTER</span>
+<span class="go">551480  1.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
+<span class="go">551490  0.00000e+00     1.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
+<span class="go">561460  1.72560e-04     0.00000e+00     1.00000e+00     0.00000e+00     0.00000e+00     0.00000e+00</span>
+<span class="go">561470  2.18447e-01     4.09780e-07     0.00000e+00     1.00000e+00     0.00000e+00     0.00000e+00</span>
+<span class="go">561480  7.81380e-01     6.88450e-01     0.00000e+00     0.00000e+00     1.00000e+00     0.00000e+00</span>
+<span class="go">561490  0.00000e+00     3.11550e-01     0.00000e+00     0.00000e+00     0.00000e+00     1.00000e+00</span>
+</pre></div>
+</div>
+<p>Cut the dacay modes of the nuclides with an half life larger
+than 100 years:
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “decay”, 601440)
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(tape)
+&gt;&gt;&gt; rdd.get_qmatrix(cut_hl=False)
+PARENT        20040       581400      601440
+DAUGHTER                                    
+20040    1.00000e+00 0.00000e+00 1.00000e+00
+581400   0.00000e+00 1.00000e+00 1.00000e+00
+601440   0.00000e+00 0.00000e+00 1.00000e+00</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_qmatrix</span><span class="p">(</span><span class="n">cut_hl</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">PARENT        20040       581400      601440</span>
+<span class="go">DAUGHTER                                    </span>
+<span class="go">20040    1.00000e+00 0.00000e+00 0.00000e+00</span>
+<span class="go">581400   0.00000e+00 1.00000e+00 0.00000e+00</span>
+<span class="go">601440   0.00000e+00 0.00000e+00 1.00000e+00</span>
+</pre></div>
+</div>
+<p>Skip column with neutron information:
+&gt;&gt;&gt; tape = sandy.endf6.get_endf6_file(“endfb_71”, ‘decay’, 571480)
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(tape)
+&gt;&gt;&gt; rdd.get_qmatrix(keep_neutrons=False)
+PARENT        571480      581470      581480
+DAUGHTER                                    
+571480   1.00000e+00 0.00000e+00 0.00000e+00
+581470   1.50000e-03 1.00000e+00 0.00000e+00
+581480   9.98500e-01 0.00000e+00 1.00000e+00</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_qmatrix</span><span class="p">(</span><span class="n">keep_neutrons</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">PARENT        10          571480      581470      581480</span>
+<span class="go">DAUGHTER                                                </span>
+<span class="go">10       1.00000e+00 1.50000e-03 0.00000e+00 0.00000e+00</span>
+<span class="go">571480   0.00000e+00 1.00000e+00 0.00000e+00 0.00000e+00</span>
+<span class="go">581470   0.00000e+00 1.50000e-03 1.00000e+00 0.00000e+00</span>
+<span class="go">581480   0.00000e+00 9.98500e-01 0.00000e+00 1.00000e+00</span>
+</pre></div>
+</div>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.DecayData.get_transition_matrix">
+<span class="sig-name descname"><span class="pre">get_transition_matrix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.get_transition_matrix" title="Permalink to this definition"></a></dt>
+<dd><p>Extract transition matrix into dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>transition matrix associated to the given decay chains</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">10010</span><span class="p">,</span> <span class="mi">270600</span><span class="p">,</span> <span class="mi">280600</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span><span class="o">.</span><span class="n">get_transition_matrix</span><span class="p">()</span>
+<span class="go">PARENT        10010        270600      280600</span>
+<span class="go">DAUGHTER</span>
+<span class="go">10010    0.00000e+00  0.00000e+00 0.00000e+00</span>
+<span class="go">270600   0.00000e+00 -4.16705e-09 0.00000e+00</span>
+<span class="go">280600   0.00000e+00  4.16705e-09 0.00000e+00</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.DecayData.to_endf6">
+<span class="sig-name descname"><span class="pre">to_endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endf6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayData.to_endf6" title="Permalink to this definition"></a></dt>
+<dd><p>Update decay data in <cite>Endf6</cite> instance with those available in a
+<cite>DecayData</cite> instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>`endf6`</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p><cite>Endf6</cite> instance</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Endf6</cite></dt><dd><p><cite>Endf6</cite> instance with updated decay data</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="mi">922350</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new_tape</span> <span class="o">=</span> <span class="n">rdd</span><span class="o">.</span><span class="n">to_endf6</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new_tape</span>
+<span class="go">MAT   MF  MT</span>
+<span class="go">3542  1   451     9.223500+4 2.330250+2         -1          1  ...</span>
+<span class="go">          452     9.223500+4 2.330250+2          0          1  ...</span>
+<span class="go">      8   457     92235.0000 233.025000          0          0  ...</span>
+<span class="go">dtype: object</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.decay.DecayEnergy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.decay.</span></span><span class="sig-name descname"><span class="pre">DecayEnergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayEnergy" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_DecayBase</span></code></p>
+<p>Extension of <cite>sandy._DecayBase</cite>. Container of best estimates and
+uncertainties of decay energies.</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.DecayEnergy.to_decaydata" title="sandy.decay.DecayEnergy.to_decaydata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_decaydata</span></code></a>(rdd)</p></td>
+<td><p>Update decay energies in <cite>DecayData</cite> instance with those available in a <cite>DecayEnergy</cite> instance.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.DecayEnergy.to_decaydata">
+<span class="sig-name descname"><span class="pre">to_decaydata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rdd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.DecayEnergy.to_decaydata" title="Permalink to this definition"></a></dt>
+<dd><p>Update decay energies in <cite>DecayData</cite> instance with those available in a
+<cite>DecayEnergy</cite> instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>`rdd`</strong><span class="classifier"><cite>sandy.DecayData</cite></span></dt><dd><p><cite>DecayData</cite> instance</p>
+</dd>
+<dt><strong>Returns</strong></dt><dd></dd>
+<dt><strong>——-</strong></dt><dd></dd>
+<dt><strong>`sandy.DecayData`</strong></dt><dd><p><cite>DecayData</cite> instance with updated decay energies.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="mi">922350</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">rdd</span><span class="o">.</span><span class="n">get_decay_energy</span><span class="p">(</span><span class="n">with_uncertainty</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pert</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([{</span><span class="s2">&quot;ZAM&quot;</span><span class="p">:</span> <span class="mi">922350</span><span class="p">,</span> <span class="s2">&quot;TYPE&quot;</span><span class="p">:</span> <span class="s2">&quot;alpha&quot;</span><span class="p">,</span> <span class="s2">&quot;PERT&quot;</span><span class="p">:</span> <span class="mf">1.05</span><span class="p">}])</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s2">&quot;ZAM&quot;</span><span class="p">,</span> <span class="s2">&quot;TYPE&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e_new</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">custom_perturbation</span><span class="p">(</span><span class="n">pert</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd_updated</span> <span class="o">=</span> <span class="n">e_new</span><span class="o">.</span><span class="n">to_decaydata</span><span class="p">(</span><span class="n">rdd</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">rdd_updated</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">922350</span><span class="p">][</span><span class="s1">&#39;decay_energy&#39;</span><span class="p">][</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">e_new</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">E</span><span class="p">[</span><span class="mi">922350</span><span class="p">][</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">rdd</span><span class="o">.</span><span class="n">get_decay_energy</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e_new</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">custom_perturbation</span><span class="p">(</span><span class="n">pert</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd_updated</span> <span class="o">=</span> <span class="n">e_new</span><span class="o">.</span><span class="n">to_decaydata</span><span class="p">(</span><span class="n">rdd</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">rdd_updated</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">922350</span><span class="p">][</span><span class="s1">&#39;decay_energy&#39;</span><span class="p">][</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">e_new</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">E</span><span class="p">[</span><span class="mi">922350</span><span class="p">][</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Perturbing only one decay energy of one nuclide in <cite>DecayData</cite> instance:
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(“jeff_33”, “decay”, [922350, 942410])
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(endf6)
+&gt;&gt;&gt; e = rdd.get_decay_energy(with_uncertainty=False)
+&gt;&gt;&gt; e_new = e.custom_perturbation(pert)
+&gt;&gt;&gt; rdd_updated =e_new.to_decaydata(rdd)
+&gt;&gt;&gt; assert rdd_updated.data[922350][‘decay_energy’][‘alpha’] == e_new.data.E[922350][‘alpha’]
+&gt;&gt;&gt; assert rdd_updated.data[942410][‘decay_energy’][‘alpha’] == e_new.data.E[942410][‘alpha’]</p>
+<p>Perturbing one decay energy of each nuclide in <cite>DecayData</cite> instance:
+&gt;&gt;&gt; pert = pd.DataFrame([{“ZAM”: 922350, “TYPE”: “alpha”, “PERT”: 1.05},                                  {“ZAM”: 942410, “TYPE”: “alpha”, “PERT”: 1.05}]).set_index([“ZAM”, “TYPE”])
+&gt;&gt;&gt; e_new = e.custom_perturbation(pert)
+&gt;&gt;&gt; rdd_updated =e_new.to_decaydata(rdd)
+&gt;&gt;&gt; assert rdd_updated.data[922350][‘decay_energy’][‘alpha’] == e_new.data.E[922350][‘alpha’]
+&gt;&gt;&gt; assert rdd_updated.data[942410][‘decay_energy’][‘alpha’] == e_new.data.E[942410][‘alpha’]</p>
+<p>Perturbing all decay energies of each nuclide in <cite>DecayData</cite> instance:
+&gt;&gt;&gt; pert = pd.DataFrame([{“ZAM”: 922350, “TYPE”: “alpha”, “PERT”: 1.05},                                  {“ZAM”: 922350, “TYPE”: “beta”, “PERT”: 1.01},                                  {“ZAM”: 922350, “TYPE”: “gamma”, “PERT”: 0.97},                                  {“ZAM”: 942410, “TYPE”: “alpha”, “PERT”: 1.05},                                  {“ZAM”: 942410, “TYPE”: “beta”, “PERT”: 0.98},                                  {“ZAM”: 942410, “TYPE”: “gamma”, “PERT”: 1.02}]).set_index([“ZAM”, “TYPE”])
+&gt;&gt;&gt; e_new = e.custom_perturbation(pert)
+&gt;&gt;&gt; rdd_updated =e_new.to_decaydata(rdd)
+&gt;&gt;&gt; assert rdd_updated.data[922350][‘decay_energy’][‘alpha’] == e_new.data.E[922350][‘alpha’]
+&gt;&gt;&gt; assert rdd_updated.data[922350][‘decay_energy’][‘beta’] == e_new.data.E[922350][‘beta’]
+&gt;&gt;&gt; assert rdd_updated.data[922350][‘decay_energy’][‘gamma’] == e_new.data.E[922350][‘gamma’]
+&gt;&gt;&gt; assert rdd_updated.data[942410][‘decay_energy’][‘alpha’] == e_new.data.E[942410][‘alpha’]
+&gt;&gt;&gt; assert rdd_updated.data[942410][‘decay_energy’][‘beta’] == e_new.data.E[942410][‘beta’]
+&gt;&gt;&gt; assert rdd_updated.data[942410][‘decay_energy’][‘gamma’] == e_new.data.E[942410][‘gamma’]</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.decay.HalfLife">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.decay.</span></span><span class="sig-name descname"><span class="pre">HalfLife</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.HalfLife" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_DecayBase</span></code></p>
+<p>Extension of <cite>sandy._DecayBase</cite>. Container of best estimates and
+uncertainties of half lives.</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.decay.HalfLife.to_decaydata" title="sandy.decay.HalfLife.to_decaydata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_decaydata</span></code></a>(rdd)</p></td>
+<td><p>Update half lives in <cite>DecayData</cite> instance with those available in a <cite>HalfLife</cite> instance.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.decay.HalfLife.to_decaydata">
+<span class="sig-name descname"><span class="pre">to_decaydata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rdd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.decay.HalfLife.to_decaydata" title="Permalink to this definition"></a></dt>
+<dd><p>Update half lives in <cite>DecayData</cite> instance with those available in a
+<cite>HalfLife</cite> instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>`rdd`</strong><span class="classifier"><cite>sandy.DecayData</cite></span></dt><dd><p><cite>DecayData</cite> instance</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.DecayData</cite></dt><dd><p><cite>DecayData</cite> instance with updated half lives.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">endf6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;decay&quot;</span><span class="p">,</span> <span class="mi">922350</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">endf6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hl</span> <span class="o">=</span> <span class="n">rdd</span><span class="o">.</span><span class="n">get_half_life</span><span class="p">(</span><span class="n">with_uncertainty</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pert</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([{</span><span class="s2">&quot;ZAM&quot;</span><span class="p">:</span> <span class="mi">922350</span><span class="p">,</span> <span class="s2">&quot;PERT&quot;</span><span class="p">:</span> <span class="mf">1.05</span><span class="p">}])</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s2">&quot;ZAM&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hl_new</span> <span class="o">=</span> <span class="n">hl</span><span class="o">.</span><span class="n">custom_perturbation</span><span class="p">(</span><span class="n">pert</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd_updated</span> <span class="o">=</span> <span class="n">hl_new</span><span class="o">.</span><span class="n">to_decaydata</span><span class="p">(</span><span class="n">rdd</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">rdd_updated</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">922350</span><span class="p">][</span><span class="s1">&#39;half_life&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">hl_new</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hl</span> <span class="o">=</span> <span class="n">rdd</span><span class="o">.</span><span class="n">get_half_life</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hl_new</span> <span class="o">=</span> <span class="n">hl</span><span class="o">.</span><span class="n">custom_perturbation</span><span class="p">(</span><span class="n">pert</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rdd_updated</span> <span class="o">=</span> <span class="n">hl_new</span><span class="o">.</span><span class="n">to_decaydata</span><span class="p">(</span><span class="n">rdd</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">rdd_updated</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">922350</span><span class="p">][</span><span class="s1">&#39;half_life&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">hl_new</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">HL</span><span class="o">.</span><span class="n">values</span>
+</pre></div>
+</div>
+<p>Perturbing only half life of one nuclide in <cite>DecayData</cite> instance:
+&gt;&gt;&gt; endf6 = sandy.get_endf6_file(“jeff_33”, “decay”, [922350, 942410])
+&gt;&gt;&gt; rdd = sandy.DecayData.from_endf6(endf6)
+&gt;&gt;&gt; hl = rdd.get_half_life(with_uncertainty=False)
+&gt;&gt;&gt; pert = pd.DataFrame([{“ZAM”: 922350, “PERT”: 1.05}]).set_index([“ZAM”])
+&gt;&gt;&gt; hl_new = hl.custom_perturbation(pert)
+&gt;&gt;&gt; rdd_updated = hl_new.to_decaydata(rdd)
+&gt;&gt;&gt; assert rdd_updated.data[922350][‘half_life’] == hl_new.data.query(‘ZAM==922350’).HL.values
+&gt;&gt;&gt; assert rdd_updated.data[942410][‘half_life’] == hl_new.data.query(‘ZAM==942410’).HL.values</p>
+<p>Perturbing half life of each nuclide in <cite>DecayData</cite> instance:
+&gt;&gt;&gt; pert = pd.DataFrame([{“ZAM”: 922350,”PERT”: 1.05},                                 {“ZAM”: 942410,”PERT”: 1.02}]).set_index([“ZAM”])
+&gt;&gt;&gt; hl_new = hl.custom_perturbation(pert)
+&gt;&gt;&gt; rdd_updated = hl_new.to_decaydata(rdd)
+&gt;&gt;&gt; assert rdd_updated.data[922350][‘half_life’] == hl_new.data.query(‘ZAM==922350’).HL.values
+&gt;&gt;&gt; assert rdd_updated.data[942410][‘half_life’] == hl_new.data.query(‘ZAM==942410’).HL.values</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

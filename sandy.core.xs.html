@@ -19,7 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="sandy.core.xscov module" href="sandy.core.xscov.html" />
+    <link rel="next" title="sandy.mcnp package" href="sandy.mcnp.html" />
     <link rel="prev" title="sandy.core.samples module" href="sandy.core.samples.html" /> 
 </head>
 
@@ -48,16 +48,16 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="sandy.core.html">sandy.core package</a><ul class="current">
 <li class="toctree-l4 current"><a class="reference internal" href="sandy.core.html#submodules">Submodules</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
 </ul>
 </li>
@@ -92,8 +92,290 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-core-xs-module">
-<h1>sandy.core.xs module<a class="headerlink" href="#sandy-core-xs-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.core.xs">
+<span id="sandy-core-xs-module"></span><h1>sandy.core.xs module<a class="headerlink" href="#module-sandy.core.xs" title="Permalink to this heading"></a></h1>
+<p>This module contains all classes and functions specific for the cross section
+class <cite>Xs</cite> that acts as a container for energy-dependent tabulated cross
+section values.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.core.xs.Xs">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.core.xs.</span></span><span class="sig-name descname"><span class="pre">Xs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xs.Xs" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Object for energy dependent cross sections.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><a class="reference internal" href="#sandy.core.xs.Xs.data" title="sandy.core.xs.Xs.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a><span class="classifier"><cite>pandas.DataFrame</cite></span></dt><dd><p>Dataframe of energy-dependent tabulated cross sections.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.xs.Xs.custom_perturbation" title="sandy.core.xs.Xs.custom_perturbation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">custom_perturbation</span></code></a>(mat, mt, pert)</p></td>
+<td><p>Apply a custom perturbation to a given cross section identified by a MAT and MT number.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.xs.Xs.from_endf6" title="sandy.core.xs.Xs.from_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_endf6</span></code></a>(endf6)</p></td>
+<td><p>Extract cross sections from <cite>Endf6</cite> instance.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.core.xs.Xs.reshape" title="sandy.core.xs.Xs.reshape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reshape</span></code></a>(eg)</p></td>
+<td><p>Linearly interpolate cross sections over new grid structure.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.core.xs.Xs.to_endf6" title="sandy.core.xs.Xs.to_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_endf6</span></code></a>(endf6)</p></td>
+<td><p>Update cross sections in <cite>Endf6</cite> instance with those available in a <cite>Xs</cite> instance.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>perturb</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.xs.Xs.custom_perturbation">
+<span class="sig-name descname"><span class="pre">custom_perturbation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pert</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xs.Xs.custom_perturbation" title="Permalink to this definition"></a></dt>
+<dd><p>Apply a custom perturbation to a given cross section identified by
+a MAT and MT number.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>mat</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT material number of the xs to which perturbations are to be
+applied</p>
+</dd>
+<dt><strong>mt</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MT reaction number of the xs to which perturbations are to be
+applied</p>
+</dd>
+<dt><strong>pert</strong><span class="classifier"><cite>sandy.Pert</cite></span></dt><dd><p>tabulated perturbations</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>Xs</cite></dt><dd><p>cross section instance with given series MAT/MT perturbed</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.core.xs.Xs.data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sandy.core.xs.Xs.data" title="Permalink to this definition"></a></dt>
+<dd><p>Dataframe of energy-dependent tabulated cross sections.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>tabulated xs</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Error</cite></dt><dd><p>if energy grid is not monotonically increasing</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1e-5</span><span class="p">,</span> <span class="mf">2e7</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">columns</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">([(</span><span class="mi">9437</span><span class="p">,</span> <span class="mi">1</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sandy</span><span class="o">.</span><span class="n">Xs</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">columns</span><span class="p">)</span>
+<span class="go">MAT                9437</span>
+<span class="go">MT                    1</span>
+<span class="go">E                      </span>
+<span class="go">1.00000e-05 1.00000e+00</span>
+<span class="go">2.00000e+07 2.00000e+00</span>
+</pre></div>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>index</strong><span class="classifier"><cite>pandas.Index</cite></span></dt><dd><p>energy grid in eV</p>
+</dd>
+<dt><strong>columns</strong><span class="classifier"><cite>pandas.MultiIndex</cite></span></dt><dd><p>MAT/MT indices</p>
+</dd>
+<dt><strong>values</strong><span class="classifier"><cite>numpy.array</cite></span></dt><dd><p>cross sections in barns</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.xs.Xs.from_endf6">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endf6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xs.Xs.from_endf6" title="Permalink to this definition"></a></dt>
+<dd><p>Extract cross sections from <cite>Endf6</cite> instance.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>xs are linearized on a unique grid.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>missing points are linearly interpolated if inside the energy
+domain, else zero is assigned.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Duplicate energy points will be removed, only the first one
+is kept.</p>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>`endf6`</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p><cite>Endf6</cite> instance</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Xs</cite></dt><dd><p>xs tabulated data</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>sandy.Error</cite></dt><dd><p>if interpolation scheme is not lin-lin</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Warns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>logging.warning</cite></dt><dd><p>if duplicate energy points are found</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Get H1 file and process it to PENDF.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 10010)
+&gt;&gt;&gt; pendf = tape.get_pendf(minimal_processing=True)</p>
+<p>Show content of <cite>sandy.Xs</cite> instance.
+&gt;&gt;&gt; sandy.Xs.from_endf6(pendf).data.head()
+MAT                 125                        
+MT                  1           2           102
+E                                              
+1.00000e-05 3.71363e+01 2.04363e+01 1.66999e+01
+1.03125e-05 3.68813e+01 2.04363e+01 1.64450e+01
+1.06250e-05 3.66377e+01 2.04363e+01 1.62013e+01
+1.09375e-05 3.64045e+01 2.04363e+01 1.59682e+01
+1.12500e-05 3.61812e+01 2.04363e+01 1.57448e+01</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.xs.Xs.reconstruct_sums">
+<span class="sig-name descname"><span class="pre">reconstruct_sums</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">drop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xs.Xs.reconstruct_sums" title="Permalink to this definition"></a></dt>
+<dd><p>Reconstruct redundant xs according to ENDF-6 rules in Appendix B.
+Redundant cross sections are available in <cite>dict</cite>
+<code class="xref py py-func docutils literal notranslate"><span class="pre">redundant_xs()</span></code>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>drop</strong><span class="classifier"><cite>bool</cite>, optional</span></dt><dd><p>keep in output only the MT number originally present.
+The default is True.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><code class="xref py py-func docutils literal notranslate"><span class="pre">Xs()</span></code></dt><dd><p>Cross section instance where reconstruction rules are enforced.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Get ENDF-6 file for H1, process it in PENDF and extract xs.
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 10010)
+&gt;&gt;&gt; pendf = tape.get_pendf(minimal_processing=True, err=1)
+&gt;&gt;&gt; xs = sandy.Xs.from_endf6(pendf)</p>
+<p>We introduce a perturbation to the elastic scattering xs
+&gt;&gt;&gt; xs.data[(125, 2)] <a href="#id1"><span class="problematic" id="id2">*</span></a>= 2
+&gt;&gt;&gt; assert not xs.data[(125, 1)].equals(xs.data[(125, 2)] + xs.data[(125, 102)])</p>
+<p>Reconstructing xs enforces consistency.
+&gt;&gt;&gt; xs1 = xs.reconstruct_sums(drop=True).data
+&gt;&gt;&gt; assert xs1.columns.equals(xs.data.columns)
+&gt;&gt;&gt; assert xs1[(125, 1)].equals(xs1[(125, 2)] + xs1[(125, 102)])</p>
+<p>We can keep all redundant xs with keyword <cite>drop=True</cite>
+&gt;&gt;&gt; xs2 = xs.reconstruct_sums(drop=False).data
+&gt;&gt;&gt; assert not xs2.columns.equals(xs.data.columns)
+&gt;&gt;&gt; assert xs2[xs1.columns].equals(xs1)</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">xs2</span><span class="p">[(</span><span class="mi">125</span><span class="p">,</span> <span class="mi">101</span><span class="p">)]</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">xs2</span><span class="p">[(</span><span class="mi">125</span><span class="p">,</span> <span class="mi">102</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">xs2</span><span class="p">[(</span><span class="mi">125</span><span class="p">,</span> <span class="mi">27</span><span class="p">)]</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">xs2</span><span class="p">[(</span><span class="mi">125</span><span class="p">,</span> <span class="mi">101</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">xs2</span><span class="p">[(</span><span class="mi">125</span><span class="p">,</span> <span class="mi">3</span><span class="p">)]</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">xs2</span><span class="p">[(</span><span class="mi">125</span><span class="p">,</span> <span class="mi">27</span><span class="p">)])</span>
+</pre></div>
+</div>
+<p>This example shows that also the inelastic cross section is correclty reconstructed
+&gt;&gt;&gt; pendf = sandy.get_endf6_file(“jeff_33”, “xs”, 952410).get_pendf(minimal_processing=True, err=1)
+&gt;&gt;&gt; xs = sandy.Xs.from_endf6(pendf)
+&gt;&gt;&gt; xsr = xs.reconstruct_sums(drop=True)
+&gt;&gt;&gt; assert not xs.data[(9543, 4)].equals(xs.data[9543].loc[:, 50:91].sum(axis=1))
+&gt;&gt;&gt; assert xsr.data[(9543, 4)].equals(xsr.data[9543].loc[:, 50:91].sum(axis=1))</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sandy.core.xs.Xs.redundant_xs">
+<span class="sig-name descname"><span class="pre">redundant_xs</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{1:</span> <span class="pre">(2,</span> <span class="pre">3),</span> <span class="pre">3:</span> <span class="pre">(4,</span> <span class="pre">5,</span> <span class="pre">11,</span> <span class="pre">16,</span> <span class="pre">17,</span> <span class="pre">22,</span> <span class="pre">23,</span> <span class="pre">24,</span> <span class="pre">25,</span> <span class="pre">26,</span> <span class="pre">27,</span> <span class="pre">28,</span> <span class="pre">29,</span> <span class="pre">30,</span> <span class="pre">31,</span> <span class="pre">32,</span> <span class="pre">33,</span> <span class="pre">34,</span> <span class="pre">35,</span> <span class="pre">36,</span> <span class="pre">37,</span> <span class="pre">41,</span> <span class="pre">42,</span> <span class="pre">44,</span> <span class="pre">45),</span> <span class="pre">4:</span> <span class="pre">range(50,</span> <span class="pre">92),</span> <span class="pre">18:</span> <span class="pre">(19,</span> <span class="pre">20,</span> <span class="pre">21,</span> <span class="pre">38),</span> <span class="pre">27:</span> <span class="pre">(18,</span> <span class="pre">101),</span> <span class="pre">101:</span> <span class="pre">range(102,</span> <span class="pre">118),</span> <span class="pre">103:</span> <span class="pre">range(600,</span> <span class="pre">650),</span> <span class="pre">104:</span> <span class="pre">range(650,</span> <span class="pre">700),</span> <span class="pre">105:</span> <span class="pre">range(700,</span> <span class="pre">750),</span> <span class="pre">106:</span> <span class="pre">range(750,</span> <span class="pre">800),</span> <span class="pre">107:</span> <span class="pre">range(800,</span> <span class="pre">850),</span> <span class="pre">452:</span> <span class="pre">(455,</span> <span class="pre">456)}</span></em><a class="headerlink" href="#sandy.core.xs.Xs.redundant_xs" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.xs.Xs.reshape">
+<span class="sig-name descname"><span class="pre">reshape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eg</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xs.Xs.reshape" title="Permalink to this definition"></a></dt>
+<dd><p>Linearly interpolate cross sections over new grid structure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>eg</strong><span class="classifier">array-like object</span></dt><dd><p>new energy grid</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>Xs</cite></dt><dd><p>cross section instance over new grid</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The new cross sections are tabulated over the union between
+the old and the given energy grid</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.core.xs.Xs.to_endf6">
+<span class="sig-name descname"><span class="pre">to_endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endf6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.core.xs.Xs.to_endf6" title="Permalink to this definition"></a></dt>
+<dd><p>Update cross sections in <cite>Endf6</cite> instance with those available in a
+<cite>Xs</cite> instance.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>only xs with <cite>(MAT,MT)</cite> combinations that are originally
+present in the <cite>Endf6</cite> instance are modififed, the others
+are discarded.
+The reason behind this is that to reconstruct a endf6
+section we need info that is not available in the <cite>Xs</cite>
+instance itself.</p>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>`endf6`</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p><cite>Endf6</cite> instance</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Endf6</cite></dt><dd><p><cite>Endf6</cite> instance with updated xs</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -101,7 +383,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="sandy.core.samples.html" class="btn btn-neutral float-left" title="sandy.core.samples module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="sandy.core.xscov.html" class="btn btn-neutral float-right" title="sandy.core.xscov module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="sandy.mcnp.html" class="btn btn-neutral float-right" title="sandy.mcnp package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

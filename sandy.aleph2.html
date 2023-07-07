@@ -48,16 +48,16 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.aleph2 package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.core.html">sandy.core package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
 </ul>
 </li>
@@ -91,17 +91,55 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-aleph2-package">
-<h1>sandy.aleph2 package<a class="headerlink" href="#sandy-aleph2-package" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.aleph2">
+<span id="sandy-aleph2-package"></span><h1>sandy.aleph2 package<a class="headerlink" href="#module-sandy.aleph2" title="Permalink to this heading"></a></h1>
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="sandy.aleph2.fy_output.html">sandy.aleph2.fy_output module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.aleph2.matrix_output.html">sandy.aleph2.matrix_output module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.aleph2.output_file.html">sandy.aleph2.output_file module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.aleph2.xs_output.html">sandy.aleph2.xs_output module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.aleph2.xsfile.html">sandy.aleph2.xsfile module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.aleph2.fy_output.html">sandy.aleph2.fy_output module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.aleph2.fy_output.html#sandy.aleph2.fy_output.read_fy_output"><code class="docutils literal notranslate"><span class="pre">read_fy_output()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.aleph2.matrix_output.html">sandy.aleph2.matrix_output module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.aleph2.matrix_output.html#sandy.aleph2.matrix_output.read_matrix_output"><code class="docutils literal notranslate"><span class="pre">read_matrix_output()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.aleph2.output_file.html">sandy.aleph2.output_file module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.aleph2.output_file.html#sandy.aleph2.output_file.OutputFile"><code class="docutils literal notranslate"><span class="pre">OutputFile</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.output_file.html#sandy.aleph2.output_file.OutputFile.data"><code class="docutils literal notranslate"><span class="pre">OutputFile.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.output_file.html#sandy.aleph2.output_file.OutputFile.from_file"><code class="docutils literal notranslate"><span class="pre">OutputFile.from_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.output_file.html#sandy.aleph2.output_file.OutputFile.from_string"><code class="docutils literal notranslate"><span class="pre">OutputFile.from_string()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.output_file.html#sandy.aleph2.output_file.OutputFile.get_keff"><code class="docutils literal notranslate"><span class="pre">OutputFile.get_keff()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.output_file.html#sandy.aleph2.output_file.OutputFile.get_materials"><code class="docutils literal notranslate"><span class="pre">OutputFile.get_materials()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.output_file.html#sandy.aleph2.output_file.OutputFile.get_table"><code class="docutils literal notranslate"><span class="pre">OutputFile.get_table()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.output_file.html#sandy.aleph2.output_file.OutputFile.parse_tables"><code class="docutils literal notranslate"><span class="pre">OutputFile.parse_tables()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.output_file.html#sandy.aleph2.output_file.OutputFile.summary"><code class="docutils literal notranslate"><span class="pre">OutputFile.summary</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.aleph2.output_file.html#sandy.aleph2.output_file.read_output"><code class="docutils literal notranslate"><span class="pre">read_output()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.aleph2.xs_output.html">sandy.aleph2.xs_output module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.aleph2.xs_output.html#sandy.aleph2.xs_output.read_xs_output"><code class="docutils literal notranslate"><span class="pre">read_xs_output()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.aleph2.xsfile.html">sandy.aleph2.xsfile module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.aleph2.xsfile.html#sandy.aleph2.xsfile.AlephFile"><code class="docutils literal notranslate"><span class="pre">AlephFile</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xsfile.html#sandy.aleph2.xsfile.AlephFile.add_capture_xsenergy"><code class="docutils literal notranslate"><span class="pre">AlephFile.add_capture_xsenergy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xsfile.html#sandy.aleph2.xsfile.AlephFile.add_fission_xsenergy"><code class="docutils literal notranslate"><span class="pre">AlephFile.add_fission_xsenergy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xsfile.html#sandy.aleph2.xsfile.AlephFile.add_reaction"><code class="docutils literal notranslate"><span class="pre">AlephFile.add_reaction()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xsfile.html#sandy.aleph2.xsfile.AlephFile.copy"><code class="docutils literal notranslate"><span class="pre">AlephFile.copy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xsfile.html#sandy.aleph2.xsfile.AlephFile.from_file"><code class="docutils literal notranslate"><span class="pre">AlephFile.from_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xsfile.html#sandy.aleph2.xsfile.AlephFile.from_text"><code class="docutils literal notranslate"><span class="pre">AlephFile.from_text()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xsfile.html#sandy.aleph2.xsfile.AlephFile.npoints"><code class="docutils literal notranslate"><span class="pre">AlephFile.npoints</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xsfile.html#sandy.aleph2.xsfile.AlephFile.nuclide"><code class="docutils literal notranslate"><span class="pre">AlephFile.nuclide</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xsfile.html#sandy.aleph2.xsfile.AlephFile.to_dataframe"><code class="docutils literal notranslate"><span class="pre">AlephFile.to_dataframe()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xsfile.html#sandy.aleph2.xsfile.AlephFile.to_string"><code class="docutils literal notranslate"><span class="pre">AlephFile.to_string()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </div>
 </section>

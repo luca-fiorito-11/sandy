@@ -47,6 +47,9 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
@@ -55,21 +58,26 @@
 <li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html">sandy.gendf module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.gls.html">sandy.gls module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.spectra.html">sandy.spectra module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html">sandy.tsl module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.zam module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.zam module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.zam.abundance_per_element"><code class="docutils literal notranslate"><span class="pre">abundance_per_element()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.zam.expand_za"><code class="docutils literal notranslate"><span class="pre">expand_za()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.zam.za2latex"><code class="docutils literal notranslate"><span class="pre">za2latex()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.zam.zam2latex"><code class="docutils literal notranslate"><span class="pre">zam2latex()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -101,8 +109,131 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-zam-module">
-<h1>sandy.zam module<a class="headerlink" href="#sandy-zam-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.zam">
+<span id="sandy-zam-module"></span><h1>sandy.zam module<a class="headerlink" href="#module-sandy.zam" title="Permalink to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.zam.abundance_per_element">
+<span class="sig-prename descclassname"><span class="pre">sandy.zam.</span></span><span class="sig-name descname"><span class="pre">abundance_per_element</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.zam.abundance_per_element" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.zam.expand_za">
+<span class="sig-prename descclassname"><span class="pre">sandy.zam.</span></span><span class="sig-name descname"><span class="pre">expand_za</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">za</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'nndc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.zam.expand_za" title="Permalink to this definition"></a></dt>
+<dd><p>Expand ZA number into atomic number, mass number and metastate number
+of the correspondent nuclide.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>za</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>nuclide ZA indicator</p>
+</dd>
+<dt><strong>method</strong><span class="classifier"><cite>str</cite>, optional, default is ‘nndc’</span></dt><dd><p>method of the representation of the metastable state in the ZA number.
+For NNDC libraries ZA number is given as 1000*Z + A + 100*m.</p>
+</dd>
+<dt><strong>meta</strong><span class="classifier"><cite>int</cite>, optional, default is 0</span></dt><dd><p>metastable state of the nuclide</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>int</cite></dt><dd><p>atomic number</p>
+</dd>
+<dt><cite>int</cite></dt><dd><p>mass number</p>
+</dd>
+<dt><cite>int</cite></dt><dd><p>metastable state</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Tests for nuclides with mass number &lt; 100:
+&gt;&gt;&gt; expand_za(1001, method=”nndc”)
+(1, 1, 0)</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">1501</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;nndc&quot;</span><span class="p">)</span>
+<span class="go">(1, 1, 2)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">1601</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;nndc&quot;</span><span class="p">)</span>
+<span class="go">(1, 1, 3)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">1001</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="go">(1, 1, 3)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">43495</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;nndc&quot;</span><span class="p">)</span>
+<span class="go">(43, 95, 1)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">43095</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">(43, 95, 1)</span>
+</pre></div>
+</div>
+<p>Tests for nuclides with mass number between 100 and 200:
+&gt;&gt;&gt; expand_za(72577, method=”nndc”)
+(72, 177, 1)</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">72677</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;nndc&quot;</span><span class="p">)</span>
+<span class="go">(72, 177, 2)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">72177</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">(72, 177, 1)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">72177</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="go">(72, 177, 2)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">78795</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;nndc&quot;</span><span class="p">)</span>
+<span class="go">(78, 195, 3)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">78195</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="go">(78, 195, 3)</span>
+</pre></div>
+</div>
+<p>Tests for nuclides with mass number &gt; 200:
+&gt;&gt;&gt; expand_za(92235)
+(92, 235, 0)</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">95241</span><span class="p">)</span>
+<span class="go">(95, 241, 0)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">95641</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;nndc&quot;</span><span class="p">)</span>
+<span class="go">(95, 241, 1)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">95741</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;nndc&quot;</span><span class="p">)</span>
+<span class="go">(95, 241, 2)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">95241</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">(95, 241, 1)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">95241</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="go">(95, 241, 2)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">117894</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;nndc&quot;</span><span class="p">)</span>
+<span class="go">(117, 294, 3)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_za</span><span class="p">(</span><span class="mi">117294</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="go">(117, 294, 3)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.zam.za2latex">
+<span class="sig-prename descclassname"><span class="pre">sandy.zam.</span></span><span class="sig-name descname"><span class="pre">za2latex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">za</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.zam.za2latex" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.zam.zam2latex">
+<span class="sig-prename descclassname"><span class="pre">sandy.zam.</span></span><span class="sig-name descname"><span class="pre">zam2latex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zam</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.zam.zam2latex" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 </section>
 
 

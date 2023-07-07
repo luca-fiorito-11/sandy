@@ -48,16 +48,16 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.core.html">sandy.core package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a><ul class="current">
 <li class="toctree-l4 current"><a class="reference internal" href="sandy.mcnp.html#submodules">Submodules</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
 </ul>
 </li>
@@ -92,8 +92,224 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-mcnp-meshtal-module">
-<h1>sandy.mcnp.meshtal module<a class="headerlink" href="#sandy-mcnp-meshtal-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.mcnp.meshtal">
+<span id="sandy-mcnp-meshtal-module"></span><h1>sandy.mcnp.meshtal module<a class="headerlink" href="#module-sandy.mcnp.meshtal" title="Permalink to this heading"></a></h1>
+<p>This module contains all classes and functions to provide a API for a MCNP
+<em>meshtal</em> file.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.mcnp.meshtal.MshtTally">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.mcnp.meshtal.</span></span><span class="sig-name descname"><span class="pre">MshtTally</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.mcnp.meshtal.MshtTally" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Container for a Meshtal tally.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>data</strong><span class="classifier"><cite>pandas.DataFrame</cite></span></dt><dd><p>tabulated mesthal tally with column names according to mesthal output
+file.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.mcnp.meshtal.MshtTally.filter_by" title="sandy.mcnp.meshtal.MshtTally.filter_by"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_by</span></code></a>(query)</p></td>
+<td><p>Filter meshtally data according to given query.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.mcnp.meshtal.MshtTally.from_file" title="sandy.mcnp.meshtal.MshtTally.from_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_file</span></code></a>([file, encoding, errors])</p></td>
+<td><p>Parse a meshtal output file and return tallies.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.mcnp.meshtal.MshtTally.get_mesh" title="sandy.mcnp.meshtal.MshtTally.get_mesh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_mesh</span></code></a>([x, y, values, aggfunc])</p></td>
+<td><p>Pivot meshtally data according to two axes (e.g.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.mcnp.meshtal.MshtTally.pivot_table" title="sandy.mcnp.meshtal.MshtTally.pivot_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pivot_table</span></code></a>([x, y, values, aggfunc])</p></td>
+<td><p>Pivot meshtally data according to two axes (e.g.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.mcnp.meshtal.MshtTally.plot" title="sandy.mcnp.meshtal.MshtTally.plot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot</span></code></a>(ax[, x, y, values, aggfunc, query])</p></td>
+<td><p>Plot meshtally data using <cite>matplotlib</cite>.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.mcnp.meshtal.MshtTally.filter_by">
+<span class="sig-name descname"><span class="pre">filter_by</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.mcnp.meshtal.MshtTally.filter_by" title="Permalink to this definition"></a></dt>
+<dd><p>Filter meshtally data according to given query.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>query</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>The query string used to filter <cite>data</cite> columns.
+Examples are <cite>‘X &gt; -10 &amp; X &lt; 10’</cite> or <cite>‘Z == 0’</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>MshTally</cite></dt><dd><p>filtered meshtally object</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.mcnp.meshtal.MshtTally.from_file">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'meshtal'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'utf8'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">errors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ignore'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.mcnp.meshtal.MshtTally.from_file" title="Permalink to this definition"></a></dt>
+<dd><p>Parse a meshtal output file and return tallies.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>filename</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘meshtal’</cite></span></dt><dd><p>name of the meshtal file</p>
+</dd>
+<dt><strong>encoding</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘utf8’</cite></span></dt><dd><p>option passed to python built-in function <cite>open</cite></p>
+</dd>
+<dt><strong>errors</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘ignore’</cite></span></dt><dd><p>option passed to python built-in function <cite>open</cite></p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>dict</cite></dt><dd><p>dictionary of (tally numbers, <cite>MshtTally</cite> objects)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.mcnp.meshtal.MshtTally.get_mesh">
+<span class="sig-name descname"><span class="pre">get_mesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'X'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Y'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Result'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggfunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sum'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.mcnp.meshtal.MshtTally.get_mesh" title="Permalink to this definition"></a></dt>
+<dd><p>Pivot meshtally data according to two axes (e.g. <cite>‘X’</cite> and <cite>‘Y’</cite>)
+and return the coordinates and values on a meshgrid.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>x</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘X’</cite></span></dt><dd><p>data on the plot x-axis.
+Other options are <cite>‘X’</cite>, ‘<cite>Y</cite>’, <cite>‘Z’</cite>, <cite>‘Energy’</cite>.</p>
+</dd>
+<dt><strong>y</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘Y’</cite></span></dt><dd><p>data on the plot y-axis.
+Other options are <cite>‘X’</cite>, ‘<cite>Y</cite>’, <cite>‘Z’</cite>, <cite>‘Energy’</cite>.</p>
+</dd>
+<dt><strong>values</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>Result</cite></span></dt><dd><p>data to plot.
+Other options are:</p>
+<blockquote>
+<div><ul>
+<li><p><cite>‘RelError’</cite> : relative error (fraction)</p></li>
+<li><dl>
+<dt><cite>‘RsltVol’</cite><span class="classifier"><cite>‘Result’</cite> mutliplied by <cite>‘’Volume’</cite>, only</span></dt><dd><p>if <em>out=cf</em> was used in <em>fmesh</em></p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</dd>
+<dt><strong>aggfunc</strong><span class="classifier">function, optional, default is <cite>‘sum’</cite></span></dt><dd><p>function to aggregate values (as in <cite>pandas.pivot_table</cite>).
+Other options are <cite>‘mean’</cite>, <cite>‘min’</cite>, <cite>‘max’</cite>, ‘<cite>std</cite>’.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>Three <em>NxM</em> arrays</dt><dd><p>2D arrays for <cite>x</cite>, <cite>y</cite> and <cite>values</cite> that can be used for a
+meshplot</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.mcnp.meshtal.MshtTally.pivot_table">
+<span class="sig-name descname"><span class="pre">pivot_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'X'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Y'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Result'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggfunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sum'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.mcnp.meshtal.MshtTally.pivot_table" title="Permalink to this definition"></a></dt>
+<dd><p>Pivot meshtally data according to two axes (e.g. <cite>‘X’</cite> and <cite>‘Y’</cite>)</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>x</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘X’</cite></span></dt><dd><p>data on the plot x-axis.
+Other options are <cite>‘X’</cite>, ‘<cite>Y</cite>’, <cite>‘Z’</cite>, <cite>‘Energy’</cite>.</p>
+</dd>
+<dt><strong>y</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘Y’</cite></span></dt><dd><p>data on the plot y-axis.
+Other options are <cite>‘X’</cite>, ‘<cite>Y</cite>’, <cite>‘Z’</cite>, <cite>‘Energy’</cite>.</p>
+</dd>
+<dt><strong>values</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>Result</cite></span></dt><dd><p>data to plot.
+Other options are:</p>
+<blockquote>
+<div><ul>
+<li><p><cite>‘RelError’</cite> : relative error (fraction)</p></li>
+<li><dl>
+<dt><cite>‘RsltVol’</cite><span class="classifier"><cite>‘Result’</cite> mutliplied by <cite>‘’Volume’</cite>, only</span></dt><dd><p>if <em>out=cf</em> was used in <em>fmesh</em></p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</dd>
+<dt><strong>aggfunc</strong><span class="classifier">function, optional, default is <cite>‘sum’</cite></span></dt><dd><p>function to aggregate values (as in <cite>pandas.pivot_table</cite>).
+Other options are <cite>‘mean’</cite>, <cite>‘min’</cite>, <cite>‘max’</cite>, ‘<cite>std</cite>’.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>An Excel-style pivot table</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.mcnp.meshtal.MshtTally.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'X'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Y'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Result'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggfunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sum'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.mcnp.meshtal.MshtTally.plot" title="Permalink to this definition"></a></dt>
+<dd><p>Plot meshtally data using <cite>matplotlib</cite>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>ax</strong><span class="classifier"><cite>matplotlib.axes.Axes</cite></span></dt><dd><p><cite>Axes</cite> instance used for plotting</p>
+</dd>
+<dt><strong>x</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘X’</cite></span></dt><dd><p>data on the plot x-axis.
+Other options are <cite>‘X’</cite>, ‘<cite>Y</cite>’, <cite>‘Z’</cite>, <cite>‘Energy’</cite>.</p>
+</dd>
+<dt><strong>y</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘Y’</cite></span></dt><dd><p>data on the plot y-axis.
+Other options are <cite>‘X’</cite>, ‘<cite>Y</cite>’, <cite>‘Z’</cite>, <cite>‘Energy’</cite>.</p>
+</dd>
+<dt><strong>values</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>Result</cite></span></dt><dd><p>data to plot.
+Other options are:</p>
+<blockquote>
+<div><ul>
+<li><p><cite>‘RelError’</cite> : relative error (fraction)</p></li>
+<li><dl>
+<dt><cite>‘RsltVol’</cite><span class="classifier"><cite>‘Result’</cite> mutliplied by <cite>‘’Volume’</cite>, only</span></dt><dd><p>if <em>out=cf</em> was used in <em>fmesh</em></p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</dd>
+<dt><strong>aggfunc</strong><span class="classifier">function, optional, default is <cite>‘sum’</cite></span></dt><dd><p>function to aggregate values (as in <cite>pandas.pivot_table</cite>).
+Other options are <cite>‘mean’</cite>, <cite>‘min’</cite>, <cite>‘max’</cite>, ‘<cite>std</cite>’.</p>
+</dd>
+<dt><strong>query</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>None</cite></span></dt><dd><p>The query string used to filter <cite>data</cite> columns.
+Examples are <cite>‘X &gt; -10 &amp; X &lt; 10’</cite> or <cite>‘Z == 0’</cite>.</p>
+</dd>
+<dt><strong>**kwargs</strong><span class="classifier">keyword arguments</span></dt><dd><p>Additionally, the following arguments are allowed.
+They are passed along to the <cite>matplotlib.axes.Axes.pcolormesh</cite>
+constructor.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>matplotlib.collections.QuadMesh</cite></dt><dd><p><cite>matplotlib.axes.Axes.pcolormesh</cite> output</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Input parameter <cite>ax</cite> is affected by this method.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

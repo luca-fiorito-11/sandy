@@ -48,13 +48,13 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.core.html">sandy.core package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a><ul class="current">
 <li class="toctree-l4 current"><a class="reference internal" href="sandy.sections.html#submodules">Submodules</a></li>
 </ul>
@@ -92,8 +92,333 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-sections-mf2-module">
-<h1>sandy.sections.mf2 module<a class="headerlink" href="#sandy-sections-mf2-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.sections.mf2">
+<span id="sandy-sections-mf2-module"></span><h1>sandy.sections.mf2 module<a class="headerlink" href="#module-sandy.sections.mf2" title="Permalink to this heading"></a></h1>
+<p>This module contains only two public functions:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>read_mf2</cite></p></li>
+<li><p><cite>write_mf2</cite></p></li>
+</ul>
+</div></blockquote>
+<p>Function <cite>read</cite> reads a MF2/MT section from a string and produces a content
+object with a dictionary-like structure.
+The content object can be accessed using most of the keywords specified in
+the ENDF6 manual for this specific MF section.</p>
+<p>Function <cite>write_mf2</cite> writes a content object for a MF2/MT section into a
+string.
+MAT, MF, MT and line numbers are also added (each line ends with a `
+<a href="#id1"><span class="problematic" id="id2">`</span></a>).</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.sections.mf2.read_mf2">
+<span class="sig-prename descclassname"><span class="pre">sandy.sections.mf2.</span></span><span class="sig-name descname"><span class="pre">read_mf2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mat</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sections.mf2.read_mf2" title="Permalink to this definition"></a></dt>
+<dd><p>Write MT section for MF2</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>tape</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p>endf6 object containing requested section</p>
+</dd>
+<dt><strong>mat</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT number</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>dict</cite></dt><dd><p>Content of the ENDF-6 tape structured as nested <cite>dict</cite>.</p>
+</dd>
+<dt>Examples</dt><dd></dd>
+</dl>
+<blockquote>
+<div></div></blockquote>
+<dl class="simple">
+<dt>Resonance parameters of the Thorium 233</dt><dd></dd>
+<dt>LRU = 0</dt><dd></dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;xs&quot;</span><span class="p">,</span> <span class="mi">902330</span><span class="p">)</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sandy</span><span class="o">.</span><span class="n">read_mf2</span><span class="p">(</span><span class="n">tape</span><span class="p">,</span> <span class="mi">9043</span><span class="p">)</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<dl>
+<dt>{‘MAT’: 9043,</dt><dd><p>‘MF’: 2,
+‘MT’: 151,
+‘ZA’: 90233.0,
+‘AWR’: 231.04,
+‘NIS’: {90233: {‘ABN’: 1.0,</p>
+<blockquote>
+<div><p>‘LFW’: 0,
+‘NER’: {(1e-05, 1.9): {‘LRU’: 0,</p>
+<blockquote>
+<div><p>‘LRF’: 0,
+‘NRO’: 0,
+‘NAPS’: 0,
+‘SPI’: 0.5,
+‘AP’: 0.9765}}}}}</p>
+</div></blockquote>
+</div></blockquote>
+</dd>
+<dt>Resonance parameters of the Thorium 230</dt><dd></dd>
+<dt>LRU = 1 LRF = 2</dt><dd></dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;xs&quot;</span><span class="p">,</span> <span class="mi">902300</span><span class="p">)</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dic</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">read_mf2</span><span class="p">(</span><span class="n">tape</span><span class="p">,</span> <span class="mi">9034</span><span class="p">)</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;NIS&quot;</span><span class="p">][</span><span class="mi">90230</span><span class="p">][</span><span class="s2">&quot;NER&quot;</span><span class="p">][(</span><span class="mf">1e-05</span><span class="p">,</span> <span class="mf">251.0</span><span class="p">)][</span><span class="s2">&quot;L&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>{‘AWRI’: 228.06, ‘QX’: 0.0, ‘LRX’: 0,</dt><dd><dl class="simple">
+<dt>‘RES_PAR’: [{‘ER’: -1.427, ‘AJ’: 0.5, ‘GT’: 0.0251, ‘GN’: 0.0002, ‘GG’: 0.0249, ‘GF’: 0.0},</dt><dd><p>{‘ER’: 1.427, ‘AJ’: 0.5, ‘GT’: 0.0252, ‘GN’: 0.0003, ‘GG’: 0.0249, ‘GF’: 0.0},
+{‘ER’: 17.27, ‘AJ’: 0.5, ‘GT’: 0.0351, ‘GN’: 0.0131, ‘GG’: 0.022, ‘GF’: 0.0},
+{‘ER’: 23.84, ‘AJ’: 0.5, ‘GT’: 0.0371, ‘GN’: 0.0111, ‘GG’: 0.026, ‘GF’: 0.0},
+{‘ER’: 32.2, ‘AJ’: 0.5, ‘GT’: 0.0323, ‘GN’: 0.0033, ‘GG’: 0.029, ‘GF’: 0.0},
+{‘ER’: 39.8, ‘AJ’: 0.5, ‘GT’: 0.0375, ‘GN’: 0.0085, ‘GG’: 0.029, ‘GF’: 0.0},
+{‘ER’: 48.1, ‘AJ’: 0.5, ‘GT’: 0.039, ‘GN’: 0.01, ‘GG’: 0.029, ‘GF’: 0.0},
+{‘ER’: 64.5, ‘AJ’: 0.5, ‘GT’: 0.0287, ‘GN’: 0.0031, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 75.6, ‘AJ’: 0.5, ‘GT’: 0.0283, ‘GN’: 0.0027, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 83.3, ‘AJ’: 0.5, ‘GT’: 0.0504, ‘GN’: 0.0248, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 103.0, ‘AJ’: 0.5, ‘GT’: 0.0308, ‘GN’: 0.0052, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 116.1, ‘AJ’: 0.5, ‘GT’: 0.0659, ‘GN’: 0.0403, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 133.8, ‘AJ’: 0.5, ‘GT’: 0.0331, ‘GN’: 0.0075, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 139.0, ‘AJ’: 0.5, ‘GT’: 0.028, ‘GN’: 0.0024, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 148.2, ‘AJ’: 0.5, ‘GT’: 0.0312, ‘GN’: 0.0056, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 171.4, ‘AJ’: 0.5, ‘GT’: 0.0509, ‘GN’: 0.0253, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 184.2, ‘AJ’: 0.5, ‘GT’: 0.0489, ‘GN’: 0.0233, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 195.0, ‘AJ’: 0.5, ‘GT’: 0.0709, ‘GN’: 0.0453, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 209.0, ‘AJ’: 0.5, ‘GT’: 0.1009, ‘GN’: 0.0753, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 226.0, ‘AJ’: 0.5, ‘GT’: 0.0484, ‘GN’: 0.0228, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 241.0, ‘AJ’: 0.5, ‘GT’: 0.0311, ‘GN’: 0.0055, ‘GG’: 0.0256, ‘GF’: 0.0},
+{‘ER’: 248.0, ‘AJ’: 0.5, ‘GT’: 0.0809, ‘GN’: 0.0553, ‘GG’: 0.0256, ‘GF’: 0.0}]}</p>
+</dd>
+</dl>
+</dd>
+<dt>Resonance parameters of the iron 58</dt><dd></dd>
+<dt>LRU = 1 LRF = 3</dt><dd></dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_80&quot;</span><span class="p">,</span> <span class="s2">&quot;xs&quot;</span><span class="p">,</span> <span class="mi">260580</span><span class="p">)</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dic</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">read_mf2</span><span class="p">(</span><span class="n">tape</span><span class="p">,</span> <span class="mi">2637</span><span class="p">)</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;NIS&quot;</span><span class="p">][</span><span class="mi">26058</span><span class="p">][</span><span class="s2">&quot;NER&quot;</span><span class="p">][(</span><span class="mf">1e-05</span><span class="p">,</span> <span class="mf">350000.0</span><span class="p">)][</span><span class="s2">&quot;L&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;RES_PAR&quot;</span><span class="p">][</span><span class="mi">20</span><span class="p">])</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>{‘ER’: -3612.8, ‘AJ’: 0.5, ‘GN’: 271.55, ‘GG’: 0.74169, ‘GFA’: 0.0, ‘GFB’: 0.0}</dt><dd></dd>
+<dt>Resonance parameters of the iron 58</dt><dd></dd>
+<dt>LRU = 2 LFW = 0 LRF = 1</dt><dd></dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_80&quot;</span><span class="p">,</span> <span class="s2">&quot;xs&quot;</span><span class="p">,</span> <span class="mi">260580</span><span class="p">)</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dic</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">read_mf2</span><span class="p">(</span><span class="n">tape</span><span class="p">,</span> <span class="mi">2637</span><span class="p">)</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;NIS&quot;</span><span class="p">][</span><span class="mi">26058</span><span class="p">][</span><span class="s2">&quot;NER&quot;</span><span class="p">][(</span><span class="mf">350000.0</span><span class="p">,</span> <span class="mf">3000000.0</span><span class="p">)][</span><span class="s2">&quot;L&quot;</span><span class="p">][</span><span class="mi">3</span><span class="p">])</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>{‘AWRI’: 57.43561,</dt><dd><dl class="simple">
+<dt>‘RES_PAR’: [{‘D’: 8033.33, ‘AJ’: 2.5, ‘AMUN’: 1.0, ‘GN0’: 0.482, ‘GG’: 0.7},</dt><dd><p>{‘D’: 6025.0, ‘AJ’: 3.5, ‘AMUN’: 1.0, ‘GN0’: 0.3615, ‘GG’: 0.7}]}</p>
+</dd>
+</dl>
+</dd>
+<dt>Resonance parameters of the iron 54</dt><dd></dd>
+<dt>LRU = 1 LRF = 7</dt><dd></dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_80&quot;</span><span class="p">,</span> <span class="s2">&quot;xs&quot;</span><span class="p">,</span> <span class="mi">260540</span><span class="p">)</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dic</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">read_mf2</span><span class="p">(</span><span class="n">tape</span><span class="p">,</span> <span class="mi">2625</span><span class="p">)</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;NIS&quot;</span><span class="p">][</span><span class="mi">26054</span><span class="p">][</span><span class="s2">&quot;NER&quot;</span><span class="p">][(</span><span class="mf">1e-05</span><span class="p">,</span> <span class="mf">1036000.0</span><span class="p">)][</span><span class="s2">&quot;J&quot;</span><span class="p">][(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)][</span><span class="s1">&#39;SPIN_GROUP&#39;</span><span class="p">])</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>[{‘PPI’: 1.0, ‘L’: 0.0, ‘SCH’: 0.0, ‘BND’: 0.0, ‘APE’: 0.0, ‘APT’: 0.0},</dt><dd><p>{‘PPI’: 2.0, ‘L’: 1.0, ‘SCH’: 0.5, ‘BND’: 0.0, ‘APE’: 0.54373, ‘APT’: 0.54373}]</p>
+</dd>
+<dt>Resonance parameters of the Uranium 235</dt><dd></dd>
+<dt>LRU = 2 LRF = 2</dt><dd></dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;xs&quot;</span><span class="p">,</span> <span class="mi">922350</span><span class="p">)</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dic</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">read_mf2</span><span class="p">(</span><span class="n">tape</span><span class="p">,</span> <span class="mi">9228</span><span class="p">)</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="p">(</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;NIS&quot;</span><span class="p">][</span><span class="mi">92235</span><span class="p">][</span><span class="s2">&quot;NER&quot;</span><span class="p">][(</span><span class="mf">2250.0</span><span class="p">,</span> <span class="mf">46200.0</span><span class="p">)][</span><span class="s1">&#39;L&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;J&quot;</span><span class="p">][</span><span class="mf">3.0</span><span class="p">][</span><span class="s1">&#39;RES_PAR&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<span class="go">    ..</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>{‘ES’: 2250.0, ‘D’: 1.058, ‘GX’: 0.0, ‘GN0’: 0.000107789, ‘GG’: 0.038513, ‘GF’: 0.40102}</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.sections.mf2.write_mf2">
+<span class="sig-prename descclassname"><span class="pre">sandy.sections.mf2.</span></span><span class="sig-name descname"><span class="pre">write_mf2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sections.mf2.write_mf2" title="Permalink to this definition"></a></dt>
+<dd><p>Given the content of MF2 write it to string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>sec</strong><span class="classifier">‘dict’</span></dt><dd><p>Multiline string reproducing the content of a ENDF-6 section.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>str</cite></dt><dd><p>Multiline string reproducing the content of a ENDF-6 section.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>resonance parameters of Thorium 233
+LRU = 0
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 902330)
+&gt;&gt;&gt; dic = sandy.read_mf2(tape, 9043)
+&gt;&gt;&gt; text = sandy.write_mf2(dic)
+&gt;&gt;&gt; print(text[:1000])
+90233.0000 231.040000          0          0          1          09043 2151    1
+90233.0000 1.00000000          0          0          1          09043 2151    2
+1.000000-5 1.90000000          0          0          0          09043 2151    3
+5.000000-1 9.765000-1          0          0          0          09043 2151    4</p>
+<p>resonance parameters of Thorium 230
+LRU = 1 LRF = 2
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 902300)
+&gt;&gt;&gt; dic = sandy.read_mf2(tape, 9034)
+&gt;&gt;&gt; text = sandy.write_mf2(dic)
+&gt;&gt;&gt; print(text[:1054])
+90230.0000 228.060000          0          0          1          09034 2151    1
+90230.0000 1.00000000          0          0          1          09034 2151    2
+1.000000-5 251.000000          1          2          0          09034 2151    3
+0.00000000 8.322500-1          0          0          1          09034 2151    4
+228.060000 0.00000000          0          0        132         229034 2151    5
+-1.42700000 5.000000-1 2.510000-2 2.000000-4 2.490000-2 0.000000009034 2151    6
+1.42700000 5.000000-1 2.520000-2 3.000000-4 2.490000-2 0.000000009034 2151    7
+17.2700000 5.000000-1 3.510000-2 1.310000-2 2.200000-2 0.000000009034 2151    8
+23.8400000 5.000000-1 3.710000-2 1.110000-2 2.600000-2 0.000000009034 2151    9
+32.2000000 5.000000-1 3.230000-2 3.300000-3 2.900000-2 0.000000009034 2151   10
+39.8000000 5.000000-1 3.750000-2 8.500000-3 2.900000-2 0.000000009034 2151   11
+48.1000000 5.000000-1 3.900000-2 1.000000-2 2.900000-2 0.000000009034 2151   12
+64.5000000 5.000000-1 2.870000-2 3.100000-3 2.560000-2 0.000000009034 2151   13</p>
+<p>resonance parameters of Uranium 235
+LRU = 1 LRF = 3
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 922350)
+&gt;&gt;&gt; dic = sandy.read_mf2(tape, 9228)
+&gt;&gt;&gt; text = sandy.write_mf2(dic)
+&gt;&gt;&gt; print(text[:1054])
+92235.0000 233.025000          0          0          1          09228 2151    1
+92235.0000 1.00000000          0          1          2          09228 2151    2
+1.000000-5 2250.00000          1          3          0          19228 2151    3
+3.50000000 9.602000-1          1          0          1          49228 2151    4
+233.025000 9.602000-1          0          0      19080       31809228 2151    5
+-75.4054200-3.00000000 5.072748-1 4.778164-2-4.870903-1-4.433456-19228 2151    6
+-5.25305700 4.00000000 1.217027-2 3.679714-2 1.956806-1-1.600387-19228 2151    7
+-4.808332-1-3.00000000 8.876626-5 3.922852-2 1.296617-1-8.053507-29228 2151    8
+-4.320587-1 4.00000000 3.325503-5 3.802396-2 1.670726-1-8.283233-39228 2151    9
+-3.657000-5 4.00000000 6.46080-11 3.998846-2-5.091200-4 9.353600-49228 2151   10
+2.638505-1-3.00000000 4.252450-6 4.573547-2 1.232188-1 6.114063-59228 2151   11
+1.13613600 4.00000000 1.526560-5 3.855000-2 6.673820-5 1.192506-19228 2151   12
+1.29868300 4.00000000 3.816210-7 3.860000-2-1.671125-4 1.735410-29228 2151   13</p>
+<p>resonance parameters of Iron 54
+LRU = 1 LRF = 7
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, “xs”, 260540)
+&gt;&gt;&gt; dic = sandy.read_mf2(tape, 2625)
+&gt;&gt;&gt; text = sandy.write_mf2(dic)
+&gt;&gt;&gt; print(text[:1053])
+26054.0000 53.4762400          0          0          1          02625 2151    1
+26054.0000 1.00000000          0          0          1          02625 2151    2
+1.000000-5 1036000.00          1          7          0          12625 2151    3
+0.00000000 0.00000000          0          3          5          02625 2151    4
+0.00000000 0.00000000          2          0         24          42625 2151    5
+0.00000000 54.4663500 0.00000000 26.0000000 1.00000000 0.000000002625 2151    6
+0.00000000 0.00000000 0.00000000 102.000000 0.00000000 0.000000002625 2151    7
+1.00000000 53.4762400 0.00000000 26.0000000 5.000000-1 0.000000002625 2151    8
+0.00000000 1.00000000 0.00000000 2.00000000 0.00000000 1.000000002625 2151    9
+5.000000-1 0.00000000          0          0         12          22625 2151   10
+1.00000000 0.00000000 0.00000000 0.00000000 0.00000000 0.000000002625 2151   11
+2.00000000 0.00000000 5.000000-1 0.00000000 5.437300-1 5.437300-12625 2151   12
+0.00000000 0.00000000          0        148        888        1482625 2151   13</p>
+<blockquote>
+<div><p>resonance parameters of Iron 58
+LRU = 2 LFW = 0 LRF = 1
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_80”, “xs”, 260580)
+&gt;&gt;&gt; dic = sandy.read_mf2(tape, 2637)
+&gt;&gt;&gt; text = sandy.write_mf2(dic)
+&gt;&gt;&gt; print(text[:1053])
+26058.0000 57.4356000          0          0          1          02637 2151    1
+26058.0000 1.00000000          0          0          2          02637 2151    2
+1.000000-5 350000.000          1          3          0          02637 2151    3
+0.00000000 5.226000-1          1          0          5          52637 2151    4
+57.4356100 5.226000-1          0          0        204         342637 2151    5
+-552450.000 5.000000-1 6986.00000 2.446000-1 0.00000000 0.000000002637 2151    6
+-524307.500 5.000000-1 6805.70000 2.446000-1 0.00000000 0.000000002637 2151    7
+-496165.000 5.000000-1 6620.50000 2.446000-1 0.00000000 0.000000002637 2151    8
+-468022.500 5.000000-1 6430.00000 2.446000-1 0.00000000 0.000000002637 2151    9
+-439880.000 5.000000-1 6233.70000 2.446000-1 0.00000000 0.000000002637 2151   10
+-411737.500 5.000000-1 6031.00000 2.446000-1 0.00000000 0.000000002637 2151   11
+-383595.000 5.000000-1 5821.20000 2.446000-1 0.00000000 0.000000002637 2151   12
+-355452.500 5.000000-1 5603.60000 2.446000-1 0.00000000 0.000000002637 2151   13</p>
+<p>resonance parameters of Uranium 235
+LRU = 2 LRF = 2
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 922350)
+&gt;&gt;&gt; dic = sandy.read_mf2(tape, 9228)
+&gt;&gt;&gt; text = sandy.write_mf2(dic)
+&gt;&gt;&gt; print(text[10046:12068])
+3.4229400-3.00000000 5.878595-4 3.672970-2-6.820955-2-1.940129-29228 2151  125
+54.1870000 4.00000000 1.004536-4 4.111675-2-5.317350-2-7.705571-39228 2151  126
+54.9713800-3.00000000 9.482413-4 4.426821-2-4.932297-2 2.162867-29228 2151  127
+55.1077500 4.00000000 2.049826-3 3.423696-2 1.238615-4-3.312716-29228 2151  128
+55.8415900 4.00000000 2.400311-3 3.885363-2-2.229854-1-2.704497-29228 2151  129
+56.0333400-3.00000000 6.820638-4 4.058219-2-1.184018-1 1.145587-29228 2151  130
+56.4703900 4.00000000 4.075371-3 4.062175-2 2.073727-2-8.683868-29228 2151  131
+57.3011700 4.00000000 1.692560-7 3.488284-2 1.545313-1-6.059518-29228 2151  132
+57.6945900-3.00000000 6.997812-4 3.866154-2-1.248931-1 6.105844-29228 2151  133
+58.0726200-3.00000000 1.766641-3 4.201754-2 5.672139-2 2.816238-39228 2151  134
+58.6701500 4.00000000 1.251797-3 3.985913-2-1.282329-1-1.093225-39228 2151  135
+59.7017500 4.00000000 7.955139-5 3.753891-2-6.452942-2-4.530963-39228 2151  136
+60.1662700-3.00000000 1.631662-3 4.269916-2 6.939703-2 2.568978-19228 2151  137
+60.7998400 4.00000000 5.306126-4 3.771821-2-1.692058-1 4.601213-59228 2151  138
+61.0760900-3.00000000 4.019216-4 4.062546-2-8.796944-2 4.825410-49228 2151  139
+61.3131700 4.00000000 1.820134-4 4.249260-2-2.965849-1-4.730334-19228 2151  140
+61.7583400-3.00000000 9.078133-6 4.451335-2 9.764961-3 2.378250-19228 2151  141
+62.5350600 4.00000000 5.510943-5 3.875537-2 5.874718-2 7.565506-29228 2151  142
+62.9074700-3.00000000 2.433310-6 4.539639-2-4.230665-1 1.806913-19228 2151  143
+63.6294000 4.00000000 7.504646-5 3.657835-2 1.533564-3 1.998567-19228 2151  144
+63.6562800-3.00000000 1.445787-3 4.294969-2 2.159020-1 7.735164-19228 2151  145
+64.2980700 4.00000000 1.013067-3 3.407947-2 4.462792-3-1.769018-59228 2151  146
+65.1483700 4.00000000 2.463481-8 4.170096-2 1.453683-2-2.180552-19228 2151  147
+65.7741300-3.00000000 4.208330-4 3.762744-2-1.429333-2-1.591547-29228 2151  148
+66.2503700-3.00000000 7.161637-5 3.759448-2 2.357995-2 1.894606-19228 2151  149</p>
+</div></blockquote>
+</dd></dl>
+
 </section>
 
 

@@ -48,13 +48,13 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.core.html">sandy.core package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a><ul class="current">
 <li class="toctree-l4 current"><a class="reference internal" href="sandy.sections.html#submodules">Submodules</a></li>
 </ul>
@@ -92,8 +92,243 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-sections-mf6-module">
-<h1>sandy.sections.mf6 module<a class="headerlink" href="#sandy-sections-mf6-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.sections.mf6">
+<span id="sandy-sections-mf6-module"></span><h1>sandy.sections.mf6 module<a class="headerlink" href="#module-sandy.sections.mf6" title="Permalink to this heading"></a></h1>
+<p>This module contains only two public functions:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>read_mf6</cite></p></li>
+<li><p><cite>write_mf6</cite></p></li>
+</ul>
+</div></blockquote>
+<p>Function <cite>read</cite> reads a MF6/MT section from a string and produces a content
+object with a dictionary-like structure.
+The content object can be accessed using most of the keywords specified in
+the ENDF6 manual for this specific MF section.</p>
+<p>Function <cite>write_mf6</cite> writes a content object for a MF6/MT section into a
+string.
+MAT, MF, MT and line numbers are also added (each line ends with a `
+<a href="#id1"><span class="problematic" id="id2">`</span></a>).</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.sections.mf6.read_mf6">
+<span class="sig-prename descclassname"><span class="pre">sandy.sections.mf6.</span></span><span class="sig-name descname"><span class="pre">read_mf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sections.mf6.read_mf6" title="Permalink to this definition"></a></dt>
+<dd><p>Parse MAT/MF=6/MT section from <cite>sandy.Endf6</cite> object and return
+structured content in nested dictionary.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>tape</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p>endf6 object containing requested section.</p>
+</dd>
+<dt><strong>mat</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT number.</p>
+</dd>
+<dt><strong>mt</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MT number.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl>
+<dt><strong>out</strong><span class="classifier"><cite>dict</cite></span></dt><dd><p>Content of the ENDF-6 tape structured as nested <cite>dict</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Since the outputs are very large, I am only going to check only some
+information for the test:</p>
+<p><strong>LAW 1</strong>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span> <span class="s1">&#39;xs&#39;</span><span class="p">,</span> <span class="mi">70140</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span> <span class="o">=</span> <span class="n">read_mf6</span><span class="p">(</span><span class="n">tape</span><span class="p">,</span> <span class="mi">725</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span><span class="p">[</span><span class="s2">&quot;NK&quot;</span><span class="p">][</span><span class="mi">10010</span><span class="p">][</span><span class="s2">&quot;EGROUPS&quot;</span><span class="p">][</span><span class="mf">1e-05</span><span class="p">]</span>
+<span class="go"> {&#39;ND&#39;: 0,</span>
+<span class="go"> &#39;NA&#39;: 1,</span>
+<span class="go"> &#39;NW&#39;: 6,</span>
+<span class="go"> &#39;NEP&#39;: 2,</span>
+<span class="go"> &#39;Ep&#39;: [0.0, 1e-05],</span>
+<span class="go"> &#39;b&#39;: [100000.0, 0.0, 0.0, 0.0]}</span>
+</pre></div>
+</div>
+<p><strong>LAW 2</strong>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pprint</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span> <span class="s1">&#39;xs&#39;</span><span class="p">,</span> <span class="mi">10010</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span> <span class="o">=</span> <span class="n">read_mf6</span><span class="p">(</span><span class="n">tape</span><span class="p">,</span> <span class="mi">125</span><span class="p">,</span> <span class="mi">102</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span><span class="p">[</span><span class="s2">&quot;NK&quot;</span><span class="p">][</span><span class="mi">10020</span><span class="p">][</span><span class="s1">&#39;AWP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span> <span class="p">(</span><span class="n">test</span><span class="p">[</span><span class="s2">&quot;NK&quot;</span><span class="p">][</span><span class="mi">10020</span><span class="p">][</span><span class="s1">&#39;AWP&#39;</span><span class="p">],</span> <span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pprint</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">test</span><span class="p">[</span><span class="s2">&quot;NK&quot;</span><span class="p">][</span><span class="mi">10020</span><span class="p">])</span>
+<span class="go">{&#39;AWP&#39;: 1.99626,</span>
+<span class="go"> &#39;E&#39;: array([1.e-05, 2.e+07]),</span>
+<span class="go"> &#39;LAW&#39;: 4,</span>
+<span class="go"> &#39;NP&#39;: [2],</span>
+<span class="go"> &#39;NR&#39;: [2],</span>
+<span class="go"> &#39;Y&#39;: array([1., 1.])}</span>
+</pre></div>
+</div>
+<p><strong>LAW 6</strong>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span> <span class="s1">&#39;xs&#39;</span><span class="p">,</span> <span class="mi">10020</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span> <span class="o">=</span> <span class="n">read_mf6</span><span class="p">(</span><span class="n">tape</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span><span class="p">[</span><span class="s2">&quot;NK&quot;</span><span class="p">][</span><span class="mi">10</span><span class="p">][</span><span class="s1">&#39;APSX&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span> <span class="p">(</span><span class="n">test</span><span class="p">[</span><span class="s2">&quot;NK&quot;</span><span class="p">][</span><span class="mi">10</span><span class="p">][</span><span class="s1">&#39;APSX&#39;</span><span class="p">],</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span><span class="p">[</span><span class="s2">&quot;NK&quot;</span><span class="p">][</span><span class="mi">10</span><span class="p">]</span>
+<span class="go">{&#39;AWP&#39;: 1.0,</span>
+<span class="go"> &#39;LAW&#39;: 6,</span>
+<span class="go"> &#39;NR&#39;: [2],</span>
+<span class="go"> &#39;NP&#39;: [2],</span>
+<span class="go"> &#39;E&#39;: array([3.339002e+06, 1.500000e+08]),</span>
+<span class="go"> &#39;Y&#39;: array([2., 2.]),</span>
+<span class="go"> &#39;APSX&#39;: 2.99862,</span>
+<span class="go"> &#39;NPSX&#39;: 3}</span>
+</pre></div>
+</div>
+<p><strong>LAW 7</strong>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;endfb_71&quot;</span><span class="p">,</span> <span class="s1">&#39;xs&#39;</span><span class="p">,</span> <span class="mi">40090</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span> <span class="o">=</span> <span class="n">read_mf6</span><span class="p">(</span><span class="n">tape</span><span class="p">,</span> <span class="mi">425</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span><span class="p">[</span><span class="s2">&quot;NK&quot;</span><span class="p">][</span><span class="mi">10</span><span class="p">][</span><span class="s2">&quot;EGROUPS&quot;</span><span class="p">][</span><span class="mf">1748830.0</span><span class="p">][</span><span class="s1">&#39;COSGROUPS&#39;</span><span class="p">][</span><span class="o">-</span><span class="mf">1.0</span><span class="p">]</span>
+<span class="go">{&#39;NRP&#39;: [15],</span>
+<span class="go"> &#39;NEP&#39;: [2],</span>
+<span class="go"> &#39;EP_INT&#39;: array([  1092.99,   1093.  ,   3278.9 ,   7650.8 ,  12023.  ,  20766.  ,</span>
+<span class="go">         29510.  ,  55741.  ,  71043.  ,  81973.  ,  90716.  ,  95088.  ,</span>
+<span class="go">         99460.  , 101650.  , 101651.  ]),</span>
+<span class="go"> &#39;E_p&#39;: array([0.00000e+00, 1.16614e-06, 1.58588e-06, 1.54624e-06, 7.09710e-07,</span>
+<span class="go">        1.79581e-07, 2.86776e-08, 0.00000e+00]),</span>
+<span class="go"> &#39;E_distr&#39;: array([7.40674e-07, 1.46654e-06, 1.61094e-06, 1.07195e-06, 4.02172e-07,</span>
+<span class="go">        9.52648e-08, 4.69275e-09])}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.sections.mf6.write_mf6">
+<span class="sig-prename descclassname"><span class="pre">sandy.sections.mf6.</span></span><span class="sig-name descname"><span class="pre">write_mf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sections.mf6.write_mf6" title="Permalink to this definition"></a></dt>
+<dd><p>Given the content of a MF6 section as nested dictionaries, write it
+to string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>sec</strong><span class="classifier">‘dict’</span></dt><dd><p>Multiline string reproducing the content of a ENDF-6 section.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>str</cite></dt><dd><p>Multiline string reproducing the content of a ENDF-6 section.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The end-of-line records MAT, MF, MT and line number are added at
+the end of each line.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>MF6 LAW5 writing is not tested because not found in existing major
+nuclear data libraries.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The string does not endf with a newline symbol.</p>
+</div>
+<p class="rubric">Examples</p>
+<p>As we have a law-dependent structure, I will develop a test for each law.
+<strong>LAW 1</strong>:
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘xs’, 70140)
+&gt;&gt;&gt; sec = read_mf6(tape, 725, 5)
+&gt;&gt;&gt; text = write_mf6(sec)
+&gt;&gt;&gt; print(text[:1000])</p>
+<blockquote>
+<div><p>7014.00000 13.8828000          0          3         22          0 725 6  5    1
+1.00000000 1.00000000          0          1          1         19 725 6  5    2</p>
+<blockquote>
+<div><p>19          2                                             725 6  5    3</p>
+</div></blockquote>
+<p>1.000000-5 7.880151-1 20000000.0 7.880151-1 20000010.0 7.880151-1 725 6  5    4
+23000000.0 8.736206-1 27000000.0 1.04544100 30000000.0 1.09352800 725 6  5    5
+35000000.0 1.15156600 40000000.0 1.20729400 50000000.0 1.29613300 725 6  5    6
+60000000.0 1.36702400 70000000.0 1.42382400 80000000.0 1.51414400 725 6  5    7
+90000000.0 1.61200000  100000000 1.70471900  110000000 1.93624400 725 6  5    8</p>
+<blockquote>
+<div><p>120000000 2.02639000  130000000 2.09783300  140000000 2.17252600 725 6  5    9
+150000000 2.23843500                                             725 6  5   10</p>
+</div></blockquote>
+<dl class="simple">
+<dt>0.00000000 0.00000000          2          1          1          1 725 6  5   11</dt><dd><p>19          2                                             725 6  5   12</p>
+</dd>
+</dl>
+<p>0.00000000 1.000000-5</p>
+</div></blockquote>
+<p><strong>LAW 2</strong>:
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘xs’, 10010)
+&gt;&gt;&gt; sec = read_mf6(tape, 125, 102)
+&gt;&gt;&gt; text = write_mf6(sec)
+&gt;&gt;&gt; print(text[:1000])</p>
+<blockquote>
+<div><p>1001.00000 9.991673-1          0          2          2          0 125 6102    1
+0.00000000 2223300.00          0          2          1          2 125 6102    2</p>
+<blockquote>
+<div><p>2          2                                             125 6102    3</p>
+</div></blockquote>
+<p>1.000000-5 1.00000000 20000000.0 1.00000000                       125 6102    4
+0.00000000 0.00000000          0          0          1         96 125 6102    5</p>
+<blockquote>
+<div><p>96          2                                             125 6102    6</p>
+</div></blockquote>
+<p>0.00000000 1.000000-5          0          0          2          2 125 6102    7</p>
+</div></blockquote>
+<dl class="simple">
+<dt>-6.160950-8-8.86237-13                                             125 6102    8</dt><dd><p>0.00000000 2.000000-5          0          0          2          2 125 6102    9</p>
+</dd>
+<dt>-8.712894-8-1.77244-12                                             125 6102   10</dt><dd><p>0.00000000 5.000000-5          0          0          2          2 125 6102   11</p>
+</dd>
+<dt>-1.377628-7-4.43100-12                                             125 6102   12</dt><dd><p>0.00000000 1.000000-4</p>
+</dd>
+</dl>
+<p><strong>LAW 6</strong>:
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘xs’, 10020)
+&gt;&gt;&gt; sec = read_mf6(tape, 128, 16)
+&gt;&gt;&gt; text = write_mf6(sec)
+&gt;&gt;&gt; print (text)</p>
+<blockquote>
+<div><p>1002.00000 1.99680000          0          1          2          0 128 6 16    1
+1.00000000 1.00000000          0          6          1          2 128 6 16    2</p>
+<blockquote>
+<div><p>2          2                                             128 6 16    3</p>
+</div></blockquote>
+<p>3339002.00 2.00000000  150000000 2.00000000                       128 6 16    4
+2.99862000 0.00000000          0          0          0          3 128 6 16    5
+1001.00000 9.986200-1          0          6          1          2 128 6 16    6</p>
+<blockquote>
+<div><p>2          2                                             128 6 16    7</p>
+</div></blockquote>
+<p>3339002.00 1.00000000  150000000 1.00000000                       128 6 16    8
+2.99862000 0.00000000          0          0          0          3 128 6 16    9</p>
+</div></blockquote>
+<p><strong>LAW 7</strong>:
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“endfb_71”, ‘xs’, 40090)
+&gt;&gt;&gt; sec = read_mf6(tape, 425, 16)
+&gt;&gt;&gt; text = write_mf6(sec)
+&gt;&gt;&gt; print(text[:1000])</p>
+<blockquote>
+<div><p>4009.00000 8.93478000          0          1          2          0 425 6 16    1
+1.00000000 1.00000000          0          7          1         17 425 6 16    2</p>
+<blockquote>
+<div><p>17          1                                             425 6 16    3</p>
+</div></blockquote>
+<p>1748830.00 2.00000000 2700000.00 2.00000000 3250000.00 2.00000000 425 6 16    4
+3900000.00 2.00000000 4500000.00 2.00000000 5900000.00 2.00000000 425 6 16    5
+6400000.00 2.00000000 7050000.00 2.00000000 8400000.00 2.00000000 425 6 16    6
+10100000.0 2.00000000 11000000.0 2.00000000 12000000.0 2.00000000 425 6 16    7
+13000000.0 2.00000000 14200000.0 2.00000000 15400000.0 2.00000000 425 6 16    8
+17000000.0 2.00000000 20000000.0 2.00000000                       425 6 16    9
+0.00000000 0.00000000          0          0          1         18 425 6 16   10</p>
+<blockquote>
+<div><p>18          2                                             425 6 16   11</p>
+</div></blockquote>
+<dl class="simple">
+<dt>0.00000000 1748830.00          0          0          1         21 425 6 16   12</dt><dd><p>21          2</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
 </section>
 
 

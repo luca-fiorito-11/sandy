@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>sandy.groupr module &mdash; SANDY API 0 documentation</title>
+  <title>sandy.spectra module &mdash; SANDY API 0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -19,8 +19,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="sandy.h5file module" href="sandy.h5file.html" />
-    <link rel="prev" title="sandy.gls module" href="sandy.gls.html" /> 
+    <link rel="next" title="sandy.tools module" href="sandy.tools.html" />
+    <link rel="prev" title="sandy.shared module" href="sandy.shared.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -48,6 +48,9 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
@@ -56,17 +59,19 @@
 <li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html">sandy.gendf module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.gls.html">sandy.gls module</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.groupr module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.spectra module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.spectra.get_custom_spectrum"><code class="docutils literal notranslate"><span class="pre">get_custom_spectrum()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html">sandy.tsl module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
@@ -92,9 +97,9 @@
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="sandy.html">sandy package</a></li>
-      <li class="breadcrumb-item active">sandy.groupr module</li>
+      <li class="breadcrumb-item active">sandy.spectra module</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/sandy.groupr.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/sandy.spectra.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -102,16 +107,21 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-groupr-module">
-<h1>sandy.groupr module<a class="headerlink" href="#sandy-groupr-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.spectra">
+<span id="sandy-spectra-module"></span><h1>sandy.spectra module<a class="headerlink" href="#module-sandy.spectra" title="Permalink to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.spectra.get_custom_spectrum">
+<span class="sig-prename descclassname"><span class="pre">sandy.spectra.</span></span><span class="sig-name descname"><span class="pre">get_custom_spectrum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.spectra.get_custom_spectrum" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="sandy.gls.html" class="btn btn-neutral float-left" title="sandy.gls module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="sandy.h5file.html" class="btn btn-neutral float-right" title="sandy.h5file module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="sandy.shared.html" class="btn btn-neutral float-left" title="sandy.shared module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.tools.html" class="btn btn-neutral float-right" title="sandy.tools module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

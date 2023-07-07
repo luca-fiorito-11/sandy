@@ -48,25 +48,30 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.decay.html">sandy.decay module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.energy_grids.html">sandy.energy_grids module</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.errorr module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.errorr module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.errorr.Errorr"><code class="docutils literal notranslate"><span class="pre">Errorr</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html">sandy.gendf module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.gls.html">sandy.gls module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.spectra.html">sandy.spectra module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html">sandy.tsl module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
@@ -102,8 +107,191 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-errorr-module">
-<h1>sandy.errorr module<a class="headerlink" href="#sandy-errorr-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.errorr">
+<span id="sandy-errorr-module"></span><h1>sandy.errorr module<a class="headerlink" href="#module-sandy.errorr" title="Permalink to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.errorr.Errorr">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.errorr.</span></span><span class="sig-name descname"><span class="pre">Errorr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.errorr.Errorr" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_FormattedFile</span></code></p>
+<p>Container for ERRORR file text grouped by MAT, MF and MT numbers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>data</strong></dt><dd></dd>
+<dt><strong>is_empty</strong></dt><dd></dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">keys</span></code></dt><dd><p>List of keys <cite>(MAT, MF, MT)</cite> used to identify each tape section.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">kind</span></code></dt><dd><p>Kind of ENDF-6 formatted file (<cite>‘endf6’</cite>, <cite>‘pendf’</cite>, <cite>‘gendf’</cite>, <cite>‘errorr’</cite>) .</p>
+</dd>
+<dt><strong>mat</strong></dt><dd></dd>
+<dt><strong>mf</strong></dt><dd></dd>
+<dt><strong>mt</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.errorr.Errorr.get_cov" title="sandy.errorr.Errorr.get_cov"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_cov</span></code></a>()</p></td>
+<td><p>Extract cross section/nubar covariance from <cite>Errorr</cite> instance. Returns ------- data : <cite>sandy CategoryCov</cite>     xs/nubar covariance matrix for all cross section/nubar     MAT/MT in ERRORR file. Examples -------- &gt;&gt;&gt; e6 = sandy.get_endf6_file(&quot;jeff_33&quot;, &quot;xs&quot;, 10010) &gt;&gt;&gt; err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1, temperature=0.1)['errorr33'] &gt;&gt;&gt; datamg = err.get_cov().data &gt;&gt;&gt; datamg     MAT                        125 MT                         1                                    2                                   102         E                  (0.01, 10.0]     (10.0, 20000000.0]      (0.01, 10.0]    (10.0, 20000000.0]      (0.01, 10.0]    (10.0, 20000000.0] MAT  MT                      E                                               125   1           (0.01, 10.0]      8.74835e-06            4.62555e-05  8.76099e-06             4.62566e-05 1.07148e-06                5.59219e-07         (10.0, 20000000.0]  4.62555e-05            2.47644e-04       4.63317e-05           2.47649e-04      7.58743e-09                1.49541e-06       2           (0.01, 10.0]      8.76099e-06            4.63317e-05       8.77542e-06           4.63327e-05      0.00000e+00                0.00000e+00         (10.0, 20000000.0]  4.62566e-05            2.47649e-04       4.63327e-05           2.47655e-04      0.00000e+00                0.00000e+00     102           (0.01, 10.0]      1.07148e-06            7.58743e-09       0.00000e+00           0.00000e+00      6.51764e-04                3.40163e-04         (10.0, 20000000.0]  5.59219e-07            1.49541e-06       0.00000e+00           0.00000e+00      3.40163e-04                6.70430e-02.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.errorr.Errorr.get_energy_grid" title="sandy.errorr.Errorr.get_energy_grid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_energy_grid</span></code></a>(**kwargs)</p></td>
+<td><p>Extract breaks of multi-group energy grid from ERRORR</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.errorr.Errorr.get_xs" title="sandy.errorr.Errorr.get_xs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_xs</span></code></a>(**kwargs)</p></td>
+<td><p>Extract multigroup xs values.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.errorr.Errorr.get_cov">
+<span class="sig-name descname"><span class="pre">get_cov</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.errorr.Errorr.get_cov" title="Permalink to this definition"></a></dt>
+<dd><p>Extract cross section/nubar covariance from <cite>Errorr</cite> instance.
+Returns
+——-
+data : <cite>sandy CategoryCov</cite></p>
+<blockquote>
+<div><p>xs/nubar covariance matrix for all cross section/nubar
+MAT/MT in ERRORR file.</p>
+</div></blockquote>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this heading"></a></h2>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;xs&quot;</span><span class="p">,</span> <span class="mi">10010</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">err</span> <span class="o">=</span> <span class="n">e6</span><span class="o">.</span><span class="n">get_errorr</span><span class="p">(</span><span class="n">errorr_kws</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">ek</span><span class="o">=</span><span class="p">[</span><span class="mf">1e-2</span><span class="p">,</span> <span class="mf">1e1</span><span class="p">,</span> <span class="mf">2e7</span><span class="p">]),</span> <span class="n">err</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)[</span><span class="s1">&#39;errorr33&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">datamg</span> <span class="o">=</span> <span class="n">err</span><span class="o">.</span><span class="n">get_cov</span><span class="p">()</span><span class="o">.</span><span class="n">data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">datamg</span>
+<span class="go">    MAT                        125</span>
+<span class="go">MT                         1                                    2                                   102</span>
+<span class="go">        E                  (0.01, 10.0]     (10.0, 20000000.0]      (0.01, 10.0]    (10.0, 20000000.0]      (0.01, 10.0]    (10.0, 20000000.0]</span>
+<span class="go">MAT  MT                      E                                              </span>
+<span class="go">125   1           (0.01, 10.0]      8.74835e-06            4.62555e-05  8.76099e-06             4.62566e-05 1.07148e-06                5.59219e-07</span>
+<span class="go">        (10.0, 20000000.0]  4.62555e-05            2.47644e-04       4.63317e-05           2.47649e-04      7.58743e-09                1.49541e-06</span>
+<span class="go">      2           (0.01, 10.0]      8.76099e-06            4.63317e-05       8.77542e-06           4.63327e-05      0.00000e+00                0.00000e+00</span>
+<span class="go">        (10.0, 20000000.0]  4.62566e-05            2.47649e-04       4.63327e-05           2.47655e-04      0.00000e+00                0.00000e+00</span>
+<span class="go">    102           (0.01, 10.0]      1.07148e-06            7.58743e-09       0.00000e+00           0.00000e+00      6.51764e-04                3.40163e-04</span>
+<span class="go">        (10.0, 20000000.0]  5.59219e-07            1.49541e-06       0.00000e+00           0.00000e+00      3.40163e-04                6.70430e-02</span>
+</pre></div>
+</div>
+<p>This example shows the cross correlation among two MT taken from a
+cross section covariance matrix (MF=33) with 3 energy groups at high
+energy. There is no correlation in the last two groups. 
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 641530)
+&gt;&gt;&gt; out = tape.get_errorr(err=1, errorr33_kws=dict(irespr=0, mt=[1, 51, 52],ek=[1e7,2e7,2.4e7, 2.8e7]))
+&gt;&gt;&gt; cov = out[“errorr33”].get_cov().data
+&gt;&gt;&gt; cov.loc[(6428,1)][(6428,51)]
+E                         (10000000.0, 20000000.0]  (20000000.0, 24000000.0]  (24000000.0, 28000000.0]
+E
+(10000000.0, 20000000.0]               8.66651e-03               0.00000e+00               0.00000e+00
+(20000000.0, 24000000.0]               6.81128e-02               0.00000e+00               0.00000e+00
+(24000000.0, 28000000.0]               7.52293e-02               0.00000e+00               0.00000e+00</p>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.errorr.Errorr.get_energy_grid">
+<span class="sig-name descname"><span class="pre">get_energy_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.errorr.Errorr.get_energy_grid" title="Permalink to this definition"></a></dt>
+<dd><blockquote>
+<div><p>Extract breaks of multi-group energy grid from ERRORR
+output file.</p>
+</div></blockquote>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>mat</strong><span class="classifier"><cite>int</cite>, optional</span></dt><dd><p>MAT number. The default is None.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>np.array</cite></dt><dd><p>The energy grid of the <cite>sandy.Errorr</cite> object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;xs&quot;</span><span class="p">,</span> <span class="mi">10010</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ek</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">energy_grids</span><span class="o">.</span><span class="n">CASMO12</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">err</span> <span class="o">=</span> <span class="n">e6</span><span class="o">.</span><span class="n">get_errorr</span><span class="p">(</span><span class="n">errorr_kws</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">ek</span><span class="o">=</span><span class="n">ek</span><span class="p">),</span> <span class="n">err</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="s1">&#39;errorr33&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">get_energy_grid</span><span class="p">(),</span> <span class="n">ek</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-14</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-14</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">get_energy_grid</span><span class="p">(</span><span class="n">mat</span><span class="o">=</span><span class="mi">125</span><span class="p">),</span> <span class="n">ek</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-14</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-14</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.errorr.Errorr.get_xs">
+<span class="sig-name descname"><span class="pre">get_xs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.errorr.Errorr.get_xs" title="Permalink to this definition"></a></dt>
+<dd><p>Extract multigroup xs values.</p>
+<dl class="field-list">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>xs</strong><span class="classifier"><cite>pd.Series</cite></span></dt><dd><p>For a given mat and mt, the xs values in the energy grid.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e6</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;xs&quot;</span><span class="p">,</span> <span class="mi">10010</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ek</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">energy_grids</span><span class="o">.</span><span class="n">CASMO12</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">err</span> <span class="o">=</span> <span class="n">e6</span><span class="o">.</span><span class="n">get_errorr</span><span class="p">(</span><span class="n">err</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">errorr_kws</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">ek</span><span class="o">=</span><span class="n">ek</span><span class="p">))[</span><span class="s1">&#39;errorr33&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">err</span><span class="o">.</span><span class="n">get_xs</span><span class="p">()</span>
+<span class="go">MAT                     125                        </span>
+<span class="go">MT                      1           2           102</span>
+<span class="go">E                                                          </span>
+<span class="go">(1e-05, 0.03]           2.10540e+01 2.04363e+01 6.17622e-01</span>
+<span class="go">(0.03, 0.058]           2.06986e+01 2.04363e+01 2.62307e-01</span>
+<span class="go">(0.058, 0.14]           2.06134e+01 2.04363e+01 1.77108e-01</span>
+<span class="go">(0.14, 0.28]            2.05574e+01 2.04363e+01 1.21068e-01</span>
+<span class="go">(0.28, 0.35]            2.05377e+01 2.04363e+01 1.01449e-01</span>
+<span class="go">(0.35, 0.625]           2.05156e+01 2.04363e+01 7.93598e-02</span>
+<span class="go">(0.625, 4.0]            2.04756e+01 2.04360e+01 3.95521e-02</span>
+<span class="go">(4.0, 48.052]           2.04452e+01 2.04328e+01 1.23376e-02</span>
+<span class="go">(48.052, 5530.0]        2.00727e+01 2.00714e+01 1.31829e-03</span>
+<span class="go">(5530.0, 821000.0]      8.05810e+00 8.05804e+00 6.41679e-05</span>
+<span class="go">(821000.0, 2231000.0]   3.48867e+00 3.48863e+00 3.54246e-05</span>
+<span class="go">(2231000.0, 10000000.0] 1.52409e+00 1.52406e+00 3.44005e-05</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">err</span><span class="o">.</span><span class="n">get_xs</span><span class="p">(</span><span class="n">mt</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+<span class="go">MAT                             125            </span>
+<span class="go">MT                                1           2</span>
+<span class="go">E                                              </span>
+<span class="go">(1e-05, 0.03]           2.10540e+01 2.04363e+01</span>
+<span class="go">(0.03, 0.058]           2.06986e+01 2.04363e+01</span>
+<span class="go">(0.058, 0.14]           2.06134e+01 2.04363e+01</span>
+<span class="go">(0.14, 0.28]            2.05574e+01 2.04363e+01</span>
+<span class="go">(0.28, 0.35]            2.05377e+01 2.04363e+01</span>
+<span class="go">(0.35, 0.625]           2.05156e+01 2.04363e+01</span>
+<span class="go">(0.625, 4.0]            2.04756e+01 2.04360e+01</span>
+<span class="go">(4.0, 48.052]           2.04452e+01 2.04328e+01</span>
+<span class="go">(48.052, 5530.0]        2.00727e+01 2.00714e+01</span>
+<span class="go">(5530.0, 821000.0]      8.05810e+00 8.05804e+00</span>
+<span class="go">(821000.0, 2231000.0]   3.48867e+00 3.48863e+00</span>
+<span class="go">(2231000.0, 10000000.0] 1.52409e+00 1.52406e+00</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">err</span><span class="o">.</span><span class="n">get_xs</span><span class="p">(</span><span class="n">mt</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">MAT                             125</span>
+<span class="go">MT                                1</span>
+<span class="go">E                                  </span>
+<span class="go">(1e-05, 0.03]           2.10540e+01</span>
+<span class="go">(0.03, 0.058]           2.06986e+01</span>
+<span class="go">(0.058, 0.14]           2.06134e+01</span>
+<span class="go">(0.14, 0.28]            2.05574e+01</span>
+<span class="go">(0.28, 0.35]            2.05377e+01</span>
+<span class="go">(0.35, 0.625]           2.05156e+01</span>
+<span class="go">(0.625, 4.0]            2.04756e+01</span>
+<span class="go">(4.0, 48.052]           2.04452e+01</span>
+<span class="go">(48.052, 5530.0]        2.00727e+01</span>
+<span class="go">(5530.0, 821000.0]      8.05810e+00</span>
+<span class="go">(821000.0, 2231000.0]   3.48867e+00</span>
+<span class="go">(2231000.0, 10000000.0] 1.52409e+00</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

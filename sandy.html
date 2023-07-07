@@ -48,13 +48,19 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">sandy package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sandy.DuplicateFilter.filter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter.filter()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sandy.ShutdownHandler.emit"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler.emit()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.core.html">sandy.core package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
 </ul>
 </li>
@@ -65,17 +71,16 @@
 <li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html">sandy.gendf module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.gls.html">sandy.gls module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.spectra.html">sandy.spectra module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html">sandy.tsl module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
@@ -110,109 +115,293 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-package">
-<h1>sandy package<a class="headerlink" href="#sandy-package" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy">
+<span id="sandy-package"></span><h1>sandy package<a class="headerlink" href="#module-sandy" title="Permalink to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.DuplicateFilter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.</span></span><span class="sig-name descname"><span class="pre">DuplicateFilter</span></span><a class="headerlink" href="#sandy.DuplicateFilter" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Define a filter which keeps track of what was logged, and attach it to
+your logger for the duration of a loop.</p>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>filter</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.DuplicateFilter.filter">
+<span class="sig-name descname"><span class="pre">filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.DuplicateFilter.filter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="sandy.Error">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.</span></span><span class="sig-name descname"><span class="pre">Error</span></span><a class="headerlink" href="#sandy.Error" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.ShutdownHandler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.</span></span><span class="sig-name descname"><span class="pre">ShutdownHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.ShutdownHandler" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Handler</span></code></p>
+<p>Trigger exit on errors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>name</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">acquire</span></code>()</p></td>
+<td><p>Acquire the I/O thread lock.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">addFilter</span></code>(filter)</p></td>
+<td><p>Add the specified filter to this handler.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">close</span></code>()</p></td>
+<td><p>Tidy up any resources used by the handler.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">createLock</span></code>()</p></td>
+<td><p>Acquire a thread lock for serializing access to the underlying I/O.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.ShutdownHandler.emit" title="sandy.ShutdownHandler.emit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">emit</span></code></a>(record)</p></td>
+<td><p>Do whatever it takes to actually log the specified logging record.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter</span></code>(record)</p></td>
+<td><p>Determine if a record is loggable by consulting all the filters.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">flush</span></code>()</p></td>
+<td><p>Ensure all logging output has been flushed.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">format</span></code>(record)</p></td>
+<td><p>Format the specified record.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle</span></code>(record)</p></td>
+<td><p>Conditionally emit the specified logging record.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">handleError</span></code>(record)</p></td>
+<td><p>Handle errors which occur during an emit() call.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">release</span></code>()</p></td>
+<td><p>Release the I/O thread lock.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">removeFilter</span></code>(filter)</p></td>
+<td><p>Remove the specified filter from this handler.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">setFormatter</span></code>(fmt)</p></td>
+<td><p>Set the formatter for this handler.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">setLevel</span></code>(level)</p></td>
+<td><p>Set the logging level of this handler.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>get_name</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>set_name</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.ShutdownHandler.emit">
+<span class="sig-name descname"><span class="pre">emit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.ShutdownHandler.emit" title="Permalink to this definition"></a></dt>
+<dd><p>Do whatever it takes to actually log the specified logging record.</p>
+<p>This version is intended to be implemented by subclasses and so
+raises a NotImplementedError.</p>
+</dd></dl>
+
+</dd></dl>
+
 <section id="subpackages">
 <h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this heading"></a></h2>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sandy.aleph2.html#submodules">Submodules</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.fy_output.html">sandy.aleph2.fy_output module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.matrix_output.html">sandy.aleph2.matrix_output module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.output_file.html">sandy.aleph2.output_file module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xs_output.html">sandy.aleph2.xs_output module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xsfile.html">sandy.aleph2.xsfile module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.fy_output.html">sandy.aleph2.fy_output module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.aleph2.fy_output.html#sandy.aleph2.fy_output.read_fy_output"><code class="docutils literal notranslate"><span class="pre">read_fy_output()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.matrix_output.html">sandy.aleph2.matrix_output module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.aleph2.matrix_output.html#sandy.aleph2.matrix_output.read_matrix_output"><code class="docutils literal notranslate"><span class="pre">read_matrix_output()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.output_file.html">sandy.aleph2.output_file module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.aleph2.output_file.html#sandy.aleph2.output_file.OutputFile"><code class="docutils literal notranslate"><span class="pre">OutputFile</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.aleph2.output_file.html#sandy.aleph2.output_file.read_output"><code class="docutils literal notranslate"><span class="pre">read_output()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xs_output.html">sandy.aleph2.xs_output module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.aleph2.xs_output.html#sandy.aleph2.xs_output.read_xs_output"><code class="docutils literal notranslate"><span class="pre">read_xs_output()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.xsfile.html">sandy.aleph2.xsfile module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.aleph2.xsfile.html#sandy.aleph2.xsfile.AlephFile"><code class="docutils literal notranslate"><span class="pre">AlephFile</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sandy.core.html">sandy.core package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sandy.core.html#submodules">Submodules</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="sandy.core.basecov.html">sandy.core.basecov module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html">sandy.core.cov module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.core.ecov.html">sandy.core.ecov module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.core.endf6.html">sandy.core.endf6 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.core.lpc.html">sandy.core.lpc module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.core.lpccov.html">sandy.core.lpccov module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.core.records.html">sandy.core.records module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.core.samples.html">sandy.core.samples module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.core.xs.html">sandy.core.xs module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.core.xscov.html">sandy.core.xscov module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.cov.html">sandy.core.cov module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.CategoryCov"><code class="docutils literal notranslate"><span class="pre">CategoryCov</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.corr2cov"><code class="docutils literal notranslate"><span class="pre">corr2cov()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.random_corr"><code class="docutils literal notranslate"><span class="pre">random_corr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.random_cov"><code class="docutils literal notranslate"><span class="pre">random_cov()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.cov.html#sandy.core.cov.triu_matrix"><code class="docutils literal notranslate"><span class="pre">triu_matrix()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.endf6.html">sandy.core.endf6 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.Endf6"><code class="docutils literal notranslate"><span class="pre">Endf6</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.get_endf6_file"><code class="docutils literal notranslate"><span class="pre">get_endf6_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.endf6.html#sandy.core.endf6.get_tsl_index"><code class="docutils literal notranslate"><span class="pre">get_tsl_index()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.data.html">sandy.data package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="sandy.data.html#subpackages">Subpackages</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.Cm242.html">sandy.data.Cm242 package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.FY.html">sandy.data.FY package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.Fe56.html">sandy.data.Fe56 package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.H1.html">sandy.data.H1 package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.Pu9.html">sandy.data.Pu9 package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.RDD.html">sandy.data.RDD package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.U5.html">sandy.data.U5 package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.U8.html">sandy.data.U8 package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.energy_grids.html">sandy.data.energy_grids package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.spectra.html">sandy.data.spectra package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.lpc.html">sandy.core.lpc module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.lpc.html#outline">Outline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.lpc.html#summary">Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.lpc.html#examples">Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.lpc.html#routines">Routines</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.lpc.html#sandy.core.lpc.Lpc"><code class="docutils literal notranslate"><span class="pre">Lpc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.lpc.html#sandy.core.lpc.lpc_to_tpd"><code class="docutils literal notranslate"><span class="pre">lpc_to_tpd()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.records.html">sandy.core.records module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.line_numbers"><code class="docutils literal notranslate"><span class="pre">line_numbers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.read_cont"><code class="docutils literal notranslate"><span class="pre">read_cont()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.read_list"><code class="docutils literal notranslate"><span class="pre">read_list()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.read_tab1"><code class="docutils literal notranslate"><span class="pre">read_tab1()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.read_tab2"><code class="docutils literal notranslate"><span class="pre">read_tab2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.read_text"><code class="docutils literal notranslate"><span class="pre">read_text()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_cont"><code class="docutils literal notranslate"><span class="pre">write_cont()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_eol"><code class="docutils literal notranslate"><span class="pre">write_eol()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_float"><code class="docutils literal notranslate"><span class="pre">write_float()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_float_list"><code class="docutils literal notranslate"><span class="pre">write_float_list()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_int"><code class="docutils literal notranslate"><span class="pre">write_int()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_integer_list"><code class="docutils literal notranslate"><span class="pre">write_integer_list()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_line"><code class="docutils literal notranslate"><span class="pre">write_line()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_list"><code class="docutils literal notranslate"><span class="pre">write_list()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_tab1"><code class="docutils literal notranslate"><span class="pre">write_tab1()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_tab2"><code class="docutils literal notranslate"><span class="pre">write_tab2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.records.html#sandy.core.records.write_text"><code class="docutils literal notranslate"><span class="pre">write_text()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="sandy.formats.html#submodules">Submodules</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.endf6.html">sandy.formats.endf6 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.errorr.html">sandy.formats.errorr module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.groupr.html">sandy.formats.groupr module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.mf1.html">sandy.formats.mf1 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.mf2.html">sandy.formats.mf2 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.mf3.html">sandy.formats.mf3 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.mf33.html">sandy.formats.mf33 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.mf34.html">sandy.formats.mf34 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.mf35.html">sandy.formats.mf35 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.mf4.html">sandy.formats.mf4 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.mf5.html">sandy.formats.mf5 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.mf8.html">sandy.formats.mf8 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.rdd_fy.html">sandy.formats.rdd_fy module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.records.html">sandy.formats.records module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.utils.html">sandy.formats.utils module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.samples.html">sandy.core.samples module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.samples.html#sandy.core.samples.Samples"><code class="docutils literal notranslate"><span class="pre">Samples</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.core.xs.html">sandy.core.xs module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.core.xs.html#sandy.core.xs.Xs"><code class="docutils literal notranslate"><span class="pre">Xs</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sandy.mcnp.html#submodules">Submodules</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.mctal.html">sandy.mcnp.mctal module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.meshtal.html">sandy.mcnp.meshtal module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.output_file.html">sandy.mcnp.output_file module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.mctal.html">sandy.mcnp.mctal module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.mcnp.mctal.html#sandy.mcnp.mctal.MctalTally"><code class="docutils literal notranslate"><span class="pre">MctalTally</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.meshtal.html">sandy.mcnp.meshtal module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.mcnp.meshtal.html#sandy.mcnp.meshtal.MshtTally"><code class="docutils literal notranslate"><span class="pre">MshtTally</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="sandy.replace.html#submodules">Submodules</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.replace.html">sandy.replace.replace module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.output_file.html">sandy.mcnp.output_file module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.mcnp.output_file.html#sandy.mcnp.output_file.get_keff"><code class="docutils literal notranslate"><span class="pre">get_keff()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.mcnp.output_file.html#sandy.mcnp.output_file.get_table126"><code class="docutils literal notranslate"><span class="pre">get_table126()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.mcnp.output_file.html#sandy.mcnp.output_file.get_table140"><code class="docutils literal notranslate"><span class="pre">get_table140()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sandy.sections.html#submodules">Submodules</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf1.html">sandy.sections.mf1 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf10.html">sandy.sections.mf10 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf2.html">sandy.sections.mf2 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf3.html">sandy.sections.mf3 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf31.html">sandy.sections.mf31 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf32.html">sandy.sections.mf32 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf33.html">sandy.sections.mf33 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf34.html">sandy.sections.mf34 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf35.html">sandy.sections.mf35 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf4.html">sandy.sections.mf4 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf5.html">sandy.sections.mf5 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf6.html">sandy.sections.mf6 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf7.html">sandy.sections.mf7 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf8.html">sandy.sections.mf8 module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf9.html">sandy.sections.mf9 module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf1.html">sandy.sections.mf1 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf1.html#sandy.sections.mf1.read_mf1"><code class="docutils literal notranslate"><span class="pre">read_mf1()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf1.html#sandy.sections.mf1.write_mf1"><code class="docutils literal notranslate"><span class="pre">write_mf1()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf10.html">sandy.sections.mf10 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf10.html#sandy.sections.mf10.read_mf10"><code class="docutils literal notranslate"><span class="pre">read_mf10()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf10.html#sandy.sections.mf10.write_mf10"><code class="docutils literal notranslate"><span class="pre">write_mf10()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf2.html">sandy.sections.mf2 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf2.html#sandy.sections.mf2.read_mf2"><code class="docutils literal notranslate"><span class="pre">read_mf2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf2.html#sandy.sections.mf2.write_mf2"><code class="docutils literal notranslate"><span class="pre">write_mf2()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf3.html">sandy.sections.mf3 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf3.html#sandy.sections.mf3.read_mf3"><code class="docutils literal notranslate"><span class="pre">read_mf3()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf3.html#sandy.sections.mf3.write_mf3"><code class="docutils literal notranslate"><span class="pre">write_mf3()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf31.html">sandy.sections.mf31 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf31.html#sandy.sections.mf31.read_mf31"><code class="docutils literal notranslate"><span class="pre">read_mf31()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf32.html">sandy.sections.mf32 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf32.html#sandy.sections.mf32.read_mf32"><code class="docutils literal notranslate"><span class="pre">read_mf32()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf33.html">sandy.sections.mf33 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf33.html#sandy.sections.mf33.read_mf33"><code class="docutils literal notranslate"><span class="pre">read_mf33()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf34.html">sandy.sections.mf34 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf34.html#sandy.sections.mf34.read_mf34"><code class="docutils literal notranslate"><span class="pre">read_mf34()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf35.html">sandy.sections.mf35 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf35.html#sandy.sections.mf35.read_mf35"><code class="docutils literal notranslate"><span class="pre">read_mf35()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf4.html">sandy.sections.mf4 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf4.html#sandy.sections.mf4.read_mf4"><code class="docutils literal notranslate"><span class="pre">read_mf4()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf4.html#sandy.sections.mf4.write_mf4"><code class="docutils literal notranslate"><span class="pre">write_mf4()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf5.html">sandy.sections.mf5 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf5.html#sandy.sections.mf5.read_mf5"><code class="docutils literal notranslate"><span class="pre">read_mf5()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf6.html">sandy.sections.mf6 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf6.html#sandy.sections.mf6.read_mf6"><code class="docutils literal notranslate"><span class="pre">read_mf6()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf6.html#sandy.sections.mf6.write_mf6"><code class="docutils literal notranslate"><span class="pre">write_mf6()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf7.html">sandy.sections.mf7 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf7.html#sandy.sections.mf7.read_mf7"><code class="docutils literal notranslate"><span class="pre">read_mf7()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf7.html#sandy.sections.mf7.write_mf7"><code class="docutils literal notranslate"><span class="pre">write_mf7()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf8.html">sandy.sections.mf8 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf8.html#sandy.sections.mf8.read_mf8"><code class="docutils literal notranslate"><span class="pre">read_mf8()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf8.html#sandy.sections.mf8.write_mf8"><code class="docutils literal notranslate"><span class="pre">write_mf8()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.sections.mf9.html">sandy.sections.mf9 module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf9.html#sandy.sections.mf9.read_mf9"><code class="docutils literal notranslate"><span class="pre">read_mf9()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sandy.sections.mf9.html#sandy.sections.mf9.write_mf9"><code class="docutils literal notranslate"><span class="pre">write_mf9()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -225,26 +414,179 @@
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.decay.html">sandy.decay module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.decay.html">sandy.decay module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.decay.html#sandy.decay.BranchingRatio"><code class="docutils literal notranslate"><span class="pre">BranchingRatio</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.BranchingRatio.normalize"><code class="docutils literal notranslate"><span class="pre">BranchingRatio.normalize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.BranchingRatio.to_decaydata"><code class="docutils literal notranslate"><span class="pre">BranchingRatio.to_decaydata()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData"><code class="docutils literal notranslate"><span class="pre">DecayData</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData.data"><code class="docutils literal notranslate"><span class="pre">DecayData.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData.from_endf6"><code class="docutils literal notranslate"><span class="pre">DecayData.from_endf6()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData.get_bmatrix"><code class="docutils literal notranslate"><span class="pre">DecayData.get_bmatrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData.get_branching_ratio"><code class="docutils literal notranslate"><span class="pre">DecayData.get_branching_ratio()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData.get_chain_yield_sensitivity"><code class="docutils literal notranslate"><span class="pre">DecayData.get_chain_yield_sensitivity()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData.get_decay_chains"><code class="docutils literal notranslate"><span class="pre">DecayData.get_decay_chains()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData.get_decay_energy"><code class="docutils literal notranslate"><span class="pre">DecayData.get_decay_energy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData.get_half_life"><code class="docutils literal notranslate"><span class="pre">DecayData.get_half_life()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData.get_nuclides"><code class="docutils literal notranslate"><span class="pre">DecayData.get_nuclides()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData.get_pn"><code class="docutils literal notranslate"><span class="pre">DecayData.get_pn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData.get_qmatrix"><code class="docutils literal notranslate"><span class="pre">DecayData.get_qmatrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData.get_transition_matrix"><code class="docutils literal notranslate"><span class="pre">DecayData.get_transition_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayData.to_endf6"><code class="docutils literal notranslate"><span class="pre">DecayData.to_endf6()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayEnergy"><code class="docutils literal notranslate"><span class="pre">DecayEnergy</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.DecayEnergy.to_decaydata"><code class="docutils literal notranslate"><span class="pre">DecayEnergy.to_decaydata()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.decay.html#sandy.decay.HalfLife"><code class="docutils literal notranslate"><span class="pre">HalfLife</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.decay.html#sandy.decay.HalfLife.to_decaydata"><code class="docutils literal notranslate"><span class="pre">HalfLife.to_decaydata()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="sandy.energy_grids.html">sandy.energy_grids module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.gls.html">sandy.gls module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.errorr.html#sandy.errorr.Errorr"><code class="docutils literal notranslate"><span class="pre">Errorr</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html#sandy.errorr.Errorr.get_cov"><code class="docutils literal notranslate"><span class="pre">Errorr.get_cov()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html#sandy.errorr.Errorr.get_energy_grid"><code class="docutils literal notranslate"><span class="pre">Errorr.get_energy_grid()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html#sandy.errorr.Errorr.get_xs"><code class="docutils literal notranslate"><span class="pre">Errorr.get_xs()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.functions.html#sandy.functions.contains"><code class="docutils literal notranslate"><span class="pre">contains()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.functions.html#sandy.functions.div0"><code class="docutils literal notranslate"><span class="pre">div0()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.functions.html#sandy.functions.find_nearest"><code class="docutils literal notranslate"><span class="pre">find_nearest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.functions.html#sandy.functions.gls"><code class="docutils literal notranslate"><span class="pre">gls()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.functions.html#sandy.functions.isnum"><code class="docutils literal notranslate"><span class="pre">isnum()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.functions.html#sandy.functions.log10"><code class="docutils literal notranslate"><span class="pre">log10()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.functions.html#sandy.functions.printProgress"><code class="docutils literal notranslate"><span class="pre">printProgress()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.functions.html#sandy.functions.split_by_n"><code class="docutils literal notranslate"><span class="pre">split_by_n()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.functions.html#sandy.functions.uniform_loggrid"><code class="docutils literal notranslate"><span class="pre">uniform_loggrid()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.functions.html#sandy.functions.union_grid"><code class="docutils literal notranslate"><span class="pre">union_grid()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.functions.html#sandy.functions.zero_interp"><code class="docutils literal notranslate"><span class="pre">zero_interp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.functions.html#sandy.functions.zero_interp_1d"><code class="docutils literal notranslate"><span class="pre">zero_interp_1d()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.functions.html#sandy.functions.zero_interp_2d"><code class="docutils literal notranslate"><span class="pre">zero_interp_2d()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy"><code class="docutils literal notranslate"><span class="pre">Fy</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy.apply_bmatrix"><code class="docutils literal notranslate"><span class="pre">Fy.apply_bmatrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy.apply_qmatrix"><code class="docutils literal notranslate"><span class="pre">Fy.apply_qmatrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy.custom_perturbation"><code class="docutils literal notranslate"><span class="pre">Fy.custom_perturbation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy.data"><code class="docutils literal notranslate"><span class="pre">Fy.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy.energy_table"><code class="docutils literal notranslate"><span class="pre">Fy.energy_table()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy.filter_by"><code class="docutils literal notranslate"><span class="pre">Fy.filter_by()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy.from_endf6"><code class="docutils literal notranslate"><span class="pre">Fy.from_endf6()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy.get_chain_yield"><code class="docutils literal notranslate"><span class="pre">Fy.get_chain_yield()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy.get_mass_yield"><code class="docutils literal notranslate"><span class="pre">Fy.get_mass_yield()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy.get_mass_yield_sensitivity"><code class="docutils literal notranslate"><span class="pre">Fy.get_mass_yield_sensitivity()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy.gls_update"><code class="docutils literal notranslate"><span class="pre">Fy.gls_update()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy.ishikawa_factor"><code class="docutils literal notranslate"><span class="pre">Fy.ishikawa_factor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.fy.html#sandy.fy.Fy.to_endf6"><code class="docutils literal notranslate"><span class="pre">Fy.to_endf6()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.gendf.html">sandy.gendf module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.gendf.html#sandy.gendf.Gendf"><code class="docutils literal notranslate"><span class="pre">Gendf</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html#sandy.gendf.Gendf.get_flux"><code class="docutils literal notranslate"><span class="pre">Gendf.get_flux()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html#sandy.gendf.Gendf.get_g_energy_grid"><code class="docutils literal notranslate"><span class="pre">Gendf.get_g_energy_grid()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html#sandy.gendf.Gendf.get_n_energy_grid"><code class="docutils literal notranslate"><span class="pre">Gendf.get_n_energy_grid()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html#sandy.gendf.Gendf.get_xs"><code class="docutils literal notranslate"><span class="pre">Gendf.get_xs()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.gls.html">sandy.gls module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.gls.html#sandy.gls.chi_diag"><code class="docutils literal notranslate"><span class="pre">chi_diag()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.gls.html#sandy.gls.chi_individual"><code class="docutils literal notranslate"><span class="pre">chi_individual()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.gls.html#sandy.gls.chi_square"><code class="docutils literal notranslate"><span class="pre">chi_square()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.gls.html#sandy.gls.gls_update"><code class="docutils literal notranslate"><span class="pre">gls_update()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.gls.html#sandy.gls.ishikawa_factor"><code class="docutils literal notranslate"><span class="pre">ishikawa_factor()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.njoy.html#sandy.njoy.get_njoy"><code class="docutils literal notranslate"><span class="pre">get_njoy()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.njoy.html#sandy.njoy.process_neutron"><code class="docutils literal notranslate"><span class="pre">process_neutron()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.njoy.html#sandy.njoy.process_proton"><code class="docutils literal notranslate"><span class="pre">process_proton()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.pert.html#sandy.pert.Pert"><code class="docutils literal notranslate"><span class="pre">Pert</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pert.html#sandy.pert.Pert.data"><code class="docutils literal notranslate"><span class="pre">Pert.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pert.html#sandy.pert.Pert.from_bin"><code class="docutils literal notranslate"><span class="pre">Pert.from_bin()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pert.html#sandy.pert.Pert.from_file"><code class="docutils literal notranslate"><span class="pre">Pert.from_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pert.html#sandy.pert.Pert.left"><code class="docutils literal notranslate"><span class="pre">Pert.left</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pert.html#sandy.pert.Pert.mid"><code class="docutils literal notranslate"><span class="pre">Pert.mid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pert.html#sandy.pert.Pert.recenter"><code class="docutils literal notranslate"><span class="pre">Pert.recenter()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pert.html#sandy.pert.Pert.reshape"><code class="docutils literal notranslate"><span class="pre">Pert.reshape()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pert.html#sandy.pert.Pert.right"><code class="docutils literal notranslate"><span class="pre">Pert.right</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pert.html#sandy.pert.Pert.truncate"><code class="docutils literal notranslate"><span class="pre">Pert.truncate()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.pfns.html#sandy.pfns.Edistr"><code class="docutils literal notranslate"><span class="pre">Edistr</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html#sandy.pfns.Edistr.add_energy_point"><code class="docutils literal notranslate"><span class="pre">Edistr.add_energy_point()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html#sandy.pfns.Edistr.add_energy_points"><code class="docutils literal notranslate"><span class="pre">Edistr.add_energy_points()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html#sandy.pfns.Edistr.custom_perturbation"><code class="docutils literal notranslate"><span class="pre">Edistr.custom_perturbation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html#sandy.pfns.Edistr.data"><code class="docutils literal notranslate"><span class="pre">Edistr.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html#sandy.pfns.Edistr.filter_by"><code class="docutils literal notranslate"><span class="pre">Edistr.filter_by()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html#sandy.pfns.Edistr.from_endf6"><code class="docutils literal notranslate"><span class="pre">Edistr.from_endf6()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html#sandy.pfns.Edistr.get_integrals"><code class="docutils literal notranslate"><span class="pre">Edistr.get_integrals()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html#sandy.pfns.Edistr.get_table"><code class="docutils literal notranslate"><span class="pre">Edistr.get_table()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html#sandy.pfns.Edistr.normalize"><code class="docutils literal notranslate"><span class="pre">Edistr.normalize()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.settings.html#sandy.settings.SandyError"><code class="docutils literal notranslate"><span class="pre">SandyError</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.shared.html#sandy.shared.pad_from_beginning"><code class="docutils literal notranslate"><span class="pre">pad_from_beginning()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.shared.html#sandy.shared.pad_from_beginning_fast"><code class="docutils literal notranslate"><span class="pre">pad_from_beginning_fast()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.shared.html#sandy.shared.uniform_loggrid"><code class="docutils literal notranslate"><span class="pre">uniform_loggrid()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.spectra.html">sandy.spectra module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.spectra.html#sandy.spectra.get_custom_spectrum"><code class="docutils literal notranslate"><span class="pre">get_custom_spectrum()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.tsl.html">sandy.tsl module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.zam.html">sandy.zam module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.tsl.html">sandy.tsl module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.tsl.html#sandy.tsl.Tsl"><code class="docutils literal notranslate"><span class="pre">Tsl</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html#sandy.tsl.Tsl.data"><code class="docutils literal notranslate"><span class="pre">Tsl.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html#sandy.tsl.Tsl.from_endf6"><code class="docutils literal notranslate"><span class="pre">Tsl.from_endf6()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html#sandy.tsl.Tsl.get_S"><code class="docutils literal notranslate"><span class="pre">Tsl.get_S()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html#sandy.tsl.Tsl.to_endf6"><code class="docutils literal notranslate"><span class="pre">Tsl.to_endf6()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.utils.html#sandy.utils.get_seed"><code class="docutils literal notranslate"><span class="pre">get_seed()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.utils.html#sandy.utils.grouper"><code class="docutils literal notranslate"><span class="pre">grouper()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.utils.html#sandy.utils.pad_from_beginning"><code class="docutils literal notranslate"><span class="pre">pad_from_beginning()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.utils.html#sandy.utils.pad_from_beginning_fast"><code class="docutils literal notranslate"><span class="pre">pad_from_beginning_fast()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.utils.html#sandy.utils.uniform_loggrid"><code class="docutils literal notranslate"><span class="pre">uniform_loggrid()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.zam.html">sandy.zam module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.zam.html#sandy.zam.abundance_per_element"><code class="docutils literal notranslate"><span class="pre">abundance_per_element()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.zam.html#sandy.zam.expand_za"><code class="docutils literal notranslate"><span class="pre">expand_za()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.zam.html#sandy.zam.za2latex"><code class="docutils literal notranslate"><span class="pre">za2latex()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.zam.html#sandy.zam.zam2latex"><code class="docutils literal notranslate"><span class="pre">zam2latex()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </div>
 </section>

@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="sandy.mcnp.mctal module" href="sandy.mcnp.mctal.html" />
-    <link rel="prev" title="sandy.formats.utils module" href="sandy.formats.utils.html" /> 
+    <link rel="prev" title="sandy.core.xs module" href="sandy.core.xs.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -48,16 +48,16 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.core.html">sandy.core package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.mcnp package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a></li>
 </ul>
 </li>
@@ -91,15 +91,45 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-mcnp-package">
-<h1>sandy.mcnp package<a class="headerlink" href="#sandy-mcnp-package" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.mcnp">
+<span id="sandy-mcnp-package"></span><h1>sandy.mcnp package<a class="headerlink" href="#module-sandy.mcnp" title="Permalink to this heading"></a></h1>
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="sandy.mcnp.mctal.html">sandy.mcnp.mctal module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.mcnp.meshtal.html">sandy.mcnp.meshtal module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sandy.mcnp.output_file.html">sandy.mcnp.output_file module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.mcnp.mctal.html">sandy.mcnp.mctal module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.mcnp.mctal.html#sandy.mcnp.mctal.MctalTally"><code class="docutils literal notranslate"><span class="pre">MctalTally</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.mctal.html#sandy.mcnp.mctal.MctalTally.cell_bins"><code class="docutils literal notranslate"><span class="pre">MctalTally.cell_bins</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.mctal.html#sandy.mcnp.mctal.MctalTally.cosine_bins"><code class="docutils literal notranslate"><span class="pre">MctalTally.cosine_bins</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.mctal.html#sandy.mcnp.mctal.MctalTally.detector_bins"><code class="docutils literal notranslate"><span class="pre">MctalTally.detector_bins</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.mctal.html#sandy.mcnp.mctal.MctalTally.energy_bins"><code class="docutils literal notranslate"><span class="pre">MctalTally.energy_bins</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.mctal.html#sandy.mcnp.mctal.MctalTally.from_file"><code class="docutils literal notranslate"><span class="pre">MctalTally.from_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.mctal.html#sandy.mcnp.mctal.MctalTally.multiplier_bins"><code class="docutils literal notranslate"><span class="pre">MctalTally.multiplier_bins</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.mctal.html#sandy.mcnp.mctal.MctalTally.segment_bins"><code class="docutils literal notranslate"><span class="pre">MctalTally.segment_bins</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.mctal.html#sandy.mcnp.mctal.MctalTally.time_bins"><code class="docutils literal notranslate"><span class="pre">MctalTally.time_bins</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.mctal.html#sandy.mcnp.mctal.MctalTally.user_bins"><code class="docutils literal notranslate"><span class="pre">MctalTally.user_bins</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.mctal.html#sandy.mcnp.mctal.MctalTally.what_bins"><code class="docutils literal notranslate"><span class="pre">MctalTally.what_bins()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.mcnp.meshtal.html">sandy.mcnp.meshtal module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.mcnp.meshtal.html#sandy.mcnp.meshtal.MshtTally"><code class="docutils literal notranslate"><span class="pre">MshtTally</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.meshtal.html#sandy.mcnp.meshtal.MshtTally.filter_by"><code class="docutils literal notranslate"><span class="pre">MshtTally.filter_by()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.meshtal.html#sandy.mcnp.meshtal.MshtTally.from_file"><code class="docutils literal notranslate"><span class="pre">MshtTally.from_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.meshtal.html#sandy.mcnp.meshtal.MshtTally.get_mesh"><code class="docutils literal notranslate"><span class="pre">MshtTally.get_mesh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.meshtal.html#sandy.mcnp.meshtal.MshtTally.pivot_table"><code class="docutils literal notranslate"><span class="pre">MshtTally.pivot_table()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.meshtal.html#sandy.mcnp.meshtal.MshtTally.plot"><code class="docutils literal notranslate"><span class="pre">MshtTally.plot()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sandy.mcnp.output_file.html">sandy.mcnp.output_file module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sandy.mcnp.output_file.html#sandy.mcnp.output_file.get_keff"><code class="docutils literal notranslate"><span class="pre">get_keff()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.mcnp.output_file.html#sandy.mcnp.output_file.get_table126"><code class="docutils literal notranslate"><span class="pre">get_table126()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.mcnp.output_file.html#sandy.mcnp.output_file.get_table140"><code class="docutils literal notranslate"><span class="pre">get_table140()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </div>
 </section>
@@ -109,7 +139,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="sandy.formats.utils.html" class="btn btn-neutral float-left" title="sandy.formats.utils module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.core.xs.html" class="btn btn-neutral float-left" title="sandy.core.xs module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="sandy.mcnp.mctal.html" class="btn btn-neutral float-right" title="sandy.mcnp.mctal module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

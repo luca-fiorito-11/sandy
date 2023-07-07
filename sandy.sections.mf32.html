@@ -48,13 +48,13 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.aleph2.html">sandy.aleph2 package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.core.html">sandy.core package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.data.html">sandy.data package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.formats.html">sandy.formats package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.mcnp.html">sandy.mcnp package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.replace.html">sandy.replace package</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="sandy.sections.html">sandy.sections package</a><ul class="current">
 <li class="toctree-l4 current"><a class="reference internal" href="sandy.sections.html#submodules">Submodules</a></li>
 </ul>
@@ -92,8 +92,110 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-sections-mf32-module">
-<h1>sandy.sections.mf32 module<a class="headerlink" href="#sandy-sections-mf32-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.sections.mf32">
+<span id="sandy-sections-mf32-module"></span><h1>sandy.sections.mf32 module<a class="headerlink" href="#module-sandy.sections.mf32" title="Permalink to this heading"></a></h1>
+<p>This module contains only two public functions:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>read_mf32</cite></p></li>
+</ul>
+</div></blockquote>
+<p>Function <cite>read</cite> reads a MF32/MT section from a string and produces a content
+object with a dictionary-like structure.
+The content object can be accessed using most of the keywords specified in
+the ENDF6 manual for this specific MF section.</p>
+<p>Function <cite>write_mf32</cite> writes a content object for a MF32/MT section into a
+string.
+MAT, MF, MT and line numbers are also added (each line ends with a `
+<a href="#id1"><span class="problematic" id="id2">`</span></a>).</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.sections.mf32.read_mf32">
+<span class="sig-prename descclassname"><span class="pre">sandy.sections.mf32.</span></span><span class="sig-name descname"><span class="pre">read_mf32</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mat</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.sections.mf32.read_mf32" title="Permalink to this definition"></a></dt>
+<dd><p>Write MT section for MF32</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>tape</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p>endf6 object containing requested section</p>
+</dd>
+<dt><strong>mat</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT number</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>dict</cite></dt><dd><p>Content of the ENDF-6 tape structured as nested <cite>dict</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Covariances of resonance parameters of the Curium 2245
+LCOMP = 0
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 962450)
+&gt;&gt;&gt; dic = sandy.read_mf32(tape, 9640)
+&gt;&gt;&gt; print( dic[“NIS”][96245][‘NER’][(1e-05, 100.0)][“L”][0][‘COVAR_PAR’][0:2])
+[{‘ER’: -0.1, ‘AJ’: 3.0, ‘GT’: 0.230946, ‘GN’: 4.61e-05, ‘GG’: 0.0359, ‘GF’: 0.195,</p>
+<blockquote>
+<div><blockquote>
+<div><p>‘DE²’: 1e-08, ‘DN²’: 2.12521e-11, ‘DNDG’: 0.0, ‘DG²’: 5.15524e-05, ‘DNDF’: 0.0, ‘DGDF’: 0.0, 
+‘DF²’: 0.00038025, ‘DJDN’: 0.0, ‘DJDG’: 0.0, ‘DJDF’: 0.0, ‘DJ²’: 0.0},</p>
+</div></blockquote>
+<dl class="simple">
+<dt>{‘ER’: 0.85, ‘AJ’: 4.0, ‘GT’: 0.84409, ‘GN’: 9e-05, ‘GG’: 0.044, ‘GF’: 0.8,</dt><dd><p>‘DE²’: 0.0009, ‘DN²’: 6.30623e-11, ‘DNDG’: 0.0, ‘DG²’: 7.744e-05, ‘DNDF’: 0.0, ‘DGDF’: 0.0,
+‘DF²’: 0.0025, ‘DJDN’: 0.0, ‘DJDG’: 0.0, ‘DJDF’: 0.0, ‘DJ²’: 0.0}]</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>Covariances of resonance parameters of the Americium 241
+LCOMP = 1 LRF = 2
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 952410)
+&gt;&gt;&gt; dic = sandy.read_mf32(tape, 9543)
+&gt;&gt;&gt; print(dic[“NIS”][95241][‘NER’][(1e-05, 150.0)][“COVAR_PAR”][0][10:50])
+[ 2.494710e-10  7.847580e-11 -9.012000e-10 -9.512310e-12 -2.029530e-10</p>
+<blockquote>
+<div><blockquote>
+<div><p>1.497910e-11  7.083150e-09 -1.567680e-11  1.527096e-09  7.121410e-11
+6.664252e-09 -1.968360e-11 -2.291857e-09  3.975690e-11  9.398297e-09</p>
+</div></blockquote>
+<p>-2.101620e-11 -4.383682e-09 -6.580010e-11  1.123283e-08 -2.688670e-11
+-2.484173e-09 -3.560260e-11 -3.078174e-08 -6.652760e-11 -1.722510e-08</p>
+<blockquote>
+<div><p>5.561780e-11 -4.403603e-08 -3.319870e-11 -1.722510e-08  1.024590e-10
+4.308922e-09  4.159470e-10 -1.722510e-08 -1.178230e-10 -8.631673e-08</p>
+</div></blockquote>
+<p>-1.642100e-11 -1.722510e-08  7.081580e-11 -9.513253e-08 -3.665940e-12]</p>
+</div></blockquote>
+<p>Covariances of resonance parameters of the Caesium 137
+LCOMP = 2 LRF = 2
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 551370)
+&gt;&gt;&gt; dic = sandy.read_mf32(tape, 5537)
+&gt;&gt;&gt; dic[‘NIS’][55137][“NER”][(1e-05, 56666.38)][‘RES_PAR’][20::30]
+[{‘ER’: -1342.1, ‘AJ’: 4.0, ‘GT’: 10.75884, ‘GN’: 10.09489, ‘GG’: 0.66395, ‘GF’: 0.0,</p>
+<blockquote>
+<div><blockquote>
+<div><p>‘DER’: 0.0005, ‘DGN’: 0.5, ‘DGG’: 0.1, ‘DGF’: 0.0},</p>
+</div></blockquote>
+<dl class="simple">
+<dt>{‘ER’: 20098.0, ‘AJ’: 4.0, ‘GT’: 36.19939, ‘GN’: 36.163, ‘GG’: 0.036395, ‘GF’: 0.0, </dt><dd><p>‘DER’: 10.049, ‘DGN’: 0.00036163, ‘DGG’: 3.6395e-07, ‘DGF’: 0.0},</p>
+</dd>
+<dt>{‘ER’: 36830.02, ‘AJ’: 4.0, ‘GT’: 3.388613, ‘GN’: 3.298613, ‘GG’: 0.09000001, ‘GF’: 0.0,</dt><dd><p>‘DER’: 36.83, ‘DGN’: 0.0659723, ‘DGG’: 0.0018, ‘DGF’: 0.0},</p>
+</dd>
+<dt>{‘ER’: 51650.52, ‘AJ’: 3.0, ‘GT’: 17.43718, ‘GN’: 17.34718, ‘GG’: 0.09000001, ‘GF’: 0.0,</dt><dd><p>‘DER’: 51.6505, ‘DGN’: 0.346944, ‘DGG’: 0.0018, ‘DGF’: 0.0}]</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>Covariances of resonance parameters of the Caesium 137
+LCOMP = 2 LRF = 3
+&gt;&gt;&gt; tape = sandy.get_endf6_file(“jeff_33”, “xs”, 902320)
+&gt;&gt;&gt; dic = sandy.read_mf32(tape, 9040)
+&gt;&gt;&gt; dic[‘NIS’][90232][“NER”][(1e-05, 4000.0)][“INTG”][350] 
+{‘II’: 795,</p>
+<blockquote>
+<div><p>‘JJ’: 793,
+‘KIJ’: array([44, 69,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0])}</p>
+</div></blockquote>
+</dd></dl>
+
 </section>
 
 

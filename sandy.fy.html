@@ -19,7 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="sandy.gls module" href="sandy.gls.html" />
+    <link rel="next" title="sandy.gendf module" href="sandy.gendf.html" />
     <link rel="prev" title="sandy.functions module" href="sandy.functions.html" /> 
 </head>
 
@@ -48,6 +48,9 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
@@ -55,18 +58,20 @@
 <li class="toctree-l3"><a class="reference internal" href="sandy.energy_grids.html">sandy.energy_grids module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.fy module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.fy module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.fy.Fy"><code class="docutils literal notranslate"><span class="pre">Fy</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html">sandy.gendf module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.gls.html">sandy.gls module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.spectra.html">sandy.spectra module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html">sandy.tsl module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
@@ -102,8 +107,718 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-fy-module">
-<h1>sandy.fy module<a class="headerlink" href="#sandy-fy-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.fy">
+<span id="sandy-fy-module"></span><h1>sandy.fy module<a class="headerlink" href="#module-sandy.fy" title="Permalink to this heading"></a></h1>
+<p>This module contains all classes and functions specific for processing fission
+yield data.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="sandy.fy.Fy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sandy.fy.</span></span><span class="sig-name descname"><span class="pre">Fy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Object for fission yield data.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><a class="reference internal" href="#sandy.fy.Fy.data" title="sandy.fy.Fy.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a><span class="classifier"><cite>pandas.DataFrame</cite></span></dt><dd><p>Dataframe of fission yield data with the following columns:</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.fy.Fy.custom_perturbation" title="sandy.fy.Fy.custom_perturbation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">custom_perturbation</span></code></a>(zam, mt, e, pert)</p></td>
+<td><p>Apply a custom perturbation to a given fission yield.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.fy.Fy.energy_table" title="sandy.fy.Fy.energy_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">energy_table</span></code></a>(key[, by, kind])</p></td>
+<td><p>Pivot dataframe of tabulated fission yields as a function of energy.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_expand_zam</span></code>()</p></td>
+<td><p>Produce dataframe with three extra columns containing the <cite>Z</cite>, <cite>A</cite> and <cite>M</cite> numbers of the <strong>daughter</strong> nuclide (fission product).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_expand_zap</span></code>()</p></td>
+<td><p>Produce dataframe with three extra columns containing the <cite>Z</cite>, <cite>A</cite> and <cite>M</cite> numbers of the <strong>parent</strong> (fissioning) nuclide.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.fy.Fy.filter_by" title="sandy.fy.Fy.filter_by"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_by</span></code></a>(key, value)</p></td>
+<td><p>Apply condition to source data and return filtered results.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#sandy.fy.Fy.from_endf6" title="sandy.fy.Fy.from_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_endf6</span></code></a>(endf6[, verbose])</p></td>
+<td><p>Extract fission yields from <cite>Endf6</cite> instance.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sandy.fy.Fy.to_endf6" title="sandy.fy.Fy.to_endf6"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_endf6</span></code></a>(endf6)</p></td>
+<td><p>Update fission yields in <cite>Endf6</cite> instance with those available in a <cite>Fy</cite> instance.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>to_hdf5</strong></p></td>
+<td><p>Write fission yield data to hdf5 file</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.apply_bmatrix">
+<span class="sig-name descname"><span class="pre">apply_bmatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decay_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_fy_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.apply_bmatrix" title="Permalink to this definition"></a></dt>
+<dd><p>Perform IFY = (1-B) * CFY equation to calculate IFY in a given zam
+for a given energy and apply into the original data.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>zam</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>ZAM number of the material to which calculations are to be
+applied.</p>
+</dd>
+<dt><strong>energy</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Energy to which calculations are to be applied.</p>
+</dd>
+<dt><strong>decay_data</strong><span class="classifier"><cite>sandy.DecayData</cite></span></dt><dd><p>Radioactive nuclide data for several isotopes.</p>
+</dd>
+<dt><strong>keep_fy_index: `bool`, optional, default is `False`</strong></dt><dd><p>Option that allows you to output only the CFY results that were
+part of the original <cite>sandy.Fy</cite> object. The default is False.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Fy</cite></dt><dd><p>Fission yield instance with IFY calculated for a given combination
+of ZAM/e/decay_data.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method applies a perturbation to certain IFYs,</p>
+</div>
+<p>since the equation IFY = (1-B) * CFY is not satisfied for all nuclei.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">zam</span> <span class="o">=</span> <span class="p">[</span><span class="mi">591480</span><span class="p">,</span> <span class="mi">591481</span><span class="p">,</span> <span class="mi">601480</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_minimal</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="n">zam</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_fytest</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">decay_minimal</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy</span> <span class="o">=</span> <span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest_2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy_pert</span> <span class="o">=</span> <span class="n">npfy</span><span class="o">.</span><span class="n">apply_bmatrix</span><span class="p">(</span><span class="mi">942390</span><span class="p">,</span> <span class="mf">5.00000e+05</span><span class="p">,</span> <span class="n">decay_fytest</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy_pert</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;MT==454&quot;</span><span class="p">)</span>
+<span class="go">    MAT   MT     ZAM     ZAP           E           FY         DFY</span>
+<span class="go">3  9437  454  942390  591480 5.00000e+05  8.00000e-01 4.00000e-02</span>
+<span class="go">4  9437  454  942390  591481 5.00000e+05  1.00000e+00 5.00000e-02</span>
+<span class="go">5  9437  454  942390  601480 5.00000e+05 -1.60000e+00 6.48074e-02</span>
+<span class="go">6  9437  454  942390  621480 5.00000e+05 -2.00000e-01 1.00000e-02</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">zam</span> <span class="o">=</span> <span class="p">[</span><span class="mi">591480</span><span class="p">,</span> <span class="mi">591481</span><span class="p">,</span> <span class="mi">601480</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_minimal</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="n">zam</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_fytest</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">decay_minimal</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy</span> <span class="o">=</span> <span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest_2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy_pert</span> <span class="o">=</span> <span class="n">npfy</span><span class="o">.</span><span class="n">apply_bmatrix</span><span class="p">(</span><span class="mi">942390</span><span class="p">,</span> <span class="mf">5.00000e+05</span><span class="p">,</span> <span class="n">decay_fytest</span><span class="p">,</span> <span class="n">keep_fy_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy_pert</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;MT==454&quot;</span><span class="p">)</span>
+<span class="go">    MAT   MT     ZAM     ZAP           E           FY         DFY</span>
+<span class="go">3  9437  454  942390  591480 5.00000e+05  8.00000e-01 4.00000e-02</span>
+<span class="go">4  9437  454  942390  591481 5.00000e+05  1.00000e+00 5.00000e-02</span>
+<span class="go">5  9437  454  942390  601480 5.00000e+05 -1.60000e+00 6.48074e-02</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.apply_qmatrix">
+<span class="sig-name descname"><span class="pre">apply_qmatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decay_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cut_hl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_fy_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.apply_qmatrix" title="Permalink to this definition"></a></dt>
+<dd><p>Perform CFY = Q * IFY equation to calculate CFY in a given zam
+for a given energy and apply into the original data.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>zam</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>ZAM number of the material to which calculations are to be
+applied.</p>
+</dd>
+<dt><strong>e</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Energy to which calculations are to be applied.</p>
+</dd>
+<dt><strong>decay_data</strong><span class="classifier"><cite>sandy.DecayData</cite></span></dt><dd><p>Radioactive nuclide data for several isotopes.</p>
+</dd>
+<dt><strong>cut_hl: `bool`, optional, default is `True`</strong></dt><dd><p>cut all the decay modes of the nuclides with a half life larger
+than 100 years.</p>
+</dd>
+<dt><strong>keep_fy_index</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>Option that allows you to output only the CFY results that were
+part of the original <cite>sandy.Fy</cite> object.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Fy</cite></dt><dd><p>Fission yield instance with IFY calculated for a given combination
+of ZAM/e/decay_data.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method applies a perturbation to certain CFYs,</p>
+</div>
+<p>since the equation CFY = Q * IFY is not satisfied for all nuclei.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">zam</span> <span class="o">=</span> <span class="p">[</span><span class="mi">591480</span><span class="p">,</span> <span class="mi">591481</span><span class="p">,</span> <span class="mi">601480</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_minimal</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="n">zam</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_fytest</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">decay_minimal</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy</span> <span class="o">=</span> <span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest_2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy_pert</span> <span class="o">=</span> <span class="n">npfy</span><span class="o">.</span><span class="n">apply_qmatrix</span><span class="p">(</span><span class="mi">942390</span><span class="p">,</span> <span class="mf">5.00000e+05</span><span class="p">,</span> <span class="n">decay_fytest</span><span class="p">,</span> <span class="n">cut_hl</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy_pert</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;MT==459&quot;</span><span class="p">)</span>
+<span class="go">    MAT   MT     ZAM     ZAP           E          FY         DFY</span>
+<span class="go">3  9437  459  942390  591480 5.00000e+05 1.00000e-01 4.00000e-02</span>
+<span class="go">4  9437  459  942390  591481 5.00000e+05 2.00000e-01 5.00000e-02</span>
+<span class="go">5  9437  459  942390  601480 5.00000e+05 6.00000e-01 6.48074e-02</span>
+<span class="go">6  9437  459  942390  621480 5.00000e+05 6.00000e-01 6.48074e-02</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">npfy_pert</span> <span class="o">=</span> <span class="n">npfy</span><span class="o">.</span><span class="n">apply_qmatrix</span><span class="p">(</span><span class="mi">942390</span><span class="p">,</span> <span class="mf">5.00000e+05</span><span class="p">,</span> <span class="n">decay_fytest</span><span class="p">,</span> <span class="n">cut_hl</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy_pert</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;MT==459&quot;</span><span class="p">)</span>
+<span class="go">    MAT   MT     ZAM     ZAP           E          FY         DFY</span>
+<span class="go">3  9437  459  942390  591480 5.00000e+05 1.00000e-01 4.00000e-02</span>
+<span class="go">4  9437  459  942390  591481 5.00000e+05 2.00000e-01 5.00000e-02</span>
+<span class="go">5  9437  459  942390  601480 5.00000e+05 6.00000e-01 6.48074e-02</span>
+<span class="go">6  9437  459  942390  621480 5.00000e+05 0.00000e+00 0.00000e+00</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">zam</span> <span class="o">=</span> <span class="p">[</span><span class="mi">591480</span><span class="p">,</span> <span class="mi">591481</span><span class="p">,</span> <span class="mi">601480</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_minimal</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="n">zam</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_fytest</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">decay_minimal</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy</span> <span class="o">=</span> <span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest_2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy_pert</span> <span class="o">=</span> <span class="n">npfy</span><span class="o">.</span><span class="n">apply_qmatrix</span><span class="p">(</span><span class="mi">942390</span><span class="p">,</span> <span class="mf">5.00000e+05</span><span class="p">,</span> <span class="n">decay_fytest</span><span class="p">,</span> <span class="n">keep_fy_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy_pert</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;MT==459&quot;</span><span class="p">)</span>
+<span class="go">    MAT   MT     ZAM     ZAP           E          FY         DFY</span>
+<span class="go">3  9437  459  942390  591480 5.00000e+05 1.00000e-01 4.00000e-02</span>
+<span class="go">4  9437  459  942390  591481 5.00000e+05 2.00000e-01 5.00000e-02</span>
+<span class="go">5  9437  459  942390  601480 5.00000e+05 6.00000e-01 6.48074e-02</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.custom_perturbation">
+<span class="sig-name descname"><span class="pre">custom_perturbation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pert</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.custom_perturbation" title="Permalink to this definition"></a></dt>
+<dd><p>Apply a custom perturbation to a given fission yield.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>zam</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>ZAM number of the material to which perturbations are to be
+applied.</p>
+</dd>
+<dt><strong>mt</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MT reaction number of the FY to which perturbations are to be
+applied either 454 or 459.</p>
+</dd>
+<dt><strong>e</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Energy of the fissioning system to which which perturbations
+are to be applied.</p>
+</dd>
+<dt><strong>pert</strong><span class="classifier"><cite>pd.Series</cite></span></dt><dd><p>Perturbation coefficients as ratio values. <cite>pert</cite> index should be
+the corrisponding ZAP numbers.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>Fy</cite></dt><dd><p>Fission yield instance with applied perturbation.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;nfpy&#39;</span><span class="p">,</span> <span class="s1">&#39;all&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy</span> <span class="o">=</span> <span class="n">Fy</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pert</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mf">0.9</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="mi">551370</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy_pert</span> <span class="o">=</span> <span class="n">nfpy</span><span class="o">.</span><span class="n">custom_perturbation</span><span class="p">(</span><span class="mi">922350</span><span class="p">,</span> <span class="mi">459</span><span class="p">,</span> <span class="mf">0.0253</span><span class="p">,</span> <span class="n">pert</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">comp</span> <span class="o">=</span> <span class="n">nfpy_pert</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s1">&#39;ZAM==922350 &amp; ZAP==551370 &amp; MT==459 &amp; E==0.0253&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">FY</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">nfpy_pert</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">nfpy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="o">==</span> <span class="n">comp</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pert</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="mi">541350</span><span class="p">,</span> <span class="mi">551370</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy_pert</span> <span class="o">=</span> <span class="n">nfpy</span><span class="o">.</span><span class="n">custom_perturbation</span><span class="p">(</span><span class="mi">922350</span><span class="p">,</span> <span class="mi">459</span><span class="p">,</span> <span class="mf">0.0253</span><span class="p">,</span> <span class="n">pert</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">comp1</span> <span class="o">=</span> <span class="n">nfpy_pert</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s1">&#39;ZAM==922350 &amp; ZAP==551370 &amp; MT==459 &amp; E==0.0253&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">FY</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f1</span> <span class="o">=</span> <span class="n">nfpy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s1">&#39;ZAM==922350 &amp; ZAP==551370 &amp; MT==459 &amp; E==0.0253&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">FY</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">f1</span> <span class="o">*</span> <span class="mf">0.5</span> <span class="o">==</span> <span class="n">comp1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">comp2</span> <span class="o">=</span> <span class="n">nfpy_pert</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s1">&#39;ZAM==922350 &amp; ZAP==541350 &amp; MT==459 &amp; E==0.0253&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">FY</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f2</span> <span class="o">=</span> <span class="n">nfpy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s1">&#39;ZAM==922350 &amp; ZAP==541350 &amp; MT==459 &amp; E==0.0253&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">FY</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">f2</span> <span class="o">*</span> <span class="mf">0.9</span> <span class="o">==</span> <span class="n">comp2</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sandy.fy.Fy.data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#sandy.fy.Fy.data" title="Permalink to this definition"></a></dt>
+<dd><p>Dataframe of fission yield data with the following columns:</p>
+<blockquote>
+<div><ul>
+<li><p><cite>MAT</cite> : MAT number</p></li>
+<li><p><cite>MT</cite> : MT number</p></li>
+<li><p><cite>ZAM</cite> : <cite>Z*1000 + A*10 + M</cite> for the parent (fissioning) nuclide</p></li>
+<li><dl>
+<dt><cite>ZAP</cite><span class="classifier"><cite>Z*1000 + A*10 + M</cite> for the daughter nuclide</span></dt><dd><p>(fission product)</p>
+</dd>
+</dl>
+</li>
+<li><p><cite>E</cite> : fissioning energy</p></li>
+<li><p><cite>FY</cite> : fission yield (fraction)</p></li>
+</ul>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>tabulated fission yields</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest</span><span class="p">)</span>
+<span class="go">    MAT   MT     ZAM     ZAP           E          FY         DFY</span>
+<span class="go">0  9437  454  942390  380900 2.53000e-07 2.00000e-01 2.00000e-02</span>
+<span class="go">1  9437  454  942390  551370 2.53000e-07 1.80000e+00 9.00000e-02</span>
+<span class="go">2  9437  454  942390  380900 5.00000e+05 8.00000e-01 4.00000e-02</span>
+<span class="go">3  9437  454  942390  551370 5.00000e+05 1.00000e+00 5.00000e-02</span>
+<span class="go">4  9437  454  942390  541350 5.00000e+05 2.00000e-01 1.00000e-02</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.energy_table">
+<span class="sig-name descname"><span class="pre">energy_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ZAM'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'independent'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.energy_table" title="Permalink to this definition"></a></dt>
+<dd><p>Pivot dataframe of tabulated fission yields as a function of energy.
+Columns are determined by keyword argument <cite>‘by’</cite>.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>key</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>MAT or ZAM number used as columns of the pivot table</p>
+</dd>
+<dt><strong>by</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘ZAM’</cite></span></dt><dd><p>column name used as columns in the pivot table</p>
+</dd>
+<dt><strong>kind</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>‘independent’</cite></span></dt><dd><p>either <cite>‘independent’</cite> or <cite>‘cumulative’</cite></p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>pandas.DataFrame</cite></dt><dd><p>tabulated fission yields</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>ValueError</cite></dt><dd><p>if <cite>kind</cite> is neither <cite>‘independent’</cite> nor <cite>‘cumulative’</cite></p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>..note :: if a fission product has a yield at say, thermal energy but</dt><dd><p>not at fast, then a fast yield of zero will be assigned.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest</span><span class="p">)</span><span class="o">.</span><span class="n">energy_table</span><span class="p">(</span><span class="mi">942390</span><span class="p">)</span>
+<span class="go">ZAP              380900      541350      551370</span>
+<span class="go">E                                              </span>
+<span class="go">2.53000e-07 2.00000e-01 0.00000e+00 1.80000e+00</span>
+<span class="go">5.00000e+05 8.00000e-01 2.00000e-01 1.00000e+00</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.filter_by">
+<span class="sig-name descname"><span class="pre">filter_by</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.filter_by" title="Permalink to this definition"></a></dt>
+<dd><p>Apply condition to source data and return filtered results.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>`key`</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>any label present in the columns of <cite>data</cite></p>
+</dd>
+<dt><strong>`value`</strong><span class="classifier"><cite>int</cite> or <cite>float</cite></span></dt><dd><p>value used as filtering condition</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Fy</cite></dt><dd><p>filtered dataframe of fission yields</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The primary function of this method is to make sure that
+the filtered dataframe is still returned as a <cite>Fy</cite> object.</p>
+</div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="s2">&quot;ZAP&quot;</span><span class="p">,</span> <span class="mi">380900</span><span class="p">)</span>
+<span class="go">    MAT   MT     ZAM     ZAP           E          FY         DFY</span>
+<span class="go">0  9437  454  942390  380900 2.53000e-07 2.00000e-01 2.00000e-02</span>
+<span class="go">1  9437  454  942390  380900 5.00000e+05 8.00000e-01 4.00000e-02</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="s2">&quot;E&quot;</span><span class="p">,</span> <span class="mf">5e5</span><span class="p">)</span>
+<span class="go">    MAT   MT     ZAM     ZAP           E          FY         DFY</span>
+<span class="go">0  9437  454  942390  380900 5.00000e+05 8.00000e-01 4.00000e-02</span>
+<span class="go">1  9437  454  942390  551370 5.00000e+05 1.00000e+00 5.00000e-02</span>
+<span class="go">2  9437  454  942390  541350 5.00000e+05 2.00000e-01 1.00000e-02</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.from_endf6">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endf6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.from_endf6" title="Permalink to this definition"></a></dt>
+<dd><p>Extract fission yields from <cite>Endf6</cite> instance.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>endf6</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p>object containing the ENDF-6 text</p>
+</dd>
+<dt><strong>verbose</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>flag to print information when reading ENDF-6 file</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Fy</cite></dt><dd><p>fission yield object</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Both independent and cumulative fission product yields are
+loaded, if found.</p>
+</div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;nfpy&quot;</span><span class="p">,</span> <span class="s1">&#39;all&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fy</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Fy</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;ZAM==952421 &amp; MT==454 &amp; E==0.0253&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+<span class="go">        MAT   MT     ZAM    ZAP           E          FY         DFY</span>
+<span class="go">56250  9547  454  952421  10010 2.53000e-02 3.32190e-05 1.17790e-05</span>
+<span class="go">56251  9547  454  952421  10020 2.53000e-02 1.01520e-05 3.52080e-06</span>
+<span class="go">56252  9547  454  952421  10030 2.53000e-02 1.60000e-04 5.00220e-05</span>
+<span class="go">56253  9547  454  952421  20030 2.53000e-02 0.00000e+00 0.00000e+00</span>
+<span class="go">56254  9547  454  952421  20040 2.53000e-02 2.10000e-03 6.64080e-04</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.get_chain_yield">
+<span class="sig-name descname"><span class="pre">get_chain_yield</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decay_data</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.get_chain_yield" title="Permalink to this definition"></a></dt>
+<dd><p>Obtain chain yields from the following model: ChY = S * IFY</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>zam</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>ZAM number of the fissioning nuclide.</p>
+</dd>
+<dt><strong>e</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Energy of the fissioning system.</p>
+</dd>
+<dt><strong>decay_data</strong><span class="classifier"><cite>sandy.DecayData</cite></span></dt><dd><p>Radioactive nuclide data from where to obtain chain sensitivities.</p>
+</dd>
+<dt><strong>kwargs</strong><span class="classifier"><cite>dict</cite></span></dt><dd><p>keyword arguments for method <cite>get_decay_chains</cite></p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>pandas.Series</cite></dt><dd><p>Chain yield obtained from ChY = S * IFY</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">zam</span> <span class="o">=</span> <span class="p">[</span><span class="mi">591480</span><span class="p">,</span> <span class="mi">591481</span><span class="p">,</span> <span class="mi">601480</span><span class="p">,</span> <span class="mi">561480</span><span class="p">,</span> <span class="mi">571480</span><span class="p">,</span> <span class="mi">571490</span><span class="p">,</span> <span class="mi">581480</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_minimal</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="n">zam</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_fytest</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">decay_minimal</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tape_nfpy</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;nfpy&#39;</span><span class="p">,</span> <span class="mi">922350</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy</span> <span class="o">=</span> <span class="n">Fy</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">tape_nfpy</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy</span><span class="o">.</span><span class="n">get_chain_yield</span><span class="p">(</span><span class="mi">922350</span><span class="p">,</span> <span class="mf">0.0253</span><span class="p">,</span> <span class="n">decay_fytest</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">148</span><span class="p">]</span>
+<span class="go">0.01692277272</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.get_mass_yield">
+<span class="sig-name descname"><span class="pre">get_mass_yield</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.get_mass_yield" title="Permalink to this definition"></a></dt>
+<dd><p>Obtain mass yields from the following model: ChY = S * IFY</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>zam</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>ZAM number of the fissioning nuclide.</p>
+</dd>
+<dt><strong>e</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Energy of the fissioning system.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>pandas.Series</cite></dt><dd><p>mass yield obtained from ChY = S * IFY</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape_nfpy</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span><span class="s1">&#39;nfpy&#39;</span><span class="p">,</span> <span class="mi">922350</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy</span> <span class="o">=</span> <span class="n">Fy</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">tape_nfpy</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy</span><span class="o">.</span><span class="n">get_mass_yield</span><span class="p">(</span><span class="mi">922350</span><span class="p">,</span> <span class="mf">0.0253</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">148</span><span class="p">]</span>
+<span class="go">0.0169029147</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.get_mass_yield_sensitivity">
+<span class="sig-name descname"><span class="pre">get_mass_yield_sensitivity</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.get_mass_yield_sensitivity" title="Permalink to this definition"></a></dt>
+<dd><p>Obtain the mass yield sensitivity matrix based only on the
+information given in the <cite>Fy</cite> object (no decay data).</p>
+<dl class="field-list">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>mass_yield_sensitivity</strong><span class="classifier"><cite>pandas.DataFrame</cite></span></dt><dd><p>Mass yield sensitivity matrix. Mass number in index and ZAM of
+fission products in columns.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">zap</span> <span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">([</span><span class="mi">551480</span><span class="p">,</span> <span class="mi">551490</span><span class="p">,</span> <span class="mi">561480</span><span class="p">,</span> <span class="mi">561490</span><span class="p">,</span> <span class="mi">571480</span><span class="p">,</span> <span class="mi">571490</span><span class="p">,</span> <span class="mi">581480</span><span class="p">,</span> <span class="mi">591480</span><span class="p">,</span> <span class="mi">591481</span><span class="p">,</span> <span class="mi">601480</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tape_nfpy</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span><span class="s1">&#39;nfpy&#39;</span><span class="p">,</span><span class="s1">&#39;all&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">zam</span> <span class="o">=</span> <span class="mi">922350</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">energy</span> <span class="o">=</span> <span class="mf">0.0253</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">conditions</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ZAM&#39;</span><span class="p">:</span> <span class="n">zam</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">:</span> <span class="n">energy</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy</span> <span class="o">=</span> <span class="n">Fy</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">tape_nfpy</span><span class="p">)</span><span class="o">.</span><span class="n">_filters</span><span class="p">(</span><span class="n">conditions</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy</span><span class="o">.</span><span class="n">get_mass_yield_sensitivity</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">148</span><span class="p">,</span> <span class="n">zap</span><span class="p">]</span>
+<span class="go">551480   1.00000e+00</span>
+<span class="go">551490   0.00000e+00</span>
+<span class="go">561480   1.00000e+00</span>
+<span class="go">561490   0.00000e+00</span>
+<span class="go">571480   1.00000e+00</span>
+<span class="go">571490   0.00000e+00</span>
+<span class="go">581480   1.00000e+00</span>
+<span class="go">591480   1.00000e+00</span>
+<span class="go">591481   1.00000e+00</span>
+<span class="go">601480   1.00000e+00</span>
+<span class="go">Name: 148, dtype: float64</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.gls_update">
+<span class="sig-name descname"><span class="pre">gls_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_extra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vy_extra</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.gls_update" title="Permalink to this definition"></a></dt>
+<dd><blockquote>
+<div><p>Perform the GLS update of fission yields and their related covariance
+matrix, according with
+<a class="reference external" href="https://doi.org/10.1016/j.anucene.2015.10.027">https://doi.org/10.1016/j.anucene.2015.10.027</a>.
+.. math:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$$
+IFY_{post} = IFY_{prior} + V_{IFY_{prior}}\cdot S^T \cdot \left(S\cdot V_{IFY_{prior}}\cdot S^T + V_{y_{extra}}
+</pre></div>
+</div>
+</div></blockquote>
+<p>ight)^{-1} cdot left(y_{extra} - y_{calc}
+ight)</p>
+<blockquote>
+<div><p>V_{IFY_{post}} = V_{IFY_{prior}} - V_{IFY_{prior}}cdot S^T cdot left(Scdot V_{IFY_{prior}}cdot S^T + V_{y_{extra}}</p>
+</div></blockquote>
+<dl class="simple">
+<dt>ight)^{-1} cdot S cdot V_{IFY_{prior}}</dt><dd><p>$$
+with $x_{post}$ the updated IFY and $x_{prior}$ the prior IFY</p>
+</dd>
+</dl>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>zam</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>ZAM number of the material to which calculations are to be
+applied.</p>
+</dd>
+<dt><strong>energy</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Energy to which calculations are to be applied.</p>
+</dd>
+<dt><strong>S</strong><span class="classifier"><cite>pandas.DataFrame</cite></span></dt><dd><p>Sensitivity matrix (M, N) or sensitivity vector (N,).</p>
+</dd>
+<dt><strong>y_extra</strong><span class="classifier"><cite>pandas.Series</cite></span></dt><dd><p>Extra information on output (M,). The names of the indeces must be
+consistent with the names of the indices of the sensitivity matrix.</p>
+</dd>
+<dt><strong>Vy_extra</strong><span class="classifier"><cite>pandas.DataFrame</cite> or <cite>pandas.Series</cite>, optional, default is <cite>None</cite></span></dt><dd><p>covariance matrix with the uncertainties of the extra information,
+(M, M) or (1,). The names of the indeces and columns must be
+consistent with the names of the indices of the sensitivity matrix.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Fy</cite></dt><dd><p><cite>Fy</cite> object updated with GLS for a given zam, energy, design
+sensitivity and new information.</p>
+</dd>
+<dt><cite>sandy.CategoryCov</cite></dt><dd><p><cite>CategoryCov</cite> object corresponding to the updated covariance matrix
+adjusted with the GLS technique.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If Vy_extra=None the constraint GLS update technique</p>
+</div>
+<p>will be performed.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">zam</span> <span class="o">=</span> <span class="p">[</span><span class="mi">591480</span><span class="p">,</span> <span class="mi">591481</span><span class="p">,</span> <span class="mi">601480</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_minimal</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="n">zam</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_fytest</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">decay_minimal</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mass_numbers</span> <span class="o">=</span> <span class="p">[</span><span class="mi">147</span><span class="p">,</span> <span class="mi">148</span><span class="p">,</span> <span class="mi">149</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">decay_fytest</span><span class="o">.</span><span class="n">get_chain_yield_sensitivity</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain_yields</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">fy</span><span class="o">.</span><span class="n">get_chain_yields</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y_extra</span> <span class="o">=</span> <span class="n">chain_yields</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;A==</span><span class="si">{</span><span class="n">mass_numbers</span><span class="si">}</span><span class="s2"> &amp; E==&#39;thermal&#39; &amp; ZAM==922350&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;A&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">CHY</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">std_extra_info</span> <span class="o">=</span> <span class="n">chain_yields</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;A==</span><span class="si">{</span><span class="n">mass_numbers</span><span class="si">}</span><span class="s2"> &amp; E==&#39;thermal&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;A&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">DCHY</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Vy_extra</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">CategoryCov</span><span class="o">.</span><span class="n">from_stdev</span><span class="p">(</span><span class="n">std_extra_info</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;nfpy&quot;</span><span class="p">,</span> <span class="mi">922350</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Fy</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Fy</span><span class="p">(</span><span class="n">nfpy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ZAP==</span><span class="si">{</span><span class="n">zam</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy</span><span class="o">.</span><span class="n">gls_update</span><span class="p">(</span><span class="mi">922350</span><span class="p">,</span> <span class="mf">0.0253</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">y_extra</span><span class="p">,</span> <span class="n">Vy_extra</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="go">     MAT   MT     ZAM     ZAP           E          FY         DFY</span>
+<span class="go"> 0  9228  454  922350  591480 2.53000e-02 8.40795e-04 2.39023e-05</span>
+<span class="go"> 1  9228  454  922350  591481 2.53000e-02 1.39006e-02 4.22282e-05</span>
+<span class="go"> 2  9228  454  922350  601480 2.53000e-02 5.12689e-05 5.33871e-06</span>
+<span class="go"> 3  9228  459  922350  591480 2.53000e-02 1.66100e-02 1.21560e-04</span>
+<span class="go"> 4  9228  459  922350  591481 2.53000e-02 3.02430e-04 1.01150e-04</span>
+<span class="go"> 5  9228  459  922350  601480 2.53000e-02 1.69270e-02 1.18300e-04</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy</span><span class="o">.</span><span class="n">gls_update</span><span class="p">(</span><span class="mi">922350</span><span class="p">,</span> <span class="mf">0.0253</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">y_extra</span><span class="p">,</span> <span class="n">Vy_extra</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+<span class="go">ZAP          591480       591481       601480</span>
+<span class="go">ZAP</span>
+<span class="go">591480  5.71318e-10 -4.98686e-10 -1.34355e-12</span>
+<span class="go">591481 -4.98686e-10  1.78322e-09 -2.37615e-11</span>
+<span class="go">601480 -1.34355e-12 -2.37615e-11  2.85018e-11</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">y_constraint</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;nfpy&quot;</span><span class="p">,</span> <span class="mi">922340</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Fy</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nfpy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;E==400000 &amp; MT==454&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">ZAP</span><span class="p">)),</span> <span class="n">index</span><span class="o">=</span><span class="n">nfpy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;E==400000 &amp; MT==454&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">ZAP</span><span class="o">.</span><span class="n">to_list</span><span class="p">())</span><span class="o">.</span><span class="n">T</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nfpy_post</span> <span class="o">=</span> <span class="n">nfpy</span><span class="o">.</span><span class="n">gls_update</span><span class="p">(</span><span class="mi">922340</span><span class="p">,</span> <span class="mi">400000</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">y_constraint</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">nfpy_post</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;MT==454&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">FY</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.ishikawa_factor">
+<span class="sig-name descname"><span class="pre">ishikawa_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vy_extra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mass</span> <span class="pre">yield'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decay_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.ishikawa_factor" title="Permalink to this definition"></a></dt>
+<dd><p>Ishikawa factor to determine whether the experiment from where we
+obtain model sensitivity is useful to reduce the IFY uncertainty</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>zam</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>ZAM number of the material to which calculations are to be
+applied.</p>
+</dd>
+<dt><strong>e</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Energy to which calculations are to be applied.</p>
+</dd>
+<dt><strong>Vy_extra</strong><span class="classifier">2D iterable</span></dt><dd><p>2D covariance matrix for y_extra (MXM).</p>
+</dd>
+<dt><strong>kind</strong><span class="classifier"><cite>str</cite>, optional</span></dt><dd><p>Keyword for obtaining sensitivity. The
+default is ‘mass yield’.</p>
+</dd>
+<dt><strong>decay_data</strong><span class="classifier"><cite>DecayData</cite>, optional</span></dt><dd><p>Object to change the model to CFY = Q*IFY or
+Ch_chain = S_chain*IFY, so the sensitivity (S) is Q or S_chain.
+The default is None, so the model is ChY = ChY_mass*IFY
+and the sensitivity is mass yield sensitivity.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl>
+<dt><strong>ishikawa</strong><span class="classifier"><cite>pd.Series</cite></span></dt><dd><p>Ishikawa factor.</p>
+</dd>
+<dt>Results:</dt><dd></dd>
+</dl>
+<blockquote>
+<div></div></blockquote>
+<dl class="simple">
+<dt>Ishikawa factor &lt;&lt; 1</dt><dd><p>The extra data is not so useful and the data remain unchanged.</p>
+</dd>
+<dt>Ishikawa factor &gt;&gt; 1</dt><dd><p>The extra data very useful and the ‘posteriori’ covariance will
+be reduced to the same level as the integral parameter covariance.</p>
+</dd>
+<dt>Ishikawa factor ~ 1</dt><dd><p>The experiment is useful and the ‘posteriori’  covariance will be
+reduced by approximately half</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">zam</span> <span class="o">=</span> <span class="p">[</span><span class="mi">591480</span><span class="p">,</span> <span class="mi">591481</span><span class="p">,</span> <span class="mi">601480</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_minimal</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="n">zam</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decay_fytest</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">DecayData</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">decay_minimal</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CFY_var_extra</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CFY_var_extra</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">CFY_var_extra</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">zam</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">zam</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest_2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy</span><span class="o">.</span><span class="n">ishikawa_factor</span><span class="p">(</span><span class="mi">942390</span><span class="p">,</span> <span class="mf">500e3</span><span class="p">,</span> <span class="n">CFY_var_extra</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;cumulative&#39;</span><span class="p">,</span> <span class="n">decay_data</span><span class="o">=</span><span class="n">decay_fytest</span><span class="p">)</span>
+<span class="go">591480   4.00000e-02</span>
+<span class="go">591481   5.00000e-02</span>
+<span class="go">601480   1.00000e-01</span>
+<span class="go">dtype: float64</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">A</span> <span class="o">=</span> <span class="p">[</span><span class="mi">147</span><span class="p">,</span> <span class="mi">148</span><span class="p">,</span> <span class="mi">149</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Chain_var_extra</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Chain_var_extra</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">Chain_var_extra</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">A</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Fy</span><span class="p">(</span><span class="n">minimal_fytest_2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">npfy</span><span class="o">.</span><span class="n">ishikawa_factor</span><span class="p">(</span><span class="mi">942390</span><span class="p">,</span> <span class="mf">500e3</span><span class="p">,</span> <span class="n">Chain_var_extra</span><span class="p">)</span>
+<span class="go">147   0.00000e+00</span>
+<span class="go">148   1.00000e-01</span>
+<span class="go">149   0.00000e+00</span>
+<span class="go">dtype: float64</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sandy.fy.Fy.to_endf6">
+<span class="sig-name descname"><span class="pre">to_endf6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endf6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.fy.Fy.to_endf6" title="Permalink to this definition"></a></dt>
+<dd><p>Update fission yields in <cite>Endf6</cite> instance with those available in a
+<cite>Fy</cite> instance.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>only IFY and CFY that are originally
+present in the <cite>Endf6</cite> instance are modified</p>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>`endf6`</strong><span class="classifier"><cite>sandy.Endf6</cite></span></dt><dd><p><cite>Endf6</cite> instance</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>sandy.Endf6</cite></dt><dd><p><cite>Endf6</cite> instance with updated IFY and CFY</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tape</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">get_endf6_file</span><span class="p">(</span><span class="s2">&quot;jeff_33&quot;</span><span class="p">,</span> <span class="s2">&quot;nfpy&quot;</span><span class="p">,</span> <span class="s2">&quot;all&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fy</span> <span class="o">=</span> <span class="n">sandy</span><span class="o">.</span><span class="n">Fy</span><span class="o">.</span><span class="n">from_endf6</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new_tape</span> <span class="o">=</span> <span class="n">fy</span><span class="o">.</span><span class="n">to_endf6</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new_tape</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">listmat</span><span class="o">=</span> <span class="p">[</span><span class="mi">9640</span><span class="p">],</span> <span class="n">listmf</span><span class="o">=</span><span class="p">[</span><span class="mi">8</span><span class="p">],</span> <span class="n">listmt</span><span class="o">=</span><span class="p">[</span><span class="mi">454</span><span class="p">,</span> <span class="mi">459</span><span class="p">])</span>
+<span class="go">MAT   MF  MT</span>
+<span class="go">9640  8   454     96245.0000 242.960000          2          0  ...</span>
+<span class="go">          459     96245.0000 242.960000          2          0  ...</span>
+<span class="go">dtype: object</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -111,7 +826,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="sandy.functions.html" class="btn btn-neutral float-left" title="sandy.functions module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="sandy.gls.html" class="btn btn-neutral float-right" title="sandy.gls module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="sandy.gendf.html" class="btn btn-neutral float-right" title="sandy.gendf module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

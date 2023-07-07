@@ -48,6 +48,9 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
@@ -56,17 +59,21 @@
 <li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html">sandy.gendf module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.gls.html">sandy.gls module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.njoy module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.njoy module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.njoy.get_njoy"><code class="docutils literal notranslate"><span class="pre">get_njoy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.njoy.process_neutron"><code class="docutils literal notranslate"><span class="pre">process_neutron()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.njoy.process_proton"><code class="docutils literal notranslate"><span class="pre">process_proton()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.spectra.html">sandy.spectra module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html">sandy.tsl module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
@@ -102,8 +109,113 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-njoy-module">
-<h1>sandy.njoy module<a class="headerlink" href="#sandy-njoy-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.njoy">
+<span id="sandy-njoy-module"></span><h1>sandy.njoy module<a class="headerlink" href="#module-sandy.njoy" title="Permalink to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.njoy.get_njoy">
+<span class="sig-prename descclassname"><span class="pre">sandy.njoy.</span></span><span class="sig-name descname"><span class="pre">get_njoy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sandy.njoy.get_njoy" title="Permalink to this definition"></a></dt>
+<dd><p>Extract njoy executable from system environment variable <cite>NJOY</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><cite>string</cite></dt><dd><p>njoy executable</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.njoy.process_neutron">
+<span class="sig-prename descclassname"><span class="pre">sandy.njoy.</span></span><span class="sig-name descname"><span class="pre">process_neutron</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endftape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperatures</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pendftape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffixes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zaid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'nndc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">route</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'0'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dryrun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.njoy.process_neutron" title="Permalink to this definition"></a></dt>
+<dd><p>Run sequence to process file with njoy.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>pendftape</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>None</cite></span></dt><dd><p>name (with absolute of relative path) of a pendf file.
+If given, skip module reconr and use this PENDF file, else run reconr</p>
+</dd>
+<dt><strong>temperatures</strong><span class="classifier">iterable of <cite>float</cite>, optional, default is [293.6]</span></dt><dd><p>iterable of temperature values in K</p>
+</dd>
+<dt><strong>dryrun</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>option to produce the njoy input file without running njoy</p>
+</dd>
+<dt><strong>exe</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>None</cite></span></dt><dd><p>njoy executable (with path)
+.. note:: if no executable is given, SANDY looks for a default</p>
+<blockquote>
+<div><p>executable in <cite>PATH</cite> and in env variable <cite>NJOY</cite></p>
+</div></blockquote>
+</dd>
+<dt><strong>route</strong><span class="classifier"><cite>str</cite>, optional, default is <cite>0</cite></span></dt><dd><p>xsdir “route” parameter</p>
+</dd>
+<dt><strong>suffixes</strong><span class="classifier">iterable of <cite>int</cite>, optional, default is <cite>None</cite></span></dt><dd><p>iterable of suffix values for ACE files: if <cite>None</cite> is given,
+use internal routine to determine suffixes</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><cite>suffixes</cite> must match the number of entries in
+<cite>temperatures</cite></p>
+</div>
+</dd>
+<dt><strong>verbose</strong><span class="classifier"><cite>bool</cite>, optional, default is <cite>False</cite></span></dt><dd><p>flag to print NJOY input to screen before running the executable</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl>
+<dt><strong>outputs</strong><span class="classifier"><cite>map</cite></span></dt><dd><p>map of {<cite>tape</cite> : <cite>text</cite>) for ouptut files</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.njoy.process_proton">
+<span class="sig-prename descclassname"><span class="pre">sandy.njoy.</span></span><span class="sig-name descname"><span class="pre">process_proton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endftape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dryrun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">route</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'0'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.njoy.process_proton" title="Permalink to this definition"></a></dt>
+<dd><p>Run sequence to process proton file with njoy.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>wdir</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>working directory (absolute or relative) where all output files are
+saved
+.. note:</p>
+<blockquote>
+<div><p><cite>wdir</cite> will appear as part of the <cite>filename</cite> in
+any <cite>xsdir</cite> file</p>
+</div></blockquote>
+</dd>
+<dt><strong>dryrun</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>option to produce the njoy input file without running njoy</p>
+</dd>
+<dt><strong>tag</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>tag to append to each output filename beofre the extension
+(default is <cite>None</cite>)
+.. hint:</p>
+<blockquote>
+<div><p>to process JEFF-3.3 files you could set <cite>tag = “_j33”</cite></p>
+</div></blockquote>
+</dd>
+<dt><strong>exe</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>njoy executable (with path)
+.. note:</p>
+<blockquote>
+<div><p>If no executable is given, SANDY looks for a default executable
+in <cite>PATH</cite></p>
+</div></blockquote>
+</dd>
+<dt><strong>route</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>xsdir “route” parameter (default is “0”)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl>
+<dt><strong>input</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>njoy input text</p>
+</dd>
+<dt><strong>inputs</strong><span class="classifier"><cite>map</cite></span></dt><dd><p>map of {<cite>tape</cite> : <cite>file</cite>) for input files</p>
+</dd>
+<dt><strong>outputs</strong><span class="classifier"><cite>map</cite></span></dt><dd><p>map of {<cite>tape</cite> : <cite>file</cite>) for ouptut files</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 

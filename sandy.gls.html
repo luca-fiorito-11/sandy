@@ -19,8 +19,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="sandy.groupr module" href="sandy.groupr.html" />
-    <link rel="prev" title="sandy.fy module" href="sandy.fy.html" /> 
+    <link rel="next" title="sandy.libraries module" href="sandy.libraries.html" />
+    <link rel="prev" title="sandy.gendf module" href="sandy.gendf.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -48,6 +48,9 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="sandy.html">sandy package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.DuplicateFilter"><code class="docutils literal notranslate"><span class="pre">DuplicateFilter</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sandy.html#sandy.ShutdownHandler"><code class="docutils literal notranslate"><span class="pre">ShutdownHandler</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="sandy.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="sandy.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="sandy.constants.html">sandy.constants module</a></li>
@@ -56,17 +59,23 @@
 <li class="toctree-l3"><a class="reference internal" href="sandy.errorr.html">sandy.errorr module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.functions.html">sandy.functions module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.fy.html">sandy.fy module</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.gls module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.groupr.html">sandy.groupr module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.h5file.html">sandy.h5file module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.gendf.html">sandy.gendf module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sandy.gls module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.gls.chi_diag"><code class="docutils literal notranslate"><span class="pre">chi_diag()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.gls.chi_individual"><code class="docutils literal notranslate"><span class="pre">chi_individual()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.gls.chi_square"><code class="docutils literal notranslate"><span class="pre">chi_square()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.gls.gls_update"><code class="docutils literal notranslate"><span class="pre">gls_update()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sandy.gls.ishikawa_factor"><code class="docutils literal notranslate"><span class="pre">ishikawa_factor()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.libraries.html">sandy.libraries module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.njoy.html">sandy.njoy module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pert.html">sandy.pert module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.pfns.html">sandy.pfns module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sandy.processing.html">sandy.processing module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.sampling.html">sandy.sampling module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.settings.html">sandy.settings module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.shared.html">sandy.shared module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sandy.spectra.html">sandy.spectra module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tools.html">sandy.tools module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.tsl.html">sandy.tsl module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sandy.utils.html">sandy.utils module</a></li>
@@ -102,16 +111,228 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sandy-gls-module">
-<h1>sandy.gls module<a class="headerlink" href="#sandy-gls-module" title="Permalink to this heading"></a></h1>
+  <section id="module-sandy.gls">
+<span id="sandy-gls-module"></span><h1>sandy.gls module<a class="headerlink" href="#module-sandy.gls" title="Permalink to this heading"></a></h1>
+<p>This module contains all classes and functions specific for processing GLS and
+assessment of adjustment. It handles only numpy.ndarray.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.gls.chi_diag">
+<span class="sig-prename descclassname"><span class="pre">sandy.gls.</span></span><span class="sig-name descname"><span class="pre">chi_diag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_prior</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vx_prior</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vy_extra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_extra</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.gls.chi_diag" title="Permalink to this definition"></a></dt>
+<dd><p>Function to calculate diagonal chi-value
+$chi_{ind,i}$&gt;&gt;1 according to
+<a class="reference external" href="https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files">https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files</a>
+(page 9, equation (4.3))</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>x_prior: 1D iterable</strong></dt><dd><p>Vector in which we are going to apply GLS (M,)</p>
+</dd>
+<dt><strong>S</strong><span class="classifier">2D iterable</span></dt><dd><p>2D sensitivity of the model y=f(x) (M, N).</p>
+</dd>
+<dt><strong>Vx_prior</strong><span class="classifier">2D iterable</span></dt><dd><p>2D covariance matrix of x_prior (M, N).</p>
+</dd>
+<dt><strong>Vy_extra</strong><span class="classifier">2D iterable</span></dt><dd><p>2D covariance matrix for y_extra (M, N).</p>
+</dd>
+<dt><strong>y_extra</strong><span class="classifier">1D iterable</span></dt><dd><p>1D extra info on output (N,)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy.ndarray</cite></dt><dd><p>diagonal chi-value</p>
+</dd>
+<dt>Results:</dt><dd></dd>
+</dl>
+<blockquote>
+<div></div></blockquote>
+<dl class="simple">
+<dt>chi diagonal &gt;&gt; 1</dt><dd><p>Inconsistency may exist between <a href="#id1"><span class="problematic" id="id2">|y_extra - y_calc|</span></a> and covariance
+matrix, S*Vx_prior*S.T, and Vy_extra.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.gls.chi_individual">
+<span class="sig-prename descclassname"><span class="pre">sandy.gls.</span></span><span class="sig-name descname"><span class="pre">chi_individual</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_prior</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vx_prior</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vy_extra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_extra</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.gls.chi_individual" title="Permalink to this definition"></a></dt>
+<dd><p>Function to calculate individual chi-value measured in sigmas according to
+<a class="reference external" href="https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files">https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files</a>
+(page 9, equation (4.2))</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>x_prior: 1D iterable</strong></dt><dd><p>Vector in which we are going to apply GLS (M,)</p>
+</dd>
+<dt><strong>S</strong><span class="classifier">2D iterable</span></dt><dd><p>2D sensitivity of the model y=f(x) (M, N).</p>
+</dd>
+<dt><strong>Vx_prior</strong><span class="classifier">2D iterable</span></dt><dd><p>2D covariance matrix of x_prior (M, N).</p>
+</dd>
+<dt><strong>Vy_extra</strong><span class="classifier">2D iterable</span></dt><dd><p>2D covariance matrix for y_extra (M, N).</p>
+</dd>
+<dt><strong>y_extra</strong><span class="classifier">1D iterable</span></dt><dd><p>1D extra info on output (N,).</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy.ndarray</cite></dt><dd><p>individual chi-value measured in sigmas.</p>
+</dd>
+<dt>Results:</dt><dd></dd>
+</dl>
+<blockquote>
+<div></div></blockquote>
+<dl class="simple">
+<dt>chi individual &gt;&gt; 1</dt><dd><p>Inconsistency may exist between <a href="#id3"><span class="problematic" id="id4">|y_extra - y_calc|</span></a> and covariance
+matrix, S*Vx_prior*S.T, and Vy_extra.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.gls.chi_square">
+<span class="sig-prename descclassname"><span class="pre">sandy.gls.</span></span><span class="sig-name descname"><span class="pre">chi_square</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_prior</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vx_prior</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vy_extra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_extra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_e</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.gls.chi_square" title="Permalink to this definition"></a></dt>
+<dd><p>Function to calculate contribution to chi-square value according to
+<a class="reference external" href="https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files">https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files</a>
+(page 10, equation (4.4))</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>x_prior: 1D iterable</strong></dt><dd><p>Vector in which we are going to apply GLS (M,)</p>
+</dd>
+<dt><strong>S</strong><span class="classifier">2D iterable</span></dt><dd><p>2D sensitivity of the model y=f(x) (M, N).</p>
+</dd>
+<dt><strong>Vx_prior</strong><span class="classifier">2D iterable</span></dt><dd><p>2D covariance matrix of x_prior (M, N).</p>
+</dd>
+<dt><strong>Vy_extra</strong><span class="classifier">2D iterable</span></dt><dd><p>2D covariance matrix for y_extra (M, N).</p>
+</dd>
+<dt><strong>y_extra</strong><span class="classifier">1D iterable</span></dt><dd><p>1D extra info on output (N,)</p>
+</dd>
+<dt><strong>N_e</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Number of experimental values used in adjustment.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy.ndarray</cite></dt><dd><p>contribution to chi-square value</p>
+</dd>
+<dt>Results:</dt><dd></dd>
+</dl>
+<blockquote>
+<div></div></blockquote>
+<dl class="simple">
+<dt>chi square &lt; 0</dt><dd><p>The experiment is very effective in the adjustment.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.gls.gls_update">
+<span class="sig-prename descclassname"><span class="pre">sandy.gls.</span></span><span class="sig-name descname"><span class="pre">gls_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_prior</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vx_prior</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_extra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vy_extra</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.gls.gls_update" title="Permalink to this definition"></a></dt>
+<dd><blockquote>
+<div><p>Perform the GlS update of a prior vector and its related covariance matrix,
+according with
+<a class="reference external" href="https://www.tandfonline.com/action/journalInformation?journalCode=tnst2">https://www.tandfonline.com/action/journalInformation?journalCode=tnst2</a>
+.. math:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$$
+x_{post} = x_{prior} + V_{x_{prior}}\cdot S^T \cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}
+</pre></div>
+</div>
+</div></blockquote>
+<p>ight)^{-1} cdot left(y_{extra} - y_{calc}
+ight)</p>
+<blockquote>
+<div><p>V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}cdot S^T cdot left(Scdot V_{x_{prior}}cdot S^T + V_{y_{extra}}</p>
+</div></blockquote>
+<dl class="simple">
+<dt>ight)^{-1} cdot S cdot V_{x_{prior}}</dt><dd><p>$$</p>
+</dd>
+</dl>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>x_prior</strong><span class="classifier">1D iterable</span></dt><dd><p>Vector to be updated (N,)</p>
+</dd>
+<dt><strong>S</strong><span class="classifier">2D or 1D iterable</span></dt><dd><p>Sensitivity matrix (M, N) or sensitivity vector(N,)</p>
+</dd>
+<dt><strong>Vx_prior</strong><span class="classifier">2D iterable</span></dt><dd><p>2D covariance matrix of x_prior (N, N)</p>
+</dd>
+<dt><strong>y_extra</strong><span class="classifier">1D iterable</span></dt><dd><p>1D extra info on output (M,)</p>
+</dd>
+<dt><strong>Vy_extra</strong><span class="classifier">2D iterable or sigle element 1D iterable, optional, default is <cite>None</cite></span></dt><dd><p>covariance matrix with the uncertainties of the extra information,
+(M, M) or (1,).</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy.ndarray</cite></dt><dd><p>updated vector adjusted with the GLS technique</p>
+</dd>
+<dt><cite>numpy.ndarray</cite></dt><dd><p>updated covariance matrix adjusted with the GLS technique</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If Vy_extra=None the constraint GLS update technique</p>
+</div>
+<p>will be performed</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sandy.gls.ishikawa_factor">
+<span class="sig-prename descclassname"><span class="pre">sandy.gls.</span></span><span class="sig-name descname"><span class="pre">ishikawa_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vx_prior</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Vy_extra</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sandy.gls.ishikawa_factor" title="Permalink to this definition"></a></dt>
+<dd><p>Function to obtain Ishikawa factor according to
+<a class="reference external" href="https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files">https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files</a>
+(page 10, equation (4.5))</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>S</strong><span class="classifier">2D iterable</span></dt><dd><p>2D sensitivity of the model y=f(x) (M, N).</p>
+</dd>
+<dt><strong>Vx_prior</strong><span class="classifier">2D iterable</span></dt><dd><p>2D covariance matrix of x_prior (M, N).</p>
+</dd>
+<dt><strong>Vy_extra</strong><span class="classifier">2D iterable</span></dt><dd><p>2D covariance matrix for y_extra (M, N).</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><cite>numpy.ndarray</cite></dt><dd><p>Ishikawa factor.</p>
+</dd>
+<dt>Results:</dt><dd></dd>
+</dl>
+<blockquote>
+<div></div></blockquote>
+<dl class="simple">
+<dt>Ishikawa factor &lt;&lt; 1</dt><dd><p>The extra data is not so useful and the data remain unchanged.</p>
+</dd>
+<dt>Ishikawa factor &gt;&gt; 1</dt><dd><p>The extra data very useful and the ‘posteriori’ covariance will
+be reduced to the same level as the integral parameter covariance.</p>
+</dd>
+<dt>Ishikawa factor ~ 1</dt><dd><p>The experiment is useful and the ‘posteriori’  covariance will be
+reduced by approximately half</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="sandy.fy.html" class="btn btn-neutral float-left" title="sandy.fy module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="sandy.groupr.html" class="btn btn-neutral float-right" title="sandy.groupr module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="sandy.gendf.html" class="btn btn-neutral float-left" title="sandy.gendf module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sandy.libraries.html" class="btn btn-neutral float-right" title="sandy.libraries module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
