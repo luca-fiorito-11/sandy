@@ -6,6 +6,7 @@ sphinx-quickstart --sep --dot _ --language en --suffix .rst --master index --mak
 # Change configuration file
 sed -i '13i\   sandy' api_docs/source/index.rst
 sed -i "s/alabaster/sphinx_rtd_theme/" api_docs/source/conf.py
+sed -i '1 i\import os\nimport sys\nsys.path.insert(0, os.path.abspath(os.path.join("..", "..", "src")))' api_docs/source/conf.py
 
 # Create rst files
 sphinx-apidoc --separate --force --module-first -o api_docs/source sandy
