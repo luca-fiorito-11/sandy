@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: "3.x"
       - name: install general python dependencies
-        run: pip install sphinx sphinx_rtd_theme codecov numpydoc
+        run: pip install sphinx sphinx_rtd_theme codecov numpydoc sandy
       - name: make docs
         run: bash make_docs.sh html
       - name: Pushes to another repository
