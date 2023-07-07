@@ -11,7 +11,6 @@ from scipy.constants import Avogadro
 import numpy as np
 import pandas as pd
 import scipy.interpolate
-import numba
 
 __author__ = "Luca Fiorito"
 __all__ = [

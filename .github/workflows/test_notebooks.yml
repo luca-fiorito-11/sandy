@@ -25,10 +25,10 @@ jobs:
           # The branch, tag or SHA to checkout. When checking out the repository that
           # triggered a workflow, this defaults to the reference or SHA for that event.
           # Otherwise, defaults to `master`.
-          ref: 'develop'
+          ref: 'v1.0'
       - uses: actions/setup-python@v3
         with:
-          python-version: "3.7.15"
+          python-version: "3.x"
 
       # Run commands using the runners shell
       - name: clone and install njoy
@@ -39,6 +39,8 @@ jobs:
         run: pip install sphinx sphinx_rtd_theme codecov numpydoc coveralls pytest-cov nbval
       - name: install sandy's requirements
         run: pip install -r requirements.txt
+      - name: install jupyter packages to run notebooks
+        run: pip install jupyterlab matplotlib seaborn
       - name: install sandy
         run: python setup.py install --user
       - name: run notebooks
@@ -58,4 +60,4 @@ jobs:
           destination-repository-name: 'sandy_notebooks'
           user-email: lucafiorito.11@gmail.com
           commit-message: pushing notebooks...
-          target-branch: executed_notebooks
+          target-branch: executed_notebooks_v1.0

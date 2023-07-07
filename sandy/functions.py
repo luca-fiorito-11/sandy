@@ -1,16 +1,9 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jan 12 11:10:49 2017
-
-@author: lfiorito
-"""
 import numpy as np
 import os
-import pdb
 
-from .data import elements
 
 __author__ = "Luca Fiorito"
+
 
 def gls(x, Cx, G, y, Cy):
     """Run GLS adjustment.
@@ -27,34 +20,6 @@ def gls(x, Cx, G, y, Cy):
     Cpost = np.array(_Cx - _K * _G * _Cx)
     return xpost, Cpost
 
-def run_process(cmd, cwd=None, timeout=36000, verbose=True):
-    import subprocess as sp
-    process = sp.Popen("exec " + cmd,
-                       shell=True,
-                       cwd=cwd,
-                       stdin=None,
-                       stdout=sp.PIPE,
-                       stderr=sp.PIPE,)
-    try:
-        stdoutdata, stderrdata = process.communicate(timeout=timeout)
-    except sp.TimeoutExpired as exc:
-        process.kill()
-        stdoutdata, stderrdata = process.communicate()
-        stderrdata += (r"'{}' took longer than {} seconds to complete and it was killed".format(cmd, timeout)).encode()
-    stdout = stdoutdata.decode('utf-8', errors='ignore').rstrip()
-    stderr = stderrdata.decode('utf-8', errors='ignore').rstrip()
-    if verbose:
-        print(stdout)
-    returncode = process.returncode
-    if returncode: print("process failed to run\n".format(returncode) + stderr)
-    return process.returncode, stdout, stderr
-
-def force_symlink(file1, file2):
-    try:
-        os.symlink(file1, file2)
-    except FileExistsError:
-        os.remove(file2)
-        os.symlink(file1, file2)
 
 def zero_interp(xx_old, arr, xx_new):
     """
@@ -78,6 +43,8 @@ def zero_interp(xx_old, arr, xx_new):
     elif np.ndim(arr) == 2:
         arr_new = zero_interp_2d(xx_old, arr, xx_new)
     return arr_new
+
+
 
 def zero_interp_1d(xx_old, arr, xx_new):
     """
@@ -143,6 +110,7 @@ def zero_interp_2d(xx_old, arr, xx_new):
     return np.array(arr_new)
 
 
+
 def div0( a, b , value=0):
     """
     Ignore division by zero.
@@ -172,6 +140,8 @@ def div0( a, b , value=0):
                 c = value
     return c
 
+
+
 def log10( x, value=0):
     """
     Ignore division by zero.
@@ -195,6 +165,8 @@ def log10( x, value=0):
         c = np.log10(x)
         c[ ~ np.isfinite( c )] = value  # -inf inf NaN
     return c
+
+
 
 def split_by_n( seq, n ):
     """
@@ -225,6 +197,8 @@ def isnum(item, rais=True):
             raise TypeError("Input 'item' must be a scalar number")
         else:
             return False
+
+
 
 def printProgress (iteration, total, prefix = '', suffix = '',
                    decimals = 1, barLength = 100):
@@ -311,12 +285,6 @@ def contains(item, xmin, xmax):
     mask = (item >= xmin) & (item <= xmax)
     return mask
 
-def convert_za(za):
-    _za = int(za)
-    z = int(_za // 1000)
-    a = int(_za - z*1000)
-    sym = elements.loc[z].SYM
-    return z, sym, a
 
 
 def uniform_loggrid(xmin, xmax, npoints=100):

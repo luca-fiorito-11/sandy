@@ -1,11 +1,6 @@
-import logging
-import io
-
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import statsmodels.api as sm
+import scipy
 
 import sandy
 
@@ -14,53 +9,40 @@ __all__ = [
         "Samples",
         ]
 
-np.random.seed(1)
-minimal_testcase = np.random.randn(4, 3)
-
-
-def cov33csv(func):
-    def inner(*args, **kwargs):
-        key = "cov33csv"
-        kw = kwargs.copy()
-        if key in kw:
-            if kw[key]:
-                print(f"found argument '{key}', ignore oher arguments")
-                out = func(
-                    *args,
-                    index_col=[0, 1, 2],
-                    )
-                out.data.index.names = ["MAT", "MT", "E"]
-                return out
-            else:
-                del kw[key]
-        out = func(*args, **kw)
-        return out
-    return inner
-
 
 class Samples():
     """
+    Container for samples.
+    
     Attributes
     ----------
-    condition_number
-        
     data
-        
+        Dataframe of samples.
 
     Methods
     -------
-    filter_by
-        
-    from_csv
-        
-    regression_coefficients
-        
-    sm_ols
-        
+    get_condition_number
+        Return condition number of samples.
+    get_corr
+        Return correlation matrix of samples.
+    get_cov
+        Return covariance matrix of samples.
+    get_mean
+        Return mean vector of samples.
+    get_std
+        Return standard deviation vector of samples.
+    get_rstd
+        Return relative standard deviation vector of samples.   
+    iterate_xs_samples
+        Generator that iterates over each sample (in the form of :func:`sandy.Xs`).
+    test_shapiro
+        Perform the Shapiro-Wilk test for normality on the samples.
     """
 
-    def __init__(self, df):
-        self.data = pd.DataFrame(df, dtype=float)
+    _columnsname = "SMP"
+
+    def __init__(self, df, *args, **kwargs):
+        self.data = pd.DataFrame(df, *args, dtype=float, **kwargs)
 
     def __repr__(self):
         return self.data.__repr__()
@@ -88,10 +70,9 @@ class Samples():
 
     @data.setter
     def data(self, data):
-        self._data = data
+        self._data = data.rename_axis(self.__class__._columnsname, axis=1)
 
-    @property
-    def condition_number(self):
+    def get_condition_number(self):
         """
         Return condition number of samples.
 
@@ -106,55 +87,148 @@ class Samples():
         for i, name in enumerate(X):
             norm_x[:, i] = X[name] / np.linalg.norm(X[name])
         norm_xtx = np.dot(norm_x.T, norm_x)
+
         # Then, we take the square root of the ratio of the biggest to the
         # smallest eigen values
         eigs = np.linalg.eigvals(norm_xtx)
         return np.sqrt(eigs.max() / eigs.min())
 
-    @property
-    def mean(self):
+    def get_mean(self):
         return self.data.mean(axis=1).rename("MEAN")
 
-    @property
-    def rstd(self):
-        return (self.std / self.mean).rename("RSTD")
+    def get_corr(self):
+        return self.data.T.corr()
 
-    @property
-    def std(self):
+    def get_cov(self):
+        return self.data.T.cov()
+
+    def get_std(self):
         return self.data.std(axis=1).rename("STD")
 
-    def filter_by(self, key, value):
+    def get_rstd(self):
+        return (self.get_std() / self.get_mean()).rename("RSTD")
+
+    def iterate_xs_samples(self):
         """
-        Apply condition to source data and return filtered results.
+        Iterate samples one by one and shape them as a :func:`sandy.Xs`
+        dataframe, but with mutligroup structure.
+        This output should be passed to :func:`sandy.Xs._perturb`.
+        The function is called by :func:`sandy.Endf6.apply_perturbations`
 
-        Parameters
-        ----------
-        `key` : `str`
-            any label present in the columns of `data`
-        `value` : `int` or `float`
-            value used as filtering condition
-
-        Returns
-        -------
-        `sandy.Samples`
-            filtered dataframe of samples
-
-        Raises
+        Yields
         ------
-        `sandy.Error`
-            if applied filter returned empty dataframe
+        n : `int`
+            .
+        s : `pd.DataFrame`
+            dataframe of perturbation coefficients with:
+                
+                - columns: `pd.MultiIndex` with levels `"MAT"` and `"MT"`
+                - index: `pd.IntervalIndex` with multigroup structure
 
         Notes
         -----
-        .. note:: The primary function of this method is to make sure that
-                  the filtered dataframe is still returned as a `Samples`
-                  object.
+        If samples refer to redundant MT number, the same identical samples
+        are passed one level down to the partial MT components.
+        For instance:
+            - MT=4 samples will be assigned to MT=50-91
+            - MT=1 samples will be assigned to MT=2 and MT=3
+            - MT=18 samples will be assigned to MT=19-21 and MT=38
+        
+        ..important:: Assigning samples from redundant MT number to partial
+                      components only applies if the partial components do not
+                      have their own samples, and it only goes one level deep.
+
+        Examples
+        --------
+        Get samples fot MT=1
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010)
+        >>> smps1 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=1)))[33]
+
+        Copy samples each time to a redundant or partial MT
+        >>> smps3 = sandy.Samples(smps1.data.reset_index().assign(MT=3).set_index(["MAT", "MT", "E"]))
+        >>> smps18 = sandy.Samples(smps1.data.reset_index().assign(MT=18).set_index(["MAT", "MT", "E"]))
+        >>> smps19 = sandy.Samples(smps1.data.reset_index().assign(MT=19).set_index(["MAT", "MT", "E"]))
+        >>> smps27 = sandy.Samples(smps1.data.reset_index().assign(MT=27).set_index(["MAT", "MT", "E"]))
+        >>> smps4 = sandy.Samples(smps1.data.reset_index().assign(MT=4).set_index(["MAT", "MT", "E"]))
+        >>> smps51 = sandy.Samples(smps1.data.reset_index().assign(MT=51).set_index(["MAT", "MT", "E"]))
+        >>> smps101 = sandy.Samples(smps1.data.reset_index().assign(MT=101).set_index(["MAT", "MT", "E"]))
+        >>> smps452 = sandy.Samples(smps1.data.reset_index().assign(MT=452).set_index(["MAT", "MT", "E"]))
+
+        Check that samples are passed correctly to daughter MTs (only one level deep)
+        >>> expected = pd.MultiIndex.from_product([[125], [51]], names=["MAT", "MT"])
+        >>> assert next(smps51.iterate_xs_samples())[1].columns.equals(expected)
+
+        >>> expected = pd.MultiIndex.from_product([[125], [4] + list(sandy.redundant_xs[4])], names=["MAT", "MT"])
+        >>> assert next(smps4.iterate_xs_samples())[1].columns.equals(expected)
+
+        >>> expected = pd.MultiIndex.from_product([[125], [1] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
+        >>> assert next(smps1.iterate_xs_samples())[1].columns.equals(expected)
+
+        >>> expected = pd.MultiIndex.from_product([[125], [3] + list(sandy.redundant_xs[3])], names=["MAT", "MT"])
+        >>> assert next(smps3.iterate_xs_samples())[1].columns.equals(expected)
+
+        >>> expected = pd.MultiIndex.from_product([[125], [1] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
+        >>> assert next(smps1.iterate_xs_samples())[1].columns.equals(expected)
+
+        >>> expected = pd.MultiIndex.from_product([[125], [18] + list(sandy.redundant_xs[18])], names=["MAT", "MT"])
+        >>> assert next(smps18.iterate_xs_samples())[1].columns.equals(expected)
+
+        >>> expected = pd.MultiIndex.from_product([[125], [27] + list(sandy.redundant_xs[27])], names=["MAT", "MT"])
+        >>> assert next(smps27.iterate_xs_samples())[1].columns.equals(expected)
+
+        >>> expected = pd.MultiIndex.from_product([[125], [101] + list(sandy.redundant_xs[101])], names=["MAT", "MT"])
+        >>> assert next(smps101.iterate_xs_samples())[1].columns.equals(expected)
+
+        >>> expected = pd.MultiIndex.from_product([[125], [452] + list(sandy.redundant_xs[452])], names=["MAT", "MT"])
+        >>> assert next(smps452.iterate_xs_samples())[1].columns.equals(expected)
+
+
+        In this example the original covariance contains data for MT=1 and MT=51.
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 942400)
+        >>> smps = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=[1, 51])))[33]
+
+        Then, since MT=1 is redundant, samples are passed to its partial components (MT=2 and MT=3).
+        >>> expected = pd.MultiIndex.from_product([[9440], [1, 51] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
+        >>> assert next(smps.iterate_xs_samples())[1].columns.equals(expected)
+        
+        If case one of the partial components already has samples, i.e., MT=2...
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 942400)
+        >>> smps = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=[1, 2, 51])))[33]
+
+        Then the MT=1 samples are not passed to the partial components, which 
+        in this case it means that MT=2 is not changed and MT=3 is not created.
+        >>> expected = pd.MultiIndex.from_product([[9440], [1, 2, 51]], names=["MAT", "MT"])
+        >>> assert next(smps.iterate_xs_samples())[1].columns.equals(expected)
         """
-        condition = self.data.index.get_level_values(key) == value
-        out = self.data.copy()[condition]
-        if out.empty:
-            raise sandy.Error("applied filter returned empty dataframe")
-        return self.__class__(out)
+        levels = sandy.Xs._columnsnames
+        df = self.data.unstack(level=levels)
+        
+        # iterate over samples
+        for n, p in df.groupby(axis=1, level=self._columnsname):
+            s = p.droplevel(self._columnsname, axis=1)
+            adds = []
+            for mat in s.columns.get_level_values("MAT").unique():
+                
+                # sort from MT107 to MT1
+                for k, v in sandy.redundant_xs.items():
+                    if not (mat, k) in s.columns:
+                        continue
+                    daughters = pd.MultiIndex.from_product([[mat], v], names=["MAT", "MT"])
+                    # Only give perturbation for redundant xs to daughters if no perturbation
+                    # for partial cross section is found
+                    if s.columns.intersection(daughters).empty:
+                        
+                        # This goes only 1 level deep.
+                        # Then, MT=1 perturbations will be given to MT=2 and MT=3
+                        # without descending any further
+                        add = pd.DataFrame(
+                            np.tile(s[(mat, k)].values, (daughters.size, 1)).T,
+                            index=s.index,
+                            columns=daughters,
+                            )
+                        adds.append(add)
+            s = pd.concat([s, *adds], axis=1)
+            yield n, s
 
     def _std_convergence(self):
         smp = self.data
@@ -167,98 +241,99 @@ class Samples():
         rng = range(1, smp.shape[0])
         foo = lambda x: smp.loc[:x].mean()
         return pd.DataFrame(map(foo, rng), index=rng)
-
-    def _heatmap(self, vmin=-1, vmax=1, cmap="bwr", **kwargs):
-        corr = np.corrcoef(self.data)
-        return sns.heatmap(corr, vmin=vmin, vmax=vmax, cmap=cmap, **kwargs)
-
-    def sm_ols(self, Y, normalized=False, intercept=False):
-        X = self.data.T.copy()
-        NX, MX = X.shape
-        NY = Y.size
-        N = min(NX, NY)
-        if NX != NY:
-            print(f"X and Y have different size, fit only first {N} samples")
-        if normalized:
-            X = X.divide(X.mean()).fillna(0)
-            Y = Y.divide(Y.mean()).fillna(0)
-        if intercept:
-            X = sm.add_constant(X)
-        model = sm.OLS(Y.iloc[:N].values, X[:N].values)
-        out = model.fit()
-        return out
-
-    def regression_coefficients(self, Y, **kwargs):
+    
+    def test_shapiro(self, size=None, pdf="normal"):
         """
-        Calculate regression coefficients from OLS model given an output
-        population.
+        Perform the Shapiro-Wilk test for normality on the samples.
+        The test can be performed also for a lognormal distribution by testing
+        for normality the logarithm of the samples.
+        
+        The Shapiro-Wilk test tests the null hypothesis that the data was
+        drawn from a normal distribution.
 
         Parameters
         ----------
-        Y : `pandas.Series`
-            tabulated output population
-        kwargs : keyword arguments, optional
-            arguments to pass to method `sm_ols`
+        size : `int`, optional
+            number of samples (starting from the first) that need to be
+            considered for the test. The default is `None`, i.e., all samples.
+        pdf : `str`, optional
+            the pdf used to test the samples. Either `"normal"` or
+            `"lognormal"`. The default is "normal".
 
         Returns
         -------
-        `pandas.DataFrame`
-            Dataframe with regression coefficients and standard errors.
-        """
-        X = self.data
-        MX, NX = X.shape
-        index = X.index
-        res = self.sm_ols(Y, **kwargs)
-        params = res.params
-        bse = res.bse
-        start_at = 0 if params.size == MX else 1
-        coeff = pd.DataFrame({
-            "coeff": params[start_at:],
-            "stderr": bse[start_at:],
-            }, index=index)
-        return coeff
-
-    @classmethod
-    @cov33csv
-    def from_csv(cls, file, **kwargs):
-        """
-        Read samples from csv file,
-
-        Parameters
-        ----------
-        file : `str`
-            csv file.
-        **kwargs : `dict`
-            keyword options for `pandas.read_csv`.
-
-        Returns
-        -------
-        `sandy.Samples`
-            samples into a sandy object.
+        pd.DataFrame
+            Dataframe with Shapriro-Wilk results (statistic and pvalue) for
+            each variable considered in the :func:`~Samples` instance.
 
         Examples
         --------
-        >>> csv = minimal_testcase.to_string()
-        >>> sandy.Samples.from_csv(io.StringIO(csv), sep="\s+")
-                     0            1            2
-        0  1.62435e+00 -6.11756e-01 -5.28172e-01
-        1 -1.07297e+00  8.65408e-01 -2.30154e+00
-        2  1.74481e+00 -7.61207e-01  3.19039e-01
-        3 -2.49370e-01  1.46211e+00 -2.06014e+00
+        Generate 5000 xs samples normally, log-normally and uniform distributed
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> njoy_kws = dict(err=1, errorr33_kws=dict(mt=102))
+        >>> nsmp = 5000
+        >>> seed = 5
+        >>>
+        >>> smp_norm = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=seed, pdf="normal"))[33]
+        >>> smp_lognorm = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=seed, pdf="lognormal"))[33]
+        >>> smp_uniform = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=seed, pdf="uniform"))[33]
 
-        >>> index = pd.MultiIndex.from_product(
-        ...    [[9437], [102], [1e-5, 1e-1, 1e1, 1e6]]
-        ... )
-        >>> df = minimal_testcase.copy()
-        >>> df.index = index
-        >>> csv = df.to_csv()
-        >>> sandy.Samples.from_csv(io.StringIO(csv), sep="\s+", cov33csv=True)
-                                        0            1            2
-        MAT  MT  E                                                 
-        9437 102 1.00000e-05  1.62435e+00 -6.11756e-01 -5.28172e-01
-                 1.00000e-01 -1.07297e+00  8.65408e-01 -2.30154e+00
-                 1.00000e+01  1.74481e+00 -7.61207e-01  3.19039e-01
-                 1.00000e+06 -2.49370e-01  1.46211e+00 -2.06014e+00
+        In this example we defined the following arbitrary convergence criteria:
+            - if the p value is larger than 0.05 we fail to reject the null-hypothesis and we accept the results
+            - if the first condition is accepted, we confirm the pdf if the statistics is larger than 0.95
+        >>> threshold = 0.95
+        >>> pthreshold = 0.05
+        >>> def test(smps):
+        ...     data = []
+        ...     for n in [10, 50, 100, 500, 1000, 5000]:
+        ...         for pdf in ("normal", "lognormal"):
+        ...             df = smps.test_shapiro(pdf=pdf, size=n)
+        ...             idx = df.statistic.idxmin()
+        ...             w = df.loc[idx]
+        ...             t = "reject" if w.pvalue < pthreshold else (pdf if w.statistic > threshold else "reject")
+        ...             data.append({"PDF": pdf, "test":t, "# SMP": n})
+        ...     df = pd.DataFrame(data).pivot_table(index="# SMP", columns="PDF", values="test", aggfunc=lambda x: ' '.join(x))
+        ...     return df
+
+        The Shapiro-Wilks test proves wrong the normal samples because of the tail truncation.
+        # >>> print(test(smp_norm))
+        PDF   lognormal      normal
+        # SMP                      
+        10       reject      reject
+        50       reject      reject
+        100      reject      reject
+        500      reject      reject
+        1000     reject      reject
+        5000     reject      reject
+
+        The Shapiro-Wilks test proves right for the lognormal samples and the lognormal distribution.
+        # >>> print(test(smp_lognorm))
+        PDF    lognormal  normal
+        # SMP                   
+        10     lognormal  reject
+        50     lognormal  reject
+        100    lognormal  reject
+        500    lognormal  reject
+        1000   lognormal  reject
+        5000   lognormal  reject
+
+        The Shapiro-Wilks gives too low p-values for the uniform samples.
+        # >>> print(test(smp_uniform))
+        PDF   lognormal  normal
+        # SMP                  
+        10       reject  reject
+        50       reject  reject
+        100      reject  reject
+        500      reject  reject
+        1000     reject  reject
+        5000     reject  reject
         """
-        df = pd.read_csv(file, **kwargs)
-        return cls(df)
+        size_ = size or self.data.shape[1]
+        names = ["statistic", "pvalue"]
+
+        data = self.data.iloc[:, :size_]
+        if pdf.lower() == "lognormal":
+            data = np.log(self.data)
+
+        df = pd.DataFrame({idx: scipy.stats.shapiro(row) for idx, row in data.iterrows()}, index=names).T
+        return df.rename_axis(data.index.names)

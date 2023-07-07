@@ -4,28 +4,23 @@ import numpy as np
 import scipy
 import scipy.linalg
 import scipy.sparse as sps
-import scipy.sparse.linalg as spsl
+from scipy import sparse
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import logging
 import tables as tb
 import os
 from sandy.gls import sandwich, _gls_cov_update
 
 import sandy
-import pytest
 pd.options.display.float_format = '{:.5e}'.format
 
 __author__ = "Luca Fiorito"
 __all__ = [
         "CategoryCov",
-        "EnergyCov",
         "triu_matrix",
         "corr2cov",
         "random_corr",
         "random_cov",
-        "sample_distribution",
         ]
 
 S = np.array([[1, 1, 1],
@@ -43,190 +38,6 @@ minimal_covtest = pd.DataFrame(
      [9437, 102, 2e5, 9437, 102, 2e5, 0.01]],
     columns=["MAT", "MT", "E", "MAT1", "MT1", 'E1', "VAL"]
     )
-
-
-def cov33csv(func):
-    def inner(*args, **kwargs):
-        key = "cov33csv"
-        kw = kwargs.copy()
-        if key in kw:
-            if kw[key]:
-                print(f"found argument '{key}', ignore oher arguments")
-                out = func(
-                    *args,
-                    index_col=[0, 1, 2],
-                    header=[0, 1, 2],
-                    )
-                out.index.names = ["MAT", "MT", "E"]
-                out.columns.names = ["MAT", "MT", "E"]
-                return out
-            else:
-                del kw[key]
-        out = func(*args, **kw)
-        return out
-    return inner
-
-
-class _Cov(np.ndarray):
-    """Covariance matrix treated as a `numpy.ndarray`.
-
-    Methods
-    -------
-    corr
-        extract correlation matrix
-    corr2cov
-        produce covariance matrix given correlation matrix and standard
-        deviation array
-    eig
-        get covariance matrix eigenvalues and eigenvectors
-    get_L
-        decompose and extract lower triangular matrix
-    sampling
-        draw random samples
-    """
-
-    def __new__(cls, arr):
-        obj = np.ndarray.__new__(cls, arr.shape, float)
-        obj[:] = arr[:]
-        if not obj.ndim == 2:
-            raise sandy.Error("covariance matrix must have two dimensions")
-        if not np.allclose(obj, obj.T):
-            raise sandy.Error("covariance matrix must be symmetric")
-        if (np.diag(arr) < 0).any():
-            raise sandy.Error("covariance matrix must have positive variances")
-        return obj
-
-    @staticmethod
-    def _up2down(self):
-        U = np.triu(self)
-        L = np.triu(self, 1).T
-        C = U + L
-        return C
-
-    def eig(self):
-        """
-        Extract eigenvalues and eigenvectors.
-
-        Returns
-        -------
-        `Pandas.Series`
-            real part of eigenvalues sorted in descending order
-        `np.array`
-            matrix of eigenvectors
-        """
-        E, V = scipy.linalg.eig(self)
-        E, V = E.real, V.real
-        return E, V
-
-    def corr(self):
-        """Extract correlation matrix.
-
-        .. note:: zeros on the covariance matrix diagonal are translated
-                  into zeros also on the the correlation matrix diagonal.
-
-        Returns
-        -------
-        `sandy.formats.utils.Cov`
-            correlation matrix
-        """
-        std = np.sqrt(np.diag(self))
-        with np.errstate(divide='ignore', invalid='ignore'):
-            coeff = np.true_divide(1, std)
-            coeff[~ np.isfinite(coeff)] = 0  # -inf inf NaN
-        corr = np.multiply(np.multiply(self.T, coeff).T, coeff)
-        return self.__class__(corr)
-
-    def _reduce_size(self):
-        """
-        Reduces the size of the matrix, erasing the null values.
-
-        Returns
-        -------
-        nonzero_idxs : numpy.ndarray
-            The indices of the diagonal that are not null.
-        cov_reduced : sandy.core.cov._Cov
-            The reduced matrix.
-
-        """
-        nonzero_idxs = np.flatnonzero(np.diag(self))
-        cov_reduced = self[nonzero_idxs][:, nonzero_idxs]
-        return nonzero_idxs, cov_reduced
-
-    @classmethod
-    def _restore_size(cls, nonzero_idxs, cov_reduced, dim):
-        """
-        Restore the size of the matrix
-
-        Parameters
-        ----------
-        nonzero_idxs : numpy.ndarray
-            The indices of the diagonal that are not null.
-        cov_reduced : sandy.core.cov._Cov
-            The reduced matrix.
-        dim : int
-            Dimension of the original matrix.
-
-        Returns
-        -------
-        cov : sandy.core.cov._Cov
-            Matrix of specified dimensions.
-
-        """
-        cov = _Cov(np.zeros((dim, dim)))
-        for i, ni in enumerate(nonzero_idxs):
-            cov[ni, nonzero_idxs] = cov_reduced[i]
-        return cov
-
-    def sampling(self, nsmp, seed=None):
-        """
-        Extract random samples from the covariance matrix, either using
-        the cholesky or the eigenvalue decomposition.
-
-        Parameters
-        ----------
-        nsmp : `int`
-            number of samples
-        seed : `int`
-            seed for the random number generator (default is `None`)
-
-        Returns
-        -------
-        `np.array`
-            2D array of random samples with dimension `(self.shape[0], nsmp)`
-        """
-        dim = self.shape[0]
-        np.random.seed(seed=seed)
-        y = np.random.randn(dim, nsmp)
-        nonzero_idxs, cov_reduced = self._reduce_size()
-        L_reduced = cov_reduced.get_L()
-        L = self.__class__._restore_size(nonzero_idxs, L_reduced, dim)
-        samples = np.array(L.dot(y))
-        return samples
-
-    def get_L(self):
-        """
-        Extract lower triangular matrix `L` for which `L*L^T == self`.
-
-        Returns
-        -------
-        `np.array`
-            lower triangular matrix
-        """
-        try:
-            L = scipy.linalg.cholesky(
-                    self,
-                    lower=True,
-                    overwrite_a=False,
-                    check_finite=False
-                    )
-        except np.linalg.linalg.LinAlgError:
-            E, V = self.eig()
-            E[E <= 0] = 0
-            Esqrt = np.diag(np.sqrt(E))
-            M = V.dot(Esqrt)
-            Q, R = scipy.linalg.qr(M.T)
-            L = R.T
-        return L
 
 
 class CategoryCov():
@@ -247,7 +58,7 @@ class CategoryCov():
     from_stack
         create a covariance matrix from a stacked `pd.DataFrame`
     from_stdev
-        construct a covariance matrix from a stdev vector
+        construct a covariance matrix from a standard deviation vector
     from_var
         construct a covariance matrix from a variance vector
     get_corr
@@ -269,7 +80,7 @@ class CategoryCov():
         return self.data.__repr__()
 
     def __init__(self, *args, **kwargs):
-        self.data = pd.DataFrame(*args, **kwargs)
+        self.data = pd.DataFrame(*args, dtype=float, **kwargs)
 
     @property
     def data(self):
@@ -297,6 +108,7 @@ class CategoryCov():
 
         Examples
         --------
+        >>> import pytest
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array[1])
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array([[1, 2], [2, -4]]))
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array([[1, 2], [3, 4]]))
@@ -305,19 +117,247 @@ class CategoryCov():
 
     @data.setter
     def data(self, data):
-        self._data = pd.DataFrame(data, dtype=float)
+        self._data = data
+
         if not len(data.shape) == 2 and data.shape[0] == data.shape[1]:
             raise TypeError("Covariance matrix must have two dimensions")
+
         if not (np.diag(data) >= 0).all():
             raise TypeError("Covariance matrix must have positive variance")
-        sym_limit = 10
-        # Round to avoid numerical fluctuations
-        if not (data.values.round(sym_limit) == data.values.T.round(sym_limit)).all():
+
+        if not np.allclose(data.values, data.values.T):
             raise TypeError("Covariance matrix must be symmetric")
 
     @property
     def size(self):
         return self.data.values.shape[0]
+
+    @classmethod
+    def random_corr(cls, size, correlations=True, seed=None, **kwargs):
+        """
+        >>> sandy.CategoryCov.random_corr(2, seed=1)
+                    0           1
+        0 1.00000e+00 4.40649e-01
+        1 4.40649e-01 1.00000e+00
+
+        >>> sandy.CategoryCov.random_corr(2, correlations=False, seed=1)
+                    0           1
+        0 1.00000e+00 0.00000e+00
+        1 0.00000e+00 1.00000e+00
+        """
+        np.random.seed(seed=seed)
+        corr = np.eye(size)
+        if correlations:
+            offdiag = np.random.uniform(-1, 1, size**2).reshape(size, size)
+            up = np.triu(offdiag, 1)
+        else:
+            up = np.zeros([size, size])
+        corr += up + up.T
+        return cls(corr, **kwargs)
+
+    @classmethod
+    def random_cov(cls, size, stdmin=0.0, stdmax=1.0, correlations=True,
+                   seed=None, **kwargs):
+        """
+        Construct a covariance matrix with random values
+
+        Parameters
+        ----------
+        size : `int`
+            Dimension of the original matrix
+        stdmin : `float`, default is 0
+            minimum value of the uniform standard deviation vector
+        stdmax : `float`, default is 1
+            maximum value of the uniform standard deviation vector
+        correlation : `bool`, default is True
+            flag to insert the random correlations in the covariance matrix
+        seed : `int`, optional, default is `None`
+            seed for the random number generator (by default use `numpy`
+            dafault pseudo-random number generator)
+
+        Returns
+        -------
+        `CategoryCov`
+            object containing covariance matrix
+
+        Examples
+        --------
+        >>> sandy.CategoryCov.random_cov(2, seed=1)
+                    0           1
+        0 2.15373e-02 5.97134e-03
+        1 5.97134e-03 8.52642e-03
+        """
+        corr = random_corr(size, correlations=correlations, seed=seed)
+        std = np.random.uniform(stdmin, stdmax, size)
+        return CategoryCov(corr).corr2cov(std)
+
+    @classmethod
+    def from_stdev(cls, std):
+        """
+        Construct the covariance matrix from the standard deviation vector.
+
+        Parameters
+        ----------
+        var : 1D iterable
+            Standar deviation vector.
+
+        Returns
+        -------
+        `CategoryCov`
+            Object containing the covariance matrix.
+
+        Example
+        -------
+        Create covariance from stdev in `pd.Series`.
+        >>> var = pd.Series(np.array([0, 2, 3]), index=pd.Index(["A", "B", "C"]))
+        >>> std = np.sqrt(var)
+        >>> cov = sandy.CategoryCov.from_stdev(std)
+        >>> cov
+                    A           B           C
+        A 0.00000e+00 0.00000e+00 0.00000e+00
+        B 0.00000e+00 2.00000e+00 0.00000e+00
+        C 0.00000e+00 0.00000e+00 3.00000e+00
+        """
+        std_ = pd.Series(std)
+        return cls.from_var(std_ * std_)
+
+    @classmethod
+    def from_var(cls, var):
+        """
+        Construct the covariance matrix from the variance vector.
+
+        Parameters
+        ----------
+        var : 1D iterable
+            Variance vector.
+
+        Returns
+        -------
+        `CategoryCov`
+            Object containing the covariance matrix.
+
+        Example
+        -------
+        Create covariance from variance in `pd.Series`.
+        >>> var = pd.Series(np.array([0, 2, 3]), index=pd.Index(["A", "B", "C"]))
+        >>> cov = sandy.CategoryCov.from_var(var)
+        >>> cov
+                    A           B           C
+        A 0.00000e+00 0.00000e+00 0.00000e+00
+        B 0.00000e+00 2.00000e+00 0.00000e+00
+        C 0.00000e+00 0.00000e+00 3.00000e+00
+
+        Create covariance from variance in list.
+        >>> sandy.CategoryCov.from_var([1, 2, 3])
+                    0           1           2
+        0 1.00000e+00 0.00000e+00 0.00000e+00
+        1 0.00000e+00 2.00000e+00 0.00000e+00
+        2 0.00000e+00 0.00000e+00 3.00000e+00
+        """
+        var_ = pd.Series(var)
+        values = np.diag(var_)
+        cov = pd.DataFrame(values, index=var_.index, columns=var_.index)
+        return cls(cov)
+
+    @classmethod
+    def from_stack(cls, data_stack, index, columns, values, rows=10000000,
+                   kind='upper'):
+        """
+        Create a covariance matrix from a stacked dataframe.
+
+        Parameters
+        ----------
+        data_stack : `pd.Dataframe`
+            Stacked dataframe.
+        index : 1D iterable, optional
+            Index of the final covariance matrix.
+        columns : 1D iterable, optional
+            Columns of the final covariance matrix.
+        values : `str`, optional
+            Name of the column where the values are located.
+        rows : `int`, optional
+            Number of rows to take into account into each loop. The default
+            is 10000000.
+        kind : `str`, optional
+            Select if the stack data represents upper or lower triangular
+            matrix. The default is 'upper.
+
+        Returns
+        -------
+        `sandy.CategoryCov`
+            Covarinace matrix.
+
+        Examples
+        --------
+        If the stack data represents the covariance matrix:
+        >>> S = pd.DataFrame(np.array([[1, 1, 1], [1, 2, 1], [1, 1, 1]]))
+        >>> S = S.stack().reset_index().rename(columns = {'level_0': 'dim1', 'level_1': 'dim2', 0: 'cov'})
+        >>> S = S[S['cov'] != 0]
+        >>> sandy.CategoryCov.from_stack(S, index=['dim1'], columns=['dim2'], values='cov', kind='all')
+        dim2           0           1           2
+        dim1                                    
+        0    1.00000e+00 1.00000e+00 1.00000e+00
+        1    1.00000e+00 2.00000e+00 1.00000e+00
+        2    1.00000e+00 1.00000e+00 1.00000e+00
+
+        If the stack data represents only the upper triangular part of the
+        covariance matrix:
+        >>> test_1 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT", "MT", "E"], columns=["MAT1", "MT1", "E1"], values='VAL').data
+        >>> test_1
+        	        MAT1	    9437
+                    MT1	        2	                    102
+                    E1	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
+        MAT	   MT	E				
+        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
+              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
+
+        >>> test_2 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT", "MT", "E"], columns=["MAT1", "MT1", "E1"], values='VAL', rows=1).data
+        >>> test_2
+        	        MAT1	    9437
+                    MT1	        2	                    102
+                    E1	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
+        MAT	   MT	E				
+        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
+              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
+
+        >>> assert (test_1 == test_2).all().all()
+
+        If the stack data represents only the lower triangular part of the
+        covariance matrix:
+        >>> test_1 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT1", "MT1", "E1"], columns=["MAT", "MT", "E"], values='VAL', kind="lower").data
+        >>> test_1
+        	        MAT	        9437
+                    MT	        2	                    102
+                    E	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
+        MAT1  MT1	E1				
+        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
+              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
+
+        >>> test_2 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT1", "MT1", "E1"], columns=["MAT", "MT", "E"], values='VAL', kind="lower", rows=1).data
+        >>> test_2
+        	        MAT 	    9437
+                    MT	        2	                    102
+                    E	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
+        MAT1  MT1	E1				
+        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
+              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
+                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
+
+        >>> assert (test_1 == test_2).all().all()
+        """
+        cov = segmented_pivot_table(data_stack, rows=rows, index=index,
+                                    columns=columns, values=values)
+        if kind == 'all':
+            return cls(cov)
+        else:
+            return triu_matrix(cov, kind=kind)
 
     def get_std(self):
         """
@@ -423,7 +463,7 @@ class CategoryCov():
         Real test on H1 file
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> ek = sandy.energy_grids.CASMO12
-        >>> err = endf6.get_errorr(ek_errorr=ek, err=1)
+        >>> err = endf6.get_errorr(errorr_kws=dict(ek=ek), err=1)["errorr33"]
         >>> cov = err.get_cov()
         >>> cov.get_eig()[0].sort_values(ascending=False).head(7)
         0    3.66411e-01
@@ -446,6 +486,9 @@ class CategoryCov():
             E[E/E.max() < tolerance] = 0
         return E, V
 
+    def get_svd(self, check_finite=False, **kwargs):
+        return scipy.linalg.svd(self.data, check_finite=check_finite, **kwargs)
+        
     def get_corr(self):
         """
         Extract correlation matrix.
@@ -511,9 +554,11 @@ class CategoryCov():
         >>> np.testing.assert_array_equal(sandy.CategoryCov(c.invert()).invert(), c.data)
         
         Test on real ND covariance. With previous implementation this test failed.
-        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, mt=[102]).get_cov(multigroup=False)
+        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, errorr_kws=dict(mt=102))["errorr33"].get_cov()
         >>> cinv = c.invert()
-        >>> np.testing.assert_array_almost_equal(c.data, np.linalg.pinv(cinv, hermitian=True))
+        >>> a = c.data.values
+        >>> b = cinv.values
+        >>> np.testing.assert_array_almost_equal(a, a @ b @  a, decimal=4)
         >>> assert (cinv.index == c.data.index).all()
         >>> assert (cinv.columns == c.data.columns).all()
         """
@@ -523,140 +568,7 @@ class CategoryCov():
             columns=self.data.columns,
         )  # do not return CategoryCov because variance can be negative
 
-    def _double_invert(self):
-        """
-        Test method get a covariance matrix without negative eigs.
-        BEcause of the properties of pinv, this should be equivalent to
-        reconstructing the matrix as `V @ E @ V^T`, where `V` are the
-        eigenvectors and `E` are truncated eigenvalues.
-
-        Returns
-        -------
-        `sandy.CategoryCov`
-            inverse of the inverted matrix
-
-        Test on real ND covariance.
-        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, mt=[102]).get_cov(multigroup=False)
-        >>> c2 = c._double_invert()
-        >>> np.testing.assert_array_almost_equal(c.data, c2.data)
-        >>> assert (c2.data.index == c.data.index).all()
-        >>> assert (c2.data.columns == c.data.columns).all()
-        """
-        cinv = self.invert()
-        return self.__class__(
-            np.linalg.pinv(cinv, hermitian=True),
-            index=self.data.index,
-            columns=self.data.columns,
-        )
-
-    def log2norm_cov(self, mu):
-        """
-        Transform covariance matrix to the one of the underlying normal
-        distribution.
-
-        Parameters
-        ----------
-        mu : iterable
-            The desired mean values of the target lognormal distribution.
-
-        Returns
-        -------
-        `CategoryCov` of the underlying normal covariance matrix
-
-        Examples
-        --------
-        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
-        >>> cov.log2norm_cov(pd.Series(np.ones(cov.data.shape[0]), index=cov.data.index))
-                    A           B           C
-        A 2.19722e+00 1.09861e+00 1.38629e+00
-        B 1.09861e+00 2.39790e+00 1.60944e+00
-        C 1.38629e+00 1.60944e+00 2.07944e+00
-
-        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
-        >>> mu = pd.Series([1, 2, .5], index=["A", "B", "C"])
-        >>> cov.log2norm_cov(mu)
-                    A           B           C
-        A 2.19722e+00 6.93147e-01 1.94591e+00
-        B 6.93147e-01 1.25276e+00 1.60944e+00
-        C 1.94591e+00 1.60944e+00 3.36730e+00
-
-        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
-        >>> mu = [1, 2, .5]
-        >>> cov.log2norm_cov(mu)
-                    A           B           C
-        A 2.19722e+00 6.93147e-01 1.94591e+00
-        B 6.93147e-01 1.25276e+00 1.60944e+00
-        C 1.94591e+00 1.60944e+00 3.36730e+00
-
-        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
-        >>> mu = np.array([1, 2, .5])
-        >>> cov.log2norm_cov(mu)
-                    A           B           C
-        A 2.19722e+00 6.93147e-01 1.94591e+00
-        B 6.93147e-01 1.25276e+00 1.60944e+00
-        C 1.94591e+00 1.60944e+00 3.36730e+00
-
-        Notes
-        -----
-        ..notes:: Reference for the equation is 10.1016/j.nima.2012.06.036
-        .. math::
-            $$
-            cov(lnx_i, lnx_j) = \ln\left(\frac{cov(x_i,x_j)}{<x_i>\cdot<x_j>}+1\right)
-            $$
-        """
-        mu_ = np.diag(1 / pd.Series(mu))
-        mu_ = pd.DataFrame(mu_, index=self.data.index, columns=self.data.index)
-        return self.__class__(np.log(self.sandwich(mu_).data + 1))
-
-
-    def log2norm_mean(self, mu):
-        """
-        Transform mean values to the mean values of the undelying normal
-        distribution.
-
-        Parameters
-        ----------
-        mu : iterable
-            The target mean values.
-
-        Returns
-        -------
-        `pd.Series` of the underlyig normal distribution mean values
-
-        Examples
-        --------
-        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
-        >>> mu = pd.Series(np.ones(cov.data.shape[0]), index=cov.data.index)
-        >>> cov.log2norm_mean(mu)
-        A   -1.09861e+00
-        B   -1.19895e+00
-        C   -1.03972e+00
-        dtype: float64
-
-        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
-        >>> cov.log2norm_mean([1, 1, 1])
-        A   -1.09861e+00
-        B   -1.19895e+00
-        C   -1.03972e+00
-        dtype: float64
-
-        >>> cov = CategoryCov(pd.DataFrame([[8, 2, 3], [2, 10, 4], [3, 4, 7]], index=['A', 'B', 'C'], columns=['A', 'B', 'C']))
-        >>> mu = np.ones(cov.data.shape[0])
-        >>> cov.log2norm_mean(mu)
-        A   -1.09861e+00
-        B   -1.19895e+00
-        C   -1.03972e+00
-        dtype: float64
-
-        Reindexing example
-        
-        """
-        mu_ = pd.Series(mu)
-        mu_.index = self.data.index
-        return np.log(mu_**2 / np.sqrt(np.diag(self.data) + mu_**2))
-
-    def sampling(self, nsmp, seed=None, rows=None, pdf='normal',
-                 tolerance=None, relative=True):
+    def sampling(self, nsmp, seed=None, pdf='normal', tolerance=1e-10, relative=True, **kwargs):
         """
         Extract perturbation coefficients according to chosen distribution with
         covariance from given covariance matrix. See note for non-normal
@@ -670,9 +582,6 @@ class CategoryCov():
         seed : `int`, optional, default is `None`
             seed for the random number generator (by default use `numpy`
             dafault pseudo-random number generator).
-        rows : `int`, optional, default is `None`
-            option to use row calculation for matrix calculations. This option
-            defines the number of lines to be taken into account in each loop.
         pdf : `str`, optional, default is 'normal'
             random numbers distribution.
             Available distributions are:
@@ -704,334 +613,148 @@ class CategoryCov():
             samples are avoided for uniform distribution.
 
         .. note:: sampling with lognormal distribution gives a set of samples
-            with mean=1 as lognormal distribution can not have mean=0.
-            Therefore, `relative` parameter does not apply to it.
+            with mean=1 since a lognormal distribution cannot have mean=0.
+            In this case the `relative` parameter does not apply to it.
 
         Examples
         --------
-        Draw 3 sets of samples using custom seed:
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, relative=False).data + 1
-                     0            1
-        0 -7.49455e-01 -2.13159e+00
-        1  1.28607e+00  1.10684e+00
-        2  1.48457e+00  9.00879e-01
+        Common parameters.
+        >>> seed = 11
+        >>> nsmp = 1e5
+        
+        Create Positive-Definite covariance matrix with small stdev.
+        >>> index = columns = ["A", "B"]
+        >>> c = pd.DataFrame([[1, 0.4],[0.4, 1]], index=index, columns=index) / 10
+        >>> cov = sandy.CategoryCov(c)
 
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, rows=1, relative=False).data + 1
-                     0            1
-        0 -7.49455e-01 -2.13159e+00
-        1  1.28607e+00  1.10684e+00
-        2  1.48457e+00  9.00879e-01
+        Draw relative samples using different distributions.
+        >>> smp_n = cov.sampling(nsmp, seed=seed, pdf='normal')
+        >>> smp_ln = cov.sampling(nsmp, seed=seed, pdf='lognormal')
+        >>> smp_u = cov.sampling(nsmp, seed=seed, pdf='uniform')
 
-        >>> sample = sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(1000000, seed=11, relative=False)
-        >>> sample.data.cov()
-                    0           1
-        0 9.98662e-01 3.99417e-01
-        1 3.99417e-01 9.98156e-01
+        The sample mean converges to a unit vector.
+        >>> np.testing.assert_array_almost_equal(smp_n.get_mean(), [1, 1], decimal=2)
+        >>> np.testing.assert_array_almost_equal(smp_ln.get_mean(), [1, 1], decimal=2)
+        >>> np.testing.assert_array_almost_equal(smp_u.get_mean(), [1, 1], decimal=2)
 
-        Small negative eigenvalue:
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, tolerance=0, relative=False).data + 1
-                    0           1
-        0 2.74945e+00 5.21505e+00
-        1 7.13927e-01 1.07147e+00
-        2 5.15435e-01 1.64683e+00
+        The sample covariance converges to the original one.
+        >>> np.testing.assert_array_almost_equal(smp_n.get_cov(), c, decimal=3)
+        >>> np.testing.assert_array_almost_equal(smp_ln.get_cov(), c, decimal=3)
+        >>> np.testing.assert_array_almost_equal(np.diag(smp_u.get_cov()), np.diag(c), decimal=3)
 
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, tolerance=0, relative=False).data.cov()
-                     0            1
-        0  9.98662e-01 -1.99822e-01
-        1 -1.99822e-01  2.99437e+00
+        Samples are reproducible by setting a seed.
+        assert cov.sampling(nsmp, seed=seed, pdf='normal').data.equals(smp_n.data)
 
-        Sampling with different `pdf`:
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, pdf='uniform', tolerance=0, relative=False).data + 1
-                     0           1
-        0 -1.07578e-01 2.34960e+00
-        1 -6.64587e-01 5.21222e-01
-        2  8.72585e-01 9.12563e-01
 
-        >>> sandy.CategoryCov([[1, .2],[.2, 3]]).sampling(3, seed=11, pdf='lognormal', tolerance=0)
-                    0           1
-        0 3.03419e+00 1.57919e+01
-        1 5.57248e-01 4.74160e-01
-        2 4.72366e-01 6.50840e-01
 
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=False).data.cov()
-                     0            1
-        0  1.00042e+00 -1.58806e-03
-        1 -1.58806e-03  3.00327e+00
+        Create Positive-Definite covariance matrix with small stdev (small negative eig).
+        >>> c = pd.DataFrame([[1, 1.2],[1.2, 1]], index=index, columns=index) / 10
+        >>> cov = sandy.CategoryCov(c)
 
-        >>> sandy.CategoryCov([[1, .2],[.2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0).data.cov()
-                    0           1
-        0 1.00219e+00 1.99199e-01
-        1 1.99199e-01 3.02605e+00
+        >>> smp_0 = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=0)
+        >>> np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=2)
+        >>> smp_inf = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=np.inf)
+        >>> import pytest
+        >>> with pytest.raises(Exception):
+        ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
 
-        `relative` kwarg usage:
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=False).data.mean(axis=0) + 1
-        0   1.00014e+00
-        1   9.99350e-01
-        dtype: float64
 
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='normal', tolerance=0, relative=False).data.mean(axis=0)
-        0    1.41735e-04
-        1   -6.49679e-04
-        dtype: float64
 
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=False).data.mean(axis=0) + 1
-        0   9.98106e-01
-        1   9.99284e-01
-        dtype: float64
+        Create Positive-Definite covariance matrix with small stdev (large negative eig).
+        >>> c = pd.DataFrame([[1, 4],[4, 1]], index=index, columns=index) / 10
+        >>> cov = sandy.CategoryCov(c)
+        
+        Samples kind of converge only if we set a low tolerance
+        >>> smp_0 = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=0)
+        >>> with pytest.raises(Exception):
+        ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
+        >>> smp_inf = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=np.inf)
+        >>> with pytest.raises(Exception):
+        ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
 
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(1000000, seed=11, pdf='uniform', tolerance=0, relative=False).data.mean(axis=0)
-        0   -1.89367e-03
-        1   -7.15929e-04
-        dtype: float64
 
-        Lognormal distribution sampling independency from `relative` kwarg
-        >>> sandy.CategoryCov([[1, .2],[.2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=True).data.mean(axis=0)
-        0   9.99902e-01
-        1   9.99284e-01
-        dtype: float64
 
-        >>> sandy.CategoryCov([[1, .2],[.2, 3]]).sampling(1000000, seed=11, pdf='lognormal', tolerance=0, relative=False).data.mean(axis=0)
-        0   9.99902e-01
-        1   9.99284e-01
-        dtype: float64
+        Create Positive-Definite covariance matrix with large stdev.
+        >>> index = columns = ["A", "B"]
+        >>> c = pd.DataFrame([[1, 0.4],[0.4, 1]], index=index, columns=index) / 10
+        >>> cov = sandy.CategoryCov(c)
 
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, pdf='normal', relative=True)
-                    0           1
-        0 0.00000e+00 0.00000e+00
-        1 1.28607e+00 1.10684e+00
-        2 1.48457e+00 9.00879e-01
+        Need to increase the amount of samples
+        >>> nsmp = 1e6
 
-        >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).sampling(3, seed=11, pdf='uniform', relative=True)
-                    0           1
-        0 3.60539e-01 1.44987e+00
-        1 3.89505e-02 8.40407e-01
-        2 9.26437e-01 9.70854e-01
+        The sample mean still converges to a unit vector.
+        >>> np.testing.assert_array_almost_equal(smp_n.get_mean(), [1, 1], decimal=2)
+        >>> np.testing.assert_array_almost_equal(smp_ln.get_mean(), [1, 1], decimal=2)
+        >>> np.testing.assert_array_almost_equal(smp_u.get_mean(), [1, 1], decimal=2)
 
-        >>> sandy.CategoryCov([[1, -.2],[-.2, 3]]).sampling(3, seed=11, tolerance=0, relative=True)
-                    0           1
-        0 2.00000e+00 2.00000e+00
-        1 7.13927e-01 1.07147e+00
-        2 5.15435e-01 1.64683e+00
+        Only the lognormal covariance still converges.
+        >>> with pytest.raises(Exception):   
+        ...    raise np.testing.assert_array_almost_equal(smp_n.get_cov(), c, decimal=1)
+        >>> np.testing.assert_array_almost_equal(smp_ln.get_cov(), c, decimal=2)
+        >>> with pytest.raises(Exception):   
+        ...    raise np.testing.assert_array_almost_equal(np.diag(smp_u.get_cov()), np.diag(c), decimal=1)
         """
-        dim = self.data.shape[0]
-        pdf_ = pdf if pdf != 'lognormal' else 'normal'
-        y = sample_distribution(dim, nsmp, seed=seed, pdf=pdf_) - 1
-        y = sps.csc_matrix(y)
-        # the covariance matrix to decompose is created depending on the chosen
-        # pdf
+        allowed_pdf = [
+            "normal",
+            "lognormal",
+            "uniform",
+            ]
+        if pdf not in allowed_pdf:
+            raise ValueError("`pdf='lognormal'` not allowed")
+
+        if not relative and pdf=='lognormal':
+            raise ValueError("`pdf='lognormal'` and `relative=False` is not a valid combination")
+        
+        nsmp_ = int(nsmp)
+
+        # -- Draw IID samples with mu=0 and std=1
+        np.random.seed(seed=seed)
         if pdf == 'uniform':
-            to_decompose = self.__class__(np.diag(np.diag(self.data)))
+            a = np.sqrt(12) / 2
+            y = np.random.uniform(-a, a, (self.size, nsmp_))
+        else:
+            y = np.random.randn(self.size, nsmp_)
+
+        # -- Fix covariance matrix according to distribution
+        if pdf == 'uniform':
+            # no cross-correlation term is considered
             if relative:
                 a = np.sqrt(12) / 2 # upper bound of the distribution y
-                std = np.sqrt(np.diag(to_decompose.data)) 
+                std = np.sqrt(np.diag(self.data)) 
                 std_modified = np.where(std < 1 / a, std, 1 / a)
                 cov = np.diag(std_modified**2)
-                to_decompose = self.__class__(cov, index=to_decompose.data.index, 
-                                              columns=to_decompose.data.columns)
+            else:
+                cov = np.diag(np.diag(self.data))
+            to_decompose = self.__class__(cov, index=self.data.index, columns=self.data.columns)
         elif pdf == 'lognormal':
-            ones = np.ones(self.data.shape[0])
-            to_decompose = self.log2norm_cov(ones)
+            ucov = np.log(self.sandwich(np.eye(self.size)).data + 1).values  # covariance matrix of underlying normal distribution
+            to_decompose = self.__class__(ucov, index=self.data.index, columns=self.data.columns)
         else:
             to_decompose = self
-        L = sps.csr_matrix(to_decompose.get_L(rows=rows,
-                                              tolerance=tolerance))
-        samples = pd.DataFrame(L.dot(y).toarray(), index=self.data.index,
-                               columns=list(range(nsmp)))
+
+        # -- Decompose covariance into lower triangular
+        L = to_decompose.get_L(tolerance=tolerance)
+
+        # -- Apply covariance to samples
+        inner = (sparse.csr_matrix(L.values) @ sparse.csr_matrix(y)).todense()
+
+        index = self.data.index
+        columns = list(range(nsmp_))
+        samples = pd.DataFrame(inner, index=index, columns=columns)
+
+        # -- Fix sample (and sample mean) according to distribution
         if pdf == 'lognormal':
-            # mean value of lognormally sampled distributions will be one by
-            # defaul
-            samples = np.exp(samples.add(self.log2norm_mean(ones), axis=0))
+            mu = np.ones(self.size)
+            umu = np.log(mu**2 / np.sqrt(np.diag(self.data) + mu**2))   # mean of the underlying normal distribution
+            samples = np.exp(samples.add(umu, axis=0))
         elif relative:
             samples += 1
             lower_bound = samples > 0
             upper_bound = samples < 2
             samples = samples.where(lower_bound, 0)
             samples = samples.where(upper_bound, 2)
-        return sandy.Samples(samples.T)
 
-    @classmethod
-    def from_var(cls, var):
-        """
-        Construct the covariance matrix from the variance vector.
-
-        Parameters
-        ----------
-        var : 1D iterable
-            Variance vector.
-
-        Returns
-        -------
-        `CategoryCov`
-            Object containing the covariance matrix.
-
-        Example
-        -------
-        >>> S = pd.Series(np.array([0, 2, 3]), index=pd.Index([1, 2, 3]))
-        >>> cov = sandy.CategoryCov.from_var(S)
-        >>> cov
-                    1           2           3
-        1 0.00000e+00 0.00000e+00 0.00000e+00
-        2 0.00000e+00 2.00000e+00 0.00000e+00
-        3 0.00000e+00 0.00000e+00 3.00000e+00
-
-        >>> assert type(cov) is sandy.CategoryCov
-
-        >>> S = sandy.CategoryCov.from_var((1, 2, 3))
-        >>> S
-                    0           1           2
-        0 1.00000e+00 0.00000e+00 0.00000e+00
-        1 0.00000e+00 2.00000e+00 0.00000e+00
-        2 0.00000e+00 0.00000e+00 3.00000e+00
-
-        >>> assert type(S) is sandy.CategoryCov
-        >>> assert type(sandy.CategoryCov.from_var([1, 2, 3])) is sandy.CategoryCov
-        """
-        var_ = pd.Series(var)
-        cov_values = sps.diags(var_.values).toarray()
-        cov = pd.DataFrame(cov_values,
-                           index=var_.index, columns=var_.index)
-        return cls(cov)
-
-    @classmethod
-    def from_stdev(cls, std):
-        """
-        Construct the covariance matrix from the standard deviation vector.
-
-        Parameters
-        ----------
-        std : `pandas.Series`
-            Standard deviations vector.
-
-        Returns
-        -------
-        `CategoryCov`
-            Object containing the covariance matrix.
-
-        Example
-        -------
-        >>> S = pd.Series(np.array([0, 2, 3]), index=pd.Index([1, 2, 3]))
-        >>> cov = sandy.CategoryCov.from_stdev(S)
-        >>> cov
-                    1           2           3
-        1 0.00000e+00 0.00000e+00 0.00000e+00
-        2 0.00000e+00 4.00000e+00 0.00000e+00
-        3 0.00000e+00 0.00000e+00 9.00000e+00
-
-        >>> assert type(cov) is sandy.CategoryCov
-
-        >>> S = sandy.CategoryCov.from_stdev((1, 2, 3))
-        >>> S
-                    0           1           2
-        0 1.00000e+00 0.00000e+00 0.00000e+00
-        1 0.00000e+00 4.00000e+00 0.00000e+00
-        2 0.00000e+00 0.00000e+00 9.00000e+00
-
-        >>> assert type(S) is sandy.CategoryCov
-        >>> assert type(sandy.CategoryCov.from_stdev([1, 2, 3])) is sandy.CategoryCov
-        """
-        std_ = pd.Series(std)
-        var = std_ * std_
-        return cls.from_var(var)
-
-    @classmethod
-    def from_stack(cls, data_stack, index, columns, values, rows=10000000,
-                   kind='upper'):
-        """
-        Create a covariance matrix from a stacked dataframe.
-
-        Parameters
-        ----------
-        data_stack : `pd.Dataframe`
-            Stacked dataframe.
-        index : 1D iterable, optional
-            Index of the final covariance matrix.
-        columns : 1D iterable, optional
-            Columns of the final covariance matrix.
-        values : `str`, optional
-            Name of the column where the values are located.
-        rows : `int`, optional
-            Number of rows to take into account into each loop. The default
-            is 10000000.
-        kind : `str`, optional
-            Select if the stack data represents upper or lower triangular
-            matrix. The default is 'upper.
-
-        Returns
-        -------
-        `sandy.CategoryCov`
-            Covarinace matrix.
-
-        Examples
-        --------
-        If the stack data represents the covariance matrix:
-        >>> S = pd.DataFrame(np.array([[1, 1, 1], [1, 2, 1], [1, 1, 1]]))
-        >>> S = S.stack().reset_index().rename(columns = {'level_0': 'dim1', 'level_1': 'dim2', 0: 'cov'})
-        >>> S = S[S['cov'] != 0]
-        >>> sandy.CategoryCov.from_stack(S, index=['dim1'], columns=['dim2'], values='cov', kind='all')
-        dim2           0           1           2
-        dim1                                    
-        0    1.00000e+00 1.00000e+00 1.00000e+00
-        1    1.00000e+00 2.00000e+00 1.00000e+00
-        2    1.00000e+00 1.00000e+00 1.00000e+00
-
-        If the stack data represents only the upper triangular part of the
-        covariance matrix:
-        >>> test_1 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT", "MT", "E"], columns=["MAT1", "MT1", "E1"], values='VAL').data
-        >>> test_1
-        	        MAT1	    9437
-                    MT1	        2	                    102
-                    E1	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
-        MAT	   MT	E				
-        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
-              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
-
-        >>> test_2 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT", "MT", "E"], columns=["MAT1", "MT1", "E1"], values='VAL', rows=1).data
-        >>> test_2
-        	        MAT1	    9437
-                    MT1	        2	                    102
-                    E1	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
-        MAT	   MT	E				
-        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
-              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
-
-        >>> assert (test_1 == test_2).all().all()
-
-        If the stack data represents only the lower triangular part of the
-        covariance matrix:
-        >>> test_1 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT1", "MT1", "E1"], columns=["MAT", "MT", "E"], values='VAL', kind="lower").data
-        >>> test_1
-        	        MAT	        9437
-                    MT	        2	                    102
-                    E	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
-        MAT1  MT1	E1				
-        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
-              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
-
-        >>> test_2 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT1", "MT1", "E1"], columns=["MAT", "MT", "E"], values='VAL', kind="lower", rows=1).data
-        >>> test_2
-        	        MAT 	    9437
-                    MT	        2	                    102
-                    E	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
-        MAT1  MT1	E1				
-        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
-              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
-
-        >>> assert (test_1 == test_2).all().all()
-        """
-        cov = segmented_pivot_table(data_stack, rows=rows, index=index,
-                                    columns=columns, values=values)
-        if kind == 'all':
-            return cls(cov)
-        else:
-            return triu_matrix(cov, kind=kind)
+        return sandy.Samples(samples)
 
     def gls_cov_update(self, S, Vy_extra=None):
         """
@@ -1201,114 +924,6 @@ class CategoryCov():
         columns = self.data.columns
         return self.__class__(cov, index=index, columns=columns)
 
-    @classmethod
-    @cov33csv
-    def from_csv(cls, file, **kwargs):
-        """
-        Read covariance matrix from csv file using `pandas.read_csv`.
-
-        Parameters
-        ----------
-        file: `str`
-            csv file containing covariance matrix (with or w/o indices and
-            columns)
-        kwargs: `dict`
-            keyword arguments to pass to `pd.read_csv`
-
-        Returns
-        -------
-        `CategoryCov`
-            object containing covariance matrix
-
-        Examples
-        --------
-        Read a 2x2 matrix from a string in csv format.
-        >>> from io import StringIO
-        >>> cov = pd.DataFrame([[1, 0.4],[0.4, 1]])
-        >>> string = StringIO(cov.to_csv())
-        >>> sandy.CategoryCov.from_csv(string, index_col=0)
-                    0           1
-        0 1.00000e+00 4.00000e-01
-        1 4.00000e-01 1.00000e+00
-
-        Now use `pandas.MultiIndex` as `index` and `columns`.
-        This example represents the case of a cross section covariance matrix
-        for `MAT=9437`, `MT=18` and two energy points `[1e-5, 1e6]`.
-        >>> tuples = [(9437, 18, 1e-5), (9437, 18, 1e6)]
-        >>> index = pd.MultiIndex.from_tuples(tuples, names=("MAT", "MT", "E"))
-        >>> cov.index = cov.columns = index
-        >>> string = StringIO(cov.to_csv())
-        >>> pos = [0, 1, 2]
-        >>> sandy.CategoryCov.from_csv(string, index_col=pos, header=pos)
-        MAT                        9437            
-        MT                           18            
-        E                         1e-05   1000000.0
-        MAT  MT E                                  
-        9437 18 1.00000e-05 1.00000e+00 4.00000e-01
-                1.00000e+06 4.00000e-01 1.00000e+00
-        """
-        df = pd.read_csv(file, **kwargs)
-        return cls(df)
-
-    @classmethod
-    def random_corr(cls, size, correlations=True, seed=None, **kwargs):
-        """
-        >>> sandy.CategoryCov.random_corr(2, seed=1)
-                    0           1
-        0 1.00000e+00 4.40649e-01
-        1 4.40649e-01 1.00000e+00
-
-        >>> sandy.CategoryCov.random_corr(2, correlations=False, seed=1)
-                    0           1
-        0 1.00000e+00 0.00000e+00
-        1 0.00000e+00 1.00000e+00
-        """
-        np.random.seed(seed=seed)
-        corr = np.eye(size)
-        if correlations:
-            offdiag = np.random.uniform(-1, 1, size**2).reshape(size, size)
-            up = np.triu(offdiag, 1)
-        else:
-            up = np.zeros([size, size])
-        corr += up + up.T
-        return cls(corr, **kwargs)
-
-    @classmethod
-    def random_cov(cls, size, stdmin=0.0, stdmax=1.0, correlations=True,
-                   seed=None, **kwargs):
-        """
-        Construct a covariance matrix with random values
-
-        Parameters
-        ----------
-        size : `int`
-            Dimension of the original matrix
-        stdmin : `float`, default is 0
-            minimum value of the uniform standard deviation vector
-        stdmax : `float`, default is 1
-            maximum value of the uniform standard deviation vector
-        correlation : `bool`, default is True
-            flag to insert the random correlations in the covariance matrix
-        seed : `int`, optional, default is `None`
-            seed for the random number generator (by default use `numpy`
-            dafault pseudo-random number generator)
-
-        Returns
-        -------
-        `CategoryCov`
-            object containing covariance matrix
-
-        Examples
-        --------
-        >>> sandy.CategoryCov.random_cov(2, seed=1)
-                    0           1
-        0 2.15373e-02 5.97134e-03
-        1 5.97134e-03 8.52642e-03
-        """
-        corr = random_corr(size, correlations=correlations, seed=seed)
-        std = np.random.uniform(stdmin, stdmax, size)
-        return CategoryCov(corr).corr2cov(std)
-
     def to_sparse(self, method='csr_matrix'):
         """
         Method to extract `CategoryCov` values into a sparse matrix
@@ -1359,7 +974,7 @@ class CategoryCov():
             raise ValueError('The method does not exist in scipy.sparse')
         return data_sp
 
-    def get_L(self, rows=None, tolerance=None):
+    def get_L(self, tolerance=None):
         """
         Extract lower triangular matrix `L` for which `L*L^T == self`.
 
@@ -1393,18 +1008,6 @@ class CategoryCov():
         1	-6.00000e+00	1.00000e+00	0.00000e+00
         2	 8.00000e+00	5.00000e+00	3.00000e+00
 
-        >>> sandy.CategoryCov(a).get_L(rows=1)
-                       0	          1	          2
-        0	-2.00000e+00	0.00000e+00	0.00000e+00
-        1	-6.00000e+00	1.00000e+00	0.00000e+00
-        2	 8.00000e+00	5.00000e+00	3.00000e+00
-
-        Matrix with negative eigenvalues
-        >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(rows=1, tolerance=0)
-                       0	          1
-        0	-1.08204e+00	0.00000e+00
-        1	 1.75078e+00	0.00000e+00
-
         >>> sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(tolerance=0)
                        0	          1
         0	-1.08204e+00	0.00000e+00
@@ -1419,7 +1022,7 @@ class CategoryCov():
         2	-1.60000e+01	-4.30000e+01	 9.80000e+01
 
         Matrix with negative eigenvalues, tolerance of 0:
-        >>> L = sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(rows=1, tolerance=0)
+        >>> L = sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(tolerance=0)
         >>> L.dot(L.T)
         	           0	           1
         0	 1.17082e+00	-1.89443e+00
@@ -1427,431 +1030,23 @@ class CategoryCov():
         """
         index = self.data.index
         columns = self.data.columns
-        # Reduces the size of the matrix, erasing the zero values
-        nonzero_idxs, cov_reduced = reduce_size(self.data)
-        # Obtain the eigenvalues and eigenvectors:
-        E, V = sandy.CategoryCov(cov_reduced).get_eig(tolerance=tolerance)
-        E = sps.diags(np.sqrt(E)).toarray()
-        # Construct the matrix:
-        rows_ = cov_reduced.shape[0] if rows is None else rows
-        A = sandy.cov.sparse_tables_dot(V, E, rows=rows_).T.toarray()
-        # QR decomposition:
-        Q, R = scipy.linalg.qr(A)
-        L_redu = R.T
-        # Original size
-        L = restore_size(nonzero_idxs, L_redu, len(self.data)).values
+
+        # Obtain the eigenvalues and eigenvectors
+        E, V = sandy.CategoryCov(self.data).get_eig(tolerance=tolerance)
+
+        # need sparse because much faster for large matrices (2kx2k from J33 Pu9)
+        # with a lot of zero eigs
+        # this is exactly equivalent to V.values @ np.diag(np.sqrt(E.values))
+        A = (sparse.csr_matrix(V.values) @ sparse.csr_matrix(np.diag(np.sqrt(E.values)))).todense()
+        
+#        u, s, vh = self.get_svd()
+#        A = (sparse.csr_matrix(u) @ sparse.csr_matrix(np.diag(np.sqrt(s)))).todense()
+
+        # QR decomposition
+        Q, R = scipy.linalg.qr(A.T)
+        L = R.T
+
         return pd.DataFrame(L, index=index, columns=columns)
-
-
-class EnergyCov(CategoryCov):
-    """
-    Dataframe for a multigroup covariance matrix.
-
-    .. note:: It is assumed that the covariance matrix is defined over
-              multi-group energy grids.
-
-              Only 'zero' interpolation is supported.
-
-    Attributes
-    ----------
-    data : `pandas.DataFrame`
-        covariance matrix as a dataframe
-
-    Methods
-    -------
-    add
-    
-    change_grid
-        
-    from_lb1
-        
-    from_lb2
-        
-    from_lb5_sym
-        
-    from_lb5_asym
-        
-    from_lb6
-        
-    sum_covs
-       
-    Raises
-    ------
-    `sandy.Error`
-        if index values are not monotonically increasing
-    `sandy.Error`
-        if columns values are not monotonically increasing
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    @property
-    def data(self):
-        """
-        Covariance matrix as a dataframe.
-
-        Attributes
-        ----------
-        index : `pandas.Index`
-            indices
-        columns : `pandas.MultiIndex`
-            indices
-        values : `numpy.array`
-            covariance values as `float`
-
-        Returns
-        -------
-        `pandas.DataFrame`
-            covariance matrix
-
-        Raises
-        ------
-        `sandy.Error`
-            if `index` or `columns` are not monotonically increasing
-        """
-        return self._data
-
-    @data.setter
-    def data(self, data):
-        self._data = pd.DataFrame(data)
-        self._data.index = pd.Index(
-                self._data.index.values,
-                name="E",
-                )
-        self._data.columns = pd.Index(
-                self._data.columns.values,
-                name="E",
-                )
-        if not self._data.index.is_monotonic_increasing:
-            raise sandy.Error("index values are not monotonically increasing")
-        if not self._data.columns.is_monotonic_increasing:
-            raise sandy.Error("columns values are not monotonically "
-                              "increasing")
-
-    def change_grid(self, ex, ey, inplace=False):
-        """
-        Given one energy grid for the x-axis and one energy grid for the
-        y-axis, interpolate/extrapolate the covariance matrix over the new
-        points using the *forward-filling* method.
-
-        .. important::
-
-            * backward extrapolated values (e.g. below threshold) are replaced
-              by 0
-            * forward extrapolated values (e.g. above 20 MeV) are replaced by
-              the covariance coefficient that refers to the last point in the
-              original grid
-
-        Parameters
-        ----------
-        ex : `iterable`
-            energy grid for the x-axis
-        ey : `iterable`
-            energy grid for the y-axis
-
-        Returns
-        -------
-        `sandy.EnergyCov`
-            Covariance matrix interpolated over the new axes.
-
-        Examples
-        --------
-        >>> eg = [1e-2, 1e6]
-        >>> C = sandy.EnergyCov.random_corr(2, seed=1, index=eg, columns=eg)
-        >>> C.change_grid([0, 1, 1e6, 1e7], [0, 1, 1e6, 1e7])
-        E            0.00000e+00  1.00000e+00  1.00000e+06  1.00000e+07
-        E                                                              
-        0.00000e+00  0.00000e+00  0.00000e+00  0.00000e+00  0.00000e+00
-        1.00000e+00  0.00000e+00  1.00000e+00  4.40649e-01  4.40649e-01
-        1.00000e+06  0.00000e+00  4.40649e-01  1.00000e+00  1.00000e+00
-        1.00000e+07  0.00000e+00  4.40649e-01  1.00000e+00  1.00000e+00
-        """
-        df = self.data.reindex(index=ex, method="ffill") \
-                      .reindex(columns=ey, method="ffill") \
-                      .fillna(0)
-        if not inplace:
-            return self.__class__(df)
-        self.data = df
-
-    def _plot_matrix(self, ax, xscale='log', yscale='log', cmap='bwr',
-                     vmin=-1, vmax=1, emin=1e-5, emax=2e7, **kwargs):
-        new_xgrid = np.unique([*self.data.index, *[emin, emax]])
-        new_ygrid = np.unique([*self.data.columns, *[emin, emax]])
-        data = self.change_grid(ex=new_xgrid, ey=new_ygrid).data
-        X, Y = np.meshgrid(data.index.values, data.columns.values)
-        qmesh = ax.pcolormesh(
-                    X.T,
-                    Y.T,
-                    data.values,
-                    cmap=cmap,
-                    vmin=vmin,
-                    vmax=vmax,
-                    **kwargs,
-                    )
-        ax.set_xlim([emin, emax])
-        ax.set_ylim([emin, emax])
-        plt.colorbar(qmesh)
-        ax.set_xscale(xscale)
-        ax.set_yscale(yscale)
-        return ax
-
-    def add(self, cov, inplace=False):
-        """
-        Add the content of another `EnergyCov` (sum).
-        If the energy grids do not match, interpolate.
-
-        Parameters
-        ----------
-        cov : `sandy.EnergyCov`
-            multigroup covariance matrices (axes can be different)
-        inplace : `bool`, optional, default is `False`
-            flag to operate **inplace**
-
-        Returns
-        -------
-        `sandy.EnergyCov`
-            Multi-group covariance matrix.
-
-        Examples
-        --------
-        >>> eg = [1e-2, 1e6]
-        >>> C = sandy.EnergyCov.random_corr(2, seed=1, index=eg, columns=eg)
-        >>> C.add(C)
-        E            1.00000e-02  1.00000e+06
-        E                                    
-        1.00000e-02  2.00000e+00  8.81298e-01
-        1.00000e+06  8.81298e-01  2.00000e+00
-
-        >>> eg = [1e-1, 1]
-        >>> D = sandy.EnergyCov.random_corr(2, seed=5, index=eg, columns=eg)
-        >>> C.add(D)
-        E            1.00000e-02  1.00000e-01  1.00000e+00  1.00000e+06
-        E                                                              
-        1.00000e-02  1.00000e+00  1.00000e+00  1.00000e+00  4.40649e-01
-        1.00000e-01  1.00000e+00  2.00000e+00  1.74146e+00  1.18211e+00
-        1.00000e+00  1.00000e+00  1.74146e+00  2.00000e+00  1.44065e+00
-        1.00000e+06  4.40649e-01  1.18211e+00  1.44065e+00  2.00000e+00
-
-        >>> assert C.add(D).data.equals(D.add(C).data)
-        """
-        ex = np.unique([*self.data.index, *cov.data.index])
-        ey = np.unique([*self.data.columns, *cov.data.columns])
-        x = self.change_grid(ex, ey)
-        y = cov.change_grid(ex, ey)
-        data = x.data.add(y.data)
-        if inplace:
-            self.data = data
-        else:
-            return self.__class__(data)
-
-    @classmethod
-    def sum_covs(cls, *covs):
-        """
-        Sum multigroup covariance matrices into a single one.
-
-        Parameters
-        ----------
-        covs : iterable of `sandy.EnergyCov`
-            list of multigroup covariance matrices (axes can be different)
-
-        Returns
-        -------
-        `sandy.EnergyCov`
-            Multi-group covariance matrix.
-
-        Examples
-        --------
-        Sum two 2x2 correlation matrices with different indices and columns
-        >>> eg = [1e-2, 1e6]
-        >>> C = sandy.EnergyCov.random_corr(2, seed=1, index=eg, columns=eg)
-        >>> eg = [1e-1, 1]
-        >>> D = sandy.EnergyCov.random_corr(2, seed=5, index=eg, columns=eg)
-        >>> sandy.EnergyCov.sum_covs(C, D)
-        E            1.00000e-02  1.00000e-01  1.00000e+00  1.00000e+06
-        E                                                              
-        1.00000e-02  1.00000e+00  1.00000e+00  1.00000e+00  4.40649e-01
-        1.00000e-01  1.00000e+00  2.00000e+00  1.74146e+00  1.18211e+00
-        1.00000e+00  1.00000e+00  1.74146e+00  2.00000e+00  1.44065e+00
-        1.00000e+06  4.40649e-01  1.18211e+00  1.44065e+00  2.00000e+00
-        """
-        return functools.reduce(lambda x, y: x.add(y), covs)
-
-    @classmethod
-    def from_lb1(cls, evalues, fvalues):
-        """Extract square covariance matrix from NI-type sub-subsection data 
-        with flag `lb=1`.
-        
-        Parameters
-        ----------
-        evalues : iterable
-            covariance energy grid (same for both axes)
-        fvalues : iterable
-            array of F-values (covriance matrix diagonal)
-        
-        Returns
-        -------
-        `sandy.EnergyCov`
-            Multi-group covariance matrix.
-        """
-        cov = np.diag(fvalues)
-        return cls(cov, index=evalues, columns=evalues)
-
-    @classmethod
-    def from_lb2(cls, evalues, fvalues):
-        """Extract square covariance matrix from NI-type sub-subsection data 
-        with flag `lb=2`.
-        
-        Parameters
-        ----------
-        evalues : `iterable`
-            covariance energy grid for both axis
-        fvalues : `iterable`
-            array of F-values
-        
-        Returns
-        -------
-        `sandy.formats.utils.EnergyCov`
-            Multi-group covariance matrix.
-        """
-        f = np.array(fvalues)
-        cov = f*f.reshape(-1,1)
-        return cls(cov, index=evalues, columns=evalues)
-
-    @classmethod
-    def from_lb5_sym(cls, evalues, fvalues):
-        """Extract square symmetric covariance matrix from NI-type sub-subsection data 
-        with flag `lb=5`.
-        
-        Parameters
-        ----------
-        evalues : `iterable`
-            covariance energy grid for both axis
-        fvalues : `iterable`
-            array of F-values (flattened upper triangular matrix coefficients)
-        
-        Returns
-        -------
-        `sandy.formats.utils.EnergyCov`
-            Multi-group covariance matrix.
-        """
-        ne = len(evalues)
-        cov = np.zeros([ne - 1, ne - 1])
-        indices = np.triu_indices(ne - 1)
-        cov[indices] = np.array(fvalues)
-        cov += np.triu(cov, 1).T
-        # add zero row and column at the end of the matrix
-        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-        return cls(cov, index=evalues, columns=evalues)
-
-    @classmethod
-    def from_lb5_asym(cls, evalues, fvalues):
-        """
-        Extract square asymmetric covariance matrix from NI-type sub-subsection data 
-        with flag `lb=5`.
-        
-        Parameters
-        ----------
-        evalues : `iterable`
-            covariance energy grid for both axis
-        fvalues : `iterable`
-            array of F-values (flattened full matrix)
-        
-        Returns
-        -------
-        `sandy.formats.utils.EnergyCov`
-            Multi-group covariance matrix.
-        """
-        ne = len(evalues)
-        cov = np.array(fvalues).reshape(ne - 1, ne - 1)
-        # add zero row and column at the end of the matrix
-        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-        return cls(cov, index=evalues, columns=evalues)
-
-    @classmethod
-    def from_lb6(cls, evalues_r, evalues_c, fvalues):
-        """Extract covariance matrix from NI-type sub-subsection data 
-        with flag `lb6`.
-        
-        Parameters
-        ----------
-        evalues_r : `iterable`
-            covariance energy grid for row axis
-        evalues_c : `iterable`
-            covariance energy grid for column axis
-        fvalues : `iterable`
-            array of F-values (flattened full matrix)
-        
-        Returns
-        -------
-        `sandy.formats.utils.EnergyCov`
-            Multi-group covariance matrix.
-        """
-        ner = len(evalues_r)
-        nec = len(evalues_c)
-        cov = np.array(fvalues).reshape(ner-1, nec-1)
-        # add zero row and column at the end of the matrix
-        cov = np.insert(cov, cov.shape[0], [0]*cov.shape[1], axis=0)
-        cov = np.insert(cov, cov.shape[1], [0]*cov.shape[0], axis=1)
-        return cls(cov, index=evalues_r, columns=evalues_c)
-
-
-class GlobalCov(CategoryCov):
-
-    @classmethod
-    def from_list(cls, iterable):
-        """
-        Extract global cross section/nubar covariance matrix from iterables 
-        of `EnergyCovs`.
-        
-        Parameters
-        ----------
-        iterable : iterable
-            list of tuples/lists/iterables with content `[mat, mt, mat1, mt1, EnergyCov]`
-        
-        Returns
-        -------
-        `XsCov` or `pandas.DataFrame`
-            global cross section/nubar covariance matrix (empty dataframe if no covariance matrix was found)
-        """
-        columns = ["KEYS_ROWS", "KEYS_COLS", "COV"]
-        # Reindex the cross-reaction matrices
-        covs = pd.DataFrame.from_records(iterable).set_axis(columns, axis=1).set_index(columns[:-1]).COV
-        for (keys_rows,keys_cols), cov in covs.iteritems():
-            if keys_rows == keys_cols: # diagonal terms
-                if cov.data.shape[0] != cov.data.shape[1]:
-                    raise SandyError("non-symmetric covariance matrix for ({}, {})".format(keys_rows, keys_cols))
-                if not np.allclose(cov.data, cov.data.T):
-                    raise SandyError("non-symmetric covariance matrix for ({}, {})".format(keys_rows, keys_cols))
-            else: # off-diagonal terms
-                condition1 = (keys_rows,keys_rows) in covs.index
-                condition2 = (keys_cols,keys_cols) in covs.index
-                if not (condition1 and condition2):
-                    covs[keys_rows,keys_cols] = np.nan
-                    logging.warn("skip covariance matrix for ({}, {})".format(keys_rows, keys_cols))
-                    continue
-                ex = covs[keys_rows,keys_rows].data.index.values
-                ey = covs[keys_cols,keys_cols].data.columns.values
-                covs[keys_rows,keys_cols] = cov.change_grid(ex, ey)
-        covs.dropna(inplace=True)
-        if covs.empty:
-            logging.warn("covariance matrix is empty")
-            return pd.DataFrame()
-        # Create index for global matrix
-        rows_levels = covs.index.levels[0]
-        indexlist = [(*keys,e) for keys in rows_levels for e in covs[(keys,keys)].data.index.values]
-        index = pd.MultiIndex.from_tuples(indexlist, names=cls.labels)
-        # Create global matrix
-        matrix = np.zeros((len(index),len(index)))
-        for (keys_rows,keys_cols), cov in covs.iteritems():
-            ix = index.get_loc(keys_rows)
-            ix1 = index.get_loc(keys_cols)
-            matrix[ix.start:ix.stop,ix1.start:ix1.stop] = cov.data
-            if keys_rows != keys_cols:
-                matrix[ix1.start:ix1.stop,ix.start:ix.stop] = cov.data.T
-        return cls(matrix, index=index, columns=index)
 
 
 def corr2cov(corr, s):
@@ -2165,102 +1360,6 @@ def restore_size(nonzero_idxs, mat_reduced, dim):
     return pd.DataFrame(mat)
 
 
-def sample_distribution(dim, nsmp, seed=None, pdf='normal'):
-    """
-    Extract random independent and identically distributed samples according to
-    the chosen distribution with standard deviation=1 and mean=1.
-
-    Parameters
-    ----------
-    dim : `int`
-        Dimension of the matrix from where we obtain the samples.
-    nsmp : `int`
-        number of samples.
-    seed : `int`, optional, default is `None`
-        seed for the random number generator (by default use `numpy`
-        dafault pseudo-random number generator).
-    pdf : `str`, optional
-        Random numbers distribution. The default is 'normal'
-        Available distributions are:
-            * `'normal'`
-            * `'uniform'`
-            * `'lognormal'`
-
-    Returns
-    -------
-    y : `np.array`
-        Numpy array with the random numbers.
-        
-    Notes
-    -----
-    .. note:: the implementation of the lognormal distribution sampling is
-            performed with the following equations:
-            ..math::
-                $$
-                \mu_{LN} = \exp(\mu_N + \frac{\sigma_N^2}{2})\\
-                \sigma_{LN} = \sqrt{[\exp(2\mu_N + 2\sigma_N^2) - \exp(2\mu_N + \sigma_N^2)]}
-                $$
-            More details can be found in reference: https://linkinghub.elsevier.com/retrieve/pii/S0168900213008450
-                                                    DOI: 10.1016/J.NIMA.2013.06.025
-   
-    Examples
-    --------
-    >>> sandy.cov.sample_distribution(2, 3, seed=11)
-    array([[ 2.74945474,  0.713927  ,  0.51543487],
-           [-1.65331856,  0.99171537,  0.68036864]])
-
-    >>> sandy.cov.sample_distribution(2, 3, seed=11, pdf='uniform')
-    array([[-0.10757829, -0.66458659,  0.87258524],
-           [ 1.77919399,  0.72357718,  0.94951799]])
-    
-    >>> sandy.cov.sample_distribution(2, 3, seed=11, pdf='lognormal')
-    array([[3.03418551, 0.55724795, 0.4723663 ],
-           [0.07764515, 0.70224636, 0.54189439]])
-
-    >>> sandy.cov.sample_distribution(2, 1000000, seed=11).mean().round(5)
-    1.00025
-
-    >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='uniform').mean().round(5)
-    0.99885
-
-    >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='lognormal').mean().round(5)
-    0.99953
-
-    >>> sandy.cov.sample_distribution(2, 1000000, seed=11).std().round(5)
-    0.99919
-
-    >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='uniform').std().round(5)
-    1.00038
-
-    >>> sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='lognormal').std().round(5)
-    0.99756
-
-    >>> np.corrcoef(sandy.cov.sample_distribution(2, 1000000, seed=11)).round(5)
-    array([[1.e+00, 5.e-05],
-           [5.e-05, 1.e+00]])
-
-    >>> np.corrcoef(sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='uniform')).round(5)
-    array([[ 1.0e+00, -9.2e-04],
-           [-9.2e-04,  1.0e+00]])
-
-    >>> np.corrcoef(sandy.cov.sample_distribution(2, 1000000, seed=11, pdf='lognormal')).round(5)
-    array([[ 1.0e+00, -2.6e-04],
-           [-2.6e-04,  1.0e+00]])
-    """
-    np.random.seed(seed=seed)
-    if pdf == 'normal':
-        y = np.random.randn(dim, nsmp) + 1
-    elif pdf == 'uniform':
-        a = np.sqrt(12) / 2
-        y = np.random.uniform(-a, a, (dim, nsmp)) + 1
-    elif pdf == 'lognormal':
-        sl = ml = 1 # target mean and standard deviation of the lognormal distribution
-        mn = 2 * np.log(ml) - .5 * np.log(sl**2 + np.exp(2 * np.log(ml))) # required mean of the corresponding normal distibution (note reference in the docstring)
-        sn = np.sqrt(2 * (np.log(ml) - mn)) # required standard deviation of the corresponding normal distibution (note reference in the docstring)
-        y = np.random.lognormal(mn, sn, (dim, nsmp))
-    return y
-
-
 def random_corr(size, correlations=True, seed=None):
     np.random.seed(seed=seed)
     corr = np.eye(size)
@@ -2281,16 +1380,3 @@ def random_cov(size, stdmin=0.0, stdmax=1.0, correlations=True, seed=None):
 def random_ctg_cov(index, stdmin=0.0, stdmax=1.0, correlations=True, seed=None):
     cov = random_cov(len(index), stdmin=stdmin, stdmax=stdmax, correlations=correlations, seed=seed)
     return pd.DataFrame(cov, index=index, columns=index)
-
-
-def print_matrix(size, triu_matrices):
-    coords = list(zip(*np.triu_indices(size)))
-    kwargs = {"cbar": False, "vmin": -1, "vmax": 1, "cmap": "RdBu"}
-    fig,ax = plt.subplots(size, size, sharex="col", sharey="row")
-    for (i,j), m in zip(coords, MM):
-        if m is None:
-            continue
-        ax[i,j] = sns.heatmap(m, ax=ax[i,j], **kwargs)
-        if i != j:
-            ax[j,i] = sns.heatmap(m.T, ax=ax[j,i], **kwargs)
-    return fig, ax

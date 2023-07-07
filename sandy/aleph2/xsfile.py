@@ -1,9 +1,6 @@
-import pytest
 import re
-import h5py
 import logging
 from io import StringIO
-import itertools
 import os
 from copy import deepcopy
 
@@ -315,77 +312,6 @@ class AlephFile():
             xs = v["xs"]
             lines += write_xs(k, xs, self.npoints, qval)
         return "\n".join(lines)
-
-    def to_hdf5(self, h5file, library, temperature, dtype=None):
-        """
-        Read ALEPH xs file in ascii format and append content
-        to existing/new hdf5 file.
-
-        Datasets of xs are appended to the hdf5 file hierarchical
-        sructure with library name, xs temperature and isotope zam
-        as group keys.
-
-        Parameters
-        ----------
-        h5file : `str`
-            hdf5 filename.
-            If the file does not exist it is created.
-        library : `str`
-            library identifier
-        temperature : `float`
-            temperature in K
-        dtype : optional, default is None
-
-        Examples
-        --------
-        >>> AlephFile.from_text(test_aleph2xs).to_hdf5("test.h5",
-        ...                                  library="test",
-        ...                                  temperature=900)
-        Adding 'test/xs/900.0/952410' to file'test.h5'...
-        """
-        # filename was initially kept to extract temperature and library
-        # in `to_hdf5`.
-        # Now these data have to be supplied manually
-        dct = self.data
-        key = f"{library:s}/xs/{temperature:.1f}/{self.nuclide:d}"
-        print(f"Adding '{key}' to file'{h5file}'...")
-        hdf = sandy.H5File(h5file)   # use aleph h5file module
-        hdf.open(mode="a")
-        if key in hdf.data:
-            logging.warning(f"hdf5 dataset '{key}' already exists "
-                            "and will be replaced")
-            del hdf.data[key]
-        group = hdf.data.create_group(key)
-        # some attributes are redundant as they are already in group key
-        group.attrs["nuclide"] = dct["nuclide"]   # this is redundant
-        group.attrs["temperature"] = float(temperature)
-        group.attrs["library"] = library          # this is redundant
-        group.attrs["fission_qvalue"] = dct["fission_qvalue"]
-        group.attrs["capture_qvalue"] = dct["capture_qvalue"]
-        # add energy to the reaction list
-        lst = [dct["energies"]]
-        products = []
-        for k, v in dct["reactions"].items():
-            xs = v["xs"]
-            lst.append(xs)
-            products.append(k)
-        lengths = np.array(list(itertools.accumulate([v.size for v in lst])))
-        group.create_dataset(
-                "reactions",
-                data=np.concatenate(lst),
-                dtype=dtype,
-                )
-        group.create_dataset(
-                "products",
-                data=[0] + products,
-                dtype=int,
-                )
-        group.create_dataset(
-                "lengths",
-                data=lengths,
-                dtype=int,
-                )
-        hdf.close()
 
     @classmethod
     def from_file(cls, file):

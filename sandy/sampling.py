@@ -1,515 +1,15 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Mar 19 22:51:03 2018
-
-@author: Luca Fiorito
-"""
-
 import os
 import time
-import pdb
-import shutil
-import sys
-import argparse
 import logging
-import tempfile
-import multiprocessing as mp
-import platform
-import pytest
-
-import numpy as np
-import pandas as pd
+import argparse
+import filecmp
 
 import sandy
-from sandy.settings import SandyError
-from sandy.formats import read_formatted_file, get_file_format
-from sandy.formats.endf6 import Endf6
-from sandy.formats.utils import FySamples, XsCov
-from sandy import pfns
 from sandy.tools import is_valid_dir, is_valid_file
-from sandy import njoy
+
 
 __author__ = "Luca Fiorito"
-__all__ = [
-        "SamplingManager",
-        "sampling",
-        ]
-
-
-def get_parser():
-    description = """Produce perturbed files containing sampled parameters
-     that represent the information\nstored in the evaluated nuclear data
-     covariances"""
-    parser = argparse.ArgumentParser(
-                        prog="sandy",
-                        description=description,
-                        formatter_class=argparse.RawTextHelpFormatter,
-                        )
-    SamplingManager.add_file_argument(parser)
-    SamplingManager.add_covfile_argument(parser)
-    SamplingManager.add_mat_argument(parser)
-    SamplingManager.add_mf_argument(parser)
-    SamplingManager.add_mt_argument(parser)
-    SamplingManager.add_processes_argument(parser)
-    SamplingManager.add_samples_argument(parser)
-    SamplingManager.add_version_argument(parser)
-    return parser
-
-
-class SamplingManager():
-    """
-    Attributes
-    ----------
-    file : `str`
-        ENDF-6 or PENDF format file
-    covfile : `str`
-        ENDF-6 file containing covariances
-    mat : `list` of `int`
-        draw samples only from the selected MAT sections
-    mf : `list` of `int`
-        draw samples only from the selected MF sections
-    mt : `list` of `int`
-        draw samples only from the selected MT sections
-    processes : `int`
-        number of worker processes (default is 1)
-    samples : `int`
-        number of samples (default is 100)
-    """
-
-    def __repr__(self):
-        return self.__dict__.__repr__()
-
-    def __init__(self, file):
-        self.file = file
-
-    @property
-    def file(self):
-        """
-        Examples
-        --------
-        >>> with pytest.raises(Exception): sandy.SamplingManager("random_file")
-        """
-        return self._file
-
-    @file.setter
-    def file(self, file):
-        if not os.path.isfile(file):
-            raise ValueError(f"File '{file}' does not exist")
-        self._file = file
-
-    @staticmethod
-    def add_file_argument(parser):
-        parser.add_argument(
-                'file',
-                help="ENDF-6 or PENDF format file",
-                )
-
-    @property
-    def covfile(self):
-        """
-        """
-        if hasattr(self, "_covfile"):
-            return self._covfile
-        else:
-            return None
-
-    @covfile.setter
-    def covfile(self, covfile):
-        if not covfile:
-            self._covfile = None
-        else:
-            if not os.path.isfile(covfile):
-                raise ValueError(f"File '{covfile}' does not exist")
-            self._covfile = covfile
-
-    @staticmethod
-    def add_covfile_argument(parser):
-        parser.add_argument(
-                '--covfile', '-C',
-                help="ENDF-6 file containing covariances",
-                )
-
-    @property
-    def mat(self):
-        if hasattr(self, "_mat"):
-            return self._mat
-        else:
-            return list(range(1, 10000))
-
-    @mat.setter
-    def mat(self, mat):
-        self._mat = np.array(mat).astype(int).tolist()
-
-    @staticmethod
-    def add_mat_argument(parser):
-        parser.add_argument(
-                '--mat',
-                type=int,
-                default=list(range(1, 10000)),
-                action='store',
-                nargs="+",
-                metavar="{1,..,9999}",
-                help="draw samples only from the selected MAT sections "
-                     "(default is keep all)",
-                )
-
-    @property
-    def mf(self):
-        if hasattr(self, "_mf"):
-            return self._mf
-        else:
-            return [31, 33, 34, 35]
-
-    @mf.setter
-    def mf(self, mf):
-        self._mf = np.array(mf).astype(int).tolist()
-
-    @staticmethod
-    def add_mf_argument(parser):
-        parser.add_argument(
-                '--mf',
-                type=int,
-                default=[31, 33, 34, 35],
-                action='store',
-                nargs="+",
-                metavar="{31,33,34,35}",
-                help="draw samples only from the selected MF sections "
-                     "(default is keep all)",
-                )
-
-    @property
-    def mt(self):
-        if hasattr(self, "_mt"):
-            return self._mt
-        else:
-            return list(range(1, 1000))
-
-    @mt.setter
-    def mt(self, mt):
-        self._mt = np.array(mt).astype(int).tolist()
-
-    @staticmethod
-    def add_mt_argument(parser):
-        parser.add_argument(
-                '--mt',
-                type=int,
-                default=list(range(1, 1000)),
-                action='store',
-                nargs="+",
-                metavar="{1,..,999}",
-                help="draw samples only from the selected MT sections "
-                     "(default = keep all)",
-                 )
-
-    @property
-    def processes(self):
-        if hasattr(self, "_processes"):
-            return 1
-        else:
-            return self._processes
-
-    @processes.setter
-    def processes(self, processes):
-        if platform.system() == "Windows":
-            self._processes = 1
-            logging.info("Running on Windows does not allow parallel "
-                         "processing")
-        else:
-            self._processes = int(processes)
-
-    @staticmethod
-    def add_processes_argument(parser):
-        parser.add_argument(
-                '--processes', '-N',
-                type=int,
-                default=1,
-                help="number of worker processes (default is 1)",
-                )
-
-    @property
-    def samples(self):
-        if hasattr(self, "_samples"):
-            return 100
-        else:
-            return self._samples
-
-    @samples.setter
-    def samples(self, samples):
-        self._samples = int(samples)
-
-    @staticmethod
-    def add_samples_argument(parser):
-        parser.add_argument(
-                '--samples', '-S',
-                type=int,
-                default=100,
-                help="number of samples (default is 100)",
-                )
-
-    @staticmethod
-    def add_version_argument(parser):
-        parser.add_argument(
-                "--version", "-v",
-                action='version',
-                version=f'%(prog)s {sandy.__version__}',
-                help="code version",
-                )
-
-    @classmethod
-    def from_cli(cls, iargs=None):
-        """
-        Parse command line arguments for sampling option.
-
-        Parameters
-        ----------
-        iargs : `list` of `str`, optional, default is `None`
-            list of strings to parse.
-            The default is taken from `sys.argv`.
-
-        Returns
-        -------
-        `sandy.SamplingManager`
-            object to draw samples from endf6 file
-
-        Examples
-        --------
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
-        >>> sm = sandy.SamplingManager.from_cli([file])
-        """
-        arguments, skip = get_parser().parse_known_args(args=iargs)
-        sm = cls(arguments.file)
-        for k, v in arguments._get_kwargs():
-            sm.__setattr__(k, v)
-        return sm
-
-    @classmethod
-    def from_cli2(cls, iargs=None):
-        """
-        Parse command line arguments for sampling option.
-
-        Parameters
-        ----------
-        iargs : `list` of `str`, optional, default is `None`
-            list of strings to parse.
-            The default is taken from `sys.argv`.
-
-        Returns
-        -------
-        `argparse.Namespace`
-            namespace object containing processed given arguments and/or
-            default options.
-        """
-        description = """Produce perturbed files containing sampled parameters
-        that represent the information\nstored in the evaluated nuclear data 
-        covariances"""
-        parser = argparse.ArgumentParser(
-                            prog="sandy",
-                            description=description,
-                            formatter_class=argparse.RawTextHelpFormatter,
-                            )
-        parser.add_argument('--acer',
-                            default=False,
-                            action="store_true",
-                            help="for each perturbed file, produce ACE files\n"
-                                 "(argument file must be in ENDF-6 format, not PENDF)\n(argument temperature is required)\n(default = False)")
-        parser.add_argument('--cov33csv',
-                            type=lambda x: is_valid_file(parser, x),
-                            help="file containing xs/nubar covariances in csv "
-                                 "format")
-        parser.add_argument('--debug',
-                            default=False,
-                            action="store_true",
-                            help="turn on debug mode")
-        parser.add_argument('--eig',
-                            type=int,
-                            default=10,
-                            metavar="N",
-                            help="print the first N eigenvalues of the evaluated covariance matrices\n(default = do not print)")
-        parser.add_argument('--energy-sequence', '-E',
-                            type=int,
-                            metavar="EL",
-                            default=49,
-                            help=argparse.SUPPRESS)
-        parser.add_argument('--errorr',
-                            default=False,
-                            action="store_true",
-                            help="run NJOY module ERRORR to produce covariance "
-                                 "matrix for xs data (default = False)")
-        parser.add_argument('--fission-yields', '-F',
-                            default=False,
-                            action="store_true",
-                            help="input <file> contains fission yields")
-        parser.add_argument('--max-polynomial', '-P',
-                            type=int,
-                            help="Maximum order of Legendre polynomial coefficients considered for sampling (default = all)")
-        parser.add_argument('--njoy',
-                            type=lambda x: is_valid_file(parser, x),
-                            default=None,
-                            help="NJOY executable "
-                                 "(default search PATH, and env variable NJOY)")
-        parser.add_argument('--outdir', '-D',
-                            metavar="DIR",
-                            default=os.getcwd(),
-                            type=lambda x: is_valid_dir(parser, x, mkdir=True),
-                            help="target directory where outputs are stored\n(default = current working directory)\nif it does not exist it will be created")
-        parser.add_argument('--outname', '-O',
-                            type=str,
-                            help="basename for the output files "
-                                 "(default is the the basename of <file>.)")
-        parser.add_argument('--seed31',
-                            type=int,
-                            default=None,
-                            metavar="S31",
-                            help="seed for random sampling of MF31 covariance "
-                                 "matrix (default = random)")
-        parser.add_argument('--seed33',
-                            type=int,
-                            default=None,
-                            metavar="S33",
-                            help="seed for random sampling of MF33 covariance "
-                                 "matrix (default = random)")
-        parser.add_argument('--seed34',
-                            type=int,
-                            default=None,
-                            metavar="S34",
-                            help="seed for random sampling of MF34 covariance "
-                                 "matrix (default = random)")
-        parser.add_argument('--seed35',
-                            type=int,
-                            default=None,
-                            metavar="S35",
-                            help="seed for random sampling of MF35 covariance "
-                                 "matrix (default = random)")
-        parser.add_argument('--temperatures', '-T',
-                            default=[],
-                            type=float,
-                            action='store',
-                            nargs="+",
-                            metavar="T",
-                            help="for each perturbed file, produce ACE files at "
-                                 "given temperatures")
-        init = parser.parse_known_args(args=iargs)[0]
-        if init.acer and not init.temperatures:
-            parser.error("--acer requires --temperatures")
-        if init.acer and sandy.formats.get_file_format(init.file) != "endf6":
-            parser.error("--acer requires file in 'endf6' format")
-        return init
-
-    @property
-    def tape(self):
-        if not hasattr(self, "_tape"):
-            self._tape = sandy.Endf6.from_file(self.file)
-        return self._tape
-
-    @tape.setter
-    def tape(self, tape):
-        self._tape = tape
-
-    @property
-    def covtape(self):
-        if not self.covfile or self.covfile == self.file:
-            self._covtape = self.tape
-        if not hasattr(self, "_covtape"):
-            self._covtape = sandy.Endf6.from_file(self.covfile)
-        return self._covtape
-
-    @covtape.setter
-    def covtape(self, covtape):
-        self._covtape = covtape
-
-    def get_xs_samples(self):
-        """
-        Draw samples using all covariance sections in the given tape.
-        """
-        mf = 33
-        pertxs = None
-        if mf in self.mf and mf in self.covtape.mf:
-            covtape = self.covtape.filter_by(
-                    listmat=self.mat,
-                    listmf=[33],
-                    listmt=self.mt,
-                    )
-            xscov = sandy.XsCov.from_endf6(covtape)
-            if not xscov.empty:
-                pertxs = xscov.get_samples(self.samples)#, eig=init.eig, seed=init.seed33)
-        return pertxs
-
-
-def _process_into_ace(ismp):
-    global init
-    outname = init.outname if init.outname else os.path.basename(init.file)
-    smpfile = os.path.join(init.outdir, f'{outname}-{ismp}')
-    print(ismp)
-    kwargs = dict(
-        purr=False,
-        wdir=init.outdir,
-        keep_pendf=False,
-        pendftape=smpfile,
-        tag=f"_{ismp}",
-        temperatures=init.temperatures,
-        err=0.005,
-        addpath="",
-        )
-    fmt = sandy.formats.get_file_format(smpfile)
-    if fmt == "pendf":
-        kwargs["pendftape"] = smpfile
-        inp = init.file
-    elif fmt == "endf6":
-        inp = smpfile
-    input, inputs, outputs = njoy.process(inp, **kwargs)
-
-
-def _sampling_mp(ismp, skip_title=False, skip_fend=False):
-    global init, pnu, pxs, plpc, pchi, pfy, tape
-    t0 = time.time()
-    mat = tape.mat[0]
-    newtape = Endf6(tape.copy())
-    extra_points = np.logspace(-5, 7, init.energy_sequence)
-    if not pxs.empty:
-        xs = newtape.get_xs()
-        if not xs.empty:
-            xspert = xs.perturb(pxs[ismp])
-            newtape = newtape.update_xs(xspert)
-    if not pnu.empty:
-        nubar = newtape.get_nubar()
-        if not nubar.empty:
-            nubarpert = nubar.perturb(pnu[ismp])
-            newtape = newtape.update_nubar(nubarpert)
-    if not pchi.empty:
-        # use new format tape for energy distribution
-        endfnew = sandy.Endf6._from_old_format(newtape)
-        edistr = sandy.Edistr.from_endf6(endfnew).add_points(extra_points)
-        if not edistr.empty:
-            edistrpert = edistr.perturb(pchi[ismp])
-            newtape = newtape.update_edistr(edistrpert)
-    if not plpc.empty:
-        lpc = newtape.get_lpc().add_points(extra_points)
-        if not lpc.empty:
-            lpcpert = lpc.perturb(plpc[ismp])
-            newtape = newtape.update_lpc(lpcpert)
-    if not pfy.empty:
-        fy = newtape.get_fy()
-        if not fy.empty:
-            fypert = fy.perturb(pfy[ismp])
-            newtape = newtape.update_fy(fypert)
-    print("Created sample {} for MAT {} in {:.2f} sec".format(ismp, mat, time.time()-t0,))
-    descr = ["perturbed file No.{} created by SANDY".format(ismp)]
-    return newtape.delete_cov().update_info(descr=descr).write_string(skip_title=skip_title, skip_fend=skip_fend)
-
-
-
-# def _sampling_fy_mp(ismp, skip_title=False, skip_fend=False):
-    # global tape, PertFY, init
-    # t0 = time.time()
-    # mat = tape.mat[0]
-    # newtape = Endf6(tape.copy())
-    # fy = newtape.get_fy()
-    # fynew = fy.perturb(PertFy[ismp])
-    # newtape = newtape.update_fy(fynew)
-    # print("Created sample {} for MAT {} in {:.2f} sec".format(ismp, mat, time.time()-t0,))
-    # descr = ["perturbed file No.{} created by SANDY".format(ismp)]
-    # return newtape.delete_cov().update_info(descr=descr).write_string(skip_title=skip_title, skip_fend=skip_fend)
-
+__all__ = []
 
 
 def parse(iargs=None):
@@ -517,8 +17,9 @@ def parse(iargs=None):
 
     Parameters
     ----------
-    iargs : `list` of `str`
-        list of strings to parse. The default is taken from `sys.argv`.
+    iargs : `list` of `str` or `None`, default is `None`,
+        list of strings to parse.
+        The default is taken from `sys.argv`.
 
     Returns
     -------
@@ -526,52 +27,28 @@ def parse(iargs=None):
         namespace object containing processed given arguments and/or default
         options.
     """
-    description = "Produce perturbed files containing sampled parameters that "
-    "represent the information\nstored in the evaluated nuclear "
-    "data covariances"
+    description = "Produce perturbed files containing sampled parameters that represent the information stored in the evaluated nuclear data covariances."""
     parser = argparse.ArgumentParser(
                         prog="sandy",
                         description=description,
                         formatter_class=argparse.RawTextHelpFormatter,
                         )
+
     parser.add_argument('file',
-                        type=lambda x: is_valid_file(parser, x),
-                        help="ENDF-6 or PENDF format file")
+                        help="ENDF-6 file")
+
     parser.add_argument('--acer',
                         default=False,
                         action="store_true",
-                        help="for each perturbed file, produce ACE files\n"
-                             "(argument file must be in ENDF-6 format, not PENDF)\n(argument temperature is required)\n(default = False)")
-    parser.add_argument('--cov', '-C',
-                        type=lambda x: is_valid_file(parser, x),
-                        help="file containing covariances")
-    parser.add_argument('--cov33csv',
-                        type=lambda x: is_valid_file(parser, x),
-                        help="file containing xs/nubar covariances in csv "
-                             "format")
+                        help="Process each perturbed file into ACE format "
+                        "(default = False)\n"
+                        "(--temperatures is required)")
+
     parser.add_argument('--debug',
                         default=False,
                         action="store_true",
-                        help="turn on debug mode")
-    parser.add_argument('--eig',
-                        type=int,
-                        default=10,
-                        metavar="N",
-                        help="print the first N eigenvalues of the evaluated covariance matrices\n(default = do not print)")
-    parser.add_argument('--energy-sequence', '-E',
-                        type=int,
-                        metavar="EL",
-                        default=49,
-                        help=argparse.SUPPRESS)
-    parser.add_argument('--errorr',
-                        default=False,
-                        action="store_true",
-                        help="run NJOY module ERRORR to produce covariance "
-                             "matrix for xs data (default = False)")
-    parser.add_argument('--fission-yields', '-F',
-                        default=False,
-                        action="store_true",
-                        help="input <file> contains fission yields")
+                        help="activate debug options (err=1, verbose=True, minimal_processing=True)")
+
     parser.add_argument('--mat',
                         type=int,
                         default=list(range(1, 10000)),
@@ -580,445 +57,266 @@ def parse(iargs=None):
                         metavar="{1,..,9999}",
                         help="draw samples only from the selected MAT "
                              "sections (default = keep all)")
-    parser.add_argument('--max-polynomial', '-P',
-                        type=int,
-                        help="Maximum order of Legendre polynomial coefficients considered for sampling (default = all)")
+
     parser.add_argument('--mf',
                         type=int,
-                        default=[31, 33, 34, 35],
+                        default=[31, 33,],
                         action='store',
                         nargs="+",
-                        metavar="{31,33,34,35}",
+                        metavar="{31,33}",
                         help="draw samples only from the selected MF sections "
                              "(default = keep all)")
-    parser.add_argument('--mt',
+
+    parser.add_argument('--mt33',
                         type=int,
-                        default=list(range(1, 1000)),
+                        default=None,
                         action='store',
                         nargs="+",
                         metavar="{1,..,999}",
                         help="draw samples only from the selected MT sections "
                              "(default = keep all)")
-    parser.add_argument('--pdf',
-                        type=str.lower,
-                        choices=['normal', 'lognormal', 'uniform'],
-                        default='normal',
-                        help="draw samples according to the chosen distribution. "
-                             "Available options are 'normal', 'lognormal' or 'uniform' "
-                             "(default = 'normal')")
+
     parser.add_argument('--njoy',
                         type=lambda x: is_valid_file(parser, x),
                         default=None,
                         help="NJOY executable "
                              "(default search PATH, and env variable NJOY)")
-    parser.add_argument('--outdir', '-D',
-                        metavar="DIR",
-                        default=os.getcwd(),
-                        type=lambda x: is_valid_dir(parser, x, mkdir=True),
-                        help="target directory where outputs are stored\n(default = current working directory)\nif it does not exist it will be created")
+
     parser.add_argument('--outname', '-O',
                         type=str,
-                        help="basename for the output files "
-                             "(default is the the basename of <file>.)")
+                        default="{ZA}_{SMP}",
+                        help="name template for the output files\n"
+                             "(use formatting options in https://pyformat.info/ ,\n"
+                             "available keywords are MAT, ZAM, ZA, META, SMP)")
+
     parser.add_argument('--processes', '-N',
                         type=int,
                         default=1,
                         help="number of worker processes (default = 1)")
+
     parser.add_argument('--samples', '-S',
                         type=int,
                         default=200,
                         help="number of samples (default = 200)")
+
     parser.add_argument('--seed31',
                         type=int,
-                        default=None,
+                        default=sandy.get_seed(),
                         metavar="S31",
                         help="seed for random sampling of MF31 covariance "
                              "matrix (default = random)")
+
     parser.add_argument('--seed33',
                         type=int,
-                        default=None,
+                        default=sandy.get_seed(),
                         metavar="S33",
                         help="seed for random sampling of MF33 covariance "
                              "matrix (default = random)")
+
     parser.add_argument('--seed34',
                         type=int,
-                        default=None,
+                        default=sandy.get_seed(),
                         metavar="S34",
                         help="seed for random sampling of MF34 covariance "
                              "matrix (default = random)")
+
     parser.add_argument('--seed35',
                         type=int,
-                        default=None,
+                        default=sandy.get_seed(),
                         metavar="S35",
                         help="seed for random sampling of MF35 covariance "
                              "matrix (default = random)")
+
     parser.add_argument('--temperatures', '-T',
-                        default=[],
+                        default=None,
                         type=float,
                         action='store',
                         nargs="+",
                         metavar="T",
                         help="for each perturbed file, produce ACE files at "
                              "given temperatures")
+
     parser.add_argument("--version", "-v",
                         action='version',
                         version='%(prog)s {}'.format(sandy.__version__),
                         help="SANDY's version.")
+
+
     init = parser.parse_known_args(args=iargs)[0]
     if init.acer and not init.temperatures:
         parser.error("--acer requires --temperatures")
-    if init.acer and sandy.formats.get_file_format(init.file) != "endf6":
-        parser.error("--acer requires file in 'endf6' format")
     return init
 
 
-def extract_samples(ftape, covtape):
+def multi_run(foo):
     """
-    Draw samples using all covariance sections in the given tape.
+    Decorator to handle keyword arguments for NJOY before running
+    the executable.
+
+    Examples
+    --------
+    Test that `minimal_processing` filters unwanted modules.
+    >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, minimal_processing=True, temperature=300, dryrun=True)
+    >>> assert "broadr" in g and "reconr" in g
+    >>> assert "thermr" not in g and "purr" not in g and "heatr" not in g and "unresr" not in g and "gaspr" not in g
+
+    Test `minimal_processing=False`.
+    >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, temperature=300, dryrun=True)
+    >>> assert "broadr" in g and "reconr" in g
+    >>> assert "thermr" in g and "purr" in g and "heatr" in g and "gaspr" in g
+
+    Check that for `temperature=0` the calculation stops after RECONR.
+    >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, dryrun=True)
+    >>> assert "reconr" in g
+    >>> assert "broadr" not in g and "thermr" not in g and "purr" not in g and "heatr" not in g and "unresr" not in g and "gaspr" not in g
+
+    Retrieve ENDF-6 tape and write it to file.
+    >>> sandy.get_endf6_file("jeff_33", "xs", 10010).to_file("H1.jeff33")
+
+    Produce perturbed ACE file.
+    >>> cli = "H1.jeff33 --acer True --samples 2 --processes 2 --temperatures 900 --seed33 5"
+    >>> sandy.sampling.run(cli.split())
+
+    Check if ACE and XSDIR files have the right content.
+    >>> assert "1001.09c" in open("1001_0.09c").read()
+    >>> assert "1001.09c" in open("1001_0.09c.xsd").read()
+    >>> assert "1001.09c" in open("1001_1.09c").read()
+    >>> assert "1001.09c" in open("1001_1.09c.xsd").read()
+    >>> assert not filecmp.cmp("1001_0.09c", "1001_1.09c")
+
+    Run the same on a single process.
+    >>> cli = "H1.jeff33 --acer True --samples 2 --processes 2 --temperatures 900 --seed33 5 --outname={ZAM}_{SMP}_SP"
+    >>> sandy.sampling.run(cli.split())
+
+    The identical seed ensures consistent results with the previous run.
+    >>> assert filecmp.cmp("1001_0.09c", "10010_0_SP.09c")
+    >>> assert filecmp.cmp("1001_1.09c", "10010_1_SP.09c")
+    >>> assert filecmp.cmp("1001_0.09c.xsd", "10010_0_SP.09c.xsd")
+    >>> assert filecmp.cmp("1001_1.09c.xsd", "10010_1_SP.09c.xsd")
+
+    Produce perturbed ENDF6 and PENDF files.
+    >>> cli = "H1.jeff33 --samples 2 --processes 2 --outname=H1_{MAT}_{SMP} --mt 102"
+    >>> sandy.sampling.run(cli.split())
+    >>> assert os.path.getsize("H1_125_0.pendf") > 0 and os.path.getsize("H1_125_1.pendf") > 0
+
+    >>> assert filecmp.cmp("H1_125_0.endf6", "H1_125_1.endf6")
+    >>> assert filecmp.cmp("H1_125_0.endf6", "H1.jeff33")
     """
-    global init
-    # EXTRACT FY PERTURBATIONS FROM COV FILE
-    PertFy = pd.DataFrame()
-    if 8 in covtape.mf and 454 in ftape.mt:
-        fy = ftape.get_fy(listmat=init.mat, listmt=init.mt)
-        if not fy.empty:
-            index = fy.index.to_frame(index=False)
-            dfperts = []
-            for mat,dfmat in index.groupby("MAT"):
-                for mt,dfmt in dfmat.groupby("MT"):
-                    for e,dfe in dfmt.groupby("E"):
-                        fycov = fy.get_cov(mat, mt, e)
-                        pert = fycov.get_samples(init.samples, eig=0)
-                        dfperts.append(pert)
-            PertFy = FySamples(pd.concat(dfperts))
-            if init.debug:
-                PertFy.to_csv("perts_mf8.csv")
-    # EXTRACT NUBAR PERTURBATIONS FROM ENDF6 FILE
-    PertNubar = pd.DataFrame()
-    if 31 in init.mf and 31 in ftape.mf:
-        nubarcov = XsCov.from_endf6(covtape.filter_by(listmat=init.mat, listmf=[31], listmt=init.mt))
-        if not nubarcov.empty:
-            PertNubar = nubarcov.get_samples(init.samples, eig=init.eig)
-            if init.debug:
-                PertNubar.to_csv("perts_mf31.csv")
-    # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
-    PertEdistr = pd.DataFrame()
-    if 35 in init.mf and 35 in ftape.mf:
-        edistrcov = ftape.get_edistr_cov()
-        if not edistrcov.empty:
-            PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
-            if init.debug:
-                PertEdistr.to_csv("perts_mf35.csv")
-    # EXTRACT PERTURBATIONS FROM LPC COV FILE
-    PertLpc = pd.DataFrame()
-    if 34 in init.mf and 34 in covtape.mf:
-        lpccov = ftape.get_lpc_cov()
-        if not lpccov.empty:
-            if init.max_polynomial:
-                lpccov = lpccov.filter_p(init.max_polynomial)
-            PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
-            if init.debug:
-                PertLpc.to_csv("perts_mf34.csv")
-    # EXTRACT XS PERTURBATIONS FROM COV FILE
-    PertXs = pd.DataFrame()
-    if 33 in init.mf and 33 in covtape.mf:
-        # This part is to get the pendf file
-        if ftape.get_file_format() == "endf6":
-            endf6 = sandy.Endf6.from_file(init.file)
-            pendf = endf6.get_pendf(njoy=init.njoy)
-            with tempfile.TemporaryDirectory() as td:
-                dst = os.path.join(td, "merged")
-                endf6.merge_pendf(pendf).to_file(dst)
-                ftape = read_formatted_file(dst)
-        if init.errorr:
-            if len(ftape.mat) > 1:
-                # Limit imposed by running ERRORR to get covariance matrices
-                raise sandy.Error("More than one MAT number was found")
-            endf6 = sandy.Endf6.from_file(init.file)
-            covtape = endf6.get_errorr(njoy=init.njoy)
+    def inner(cli=None):
+        """
+        Parameters
+        ----------
+        """
+        iargs = parse(cli)
+        if os.path.isdir(iargs.file):
+            path = iargs.file
+            for file in os.listdir(path):
+                iargs.file = os.path.join(path, file)
+                foo(iargs)
+        else:
+            foo(iargs)
+    return inner
+
+
+@multi_run
+def run(iargs):
+    """
+    Run `sandy` sampling sequence.
+
+    Parameters
+    ----------
+    iargs : `list` of `str`
+        arguments of the command line.
+        For example, the two following options are identical:
         
-            
+            - in python
+                .. code-block:: python
+
+                cli = "H1.jeff33 --acer True --samples 1 --processes 1 --temperatures 900 --seed33 5"
+                sandy.sampling.run(cli.split())
                 
+            - from command line
+                .. code-block:: sh
+    
+                    H1.jeff33 --acer True --samples 1 --processes 1 --temperatures 900 --seed33 5
 
-#            with tempfile.TemporaryDirectory() as td:
-#                outputs = njoy.process(init.file, broadr=False, thermr=False, 
-#                                       unresr=False, heatr=False, gaspr=False, 
-#                                       purr=False, errorr=init.errorr, acer=False,
-#                                       wdir=td, keep_pendf=True, exe=init.njoy,
-#                                       temperatures=[0], suffixes=[0], err=0.005)[2]
-#                ptape = read_formatted_file(outputs["tape30"])
-#                if init.debug: shutil.move(outputs["tape30"],  os.path.join(init.outdir, "tape30"))
-#                if init.errorr:
-#                    covtape = read_formatted_file(outputs["tape33"]) # WARNING: by doing this we delete the original covtape
-#                    if init.debug: shutil.move(outputs["tape33"],  os.path.join(init.outdir, "tape33"))
-#            ftape = ftape.delete_sections((None, 3, None)). \
-#                          add_sections(ptape.filter_by(listmf=[3])). \
-#                          add_sections(ptape.filter_by(listmf=[1], listmt=[451]))
-
-        listmt = sorted(set(init.mt + [451])) # ERRORR needs MF1/MT451 to get the energy grid
-        covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmt)
-        xscov = XsCov(covtape.get_cov(multigroup=False).data) if isinstance(covtape, sandy.errorr.Errorr) else XsCov.from_endf6(covtape)
-        if not xscov.empty:
-            PertXs = sandy.CategoryCov(xscov).sampling(init.samples, tolerance=0, seed=init.seed33, pdf=init.pdf).data.T
-            idx = PertXs.index
-            PertXs = pd.DataFrame(PertXs.values, index=idx, columns=range(1, init.samples + 1))
-            PertXs.columns.name = "SMP"
-            if init.debug:
-                PertXs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
-    return ftape, covtape, PertNubar, PertXs, PertLpc, PertEdistr, PertFy
-
-
-def sampling_csv33(ftape, csv):
-    cov = sandy.CategoryCov.from_csv(csv)
-    return sandy.XsCov(cov).get_samples(
-            init.samples,
-            eig=init.eig,
-            seed=init.seed33
-            )
-
-
-def sampling(iargs=None):
+    Returns
+    -------
+    None.
     """
-    Construct multivariate normal distributions with a unit vector for 
-    mean and with relative covariances taken from the evaluated files.
-    Perturbation factors are sampled with the same multigroup structure of 
-    the covariance matrix, and are applied to the pointwise data to produce 
-    the perturbed files.
-    """
-    global init, pnu, pxs, plpc, pchi, pfy, tape
-    init = parse(iargs)
-    ftape = read_formatted_file(init.file)
-    if init.cov33csv:
-        logging.warning("found argument '--cov33csv', will skip any other"
-                        " covariance")
-        catcov = sandy.CategoryCov.from_csv(
-                    init.cov33csv,
-                    index_col=[0, 1, 2],
-                    header=[0, 1, 2],
-                    )
-        covtape = xscov = sandy.CategoryCov(catcov.data)
-        # This part is to get the pendf file
-        if ftape.get_file_format() == "endf6":
-            endf6 = sandy.Endf6.from_file(init.file)
-            pendf = endf6.get_pendf(njoy=init.njoy)
-            with tempfile.TemporaryDirectory() as td:
-                dst = os.path.join(td, "merged")
-                endf6.merge_pendf(pendf).to_file(dst)
-                ftape = read_formatted_file(dst)
-#        if ftape.get_file_format() == "endf6":
-#            with tempfile.TemporaryDirectory() as td:
-#                outputs = njoy.process(init.file, broadr=False, thermr=False, 
-#                                       unresr=False, heatr=False, gaspr=False, 
-#                                       purr=False, errorr=init.errorr, acer=False,
-#                                       wdir=td, keep_pendf=True, exe=init.njoy,
-#                                       temperatures=[0], suffixes=[0], err=0.005)[2]
-#                ptape = read_formatted_file(outputs["tape30"])
-#                if init.debug:
-#                    shutil.move(outputs["tape30"],  os.path.join(init.outdir, "tape30"))
-#            ftape = ftape.delete_sections((None, 3, None)). \
-#                          add_sections(ptape.filter_by(listmf=[3])). \
-#                          add_sections(ptape.filter_by(listmf=[1], listmt=[451]))
-        pxs = xscov.sampling(init.samples, pdf=init.pdf, seed=init.seed33, tolerance=0)
-        cn = pxs.condition_number
-        print(f"Condition number : {cn:>15}")
-        pxs = pxs.data.T
-        idx = pxs.index
-        pxs = pd.DataFrame(pxs.values, index=idx, columns=range(1, init.samples + 1))
-        pxs.columns.name = "SMP"
-        pnu = plpc = pchi = pfy = pd.DataFrame()
-        if init.debug:
-            pxs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
-    else:
-        covtape = read_formatted_file(init.cov) if init.cov else ftape
-        ftape, covtape, pnu, pxs, plpc, pchi, pfy = extract_samples(ftape, covtape)
-    df = {}
-    if pnu.empty and pxs.empty and plpc.empty and pchi.empty and pfy.empty:
-        logging.warn("no covariance section was selected/found")
-        return ftape, covtape, df
-    # APPLY PERTURBATIONS BY MAT
-    for imat, (mat, tape) in enumerate(sorted(ftape.groupby('MAT'))):
-        skip_title = False if imat == 0 else True
-        skip_fend = False if imat == len(ftape.mat) - 1 else True
-        tape = Endf6(tape)
-        kw = dict(skip_title=skip_title, skip_fend=skip_fend)
-        if platform.system() == "Windows":
-            proc = 1
-            logging.info("Running on Windows does not allow parallel "
-                         "processing")
-        else:
-            proc = init.processes
-        seq = range(1, init.samples + 1)
-        if proc == 1:
-            outs = {i: _sampling_mp(i, **kw) for i in seq}
-        else:
-            pool = mp.Pool(processes=proc)
-            outs = {i: pool.apply_async(_sampling_mp, (i,), kw) for i in seq}
-            outs = {i: out.get() for i, out in outs.items()}
-            pool.close()
-            pool.join()
-        df.update({mat: outs})
-    # DUMP TO FILES
-    frame = pd.DataFrame(df)
-    frame.index.name = "SMP"
-    frame.columns.name = "MAT"
-    frame = frame.stack()
-    outname = init.outname if init.outname else os.path.split(init.file)[1]
-    for ismp,dfsmp in frame.groupby("SMP"):
-        output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
-        with open(output, 'w') as f:
-            for mat,dfmat in dfsmp.groupby("MAT"):
-                f.write(frame[ismp,mat])
-    # PRODUCE ACE FILES
-    if init.acer:
-        seq = range(1, init.samples + 1)
-        if init.processes == 1:
-            for i in seq:
-                _process_into_ace(i)
-        else:
-            pool = mp.Pool(processes=init.processes)
-            outs = {i: pool.apply_async(_process_into_ace, (i,)) for i in seq}
-            pool.close()
-            pool.join()
-    return ftape, covtape, df
-
-
-
-
-    pdb.set_trace()
-    df = {}
-    if init.fission_yields:
-        # EXTRACT FY PERTURBATIONS FROM COV FILE
-        fy = ftape.get_fy(listmat=init.mat, listmt=init.mt)
-        if fy.empty:
-            logging.warn("no fission yield section was selected/found")
-            return
-        index = fy.index.to_frame(index=False)
-        dfperts = []
-        for mat,dfmat in index.groupby("MAT"):
-            for mt,dfmt in dfmat.groupby("MT"):
-                for e,dfe in dfmt.groupby("E"):
-                    fycov = fy.get_cov(mat, mt, e)
-                    pert = fycov.get_samples(init.samples, eig=0)
-                    dfperts.append(pert)
-        PertFy = FySamples(pd.concat(dfperts))
-        if init.debug: PertFy.to_csv("perts_mf8.csv")
-        # DELETE LOCAL VARIABLES
-        for k in locals().keys():
-            del locals()[k]
-        # APPLY PERTURBATIONS BY MAT
-        for imat,(mat, tape) in enumerate(sorted(ftape.groupby('MAT'))):
-            skip_title = False if imat == 0 else True
-            skip_fend = False if imat == ftape.index.get_level_values("MAT").unique().size -1 else True
-            tape = Endf6(tape)
-            kw = dict(skip_title=skip_title, skip_fend=skip_fend)
-            if mat not in init.mat:
-                out = tape.write_string(**kw)
-                outs = {i : out for i in range(1,init.samples+1)}
-            else:
-                if init.processes == 1:
-                    outs = {i : _sampling_fy_mp(i, **kw) for i in range(1,init.samples+1)}
-                else:
-                    pool = mp.Pool(processes=init.processes)
-                    outs = {i : pool.apply_async(_sampling_fy_mp, (i,), kw) for i in range(1,init.samples+1)}
-                    outs = {i : out.get() for i,out in outs.items()}
-                    pool.close()
-                    pool.join()
-            df.update({ mat : outs })
-    else:
-        # EXTRACT NUBAR PERTURBATIONS FROM ENDF6 FILE
-        PertNubar = pd.DataFrame()
-        if 31 in init.mf and 31 in ftape.mf:
-            nubarcov = XsCov.from_endf6(covtape.filter_by(listmat=init.mat, listmf=[31], listmt=listmt))
-            if not nubarcov.empty:
-                PertNubar = nubarcov.get_samples(init.samples, eig=init.eig)
-                if init.debug:
-                    PertNubar.to_csv("perts_mf31.csv")
-        # EXTRACT PERTURBATIONS FROM EDISTR COV FILE
-        PertEdistr = pd.DataFrame()
-        if 35 in init.mf and 35 in ftape.mf:
-            edistrcov = ftape.get_edistr_cov()
-            if not edistrcov.empty:
-                PertEdistr = edistrcov.get_samples(init.samples, eig=init.eig)
-                if init.debug:
-                    PertEdistr.to_csv("perts_mf35.csv")
-        # EXTRACT PERTURBATIONS FROM LPC COV FILE
-        PertLpc = pd.DataFrame()
-        if 34 in init.mf and 34 in covtape.mf:
-            lpccov = ftape.get_lpc_cov()
-            if not lpccov.empty:
-                if init.max_polynomial:
-                    lpccov = lpccov.filter_p(init.max_polynomial)
-                PertLpc = lpccov.get_samples(init.samples, eig=init.eig)
-                if init.debug:
-                    PertLpc.to_csv("perts_mf34.csv")
-        # EXTRACT XS PERTURBATIONS FROM COV FILE
-        PertXs = pd.DataFrame()
-        if 33 in init.mf and 33 in covtape.mf:
-            if init.errorr and len(ftape.mat) > 1: # Limit imposed by running ERRORR to get covariance matrices
-                raise SandyError("More than one MAT number was found")
-            if ftape.get_file_format() == "endf6":
-                with tempfile.TemporaryDirectory() as td:
-                    outputs = njoy.process(init.file, broadr=False, thermr=False, 
-                                           unresr=False, heatr=False, gaspr=False, 
-                                           purr=False, errorr=init.errorr, acer=False,
-                                           wdir=td, keep_pendf=True,
-                                           temperatures=[0], suffixes=[0], err=0.005)[2]
-                    ptape = read_formatted_file(outputs["tape30"])
-                    if init.errorr:
-                        covtape = read_formatted_file(outputs["tape33"]) # WARNING: by doing this we delete the original covtape
-                ftape = ftape.delete_sections((None, 3, None)). \
-                              add_sections(ptape.filter_by(listmf=[3])). \
-                              add_sections(ptape.filter_by(listmf=[1], listmt=[451]))
-            listmterr = init.mt if init.mt is None else [451].extend(init.mt) # ERRORR needs MF1/MT451 to get the energy grid
-            covtape = covtape.filter_by(listmat=init.mat, listmf=[1,33], listmt=listmterr)
-            covtype = covtape.get_file_format()
-            xscov = XsCov.from_errorr(covtape) if covtype == "errorr" else XsCov.from_endf6(covtape)
-            if not xscov.empty:
-                PertXs = xscov.get_samples(init.samples, eig=init.eig, seed=init.seed33)
-                if init.debug:
-                    PertXs.to_csv(os.path.join(init.outdir, "perts_mf33.csv"))
-        if PertLpc.empty and PertEdistr.empty and PertXs.empty and PertNubar.empty:
-            sys.exit("no covariance section was selected/found")
-            return
-        pdb.set_trace()
-        # DELETE LOCAL VARIABLES
-        for k in locals().keys():
-            del locals()[k]
-        # APPLY PERTURBATIONS BY MAT
-        for imat,(mat, tape) in enumerate(sorted(ftape.groupby('MAT'))):
-            skip_title = False if imat == 0 else True
-            skip_fend = False if imat == ftape.index.get_level_values("MAT").unique().size -1 else True
-            tape = Endf6(tape)
-            kw = dict(skip_title=skip_title, skip_fend=skip_fend)
-            if init.processes == 1:
-                outs = {i : _sampling_mp(i, **kw) for i in range(1,init.samples+1)}
-            else:
-                pool = mp.Pool(processes=init.processes)
-                outs = {i : pool.apply_async(_sampling_mp, (i,), kw) for i in range(1,init.samples+1)}
-                outs = {i : out.get() for i,out in outs.items()}
-                pool.close()
-                pool.join()
-            df.update({ mat : outs })
-    # DUMP TO FILES
-    frame = pd.DataFrame(df)
-    frame.index.name = "SMP"
-    frame.columns.name = "MAT"
-    frame = frame.stack()
-    outname = init.outname if init.outname else os.path.split(init.file)[1]
-    for ismp,dfsmp in frame.groupby("SMP"):
-        output = os.path.join(init.outdir, '{}-{}'.format(outname, ismp))
-        with open(output, 'w') as f:
-            for mat,dfmat in dfsmp.groupby("MAT"):
-                f.write(frame[ismp,mat])
-
-
-def run():
     t0 = time.time()
-    try:
-        sampling()
-    except SandyError as exc:
-        logging.error(exc.args[0])
-    print("Total running time: {:.2f} sec".format(time.time() - t0))
+    logging.info(f"processing file: '{iargs.file}'")
+    
+    err_pendf = 0.01
+    err_ace = 0.01
+    err_errorr = 0.1
+    if iargs.debug:
+        err_errorr = err_ace = err_pendf = 1
+
+    endf6 = sandy.Endf6.from_file(iargs.file)
+
+    # ERRORR KEYWORDS
+    nubar = bool(31 in iargs.mf) and (31 in endf6.mf)
+    xs = bool(33 in iargs.mf) and (33 in endf6.mf)
+    mubar = False
+    chi = False
+    errorr_kws = dict(
+        verbose=iargs.debug,
+        err=err_errorr,
+        xs=xs,
+        nubar=nubar,
+        chi=chi,
+        mubar=mubar,
+        groupr_kws=dict(nubar=nubar, chi=chi, mubar=mubar, ign=3),
+        errorr_kws=dict(ign=3)
+        )
+    if iargs.mt33:
+        errorr_kws["errorr33_kws"] = dict(mt=iargs.mt33)
+
+    smp_kws = {}
+    smp_kws["seed31"] = iargs.seed31
+    smp_kws["seed33"] = iargs.seed33
+    smp_kws["seed34"] = iargs.seed34
+    smp_kws["seed35"] = iargs.seed35
+
+    smps = endf6.get_perturbations(iargs.samples, njoy_kws=errorr_kws, smp_kws=smp_kws)
+
+
+    if iargs.temperatures:
+        temperature = iargs.temperatures[0] if hasattr(iargs.temperatures, "__len__") else iargs.temperatures
+    else:
+        temperature = 0
+
+    # PENDF KEYWORDS
+    pendf_kws = dict(
+        verbose=iargs.debug,
+        err=err_pendf,
+        minimal_processing=iargs.debug,
+        )
+
+    # ACE KEYWORDS
+    ace_kws = dict(
+        verbose=iargs.debug,
+        err=err_ace,
+        minimal_processing=iargs.debug,
+        temperature=temperature,
+        purr=False,
+        )
+
+        
+    endf6.apply_perturbations(
+        smps,
+        processes=iargs.processes,
+        to_file=True,
+        to_ace=iargs.acer,
+        filename=iargs.outname,
+        njoy_kws=pendf_kws,
+        ace_kws=ace_kws,
+        verbose=iargs.debug,
+    )
+
+    dt = time.time() - t0
+    logging.info(f"Total running time: {dt:.2f} sec")
 
 
 if __name__ == "__main__":

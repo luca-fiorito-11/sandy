@@ -5,16 +5,15 @@ Created on Wed Dec  4 14:50:33 2019
 @author: lfiorito
 """
 import io
-import shutil
 import os
 from functools import reduce
 from tempfile import TemporaryDirectory
 import logging
-from urllib.request import urlopen, Request, urlretrieve
+from urllib.request import urlopen, Request
 from zipfile import ZipFile
 import re
-import pytest
 
+import multiprocessing as mp
 import numpy as np
 import pandas as pd
 import numpy as np
@@ -164,6 +163,14 @@ def get_tsl_index(library):
     data = re.sub(r'<a href="tsl/', '', data)
     print(data.replace('MAT', 'KEY'))
     return
+
+
+nsubs = {
+    4: "decay",
+    10: "neutron",
+    11: "nfpy",
+    10010: "proton",
+    }
 
 
 def get_endf6_file(library, kind, zam, to_file=False):
@@ -363,7 +370,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
                 Available libraries are: {available_libs}
                 """
                 )
-    if kind == 'dxs':
+    elif kind == 'dxs':
         available_libs = (
             "jeff_33".upper(),
             "proton".upper(),
@@ -467,6 +474,8 @@ def get_endf6_file(library, kind, zam, to_file=False):
                 Available libraries are: {available_libs}
                 """
                     )
+    else:
+        raise ValueError(f"option 'kind={kind}' is not supported")
 
     if str(zam).lower() == 'all':
         if kind.lower() == 'xs' or kind.lower() == 'dxs':
@@ -522,6 +531,9 @@ class _FormattedFile():
         Create dataframe from endf6 text in string.
     to_series
         Covert content into `pandas.Series`.
+    to_file
+        Given a filename write the content of the instance to disk in
+        ASCII format.
 
     Notes
     -----
@@ -538,8 +550,6 @@ class _FormattedFile():
 
     @property
     def data(self):
-        """
-        """
         return self._data
 
     @data.setter
@@ -600,13 +610,16 @@ class _FormattedFile():
 
         Examples
         --------
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
-        >>> _FormattedFile.from_file(file).kind
-        'endf6'
-
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.pendf")
-        >>> _FormattedFile.from_file(file).kind
-        'pendf'
+        >>> assert sandy.get_endf6_file("jeff_33", "decay", 10010).kind == "endf6"
+        >>> assert sandy.get_endf6_file("jeff_33", "nfpy", 922350).kind == "endf6"
+        >>> assert sandy.get_endf6_file("jeff_33", "xs", 10010).kind == "endf6"
+        >>> assert sandy.get_endf6_file("jeff_33", "xs", 10010).get_pendf(err=1).kind == "pendf"
+        >>> assert sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1).kind == "gendf"
+        >>> outs = sandy.get_endf6_file("jeff_33", "xs", 942410).get_errorr(err=1, errorr_kws=dict(mt=18))
+        >>> assert outs["errorr31"].kind == "errorr"
+        >>> assert outs["errorr33"].kind == "errorr"
+        >>> assert outs["errorr34"].kind == "errorr"
+        >>> assert outs["errorr35"].kind == "errorr"
         """
         if len(self.mat) > 1:
             msg = "Attribute 'kind' does not work if more than 1 MAT number is"
@@ -623,10 +636,12 @@ class _FormattedFile():
         else:
             if lrp == 2:
                 kind = "pendf"
-            elif lrp == 1 or lrp == 0:
+            elif lrp in [-1, 0, 1]:
+                # -1 for decay and nfpy
+                # 0 for endf6
                 kind = "endf6"
             else:
-                kind == "unkwown"
+                kind = "unkwown"
         return kind
 
     @classmethod
@@ -691,11 +706,11 @@ class _FormattedFile():
 
         Examples
         --------
-
-        >>> filename = "n-1-H-001.jeff32"
-        >>> rooturl = "https://www.oecd-nea.org/dbforms/data/eva/evatapes/jeff_32/"
-        >>> file = sandy.Endf6.read_url(filename, rooturl)
-        >>> print(file[0:890])
+        Removed because website stopped working
+        #>>> filename = "n-1-H-001.jeff32"
+        #>>> rooturl = "https://www.oecd-nea.org/dbforms/data/eva/evatapes/jeff_32/"
+        #>>> file = sandy.Endf6.read_url(filename, rooturl)
+        #>>> print(file[0:890])
         JEFF-3.2 Release - Neutron File March 2014                             0  0    0
         1.001000+3 9.991673-1          0          0          2          5 125 1451    1
         0.000000+0 0.000000+0          0          0          0          6 125 1451    2
@@ -819,7 +834,8 @@ class _FormattedFile():
         Examples
         --------
         Read hydrogen tape from endf-6 formatted file.
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
+        >>> file = "h1.endf"
+        >>> sandy.get_endf6_file("jeff_33", "xs", 10010).to_file(file)
         >>> _FormattedFile.from_file(file)
         MAT  MF  MT
         125  1   451     1.001000+3 9.991673-1          0          0  ...
@@ -859,7 +875,8 @@ class _FormattedFile():
 
     @classmethod
     def from_text(cls, text):
-        """Create dataframe from endf6 text in string.
+        """
+        Create dataframe from endf6 text in string.
 
         Parameters
         ----------
@@ -874,7 +891,8 @@ class _FormattedFile():
         Examples
         --------
         Read hydrogen tape from text.
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
+        >>> file = "h1.endf"
+        >>> sandy.get_endf6_file("jeff_33", "xs", 10010).to_file(file)
         >>> text = open(file).read()
         >>> _FormattedFile.from_text(text)
         MAT  MF  MT
@@ -1001,8 +1019,7 @@ class _FormattedFile():
         Examples
         --------
         Delete capture cross section from hydrogen file.
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
-        >>> tape = _FormattedFile.from_file(file)
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> new = tape.delete_section(125, 3, 102)
         >>> new
         MAT  MF  MT
@@ -1025,16 +1042,6 @@ class _FormattedFile():
             del d[key]
         return self.__class__(d)
 
-    def delete_sections(self, sections, raise_error=True):
-        d = self.data.copy()
-        for mat, mf, mt in sections:
-            key = (mat, mf, mt)
-            if key not in d and raise_error is False:
-                pass
-            else:
-                del d[key]
-        return self.__class__(d)
-
     def merge(self, *iterable):
         """
         Given a single `sandy.Endf6` object or an iterable of `sandy.Endf6`
@@ -1050,7 +1057,7 @@ class _FormattedFile():
 
         Returns
         -------
-        merged : TYPE
+        merged : :func:`_FormattedFile`
             a ENDF6 file containing the MAT/MF/MT sections of `self` and of
             the passed ENDF6 files.
 
@@ -1065,100 +1072,26 @@ class _FormattedFile():
         Merge two files.
         >>> h1 = sandy.get_endf6_file("jeff_33", 'xs', 10010)
         >>> h2 = sandy.get_endf6_file("endfb_71", 'xs', 10020)
-        >>> h1.merge(h2)
-        MAT  MF  MT
-        125  1   451     1.001000+3 9.991673-1          0          0  ...
-             2   151     1.001000+3 9.991673-1          0          0  ...
-             3   1       1.001000+3 9.991673-1          0          0  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-             4   2       1.001000+3 9.991673-1          0          1  ...
-             6   102     1.001000+3 9.991673-1          0          2  ...
-             33  1       1.001000+3 9.991673-1          0          0  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-        128  1   451     1.002000+3 1.996800+0          0          0  ...
-             2   151     1.002000+3 1.996800+0          0          0  ...
-             3   1       1.002000+3 1.996800+0          0          0  ...
-                 2       1.002000+3 1.996800+0          0          0  ...
-                 3       1.002000+3 1.996800+0          0          0  ...
-                 16      1.002000+3 1.996800+0          0          0  ...
-                 102     1.002000+3 1.996800+0          0          0  ...
-             4   2       1.002000+3 1.996800+0          0          2  ...
-             6   16      1.002000+3 1.996800+0          0          1  ...
-             8   102     1.002000+3 1.996800+0          0          0  ...
-             9   102     1.002000+3 1.996800+0          0          0  ...
-             12  102     1.002000+3 1.996800+0          1          0  ...
-             14  102     1.002000+3 1.996800+0          1          0  ...
-             33  1       1.002000+3 1.996800+0          0          0  ...
-                 2       1.002000+3 1.996800+0          0          0  ...
-                 16      1.002000+3 1.996800+0          0          0  ...
-                 102     1.002000+3 1.996800+0          0          0  ...
-        dtype: object
+        >>> h = h1.merge(h2)
+        >>> assert h.to_series()[h1.to_series().index].equals(h1.to_series())
+        >>> assert h.to_series()[h2.to_series().index].equals(h2.to_series())
 
         Merge three files from different libraries.
         >>> h3 = sandy.get_endf6_file("endfb_71", 'xs', 10030)
-        >>> h1.merge(h2, h3)
-        MAT  MF  MT
-        125  1   451     1.001000+3 9.991673-1          0          0  ...
-             2   151     1.001000+3 9.991673-1          0          0  ...
-             3   1       1.001000+3 9.991673-1          0          0  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-             4   2       1.001000+3 9.991673-1          0          1  ...
-             6   102     1.001000+3 9.991673-1          0          2  ...
-             33  1       1.001000+3 9.991673-1          0          0  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-        128  1   451     1.002000+3 1.996800+0          0          0  ...
-             2   151     1.002000+3 1.996800+0          0          0  ...
-             3   1       1.002000+3 1.996800+0          0          0  ...
-                 2       1.002000+3 1.996800+0          0          0  ...
-                 3       1.002000+3 1.996800+0          0          0  ...
-                 16      1.002000+3 1.996800+0          0          0  ...
-                 102     1.002000+3 1.996800+0          0          0  ...
-             4   2       1.002000+3 1.996800+0          0          2  ...
-             6   16      1.002000+3 1.996800+0          0          1  ...
-             8   102     1.002000+3 1.996800+0          0          0  ...
-             9   102     1.002000+3 1.996800+0          0          0  ...
-             12  102     1.002000+3 1.996800+0          1          0  ...
-             14  102     1.002000+3 1.996800+0          1          0  ...
-             33  1       1.002000+3 1.996800+0          0          0  ...
-                 2       1.002000+3 1.996800+0          0          0  ...
-                 16      1.002000+3 1.996800+0          0          0  ...
-                 102     1.002000+3 1.996800+0          0          0  ...
-        131  1   451     1.003000+3 2.989596+0          0          0  ...
-             2   151     1.003000+3 2.989596+0          0          0  ...
-             3   1       1.003000+3 2.989596+0          0          0  ...
-                 2       1.003000+3 2.989596+0          0          0  ...
-                 16      1.003000+3 2.989596+0          0          0  ...
-             4   2       1.003000+3 2.989596+0          0          1  ...
-                 16      1.003000+3 2.989596+0          0          2  ...
-             5   16      1.003000+3 2.989596+0          0          0  ...
-        dtype: object
+        >>> h_ = h1.merge(h2, h3).to_series()
+        >>> h__ = h.merge(h3).to_series()
+        >>> h___ = h1.merge(h2).merge(h3).to_series()
+        >>> assert h_.equals(h__) and h_.equals(h___)
 
         Merge two evaluations for the same nuclide.
-        >>> h2_2 = sandy.get_endf6_file("jeff_32", 'xs', 10020)
-        >>> h2.merge(h2_2)
-        MAT  MF  MT
-        128  1   451     1.002000+3 1.995712+0          0          0  ...
-             2   151     1.002000+3 1.995712+0          0          0  ...
-             3   1       1.002000+3 1.995712+0          0          0  ...
-                 2       1.002000+3 1.995712+0          0          0  ...
-                 3       1.002000+3 1.995712+0          0          0  ...
-                 16      1.002000+3 1.995712+0          0          0  ...
-                 102     1.002000+3 1.995712+0          0          0  ...
-             4   2       1.002000+3 1.995712+0          0          1  ...
-             6   16      1.002000+3 1.995712+0          0          1  ...
-             8   102     1.002000+3 1.996800+0          0          0  ...
-             9   102     1.002000+3 1.996800+0          0          0  ...
-             12  102     1.002000+3 1.995712+0          1          0  ...
-             14  102     1.002000+3 1.995712+0          1          0  ...
-             33  1       1.002000+3 1.996800+0          0          0  ...
-                 2       1.002000+3 1.996800+0          0          0  ...
-                 16      1.002000+3 1.996800+0          0          0  ...
-                 102     1.002000+3 1.996800+0          0          0  ...
-        dtype: object
+        >>> bi_71 = sandy.get_endf6_file("endfb_71", 'xs', 832090)
+        >>> bi_33 = sandy.get_endf6_file("jeff_33", 'xs', 832090)
+        >>> bi = bi_71.merge(bi_33)
+        >>> assert not bi.to_series()[bi_71.to_series().index].equals(bi_71.to_series())
+        >>> assert bi.to_series()[bi_33.to_series().index].equals(bi_33.to_series())
+        >>> bi = bi_33.merge(bi_71)
+        >>> assert bi.to_series()[bi_71.to_series().index].equals(bi_71.to_series())
+        >>> assert not bi.to_series()[bi_33.to_series().index].equals(bi_33.to_series())
         """
         tape = reduce(lambda x, y: x.add_sections(y.data), iterable)
         merged = self.add_sections(tape.data)
@@ -1181,15 +1114,12 @@ class _FormattedFile():
 
         Returns
         -------
-        `sandy.formats.endf6.BaseFile` or derived instance
+        `sandy._FormattedFile` or derived instance
             Copy of the original instance with filtered MAT, MF and MT sections
         """
-        series = self.to_series()
-        cond_mat = series.index.get_level_values("MAT").isin(listmat)
-        cond_mf = series.index.get_level_values("MF").isin(listmf)
-        cond_mt = series.index.get_level_values("MT").isin(listmt)
-        d = series.loc[cond_mat & cond_mf & cond_mt].to_dict()
-        return self.__class__(d, file=self.file)
+        df = self.to_series().to_frame()
+        d = df.query("MAT in @listmat and MF in @listmf and MT in @listmt").squeeze(axis=1).to_dict()
+        return self.__class__(d)
 
     def get_value(self, mat, mf, mt, line_number, pos):
         return self._get_section_df(mat, mf, mt)[pos.upper()] \
@@ -1213,13 +1143,6 @@ class _FormattedFile():
             return new_tape
         print(new_text)
 
-    @classmethod
-    def _from_old_format(cls, old_endf6):
-        """
-        Convert old endf6 tape into new one!
-        """
-        return cls(old_endf6.TEXT.to_dict())
-
     def write_string(self, title=""):
         """
         Write `_FormattedFile.data` content to string according to the ENDF-6
@@ -1242,8 +1165,7 @@ class _FormattedFile():
 
         Examples
         --------
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
-        >>> string = sandy.Endf6.from_file(file).write_string()
+        >>> string = sandy.get_endf6_file("jeff_33", "xs", 10010).write_string()
         >>> print(string[:81 * 4 - 1])
                                                                              1 0  0    0
          1.001000+3 9.991673-1          0          0          2          5 125 1451    1
@@ -1252,11 +1174,10 @@ class _FormattedFile():
 
         if no modification is applied to the `_FormattedFile` content, the
         `write_string` returns an output identical to the file ASCII content.
-        >>> assert string == open(file).read()
 
         Test with `sandy.Errorr` object and title option:
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> err = endf6.get_errorr(ek=[1e-2, 1e1, 2e7], err=1)
+        >>> err = endf6.get_errorr(ek=[1e-2, 1e1, 2e7], err=1)["errorr33"]
         >>> err.to_file("out.err", title="H with ERRORR")
         >>> err_2 = sandy.Errorr.from_file("out.err")
         >>> os.remove("out.err")
@@ -1327,32 +1248,233 @@ class Endf6(_FormattedFile):
         Process `Endf6` instance into a Errorr file using NJOY.
     get_id
         Extract ID for a given MAT for a ENDF-6 file.
+    get_nsub
+        Determine ENDF-6 sub-library type.
+    get_records
+        Extract tabulated MAT, MF and MT numbers.
     read_section
         Parse MAT/MF/MT section.
-    to_file
-        Given a filename write the content of a `Endf6` instance to disk in
-        ASCII format.
-    to_string
-        Write `Endf6.data` content to string according to the ENDF-6 file
-        rules.
-    write_string
-        Write ENDF-6 content to string.
+    update_intro
+        Update MF1/MT451.
     """
 
-    def _get_nsub(self):
+    def update_intro(self, **kwargs):
+        """
+        Method to update MF1/MT451 of each MAT based on the file content
+        (concistency is enforced) and user-given keyword arguments.
+        
+        Parameters
+        ----------
+        **kwargs : `dict`
+            dictionary of elements to be modified in section MF1/MT451 (it
+            applies to all MAT numbers).
+
+        Returns
+        -------
+        :func:`~sandy.Endf6`
+            :func:`~sandy.Endf6` with updated MF1/MT451.
+
+        
+        Examples
+        --------
+        Check how many lines of description and how many sections are recorded
+        in a file.
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> intro = tape.read_section(125, 1, 451)
+        >>> assert len(intro["DESCRIPTION"]) == 87
+        >>> assert len(intro["SECTIONS"]) == 10
+
+        By removing sections in the `Endf6` instance, the recorded number of
+        sections does not change.
+        >>> tape2 = tape.delete_section(125, 33, 1).delete_section(125, 33, 2)
+        >>> intro = tape2.read_section(125, 1, 451)
+        >>> assert len(intro["DESCRIPTION"]) == 87
+        >>> assert len(intro["SECTIONS"]) == 10
+
+        Running `updated intro` updates the recorded number of sections.
+        >>> tape2 = tape.delete_section(125, 33, 1).delete_section(125, 33, 2).update_intro()
+        >>> intro = tape2.read_section(125, 1, 451)
+        >>> assert len(intro["DESCRIPTION"]) == 87
+        >>> assert len(intro["SECTIONS"]) == 8
+
+        It can also be used to update the lines of description.
+        >>> intro = tape2.update_intro(**dict(DESCRIPTION=[" new description"])).read_section(125, 1, 451)
+        >>> print(sandy.write_mf1(intro))
+         1001.00000 9.991673-1          0          0          2          5 125 1451    1
+         0.00000000 0.00000000          0          0          0          6 125 1451    2
+         1.00000000 20000000.0          3          0         10          3 125 1451    3
+         0.00000000 0.00000000          0          0          1          8 125 1451    4
+         new description                                                   125 1451    5
+                                        1        451         13          0 125 1451    6
+                                        2        151          4          0 125 1451    7
+                                        3          1         35          0 125 1451    8
+                                        3          2         35          0 125 1451    9
+                                        3        102         35          0 125 1451   10
+                                        4          2        196          0 125 1451   11
+                                        6        102        201          0 125 1451   12
+                                       33        102         21          0 125 1451   13
+        """
+        tape = self.data.copy()
+        for mat, g in self.to_series().groupby("MAT"):
+            intro = self.read_section(mat, 1, 451)
+            intro.update(**kwargs)
+            new_records = [(mf, mt, sec.count('\n') + 1, 0) for (mat, mf, mt), sec in g.items()]
+            NWD, NXC = len(intro["DESCRIPTION"]), g.shape[0]
+            new_records[0] = (1, 451, NWD+NXC+4, 0)
+            intro["SECTIONS"] = new_records
+            tape[(mat, 1, 451)] = sandy.write_mf1(intro)
+        return self.__class__(tape)
+
+    def get_nsub(self):
         """
         Determine ENDF-6 sub-library type by reading flag "NSUB" of first MAT
-        in file:
-
-            * `NSUB = 10` : Incident-Neutron Data
-            * `NSUB = 11` : Neutron-Induced Fission Product Yields
+        in file.
 
         Returns
         -------
         `int`
             NSUB value
+
+        Examples
+        --------
+        assert sandy.get_endf6_file("jeff_33", "xs", 10010).get_nsub() == "neutron"
+        assert sandy.get_endf6_file("jeff_33", "xs", 10010).get_nsub().get_pendf(err=1).get_nsub() == "neutron"
+        assert sandy.get_endf6_file("jeff_33", "nfpy", 942410).get_nsub() == "nfpy"
+        assert sandy.get_endf6_file("jeff_33", "decay", 942410).get_nsub() == "decay"
+        assert sandy.get_endf6_file("jeff_33", "dxs", 26000).get_nsub() == "neutron"
+        assert sandy.get_endf6_file("proton", "dxs", 26000).get_nsub() == "proton"
         """
-        return self.read_section(self.mat[0], 1, 451)["NSUB"]
+        nsub = self.read_section(self.mat[0], 1, 451)["NSUB"]
+        return nsubs(nsub)
+
+
+    def _handle_njoy_inputs(method):
+        """
+        Decorator to handle keyword arguments for NJOY before running
+        the executable.
+
+        Examples
+        --------
+        Test that `minimal_processing` filters unwanted modules.
+        >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, minimal_processing=True, temperature=300, dryrun=True)
+        >>> assert "broadr" in g and "reconr" in g
+        >>> assert "thermr" not in g and "purr" not in g and "heatr" not in g and "unresr" not in g and "gaspr" not in g
+
+        Test `minimal_processing=False`.
+        >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, temperature=300, dryrun=True)
+        >>> assert "broadr" in g and "reconr" in g
+        >>> assert "thermr" in g and "purr" in g and "heatr" in g and "gaspr" in g
+
+        Check that for `temperature=0` the calculation stops after RECONR.
+        >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, dryrun=True)
+        >>> assert "reconr" in g
+        >>> assert "broadr" not in g and "thermr" not in g and "purr" not in g and "heatr" not in g and "unresr" not in g and "gaspr" not in g
+        """
+        def inner(
+                self,
+                temperature=0,
+                err=0.001,
+                minimal_processing=False,
+                verbose=False,
+                **kwargs,
+                ):
+            """
+            Parameters
+            ----------
+            err : TYPE, optional
+                 reconstruction tolerance for RECONR, BROADR and THERMR.
+                 The default is 0.001.
+            minimal_processing: `bool`, optional
+                 deactivate modules THERMR, GASPR, HEATR, PURR and UNRESR.
+                 The default is False.
+            temperature : `float`, optional
+                temperature of the cross sections in K. If not given, stop
+                the processing after RECONR (before BROADR). The default is 0.
+            verbose : `bool`, optional
+                flag to print NJOY input file to screen before running the
+                executable. The default is False.
+            """
+            kwds_njoy = kwargs.copy()
+
+            # Handle 'minimal' processing options
+            if minimal_processing or float(temperature) == 0:
+                kwds_njoy["thermr"] = False
+                kwds_njoy["gaspr"] = False
+                kwds_njoy["heatr"] = False
+                kwds_njoy["purr"] = False
+                kwds_njoy["unresr"] = False
+            # deactivate modules if temperature is 0
+            if temperature == 0:
+                kwds_njoy["broadr"] = False
+                msg = """Zero or no temperature was requested, NJOY processing will stop after RECONR.
+    If you want to process 0K cross sections use `temperature=0.1`.
+    """
+                logging.info(msg)
+
+            # handle err
+            reconr_kws = kwds_njoy.get("reconr_kws", {})
+            broadr_kws = kwds_njoy.get("broadr_kws", {})
+            thermr_kws = kwds_njoy.get("thermr_kws", {})
+            reconr_kws["err"] = broadr_kws["err"] = thermr_kws["err"] = float(err)
+            kwds_njoy["reconr_kws"] = reconr_kws
+            kwds_njoy["broadr_kws"] = broadr_kws
+            kwds_njoy["thermr_kws"] = thermr_kws
+            
+            kwds_njoy.update(dict(temperatures=[temperature], verbose=verbose))
+    
+            return method(self, **kwds_njoy)
+        return inner
+
+    def _handle_groupr_inputs(method):
+        """
+        Decorator to handle keyword arguments for NJOY before running
+        the executable.
+
+        Examples
+        --------
+        Test that `minimal_processing` filters unwanted modules.
+        >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, minimal_processing=True, temperature=300, dryrun=True)
+        >>> assert "broadr" in g and "reconr" in g
+        >>> assert "thermr" not in g and "purr" not in g and "heatr" not in g and "unresr" not in g and "gaspr" not in g
+
+        Test `minimal_processing=False`.
+        >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, temperature=300, dryrun=True)
+        >>> assert "broadr" in g and "reconr" in g
+        >>> assert "thermr" in g and "purr" in g and "heatr" in g and "gaspr" in g
+
+        Check that for `temperature=0` the calculation stops after RECONR.
+        >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, dryrun=True)
+        >>> assert "reconr" in g
+        >>> assert "broadr" not in g and "thermr" not in g and "purr" not in g and "heatr" not in g and "unresr" not in g and "gaspr" not in g
+        """
+        def inner(
+                self,
+                groupr_kws={},
+                **kwargs,
+                ):
+            """
+            Parameters
+            ----------
+            err : TYPE, optional
+                 reconstruction tolerance for RECONR, BROADR and THERMR.
+                 The default is 0.001.
+            minimal_processing: `bool`, optional
+                 deactivate modules THERMR, GASPR, HEATR, PURR and UNRESR.
+                 The default is False.
+            temperature : `float`, optional
+                temperature of the cross sections in K. If not given, stop
+                the processing after RECONR (before BROADR). The default is 0.
+            verbose : `bool`, optional
+                flag to print NJOY input file to screen before running the
+                executable. The default is False.
+            """
+            fission = 18 in self.get_records().query("MF==3").MT.values
+            groupr_kws["nubar"] = fission
+            fission = 18 in self.get_records().query("MF==5").MT.values
+            groupr_kws["chi"] = fission
+            groupr_kws["mubar"] = True
+            return method(self, groupr_kws=groupr_kws, **kwargs)
+        return inner
 
     def read_section(self, mat, mf, mt, raise_error=True):
         """
@@ -1407,20 +1529,6 @@ class Endf6(_FormattedFile):
             tape.loc[mat,1,451].TEXT = text
         return Endf6(tape)
 
-    def parse(self):
-        mats = self.index.get_level_values("MAT").unique()
-        if len(mats) > 1:
-            raise NotImplementedError("file contains more than 1 MAT")
-        self.mat = self.endf = mats[0]
-        if hasattr(self, "tape"):
-            self.filename = os.path.basename(self.tape)
-        INFO = self.read_section(mats[0], 1 ,451)
-        del INFO["TEXT"], INFO["RECORDS"]
-        self.__dict__.update(**INFO)
-        self.SECTIONS = self.loc[INFO["MAT"]].reset_index()["MF"].unique()
-        self.EHRES = 0
-        self.THNMAX = - self.EHRES if self.EHRES != 0 else 1.0E6
-
     def get_id(self, method="nndc"):
         """
         Extract ID for a given MAT for a ENDF-6 file.
@@ -1469,10 +1577,9 @@ class Endf6(_FormattedFile):
         ID = zam if method.lower() == "aleph" else za_new
         return ID
 
+    @_handle_njoy_inputs
     def get_ace(self,
-                temperature,
-                njoy=None,
-                verbose=False,
+                suffix=None,
                 pendf=None,
                 **kwargs,
                 ):
@@ -1481,219 +1588,211 @@ class Endf6(_FormattedFile):
 
         Parameters
         ----------
-        temperature : `float`
-            temperature of the cross sections in K.
-        njoy : `str`, optional, default is `None`
-            NJOY executable, if `None` search in the system path.
-        verbose : TYPE, optional, default is `False`
-            flag to print NJOY input file to screen before running the
-            executable.
-        **kwargs : TYPE
-            keyword argument to pass to `sandy.njoy.process`.
+        dryrun : `bool`, optional
+            Do not run NJOY and return NJOY input. Default is False.
+        pendf : :func:`~sandy.Endf6`, optional
+            provide manually PENDF object and add it to the processing
+            sequence after RECONR and before BROADR. Default is None.
+        suffix : `str`, optional
+            suffix in the form `".[0-9][0-9]"` to assign to the ACE data.
+            If not given, generate automatic suffix according to ALEPH rules.
+            Default is None.
+        **kwargs : `dict`
+            keyword argument to pass to :func:`~sandy.njoy.process_neutron`.
 
         Returns
         -------
-        outs : `dict`
-            output with `'ace'` and `'xsdir'` as keys pointing to the
-            filenames of the corresponding ACE and xsdir files generated in
-            the run.
+        `dict` of `str`
+            output with `'ace'` and `'xsdir'` as keys.
 
         Examples
         --------
-        >>> sandy.get_endf6_file("jeff_33", "xs", 10010).get_ace(700)
-        {'ace': '1001.07c', 'xsdir': '1001.07c.xsd'}
+        Check that output is a ace file.
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> ace = e6.get_ace(temperature=700, err=1, minimal_processing=True)["ace"]
+        >>> assert "1001.07c" in ace
+        >>> assert "sandy runs acer" in ace
+        >>> assert "mat 125" in ace
+        
+        Check that ace is processed at a different temperature.
+        >>> ace = e6.get_ace(temperature=800, err=1, minimal_processing=True)["ace"]
+        >>> assert "1001.08c" in ace
+        Check xsdir.
+        >>> print(outs[xsdir])
+        1001.08c    0.999167 filename 0 1   1     3297     0     0 6.894E-08
+
+        Check that ace file follows "nndc" nomenclature for metastable nuclides.
+        >>> e6_m = sandy.get_endf6_file("jeff_33", "xs",521291)
+        >>> ace_m = e6_m.get_ace(temperature=800, err=1, minimal_processing=True)["ace"]
+        >>> assert "52529.08c" in ace_m
+
+        Check that using option `pendf` results in the same output.
+        >>> pendf = e6.get_pendf(temperature=0, err=1)
+        >>> ace2 = e6.get_ace(temperature=800, err=1, , minimal_processing=True, pendf=pendf)["ace"]
+        >>> assert ace == ace2
+
+        Check that the option suffix is used correctly.
+        >>> ace = e6.get_ace(temperature=800, suffix=".85", err=1)
+        >>> assert "1001.85c" in ace
+
+        Check input pendf file
+        >>> import pytest
+        >>> with pytest.raises(Exception) as e_info:
+        >>>    e6.get_ace(pendf=e6)
         """
-        outs = {}
-        pendftape = None
+        if suffix:
+            kwargs["suffixes"] = [suffix]
+
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
             self.to_file(endf6file)
+            # we don not call to_pendf because we might want to pass a pendf in input
             if pendf:
+                if pendf.kind != 'pendf':
+                    raise TypeError("kw argument 'pendf' does not contain a PENDF file")
                 pendftape = os.path.join(td, "pendf_file")
                 pendf.to_file(pendftape)
-            text, inputs, outputs = sandy.njoy.process(
+            else:
+                pendftape = None
+            outputs = sandy.njoy.process_neutron(
                 endf6file,
                 pendftape=pendftape,
-                wdir=".",
-                keep_pendf=False,
-                exe=njoy,
-                temperatures=[temperature],
-                verbose=verbose,
                 **kwargs,
                 )
-            acefile = outputs["tape50"]
-            basename = os.path.split(acefile)[1]
-            dest = os.path.join(os.getcwd(), basename)
-            outs["ace"] = basename
-            shutil.move(acefile, dest)
-            xsdfile = outputs["tape70"]
-            basename = os.path.split(xsdfile)[1]
-            dest = os.path.join(os.getcwd(), basename)
-            outs["xsdir"] = basename
-            shutil.move(xsdfile, dest)
-        return outs
+        if kwargs.get("dryrun", False):
+            return outputs  # this contains the NJOY input
+        return {k: outputs[k] for k in ["ace", "xsdir"]}
 
-    def get_pendf(self,
-                  temperature=0,
-                  njoy=None,
-                  to_file=False,
-                  verbose=False,
-                  **kwargs,
-                  ):
+    @_handle_njoy_inputs
+    def get_pendf(self, **kwargs,):
         """
         Process `Endf6` instance into an PENDF file using NJOY.
 
         Parameters
         ----------
-        temperature : `float`, optional, default is `0`.
-            temperature of the cross sections in K.
-            If not given, stop the processing after RECONR (before BROADR).
-        njoy : `str`, optional, default is `None`
-            NJOY executable, if `None` search in the system path.
-        to_file : `str`, optional, default is `None`
-            if not `None` write processed ERRORR data to file.
-            The name of the PENDF file is the keyword argument.
-        verbose : `bool`, optional, default is `False`
-            flag to print NJOY input file to screen before running the
-            executable.
         **kwargs : `dict`
-            keyword argument to pass to `sandy.njoy.process`.
+            keyword argument to pass to :func:`~sandy.njoy.process_neutron`.
 
         Returns
         -------
-        pendf : `sandy.Endf6`
-            `Endf6` instance constaining the nuclear data of the PENDF file.
+        pendf : :func:`~sandy.Endf6`
+            Pendf object
 
         Examples
         --------
-        Process H1 file from ENDF/B-VII.1 into PENDF
-        >>> pendf =sandy.get_endf6_file("endfb_71", "xs", 10010).get_pendf(verbose=True)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.001 0. /
-        0/
-        moder
-        -22 30 /
-        stop
-
-        >>> pendf
-        MAT  MF  MT 
-        125  1   451     1.001000+3 9.991673-1          2          0  ...
-             2   151     1.001000+3 9.991673-1          0          0  ...
-             3   1       1.001000+3 9.991673-1          0         99  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-        dtype: object
-
-        >>> pendf.kind
-        'pendf'
-
-        Test `to_file`
+        Default run.
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> out = endf6.get_pendf(to_file="out.pendf")
-        >>> assert os.path.isfile('out.pendf')
-
+        >>> out = endf6.get_pendf(verbose=True, temperature=293.6, err=1, minimal_processing=True)
+        >>> assert isinstance(out, sandy.Endf6)
         """
-        if float(temperature) == 0:
-            kwargs["broadr"] = False
-            kwargs["thermr"] = False
-            kwargs["gaspr"] = False
-            kwargs["heatr"] = False
-            kwargs["purr"] = False
-            kwargs["unresr"] = False
-            msg = """Zero or no temperature was requested, NJOY processing will stop after RECONR.
-If you want to process 0K cross sections use `temperature=0.1`.
-"""
-            logging.info(msg)
+        # always deactivate acer
+        kwargs["acer"] = False
+
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
             self.to_file(endf6file)
-            text, inputs, outputs = sandy.njoy.process(
+            outputs = sandy.njoy.process_neutron(
                 endf6file,
-                acer=False,
-                keep_pendf=True,
-                exe=njoy,
-                temperatures=[temperature],
                 suffixes=[0],
-                verbose=verbose,
                 **kwargs,
                 )
-            pendffile = outputs["tape30"]
-            pendf = Endf6.from_file(pendffile)
-            if to_file:
-                shutil.move(pendffile, to_file)
+        if kwargs.get("dryrun", False):
+            return outputs  # this contains the NJOY input
+        pendf = Endf6.from_text(outputs["pendf"])
         return pendf
 
-    def merge_pendf(self, pendf):
+    @_handle_njoy_inputs
+    @_handle_groupr_inputs
+    def get_gendf(self, **kwargs,):
         """
-        Merge endf-6 file content with that of a pendf file.
+        Process `Endf6` instance into a Gendf file using NJOY.
 
         Parameters
         ----------
-        pendf : `sandy.Endf6`
-            `Endf6` object containing pendf tape.
+        **kwargs : `dict`
+            keyword argument to pass to :func:`~sandy.njoy.process_neutron`.
 
         Returns
         -------
-        `sandy.Endf6`
-            `Endf6` object with MF3 and MF1MT451 from PENDF
-
-        Notes
-        -----
-        .. note:: the `Endf6` object in output has attribute `kind='pendf'`.
-
-        .. note:: the `Endf6` object in output contains all sections from the
-                  original endf-6 file, but for all MF=3 and MF=1 MT=451.
+        gendf : :func:`~sandy.Gendf`
+            Gendf object
 
         Examples
         --------
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.endf")
-        >>> endf6 = sandy.Endf6.from_file(file)
-        >>> file = os.path.join(sandy.data.__path__[0], "h1.pendf")
-        >>> pendf = sandy.Endf6.from_file(file)
-        >>> merged = endf6.merge_pendf(pendf)
-        >>> merged
-        MAT  MF  MT
-        125  1   451     1.001000+3 9.991673-1          2          0  ...
-             2   151     1.001000+3 9.991673-1          0          0  ...
-             3   1       1.001000+3 9.991673-1          0         99  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-             4   2       1.001000+3 9.991673-1          0          1  ...
-             6   102     1.001000+3 9.991673-1          0          2  ...
-             33  1       1.001000+3 9.991673-1          0          0  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-        dtype: object
+        Default run.
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> out = endf6.get_gendf(temperature=293.6, minimal_processing=True)
+        >>> assert isinstance(out, sandy.Gendf)
 
-        The cross section in the merged file come from the pendf.
-        >>> assert merged.data[125, 3, 1] == pendf.data[125, 3, 1]
-        >>> assert merged.data[125, 3, 1] != endf6.data[125, 3, 1]
+        Test keyword `sigz`
+        >>> out = endf6.get_gendf(groupr_kws=dict(sigz=[1e10, 1e2]))
+        >>> assert 1e10 in sandy.gendf.read_mf1(out, 125)[sigz]
+        >>> assert 1e10 in sandy.gendf.read_mf1(out, 125)[sigz]
 
-        The new file is also a pendf.
-        >>> merged.kind
-        'pendf'
-                """
-        if pendf.kind != "pendf":
-            raise sandy.Error("given file is not a pendf")
-        section_3_endf6 = self.filter_by(listmf=[3]).data
-        section_3_pendf = pendf.filter_by(listmf=[3]).data
-        section_1451_pendf = pendf.filter_by(listmf=[1], listmt=[451]).data
-        return self.delete_sections(section_3_endf6) \
-                   .add_sections(section_3_pendf) \
-                   .add_sections(section_1451_pendf)
+        Test keyword `iwt`
+        >>> g = endf6.get_gendf(groupr_kws=dict(iwt=3), dryrun=True)
+        >>> found = re.search('groupr(.*)moder', g, flags=re.DOTALL).group().splitlines()
+        assert "125 2 0 3 0 1 1 0 /" == found[2]
 
+        Test keyword `ign`
+        >>> g = endf6.get_gendf(groupr_kws=dict(ign=3), dryrun=True)
+        >>> found = re.search('groupr(.*)moder', g, flags=re.DOTALL).group().splitlines()
+        assert "125 3 0 2 0 1 1 0 /" == found[2]
+
+        Test keyword `ek`
+        >>> g = endf6.get_gendf(groupr_kws=dict(ek=sandy.energy_grids.CASMO12), dryrun=True)
+        >>> found = re.search('groupr(.*)moder', g, flags=re.DOTALL).group().splitlines()
+        >>> ek = np.array(list(map(float, found[7].replace("/", "").split())))
+        >>> assert np.testing.array_allclose(ek, sandy.energy_grids.CASMO12, rtol=1e-14, atol=1e-14)
+
+        Test groupr MFs and MTs for fissile and non-fissile nuclides
+        >>> g = endf6.get_gendf(dryrun=True)
+        >>> found = re.search('groupr(.*)moder', g, flags=re.DOTALL).group().splitlines()
+        assert " ".join(found[6:10]) == '3/ 3 251 / 0/ 0/'
+        U-238 test because it contains mubar, xs, chi and nubar
+        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
+        >>> g = endf6.get_gendf(dryrun=True)
+        >>> found = re.search('groupr(.*)moder', g, flags=re.DOTALL).group().splitlines()
+        >>> assert " ".join(found[6:15]) == '3/ 3 452 / 3 455 / 3 456 / 3 251 / 5/ 5 18 / 0/ 0/'
+
+        Test custom MTs
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> g = endf6.get_gendf(dryrun=True, groupr_kws=dict(mt=4))
+        >>> found = re.search('groupr(.*)moder', g, flags=re.DOTALL).group().splitlines()
+        assert " ".join(found[6:10]) == '3 4 / 3 251 / 0/ 0/'
+        >>> g = endf6.get_gendf(dryrun=True, groupr_kws=dict(mt=4))
+        >>> found = re.search('groupr(.*)moder', g, flags=re.DOTALL).group().splitlines()
+        assert " ".join(found[6:11]) == '3 4 / 3 102 / 3 251 / 0/ 0/'
+        """
+        groupr_kws = kwargs.get("groupr_kws", {})
+        fission = 18 in self.get_records().query("MF==3").MT.values
+        groupr_kws["nubar"] = fission
+        groupr_kws["chi"] = fission
+        groupr_kws["mubar"] = True
+        kwargs["groupr_kws"] = groupr_kws
+
+        # always activate groupr
+        kwargs["groupr"] = True
+
+        # always deactivate acer
+        kwargs["acer"] = False
+
+        with TemporaryDirectory() as td:
+            endf6file = os.path.join(td, "endf6_file")
+            self.to_file(endf6file)
+            outputs = sandy.njoy.process_neutron(
+                    endf6file,
+                    suffixes=[0],
+                    **kwargs,
+                    )
+        if kwargs.get("dryrun", False):
+            return outputs  # this contains the NJOY input
+        gendf = sandy.Gendf.from_text(outputs["gendf"])
+        return gendf
+
+    @_handle_njoy_inputs
+    @_handle_groupr_inputs
     def get_errorr(self,
-                   temperature=0,
-                   njoy=None,
-                   to_file=None,
-                   verbose=False,
-                   groupr=False,
-                   err=0.005,
                    nubar=True,
                    mubar=True,
                    chi=True,
@@ -1707,73 +1806,17 @@ If you want to process 0K cross sections use `temperature=0.1`.
         ----------
         chi : `bool`, optional
             Process the chi covariance (default is `True`)
-        groupr : `bool`, optional, default is `False`
-            option to generate covariances from a multigroup cross section
-            ..note:: this option is activated by default if `nubar=True` or
-                     `chi=True`
         mubar : `bool`, optional
             Process the mubar covariance (default is `True`)
-        njoy : `str`, optional, default is `None`
-            NJOY executable, if `None` search in the system path.
         nubar : `bool`, optional
             Process the nubar covariance (default is `True`)
-        temperature : `float`, optional, default is `0`.
-            temperature of the cross sections in K.
-            If not given, stop the processing after RECONR (before BROADR).
-        to_file : `str`, optional, default is `None`
-            if not `None` write processed ERRORR data to file.
-            The name of the ERRORR file is the keyword argument.
-        verbose : `bool`, optional, default is `False`
-            flag to print NJOY input file to screen before running the
-            executable.
         xs : `bool`, optional
             Process the xs covariance (default is `True`)
         **kwargs : `dict`
             keyword argument to pass to `sandy.njoy.process`.
 
-        Parameters for RECONR
-        ---------------------
-        err : `float`, optional
-            reconstruction tolerance (default is 0.005)
-
-        Parameters for GROUPR
-        ---------------------
-        ign_groupr : `int`, optional
-            neutron group option (default is 2, csewg 239-group structure)
-        ek_groupr : iterable, optional
-            derived cross section energy bounds
-            (default is `[1e-5, 2e7]` if `ign_groupr==1`)
-        sigz : iterable of `float`
-            sigma zero values. The default is 1.0e10.
-        iwt_groupr : `int`, optional
-            weight function option (default is 2, constant)
-        spectrum_groupr : iterable, optional
-            Weight function as a iterable (default is None)
-
-        Parameters for ERRORR
-        ---------------------
-        ign_errorr : `int`, optional
-            neutron group option (default is 2, csewg 239-group structure)
-        ek_errorr : iterable, optional
-            derived cross section energy bounds
-            (default is `[1e-5, 2e7]` if `ign_errorr==1`)
-        iwt_errorr : `int`, optional
-            weight function option (default is 2, constant)
         spectrum_errorr : iterable, optional
             weight function as a iterable (default is None)
-        irespr: `int`, optional
-            processing for resonance parameter covariances
-            (default is 1, 1% sensitivity method)
-        mt: `int` or iterable of `int`, optional
-            list of MT reactions to be processed
-
-            .. note:: this list will be used for all covariance types, i.e.,
-                      MF31, MF33, MF34, MF35.
-                      If this is not the expected behavior, use keyword
-                      arguments `nubar`, `xs`, `mubar` and `chi`.
-
-            .. note:: keyword `mt` is currently incompatible with keyword
-                      `groupr`.
 
         Returns
         -------
@@ -1788,178 +1831,71 @@ If you want to process 0K cross sections use `temperature=0.1`.
 
         Examples
         --------
-        Test verbose keyword
+        Default run
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 942410)
+        >>> out = endf6.get_errorr(temperature=300, minimal_processing=True, err=1, errorr_kws=dict(ign=3, mt=18))
+        Check `ign` and `ek`
+        This test check also the type of each output
+        >>> assert out["errorr33"].get_xs().data.shape[0] == 30
+        >>> assert out["errorr31"].get_xs().data.shape[0] == 30
+        >>> assert out["errorr34"].get_xs().data.shape[0] == 30
+        >>> assert out["errorr33"].get_xs().data.shape[0] == 30
+        Check `ign` and `ek`
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> out = endf6.get_errorr(ek_errorr=sandy.energy_grids.CASMO12, verbose=True)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        errorr
-        -21 -22 0 33 0 /
-        125 1 2 0 1 /
-        0 0.0 /
-        0 33 1/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        stop
+        >>> out = endf6.get_errorr(errorr_kws=dict(ek=sandy.energy_grids.CASMO12))
+        Check `mt`
+        assert out["errorr33"].get_xs().data.squeeze().name == (9443, 2)
+        assert out["errorr34"].get_xs().data.squeeze().name == (9443, 251)
+        columns = out["errorr31"].get_xs().data.columns
+        assert (9443, 452) in columns and (9443, 455) in columns and (9443, 456) in columns
 
-        Test output type
-        >>> assert isinstance(out, sandy.Errorr)
+        Check consistency between keywords errorr_kws and errorr33_kws
+        >>> ekws = dict(irespr=0, iwt=5, ek=[1e-5, 2e7], mt=(16, 18, 102))
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 942410)
+        >>> inp1 = e6.get_errorr(temperature=300, dryrun=True, xs=True, chi=False, nubar=False, mubar=False, errorr_kws=ekws)
+        >>> inp2 = e6.get_errorr(temperature=300, dryrun=True, xs=True, chi=False, nubar=False, mubar=False, errorr33_kws=ekws)
+        >>> inp3 = e6.get_errorr(temperature=300, dryrun=True, xs=True, chi=False, nubar=False, mubar=False)
+        >>> assert "groupr" not in inp1 and "groupr" not in inp2 and "groupr" not in inp3
+        >>> assert inp1 == inp2 and inp1 != inp3
+        Check consistency between keywords errorr_kws and errorr35_kws
+        >>> inp1 = e6.get_errorr(temperature=300, dryrun=True, xs=False, chi=True, nubar=False, mubar=False, errorr_kws=ekws)
+        >>> inp2 = e6.get_errorr(temperature=300, dryrun=True, xs=False, chi=True, nubar=False, mubar=False, errorr35_kws=ekws)
+        >>> inp3 = e6.get_errorr(temperature=300, dryrun=True, xs=False, chi=True, nubar=False, mubar=False)
+        >>> assert "groupr" in inp1 and "groupr" in inp2 and "groupr" in inp3
+        >>> assert inp1 == inp2 and inp1 != inp3
+        Check consistency between keywords errorr_kws and errorr31_kws
+        >>> inp1 = e6.get_errorr(temperature=300, dryrun=True, xs=False, chi=False, nubar=True, mubar=False, errorr_kws=ekws)
+        >>> inp2 = e6.get_errorr(temperature=300, dryrun=True, xs=False, chi=False, nubar=True, mubar=False, errorr31_kws=ekws)
+        >>> inp3 = e6.get_errorr(temperature=300, dryrun=True, xs=False, chi=False, nubar=True, mubar=False)
+        >>> assert inp1 == inp2 and inp1 != inp3
+        >>> assert "groupr" in inp1 and "groupr" in inp2 and "groupr" in inp3
+        Check consistency between keywords errorr_kws and errorr34_kws       
+        >>> inp1 = e6.get_errorr(temperature=300, dryrun=True, xs=False, chi=False, nubar=False, mubar=True, errorr_kws=ekws)
+        >>> inp2 = e6.get_errorr(temperature=300, dryrun=True, xs=False, chi=False, nubar=False, mubar=True, errorr34_kws=ekws)
+        >>> inp3 = e6.get_errorr(temperature=300, dryrun=True, xs=False, chi=False, nubar=False, mubar=True)
+        >>> assert inp1 == inp2 and inp1 != inp3
+        >>> assert "groupr" in inp1 and "groupr" in inp2 and "groupr" in inp3
+        >>> inp1 = e6.get_errorr(temperature=300, dryrun=True, errorr_kws=ekws)
+        >>> inp2 = e6.get_errorr(temperature=300, dryrun=True, errorr33_kws=ekws, errorr31_kws=ekws, errorr34_kws=ekws, errorr35_kws=ekws)
+        >>> assert inp1 == inp2
+        >>> assert "groupr" in inp1 and "groupr" in inp2
 
-        Test `ign` and `ek`
-        >>> assert out.get_xs().data[(125, 1)].size == 12
-        
-        Test `to_file`
-        >>> out = endf6.get_errorr(to_file="out.err")
-        >>> assert os.path.isfile('out.err')
-
-        Test groupr and errorr:
-        >>> out = endf6.get_errorr(verbose=True, groupr=True)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        groupr
-        -21 -22 0 -23 /
-        125 2 0 2 0 1 1 0 /
-        'sandy runs groupr' /
-        0.0/
-        10000000000.0/
-        3/
-        0/
-        0/
-        errorr
-        -21 0 -23 33 0 /
-        125 2 2 0 1 /
-        0 0.0 /
-        0 33 1/
-        stop
-
-        Test groupr and errorr for neutron energy grids:
-        >>> out = endf6.get_errorr(ek_errorr=sandy.energy_grids.CASMO12, ek_groupr=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        groupr
-        -21 -22 0 -23 /
-        125 1 0 2 0 1 1 0 /
-        'sandy runs groupr' /
-        0.0/
-        10000000000.0/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        3/
-        0/
-        0/
-        errorr
-        -21 0 -23 33 0 /
-        125 1 2 0 1 /
-        0 0.0 /
-        0 33 1/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        stop
-
-        Test groupr and errorr for neutron and photons energy grids:
-        >>> out = endf6.get_errorr(ek_groupr=sandy.energy_grids.CASMO12, ek_errorr=sandy.energy_grids.CASMO12, ep=sandy.energy_grids.CASMO12, verbose=True, groupr=True)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        groupr
-        -21 -22 0 -23 /
-        125 1 1 2 0 1 1 0 /
-        'sandy runs groupr' /
-        0.0/
-        10000000000.0/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        3/
-        0/
-        0/
-        errorr
-        -21 0 -23 33 0 /
-        125 1 2 0 1 /
-        0 0.0 /
-        0 33 1/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        stop
-
-        U-238 test because it contains mubar, xs, chi and nubar:
-        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
-        >>> out = endf6.get_errorr(ek_errorr=sandy.energy_grids.CASMO12, ek_groupr=sandy.energy_grids.CASMO12, verbose=True, err=1)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        9237 0 0 /
-        1 0. /
-        0/
-        groupr
-        -21 -22 0 -23 /
-        9237 1 0 2 0 1 1 0 /
-        'sandy runs groupr' /
-        0.0/
-        10000000000.0/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        3/
-        3 251 'mubar' /
-        5/
-        5 18 'chi' /
-        0/
-        0/
-        errorr
-        -21 0 -23 31 0 /
-        9237 1 2 0 1 /
-        0 0.0 /
-        0 31 1/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        errorr
-        -21 0 -23 33 0 /
-        9237 1 2 0 1 /
-        0 0.0 /
-        0 33 1/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        errorr
-        -21 0 -23 35 0 /
-        9237 1 2 0 1 /
-        0 0.0 /
-        0 35 1/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        errorr
-        -21 0 -23 34 0 /
-        9237 1 2 0 1 /
-        0 0.0 /
-        0 34 1/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        stop
+        Check default options
+        >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(temperature=300, dryrun=True)
+        >>> found = re.search('errorr(.*)', g, flags=re.DOTALL).group().splitlines()
+        Check ign(2), iwt (2), iprint (0) and relative (1) options
+        >>> assert found[2] == '125 2 2 0 1 /'
+        Check temperature (300) option
+        >>> assert found[3] == '0 300.0 /'
+        Check irespr (1) option
+        >>> assert found[4] = '0 33 1/'
+        Check options changes
+        >>> ekws = dict(ign=3, iwt=5, iprint=True, relative=False)
+        >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(temperature=400, dryrun=True)
+        >>> found = re.search('errorr(.*)', g, flags=re.DOTALL).group().splitlines()
+        >>> assert found[2] == '125 3 5 1 0 /'
+        >>> assert found[3] == '0 400.0 /'
+        >>> assert found[4] = '0 33 0/'
 
         Test spectrum:
         >>> spect = [1.000000e-5, 2.00000000, 3.000000e-2, 2.00000000, 5.800000e-2, 4.00000000, 3, 1]
@@ -1985,551 +1921,441 @@ If you want to process 0K cross sections use `temperature=0.1`.
          3.00000000 1.00000000                                            
         /
         stop
-
-
-        >>> spect_g = [1.000000e-5, 1.00000000, 3.000000e-2, 2.00000000, 5.800000e-2, 3.00000000, 3, 2]
-        >>> out = endf6.get_errorr(spectrum_errorr=spect, spectrum_groupr=spect_g, ek_errorr=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], ek_groupr=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False, groupr=True)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        9237 0 0 /
-        0.005 0. /
-        0/
-        groupr
-        -21 -22 0 -23 /
-        9237 1 0 1 0 1 1 0 /
-        'sandy runs groupr' /
-        0.0/
-        10000000000.0/
-        3 /
-        1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
-         0.00000000 0.00000000          0          0          1          4
-                  4          1                                            
-         1.000000-5 1.00000000 3.000000-2 2.00000000 5.800000-2 3.00000000
-         3.00000000 2.00000000                                            
-        /
-        3/
-        0/
-        0/
-        errorr
-        -21 0 -23 33 0 /
-        9237 1 1 0 1 /
-        0 0.0 /
-        0 33 1/
-        3 /
-        1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
-         0.00000000 0.00000000          0          0          1          4
-                  4          1                                            
-         1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000
-         3.00000000 1.00000000                                            
-        /
-        stop
-
-        Test irespr:
-        out = endf6.get_errorr(spectrum_errorr=spect, ek_errorr=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False, irespr=0)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        errorr
-        -21 -22 0 33 0 /
-        125 1 1 0 1 /
-        0 0.0 /
-        0 33 0/
-        3 /
-        1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
-         1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000  3.00000000 1.00000000                                            
-        /
-        stop
-    
-        Test for MT:
-        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> out = endf6.get_errorr(verbose=True, mt=[1, 2], ek_errorr=sandy.energy_grids.CASMO12)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        errorr
-        -21 -22 0 33 0 /
-        125 1 2 0 1 /
-        0 0.0 /
-        1 33 1/
-        2 0 /
-        1 2 /
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        stop
-        
-        Keywords `mt` and `groupr` are incompatible
-        >>> with pytest.raises(sandy.SandyError):
-        ...    sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, mt=1, groupr=True)
-            
-        Test content of output `Errorr` file
-        >>> out = sandy.get_endf6_file('jeff_33', "xs", 922350).get_errorr(err=1., irespr=0, mubar=False, chi=False)
-        >>> keys = [(9228, 1, 451), (9228, 3, 456), (9228, 33, 456), (9228, 3, 1), (9228, 3, 2), (9228, 3, 4), (9228, 3, 16), (9228, 3, 17), (9228, 3, 18), (9228, 3, 37), (9228, 3, 102), (9228, 33, 1), (9228, 33, 2), (9228, 33, 4), (9228, 33, 16), (9228, 33, 17), (9228, 33, 18), (9228, 33, 37), (9228, 33, 102)]
-        >>> for key in keys: assert key in out.data
         """
-        kwds_njoy = kwargs.copy()
-        if float(temperature) == 0:
-            kwds_njoy["broadr"] = False
-            kwds_njoy["thermr"] = False
-            kwds_njoy["gaspr"] = False
-            kwds_njoy["heatr"] = False
-            kwds_njoy["purr"] = False
-            kwds_njoy["unresr"] = False
-            kwds_njoy['keep_pendf'] = False
-        else:
-            kwds_njoy["broadr"] = True
-            kwds_njoy["thermr"] = kwds_njoy.get("thermr", False)
-            kwds_njoy["gaspr"] = kwds_njoy.get("gaspr", False)
-            kwds_njoy["heatr"] = kwds_njoy.get("heatr", False)
-            kwds_njoy["purr"] = kwds_njoy.get("purr", False)
-            kwds_njoy["unresr"] = kwds_njoy.get("unresr", False)
-            kwds_njoy['keep_pendf'] = kwds_njoy.get('keep_pendf', False)
+        # Activate specific errorr module according to covariance info and input options
+        mf31 = self.get_records().query("MF==31")
+        errorr31 = False if mf31.empty else nubar
+        mf33 = self.get_records().query("MF==33")
+        errorr33 = False if mf33.empty else xs
+        mf34 = self.get_records().query("MF==34")
+        errorr34 = False if mf34.empty else mubar
+        mf35 = self.get_records().query("MF==35")
+        errorr35 = False if mf35.empty else chi
+        kwargs.update(dict(
+            errorr31=errorr31,
+            errorr33=errorr33,
+            errorr34=errorr34,
+            errorr35=errorr35,
+            ))
 
-        cov_info = self.covariance_info(nubar=nubar, xs=xs,
-                                        mubar=mubar, chi=chi)
-        if not np.any(list(cov_info.values())):
-            return  # no covariance found or wanted
-        kwds_njoy.update(cov_info)
+        # Always deactivate acer
+        kwargs["acer"] = False
 
-        # Mandatory groupr module activation
-        groupr_ = True if (kwds_njoy["nubar"] or kwds_njoy["chi"] or "ek_groupr" in kwds_njoy or "spectrum_groupr" in kwds_njoy) else groupr
+        # keyword arguments in error_kws, if any, overwrite the others
+        errorr_kws = kwargs.get("errorr_kws", {})
+        errorr31_kws = kwargs.get("errorr31_kws", {})
+        errorr31_kws.update(**errorr_kws)
+        errorr33_kws = kwargs.get("errorr33_kws", {})
+        errorr33_kws.update(**errorr_kws)
+        errorr34_kws = kwargs.get("errorr34_kws", {})
+        errorr34_kws.update(**errorr_kws)
+        errorr35_kws = kwargs.get("errorr35_kws", {})
+        errorr35_kws.update(**errorr_kws)
+        kwargs.update(dict(
+            errorr31_kws=errorr31_kws,
+            errorr33_kws=errorr33_kws,
+            errorr34_kws=errorr34_kws,
+            errorr35_kws=errorr35_kws,
+            ))
 
         with TemporaryDirectory() as td:
             endf6file = os.path.join(td, "endf6_file")
             self.to_file(endf6file)
-            outputs = sandy.njoy.process(
+            # update kwargs, or else error because multiple keyword argument
+            outputs = sandy.njoy.process_neutron(
                     endf6file,
-                    errorr=True,
-                    acer=False,
-                    verbose=verbose,
-                    temperatures=[temperature],
                     suffixes=[0],
-                    err=err,
-                    groupr=groupr_,
-                    **kwds_njoy,
-                    )[2]
-            seq = map(sandy.Errorr.from_file, outputs.values())
-            errorr = reduce(lambda x, y: x.merge(y), seq)
-            if to_file:
-                errorr.to_file(to_file)
-        return errorr
+                    **kwargs,
+                    )
+        if kwargs.get("dryrun", False):
+            return outputs  # this contains the NJOY input
+        outputs = {k: sandy.Errorr.from_text(v) for k, v in outputs.items() if "errorr" in k}
+        return outputs
 
-    def get_gendf(self,
-                  temperature=293.6,
-                  njoy=None,
-                  to_file=None,
-                  verbose=False,
-                  err=0.005,
-                  nubar=False,
-                  xs=True,
-                  mubar=False,
-                  chi=False,
-                  **kwargs):
+    def get_records(self):
         """
-        Process `Endf6` instance into a Gendf file using NJOY.
-
-        Parameters
-        ----------
-        temperature : `float`, optional, default is `293.6`.
-            temperature of the cross sections in K.
-            If not given, stop the processing after RECONR (before BROADR).
-        njoy : `str`, optional, default is `None`
-            NJOY executable, if `None` search in the system path.
-        to_file : `str`, optional, default is `None`
-            if not `None` write processed GENDF data to file.
-            The name of the GENDF file is the keyword argument.
-        verbose : `bool`, optional, default is `False`
-            flag to print NJOY input file to screen before running the
-            executable.
-        broadr : `bool`, optional, default is `True`
-            option to generate gendf file with Doppler-broadened cross sections
-        **kwargs : `dict`
-            keyword argument to pass to `sandy.njoy.process`.
-
-        Parameters for RECONR and BROADR
-        --------------------------------
-        err : `float`, optional
-            reconstruction tolerance (default is 0.005)
-
-        Parameters for GROUPR
-        ---------------------
-        chi : `bool`, optional
-            Proccess the chi covariance(default is `False`)
-        ign : `int`, optional
-            neutron group option (default is 2, csewg 239-group structure)
-        iwt_groupr : `int`, optional
-            weight function option (default is 2, constant)
-        mubar : `bool`, optional
-            Proccess multigroup mubar (default is `False`)
-        mt: `int` or iterable of `int`, optional
-            run groupr only for the selected MT numbers
-        nubar : `bool`, optional
-            Proccess multigroup nubar (default is `False`)
-        nuclide_production : `bool`, optional
-            process multigroup activation yields (default is `False`)
-        spectrum_groupr : iterable, optional
-            Weight function as a iterable (default is None)
-        sigz : iterable of `float`
-            sigma zero values. The default is 1.0e10.
-        xs : `bool`, optional
-            Proccess multigroup xs (default is `True`)
+        Extract MAT, MF and MT combinations avaialbel in the file and 
+        report it in tabulated format.
 
         Returns
         -------
-        gendf : `sandy.Gendf`
-            Gendf object
+        df : `pd.DataFrame`
+            Dataframe with MAT, MF and MT as columns.
 
         Examples
         --------
-        Default test
-        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> out = endf6.get_gendf(verbose=True)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        broadr
-        -21 -22 -23 /
-        125 1 0 0 0. /
-        0.005 /
-        293.6 /
-        0 /
-        groupr
-        -21 -23 0 -24 /
-        125 2 0 2 0 1 1 0 /
-        'sandy runs groupr' /
-        293.6/
-        10000000000.0/
-        3/
-        0/
-        0/
-        moder
-        -24 32 /
-        stop
-
-        Test keyword `sigz`
-        >>> out = endf6.get_gendf(verbose=True, sigz=[1.0e10, 1e2])
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        broadr
-        -21 -22 -23 /
-        125 1 0 0 0. /
-        0.005 /
-        293.6 /
-        0 /
-        groupr
-        -21 -23 0 -24 /
-        125 2 0 2 0 1 2 0 /
-        'sandy runs groupr' /
-        293.6/
-        10000000000.0 100.0/
-        3/
-        0/
-        0/
-        moder
-        -24 32 /
-        stop
-
-        Test keyword `iwt_groupr`
-        >>> out = endf6.get_gendf(verbose=True, iwt_groupr=3)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        broadr
-        -21 -22 -23 /
-        125 1 0 0 0. /
-        0.005 /
-        293.6 /
-        0 /
-        groupr
-        -21 -23 0 -24 /
-        125 2 0 3 0 1 1 0 /
-        'sandy runs groupr' /
-        293.6/
-        10000000000.0/
-        3/
-        0/
-        0/
-        moder
-        -24 32 /
-        stop
-
-        Test keyword `ign_groupr`
-        >>> out = endf6.get_gendf(verbose=True, ign_groupr=3)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        broadr
-        -21 -22 -23 /
-        125 1 0 0 0. /
-        0.005 /
-        293.6 /
-        0 /
-        groupr
-        -21 -23 0 -24 /
-        125 3 0 2 0 1 1 0 /
-        'sandy runs groupr' /
-        293.6/
-        10000000000.0/
-        3/
-        0/
-        0/
-        moder
-        -24 32 /
-        stop
-
-        Test keyword `to_file`
-        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> out = endf6.get_gendf(to_file="out.gendf")
-        >>> assert os.path.isfile('out.gendf')
-
-        Test keyword `ek_groupr`
-        >>> out = endf6.get_gendf(verbose=True, ek_groupr=sandy.energy_grids.CASMO12)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        broadr
-        -21 -22 -23 /
-        125 1 0 0 0. /
-        0.005 /
-        293.6 /
-        0 /
-        groupr
-        -21 -23 0 -24 /
-        125 1 0 2 0 1 1 0 /
-        'sandy runs groupr' /
-        293.6/
-        10000000000.0/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        3/
-        0/
-        0/
-        moder
-        -24 32 /
-        stop
-
-        U-238 test because it contains mubar, xs, chi and nubar:
-        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922380)
-        >>> out = endf6.get_gendf(ek_groupr=sandy.energy_grids.CASMO12, verbose=True, err=1, nubar=True, mubar=True, chi=True)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        9237 0 0 /
-        1 0. /
-        0/
-        broadr
-        -21 -22 -23 /
-        9237 1 0 0 0. /
-        1 /
-        293.6 /
-        0 /
-        groupr
-        -21 -23 0 -24 /
-        9237 1 0 2 0 1 1 0 /
-        'sandy runs groupr' /
-        293.6/
-        10000000000.0/
-        12 /
-        1.00000e-05 3.00000e-02 5.80000e-02 1.40000e-01 2.80000e-01 3.50000e-01 6.25000e-01 4.00000e+00 4.80520e+01 5.53000e+03 8.21000e+05 2.23100e+06 1.00000e+07 /
-        3/
-        3 251 'mubar' /
-        5/
-        5 18 'chi' /
-        0/
-        0/
-        moder
-        -24 32 /
-        stop
-
-        Test keyword `spectrum_groupr`
-        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 10010)
-        >>> spect = [1.000000e-5, 2.00000000, 3.000000e-2, 2.00000000, 5.800000e-2, 4.00000000, 3, 1]
-        >>> out = endf6.get_gendf(spectrum_groupr=spect, ek_groupr=[1.000000e-5, 3.000000e-2, 5.800000e-2, 3], verbose=True, nubar=False, chi=False, mubar=False)
-        moder
-        20 -21 /
-        reconr
-        -21 -22 /
-        'sandy runs njoy'/
-        125 0 0 /
-        0.005 0. /
-        0/
-        broadr
-        -21 -22 -23 /
-        125 1 0 0 0. /
-        0.005 /
-        293.6 /
-        0 /
-        groupr
-        -21 -23 0 -24 /
-        125 1 0 1 0 1 1 0 /
-        'sandy runs groupr' /
-        293.6/
-        10000000000.0/
-        3 /
-        1.00000e-05 3.00000e-02 5.80000e-02 3.00000e+00 /
-         0.00000000 0.00000000          0          0          1          4
-                  4          1                                            
-         1.000000-5 2.00000000 3.000000-2 2.00000000 5.800000-2 4.00000000
-         3.00000000 1.00000000                                            
-        /
-        3/
-        0/
-        0/
-        moder
-        -24 32 /
-        stop
+        Short test for hydrogen
+        >>> sandy.get_endf6_file("jeff_33", "xs", 10010).get_records()
+            MAT	MF	MT
+        0	125	1	451
+        1	125	2	151
+        2	125	3	1
+        3	125	3	2
+        4	125	3	102
+        5	125	4	2
+        6	125	6	102
+        7	125	33	1
+        8	125	33	2
+        9	125	33	102
         """
-        kwds_njoy = kwargs.copy()
-        if float(temperature) == 0:
-            kwds_njoy["broadr"] = False
-            kwds_njoy["thermr"] = False
-            kwds_njoy["gaspr"] = False
-            kwds_njoy["heatr"] = False
-            kwds_njoy["purr"] = False
-            kwds_njoy["unresr"] = False
-            kwds_njoy['keep_pendf'] = False
-        else:
-            kwds_njoy["broadr"] = True
-            kwds_njoy["thermr"] = kwds_njoy.get("thermr", False)
-            kwds_njoy["gaspr"] = kwds_njoy.get("gaspr", False)
-            kwds_njoy["heatr"] = kwds_njoy.get("heatr", False)
-            kwds_njoy["purr"] = kwds_njoy.get("purr", False)
-            kwds_njoy["unresr"] = kwds_njoy.get("unresr", False)
-            kwds_njoy['keep_pendf'] = kwds_njoy.get('keep_pendf', False)
+        df = self.to_series().rename("TEXT").reset_index().drop("TEXT", axis=1)
+        return df
 
-        kwds_njoy["acer"] = False
-        kwds_njoy["keep_pendf"] = False
-
-        kwds_njoy["nubar"] = nubar
-        kwds_njoy["xs"] = xs
-        kwds_njoy["chi"] = chi
-        kwds_njoy["mubar"] = mubar
-
-        with TemporaryDirectory() as td:
-            endf6file = os.path.join(td, "endf6_file")
-            self.to_file(endf6file)
-            outputs = sandy.njoy.process(
-                    endf6file,
-                    groupr=True,
-                    verbose=verbose,
-                    temperatures=[temperature],
-                    suffixes=[0],
-                    err=err,
-                    **kwds_njoy,
-                    )[2]  # keep only gendf filename
-            gendf_file = outputs["tape32"]
-            groupr = sandy.Groupr.from_file(gendf_file)
-            if to_file:
-                groupr.to_file(to_file)
-        return groupr
-
-    def covariance_info(self, nubar=True, xs=True, mubar=True, chi=True):
+    def get_perturbations(
+        self,
+        nsmp,
+        to_excel=None,
+        njoy_kws={},
+        smp_kws={},
+        **kwargs,
+        ):
         """
-        Check the covariance information in the formatted file.
+        Construct multivariate distributions with a unit vector for 
+        mean and with relative covariances taken from the evaluated files
+        processed with the NJOY module ERRORR.
+
+        Perturbation factors are sampled with the same multigroup structure of 
+        the covariance matrix and are returned by nuclear datatype as a `dict`
+        of `pd.Dataframe` instances .
 
         Parameters
         ----------
-        nubar : `bool`, optional
-            default parameter for MF31 (default is `True`)
-            it will overwrite what found in the file
-        xs : `bool`, optional
-            default parameter for MF33 (default is `True`)
-            it will overwrite what found in the file
-        mubar : `bool`, optional
-            default parameter for MF34 (default is `True`)
-            it will overwrite what found in the file
-        chi : `bool`, optional
-            default parameter for MF35 (default is `True`)
-            it will overwrite what found in the file
+        nsmp : TYPE
+            DESCRIPTION.
+        to_excel : TYPE, optional
+            DESCRIPTION. The default is None.
+        njoy_kws : TYPE, optional
+            DESCRIPTION. The default is {}.
+        smp_kws : TYPE, optional
+            DESCRIPTION. The default is {}.
+        **kwargs : TYPE
+            DESCRIPTION.
 
         Returns
         -------
-        cov_info : `dict`
-            dictionary reporting if covariances were found.
+        smp : TYPE
+            DESCRIPTION.
+
+        Examples
+        --------
+        Generate a couple of samples from the H1 file of JEFF-3.3.
+        >>> njoy_kws = dict(err=1, errorr_kws=dict(mt=102))
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> smps = tape.get_perturbations(nsmp=2, njoy_kws=njoy_kws)
+        >>> assert len(smps) == 1
+        >>> assert isinstance(smps[33], sandy.Samples)
+        >>> assert (smps[33].data.index.get_level_values("MT") == 102).all()
+        """
+        smp = {}
+        seeds = {}
+    
+        outs = self.get_errorr(**njoy_kws)
+
+        if "errorr31" in outs:
+            smp_kws["seed"] = seed = smp_kws.get("seed31", sandy.get_seed())
+            seeds["errorr31"] = seed
+            smp[31] = outs["errorr31"].get_cov().sampling(nsmp, **smp_kws)
+        if "errorr33" in outs:
+            smp_kws["seed"] = seed = smp_kws.get("seed33", sandy.get_seed())
+            seeds["errorr33"] = seed
+            smp[33] = outs["errorr33"].get_cov().sampling(nsmp, **smp_kws)
+        if to_excel and smp:
+            with pd.ExcelWriter(to_excel) as writer:
+                for k, v in smp.items():
+                    v.to_excel(writer, sheet_name=f'MF{k}')
+        return smp
+    
+    def apply_perturbations(self, smps, processes=1, njoy_kws={}, **kwargs):
+        """
+        Apply perturbations to the data contained in ENDF6 file. At the 
+        moment only the procedure for cross sections is implemented. Options
+        are included to directly convert perturbed pendf to ace and write data
+        on files.
+        
+        Parameters
+        ----------
+        smps : samples obtained taking the relative covariances from the 
+        evaluated files and a unit vector as mean.
+        processes : number of processes used to complete the task.
+                    Creation of perturbed pendf files and conversion to ACE 
+                    format is done in parallel if processes>1.
+                    The default is 1.
+        njoy_kws: keyword argument to pass to "tape.get_pendf()".
+        **kwargs : keyword argument to pass to "tape.get_ace()" plus keywords
+                   to pass to "endf6_perturb_worker".
+
+        Returns
+        -------
+        A dictionary of endf/pendf file or ace files depending on to_ace.  
 
         Notes
         -----
-        .. note:: this method only works with MF31, MF33, MF34 and MF35
+        .. note:: ACE file temperature. Two options are implemented:
+                  - Generation of pendf file at 0K and broadening to the 
+                    required temperature when ACE file is created.
+                  - Generation of pendf file at temperature and broadening not 
+                    performed when ACE is created. This approach takes into 
+                    account implicit effect.
 
         Examples
         --------
-        Check file contatining MF31, MF33, MF34 and MF35
-        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922380)
-        >>> endf6.covariance_info()
-        {'nubar': True, 'xs': True, 'mubar': True, 'chi': True}
+        Example to produce and apply perturbations to Pu-239 xs and nubar.
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 942390)
+        >>> smps = tape.get_perturbations(2, njoy_kws=dict(err=1, chi=False, mubar=False, errorr33_kws=dict(mt=[2, 4, 18]),), smp_kws=dict(seed31=1, seed33=3))
+        
+        Let's apply both nubar and xs perturbations, then only nubar and then only xs.
+        >>> outs_31_33 = tape.apply_perturbations(smps, njoy_kws=dict(err=1), processes=1)
+        >>> outs_31 = tape.apply_perturbations({31: smps[31]}, njoy_kws=dict(err=1), processes=1)
+        >>> outs_33 = tape.apply_perturbations({33: smps[33]}, njoy_kws=dict(err=1), processes=1)
 
-        Set all values to `False`
-        >>> endf6.covariance_info(xs=False, mubar=False, chi=False, nubar=False)
-        {'nubar': False, 'xs': False, 'mubar': False, 'chi': False}
+        Check that files are different for different samples.
+        >>> for i in range(2):
+        ...    assert(outs_33[i]["endf6"].data == tape.data)
+        ...    assert(outs_31[i]["endf6"].data != tape.data)
+        ...    assert(outs_31[i]["endf6"].data == outs_31_33[i]["endf6"].data)
+        ...    assert(outs_33[i]["pendf"].data != outs_31[i]["pendf"].data)
+        ...    assert(outs_33[i]["pendf"].data == outs_31_33[i]["pendf"].data)
 
-        2nd example without MF34
-        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350)
-        >>> endf6.covariance_info()
-        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True}
+        Check that method is consistent only nubar, only xs or both nubar and xs are perturbed.
+        >>> assert outs_33[0]["pendf"].data != outs_33[1]["pendf"].data
+        >>> assert outs_33[0]["endf6"].data == outs_33[1]["endf6"].data
+        >>> assert outs_31[0]["pendf"].data == outs_31[1]["pendf"].data
+        >>> assert outs_31[0]["endf6"].data != outs_31[1]["endf6"].data
 
-        If MF34 is not found, setting `mubar=True` won't change anything'
-        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350)
-        >>> endf6.covariance_info(mubar=True)
-        {'nubar': True, 'xs': True, 'mubar': False, 'chi': True}
+        Check that redundant nubar is also perturbed.
+        >>> nu0 = sandy.Xs.from_endf6(outs_31[0]["endf6"].filter_by(listmt=[452, 455, 456]))
+        >>> nu1 = sandy.Xs.from_endf6(outs_31[1]["endf6"].filter_by(listmt=[452, 455, 456]))
+        >>> assert not nu0.data[9437, 452].equals(nu1.data[9437, 452])
+        >>> assert nu0.data[9437, 455].equals(nu1.data[9437, 455])
+        >>> assert not nu0.data[9437, 456].equals(nu1.data[9437, 456])
+        
+        Check that redundant and partial cross sections are correctly perturbed.
+        >>> xs0 = sandy.Xs.from_endf6(outs_33[0]["pendf"].filter_by(listmf=[3]))
+        >>> xs1 = sandy.Xs.from_endf6(outs_33[1]["pendf"].filter_by(listmf=[3]))
+        >>> assert not xs0.data[9437, 1].equals(xs1.data[9437, 1])
+        >>> assert not xs0.data[9437, 2].equals(xs1.data[9437, 2])
+        >>> assert not xs0.data[9437, 4].equals(xs1.data[9437, 4])
+        >>> assert not xs0.data[9437, 18].equals(xs1.data[9437, 18])
+        >>> assert not xs0.data[9437, 51].equals(xs1.data[9437, 51])
+        >>> assert xs0.data[9437, 16].equals(xs1.data[9437, 16])
+        >>> assert xs0.data[9437, 102].equals(xs1.data[9437, 102])
+        >>> assert xs0.data[9437, 103].equals(xs1.data[9437, 103])
+        >>> assert xs0.data[9437, 107].equals(xs1.data[9437, 107])
 
-        All infos are `False` if no covariance is found
-        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10030)
-        >>> endf6.covariance_info()
-        {'nubar': False, 'xs': False, 'mubar': False, 'chi': False}
+        Check that ENDF6 and PENDF output filenames are correct
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010)
+        >>> smps = endf6.get_perturbations(2, njoy_kws=dict(err=0.1))
+        >>> outs = endf6.apply_perturbations(smps, to_file=True)
+        >>> assert outs[0]["endf6"] == '1001_0.endf6' and os.path.isfile('1001_0.endf6')
+        >>> assert outs[0]["pendf"] == '1001_0.pendf' and os.path.isfile('1001_0.endf6')
+        >>> assert outs[1]["endf6"] == '1001_1.endf6' and os.path.isfile('1001_1.endf6')
+        >>> assert outs[1]["pendf"] == '1001_1.pendf' and os.path.isfile('1001_1.pendf')
+
+        Check that ACE output filenames are correct
+        >>> outs = endf6.apply_perturbations(smps, to_file=True, to_ace=True, ace_kws=dict(err=1, temperature=300, purr=False, heatr=False, thermr=False, gaspr=False))
+        >>> assert outs[0]["ace"] == '1001_0.03c' and os.path.isfile('1001_0.03c')
+        >>> assert outs[0]["xsdir"] == '1001_0.03c.xsd' and os.path.isfile('1001_0.03c.xsd')
+        >>> assert outs[1]["ace"] == '1001_1.03c' and os.path.isfile('1001_1.03c')
+        >>> assert outs[1]["xsdir"] == '1001_1.03c.xsd' and os.path.isfile('1001_1.03c.xsd')
         """
-        supported_mf = [31, 33, 34, 35]
-        endf6_cov_mf = self.to_series().index.get_level_values("MF")\
-                           .intersection(supported_mf)
 
-        run_nubar = True if 31 in endf6_cov_mf else False
-        run_xs = True if 33 in endf6_cov_mf else False
-        run_mubar = True if 34 in endf6_cov_mf else False
-        run_chi = True if 35 in endf6_cov_mf else False
+        if 33 not in smps and 31 not in smps:
+            logging.info("no perturbation coefficient was found.")
+            return
 
-        cov_info = {
-            'nubar': run_nubar if nubar else False,
-            'xs': run_xs if xs else False,
-            'mubar': run_mubar if mubar else False,
-            'chi': run_chi if chi else False,
+
+        pendf = self.get_pendf(**njoy_kws)
+
+        seqs = []
+        ids = []
+        if 31 in smps:
+            seq_nu = smps[31].iterate_xs_samples()
+            seqs.append(seq_nu)
+            ids.append("pnu")
+        if 33 in smps:
+            seq_xs = smps[33].iterate_xs_samples()
+            seqs.append(seq_xs)
+            ids.append("pxs")
+        data = dict(zip(ids, seqs))
+
+        if processes == 1:
+            outs = {}
+
+            while True:
+                kws = {}
+                for k, v in data.items():
+                    item = next(v, False)
+                    if not item:
+                        break
+                    n, s = item
+                    kws[k] = s
+                if not item:
+                    break
+                kws.update(**kwargs)
+                outs[n] = endf6_perturb_worker(self.data, pendf.data, n, **kws)
+
+        elif processes > 1:
+            pool = mp.Pool(processes=processes)
+            outs = {}
+
+            while True:
+                kws = {}
+                for k, v in data.items():
+                    item = next(v, False)
+                    if not item:
+                        break
+                    n, s = item
+                    kws[k] = s
+                if not item:
+                    break
+                kws.update(**kwargs)
+                outs[n] = pool.apply_async(
+                    endf6_perturb_worker,
+                    (self.data, pendf.data, n),
+                    kws,
+                    )
+
+            outs = {n: out.get() for n, out in outs.items()}
+            pool.close()
+            pool.join()
+
+        # if we keep ENDF6 and PENDF files in memory, convert them back into
+        # sandy Endf6 instances (must do it here because Endf6 object cannot be pickled)
+        if not kwargs.get("to_file", False) and not kwargs.get("to_ace", False):
+            outs = {k: {k1: sandy.Endf6(v1) for k1, v1 in v.items()} for k, v in outs.items()}
+        return outs
+    
+
+
+def endf6_perturb_worker(e6, pendf, n,
+                         pxs=None,
+                         pnu=None,
+                         plpc=None,
+                         pedistr=None,
+                         verbose=False,
+                         to_ace=False,
+                         to_file=False,
+                         filename="{ZA}_{SMP}",
+                         ace_kws={},
+                         **kwargs):
+    """
+    
+
+    Parameters
+    ----------
+    e6 : TYPE
+        DESCRIPTION.
+    pendf : TYPE
+        DESCRIPTION.
+    n : TYPE
+        DESCRIPTION.
+    pxs : TYPE
+        DESCRIPTION.
+    verbose : TYPE, optional
+        DESCRIPTION. The default is False.
+    to_ace : TYPE, optional
+        DESCRIPTION. The default is False.
+    to_file : TYPE, optional
+        DESCRIPTION. The default is False.
+    filename : TYPE, optional
+        DESCRIPTION. The default is "{ZA}_{SMP:d}".
+    ace_kws : TYPE, optional
+        DESCRIPTION. The default is {}.
+    **kwargs : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """
+    # default initialization
+    endf6_pert = sandy.Endf6(e6.copy())
+    pendf_pert = sandy.Endf6(pendf.copy())
+
+
+    # filename options, in case we write to file
+    mat = endf6_pert.mat[0]
+    intro = endf6_pert.read_section(mat, 1, 451)
+    za = int(intro["ZA"])
+    meta = int(intro["LISO"])
+    zam = sandy.zam.za2zam(za, meta=meta, method=False)
+    zaid = ace_kws.get("zaid", "nndc")
+    if zaid == "nndc":
+        za = sandy.zam.zam2za(zam, method=zaid)[0]
+    params = dict(
+        MAT=mat,
+        ZAM=zam,
+        META=meta,
+        ZA=za,
+        SMP=n,
+        )
+    fn = filename.format(**params)
+
+    # apply nubar perturbation
+    if pnu is not None:
+        nu = sandy.Xs.from_endf6(endf6_pert.filter_by(listmt=[452, 455, 456]))
+        nu_pert = sandy.core.xs.xs_perturb_worker(nu, n, pnu, verbose=verbose)
+        endf6_pert = nu_pert.reconstruct_sums(drop=True).to_endf6(endf6_pert).update_intro()
+
+    # apply lpc perturbation
+    if plpc is not None:
+        pass
+
+    # apply edistr perturbation
+    if pedistr is not None:
+        pass
+
+    # apply xs perturbation
+    if pxs is not None:
+        xs = sandy.Xs.from_endf6(pendf_pert)
+        xs_pert = sandy.core.xs.xs_perturb_worker(xs, n, pxs, verbose=verbose)
+        pendf_pert = xs_pert.reconstruct_sums(drop=True).to_endf6(pendf_pert).update_intro()
+
+    # Run NJOY and convert to ace
+    if to_ace:
+        temperature = ace_kws.get("temperature", 0)
+        suffix = ace_kws.get("suffix", "." + sandy.njoy.get_temperature_suffix(temperature))
+        ace = endf6_pert.get_ace(pendf=pendf_pert, **ace_kws)
+
+        if to_file:
+            outfiles = {}
+            file = f"{fn}{suffix}c"
+            with open(file, "w") as f:
+                if verbose:
+                    print(f"writing to file '{file}'")
+                f.write(ace["ace"])
+            outfiles["ace"] = file
+            file = f"{file}.xsd"
+            with open(file, "w") as f:
+                if verbose:
+                    print(f"writing to file '{file}'")
+                f.write(ace["xsdir"])
+            outfiles["xsdir"] = file
+            return outfiles
+        return ace
+
+    else:
+        out = {
+            "endf6": endf6_pert.data,
+            "pendf": pendf_pert.data,
             }
-        return cov_info
+
+        if to_file:
+            outfiles = {}
+            file = f"{fn}.endf6"
+            if verbose:
+                print(f"writing to file '{file}'")
+            endf6_pert.to_file(file)
+            outfiles["endf6"] = file
+            if pendf_pert:
+                file = f"{fn}.pendf"
+                if verbose:
+                    print(f"writing to file '{file}'")
+                pendf_pert.to_file(file)
+                outfiles["pendf"] = file
+            return outfiles
+
+        return out
+

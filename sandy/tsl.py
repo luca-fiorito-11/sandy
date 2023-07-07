@@ -9,7 +9,6 @@ thermal neutron scattering cross section.
 
 import pandas as pd
 import sandy
-import pytest
 
 
 class Tsl():

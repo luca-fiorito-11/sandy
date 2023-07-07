@@ -1,32 +1,31 @@
 import logging
 import sys
 
-from .formats import read_formatted_file
 from .settings import *
 from .constants import *
 from .decay import *
 from .energy_grids import *
 from .errorr import *
-from .groupr import *
+from .gendf import *
 from .fy import *
 from .tsl import *
 from .gls import *
-from .h5file import *
 from .libraries import *
 from .pert import *
 from .pfns import *
-from .processing import *
 from sandy.zam import *
 from .njoy import *
 from .sections import *
 from .shared import *
 from .utils import *
 from .core import *
-from .sampling import *
+# from .sampling import *  # don't do this
+from .spectra import *
 import sandy.mcnp
 import sandy.aleph2
 import sandy.tools
 import sandy.shared
+import sandy.sampling
 
 testdir = "tests"
 
@@ -67,4 +66,4 @@ logging.getLogger().addHandler(ShutdownHandler(level=40))
 # logging.getLogger().addFilter(DuplicateFilter())
 
 
-__version__ = '0.9.0'
+__version__ = '1.0.40'

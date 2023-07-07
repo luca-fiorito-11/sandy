@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
 """
 This module contains all classes and functions specific for processing fission
 yield data.
 """
-from tables import NaturalNameWarning
-import h5py
 import logging
-import warnings
 
 import pandas as pd
 import numpy as np
@@ -20,7 +16,6 @@ import re
 __author__ = "Luca Fiorito"
 __all__ = [
         "Fy",
-        "fy2hdf",
         ]
 
 
@@ -377,17 +372,8 @@ class Fy():
         fy_data = self.filter_by('MT', 454)._expand_zap()\
                       .set_index('A')[['ZAP']]
         # Create mass yield sensitivity
-        groups = fy_data.groupby(fy_data.index)['ZAP'].value_counts()
-        groups = groups.to_frame()\
-                       .rename(columns={'ZAP': 'value'})\
-                       .reset_index()
-        mass_yield_sensitivity = groups.pivot_table(
-            index='A',
-            columns='ZAP',
-            values='value',
-            aggfunc="sum"
-            ).fillna(0)
-        return mass_yield_sensitivity
+        groups = fy_data.groupby(fy_data.index)['ZAP'].value_counts().rename("COUNT")
+        return groups.reset_index().pivot_table(index='A', columns='ZAP', values="COUNT", aggfunc="sum").fillna(0)
 
     def custom_perturbation(self, zam, mt, e, pert):
         """
@@ -439,7 +425,7 @@ class Fy():
         df.update(fy_pert)
         return self.__class__(df)
 
-    def apply_bmatrix(self, zam, e, decay_data, keep_fy_index=False):
+    def apply_bmatrix(self, zam, energy, decay_data, keep_fy_index=False):
         """
         Perform IFY = (1-B) * CFY equation to calculate IFY in a given zam
         for a given energy and apply into the original data.
@@ -449,7 +435,7 @@ class Fy():
         zam : `int`
             ZAM number of the material to which calculations are to be
             applied.
-        e : `float`
+        energy : `float`
             Energy to which calculations are to be applied.
         decay_data : `sandy.DecayData`
             Radioactive nuclide data for several isotopes.
@@ -495,39 +481,45 @@ class Fy():
         """
         # Obtain the data:
         data = self.data.copy()
-        conditions = {'ZAM': zam, 'MT': 459, "E": e}
+        conditions = {'ZAM': zam, 'MT': 459, "E": energy}
         fy_data = self._filters(conditions).data
         mat = fy_data.MAT.iloc[0]
         std = fy_data.set_index('ZAP')['DFY']
         fy_data = fy_data.set_index('ZAP')['FY']
         if keep_fy_index:
             original_index = fy_data.index
+
+        # Get B-matrix
         B = decay_data.get_bmatrix()
-        # Put the data in a appropriate format:
         index, columns = B.index, B.columns
-        # Creating (1-B) matrix:
+
+        # Creating (1-B) matrix (which is the sensitivity)
         B = sps.csc_matrix(B)
         unit = sps.csc_matrix(sps.identity(B.shape[0]))
-        C = unit - B
-        sensitivity = pd.DataFrame(C.toarray(), index=index, columns=columns)
+        S = pd.DataFrame(
+            (unit - B).toarray(),
+            index=index,
+            columns=columns,
+            )  # sensitivity matrix
+
         # Rest of the data
-        mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == e)
+        mask = (data.ZAM == zam) & (data.MT == 454) & (data.E == energy)
         fy_data = fy_data.reindex(columns).fillna(0)
         data = data.loc[~mask]
         fy_data = fy_data.reindex(columns).fillna(0)
         std = std.reindex(columns).fillna(0)
         cov_data = sandy.CategoryCov.from_stdev(std)
+
         # Apply (1-B) matrix
-        ify_calc_values = sensitivity.dot(fy_data).rename('FY')
-        cov_calc_values = np.sqrt(np.diag((cov_data.sandwich(sensitivity).data)))
-        cov_calc_values = pd.Series(cov_calc_values, index=sensitivity.index)
+        ify_calc_values = (S @ fy_data).rename('FY')
+        cov_calc_values = np.sqrt(np.diag((cov_data.sandwich(S).data)))
+        cov_calc_values = pd.Series(cov_calc_values, index=S.index)
         if keep_fy_index:
             ify_calc_values = ify_calc_values.reindex(original_index).fillna(0)
             cov_calc_values = cov_calc_values.reindex(original_index).fillna(0)
         calc_values = ify_calc_values.reset_index().rename(columns={'DAUGHTER': 'ZAP'})
         calc_values['DFY'] = cov_calc_values.values
-        # Calculus in appropiate way:
-        calc_values[['MAT', 'ZAM', 'MT', 'E']] = [mat, zam, 454, e]
+        calc_values = calc_values.assign(MAT=mat, ZAM=zam, MT=454, E=energy)
         data = pd.concat([data, calc_values], ignore_index=True)
         return self.__class__(data)
 
@@ -606,14 +598,16 @@ class Fy():
         if keep_fy_index:
             original_index = fy_data.index
         Q = decay_data.get_qmatrix(cut_hl=cut_hl)
-        # Put the data in a approppiate format:
+
+        # Put the data in a approppiate format
         mask = (data.ZAM == zam) & (data.MT == 459) & (data.E == energy)
         data = data.loc[~mask]
         fy_data = fy_data.reindex(Q.columns).fillna(0)
         std = std.reindex(Q.columns).fillna(0)
         cov_data = sandy.CategoryCov.from_stdev(std)
+
         # Apply qmatrix
-        cfy_calc_values = Q.dot(fy_data).rename('FY')
+        cfy_calc_values = (Q @ fy_data).rename('FY')
         cov_calc_values = np.sqrt(np.diag(cov_data.sandwich(Q).data))
         cov_calc_values = pd.Series(cov_calc_values, index=Q.index)
         if keep_fy_index:
@@ -621,12 +615,11 @@ class Fy():
             cov_calc_values = cov_calc_values.reindex(original_index).fillna(0)
         calc_values = cfy_calc_values.reset_index().rename(columns={'DAUGHTER': 'ZAP'})
         calc_values['DFY'] = cov_calc_values.values
-        # Calculus in appropiate way:
-        calc_values[['MAT', 'ZAM', 'MT', 'E']] = [mat, zam, 459, energy]
+        calc_values = calc_values.assign(MAT=mat, ZAM=zam, MT=459, E=energy)
         data = pd.concat([data, calc_values], ignore_index=True)
         return self.__class__(data)
     
-    def gls_update(self, zam, e, S, y_extra, Vy_extra=None):
+    def gls_update(self, zam, energy, S, y_extra, Vy_extra=None):
         """
         Perform the GLS update of fission yields and their related covariance
         matrix, according with
@@ -643,7 +636,7 @@ class Fy():
         zam : `int`
             ZAM number of the material to which calculations are to be
             applied.
-        e : `float`
+        energy : `float`
             Energy to which calculations are to be applied.
         S : `pandas.DataFrame`
             Sensitivity matrix (M, N) or sensitivity vector (N,).
@@ -704,9 +697,9 @@ class Fy():
         >>> nfpy = sandy.Fy.from_endf6(tape)
         >>> S = pd.DataFrame(np.ones(len(nfpy.data.query("E==400000 & MT==454").ZAP)), index=nfpy.data.query("E==400000 & MT==454").ZAP.to_list()).T
         >>> nfpy_post = nfpy.gls_update(922340, 400000, S, y_constraint)[0]
-        >>> assert sum(nfpy_post.data.query("MT==454").FY) == 2
+        >>> np.testing.assert_almost_equal(sum(nfpy_post.data.query("MT==454").FY), 2)
         """
-        fy_data = self.data.query(f"ZAM=={zam} & E=={e} & MT==454").set_index('ZAP')
+        fy_data = self.data.query(f"ZAM=={zam} & E=={energy} & MT==454").set_index('ZAP')
         mat = fy_data.MAT.iloc[0]
         x_prior = fy_data.FY
         std = fy_data.DFY
@@ -725,10 +718,10 @@ class Fy():
                                                   Vx_prior.data.values, y_extra_.values)
         Vx_post = Vx_prior.gls_cov_update(S_, Vy_extra)
         # Results in appropriate format:
-        data = self.data.query(f"ZAM=={zam} & E=={e} & MT==459")
+        data = self.data.query(f"ZAM=={zam} & E=={energy} & MT==459")
         dx_post = np.sqrt(np.diag(Vx_post.data))
         new_info = pd.DataFrame({"ZAP": index, "FY": x_post, "DFY": dx_post})
-        new_info[['MAT', 'ZAM', 'MT', 'E']] = [mat, zam, 454, e]
+        new_info = new_info.assign(MAT=mat, ZAM=zam, MT=454, E=energy)
         return self.__class__(pd.concat([new_info, data], ignore_index=True)), Vx_post
 
     def ishikawa_factor(self, zam, e, Vy_extra,
@@ -972,53 +965,6 @@ class Fy():
             data_endf6.data[(mat, mf, mt)] = sandy.write_mf8(sec)
         return data_endf6
 
-    def to_hdf5(self, file, library):
-        """
-        Write fission yield data to hdf5 file.
-
-        Parameters
-        ----------
-        `file` : `str`
-            HDF5 file
-        `library` : `str`
-            library name
-
-        Warnings
-        --------
-        `logging.warning`
-            raise a warning if any hdf5 group key is already in used, still
-            the existing group will be replaced
-
-        Notes
-        -----
-        .. note:: the group key for each set of fission yields contains
-                    * library: the lowercase name of the library
-                    * fy: key "fy"
-                    * kind: "independent" or "cumulative"
-                    * ZAM: the ZAM number proceeded by prefix "i"
-        .. note:: the energy values in the HDF5 file are in MeV
-        """
-        warnings.filterwarnings("ignore", category=NaturalNameWarning)
-        lib = library
-        with h5py.File(file, "a") as f:
-            for (zam, mt), df in self.data.groupby(["ZAM", "MT"]):
-                kind = "independent" if mt == 454 else "cumulative"
-                library = lib.lower()
-                key = f"{library}/fy/{kind}/{zam}"
-                if key in f:
-                    msg = f"hdf5 dataset '{key}' already exists and " +\
-                           "will be replaced"
-                    logging.warning(msg)
-                    del f[key]
-                else:
-                    logging.info(f"creating hdf5 dataset '{key}'")
-                group = f.create_group(key)
-                group.attrs["nuclide"] = zam  # redunant
-                group.attrs["kind"] = kind    # redunant
-                group.attrs["library"] = lib  # redunant
-                tab = self.energy_table(zam, by="ZAM", kind=kind)
-                tab.index *= 1e-6
-                tab.to_hdf(file, key, format="fixed")
 
 
 def _gls_setup(model_sensitivity_object, kind):
@@ -1053,24 +999,4 @@ def _gls_setup(model_sensitivity_object, kind):
     else:
         raise ValueError('Keyword argument "kind" is not valid')
     return S
-
-
-def fy2hdf(e6file, h5file, lib):
-    """
-    Write to disk a HDF5 file that reproduces the content of a FY file in
-    ENDF6 format.
-
-    Parameters
-    ----------
-    e6file : `str`
-        ENDF-6 filename
-    h5file : `str`
-        HDF5 filename
-    lib : `str`
-        library name (it will appear as a hdf5 group)
-    """
-    # This function os tested in an ALEPH notebook
-    endf6 = sandy.Endf6.from_file(e6file)
-    logging.info(f"adding FY to '{lib}' in '{h5file}'")
-    Fy.from_endf6(endf6, verbose=True).to_hdf5(h5file, lib)
 

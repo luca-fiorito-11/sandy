@@ -5,10 +5,7 @@ analysis of a decay data.
 """
 import logging
 import os  # used in docstrings
-import pytest  # used in docstrings
 import tempfile  # used in docstrings
-import yaml  # used in docstrings
-import h5py
 import copy
 from math import sqrt
 
@@ -25,7 +22,6 @@ __author__ = "Luca Fiorito"
 __all__ = [
         "DecayData",
         "decay_modes",
-        "rdd2hdf",
         "BranchingRatio",
         "HalfLife",
         "DecayEnergy",
@@ -367,8 +363,7 @@ class DecayData():
 
         Examples
         --------
-        >>> file = os.path.join(sandy.data.__path__[0], "rdd.endf")
-        >>> endf6 = sandy.Endf6.from_file(file)
+        >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', [10010, 270600, 280600])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> rdd.get_decay_chains()
            PARENT  DAUGHTER        YIELD      LAMBDA
@@ -493,8 +488,7 @@ class DecayData():
 
         Examples
         --------
-        >>> file = os.path.join(sandy.data.__path__[0], "rdd.endf")
-        >>> endf6 = sandy.Endf6.from_file(file)
+        >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', [10010, 270600, 280600])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> rdd.get_bmatrix()
         PARENT        10010       270600      280600
@@ -539,8 +533,9 @@ class DecayData():
                 .astype(float)\
                 .fillna(0)
         B_reindex = B.reindex(B.index.values, fill_value=0.0, axis=1)
-        np.fill_diagonal(B_reindex.values, 0)
-        return B_reindex
+        vals = B_reindex.values
+        np.fill_diagonal(vals, 0)
+        return pd.DataFrame(vals, index=B_reindex.index, columns=B_reindex.columns)
 
     def get_qmatrix(self, keep_neutrons=False, threshold=None, **kwargs):
         """
@@ -564,8 +559,7 @@ class DecayData():
 
         Examples
         --------
-        >>> file = os.path.join(sandy.data.__path__[0], "rdd.endf")
-        >>> endf6 = sandy.Endf6.from_file(file)
+        >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', [10010, 270600, 280600])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> out = rdd.get_qmatrix()
         >>> comp = pd.DataFrame([[1, 0, 0],
@@ -578,8 +572,8 @@ class DecayData():
         >>> comp.columns.name = "PARENT"
         >>> pd.testing.assert_frame_equal(comp, out)
 
-        >>> h1 = sandy.endf6.get_endf6_file("endfb_71","decay",551480)
-        >>> h2 = sandy.endf6.get_endf6_file("endfb_71","decay",551490)
+        >>> h1 = sandy.get_endf6_file("endfb_71", "decay", 551480)
+        >>> h2 = sandy.get_endf6_file("endfb_71", "decay", 551490)
         >>> h3 = h1.merge(h2)
         >>> rdd = sandy.DecayData.from_endf6(h3)
         >>> rdd.get_qmatrix()
@@ -657,8 +651,7 @@ class DecayData():
 
         Examples
         --------
-        >>> file = os.path.join(sandy.data.__path__[0], "rdd.endf")
-        >>> endf6 = sandy.Endf6.from_file(file)
+        >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', [10010, 270600, 280600])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> rdd.get_transition_matrix()
         PARENT        10010        270600      280600
@@ -705,9 +698,9 @@ class DecayData():
         Examples
         --------
         Load test ENDF-6 file with data for H1 and Co60.
-        >>> file = os.path.join(sandy.data.__path__[0], "rdd.endf")
-        >>> endf6 = sandy.Endf6.from_file(file)
+        >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', [10010, 270600, 280600])
         >>> rdd = sandy.DecayData.from_endf6(endf6)
+        >>> import yaml
         >>> print(yaml.dump(rdd))
         !!python/object:sandy.decay.DecayData
         _data:
@@ -872,95 +865,6 @@ class DecayData():
             data[mat, mf, mt] = sandy.write_mf8(sec)
         return sandy.Endf6(data)
 
-    @classmethod
-    def from_hdf5(cls, filename, lib, zam=None):
-        """
-        Extract hierarchical structure of decay data from hdf5 file.
-
-        Parameters
-        ----------
-        filename : `str`
-            hdf5 filename (absolute or relative)
-        lib : `str`
-            library ID contained in the hdf5 file
-        zam : `int`, optional, default is `None`
-            optional selection of individual nuclide (avoid loading all
-            library)
-
-        Returns
-        -------
-        `DecayData`
-            decay data object
-
-        Examples
-        --------
-        Examples are in method `to_hdf5`
-        """
-        with h5py.File(filename, 'r') as h5file:
-            # the last slash is important
-            group = f"{lib}/rdd/{zam}/" if zam else f"{lib}/rdd/"
-            data = sandy.tools.recursively_load_dict_contents_from_group(
-                    h5file,
-                    group,
-                    )
-        if zam:
-            data = {zam: data}
-        return cls(data)
-
-    def to_hdf5(self, filename, lib, mode="a"):
-        """
-        Dump decay data to hdf5 file.
-
-        Parameters
-        ----------
-        filename : `str`
-            name of the hdf5 file (with absolute or relative path)
-        lib : `str`
-            name of the library that will be used
-
-        Notes
-        -----
-        .. note:: decay data are saved in groups with key `'{lib}/rdd/{zam}'`,
-                  where `'{lib}'` and `'{zam}'` are the library and ZAM
-                  identifiers.
-                  The rest of the contents is the structured following the
-                  nested dictionaries.
-
-        Examples
-        --------
-        Write file into hdf5 format
-        >>> file = os.path.join(sandy.data.__path__[0], "rdd.endf")
-        >>> endf6 = sandy.Endf6.from_file(file)
-        >>> rdd = sandy.DecayData.from_endf6(endf6)
-        >>> f = tempfile.TemporaryDirectory()
-        >>> path = os.path.join(f.name, "test.h5")
-        >>> rdd.to_hdf5(path, "jeff_33")
-
-        Then, make sure `sandy` reads it correctly
-        >>> rdd.from_hdf5(path, "jeff_33")
-        {10010: {'decay_constant': 0, 'decay_constant_uncertainty': 0,
-                 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0},
-                 'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0},
-                 'half_life': 0.0, 'half_life_uncertainty': 0.0, 'parity': 1.0, 'spin': 0.5, 'stable': True},
-         270600: {'decay_constant': 4.167050502344267e-09, 'decay_constant_uncertainty': 6.324352137605637e-13,
-                  'decay_energy': {'alpha': 0.0, 'beta': 96522.0, 'gamma': 2503840.0},
-                  'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 202.529, 'gamma': 352.186},
-                  'decay_modes': {(1, 0): {'branching_ratio': 1.0, 'branching_ratio_uncertainty': 0.0, 'decay_products': {280600: 1.0}}},
-                  'half_life': 166340000.0, 'half_life_uncertainty': 25245.5, 'parity': 1.0, 'spin': 5.0, 'stable': False},
-         280600: {'decay_constant': 0, 'decay_constant_uncertainty': 0, 'decay_energy': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0},
-                  'decay_energy_uncertainties': {'alpha': 0.0, 'beta': 0.0, 'gamma': 0.0},
-                  'half_life': 0.0, 'half_life_uncertainty': 0.0, 'parity': 1.0, 'spin': 0.0, 'stable': True}}
-        >>> f.cleanup()
-        """
-        with h5py.File(filename, mode=mode) as h5file:
-            for nucl, data in self.data.items():
-                group = f"{lib}/rdd/{nucl:d}/"  # the last slash is important
-                logging.info(f"dumping RDD for ZAM={nucl} into '{group}'")
-                sandy.tools.recursively_save_dict_contents_to_group(
-                        h5file,
-                        group,
-                        data,
-                        )
 
 class _DecayBase():
     """
@@ -1044,6 +948,7 @@ class _DecayBase():
         df[name] = df.PERT * df[name]
         return self.__class__(df.drop('PERT', axis=1))
 
+
 class BranchingRatio(_DecayBase):
     """
     Extension of `sandy._DecayBase`. Container of best estimates and
@@ -1098,8 +1003,8 @@ class BranchingRatio(_DecayBase):
         """
         if self.data.empty:
             return self.__class__(self.data)
-        foo = lambda x: x / x.sum() # normalization function
-        df = self.data.BR.to_frame().groupby('ZAM').apply(foo)
+        foo = lambda x: x / x.sum()  # normalization function
+        df = self.data.BR.to_frame().groupby('ZAM', group_keys=False).apply(foo)
         if 'DBR' in self.data.columns:
             df['DBR'] = self.data['DBR']
         return self.__class__(df)
@@ -1175,6 +1080,7 @@ class BranchingRatio(_DecayBase):
             rdd_updated[zam]['decay_modes'][(rtyp, rfs)]['branching_ratio'] = val['BR']
         return DecayData(rdd_updated)
 
+
 class HalfLife(_DecayBase):
     """
     Extension of `sandy._DecayBase`. Container of best estimates and
@@ -1239,6 +1145,7 @@ class HalfLife(_DecayBase):
         for zam, val in self.data.iterrows():
             rdd_updated[zam]['half_life'] = val['HL']
         return DecayData(rdd_updated)
+
 
 class DecayEnergy(_DecayBase):
     """
@@ -1318,6 +1225,7 @@ class DecayEnergy(_DecayBase):
         for (zam, typ), val in self.data.iterrows():
             rdd_updated[zam]['decay_energy'][typ] = val['E']
         return DecayData(rdd_updated)
+
 
 def expand_decay_type(zam, dectyp):
     """
@@ -1405,6 +1313,7 @@ def expand_decay_type(zam, dectyp):
     >>> assert a == 0
 
     Expand unknown decay:
+    >>> import pytest
     >>> with pytest.raises(ValueError):
     ...     sandy.decay.expand_decay_type(581480, 8)
     """
@@ -1508,22 +1417,3 @@ def get_decay_products(rtyp, zam, meta=0, br=1.):
     if alphas != 0:
         products[20040] = alphas * br
     return products
-
-
-def rdd2hdf(e6file, h5file, lib):
-    """
-    Write to disk a HDF5 file that reproduces the content of a RDD file in
-    ENDF6 format.
-
-    Parameters
-    ----------
-    e6file : `str`
-        ENDF-6 filename
-    h5file : `str`
-        HDF5 filename
-    lib : `str`
-        library name (it will appear as a hdf5 group)
-    """
-    endf6 = sandy.Endf6.from_file(e6file)
-    logging.info(f"adding RDD to '{lib}' in '{h5file}'")
-    DecayData.from_endf6(endf6, verbose=True).to_hdf5(h5file, lib)
