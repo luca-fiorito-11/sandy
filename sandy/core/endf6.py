@@ -6,6 +6,7 @@ Created on Wed Dec  4 14:50:33 2019
 """
 import io
 import os
+from os.path import dirname, join
 from functools import reduce
 from tempfile import TemporaryDirectory
 import logging
@@ -428,6 +429,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             "endfb_80".upper(),
             "jeff_311".upper(),
             "jeff_33".upper(),
+            "jendl_40u".upper(),
             )
         library_ = library.lower()
         if library_ == "endfb_71":
@@ -442,6 +444,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jeff_33":
             url = URL_DECAY_JEFF_33_IAEA
             files = DECAY_FILES_JEFF_33_IAEA
+        elif library_ == "jendl_40u":
+            # it will fail for indivdual files, but it works for the ntire library
+            pass
         else:
             raise ValueError(
                 f"""library '{library}' is not available.
@@ -480,8 +485,13 @@ def get_endf6_file(library, kind, zam, to_file=False):
     if str(zam).lower() == 'all':
         if kind.lower() == 'xs' or kind.lower() == 'dxs':
             raise ValueError("'all' option is not available for xs")
-        text = "".join([foo_read(name, url) for name in files.values()])
-        tape = Endf6.from_text(text)
+        elif kind.lower() == "decay":
+            # read from local files with all data, otherwise it's too slow
+            file = join(dirname(sandy.__file__), 'appendix', 'decay_data', f"rdd.{library_}")
+            tape = sandy.Endf6.from_file(file)
+        else:  # basically only for fission yield
+            text = "".join([foo_read(name, url) for name in files.values()])
+            tape = Endf6.from_text(text)
     else:
         if hasattr(zam, "__len__"):
             tapes = map(lambda x: foo_get(files[x], url), zam)
@@ -811,7 +821,7 @@ class _FormattedFile():
             with ZipFile(io.BytesIO(zipresp.read())) as zfile:
                 with TemporaryDirectory() as td:
                     zfile.extract(filename, path=td)
-                    tmpfile = os.path.join(td, filename)
+                    tmpfile = join(td, filename)
                     with open(tmpfile, "r") as f:
                         text = f.read()
         return text
@@ -1644,13 +1654,13 @@ class Endf6(_FormattedFile):
             kwargs["suffixes"] = [suffix]
 
         with TemporaryDirectory() as td:
-            endf6file = os.path.join(td, "endf6_file")
+            endf6file = join(td, "endf6_file")
             self.to_file(endf6file)
             # we don not call to_pendf because we might want to pass a pendf in input
             if pendf:
                 if pendf.kind != 'pendf':
                     raise TypeError("kw argument 'pendf' does not contain a PENDF file")
-                pendftape = os.path.join(td, "pendf_file")
+                pendftape = join(td, "pendf_file")
                 pendf.to_file(pendftape)
             else:
                 pendftape = None
@@ -1689,7 +1699,7 @@ class Endf6(_FormattedFile):
         kwargs["acer"] = False
 
         with TemporaryDirectory() as td:
-            endf6file = os.path.join(td, "endf6_file")
+            endf6file = join(td, "endf6_file")
             self.to_file(endf6file)
             outputs = sandy.njoy.process_neutron(
                 endf6file,
@@ -1959,7 +1969,7 @@ class Endf6(_FormattedFile):
             ))
 
         with TemporaryDirectory() as td:
-            endf6file = os.path.join(td, "endf6_file")
+            endf6file = join(td, "endf6_file")
             self.to_file(endf6file)
             # update kwargs, or else error because multiple keyword argument
             outputs = sandy.njoy.process_neutron(

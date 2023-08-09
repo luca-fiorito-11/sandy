@@ -75,7 +75,7 @@ def get_chain_yields():
     files = ['appendix A.txt', 'appendix B.txt', 'appendix C.txt',
              'appendix D.txt', 'appendix E.txt', 'appendix F.txt']
     #
-    path = join(dirname(__file__), 'appendix', 'chain yields')
+    path = join(dirname(__file__), 'appendix', 'chain_yields')
     df = pd.concat([pd.read_csv(join(path, file), sep="\s+", index_col=0) for file in files], axis=1)
     df.columns.name, df.index.name = "ISO", "A"
     df = df.stack().rename("Y").reset_index("ISO")
