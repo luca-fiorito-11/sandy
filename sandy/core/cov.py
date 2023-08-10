@@ -1,14 +1,9 @@
-import functools
-
 import numpy as np
 import scipy
 import scipy.linalg
 import scipy.sparse as sps
 from scipy import sparse
 import pandas as pd
-import logging
-import tables as tb
-import os
 from sandy.gls import sandwich, _gls_cov_update
 
 import sandy
@@ -55,8 +50,6 @@ class CategoryCov():
     corr2cov
         create a covariance matrix given a correlation matrix and a standard
         deviation vector
-    from_stack
-        create a covariance matrix from a stacked `pd.DataFrame`
     from_stdev
         construct a covariance matrix from a standard deviation vector
     from_var
@@ -258,106 +251,6 @@ class CategoryCov():
         values = np.diag(var_)
         cov = pd.DataFrame(values, index=var_.index, columns=var_.index)
         return cls(cov)
-
-    @classmethod
-    def from_stack(cls, data_stack, index, columns, values, rows=10000000,
-                   kind='upper'):
-        """
-        Create a covariance matrix from a stacked dataframe.
-
-        Parameters
-        ----------
-        data_stack : `pd.Dataframe`
-            Stacked dataframe.
-        index : 1D iterable, optional
-            Index of the final covariance matrix.
-        columns : 1D iterable, optional
-            Columns of the final covariance matrix.
-        values : `str`, optional
-            Name of the column where the values are located.
-        rows : `int`, optional
-            Number of rows to take into account into each loop. The default
-            is 10000000.
-        kind : `str`, optional
-            Select if the stack data represents upper or lower triangular
-            matrix. The default is 'upper.
-
-        Returns
-        -------
-        `sandy.CategoryCov`
-            Covarinace matrix.
-
-        Examples
-        --------
-        If the stack data represents the covariance matrix:
-        >>> S = pd.DataFrame(np.array([[1, 1, 1], [1, 2, 1], [1, 1, 1]]))
-        >>> S = S.stack().reset_index().rename(columns = {'level_0': 'dim1', 'level_1': 'dim2', 0: 'cov'})
-        >>> S = S[S['cov'] != 0]
-        >>> sandy.CategoryCov.from_stack(S, index=['dim1'], columns=['dim2'], values='cov', kind='all')
-        dim2           0           1           2
-        dim1                                    
-        0    1.00000e+00 1.00000e+00 1.00000e+00
-        1    1.00000e+00 2.00000e+00 1.00000e+00
-        2    1.00000e+00 1.00000e+00 1.00000e+00
-
-        If the stack data represents only the upper triangular part of the
-        covariance matrix:
-        >>> test_1 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT", "MT", "E"], columns=["MAT1", "MT1", "E1"], values='VAL').data
-        >>> test_1
-        	        MAT1	    9437
-                    MT1	        2	                    102
-                    E1	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
-        MAT	   MT	E				
-        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
-              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
-
-        >>> test_2 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT", "MT", "E"], columns=["MAT1", "MT1", "E1"], values='VAL', rows=1).data
-        >>> test_2
-        	        MAT1	    9437
-                    MT1	        2	                    102
-                    E1	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
-        MAT	   MT	E				
-        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
-              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
-
-        >>> assert (test_1 == test_2).all().all()
-
-        If the stack data represents only the lower triangular part of the
-        covariance matrix:
-        >>> test_1 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT1", "MT1", "E1"], columns=["MAT", "MT", "E"], values='VAL', kind="lower").data
-        >>> test_1
-        	        MAT	        9437
-                    MT	        2	                    102
-                    E	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
-        MAT1  MT1	E1				
-        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
-              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
-
-        >>> test_2 = sandy.CategoryCov.from_stack(minimal_covtest, index=["MAT1", "MT1", "E1"], columns=["MAT", "MT", "E"], values='VAL', kind="lower", rows=1).data
-        >>> test_2
-        	        MAT 	    9437
-                    MT	        2	                    102
-                    E	        1.00000e-02	2.00000e+05	1.00000e-02	2.00000e+05
-        MAT1  MT1	E1				
-        9437	2	1.00000e-02	2.00000e-02	0.00000e+00	4.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	9.00000e-02	0.00000e+00	5.00000e-02
-              102	1.00000e-02	4.00000e-02	0.00000e+00	1.00000e-02	0.00000e+00
-                    2.00000e+05	0.00000e+00	5.00000e-02	0.00000e+00	1.00000e-02
-
-        >>> assert (test_1 == test_2).all().all()
-        """
-        cov = segmented_pivot_table(data_stack, rows=rows, index=index,
-                                    columns=columns, values=values)
-        if kind == 'all':
-            return cls(cov)
-        else:
-            return triu_matrix(cov, kind=kind)
 
     def get_std(self):
         """
@@ -1084,121 +977,6 @@ def corr2cov(corr, s):
     """
     s_ = np.diag(s)
     return s_.dot(corr.dot(s_))
-
-
-def sparse_tables_dot(a, b, rows=1000):
-    """
-    Function to perform multiplications between matrices stored on local
-    disk instead of memory.
-
-    Parameters
-    ----------
-    a : 2D iterable
-        Matrix.
-    b : 2D iterable
-        Matrix.
-    rows : `int`, optional.
-        Number of rows to be calculated in each loop. The default is 1000.
-
-    Returns
-    -------
-    dot_product : "scipy.sparse.csc_matrix"
-        The multiplication of 2 matrix.
-    """
-    a_ = sps.csr_matrix(a)
-    b_ = sps.csc_matrix(b)
-    l, n = a_.shape[0], b_.shape[1]
-    f = tb.open_file('dot.h5', 'w')
-    filters = tb.Filters(complevel=5, complib='blosc')
-    out_data = f.create_earray(f.root, 'data', tb.Float64Atom(), shape=(0,),
-                               filters=filters)
-    out_indices = f.create_earray(f.root, 'indices', tb.Int64Atom(), shape=(0,),
-                                  filters=filters)
-    out_indptr = f.create_earray(f.root, 'indptr', tb.Int64Atom(), shape=(0,),
-                                 filters=filters)
-    out_indptr.append(np.array([0]))
-    max_indptr = 0
-    for i in range(0, l, rows):
-        res = a_[i:min(i+rows, l), :].dot(b_)
-        out_data.append(res.data)
-        indices = res.indices
-        indptr = res.indptr
-        out_indices.append(indices)
-        out_indptr.append(max_indptr+indptr[1:])
-        max_indptr += indices.shape[0]
-        f.flush()
-    dot_product = sps.csr_matrix((f.root.data[:], f.root.indices[:],
-                                  f.root.indptr[:]), shape=(l, n))
-    f.close()
-    os.remove('dot.h5')
-    return dot_product
-
-
-def segmented_pivot_table(data_stack, index, columns, values, rows=10000000):
-    """
-    Create a pivot table from a stacked dataframe.
-
-    Parameters
-    ----------
-    data_stack : `pd.Dataframe`
-        Stacked dataframe.
-    index : 1D iterable, optional
-        Index of the final covariance matrix.
-    columns : 1D iterable, optional
-        Columns of the final covariance matrix.
-    values : `str`, optional
-        Name of the column where the values are located.
-    rows : `int`, optional
-        Number of rows to take into account into each loop. The default
-        is 10000000.
-
-    Returns
-    -------
-    pivot_matrix : `pd.DataFrame`
-        Covariance matrix created from a stacked data
-
-    Examples
-    --------
-    >>> S = pd.DataFrame(np.array([[1, 1, 1], [0, 2, 1], [0, 0, 1]]))
-    >>> S = S.stack().reset_index().rename(columns = {'level_0': 'dim1', 'level_1': 'dim2', 0: 'cov'})
-    >>> sandy.cov.segmented_pivot_table(S, index=['dim1'], columns=['dim2'], values='cov')
-    dim2	0	1	2
-    dim1
-       0	1	1	1
-       1	0	2	1
-       2	0	0	1
-
-    >>> sandy.cov.segmented_pivot_table(S, index=['dim1'], columns=['dim2'], values='cov', rows=1)
-    dim2	0	        1	        2
-    dim1
-       0    1.00000e+00 1.00000e+00 1.00000e+00
-       1    0.00000e+00 2.00000e+00 1.00000e+00
-       2    0.00000e+00 0.00000e+00 1.00000e+00
-    """
-    size = data_stack.shape[0]
-    pivot_matrix = []
-    for i in range(0, size, rows):
-        partial_pivot = data_stack[i: min(i+rows, size)].pivot_table(
-            index=index,
-            columns=columns,
-            values=values,
-            fill_value=0,
-            aggfunc=np.sum,
-            )
-        pivot_matrix.append(partial_pivot)
-    pivot_matrix = pd.concat(pivot_matrix).fillna(0)
-    # Because the default axis to concatenate is the 0, some duplicate
-    # index appear with null values. With this groupby, the duplicate axis
-    # disappear, keeping the original values.
-    pivot_matrix = pivot_matrix.groupby(pivot_matrix.index).sum()
-    if len(index) >= 2:
-        # Groupby transforms multiindex structure into a tuple. This line
-        # reverse the transformation.
-        pivot_matrix.index = pd.MultiIndex.from_tuples(
-            pivot_matrix.index,
-            names=index,
-            )
-    return pivot_matrix
 
 
 def triu_matrix(matrix, kind='upper'):
