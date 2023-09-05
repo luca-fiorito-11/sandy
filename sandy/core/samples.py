@@ -108,21 +108,25 @@ class Samples():
     def get_rstd(self):
         return (self.get_std() / self.get_mean()).rename("RSTD")
 
-    def iterate_xs_samples(self):
+    def iterate_samples(self, kind):
         """
         Iterate samples one by one and shape them as a :func:`sandy.Xs`
         dataframe, but with mutligroup structure.
         This output should be passed to :func:`sandy.Xs._perturb`.
         The function is called by :func:`sandy.Endf6.apply_perturbations`
+        The function is valid also for the `sandy.Edistr` instance but
+        The kind must be specified.
 
         Yields
         ------
         n : `int`
-            .
+        kind: `str`
+            - "xs" for cross setions and nubar
+            - "chi" for energy distributions
         s : `pd.DataFrame`
             dataframe of perturbation coefficients with:
                 
-                - columns: `pd.MultiIndex` with levels `"MAT"` and `"MT"`
+                - columns: `pd.MultiIndex` depending on the kind
                 - index: `pd.IntervalIndex` with multigroup structure
 
         Notes
@@ -156,31 +160,31 @@ class Samples():
 
         Check that samples are passed correctly to daughter MTs (only one level deep)
         >>> expected = pd.MultiIndex.from_product([[125], [51]], names=["MAT", "MT"])
-        >>> assert next(smps51.iterate_xs_samples())[1].columns.equals(expected)
+        >>> assert next(smps51.iterate_samples("xs"))[1].columns.equals(expected)
 
         >>> expected = pd.MultiIndex.from_product([[125], [4] + list(sandy.redundant_xs[4])], names=["MAT", "MT"])
-        >>> assert next(smps4.iterate_xs_samples())[1].columns.equals(expected)
+        >>> assert next(smps4.iterate_samples("xs"))[1].columns.equals(expected)
 
         >>> expected = pd.MultiIndex.from_product([[125], [1] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
-        >>> assert next(smps1.iterate_xs_samples())[1].columns.equals(expected)
+        >>> assert next(smps1.iterate_samples("xs"))[1].columns.equals(expected)
 
         >>> expected = pd.MultiIndex.from_product([[125], [3] + list(sandy.redundant_xs[3])], names=["MAT", "MT"])
-        >>> assert next(smps3.iterate_xs_samples())[1].columns.equals(expected)
+        >>> assert next(smps3.iterate_samples("xs"))[1].columns.equals(expected)
 
         >>> expected = pd.MultiIndex.from_product([[125], [1] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
-        >>> assert next(smps1.iterate_xs_samples())[1].columns.equals(expected)
+        >>> assert next(smps1.iterate_samples("xs"))[1].columns.equals(expected)
 
         >>> expected = pd.MultiIndex.from_product([[125], [18] + list(sandy.redundant_xs[18])], names=["MAT", "MT"])
-        >>> assert next(smps18.iterate_xs_samples())[1].columns.equals(expected)
+        >>> assert next(smps18.iterate_samples("xs"))[1].columns.equals(expected)
 
         >>> expected = pd.MultiIndex.from_product([[125], [27] + list(sandy.redundant_xs[27])], names=["MAT", "MT"])
-        >>> assert next(smps27.iterate_xs_samples())[1].columns.equals(expected)
+        >>> assert next(smps27.iterate_samples("xs"))[1].columns.equals(expected)
 
         >>> expected = pd.MultiIndex.from_product([[125], [101] + list(sandy.redundant_xs[101])], names=["MAT", "MT"])
-        >>> assert next(smps101.iterate_xs_samples())[1].columns.equals(expected)
+        >>> assert next(smps101.iterate_samples("xs"))[1].columns.equals(expected)
 
         >>> expected = pd.MultiIndex.from_product([[125], [452] + list(sandy.redundant_xs[452])], names=["MAT", "MT"])
-        >>> assert next(smps452.iterate_xs_samples())[1].columns.equals(expected)
+        >>> assert next(smps452.iterate_samples("xs"))[1].columns.equals(expected)
 
 
         In this example the original covariance contains data for MT=1 and MT=51.
@@ -189,7 +193,7 @@ class Samples():
 
         Then, since MT=1 is redundant, samples are passed to its partial components (MT=2 and MT=3).
         >>> expected = pd.MultiIndex.from_product([[9440], [1, 51] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
-        >>> assert next(smps.iterate_xs_samples())[1].columns.equals(expected)
+        >>> assert next(smps.iterate_samples("xs"))[1].columns.equals(expected)
         
         If case one of the partial components already has samples, i.e., MT=2...
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 942400)
@@ -198,36 +202,42 @@ class Samples():
         Then the MT=1 samples are not passed to the partial components, which 
         in this case it means that MT=2 is not changed and MT=3 is not created.
         >>> expected = pd.MultiIndex.from_product([[9440], [1, 2, 51]], names=["MAT", "MT"])
-        >>> assert next(smps.iterate_xs_samples())[1].columns.equals(expected)
+        >>> assert next(smps.iterate_samples("xs"))[1].columns.equals(expected)
         """
-        levels = sandy.Xs._columnsnames
+        if kind == "xs":
+            levels = sandy.Xs._columnsnames
+        elif kind == "chi":
+            levels = sandy.Edistr._columnsnames
+
         df = self.data.unstack(level=levels)
         
         # iterate over samples
         for n, p in df.groupby(axis=1, level=self._columnsname):
             s = p.droplevel(self._columnsname, axis=1)
-            adds = []
-            for mat in s.columns.get_level_values("MAT").unique():
-                
-                # sort from MT107 to MT1
-                for k, v in sandy.redundant_xs.items():
-                    if not (mat, k) in s.columns:
-                        continue
-                    daughters = pd.MultiIndex.from_product([[mat], v], names=["MAT", "MT"])
-                    # Only give perturbation for redundant xs to daughters if no perturbation
-                    # for partial cross section is found
-                    if s.columns.intersection(daughters).empty:
-                        
-                        # This goes only 1 level deep.
-                        # Then, MT=1 perturbations will be given to MT=2 and MT=3
-                        # without descending any further
-                        add = pd.DataFrame(
-                            np.tile(s[(mat, k)].values, (daughters.size, 1)).T,
-                            index=s.index,
-                            columns=daughters,
-                            )
-                        adds.append(add)
-            s = pd.concat([s, *adds], axis=1)
+            
+            if kind == "xs":
+                adds = []
+                for mat in s.columns.get_level_values("MAT").unique():
+                    
+                    # sort from MT107 to MT1
+                    for k, v in sandy.redundant_xs.items():
+                        if not (mat, k) in s.columns:
+                            continue
+                        daughters = pd.MultiIndex.from_product([[mat], v], names=["MAT", "MT"])
+                        # Only give perturbation for redundant xs to daughters if no perturbation
+                        # for partial cross section is found
+                        if s.columns.intersection(daughters).empty:
+                            
+                            # This goes only 1 level deep.
+                            # Then, MT=1 perturbations will be given to MT=2 and MT=3
+                            # without descending any further
+                            add = pd.DataFrame(
+                                np.tile(s[(mat, k)].values, (daughters.size, 1)).T,
+                                index=s.index,
+                                columns=daughters,
+                                )
+                            adds.append(add)
+                s = pd.concat([s, *adds], axis=1)
             yield n, s
 
     def _std_convergence(self):
