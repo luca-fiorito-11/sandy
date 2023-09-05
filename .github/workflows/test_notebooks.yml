@@ -28,7 +28,7 @@ jobs:
           ref: 'v1.0'
       - uses: actions/setup-python@v3
         with:
-          python-version: "3.7.15"
+          python-version: "3.x"
 
       # Run commands using the runners shell
       - name: clone and install njoy
