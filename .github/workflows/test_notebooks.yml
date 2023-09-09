@@ -40,7 +40,7 @@ jobs:
       - name: install sandy's requirements
         run: pip install -r requirements.txt
       - name: install jupyter packages to run notebooks
-        run: pip install jupyterlab matplotlib seaborn scikit-learn
+        run: pip install jupyterlab matplotlib seaborn scikit-learn serpentTools
       - name: install sandy
         run: python setup.py install --user
       - name: run notebooks
