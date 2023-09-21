@@ -142,9 +142,10 @@ class Samples():
         --------
         Get samples fot MT=1
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010)
-        >>> smps1 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=1)))[33]
+        >>> smps2 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=2)))[33]
 
         Copy samples each time to a redundant or partial MT
+        >>> smps1 = sandy.Samples(smps2.data.reset_index().assign(MT=1).set_index(["MAT", "MT", "E"]))
         >>> smps3 = sandy.Samples(smps1.data.reset_index().assign(MT=3).set_index(["MAT", "MT", "E"]))
         >>> smps18 = sandy.Samples(smps1.data.reset_index().assign(MT=18).set_index(["MAT", "MT", "E"]))
         >>> smps19 = sandy.Samples(smps1.data.reset_index().assign(MT=19).set_index(["MAT", "MT", "E"]))
@@ -203,17 +204,18 @@ class Samples():
         levels = sandy.Xs._columnsnames
         df = self.data.unstack(level=levels)
         
-        # iterate over samples
+        # -- Iterate over samples
         for n, p in df.groupby(axis=1, level=self._columnsname):
             s = p.droplevel(self._columnsname, axis=1)
             adds = []
             for mat in s.columns.get_level_values("MAT").unique():
                 
-                # sort from MT107 to MT1
+                # -- Iterate redundant xs (from MT107 to MT1)
                 for k, v in sandy.redundant_xs.items():
                     if not (mat, k) in s.columns:
                         continue
                     daughters = pd.MultiIndex.from_product([[mat], v], names=["MAT", "MT"])
+
                     # Only give perturbation for redundant xs to daughters if no perturbation
                     # for partial cross section is found
                     if s.columns.intersection(daughters).empty:
@@ -241,99 +243,39 @@ class Samples():
         rng = range(1, smp.shape[0])
         foo = lambda x: smp.loc[:x].mean()
         return pd.DataFrame(map(foo, rng), index=rng)
-    
-    def test_shapiro(self, size=None, pdf="normal"):
-        """
-        Perform the Shapiro-Wilk test for normality on the samples.
-        The test can be performed also for a lognormal distribution by testing
-        for normality the logarithm of the samples.
-        
-        The Shapiro-Wilk test tests the null hypothesis that the data was
-        drawn from a normal distribution.
 
+    def from_excel(file, beg=None, end=None):
+        """
+        Read perturbation coefficients (for nubar and xs) from excel file.
+        The file format is compatible with what written in
+        :obj: `~sandy.cov.CategoryCov.sampling`
+        
         Parameters
         ----------
-        size : `int`, optional
-            number of samples (starting from the first) that need to be
-            considered for the test. The default is `None`, i.e., all samples.
-        pdf : `str`, optional
-            the pdf used to test the samples. Either `"normal"` or
-            `"lognormal"`. The default is "normal".
+        file : `str`
+            excel file name.
+        beg : `int`
+            first sample to consider. Default is first in dataframe.
+        end : `int`
+            last samples to conisder. Default is last in dataframe.
 
         Returns
         -------
-        pd.DataFrame
-            Dataframe with Shapriro-Wilk results (statistic and pvalue) for
-            each variable considered in the :func:`~Samples` instance.
-
-        Examples
-        --------
-        Generate 5000 xs samples normally, log-normally and uniform distributed
-        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
-        >>> njoy_kws = dict(err=1, errorr33_kws=dict(mt=102))
-        >>> nsmp = 5000
-        >>> seed = 5
-        >>>
-        >>> smp_norm = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=seed, pdf="normal"))[33]
-        >>> smp_lognorm = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=seed, pdf="lognormal"))[33]
-        >>> smp_uniform = tape.get_perturbations(nsmp, njoy_kws=njoy_kws, smp_kws=dict(seed33=seed, pdf="uniform"))[33]
-
-        In this example we defined the following arbitrary convergence criteria:
-            - if the p value is larger than 0.05 we fail to reject the null-hypothesis and we accept the results
-            - if the first condition is accepted, we confirm the pdf if the statistics is larger than 0.95
-        >>> threshold = 0.95
-        >>> pthreshold = 0.05
-        >>> def test(smps):
-        ...     data = []
-        ...     for n in [10, 50, 100, 500, 1000, 5000]:
-        ...         for pdf in ("normal", "lognormal"):
-        ...             df = smps.test_shapiro(pdf=pdf, size=n)
-        ...             idx = df.statistic.idxmin()
-        ...             w = df.loc[idx]
-        ...             t = "reject" if w.pvalue < pthreshold else (pdf if w.statistic > threshold else "reject")
-        ...             data.append({"PDF": pdf, "test":t, "# SMP": n})
-        ...     df = pd.DataFrame(data).pivot_table(index="# SMP", columns="PDF", values="test", aggfunc=lambda x: ' '.join(x))
-        ...     return df
-
-        The Shapiro-Wilks test proves wrong the normal samples because of the tail truncation.
-        # >>> print(test(smp_norm))
-        PDF   lognormal      normal
-        # SMP                      
-        10       reject      reject
-        50       reject      reject
-        100      reject      reject
-        500      reject      reject
-        1000     reject      reject
-        5000     reject      reject
-
-        The Shapiro-Wilks test proves right for the lognormal samples and the lognormal distribution.
-        # >>> print(test(smp_lognorm))
-        PDF    lognormal  normal
-        # SMP                   
-        10     lognormal  reject
-        50     lognormal  reject
-        100    lognormal  reject
-        500    lognormal  reject
-        1000   lognormal  reject
-        5000   lognormal  reject
-
-        The Shapiro-Wilks gives too low p-values for the uniform samples.
-        # >>> print(test(smp_uniform))
-        PDF   lognormal  normal
-        # SMP                  
-        10       reject  reject
-        50       reject  reject
-        100      reject  reject
-        500      reject  reject
-        1000     reject  reject
-        5000     reject  reject
+        smp : :obj: `Samples`
+            Samples dataframe.
         """
-        size_ = size or self.data.shape[1]
-        names = ["statistic", "pvalue"]
+        df = pd.read_excel(file, sheet_name="SMP")
+        
+        # -- Everything before ELEFT is part of the MultiIndex
+        loc = df.columns.get_loc("ELEFT")
+        idx = df.iloc[:, :loc]
 
-        data = self.data.iloc[:, :size_]
-        if pdf.lower() == "lognormal":
-            data = np.log(self.data)
+        # -- ELEFT and ERIGHT are combined into an IntervalIndex (multigroup)
+        idx.insert(loc, "E", pd.IntervalIndex.from_arrays(df.ELEFT, df.ERIGHT))
 
-        df = pd.DataFrame({idx: scipy.stats.shapiro(row) for idx, row in data.iterrows()}, index=names).T
-        return df.rename_axis(data.index.names)
+        idx = pd.MultiIndex.from_frame(idx)
+
+        df = df.iloc[:, loc+2:].loc[:, beg:end].reset_index(drop=True)
+        df.index = idx
+        smp = sandy.Samples(df)
+        return smp

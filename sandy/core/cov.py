@@ -1,12 +1,13 @@
 import numpy as np
-import scipy
-import scipy.linalg
-import scipy.sparse as sps
-from scipy import sparse
+from numpy.linalg import svd
+from scipy.sparse import csr_matrix
+from scipy.linalg import eig, qr
 import pandas as pd
 from sandy.gls import sandwich, _gls_cov_update
+import logging
 
 import sandy
+
 pd.options.display.float_format = '{:.5e}'.format
 
 __author__ = "Luca Fiorito"
@@ -58,8 +59,6 @@ class CategoryCov():
         extract correlation matrix from covariance matrix
     get_eig
         extract eigenvalues and eigenvectors from covariance matrix
-    get_L
-        extract lower triangular matrix such that $C=L L^T$
     get_std
         extract standard deviations from covariance matrix
     invert
@@ -268,8 +267,8 @@ class CategoryCov():
         1   1.00000e+00
         Name: STD, dtype: float64
         """
-        cov = self.to_sparse().diagonal()
-        std = np.sqrt(cov)
+        var = self.data.values.diagonal()
+        std = np.sqrt(var)
         return pd.Series(std, index=self.data.index, name="STD")
 
     def get_eig(self, tolerance=None):
@@ -372,16 +371,13 @@ class CategoryCov():
 
         >>> assert (cov.get_eig(tolerance=0)[0] >= 0).all()
         """
-        E, V = scipy.linalg.eig(self.data)
+        E, V = eig(self.data)
         E = pd.Series(E.real, name="EIG")
         V = pd.DataFrame(V.real)
         if tolerance is not None:
             E[E/E.max() < tolerance] = 0
         return E, V
 
-    def get_svd(self, check_finite=False, **kwargs):
-        return scipy.linalg.svd(self.data, check_finite=check_finite, **kwargs)
-        
     def get_corr(self):
         """
         Extract correlation matrix.
@@ -461,7 +457,8 @@ class CategoryCov():
             columns=self.data.columns,
         )  # do not return CategoryCov because variance can be negative
 
-    def sampling(self, nsmp, seed=None, pdf='normal', tolerance=1e-10, relative=True, **kwargs):
+    def sampling(self, nsmp, seed=None, pdf='lognormal', relative=True,
+                 correction=0.5/100, to_excel=None, **kwargs):
         """
         Extract perturbation coefficients according to chosen distribution with
         covariance from given covariance matrix. See note for non-normal
@@ -479,14 +476,11 @@ class CategoryCov():
             random numbers distribution.
             Available distributions are:
                 * `'normal'`
-                * `'uniform'`
                 * `'lognormal'`
-        tolerance : `float`, optional, default is `None`
-            replace all eigenvalues smaller than a given tolerance with zeros.
         relative : `bool`, optional, default is `True`
             flag to switch between relative and absolute covariance matrix
             handling
-                * `True`: samples' mean will be 1
+                * `True`: samples' mean will be 1, boundaries will be adjusted
                 * `False`: samples' mean will be 0
                 
         Returns
@@ -496,9 +490,6 @@ class CategoryCov():
 
         Notes
         -----
-        .. note:: sampling with uniform distribution is performed on
-            diagonal covariance matrix, neglecting all correlations.
-
         .. note:: sampling with relative covariance matrix is performed
             setting all the negative perturbation coefficients equal to 0
             and the ones larger than 2 equal to 2 for normal distribution, or
@@ -523,47 +514,44 @@ class CategoryCov():
         Draw relative samples using different distributions.
         >>> smp_n = cov.sampling(nsmp, seed=seed, pdf='normal')
         >>> smp_ln = cov.sampling(nsmp, seed=seed, pdf='lognormal')
-        >>> smp_u = cov.sampling(nsmp, seed=seed, pdf='uniform')
 
         The sample mean converges to a unit vector.
         >>> np.testing.assert_array_almost_equal(smp_n.get_mean(), [1, 1], decimal=2)
         >>> np.testing.assert_array_almost_equal(smp_ln.get_mean(), [1, 1], decimal=2)
-        >>> np.testing.assert_array_almost_equal(smp_u.get_mean(), [1, 1], decimal=2)
 
         The sample covariance converges to the original one.
-        >>> np.testing.assert_array_almost_equal(smp_n.get_cov(), c, decimal=3)
-        >>> np.testing.assert_array_almost_equal(smp_ln.get_cov(), c, decimal=3)
-        >>> np.testing.assert_array_almost_equal(np.diag(smp_u.get_cov()), np.diag(c), decimal=3)
+        >>> np.testing.assert_array_almost_equal(smp_n.get_cov(), c, decimal=2)
+        >>> np.testing.assert_array_almost_equal(smp_ln.get_cov(), c, decimal=2)
 
         Samples are reproducible by setting a seed.
         assert cov.sampling(nsmp, seed=seed, pdf='normal').data.equals(smp_n.data)
 
 
 
-        Create Positive-Definite covariance matrix with small stdev (small negative eig).
-        >>> c = pd.DataFrame([[1, 1.2],[1.2, 1]], index=index, columns=index) / 10
-        >>> cov = sandy.CategoryCov(c)
+        # Create Positive-Definite covariance matrix with small stdev (small negative eig).
+        # >>> c = pd.DataFrame([[1, 1.2],[1.2, 1]], index=index, columns=index) / 10
+        # >>> cov = sandy.CategoryCov(c)
 
-        >>> smp_0 = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=0)
-        >>> np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=2)
-        >>> smp_inf = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=np.inf)
-        >>> import pytest
-        >>> with pytest.raises(Exception):
-        ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
+        # >>> smp_0 = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=0)
+        # >>> np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=2)
+        # >>> smp_inf = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=np.inf)
+        # >>> import pytest
+        # >>> with pytest.raises(Exception):
+        # ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
 
 
 
-        Create Positive-Definite covariance matrix with small stdev (large negative eig).
-        >>> c = pd.DataFrame([[1, 4],[4, 1]], index=index, columns=index) / 10
-        >>> cov = sandy.CategoryCov(c)
+        # Create Positive-Definite covariance matrix with small stdev (large negative eig).
+        # >>> c = pd.DataFrame([[1, 4],[4, 1]], index=index, columns=index) / 10
+        # >>> cov = sandy.CategoryCov(c)
         
-        Samples kind of converge only if we set a low tolerance
-        >>> smp_0 = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=0)
-        >>> with pytest.raises(Exception):
-        ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
-        >>> smp_inf = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=np.inf)
-        >>> with pytest.raises(Exception):
-        ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
+        # Samples kind of converge only if we set a low tolerance
+        # >>> smp_0 = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=0)
+        # >>> with pytest.raises(Exception):
+        # ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
+        # >>> smp_inf = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=np.inf)
+        # >>> with pytest.raises(Exception):
+        # ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
 
 
 
@@ -578,62 +566,74 @@ class CategoryCov():
         The sample mean still converges to a unit vector.
         >>> np.testing.assert_array_almost_equal(smp_n.get_mean(), [1, 1], decimal=2)
         >>> np.testing.assert_array_almost_equal(smp_ln.get_mean(), [1, 1], decimal=2)
-        >>> np.testing.assert_array_almost_equal(smp_u.get_mean(), [1, 1], decimal=2)
 
         Only the lognormal covariance still converges.
+        >>> import pytest
         >>> with pytest.raises(Exception):   
         ...    raise np.testing.assert_array_almost_equal(smp_n.get_cov(), c, decimal=1)
         >>> np.testing.assert_array_almost_equal(smp_ln.get_cov(), c, decimal=2)
-        >>> with pytest.raises(Exception):   
-        ...    raise np.testing.assert_array_almost_equal(np.diag(smp_u.get_cov()), np.diag(c), decimal=1)
         """
         allowed_pdf = [
             "normal",
             "lognormal",
-            "uniform",
             ]
         if pdf not in allowed_pdf:
-            raise ValueError("`pdf='lognormal'` not allowed")
+            raise ValueError(f"pdf='{pdf}' not allowed")
 
         if not relative and pdf=='lognormal':
             raise ValueError("`pdf='lognormal'` and `relative=False` is not a valid combination")
-        
-        nsmp_ = int(nsmp)
 
-        # -- Draw IID samples with mu=0 and std=1
-        np.random.seed(seed=seed)
-        if pdf == 'uniform':
-            a = np.sqrt(12) / 2
-            y = np.random.uniform(-a, a, (self.size, nsmp_))
-        else:
-            y = np.random.randn(self.size, nsmp_)
+        N = int(nsmp)
+
+        if to_excel:
+            logging.info(f"writing to file '{to_excel}'...")
+
+        # -- Prepare index and columns for Samples object
+        index = self.data.index
+        columns = list(range(N))
 
         # -- Fix covariance matrix according to distribution
-        if pdf == 'uniform':
-            # no cross-correlation term is considered
-            if relative:
-                a = np.sqrt(12) / 2 # upper bound of the distribution y
-                std = np.sqrt(np.diag(self.data)) 
-                std_modified = np.where(std < 1 / a, std, 1 / a)
-                cov = np.diag(std_modified**2)
-            else:
-                cov = np.diag(np.diag(self.data))
-            to_decompose = self.__class__(cov, index=self.data.index, columns=self.data.columns)
-        elif pdf == 'lognormal':
-            ucov = np.log(self.sandwich(np.eye(self.size)).data + 1).values  # covariance matrix of underlying normal distribution
-            to_decompose = self.__class__(ucov, index=self.data.index, columns=self.data.columns)
+        if pdf == 'lognormal':
+            C = np.log(self.sandwich(np.eye(self.size)).data + 1).values  # covariance matrix of underlying normal distribution
         else:
-            to_decompose = self
+            C = self.data.values.copy()
+        # -- Correct matrix diagonal by 0.5%, to have a condition number <5e7 (U5 from JEFF33, 240 groups)
+        # -- which guarantees that U == V.T
+        D = C.diagonal()
+        M = D.size
+        C += np.diag(D * correction)
 
-        # -- Decompose covariance into lower triangular
-        L = to_decompose.get_L(tolerance=tolerance)
+        # -- Reduce matrix size by removing rows and columns with zero on diag
+        nz = np.flatnonzero(D)
+        Cr = C[nz][:, nz]
+        
+        # -- Decompose covariance (SVD better than QR or cholesky)
+        Ur, Sr, Vr = svd(Cr, hermitian=True)  # hermitian is twice faster (U5 from JEFF33, 240 groups)
+        Mr = Sr.size
+        cond = Sr.max() / Sr.min()
+        if cond > 5e7:
+            logging.warning(f"Large condition number of covariance matrix: {cond:7.2e}")
+
+        # -- Get U back to original size
+        U = np.zeros((M, Mr))
+        U[nz] = Ur
+
+        # -- Draw IID samples with mu=0 and std=1
+        seed_ = seed if seed else sandy.get_seed()
+        np.random.seed(seed=seed_)
+        X_ = np.random.randn(Mr, N)
+
+        # -- Save seed and singulare values
+        if to_excel:
+            with pd.ExcelWriter(to_excel, mode='w') as writer:
+                pd.Series(seed_).to_excel(writer, header=None, index=None, sheet_name='SEED')
+                pd.Series(Sr).to_excel(writer, header=None, index=None, sheet_name='SVALUES')
 
         # -- Apply covariance to samples
-        inner = (sparse.csr_matrix(L.values) @ sparse.csr_matrix(y)).todense()
+        # -- 12 times faster with sparse (U5 from JEFF33, 240 groups)
+        X = (csr_matrix(U) @ csr_matrix(np.diag(np.sqrt(Sr))) @ csr_matrix(X_)).todense()
 
-        index = self.data.index
-        columns = list(range(nsmp_))
-        samples = pd.DataFrame(inner, index=index, columns=columns)
+        samples = pd.DataFrame(X, index=index, columns=columns)
 
         # -- Fix sample (and sample mean) according to distribution
         if pdf == 'lognormal':
@@ -646,6 +646,19 @@ class CategoryCov():
             upper_bound = samples < 2
             samples = samples.where(lower_bound, 0)
             samples = samples.where(upper_bound, 2)
+
+        # -- Save samples
+        if to_excel:
+            with pd.ExcelWriter(to_excel, mode='a') as writer:
+                # this might go into Samples
+                s = samples.reset_index()
+                loc = s.columns.get_loc("E")
+                ERIGHT = s.E.apply(lambda x: x.right)
+                s.insert(loc=loc, column='ERIGHT', value=ERIGHT)
+                ELEFT = s.E.apply(lambda x: x.left)
+                s.insert(loc=loc, column='ELEFT', value=ELEFT)
+                s.drop("E", inplace=True, axis=1)
+                s.to_excel(writer, index=False, sheet_name='SMP')
 
         return sandy.Samples(samples)
 
@@ -817,56 +830,6 @@ class CategoryCov():
         columns = self.data.columns
         return self.__class__(cov, index=index, columns=columns)
 
-    def to_sparse(self, method='csr_matrix'):
-        """
-        Method to extract `CategoryCov` values into a sparse matrix
-
-        Parameters
-        ----------
-        method : `str`, optional
-            SciPy 2-D sparse matrix. The default is 'csr_matrix'.
-
-        Methods
-        -------
-        `csr_matrix`:
-            Compressed Sparse Row matrix.
-        `bsr_matrix`:
-            Block Sparse Row matrix.
-        `coo_matrix`:
-            A sparse matrix in COOrdinate format.
-        `csc_matrix`:
-            Compressed Sparse Column matrix.
-        `dia_matrix`:
-            Sparse matrix with DIAgonal storage.
-        `dok_matrix`:
-            Dictionary Of Keys based sparse matrix.
-        `lil_matrix`:
-            Row-based list of lists sparse matrix.
-
-        Returns
-        -------
-        data_sp : `scipy.sparse.matrix`
-            `CategoryCov` instance values stored as a sparse matrix
-        """
-        data = self.data.values
-        if method == 'csr_matrix':
-            data_sp = sps.csr_matrix(data)
-        elif method == 'bsr_matrix':
-            data_sp = sps.bsr_matrix(data)
-        elif method == 'coo_matrix':
-            data_sp = sps.coo_matrix(data)
-        elif method == 'csc_matrix':
-            data_sp = sps.csc_matrix(data)
-        elif method == 'dia_matrix':
-            data_sp = sps.dia_matrix(data)
-        elif method == 'dok_matrix':
-            data_sp = sps.dok_matrix(data)
-        elif method == 'lil_matrix':
-            data_sp = sps.lil_matrix(data)
-        else:
-            raise ValueError('The method does not exist in scipy.sparse')
-        return data_sp
-
     def get_L(self, tolerance=None):
         """
         Extract lower triangular matrix `L` for which `L*L^T == self`.
@@ -930,13 +893,10 @@ class CategoryCov():
         # need sparse because much faster for large matrices (2kx2k from J33 Pu9)
         # with a lot of zero eigs
         # this is exactly equivalent to V.values @ np.diag(np.sqrt(E.values))
-        A = (sparse.csr_matrix(V.values) @ sparse.csr_matrix(np.diag(np.sqrt(E.values)))).todense()
+        A = (csr_matrix(V.values) @ csr_matrix(np.diag(np.sqrt(E.values)))).todense()
         
-#        u, s, vh = self.get_svd()
-#        A = (sparse.csr_matrix(u) @ sparse.csr_matrix(np.diag(np.sqrt(s)))).todense()
-
         # QR decomposition
-        Q, R = scipy.linalg.qr(A.T)
+        Q, R = qr(A.T)
         L = R.T
 
         return pd.DataFrame(L, index=index, columns=columns)

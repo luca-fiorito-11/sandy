@@ -2011,14 +2011,7 @@ class Endf6(_FormattedFile):
         df = self.to_series().rename("TEXT").reset_index().drop("TEXT", axis=1)
         return df
 
-    def get_perturbations(
-        self,
-        nsmp,
-        to_excel=None,
-        njoy_kws={},
-        smp_kws={},
-        **kwargs,
-        ):
+    def get_perturbations(self, nsmp, njoy_kws={}, smp_kws={}, **kwargs,):
         """
         Construct multivariate distributions with a unit vector for 
         mean and with relative covariances taken from the evaluated files
@@ -2032,8 +2025,6 @@ class Endf6(_FormattedFile):
         ----------
         nsmp : TYPE
             DESCRIPTION.
-        to_excel : TYPE, optional
-            DESCRIPTION. The default is None.
         njoy_kws : TYPE, optional
             DESCRIPTION. The default is {}.
         smp_kws : TYPE, optional
@@ -2057,22 +2048,23 @@ class Endf6(_FormattedFile):
         >>> assert (smps[33].data.index.get_level_values("MT") == 102).all()
         """
         smp = {}
-        seeds = {}
-    
-        outs = self.get_errorr(**njoy_kws)
 
+        # -- produce ERRORR files with covariance data
+        njoy_kws["mubar"] = False
+        njoy_kws["chi"] = False
+        outs = self.get_errorr(**njoy_kws)
+        filename = "PERT_{}_MF{}.xlsx"
+
+        # -- Extract samples from MF31 covariance data
         if "errorr31" in outs:
-            smp_kws["seed"] = seed = smp_kws.get("seed31", sandy.get_seed())
-            seeds["errorr31"] = seed
-            smp[31] = outs["errorr31"].get_cov().sampling(nsmp, **smp_kws)
+            xls = filename.format(self.get_id(), 31)
+            smp[31] = outs["errorr31"].get_cov().sampling(nsmp, to_excel=xls, seed=smp_kws.get("seed31"), **smp_kws)
+
+        # -- Extract samples from MF33 covariance data
         if "errorr33" in outs:
-            smp_kws["seed"] = seed = smp_kws.get("seed33", sandy.get_seed())
-            seeds["errorr33"] = seed
-            smp[33] = outs["errorr33"].get_cov().sampling(nsmp, **smp_kws)
-        if to_excel and smp:
-            with pd.ExcelWriter(to_excel) as writer:
-                for k, v in smp.items():
-                    v.to_excel(writer, sheet_name=f'MF{k}')
+            xls = filename.format(self.get_id(), 33)
+            smp[33] = outs["errorr33"].get_cov().sampling(nsmp, to_excel=xls, seed=smp_kws.get("seed33"), **smp_kws)
+
         return smp
     
     def apply_perturbations(self, smps, processes=1, njoy_kws={}, **kwargs):
@@ -2173,26 +2165,21 @@ class Endf6(_FormattedFile):
             logging.info("no perturbation coefficient was found.")
             return
 
-
         pendf = self.get_pendf(**njoy_kws)
 
-        seqs = []
-        ids = []
+        data = {}
         if 31 in smps:
-            seq_nu = smps[31].iterate_xs_samples()
-            seqs.append(seq_nu)
-            ids.append("pnu")
+            data["pnu"] = smps[31].iterate_xs_samples()
         if 33 in smps:
-            seq_xs = smps[33].iterate_xs_samples()
-            seqs.append(seq_xs)
-            ids.append("pxs")
-        data = dict(zip(ids, seqs))
+            data["pxs"] = smps[33].iterate_xs_samples()
 
         if processes == 1:
             outs = {}
 
             while True:
                 kws = {}
+
+                # -- Iterate perturbation data (xs, nubar)
                 for k, v in data.items():
                     item = next(v, False)
                     if not item:
