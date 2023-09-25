@@ -593,10 +593,19 @@ class CategoryCov():
         columns = list(range(N))
 
         # -- Fix covariance matrix according to distribution
+        C = self.data.values.copy()
         if pdf == 'lognormal':
-            C = np.log(self.sandwich(np.eye(self.size)).data + 1).values  # covariance matrix of underlying normal distribution
-        else:
-            C = self.data.values.copy()
+
+            if (C < -1).any():
+                logging.warning("Issue with lognormal sampling")
+                corr = self.get_corr()
+                std = self.get_std()
+                s = std.where(std < 1, 0.999)
+                C = corr.corr2cov(s).data.values
+
+            # covariance matrix of underlying normal distribution
+            C = np.log(C + 1)
+
         # -- Correct matrix diagonal by 0.5%, to have a condition number <5e7 (U5 from JEFF33, 240 groups)
         # -- which guarantees that U == V.T
         D = C.diagonal()
@@ -935,8 +944,9 @@ def corr2cov(corr, s):
            [ 0., 12.,  0.],
            [ 6.,  0.,  9.]])
     """
-    s_ = np.diag(s)
-    return s_.dot(corr.dot(s_))
+    s_ = csr_matrix(np.diag(s))
+    # sparse or else it is too slow (8000x8000), and anyways s_ is basically sparse
+    return (s_ @ csr_matrix(corr) @ s_).todense()
 
 
 def triu_matrix(matrix, kind='upper'):
