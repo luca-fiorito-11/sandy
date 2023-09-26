@@ -524,54 +524,30 @@ class CategoryCov():
         >>> np.testing.assert_array_almost_equal(smp_ln.get_cov(), c, decimal=2)
 
         Samples are reproducible by setting a seed.
-        assert cov.sampling(nsmp, seed=seed, pdf='normal').data.equals(smp_n.data)
+        >>> assert cov.sampling(nsmp, seed=seed, pdf='normal').data.equals(smp_n.data)
 
+        For larger uncertainties, the normal sampling cannot reproduce the
+        original covariance data, because negative (and large positive)
+        samples are removed.
+        >>> c = pd.DataFrame([[2, 0],[0, 2]])
+        >>> s = sandy.CategoryCov(c).sampling(nsmp, pdf="normal")
+        >>> np.testing.assert_array_almost_equal(s.get_mean(), [1, 1], decimal=2) # Converges!!!
+        >>> assert not np.allclose(s.get_cov(), c, atol=1)  # does not converge (truncation)
+        >>> assert (s.get_rstd().values < 1).all()
+        >>> assert np.linalg.norm(s.get_cov() - c) / np.linalg.norm(c) > 50 / 100
 
+        Truncating the normal distribution is only done when `relative=True`.
+        When working in absolute values the covariance is correctly reproduced.
+        >>> s = sandy.CategoryCov(c).sampling(nsmp, pdf="normal", relative=False)
+        >>> np.testing.assert_array_almost_equal(s.get_mean(), [0, 0], decimal=2)
+        >>> assert np.allclose(s.get_cov(), c, atol=1e-1)
+        >>> assert np.linalg.norm(s.get_cov() - c) / np.linalg.norm(c) < 1 / 100
 
-        # Create Positive-Definite covariance matrix with small stdev (small negative eig).
-        # >>> c = pd.DataFrame([[1, 1.2],[1.2, 1]], index=index, columns=index) / 10
-        # >>> cov = sandy.CategoryCov(c)
-
-        # >>> smp_0 = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=0)
-        # >>> np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=2)
-        # >>> smp_inf = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=np.inf)
-        # >>> import pytest
-        # >>> with pytest.raises(Exception):
-        # ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
-
-
-
-        # Create Positive-Definite covariance matrix with small stdev (large negative eig).
-        # >>> c = pd.DataFrame([[1, 4],[4, 1]], index=index, columns=index) / 10
-        # >>> cov = sandy.CategoryCov(c)
-        
-        # Samples kind of converge only if we set a low tolerance
-        # >>> smp_0 = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=0)
-        # >>> with pytest.raises(Exception):
-        # ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
-        # >>> smp_inf = cov.sampling(nsmp, seed=seed, pdf='normal', tolerance=np.inf)
-        # >>> with pytest.raises(Exception):
-        # ...    raise np.testing.assert_array_almost_equal(np.diag(smp_0.get_cov()), np.diag(c), decimal=1)
-
-
-
-        Create Positive-Definite covariance matrix with large stdev.
-        >>> index = columns = ["A", "B"]
-        >>> c = pd.DataFrame([[1, 0.4],[0.4, 1]], index=index, columns=index) / 10
-        >>> cov = sandy.CategoryCov(c)
-
-        Need to increase the amount of samples
-        >>> nsmp = 1e6
-
-        The sample mean still converges to a unit vector.
-        >>> np.testing.assert_array_almost_equal(smp_n.get_mean(), [1, 1], decimal=2)
-        >>> np.testing.assert_array_almost_equal(smp_ln.get_mean(), [1, 1], decimal=2)
-
-        Only the lognormal covariance still converges.
-        >>> import pytest
-        >>> with pytest.raises(Exception):   
-        ...    raise np.testing.assert_array_almost_equal(smp_n.get_cov(), c, decimal=1)
-        >>> np.testing.assert_array_almost_equal(smp_ln.get_cov(), c, decimal=2)
+        For log-normal sampling this is not an issue.
+        >>> s = sandy.CategoryCov(c).sampling(nsmp, pdf="lognormal")
+        >>> np.testing.assert_array_almost_equal(s.get_mean(), [1, 1], decimal=2)  # convergence, as well as for normal
+        >>> assert np.allclose(s.get_cov(), c, atol=1e-1)  # covariance convergence is slower, needs more samples
+        >>> assert np.linalg.norm(s.get_cov() - c) / np.linalg.norm(c) < 5 / 100
         """
         allowed_pdf = [
             "normal",
@@ -592,13 +568,26 @@ class CategoryCov():
         index = self.data.index
         columns = list(range(N))
 
+        C = self.data.values.copy()
+
         # -- Fix covariance matrix according to distribution
         if pdf == 'lognormal':
-            C = np.log(self.sandwich(np.eye(self.size)).data + 1).values  # covariance matrix of underlying normal distribution
-        else:
-            C = self.data.values.copy()
+
+            if (C < -1).any():
+                logging.warning("Condition COV + 1 > 0 for Lognormal sampling is not respected")
+                corr = self.get_corr()
+                std = self.get_std()
+                std = std.where(std < 1, 0.999)
+                C = corr.corr2cov(std).data.values
+
+            var = C.diagonal()  # this will be used to adjust the mean
+
+            # covariance matrix of underlying normal distribution
+            C = np.log(C + 1)
+
         # -- Correct matrix diagonal by 0.5%, to have a condition number <5e7 (U5 from JEFF33, 240 groups)
-        # -- which guarantees that U == V.T
+        # -- which should guarantee that U == V.T, but it doesn;t for lognormal
+        # -- Then check 2-norm
         D = C.diagonal()
         M = D.size
         C += np.diag(D * correction)
@@ -606,13 +595,15 @@ class CategoryCov():
         # -- Reduce matrix size by removing rows and columns with zero on diag
         nz = np.flatnonzero(D)
         Cr = C[nz][:, nz]
-        
+
         # -- Decompose covariance (SVD better than QR or cholesky)
         Ur, Sr, Vr = svd(Cr, hermitian=True)  # hermitian is twice faster (U5 from JEFF33, 240 groups)
-        Mr = Sr.size
+
         cond = Sr.max() / Sr.min()
         if cond > 5e7:
             logging.warning(f"Large condition number of covariance matrix: {cond:7.2e}")
+
+        Mr = Sr.size
 
         # -- Get U back to original size
         U = np.zeros((M, Mr))
@@ -637,9 +628,10 @@ class CategoryCov():
 
         # -- Fix sample (and sample mean) according to distribution
         if pdf == 'lognormal':
-            mu = np.ones(self.size)
-            umu = np.log(mu**2 / np.sqrt(np.diag(self.data) + mu**2))   # mean of the underlying normal distribution
-            samples = np.exp(samples.add(umu, axis=0))
+            # mean of the underlying normal distribution
+            # https://stats.stackexchange.com/questions/573808/intuition-for-why-mean-of-lognormal-distribution-depends-on-variance-of-normally
+            umu = np.log(1 / np.sqrt(var + 1))
+            samples = np.exp(samples + umu.reshape(M, -1))
         elif relative:
             samples += 1
             lower_bound = samples > 0
@@ -924,7 +916,7 @@ def corr2cov(corr, s):
     Test with integers
     >>> s = np.array([1, 2, 3])
     >>> corr = np.array([[1, 0, 2], [0, 3, 0], [2, 0, 1]])
-    >>> corr2cov(corr, s)
+    >>> corr2cov(corr, s).astype(int)
     array([[ 1,  0,  6],
            [ 0, 12,  0],
            [ 6,  0,  9]])
@@ -935,8 +927,9 @@ def corr2cov(corr, s):
            [ 0., 12.,  0.],
            [ 6.,  0.,  9.]])
     """
-    s_ = np.diag(s)
-    return s_.dot(corr.dot(s_))
+    s_ = csr_matrix(np.diag(s))
+    # sparse or else it is too slow (8000x8000), and anyways s_ is basically sparse
+    return np.array((s_ @ csr_matrix(corr) @ s_).todense())
 
 
 def triu_matrix(matrix, kind='upper'):
