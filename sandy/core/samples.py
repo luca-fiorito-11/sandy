@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import scipy
 
 import sandy
 
@@ -35,8 +34,6 @@ class Samples():
         Return relative standard deviation vector of samples.   
     iterate_xs_samples
         Generator that iterates over each sample (in the form of :func:`sandy.Xs`).
-    test_shapiro
-        Perform the Shapiro-Wilk test for normality on the samples.
     """
 
     _columnsname = "SMP"
