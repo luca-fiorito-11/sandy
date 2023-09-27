@@ -71,6 +71,7 @@ class Samples():
     @data.setter
     def data(self, data):
         self._data = data.rename_axis(self.__class__._columnsname, axis=1)
+        self._data.columns = self._data.columns.astype(int)
 
     def get_condition_number(self):
         """
