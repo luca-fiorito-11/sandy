@@ -3,9 +3,10 @@ import time
 import logging
 import argparse
 import filecmp
+import pandas as pd
 
 import sandy
-from sandy.tools import is_valid_dir, is_valid_file
+from sandy.tools import is_valid_file
 
 
 __author__ = "Luca Fiorito"
@@ -49,6 +50,16 @@ def parse(iargs=None):
                         action="store_true",
                         help="activate debug options (err=1, verbose=True, minimal_processing=True)")
 
+    parser.add_argument("--from_perturbations",
+                        default=False,
+                        nargs=3,
+                        help="resume the sampling pipeline reading the "
+                             "perturbation coefficients from file\n"
+                             "The three entires are:\n"
+                             " - directory where perturbation coefficients are stored\n"
+                             " - first perturbation coefficient to consider\n"
+                             " - last perturbation coefficient to consider")
+
     parser.add_argument('--mat',
                         type=int,
                         default=list(range(1, 10000)),
@@ -73,7 +84,7 @@ def parse(iargs=None):
                         action='store',
                         nargs="+",
                         metavar="{1,..,999}",
-                        help="draw samples only from the selected MT sections "
+                        help="draw samples only from the selected MT sections for MF33"
                              "(default = keep all)")
 
     parser.add_argument('--njoy',
@@ -81,6 +92,12 @@ def parse(iargs=None):
                         default=None,
                         help="NJOY executable "
                              "(default search PATH, and env variable NJOY)")
+
+    parser.add_argument("--only_perturbations",
+                        default=False,
+                        action="store_true",
+                        help="stop the sampling pipeline after the creation "
+                             "of perturbation the coefficients")
 
     parser.add_argument('--outname', '-O',
                         type=str,
@@ -201,6 +218,39 @@ def multi_run(foo):
 
     >>> assert filecmp.cmp("H1_125_0.endf6", "H1_125_1.endf6")
     >>> assert filecmp.cmp("H1_125_0.endf6", "H1.jeff33")
+    
+    Let's see how the sampling process can be interrupted fater
+    Produce random ENDF-6 and PENDF files for Pu-241 with the standard procedure.
+    >>> file = "942410.jeff33"
+    >>> sandy.get_endf6_file("jeff_33", "xs", 942410).to_file(file)
+    >>> cl = f"{file}" + " --samples 2 -O {SMP}-{ZAM} --seed33 1 --seed31 1 --mt33 2"
+    >>> sandy.sampling.run(cl.split())
+
+    Now, let's interrupt the process after that the perturbations are
+    created (reproducible with fixed seed).
+    >>> smps = sandy.sampling.run((cl + " --only_perturbations").split())
+
+    We can read these perturbation coefficients without the need of regenerating them.
+    >>> cl = f"{file} --from_perturbations {os.getcwd()} 1 1 --only_perturbations"
+    >>> smps2 = sandy.sampling.run(cl.split())
+    >>> assert smps2[33].data.shape[1] == smps2[31].data.shape[1] == 1
+    >>> assert smps[33].data.reset_index().MT.unique() == 2
+    >>> assert smps[31].data.reset_index().MT.unique().size == 3
+    >>> pd.testing.assert_frame_equal(smps2[33].data, smps[33].data[[1]])
+    >>> pd.testing.assert_frame_equal(smps2[31].data, smps[31].data[[1]])
+
+    Using the perturbation coefficients from the excel files we generate the
+    same random files of the standard pipeline.
+    >>> cl = f"{file}" + " -O new_{SMP}-{ZAM} " + f"--from_perturbations {os.getcwd()} 1 1"
+    >>> sandy.sampling.run(cl.split())
+    >>> assert filecmp.cmp("new_1-942410.endf6", "1-942410.endf6")
+    >>> assert filecmp.cmp("new_1-942410.pendf", "1-942410.pendf")
+
+    If no perturbation file exist, the calculation stops.
+    >>> file = "741840.jeff33"
+    >>> sandy.get_endf6_file("jeff_33", "xs", 741840).to_file(file)
+    >>> cl = f"{file} --from_perturbations {os.getcwd()} 1 1 --only_perturbations"
+    >>> assert not sandy.sampling.run(cl.split())
     """
     def inner(cli=None):
         """
@@ -214,10 +264,26 @@ def multi_run(foo):
                 iargs.file = os.path.join(path, file)
                 foo(iargs)
         else:
-            foo(iargs)
+            return foo(iargs)
     return inner
 
 
+def running_time(foo):
+    """
+    Decorator to handle keyword arguments for NJOY before running
+    the executable.
+
+    """
+    def inner(*args, **kwargs):
+        t0 = time.time()
+        out = foo(*args, **kwargs)
+        dt = time.time() - t0
+        logging.info(f"Total running time: {dt:.2f} sec")
+        return out
+    return inner
+
+
+@running_time
 @multi_run
 def run(iargs):
     """
@@ -244,9 +310,8 @@ def run(iargs):
     -------
     None.
     """
-    t0 = time.time()
     logging.info(f"processing file: '{iargs.file}'")
-    
+
     err_pendf = 0.01
     err_ace = 0.01
     err_errorr = 0.1
@@ -267,8 +332,8 @@ def run(iargs):
         nubar=nubar,
         chi=chi,
         mubar=mubar,
-        groupr_kws=dict(nubar=nubar, chi=chi, mubar=mubar, ign=3),
-        errorr_kws=dict(ign=3)
+        groupr_kws=dict(nubar=nubar, chi=chi, mubar=mubar, ign=2),
+        errorr_kws=dict(ign=2)
         )
     if iargs.mt33:
         errorr_kws["errorr33_kws"] = dict(mt=iargs.mt33)
@@ -279,7 +344,26 @@ def run(iargs):
     smp_kws["seed34"] = iargs.seed34
     smp_kws["seed35"] = iargs.seed35
 
-    smps = endf6.get_perturbations(iargs.samples, njoy_kws=errorr_kws, smp_kws=smp_kws)
+
+    if iargs.from_perturbations:
+        smps = {}
+        ID = endf6.get_id()
+        file = os.path.join(iargs.from_perturbations[0], "PERT_{}_MF{}.xlsx")
+        beg = int(iargs.from_perturbations[1])
+        end = int(iargs.from_perturbations[2])
+
+        for mf in [31, 33, 34, 35]:
+            xls = file.format(ID, mf)
+            if os.path.isfile(xls):
+                smps[mf] = sandy.Samples.from_excel(xls, beg=beg, end=end)
+        if not smps:
+            logging.warning(f"No perturbation file was found for {ID}")
+
+    else:
+        smps = endf6.get_perturbations(iargs.samples, njoy_kws=errorr_kws, smp_kws=smp_kws)
+
+    if iargs.only_perturbations:
+        return smps
 
 
     if iargs.temperatures:
@@ -315,8 +399,7 @@ def run(iargs):
         verbose=iargs.debug,
     )
 
-    dt = time.time() - t0
-    logging.info(f"Total running time: {dt:.2f} sec")
+    return
 
 
 if __name__ == "__main__":
