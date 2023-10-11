@@ -5,6 +5,7 @@ from scipy.linalg import eig, qr
 import pandas as pd
 from sandy.gls import sandwich, _gls_cov_update
 import logging
+from scipy.stats import qmc, norm
 
 import sandy
 
@@ -458,7 +459,7 @@ class CategoryCov():
         )  # do not return CategoryCov because variance can be negative
 
     def sampling(self, nsmp, seed=None, pdf='lognormal', relative=True,
-                 correction=0.5/100, to_excel=None, **kwargs):
+                 correction=0.5/100, lhs=False, to_excel=None, **kwargs):
         """
         Extract perturbation coefficients according to chosen distribution with
         covariance from given covariance matrix. See note for non-normal
@@ -612,7 +613,12 @@ class CategoryCov():
         # -- Draw IID samples with mu=0 and std=1
         seed_ = seed if seed else sandy.get_seed()
         np.random.seed(seed=seed_)
-        X_ = np.random.randn(Mr, N)
+        if lhs:
+            engine = qmc.LatinHypercube(d=Mr)
+            lhd = engine.random(n=N)
+            X_ = norm(loc=0, scale=1).ppf(lhd).T
+        else:
+            X_ = np.random.randn(Mr, N)
 
         # -- Save seed and singulare values
         if to_excel:
