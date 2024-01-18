@@ -36,7 +36,7 @@ jobs:
       - name: remove njoy tests from unit testing
         run: rm -rf NJOY2016/tests
       - name: install general python dependencies
-        run: pip install sphinx sphinx_rtd_theme codecov numpydoc coveralls pytest-cov nbval
+        run: pip install sphinx sphinx_rtd_theme codecov numpydoc coveralls pytest-cov nbval setuptools
       - name: install sandy's requirements
         run: pip install -r requirements.txt
       - name: install jupyter packages to run notebooks
