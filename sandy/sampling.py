@@ -322,7 +322,7 @@ def run(iargs):
 
     # ERRORR KEYWORDS
     nubar = bool(31 in iargs.mf) and (31 in endf6.mf)
-    xs = bool(33 in iargs.mf) and (33 in endf6.mf)
+    xs = bool(33 in iargs.mf) and (33 in endf6.mf or 32 in endf6.mf)  # this handle together MF32 and MF33
     mubar = False
     chi = False
     errorr_kws = dict(
