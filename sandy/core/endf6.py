@@ -6,6 +6,7 @@ Created on Wed Dec  4 14:50:33 2019
 """
 import io
 import os
+import shutil
 from os.path import dirname, join
 from functools import reduce
 from tempfile import TemporaryDirectory
@@ -1486,6 +1487,55 @@ class Endf6(_FormattedFile):
             return method(self, groupr_kws=groupr_kws, **kwargs)
         return inner
 
+    def _handle_mf32_alone(method):
+        """
+        Decorator to handle files with section MF32 without section MF33.
+
+        Examples
+        --------
+        91-Pa-231 in JEFF-3.3 has MF32 but not MF33.
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 912310)
+        >>> err = tape.get_errorr(chi=False, nubar=True, mubar=False, err=1, xs=True, errorr33_kws=dict(irespr=0))
+        >>> assert "errorr33" in err
+
+        91-Pa-231 in JEFF-3.3 has MF32 but not MF33.
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 912330)
+        >>> err = tape.get_errorr(chi=False, nubar=True, mubar=False, err=1, xs=True, errorr33_kws=dict(irespr=0))
+        >>> assert "errorr33" in err
+
+        17-Cl-37 in JEFF-3.3 has MF32 but not MF33.
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 170370)
+        >>> err = tape.get_errorr(chi=False, nubar=True, mubar=False, err=1, xs=True, errorr33_kws=dict(irespr=0))
+        >>> assert "errorr33" in err
+
+        95-Am-241 in JEFF-3.3 has MF32 but not MF33.
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 952410)
+        >>> err = tape.get_errorr(chi=False, nubar=True, mubar=False, err=1, xs=True, errorr33_kws=dict(irespr=0))
+        >>> assert "errorr33" in err
+        """
+        def inner(
+                self,
+                **kwargs,
+                ):
+            """
+            Parameters
+            ----------
+            kwargs : `dict`, optional
+                 keyword arguments.
+            """
+            # input taken from
+            # https://www-nds.iaea.org/index-meeting-crp/TM_NDP/docs/OCabellos_2017.pdf
+            inst = self
+            if 32 in self.mf and 33 not in self.mf:
+                inp = sandy.njoy._input_mf32_nomf33 if 18 in self.mt else sandy.njoy._input_mf32_nomf33_no18
+                with TemporaryDirectory() as tmpdir:
+                    file = os.path.join(tmpdir, "tape20")
+                    self.to_file(file)
+                    outs = sandy.njoy._run_njoy(inp, file)
+                    inst = sandy.Endf6.from_text(outs["errorr33"])
+            return method(inst, **kwargs)
+        return inner
+
     def read_section(self, mat, mf, mt, raise_error=True):
         """
         Parse MAT/MF/MT section.
@@ -1802,6 +1852,7 @@ class Endf6(_FormattedFile):
 
     @_handle_njoy_inputs
     @_handle_groupr_inputs
+    @_handle_mf32_alone
     def get_errorr(self,
                    nubar=True,
                    mubar=True,
@@ -2054,14 +2105,17 @@ class Endf6(_FormattedFile):
         njoy_kws["chi"] = False
         outs = self.get_errorr(**njoy_kws)
         filename = "PERT_{}_MF{}.xlsx"
+        filenamecov = "COV_{}_MF{}.tape"
 
         # -- Extract samples from MF31 covariance data
         if "errorr31" in outs:
+            outs["errorr31"].to_file(filenamecov.format(self.get_id(), 31))
             xls = filename.format(self.get_id(), 31)
             smp[31] = outs["errorr31"].get_cov().sampling(nsmp, to_excel=xls, seed=smp_kws.get("seed31"), **smp_kws)
 
         # -- Extract samples from MF33 covariance data
         if "errorr33" in outs:
+            outs["errorr33"].to_file(filenamecov.format(self.get_id(), 33))
             xls = filename.format(self.get_id(), 33)
             smp[33] = outs["errorr33"].get_cov().sampling(nsmp, to_excel=xls, seed=smp_kws.get("seed33"), **smp_kws)
 

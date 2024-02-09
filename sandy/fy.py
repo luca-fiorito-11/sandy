@@ -287,8 +287,8 @@ class Fy():
         --------
         >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy', 922350)
         >>> nfpy = Fy.from_endf6(tape_nfpy)
-        >>> nfpy.get_mass_yield(922350, 0.0253).loc[148]
-        0.0169029147
+        >>> out = nfpy.get_mass_yield(922350, 0.0253).loc[148]
+        >>> np.testing.assert_almost_equal(out, 0.0169029147)
         """
         # Filter FY data:
         conditions = {'ZAM': zam, "E": e, 'MT': 454}
