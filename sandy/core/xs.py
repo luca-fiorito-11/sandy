@@ -415,7 +415,8 @@ class Xs():
         >>> assert xsr.data[(9543, 4)].equals(xsr.data[9543].loc[:, 50:91].sum(axis=1))
         """
         df = self.data.copy()
-        for mat, group in df.groupby("MAT", axis=1):
+#        for mat, group in df.groupby("MAT", axis=1):
+        for mat, group in df.T.groupby(level="MAT"):
         
             # starting from the lat redundant cross section, find daughters and sum them
             for parent, daughters in sorted(sandy.redundant_xs.items(), reverse=True):
@@ -426,7 +427,7 @@ class Xs():
 
             # keep only mts present in the original file
             if drop:
-                keep = group[mat].columns
+                keep = group[mat].index
                 todrop = df[mat].columns.difference(keep)
                 df.drop(
                     pd.MultiIndex.from_product([[mat], todrop]),
