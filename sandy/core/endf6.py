@@ -1154,7 +1154,7 @@ class _FormattedFile():
             return new_tape
         print(new_text)
 
-    def write_string(self, title=""):
+    def write_string(self, title="", fend=True):
         """
         Write `_FormattedFile.data` content to string according to the ENDF-6
         file rules.
@@ -1163,6 +1163,8 @@ class _FormattedFile():
         ----------
         title : `str`, optional, default is an empty string
             first line of the file
+        fend : `bool`, optional, defult is `True`
+            write END-OF-FILE line
 
         Returns
         -------
@@ -1199,6 +1201,12 @@ class _FormattedFile():
         ..note:: differences might appear from the way zeros were handled at
                  the end of ENDF-6 section, or if a different fiel title is
                  given
+
+        How to use keyword `fend`.
+        >>> last = sandy.get_endf6_file("jeff_33", "xs", 10010).write_string(fend=False).splitlines()[-1]
+        >>> last_fend = sandy.get_endf6_file("jeff_33", "xs", 10010).write_string(fend=True).splitlines()[-1]
+        >>> assert last_fend != last 
+        >>> assert " "*66 + "  -1 0  0    0" == last_fend        
         """
         string = sandy.write_line(title, 1, 0, 0, 0)
         string += "\n"
@@ -1215,7 +1223,8 @@ class _FormattedFile():
                 string += "\n"
             string += sandy.write_line("", 0, 0, 0, 0)
             string += "\n"
-        string += sandy.write_line("", -1, 0, 0, 0)
+        if fend:
+            string += sandy.write_line("", -1, 0, 0, 0)
         return string
 
     def to_file(self, filename, mode="w", **kwargs):
