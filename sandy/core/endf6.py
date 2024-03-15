@@ -1203,10 +1203,12 @@ class _FormattedFile():
                  given
 
         How to use keyword `fend`.
-        >>> last = sandy.get_endf6_file("jeff_33", "xs", 10010).write_string(fend=False).splitlines()[-1]
-        >>> last_fend = sandy.get_endf6_file("jeff_33", "xs", 10010).write_string(fend=True).splitlines()[-1]
+        >>> tape = 
+        >>> last = tape.write_string(fend=False).splitlines()[-1]
+        >>> last_fend = tape.write_string(fend=True).splitlines()[-1]
         >>> assert last_fend != last 
         >>> assert " "*66 + "  -1 0  0    0" == last_fend        
+        >>> assert stape.write_string(fend=False)[-1] == stape.write_string(fend=True)[-1] == '0'
         """
         string = sandy.write_line(title, 1, 0, 0, 0)
         string += "\n"
@@ -1222,8 +1224,8 @@ class _FormattedFile():
                 string += sandy.write_line("", mat, 0, 0, 0)
                 string += "\n"
             string += sandy.write_line("", 0, 0, 0, 0)
-            string += "\n"
         if fend:
+            string += "\n"
             string += sandy.write_line("", -1, 0, 0, 0)
         return string
 
