@@ -2131,24 +2131,30 @@ class Endf6(_FormattedFile):
 
         return smp
     
-    def apply_perturbations(self, smps, processes=1, njoy_kws={}, **kwargs):
+    def apply_perturbations(self, smps, processes=1, pendf=None, njoy_kws={}, **kwargs):
         """
-        Apply perturbations to the data contained in ENDF6 file. At the 
-        moment only the procedure for cross sections is implemented. Options
-        are included to directly convert perturbed pendf to ace and write data
-        on files.
+        Apply relative perturbations to the data contained in ENDF6 file.
+        At the moment only the procedure for cross sections and nubar is
+        implemented.
+        Options are included to directly convert perturbed pendf to ace and
+        to write data on files.
         
         Parameters
         ----------
-        smps : samples obtained taking the relative covariances from the 
-        evaluated files and a unit vector as mean.
-        processes : number of processes used to complete the task.
-                    Creation of perturbed pendf files and conversion to ACE 
-                    format is done in parallel if processes>1.
-                    The default is 1.
-        njoy_kws: keyword argument to pass to "tape.get_pendf()".
-        **kwargs : keyword argument to pass to "tape.get_ace()" plus keywords
-                   to pass to "endf6_perturb_worker".
+        smps : `dict` of :obj: `~sandy.Samples` instances
+            relative perturbation coefficients.
+        processes : `int`, optional, default is `1`
+            number of processes used to complete the task.
+            Creation of perturbed pendf files and conversion to ACE 
+            format is done in parallel if processes>1.
+        pendf : :obj:`sandy.Endf6` instance, optiona, default is `None`
+            if given apply pertubrations to provided instance, or else generate
+            a pendf file from `self`.
+        njoy_kws : `dict`
+            keyword argument to pass to "tape.get_pendf()".
+        **kwargs : `dict`
+            keyword argument to pass to "tape.get_ace()" plus keyword arguments
+            to pass to "endf6_perturb_worker".
 
         Returns
         -------
@@ -2223,13 +2229,22 @@ class Endf6(_FormattedFile):
         >>> assert outs[0]["xsdir"] == '1001_0.03c.xsd' and os.path.isfile('1001_0.03c.xsd')
         >>> assert outs[1]["ace"] == '1001_1.03c' and os.path.isfile('1001_1.03c')
         >>> assert outs[1]["xsdir"] == '1001_1.03c.xsd' and os.path.isfile('1001_1.03c.xsd')
+        
+        Check that keyword `pendf` works 
+        >>> pendf = endf6.get_pendf(err=1)
+        >>> outs1 = endf6.apply_perturbations(smps, njoy_kws=dict(err=1))
+        >>> outs2 = endf6.apply_perturbations(smps, pendf=pendf)
+        >>> assert outs1[0]["pendf"].write_string() == outs2[0]["pendf"].write_string()
         """
 
         if 33 not in smps and 31 not in smps:
             logging.info("no perturbation coefficient was found.")
             return
 
-        pendf = self.get_pendf(**njoy_kws)
+        if pendf:
+            pendf_ = pendf
+        else:
+            pendf_ = self.get_pendf(**njoy_kws)
 
         data = {}
         if 31 in smps:
@@ -2253,7 +2268,7 @@ class Endf6(_FormattedFile):
                 if not item:
                     break
                 kws.update(**kwargs)
-                outs[n] = endf6_perturb_worker(self.data, pendf.data, n, **kws)
+                outs[n] = endf6_perturb_worker(self.data, pendf_.data, n, **kws)
 
         elif processes > 1:
             pool = mp.Pool(processes=processes)
@@ -2272,7 +2287,7 @@ class Endf6(_FormattedFile):
                 kws.update(**kwargs)
                 outs[n] = pool.apply_async(
                     endf6_perturb_worker,
-                    (self.data, pendf.data, n),
+                    (self.data, pendf_.data, n),
                     kws,
                     )
 
