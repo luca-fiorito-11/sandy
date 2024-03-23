@@ -1154,7 +1154,7 @@ class _FormattedFile():
             return new_tape
         print(new_text)
 
-    def write_string(self, title="", fend=True):
+    def write_string(self, title="", fstart=True, fend=True):
         """
         Write `_FormattedFile.data` content to string according to the ENDF-6
         file rules.
@@ -1163,6 +1163,8 @@ class _FormattedFile():
         ----------
         title : `str`, optional, default is an empty string
             first line of the file
+        fstart : `bool`, optional, defult is `True`
+            write START line
         fend : `bool`, optional, defult is `True`
             write END-OF-FILE line
 
@@ -1209,8 +1211,10 @@ class _FormattedFile():
         >>> assert " "*66 + "  -1 0  0    0" == last_fend        
         >>> assert endf6.write_string(fend=False)[-1] == endf6.write_string(fend=True)[-1] == '0'
         """
-        string = sandy.write_line(title, 1, 0, 0, 0)
-        string += "\n"
+        string = ""
+        if fstart:
+            string += sandy.write_line(title, 1, 0, 0, 0)
+            string += "\n"
         for mat, dfmat in self.to_series().groupby('MAT', sort=True):
             for mf, dfmf in dfmat.groupby('MF', sort=True):
                 for mt, text in dfmf.groupby('MT', sort=True):
