@@ -295,6 +295,33 @@ def write_list(C1, C2, L1, L2, N2, B):
 
 
 def write_float(x):
+    """
+    Converts a floating-point number to a formatted string representation.
+
+    Parameters
+    ----------
+        x (float): The floating-point number to be converted.
+
+    Returns
+    -------
+        str: The formatted string representation of the floating-point number.
+
+    Examples
+    --------
+    >>> assert write_float(2) == ' 2.00000000'
+    >>> assert write_float(2e1) == ' 20.0000000'
+    >>> assert write_float(2e2) == ' 200.000000'
+    >>> assert write_float(2e3) == ' 2000.00000'
+    >>> assert write_float(2e4) == ' 20000.0000'
+    >>> assert write_float(2e5) == ' 200000.000'
+    >>> assert write_float(2e6) == ' 2000000.00'
+    >>> assert write_float(2e7) == ' 20000000.0'
+    >>> assert write_float(2e8) == '  200000000'
+    >>> assert write_float(0) == ' 0.00000000'
+    >>> assert write_float(2e-3) == ' 2.000000-3'
+    >>> assert write_float(2e-10) == ' 2.00000-10'
+    >>> assert write_float(1-1e-8) == ' 1.000000+0'
+    """
     if abs(x) >= 1e0 and abs(x) < 1e1:
         y = f"{x:11.8f}"
     elif abs(x) >= 1E1 and abs(x) < 1E2:
