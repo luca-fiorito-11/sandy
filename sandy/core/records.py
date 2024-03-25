@@ -308,19 +308,19 @@ def write_float(x):
 
     Examples
     --------
-    >>> assert write_float(2) == ' 2.00000000'
-    >>> assert write_float(2e1) == ' 20.0000000'
-    >>> assert write_float(2e2) == ' 200.000000'
-    >>> assert write_float(2e3) == ' 2000.00000'
-    >>> assert write_float(2e4) == ' 20000.0000'
-    >>> assert write_float(2e5) == ' 200000.000'
-    >>> assert write_float(2e6) == ' 2000000.00'
-    >>> assert write_float(2e7) == ' 20000000.0'
-    >>> assert write_float(2e8) == '  200000000'
-    >>> assert write_float(0) == ' 0.00000000'
-    >>> assert write_float(2e-3) == ' 2.000000-3'
-    >>> assert write_float(2e-10) == ' 2.00000-10'
-    >>> assert write_float(1-1e-8) == ' 1.000000+0'
+    >>> assert sandy.write_float(2) == ' 2.00000000'
+    >>> assert sandy.write_float(2e1) == ' 20.0000000'
+    >>> assert sandy.write_float(2e2) == ' 200.000000'
+    >>> assert sandy.write_float(2e3) == ' 2000.00000'
+    >>> assert sandy.write_float(2e4) == ' 20000.0000'
+    >>> assert sandy.write_float(2e5) == ' 200000.000'
+    >>> assert sandy.write_float(2e6) == ' 2000000.00'
+    >>> assert sandy.write_float(2e7) == ' 20000000.0'
+    >>> assert sandy.write_float(2e8) == '  200000000'
+    >>> assert sandy.write_float(0) == ' 0.00000000'
+    >>> assert sandy.write_float(2e-3) == ' 2.000000-3'
+    >>> assert sandy.write_float(2e-10) == ' 2.00000-10'
+    >>> assert sandy.write_float(1-1e-8) == ' 1.000000+0'
     """
     if abs(x) >= 1e0 and abs(x) < 1e1:
         y = f"{x:11.8f}"
