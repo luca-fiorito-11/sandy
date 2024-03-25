@@ -1207,9 +1207,9 @@ class _FormattedFile():
         How to use keyword `tpid`.
         >>> first = endf6.write_string(tpid=False).splitlines()[0]
         >>> first_tpid = endf6.write_string(fend=True).splitlines()[0]
-        >>> assert last_fend != last 
+        >>> assert first_tpid != first 
         >>> assert " "*66 + "   1 0  0    0" == first_tpid        
-        >>> assert endf6.write_string(tpid=False)[0] == endf6.write_string(tpid=True)[0] == '0'
+        >>> assert endf6.write_string(tpid=False)[0] == endf6.write_string(tpid=True)[0] == ' '
         How to use keyword `fend`.
         >>> last = endf6.write_string(fend=False).splitlines()[-1]
         >>> last_fend = endf6.write_string(fend=True).splitlines()[-1]
