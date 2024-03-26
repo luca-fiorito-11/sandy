@@ -1206,7 +1206,7 @@ class _FormattedFile():
 
         How to use keyword `tpid`.
         >>> first = endf6.write_string(tpid=False).splitlines()[0]
-        >>> first_tpid = endf6.write_string(fend=True).splitlines()[0]
+        >>> first_tpid = endf6.write_string(tpid=True).splitlines()[0]
         >>> assert first_tpid != first 
         >>> assert " "*66 + "   1 0  0    0" == first_tpid        
         >>> assert endf6.write_string(tpid=False)[0] == endf6.write_string(tpid=True)[0] == ' '
