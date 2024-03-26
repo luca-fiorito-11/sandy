@@ -1154,7 +1154,7 @@ class _FormattedFile():
             return new_tape
         print(new_text)
 
-    def write_string(self, title="", fend=True):
+    def write_string(self, title="", tpid=True, fend=True):
         """
         Write `_FormattedFile.data` content to string according to the ENDF-6
         file rules.
@@ -1163,6 +1163,8 @@ class _FormattedFile():
         ----------
         title : `str`, optional, default is an empty string
             first line of the file
+        tpid : `bool`, optional, defult is `True`
+            write TPID line
         fend : `bool`, optional, defult is `True`
             write END-OF-FILE line
 
@@ -1202,6 +1204,13 @@ class _FormattedFile():
                  the end of ENDF-6 section, or if a different fiel title is
                  given
 
+        How to use keyword `tpid`.
+        >>> first = endf6.write_string(tpid=False).splitlines()[0]
+        >>> first_tpid = endf6.write_string(tpid=True).splitlines()[0]
+        >>> assert first_tpid != first 
+        >>> assert " "*66 + "   1 0  0    0" == first_tpid        
+        >>> assert endf6.write_string(tpid=False)[0] == endf6.write_string(tpid=True)[0] == ' '
+        
         How to use keyword `fend`.
         >>> last = endf6.write_string(fend=False).splitlines()[-1]
         >>> last_fend = endf6.write_string(fend=True).splitlines()[-1]
@@ -1209,8 +1218,10 @@ class _FormattedFile():
         >>> assert " "*66 + "  -1 0  0    0" == last_fend        
         >>> assert endf6.write_string(fend=False)[-1] == endf6.write_string(fend=True)[-1] == '0'
         """
-        string = sandy.write_line(title, 1, 0, 0, 0)
-        string += "\n"
+        string = ""
+        if tpid:
+            string += sandy.write_line(title, 1, 0, 0, 0)
+            string += "\n"
         for mat, dfmat in self.to_series().groupby('MAT', sort=True):
             for mf, dfmf in dfmat.groupby('MF', sort=True):
                 for mt, text in dfmf.groupby('MT', sort=True):
