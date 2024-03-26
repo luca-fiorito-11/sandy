@@ -1210,6 +1210,7 @@ class _FormattedFile():
         >>> assert first_tpid != first 
         >>> assert " "*66 + "   1 0  0    0" == first_tpid        
         >>> assert endf6.write_string(tpid=False)[0] == endf6.write_string(tpid=True)[0] == ' '
+        
         How to use keyword `fend`.
         >>> last = endf6.write_string(fend=False).splitlines()[-1]
         >>> last_fend = endf6.write_string(fend=True).splitlines()[-1]
