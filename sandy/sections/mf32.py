@@ -323,7 +323,7 @@ def read_mf32(tape, mat):
                     LCOMP1 = {}
                     LCOMP1.update(header2)
                     LCOMP1.update(header3)
-                    if LRF == 1 or LRF == 2:
+                    if LRF == 1 or LRF == 2:  # Breit-Wigner
                         if ISR > 0:
                             C, i = sandy.read_cont(df, i)
                             add = {
@@ -385,35 +385,43 @@ def read_mf32(tape, mat):
                             add.update(COVAR_PAR)
                             LCOMP1.update(add)
                             dico[(EL, EH)] = LCOMP1
-                    elif LRF == 3:
+                    elif LRF == 3:  # Reich-Moore
+                        add = {}
                         if ISR > 0:
                             L, i = sandy.read_list(df, i)
-                            add = {
-                                "MLS": L.NPL
-                            }
-                            keys = ["DAP"]
-                            DAP = [dict(zip(keys, items))
-                                   for items in sandy.utils.grouper(L.B, 1)]
-                            add.update({"DAP": DAP})
-                            C, i = sandy.read_cont(df, i)
-                            add = {
-                                "AWRI": C.C1,
-                                "NSRS": C.N1,
-                                "NLRS": C.N2,
-                            }
-                            add.update(add)
-                            LCOMP1.update(add)
-                            dico[(EL, EH)] = LCOMP1
-                        if ISR == 0:
-                            C, i = sandy.read_cont(df, i)
-                            add = {
-                                "AWRI": C.C1,
-                                "NSRS": C.N1,
-                                "NLRS": C.N2,
-                            }
-                            add.update(add)
-                            LCOMP1.update(add)
-                            dico[(EL, EH)] = LCOMP1
+                            # DAP is uncertainty on scattering radius
+                            DAP = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B, 1)]
+                            add.update({
+                                "MLS": L.NPL,
+                                "DAP": DAP,
+                            })
+                        C, i = sandy.read_cont(df, i)
+                        add.update({
+                            "AWRI": C.C1,
+                            "NSRS": C.N1,
+                            "NLRS": C.N2,
+                        })
+                        L, i = sandy.read_list(df, i)
+                        NRB = int(L.N2)
+                        MPAR = int(L.L1)
+                        keys = ["ER", "AJ", "GN", "GG", "GFA", "GFB"]
+                        
+                        # resonance parameters
+                        RES_PAR = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B[:6 * NRB], 6)]
+                        # resonance parameters covariance data
+                        tri = np.zeros((MPAR * NRB, MPAR * NRB))
+                        tri[np.triu_indices(MPAR * NRB, 0)] = np.array(L.B[6 * NRB:])
+
+                        add.update({
+                            "MPAR": L.L1,
+                            "NRB": L.N2,
+                            "RES_PAR": RES_PAR,
+                            "COVAR_PAR": tri,
+                            })
+
+                        LCOMP1.update(add)
+
+                        dico[(EL, EH)] = LCOMP1
                     elif LRF == 4:
                         L, i = sandy.read_list(df, i)
                         add = {
