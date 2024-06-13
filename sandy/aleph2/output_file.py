@@ -549,13 +549,15 @@ def parse_table_nuclide(text, index="ZAM", data_row=3, **kwargs):
     if len(lines[begin:]) == 0:
         df = pd.DataFrame(columns=columns)
     else:
+        # NEW IN ALEPH_2.9.2, energy is reported in decay heat table
+        start = 2 if "E (MeV)"in lines[begin-1] else 1
         string = io.StringIO("\n".join(lines[begin:]))
         df = pd.read_csv(
             string,
             sep="\s+",
             header=None,
             index_col=index_col,
-            ).iloc[:, 1:]
+            ).iloc[:, start:]
     df.index.name = index
     df.columns = columns
     return df.T
