@@ -146,10 +146,12 @@ class Errorr(_FormattedFile):
         ----------
         mts : `list`, optional
             List of MT numbers. The default is `None`, i.e., keep all.
-            Use this command if you want only a subsection of the MT number
-            available in the ERRORR file.
+            Use this command if you want to keep only a subsection of the
+            MT numbers available in the ERRORR file.
             The output covariance matrix will containt only the MT numbers
             found both in `mts` and in the ERRORR file.
+            A warning is raised if a MT is not found.
+            An error is raised if no requested MT is found.
 
         Returns
         -------
@@ -235,7 +237,8 @@ class Errorr(_FormattedFile):
             out = sandy.CategoryCov(c[mask][:, mask], index=idx[mask], columns=idx[mask])
             
             notfound = set(mts) - set(idx.get_level_values("MT"))
-            logging.warning(f"The following MT's were not found in ERRORR file: {notfound}")
+            if notfound:
+                logging.warning(f"The following MT's were not found in ERRORR file: {notfound}")
   
         else:
             out = sandy.CategoryCov(c, index=idx, columns=idx)
