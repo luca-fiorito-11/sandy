@@ -1097,6 +1097,8 @@ class HalfLife(_DecayBase):
         """
         Update half lives in `DecayData` instance with those available in a
         `HalfLife` instance.
+        Decay consants are also recaluclated and updated accordingly.
+        Uncertaintoes are ignored.
 
         Parameters
         ----------
@@ -1117,6 +1119,7 @@ class HalfLife(_DecayBase):
         >>> hl_new = hl.custom_perturbation(pert)
         >>> rdd_updated = hl_new.to_decaydata(rdd)
         >>> assert rdd_updated.data[922350]['half_life'] == hl_new.data.values
+        >>> assert rdd_updated.data[922350]['decay_constant'] !=rdd.data[922350]['decay_constant']
         
         >>> hl = rdd.get_half_life()
         >>> hl_new = hl.custom_perturbation(pert)
@@ -1143,7 +1146,11 @@ class HalfLife(_DecayBase):
         """
         rdd_updated = copy.deepcopy(rdd.data)
         for zam, val in self.data.iterrows():
+            # update half life and recalculate decay constant.
+            # Do not update uncertainties.
             rdd_updated[zam]['half_life'] = val['HL']
+            if val['HL'] != 0:
+                rdd_updated[zam]['decay_constant'] = np.log(2) / val["HL"]
         return DecayData(rdd_updated)
 
 

@@ -1240,9 +1240,14 @@ class _FormattedFile():
         title : `str`, optional, default is an empty string
             first line of the file
         tpid : `bool`, optional, defult is `True`
-            write TPID line
+            write TPID line.
+            A TPID line is a text line at the beginning of a file,
+            ending with `'   1 0  0    0'`.
+            
         fend : `bool`, optional, defult is `True`
-            write END-OF-FILE line
+            write END-OF-FILE line.
+            A FEND line is a text line at the end of a file,
+            ending with `'  -1 0  0    0'`.
 
         Returns
         -------
@@ -1293,11 +1298,18 @@ class _FormattedFile():
         >>> assert last_fend != last 
         >>> assert " "*66 + "  -1 0  0    0" == last_fend        
         >>> assert endf6.write_string(fend=False)[-1] == endf6.write_string(fend=True)[-1] == '0'
+        
+        Check that there is no line concatenation.
+        >>> tape = sandy.get_endf6_file("jeff_33", "decay", [10010, 10020])
+        >>> assert all(x==80 for x in map(len, tape.write_string().splitlines()))
         """
         string = ""
+
+        # Write title
         if tpid:
             string += sandy.write_line(title, 1, 0, 0, 0)
             string += "\n"
+
         for mat, dfmat in self.to_series().groupby('MAT', sort=True):
             for mf, dfmf in dfmat.groupby('MF', sort=True):
                 for mt, text in dfmf.groupby('MT', sort=True):
@@ -1310,9 +1322,15 @@ class _FormattedFile():
                 string += sandy.write_line("", mat, 0, 0, 0)
                 string += "\n"
             string += sandy.write_line("", 0, 0, 0, 0)
-        if fend:
             string += "\n"
+
+        # Write end-of-file
+        if fend:
             string += sandy.write_line("", -1, 0, 0, 0)
+        else:
+            # remove laast newline
+            string = string[:-1]
+
         return string
 
     def to_file(self, filename, mode="w", **kwargs):
