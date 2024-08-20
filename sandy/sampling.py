@@ -321,6 +321,14 @@ def run(iargs):
     Returns
     -------
     None.
+    
+    Examples
+    --------
+    Default use case for decay data sampling.
+
+    >>> sandy.get_endf6_file("jeff_33", "decay", [10010, 10040, 270600]).to_file("AAA.txt")
+    >>> sandy.sampling.run("AAA.txt --samples 3 --processes 1".split())
+    >>> assert {'decay_data_0', 'decay_data_1', 'decay_data_2'}.issubset(set(glob.glob("decay_data*")))
     """
 
     loglevels = {
@@ -340,12 +348,24 @@ def run(iargs):
         err_errorr = err_ace = err_pendf = 1
 
     endf6 = sandy.Endf6.from_file(iargs.file)
+    
+    if 457 in endf6.mt:
+        # very dirty way to add decay data sampling from command line interface
+        smps = endf6.get_perturbations(iargs.samples)
+        endf6.apply_perturbations(
+            smps,
+            processes=iargs.processes,
+            to_file=True,
+            verbose=iargs.debug,
+        )
+        return
+        
 
     njoy_output = sp.DEVNULL if iargs.supressnjoy else None
 
     # ERRORR KEYWORDS
     nubar = bool(31 in iargs.mf) and (31 in endf6.mf)
-    xs = bool(33 in iargs.mf) and (33 in endf6.mf or 32 in endf6.mf)  # this handle together MF32 and MF33
+    xs = bool(33 in iargs.mf) and (33 in endf6.mf or 32 in endf6.mf)  # this handles together MF32 and MF33
     mubar = False
     chi = False
     errorr_kws = dict(

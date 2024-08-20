@@ -385,7 +385,7 @@ class CategoryCov():
 
         Returns
         -------
-        df : :obj: `CetgoryCov`
+        df : :obj: `CatgoryCov`
             correlation matrix
 
         Examples
