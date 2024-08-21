@@ -1,4 +1,4 @@
-"""
+r"""
 This module contains all classes and functions specific for processing fission
 yield data.
 """
@@ -38,7 +38,7 @@ minimal_fytest_2 = pd.DataFrame([
     )
 
 def get_chain_yields():
-    """
+    r"""
     Import chain yields information from data stored in sandy. The
     information was taken from 'https://www-nds.iaea.org/endf349/la-ur-94-3106.pdf',
     page 18-29.
@@ -76,7 +76,7 @@ def get_chain_yields():
              'appendix D.txt', 'appendix E.txt', 'appendix F.txt']
     #
     path = join(dirname(__file__), 'appendix', 'chain_yields')
-    df = pd.concat([pd.read_csv(join(path, file), sep="\s+", index_col=0) for file in files], axis=1)
+    df = pd.concat([pd.read_csv(join(path, file), sep=r"\s+", index_col=0) for file in files], axis=1)
     df.columns.name, df.index.name = "ISO", "A"
     df = df.stack().rename("Y").reset_index("ISO")
     # 
@@ -95,7 +95,7 @@ def get_chain_yields():
 
 
 class Fy():
-    """
+    r"""
     Object for fission yield data.
 
     Attributes
@@ -133,7 +133,7 @@ class Fy():
 
     @property
     def data(self):
-        """
+        r"""
         Dataframe of fission yield data with the following columns:
 
             - `MAT` : MAT number
@@ -166,7 +166,7 @@ class Fy():
         self._data = data[self._columns]
 
     def energy_table(self, key, by="ZAM", kind="independent"):
-        """
+        r"""
         Pivot dataframe of tabulated fission yields as a function of energy.
         Columns are determined by keyword argument `'by'`.
 
@@ -221,7 +221,7 @@ class Fy():
                     ).fillna(0.)
 
     def _expand_zap(self):
-        """
+        r"""
         Produce dataframe with three extra columns containing the `Z`, `A` and
         `M` numbers of the **parent** (fissioning) nuclide.
 
@@ -245,7 +245,7 @@ class Fy():
         return self.data.assign(Z=zam.Z, A=zam.A, M=zam.M)
 
     def _expand_zam(self):
-        """
+        r"""
         Produce dataframe with three extra columns containing the `Z`, `A` and
         `M` numbers of the **daughter** nuclide (fission product).
 
@@ -268,7 +268,7 @@ class Fy():
         return self.data.assign(Z=zam.Z, A=zam.A, M=zam.M)
 
     def get_mass_yield(self, zam, e):
-        """
+        r"""
         Obtain mass yields from the following model: ChY = S * IFY
 
         Parameters
@@ -299,7 +299,7 @@ class Fy():
         return mass_yield.rename('mass yield')
 
     def get_chain_yield(self, zam, e, decay_data, **kwargs):
-        """
+        r"""
         Obtain chain yields from the following model: ChY = S * IFY
 
         Parameters
@@ -311,22 +311,23 @@ class Fy():
         decay_data : `sandy.DecayData`
             Radioactive nuclide data from where to obtain chain sensitivities.
         kwargs : `dict`
-            keyword arguments for method `get_decay_chains`
+            Keyword arguments for method :obj:`~sandy.decay.DecayData.get_decay_chains`.
 
         Returns
         -------
-        `pandas.Series`
+        `pd.Series`
             Chain yield obtained from ChY = S * IFY
 
         Examples
         --------
+
         >>> zam = [591480, 591481, 601480, 561480, 571480, 571490, 581480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> tape_nfpy = sandy.get_endf6_file("jeff_33", 'nfpy', 922350)
         >>> nfpy = Fy.from_endf6(tape_nfpy)
-        >>> nfpy.get_chain_yield(922350, 0.0253, decay_fytest).loc[148]
-        0.01692277272
+        >>> result_value  = float(nfpy.get_chain_yield(922350, 0.0253, decay_fytest).loc[148])  # Convert to native Python float
+        >>> assert result_value == 0.01692277272
         """
         # Filter FY data:
         conditions = {'ZAM': zam, "E": e, 'MT': 454}
@@ -337,7 +338,7 @@ class Fy():
         return chain_yield.rename('chain yield')
 
     def get_mass_yield_sensitivity(self):
-        """
+        r"""
         Obtain the mass yield sensitivity matrix based only on the
         information given in the `Fy` object (no decay data).
 
@@ -376,7 +377,7 @@ class Fy():
         return groups.reset_index().pivot_table(index='A', columns='ZAP', values="COUNT", aggfunc="sum").fillna(0)
 
     def custom_perturbation(self, zam, mt, e, pert):
-        """
+        r"""
         Apply a custom perturbation to a given fission yield.
 
         Parameters
@@ -426,7 +427,7 @@ class Fy():
         return self.__class__(df)
 
     def apply_bmatrix(self, zam, energy, decay_data, keep_fy_index=False):
-        """
+        r"""
         Perform IFY = (1-B) * CFY equation to calculate IFY in a given zam
         for a given energy and apply into the original data.
 
@@ -524,7 +525,7 @@ class Fy():
         return self.__class__(data)
 
     def apply_qmatrix(self, zam, energy, decay_data, cut_hl=True, keep_fy_index=False):
-        """
+        r"""
         Perform CFY = Q * IFY equation to calculate CFY in a given zam
         for a given energy and apply into the original data.
 
@@ -620,7 +621,7 @@ class Fy():
         return self.__class__(data)
     
     def gls_update(self, zam, energy, S, y_extra, Vy_extra=None):
-        """
+        r"""
         Perform the GLS update of fission yields and their related covariance
         matrix, according with
         https://doi.org/10.1016/j.anucene.2015.10.027.
@@ -726,7 +727,7 @@ class Fy():
 
     def ishikawa_factor(self, zam, e, Vy_extra,
                         kind='mass yield', decay_data=None):
-        """
+        r"""
         Ishikawa factor to determine whether the experiment from where we
         obtain model sensitivity is useful to reduce the IFY uncertainty
 
@@ -808,7 +809,7 @@ class Fy():
         return ishikawa
 
     def _filters(self, conditions):
-        """
+        r"""
         Apply several condition to source data and return filtered results.
 
         Parameters
@@ -836,7 +837,7 @@ class Fy():
         return out
 
     def filter_by(self, key, value):
-        """
+        r"""
         Apply condition to source data and return filtered results.
 
         Parameters
@@ -875,7 +876,7 @@ class Fy():
 
     @classmethod
     def from_endf6(cls, endf6, verbose=False):
-        """
+        r"""
         Extract fission yields from `Endf6` instance.
 
         Parameters
@@ -928,7 +929,7 @@ class Fy():
         return cls(df)
 
     def to_endf6(self, endf6):
-        """
+        r"""
         Update fission yields in `Endf6` instance with those available in a
         `Fy` instance.
 

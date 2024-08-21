@@ -661,7 +661,7 @@ class CategoryCov():
         return sandy.Samples(samples)
 
     def gls_cov_update(self, S, Vy_extra=None):
-        """
+        r"""
         Perform GlS update for a given covariance matrix, sensitivity and
         covariance matrix of the extra information:
         .. math::
@@ -733,7 +733,7 @@ class CategoryCov():
         return self.__class__(Vx_post)
 
     def sandwich(self, s):
-        """
+        r"""
         Apply the "sandwich formula" to the CategoryCov object for a given
         sensitivity. According with http://dx.doi.org/10.1016/j.anucene.2015.10.027,
         the moment propagation equation is implemented as:

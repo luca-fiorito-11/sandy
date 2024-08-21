@@ -384,16 +384,13 @@ def line_numbers(length):
 
     Examples
     --------
-    >>> np.array(line_numbers(1.0e6)).max()
-    99999
-    >>> np.array(line_numbers(1.0e6+1)).min()
-    1
-    >>> np.array(line_numbers(1.0e4+1)).max()
-    10001
-    >>> len(sandy.records.line_numbers(1.0e6))
-    1000000
-    >>> len(sandy.records.line_numbers(1.0e6+1))
-    1000001
+    Some tests.
+
+    >>> assert max(line_numbers(1.0e6)) == 99999
+    >>> assert min(line_numbers(1.0e6+1)) == 1
+    >>> assert max(line_numbers(1.0e4+1)) == 10001
+    >>> assert len(line_numbers(1.0e6)) == 1000000
+    >>> assert len(line_numbers(1.0e6+1)) == 1000001
     """
     iend = 1 + length
     ilines = np.tile(np.arange(1, 1e5, dtype=int), int(iend//99999)+1)

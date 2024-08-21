@@ -170,7 +170,7 @@ def read_mf32(tape, mat):
     LCOMP = 2 LRF = 3
     >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902320)
     >>> dic = sandy.read_mf32(tape, 9040)
-    >>> dic['NIS'][90232]["NER"][(1e-05, 4000.0)]["INTG"][350] 
+    >>> dic['NIS'][90232]["NER"][(1e-05, 4000.0)]["INTG"][350]
     {'II': 795,
      'JJ': 793,
      'KIJ': array([44, 69,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0])}
@@ -587,8 +587,8 @@ def read_mf32(tape, mat):
                             for j in range(NM):
                                 I, i = read_intg(tape, mat, NDIGIT, i)
                                 add_intg = {
-                                    "II": I.II,
-                                    "JJ": I.JJ,
+                                    "II": int(I.II),
+                                    "JJ": int(I.JJ),
                                     "KIJ": I.KIJ,
                                 }
                                 INTG.update({j: add_intg})
@@ -626,8 +626,8 @@ def read_mf32(tape, mat):
                             for j in range(NM):
                                 I, i = read_intg(tape, mat, NDIGIT, i)
                                 add_intg = {
-                                    "II": I.II,
-                                    "JJ": I.JJ,
+                                    "II": int(I.II),
+                                    "JJ": int(I.JJ),
                                     "KIJ": I.KIJ,
                                 }
                                 INTG.update({j: add_intg})
@@ -681,8 +681,8 @@ def read_mf32(tape, mat):
                             for j in range(NM):
                                 I, i = read_intg(tape, mat, NDIGIT, i)
                                 add_intg = {
-                                    "II": I.II,
-                                    "JJ": I.JJ,
+                                    "II": int(I.II),
+                                    "JJ": int(I.JJ),
                                     "KIJ": I.KIJ,
                                 }
                                 INTG.update({j: add_intg})
@@ -731,8 +731,8 @@ def read_mf32(tape, mat):
                             for j in range(NM):
                                 I, i = read_intg(tape, mat, NDIGIT, i)
                                 add_intg = {
-                                    "II": I.II,
-                                    "JJ": I.JJ,
+                                    "II": int(I.II),
+                                    "JJ": int(I.JJ),
                                     "KIJ": I.KIJ,
                                 }
                                 INTG.update({j: add_intg})
@@ -804,8 +804,8 @@ def read_mf32(tape, mat):
                             for j in range(NM):
                                 I, i = read_intg(tape, mat, NDIGIT, i)
                                 add_intg = {
-                                    "II": I.II,
-                                    "JJ": I.JJ,
+                                    "II": int(I.II),
+                                    "JJ": int(I.JJ),
                                     "KIJ": I.KIJ,
                                 }
                                 INTG.update({j: add_intg})
@@ -867,8 +867,8 @@ def read_mf32(tape, mat):
                             for j in range(NM):
                                 I, i = read_intg(tape, mat, NDIGIT, i)
                                 add_intg = {
-                                    "II": I.II,
-                                    "JJ": I.JJ,
+                                    "II": int(I.II),
+                                    "JJ": int(I.JJ),
                                     "KIJ": I.KIJ,
                                 }
                                 INTG.update({j: add_intg})
