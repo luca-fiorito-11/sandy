@@ -53,7 +53,7 @@ jobs:
 
       # Install the sandy package
       - name: Install sandy
-        run: pip install --no-cache-dir --user .[test, doc]
+        run: pip install --no-cache-dir --user .[test,doc]
 
       # Run tests with coverage reporting
       - name: Run tests with pytest
