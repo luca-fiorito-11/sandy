@@ -1,46 +1,64 @@
-# This is a basic workflow to help you get started with Actions
+# CI workflow for automated testing and documentation generation
 
 name: CI
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the develop branch
+  # Triggers the workflow on push or pull request events for the develop and v1.1 branches
   push:
-    branches: [ develop, v1.1 ]
+    branches: 
+      - develop
+      - v1.1
   pull_request:
-    branches: [ develop, v1.1 ]
+    branches: 
+      - develop
+      - v1.1
 
-  # Allows you to run this workflow manually from the Actions tab
+  # Allows manual triggering of the workflow from the Actions tab
   workflow_dispatch:
 
+# Environment variables accessible to all jobs
 env:
-  NJOY: ${GITHUB_WORKSPACE}/NJOY2016/build/njoy
+  NJOY: ${{ github.workspace }}/NJOY2016/build/njoy
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# Define the jobs to be run
 jobs:
   build:
+    # Use the latest Ubuntu environment
     runs-on: ubuntu-latest
 
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      # Check out the repository to the GitHub workspace
       - uses: actions/checkout@v3
-      - uses: "actions/setup-python@v3"
-        with:
-          python-version: "3.7.15"
 
-      # Run commands using the runners shell
-      - name: clone and install njoy
-        run: git clone https://github.com/njoy/NJOY2016.git && (cd NJOY2016 && mkdir build && cd build && cmake -DPython3_EXECUTABLE=$(which python3) .. && make)
-      - name: remove njoy tests from unit testing
+      # Set up the latest Python 3 version
+      - uses: actions/setup-python@v3
+        with:
+          python-version: "3.x"
+
+      # Clone and build NJOY2016
+      - name: Clone and build NJOY2016
+        run: |
+          git clone https://github.com/njoy/NJOY2016.git
+          cd NJOY2016
+          mkdir build
+          cd build
+          cmake -DPython3_EXECUTABLE=$(which python3) ..
+          make
+
+      # Remove NJOY2016 tests from the repository to avoid conflicts with SANDY tests
+      - name: Remove NJOY2016 tests
         run: rm -rf NJOY2016/tests
-      - name: install general python dependencies
-        run: pip install sphinx sphinx_rtd_theme codecov numpydoc coveralls pytest-cov nbval
-      - name: install sandy's requirements
-        run: pip install -r requirements.txt
-      - name: install sandy
-        run: python setup.py install --user
-      - name: pytest
+
+      # Install the sandy package
+      - name: Install sandy
+        run: pip install --no-cache-dir --user .[test]
+
+      # Run tests with coverage reporting
+      - name: Run tests with pytest
         run: pytest --cov=sandy sandy
-      - name: make docs
+
+      # Build documentation
+      - name: Build documentation
         run: bash make_docs.sh html

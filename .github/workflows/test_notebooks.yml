@@ -9,46 +9,53 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+# Environment variables accessible to all jobs
 env:
   NJOY: ${GITHUB_WORKSPACE}/NJOY2016/build/njoy
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# Define the jobs to be run
 jobs:
   build:
+    # Use the latest Ubuntu environment
     runs-on: ubuntu-latest
 
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      # Check out the repository to the GitHub workspace
       - uses: actions/checkout@v3
-        with:
-          # The branch, tag or SHA to checkout. When checking out the repository that
-          # triggered a workflow, this defaults to the reference or SHA for that event.
-          # Otherwise, defaults to `master`.
-          ref: 'v1.1'
+
+      # Set up the latest Python 3 version
       - uses: actions/setup-python@v3
         with:
           python-version: "3.x"
 
-      # Run commands using the runners shell
-      - name: clone and install njoy
-        run: git clone https://github.com/njoy/NJOY2016.git && (cd NJOY2016 && mkdir build && cd build && cmake -DPython3_EXECUTABLE=$(which python3) .. && make)
-      - name: remove njoy tests from unit testing
+      # Clone and build NJOY2016
+      - name: Clone and build NJOY2016
+        run: |
+          git clone https://github.com/njoy/NJOY2016.git
+          cd NJOY2016
+          mkdir build
+          cd build
+          cmake -DPython3_EXECUTABLE=$(which python3) ..
+          make
+
+      # Remove NJOY2016 tests from the repository to avoid conflicts with SANDY tests
+      - name: Remove NJOY2016 tests
         run: rm -rf NJOY2016/tests
-      - name: install general python dependencies
-        run: pip install sphinx sphinx_rtd_theme codecov numpydoc coveralls pytest-cov nbval setuptools
-      - name: install sandy's requirements
-        run: pip install -r requirements.txt
-      - name: install jupyter packages to run notebooks
-        run: pip install jupyterlab matplotlib seaborn scikit-learn serpentTools
-      - name: install sandy
-        run: python setup.py install --user
+
+      # Install the sandy package
+      - name: Install sandy
+        run: pip install --no-cache-dir --user .[test,notebook,doc]
+
+      # Run all the jupyter notebooks
       - name: run notebooks
         run: |
           cd notebooks
           mkdir executed_notebooks
           jupyter nbconvert --to notebook --execute *.ipynb --ExecutePreprocessor.kernel_name='python3' --inplace
           mv *.ipynb executed_notebooks/
+
+      # Push rendered notebooks to sandy_notebooks page
       - name: Pushes to another repository
         id: push_directory
         uses: cpina/github-action-push-to-another-repository@main
