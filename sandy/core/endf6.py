@@ -343,6 +343,12 @@ def get_endf6_file(library, kind, zam, to_file=False):
     >>> tape = sandy.get_endf6_file("jeff_33", 'decay', [380900, 551370, 541350])
     >>> assert type(tape) is sandy.Endf6
 
+    Import all decay data for JEFF-3.3.
+    This test also ensures that module appendix was correclty installed.
+
+    >>> tape = sandy.get_endf6_file("jeff_33", 'decay', 'all')
+    >>> assert type(tape) is sandy.Endf6
+
     Thermal Neutron Scattering Data from ENDF/B-VII.1.
 
     >>> tape = sandy.get_endf6_file("endfb_71", 'tsl', [1, 2, 3])
