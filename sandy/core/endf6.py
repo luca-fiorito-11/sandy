@@ -23,6 +23,8 @@ import pandas as pd
 import numpy as np
 
 import sandy
+from ..fy import Fy
+
 from sandy.libraries import (
     N_FILES_ENDFB_71_IAEA,
     N_FILES_ENDFB_80_IAEA,
@@ -2925,7 +2927,7 @@ def rdd_perturb_worker(endf6, rdd, smp_hl, smp_de, smp_br, ismp,
         Flag to write outputs to file. The default is False.
         This key changes the output type.
     **kwargs : `dict`
-        Additional keyword arguments.
+        Additional keyword arguments (not used).
 
     Returns
     -------
@@ -2973,5 +2975,72 @@ def rdd_perturb_worker(endf6, rdd, smp_hl, smp_de, smp_br, ismp,
         print(f"... writing file '{file}'")
     out.to_file(file)
     return file
+
+
+
+def fy_perturb_worker(endf6, fy, smps, ismp,
+                       verbose=False, to_file=False, **kwargs):
+    """
+    
+
+    Parameters
+    ----------
+    endf6 : `dict`
+        `data` attribute of :obj:`~sandy.core.endf6.Endf6`.
+        It contains the nominal ENDF6 data.
+    fy : `pd.DataFrame`
+        `data` attribute of :obj:`~sandy.fy.Fy`.
+        It contains the nominal fission yield data.
+    smps : `pd.DataFrame`
+        It contains the perturbation coefficients for fission yields.
+        Columns are `MAT`, `MT`, `E`, `ZAM`, `ZAP`, `SMP`, `VALS`.
+        This dataframe is generally produced with `pd.pivot_table`.
+    ismp : `int`
+        sample ID.
+    verbose : `bool`, optional
+        Flag to activate verbosity. The default is False.
+    to_file : `bool`, optional
+        Flag to write outputs to file. The default is False.
+        This key changes the output type.
+    **kwargs : `dict`
+        Additional keyword arguments (not used).
         
+    Notes
+    -----
+    .. note:: It follows the logic of :obj:`~sandy.core.endf6.endf6_perturb_worker` and
+              :obj:`~sandy.core.endf6.rdd_perturb_worker`.
+
+    Returns
+    -------
+    `dict`
+        Either a dictionary of :obj:`~sandy.core.endf6.Endf6` instances for each set of
+        perturbation coefficients (if `to_file=False`), or a dictionary
+        of `str` with the output file name for each set of perturbation
+        coefficients.
+
+    Notes
+    -----
+    .. note: This method is written so that it can be handled by the
+             `multiprocess` module (pickling).
+    """
+    endf6_ = Endf6(endf6.copy())  # this was a dictionary
+    fy_ = Fy(fy.copy())    # this was a dataframe
+
+    for (zam, e), smp in smps.groupby(["ZAM", "E"]):
+        idx = fy_.data.query(f"ZAM=={zam} & E=={e} & MT==454").index
+        # we assume both FY's and perturbations are sorted by ZAP
+        fy_.data.loc[idx, "FY"] *= smp.query(f"SMP=={ismp}")["VALS"].values  # IMPORTANT, this does not update the CFYs, which in random ENDF-6 file are inconsistent with the perturbed IFYs
+
+    out = fy_.to_endf6(endf6_)
+    
+    # Stop here and return dict of Endf6 instance. not Endf6 because it cannot be pickled
+    if not to_file:
+        return out.data
+ 
+    # continue and return filename where data was written
+    file = f"fy_{ismp}"
+    if verbose:
+        print(f"... writing file '{file}'")
+    out.to_file(file)
+    return file
     
