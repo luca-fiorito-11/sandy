@@ -23,7 +23,6 @@ import pandas as pd
 import numpy as np
 
 import sandy
-from ..fy import Fy
 
 from sandy.libraries import (
     N_FILES_ENDFB_71_IAEA,
@@ -3022,7 +3021,29 @@ def fy_perturb_worker(endf6, fy, smps, ismp,
     -----
     .. note: This method is written so that it can be handled by the
              `multiprocess` module (pickling).
+
+    Examples
+    --------
+    
+    Default test: create 1 sample and perturb fission yields for 1 fissioning system.
+    
+    >>> nsmp = 1   # sample size
+    >>> zam, e = 922350, 0.0253
+    >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", zam)
+    >>> nfpy = sandy.Fy.from_endf6(tape)
+    >>> idx = nfpy.data.query(f"E=={e} & MT==454 & ZAM=={zam}").index
+    >>> fy = nfpy.data.loc[idx]
+    >>> smps = sandy.CategoryCov(pd.DataFrame(np.diag((fy.DFY/fy.FY)**2), index=fy.ZAP, columns=fy.ZAP).fillna(0)).sampling(nsmp)
+    >>> smps = smps.data.rename_axis(index="ZAP").stack().rename("VALS").reset_index().assign(E=e, ZAM=zam)[["ZAM", "E", "ZAP", "SMP", "VALS"]]
+    >>> out = sandy.core.endf6.fy_perturb_worker(tape.data, nfpy.data, smps, nsmp-1, verbose=True, to_file=False)
+    >>> out = sandy.Endf6(out)
+    
+    Silly test: assert the `MT=454` was changed, and `MT=459` was not.
+
+    >>> assert sandy.Fy.from_endf6(out).data.query("MT==459").equals(nfpy.data.query("MT==459"))
+    >>> assert not sandy.Fy.from_endf6(out).data.query("MT==454").equals(nfpy.data.query("MT==454"))
     """
+    from ..fy import Fy  # lazy import to avoid circular import issue
     endf6_ = Endf6(endf6.copy())  # this was a dictionary
     fy_ = Fy(fy.copy())    # this was a dataframe
 
