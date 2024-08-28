@@ -10,10 +10,10 @@ import functools
 import numpy as np
 import pandas as pd
 
-from .shared import reshape_differential
-from .core.endf6 import Endf6
-from .core.section.mf1 import write_mf1
-from .core.section.mf1 import write_mf3
+from .endf6 import Endf6
+from ..shared import reshape_differential
+from ..sections.mf1 import write_mf1
+from ..sections.mf3 import write_mf3
 
 __author__ = "Luca Fiorito"
 __all__ = [
@@ -299,6 +299,7 @@ class Xs():
         --------
         Get H1 file and process it to PENDF.
 
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> pendf = tape.get_pendf(minimal_processing=True)
         
@@ -391,6 +392,7 @@ class Xs():
         --------
         Get ENDF-6 file for H1, process it in PENDF and extract xs.
 
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> pendf = tape.get_pendf(minimal_processing=True, err=1)
         >>> xs = sandy.Xs.from_endf6(pendf)
