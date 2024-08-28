@@ -2583,6 +2583,8 @@ class Endf6(_FormattedFile):
         if 33 in smps:
             data["pxs"] = smps[33].iterate_xs_samples()
 
+            # iterate_pfns_samples()
+
         if processes == 1:
             outs = {}
 
@@ -2839,6 +2841,11 @@ def endf6_perturb_worker(e6, pendf, n,
 
     # apply edistr perturbation
     if pedistr is not None:
+        # iterate over Ein and K of PFNS since I hae only one Ein in smps
+        # create Xs object
+        # do as in pxs
+        # recreate PFNS object from output
+        # normalize
         pass
 
     # apply xs perturbation
