@@ -4,16 +4,16 @@ This module contains all classes and functions specific for the cross section
 class `Xs` that acts as a container for energy-dependent tabulated cross
 section values.
 """
-import os
 import logging
 import functools
-import types
 
 import numpy as np
 import pandas as pd
-import multiprocessing as mp
 
-import sandy
+from .shared import reshape_differential
+from .core.endf6 import Endf6
+from .core.section.mf1 import write_mf1
+from .core.section.mf1 import write_mf3
 
 __author__ = "Luca Fiorito"
 __all__ = [
@@ -45,21 +45,21 @@ class Xs():
 
     Attributes
     ----------
-    data : `pandas.DataFrame`
+    data : `pd.DataFrame`
         source of energy dependent tabulated cross sections
 
     Methods
     -------
     custom_perturbation
-        Apply a custom perturbation to a given cross section
+        Apply a custom perturbation to a given cross section.
     from_endf6
-        Extract cross sections/nubar from `Endf6` instance
+        Extract cross sections/nubar from :obj:`~sandy.core.endf6.Endf6` instance.
     perturb
         
     reshape
-        Interpolate cross sections over new grid structure
+        Interpolate cross sections over new grid structure.
     to_endf6
-        Update cross sections in `Endf6` instance
+        Update cross sections in :obj:`~sandy.core.endf6.Endf6` instance.
     """
 
     redundant_xs = {
@@ -93,25 +93,29 @@ class Xs():
 
         Attributes
         ----------
-        index : `pandas.Index`
-            energy grid in eV
-        columns : `pandas.MultiIndex`
-            MAT/MT indices
-        values : `numpy.array`
-            cross sections in barns
+        index : `pd.Index`
+            Energy grid in eV.
+        columns : `pd.MultiIndex`
+            MAT/MT indices.
+        values : `np.array`
+            Cross sections in barns.
 
         Returns
         -------
-        `pandas.DataFrame`
-            tabulated xs
+        `pd.DataFrame`
+            Tabulated xs.
 
         Raises
         ------
-        `sandy.Error`
-            if energy grid is not monotonically increasing
+        `NotImplementedError`
+            If energy grid is not monotonically increasing.
 
         Examples
         --------
+
+        Create custom cross section.
+
+        >>> import sandy
         >>> index = [1e-5, 2e7]
         >>> columns = pd.MultiIndex.from_tuples([(9437, 1)])
         >>> sandy.Xs([1, 2], index=index, columns=columns)
@@ -128,7 +132,7 @@ class Xs():
         self._data = data.rename_axis(self.__class__._indexname, axis=0)\
                          .rename_axis(self.__class__._columnsnames, axis=1)
         if not data.index.is_monotonic_increasing:
-            raise ValueError("energy grid is not monotonically increasing")
+            raise NotImplementedError("energy grid is not monotonically increasing")
 
     def reshape(self, eg):
         """
@@ -137,21 +141,21 @@ class Xs():
         Parameters
         ----------
         eg : array-like object
-            new energy grid
+            New energy grid.
 
         Returns
         -------
-        `Xs`
-            cross section instance over new grid
+        :obj:`~sandy.core.xs.Xs`
+            Cross section instance over new grid.
 
         Warnings
         --------
         The new cross sections are tabulated over the union between
-        the old and the given energy grid
+        the old and the given energy grid.
         """
         df = self.data
         enew = df.index.union(eg).astype("float").values
-        xsnew = sandy.shared.reshape_differential(
+        xsnew = reshape_differential(
             df.index.values,
             df.values,
             enew,
@@ -168,17 +172,17 @@ class Xs():
         ----------
         mat : `int`
             MAT material number of the xs to which perturbations are to be
-            applied
+            applied.
         mt : `int`
             MT reaction number of the xs to which perturbations are to be
-            applied
-        pert : `sandy.Pert`
-            tabulated perturbations
+            applied.
+        pert : :obj:`~sandy.pert.Pert`
+            Tabulated perturbations.
 
         Returns
         -------
-        `Xs`
-            cross section instance with given series MAT/MT perturbed
+        :obj:`~sandy.core.xs.Xs`
+            Cross section instance with given series MAT/MT perturbed.
         """
         if (mat, mt) not in self.data:
             msg = f"could not find MAT{mat}/MT{mt}, " +\
@@ -194,25 +198,25 @@ class Xs():
 
     def to_endf6(self, endf6):
         """
-        Update cross sections in `Endf6` instance with those available in a
-        `Xs` instance.
+        Update cross sections in :obj:`~sandy.core.endf6.Endf6` instance with those available in a
+        :obj:`~sandy.core.xs.Xs` instance.
 
         .. warning:: only xs with `(MAT,MT)` combinations that are originally
-                     present in the `Endf6` instance are modififed, the others
+                     present in the :obj:`~sandy.core.endf6.Endf6` instance are modififed, the others
                      are discarded.
-                     The reason behind this is that to reconstruct a endf6
-                     section we need info that is not available in the `Xs`
+                     The reason behind this is that to reconstruct a ENDF6
+                     section we need info that is not available in the :obj:`~sandy.core.xs.Xs`
                      instance itself.
 
         Parameters
         ----------
-        `endf6` : `sandy.Endf6`
-            `Endf6` instance
+        `endf6` : :obj:`~sandy.core.endf6.Endf6`
+            ENDF6 object.
 
         Returns
         -------
-        `sandy.Endf6`
-            `Endf6` instance with updated xs
+        endf6new : :obj:`~sandy.core.endf6.Endf6`
+            ENDF6 object with updated xs.
         """
         endf6new = self._xs_to_endf6(endf6)
         endf6new = self._nubar_to_endf6(endf6new)
@@ -227,8 +231,7 @@ class Xs():
                 continue
             sec = endf6.read_section(mat, mf, mt)
             if sec["LNU"] != 2:
-                raise sandy.Error("cannot update nubar if not in tabulated "
-                                  "format")
+                raise NotImplementedError("cannot update nubar if not in tabulated format")
             ethresh = sec["E"][0]
             xs = xs.where(xs.index >= ethresh).dropna()
             sec["E"] = xs.index.values
@@ -236,8 +239,8 @@ class Xs():
             # Assume only 1 interpolation region and it is linear
             sec["NBT"] = [xs.size]
             sec["INT"] = [2]
-            data[mat, mf, mt] = sandy.write_mf1(sec)
-        return sandy.Endf6(data)
+            data[mat, mf, mt] = write_mf1(sec)
+        return Endf6(data)
 
     def _xs_to_endf6(self, endf6):
         data = endf6.data.copy()
@@ -256,17 +259,17 @@ class Xs():
             # Assume all xs have only 1 interpolation region and it is linear
             sec["NBT"] = [xs.size]
             sec["INT"] = [2]
-            data[mat, mf, mt] = sandy.write_mf3(sec)
-        return sandy.Endf6(data)
+            data[mat, mf, mt] = write_mf3(sec)
+        return Endf6(data)
 
     @classmethod
     def from_endf6(cls, endf6):
         """
-        Extract cross sections from `Endf6` instance.
+        Extract cross sections from :obj:`~sandy.core.endf6.Endf6` instance.
 
-        .. note:: xs are linearized on a unique grid.
+        .. note:: Xs are linearized on a unique grid.
 
-        .. note:: missing points are linearly interpolated if inside the energy
+        .. note:: Missing points are linearly interpolated if inside the energy
                   domain, else zero is assigned.
 
         .. note:: Duplicate energy points will be removed, only the first one
@@ -274,18 +277,18 @@ class Xs():
 
         Parameters
         ----------
-        `endf6` : `sandy.Endf6`
-            `Endf6` instance
+        `endf6` : :obj:`~sandy.core.endf6.Endf6`
+            ENDF6 object.
 
         Returns
         -------
-        `sandy.Xs`
-            xs tabulated data
+        :obj:`~sandy.core.xs.Xs`
+            Xs tabulated data.
 
         Raises
         ------
-        `sandy.Error`
-            if interpolation scheme is not lin-lin
+        `NotImplementedError`
+            If interpolation scheme is not lin-lin.
 
         Warns
         -----
@@ -295,10 +298,12 @@ class Xs():
         Examples
         --------
         Get H1 file and process it to PENDF.
+
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> pendf = tape.get_pendf(minimal_processing=True)
         
         Show content of `sandy.Xs` instance.
+
         >>> sandy.Xs.from_endf6(pendf).data.head()
         MAT                 125                        
         MT                  1           2           102
@@ -353,7 +358,7 @@ class Xs():
             xs = xs[~mask_duplicates]
             data.append(xs)
         if not data:
-            raise sandy.Error("cross sections were not found")
+            raise NotImplementedError("cross sections were not found")
         # should we sort index?
 
         def foo(l, r):
@@ -369,7 +374,7 @@ class Xs():
         """
         Reconstruct redundant xs according to ENDF-6 rules in Appendix B.
         Redundant cross sections are available in `dict`
-        :func:`~sandy.redundant_xs`.
+        :obj:`~sandy.core.xs.redundant_xs`.
 
         Parameters
         ----------
@@ -379,26 +384,30 @@ class Xs():
 
         Returns
         -------
-        :func:`~sandy.Xs`
+        :obj:`~sandy.core.xs.Xs`
             Cross section instance where reconstruction rules are enforced.
 
         Examples
         --------
         Get ENDF-6 file for H1, process it in PENDF and extract xs.
+
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> pendf = tape.get_pendf(minimal_processing=True, err=1)
         >>> xs = sandy.Xs.from_endf6(pendf)
 
-        We introduce a perturbation to the elastic scattering xs
+        We introduce a perturbation to the elastic scattering xs.
+
         >>> xs.data[(125, 2)] *= 2
         >>> assert not xs.data[(125, 1)].equals(xs.data[(125, 2)] + xs.data[(125, 102)])
 
         Reconstructing xs enforces consistency.
+
         >>> xs1 = xs.reconstruct_sums(drop=True).data
         >>> assert xs1.columns.equals(xs.data.columns)
         >>> assert xs1[(125, 1)].equals(xs1[(125, 2)] + xs1[(125, 102)])
 
-        We can keep all redundant xs with keyword `drop=True`
+        We can keep all redundant xs with keyword `drop=True`.
+
         >>> xs2 = xs.reconstruct_sums(drop=False).data
         >>> assert not xs2.columns.equals(xs.data.columns)
         >>> assert xs2[xs1.columns].equals(xs1)
@@ -407,7 +416,8 @@ class Xs():
         >>> assert xs2[(125, 27)].equals(xs2[(125, 101)])
         >>> assert xs2[(125, 3)].equals(xs2[(125, 27)])
 
-        This example shows that also the inelastic cross section is correclty reconstructed
+        This example shows that also the inelastic cross section is correclty reconstructed.
+
         >>> pendf = sandy.get_endf6_file("jeff_33", "xs", 952410).get_pendf(minimal_processing=True, err=1)
         >>> xs = sandy.Xs.from_endf6(pendf)
         >>> xsr = xs.reconstruct_sums(drop=True)
@@ -418,7 +428,7 @@ class Xs():
         for mat, group_ in df.T.groupby("MAT"):
             group = group_.T
             # starting from the lat redundant cross section, find daughters and sum them
-            for parent, daughters in sorted(sandy.redundant_xs.items(), reverse=True):
+            for parent, daughters in sorted(redundant_xs.items(), reverse=True):
                 # it must be df, not group, because df is updated
                 mask = df[mat].columns.intersection(daughters)
                 if not mask.empty:
@@ -442,29 +452,32 @@ class Xs():
 
         Parameters
         ----------
-        s : `pandas.DataFrame`
-            input perturbations or samples.
+        s : `pd.DataFrame`
+            Input perturbations or samples.
             Index and columns of the dataframe must have the same names and
             structure as in `self.data`.
             
-            .. note:: the energy grid of `s` must be multigroup, i.e., 
+            .. note:: The energy grid of `s` must be multigroup, i.e., 
                       rendered by a (right-closed) `pd.IntervalIndex`.
 
         Returns
         -------
-        xs : :func:`~Xs` or `dict` of :func:`~Xs`
-            perturbed cross section object if `s` is a `pandas.DataFrame`,
+        xs : :obj:`~sandy.core.xs.Xs` or `dict` of :obj:`~sandy.core.xs.Xs`
+            perturbed cross section object if `s` is a `pd.DataFrame`,
             otherwise dictionary of perturbed cross section objects with
             sample numbers as key.
 
         Examples
         --------
-        Get plutonium cross sections
+        Get plutonium cross sections.
+
+        >>> import sandy
         >>> pendf = sandy.get_endf6_file("jeff_33", "xs", 942390).get_pendf(err=1, minimal_processing=True)
         >>> xs = sandy.Xs.from_endf6(pendf)
 
         Apply multiplication coefficient equal to 1 to elastic and inelastic
-        scattering cross sections up to 3e7 eV (upper xs energy limit)
+        scattering cross sections up to 3e7 eV (upper xs energy limit).
+
         >>> index = pd.IntervalIndex.from_breaks([1e-5, 3e7], name="E", closed="right")
         >>> columns = pd.MultiIndex.from_product([[9437], [2, 4]], names=["MAT", "MT"])
         >>> s = pd.DataFrame(1, index=index, columns=columns)
@@ -472,7 +485,8 @@ class Xs():
         >>> assert xp.data.equals(xs.data)
         
         Apply multiplication coefficients equal to 1 and to 2 respectively to
-        elastic and inelastic scattering cross sections up to 3e7 eV (upper xs energy limit)
+        elastic and inelastic scattering cross sections up to 3e7 eV (upper xs energy limit).
+
         >>> s = pd.DataFrame([[1, 2]], index=index, columns=columns)
         >>> xp = xs._perturb(s)
         >>> assert not xp.data.equals(xs.data)
@@ -480,7 +494,8 @@ class Xs():
         >>> assert xp.data[(9437, 4)].equals(xs.data[(9437, 4)] * 2)
         
         Apply multiplication coefficients equal to 1 and to 2 respectively to
-        elastic and inelastic scattering cross sections up to 2e7 eV
+        elastic and inelastic scattering cross sections up to 2e7 eV.
+
         >>> index = pd.IntervalIndex.from_breaks([1e-5, 2e7], name="E", closed="right")
         >>> columns = pd.MultiIndex.from_product([[9437], [2, 4]], names=["MAT", "MT"])
         >>> s = pd.DataFrame([[1, 2]], index=index, columns=columns)
@@ -516,13 +531,13 @@ class Xs():
 
         Parameters
         ----------
-        errorr : `sandy.formats.endf6.Errorr`
-            ERRORR instance
+        errorr : :obj:`~sandy.errorr.Errorr`
+            ERRORR object.
 
         Returns
         -------
-        `sandy.formats.utils.Xs`
-            dataframe of cross sections in ERRORR file
+        :obj:`~sandy.core.xs.Xs`
+            Dataframe of cross sections in ERRORR file.
         """
         mat = errorr.mat[0]
         eg = errorr.energy_grid
@@ -541,7 +556,7 @@ class Xs():
             return pd.DataFrame()
         # Use concat instead of merge because indexes are the same
         frame = pd.concat(listxs, axis=1).reindex(eg, method="ffill")
-        return Xs(frame)
+        return cls(frame)
 
 
 def xs_perturb_worker(xs, n, s, verbose=False):
