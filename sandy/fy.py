@@ -1,22 +1,46 @@
 r"""
 This module contains all classes and functions specific for processing fission
 yield data.
+
+Examples
+--------
+Get CEA fission yield evaluations and correlation matrices.
+
+>>> import os, sandy
+>>> assert os.path.exists(sandy.fy_cea_u235th)
+>>> assert os.path.exists(sandy.fy_cea_pu239th)
+>>> assert os.path.exists(sandy.fy_cea_u235th_corr)
+>>> assert os.path.exists(sandy.fy_cea_pu239th_corr)
 """
 import logging
 
 import pandas as pd
 import numpy as np
 import scipy.sparse as sps
-
-import sandy
-from sandy.shared import expand_zam
 from os.path import join, dirname
 import re
+
+from .zam import ELEMENTS
+from .core.cov import CategoryCov
+from .core.endf6 import Endf6
+from .sections.mf8 import write_mf8
+from .gls import _gls_parameters_update, ishikawa_factor
+from .shared import expand_zam
 
 __author__ = "Luca Fiorito"
 __all__ = [
         "Fy",
+        "fy_cea_pu239th",
+        "fy_cea_pu239th_corr",
+        "fy_cea_u235th",
+        "fy_cea_u235th_corr",
         ]
+
+
+fy_cea_pu239th = join(dirname(__file__), 'appendix', 'fission_yields', r"jeff-4t3_cea_pu9_cons_28-09-2023.stn")
+fy_cea_pu239th_corr = join(dirname(__file__), 'appendix', 'fission_yields', r"jeff-4t3_cea_pu9th_cons_28-09-2023_ind_corr")
+fy_cea_u235th = join(dirname(__file__), 'appendix', 'fission_yields', r"mixt_cea-jeff33_u_235_th_eval_c1.stn")
+fy_cea_u235th_corr = join(dirname(__file__), 'appendix', 'fission_yields', r"mixt_cea-jeff33_u_235_th_ind_corr_mat_c1")
 
 
 minimal_fytest = pd.DataFrame(
@@ -57,6 +81,8 @@ def get_chain_yields():
 
     Examples
     --------
+
+    >>> import sandy
     >>> chain_yields = sandy.fy.get_chain_yields()
     >>> chain_yields.head()
         A     ZAM        E         CHY        DCHY
@@ -85,7 +111,7 @@ def get_chain_yields():
     df["A"] = df.ISO.apply(lambda x: zam_pattern.search(x).group("A")).astype(int)
     df["M"] = df.ISO.apply(lambda x: zam_pattern.search(x).group("M")).astype(bool).astype(int)
     df["E"] = df.ISO.apply(lambda x: energy[zam_pattern.search(x).group("E")])
-    df["Z"] = df.SYM.apply(lambda x: {v: k for k, v in sandy.ELEMENTS.items()}[x])
+    df["Z"] = df.SYM.apply(lambda x: {v: k for k, v in ELEMENTS.items()}[x])
     df["ZAM"] = df.Z * 10000 + df.A * 10 + df.M
     #
     df["CHY"] = df.Y.apply(lambda x: x[:-1]).astype(float) / 100
@@ -238,7 +264,6 @@ class Fy():
         3 	9437 	454 	942390 	551370 	5.00000e+05 	1.00000e+00 	5.00000e-02 	55 	137 	0
         4 	9437 	454 	942390 	541350 	5.00000e+05 	2.00000e-01 	1.00000e-02 	54 	135 	0
         """
-        expand_zam = sandy.shared.expand_zam
         zam = pd.DataFrame(map(expand_zam, self.data.ZAP),
                            columns=["Z", "A", "M"],
                            dtype=int)
@@ -285,6 +310,8 @@ class Fy():
 
         Examples
         --------
+        
+        >>> import sandy
         >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy', 922350)
         >>> nfpy = Fy.from_endf6(tape_nfpy)
         >>> out = nfpy.get_mass_yield(922350, 0.0253).loc[148]
@@ -308,7 +335,7 @@ class Fy():
             ZAM number of the fissioning nuclide.
         e : `float`
             Energy of the fissioning system.
-        decay_data : `sandy.DecayData`
+        decay_data : :obj:`~sandy.decay.DecayData`
             Radioactive nuclide data from where to obtain chain sensitivities.
         kwargs : `dict`
             Keyword arguments for method :obj:`~sandy.decay.DecayData.get_decay_chains`.
@@ -321,6 +348,7 @@ class Fy():
         Examples
         --------
 
+        >>> import sandy
         >>> zam = [591480, 591481, 601480, 561480, 571480, 571490, 581480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
@@ -350,6 +378,8 @@ class Fy():
 
         Examples
         --------
+
+        >>> import sandy
         >>> zap =pd.Index([551480, 551490, 561480, 561490, 571480, 571490, 581480, 591480, 591481, 601480])
         >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy','all')
         >>> zam = 922350
@@ -402,6 +432,8 @@ class Fy():
 
         Examples
         --------
+
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", 'nfpy', 'all')
         >>> nfpy = Fy.from_endf6(tape)
         >>> pert = pd.Series([0.9], index=[551370])
@@ -438,15 +470,15 @@ class Fy():
             applied.
         energy : `float`
             Energy to which calculations are to be applied.
-        decay_data : `sandy.DecayData`
+        decay_data : :obj:`~sandy.decay.DecayData`
             Radioactive nuclide data for several isotopes.
         keep_fy_index: `bool`, optional, default is `False`
             Option that allows you to output only the CFY results that were
-            part of the original `sandy.Fy` object. The default is False.
+            part of the original :obj:`~sandy.fy.Fy` object. The default is False.
 
         Returns
         -------
-        `sandy.Fy`
+        :obj:`~sandy.fy.Fy`
             Fission yield instance with IFY calculated for a given combination
             of ZAM/e/decay_data.
 
@@ -457,6 +489,8 @@ class Fy():
 
         Examples
         --------
+
+        >>> import sandy
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
@@ -509,7 +543,7 @@ class Fy():
         data = data.loc[~mask]
         fy_data = fy_data.reindex(columns).fillna(0)
         std = std.reindex(columns).fillna(0)
-        cov_data = sandy.CategoryCov.from_stdev(std)
+        cov_data = CategoryCov.from_stdev(std)
 
         # Apply (1-B) matrix
         ify_calc_values = (S @ fy_data).rename('FY')
@@ -536,18 +570,18 @@ class Fy():
             applied.
         e : `float`
             Energy to which calculations are to be applied.
-        decay_data : `sandy.DecayData`
+        decay_data : :obj:`~sandy.decay.DecayData`
             Radioactive nuclide data for several isotopes.
         cut_hl: `bool`, optional, default is `True`
             cut all the decay modes of the nuclides with a half life larger
             than 100 years.
         keep_fy_index : `bool`, optional, default is `False`
             Option that allows you to output only the CFY results that were
-            part of the original `sandy.Fy` object.
+            part of the original :obj:`~sandy.fy.Fy` object.
 
         Returns
         -------
-        `sandy.Fy`
+        :obj:`~sandy.fy.Fy`
             Fission yield instance with IFY calculated for a given combination
             of ZAM/e/decay_data.
 
@@ -558,6 +592,8 @@ class Fy():
 
         Examples
         --------
+
+        >>> import sandy
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
@@ -605,7 +641,7 @@ class Fy():
         data = data.loc[~mask]
         fy_data = fy_data.reindex(Q.columns).fillna(0)
         std = std.reindex(Q.columns).fillna(0)
-        cov_data = sandy.CategoryCov.from_stdev(std)
+        cov_data = CategoryCov.from_stdev(std)
 
         # Apply qmatrix
         cfy_calc_values = (Q @ fy_data).rename('FY')
@@ -651,11 +687,11 @@ class Fy():
 
         Returns
         -------
-        `sandy.Fy`
+        :obj:`~sandy.fy.Fy`
             `Fy` object updated with GLS for a given zam, energy, design
             sensitivity and new information.
-        `sandy.CategoryCov`
-            `CategoryCov` object corresponding to the updated covariance matrix
+        :obj:`~sandy.core.cov.CategoryCov`
+            :obj:`~sandy.core.cov.CategoryCov` object corresponding to the updated covariance matrix
             adjusted with the GLS technique.
 
         Notes
@@ -665,6 +701,8 @@ class Fy():
 
         Examples
         --------
+
+        >>> import sandy
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
@@ -704,7 +742,7 @@ class Fy():
         mat = fy_data.MAT.iloc[0]
         x_prior = fy_data.FY
         std = fy_data.DFY
-        Vx_prior = sandy.CategoryCov.from_stdev(std)
+        Vx_prior = CategoryCov.from_stdev(std)
         index = Vx_prior.data.index
         S_ = S.reindex(columns=index).fillna(0)
         y_extra_ = y_extra.reindex(index=S_.index).fillna(0)
@@ -712,10 +750,10 @@ class Fy():
         if Vy_extra is not None:
             S_ = S_.reindex(index=Vy_extra.index).fillna(0)
             y_extra_ = y_extra.reindex(index=S_.index).fillna(0).values
-            x_post = sandy._gls_parameters_update(x_prior.values, S_.values,
+            x_post = _gls_parameters_update(x_prior.values, S_.values,
                                                   Vx_prior.data.values, y_extra_, Vy_extra.values)
         else:
-            x_post = sandy._gls_parameters_update(x_prior.values, S_.values,
+            x_post = _gls_parameters_update(x_prior.values, S_.values,
                                                   Vx_prior.data.values, y_extra_.values)
         Vx_post = Vx_prior.gls_cov_update(S_, Vy_extra)
         # Results in appropriate format:
@@ -767,6 +805,8 @@ class Fy():
 
         Examples
         --------
+
+        >>> import sandy
         >>> zam = [591480, 591481, 601480]
         >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
@@ -793,7 +833,7 @@ class Fy():
         conditions = {'ZAM': zam, "E": e}
         fy_data = self._filters(conditions).data.set_index('ZAP')
         Vx_prior = fy_data.query('MT==454').DFY
-        Vx_prior = sandy.CategoryCov.from_var(Vx_prior).data
+        Vx_prior = CategoryCov.from_var(Vx_prior).data
         # Find the GLS sensitivity:
         if kind == 'mass yield':
             model_sensitivity_object = self._filters(conditions)
@@ -804,7 +844,7 @@ class Fy():
         Vy_extra_ = pd.DataFrame(Vy_extra)
         index = Vy_extra_.index
         S = S.reindex(index=index, columns=Vx_prior.index).fillna(0)
-        ishikawa = sandy.ishikawa_factor(S.values, Vx_prior.values, Vy_extra_.values)
+        ishikawa = ishikawa_factor(S.values, Vx_prior.values, Vy_extra_.values)
         ishikawa = pd.Series(ishikawa, index=index)
         return ishikawa
 
@@ -820,11 +860,12 @@ class Fy():
 
         Returns
         -------
-        `sandy.Fy`
+        :obj:`~sandy.fy.Fy`
             filtered dataframe of fission yields
 
         Examples
         --------
+
         >>> conditions = {"ZAP":380900, "E":2.53000e-07}
         >>> Fy(minimal_fytest)._filters(conditions)
             MAT   MT     ZAM     ZAP           E          FY         DFY
@@ -849,7 +890,7 @@ class Fy():
 
         Returns
         -------
-        `sandy.Fy`
+        :obj:`~sandy.fy.Fy`
             filtered dataframe of fission yields
 
         Notes
@@ -859,6 +900,7 @@ class Fy():
 
         Examples
         --------
+
         >>> Fy(minimal_fytest).filter_by("ZAP", 380900)
             MAT   MT     ZAM     ZAP           E          FY         DFY
         0  9437  454  942390  380900 2.53000e-07 2.00000e-01 2.00000e-02
@@ -881,14 +923,14 @@ class Fy():
 
         Parameters
         ----------
-        endf6 : `sandy.Endf6`
+        endf6 : :obj:`~sandy.core.endf6.Endf6`
             object containing the ENDF-6 text
         verbose : `bool`, optional, default is `False`
             flag to print information when reading ENDF-6 file
 
         Returns
         -------
-        `sandy.Fy`
+        :obj:`~sandy.fy.Fy`
             fission yield object
 
         Notes
@@ -898,6 +940,8 @@ class Fy():
 
         Examples
         --------
+
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 'all')
         >>> fy = sandy.Fy.from_endf6(tape)
         >>> fy.data.query("ZAM==952421 & MT==454 & E==0.0253").head()
@@ -938,16 +982,18 @@ class Fy():
 
         Parameters
         ----------
-        `endf6` : `sandy.Endf6`
-            `Endf6` instance
+        `endf6` : :obj:`~sandy.core.endf6.Endf6`
+            ENDF6 object.
 
         Returns
         -------
-        `sandy.Endf6`
-            `Endf6` instance with updated IFY and CFY
+        :obj:`~sandy.core.endf6.Endf6`
+            ENDF6 objects with updated IFY and CFY.
 
         Examples
         --------
+
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", "all")
         >>> fy = sandy.Fy.from_endf6(tape)
         >>> new_tape = fy.to_endf6(tape)
@@ -957,13 +1003,13 @@ class Fy():
                   459     96245.0000 242.960000          2          0  ...
         dtype: object
         """
-        data_endf6 = sandy.Endf6(endf6.data.copy())
+        data_endf6 = Endf6(endf6.data.copy())
         mf = 8
         for (mat, mt, e), data_fy in self.data.groupby(['MAT', 'MT', 'E']):
             sec = data_endf6.read_section(mat, mf, mt)
             new_data = data_fy.set_index('ZAP')[['FY', 'DFY']].T.to_dict()
             sec['E'][e]['ZAP'] = new_data
-            data_endf6.data[(mat, mf, mt)] = sandy.write_mf8(sec)
+            data_endf6.data[(mat, mf, mt)] = write_mf8(sec)
         return data_endf6
 
 
