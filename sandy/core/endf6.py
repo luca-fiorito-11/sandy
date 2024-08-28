@@ -2582,6 +2582,7 @@ class Endf6(_FormattedFile):
             data["pnu"] = smps[31].iterate_xs_samples()
         if 33 in smps:
             data["pxs"] = smps[33].iterate_xs_samples()
+        # this I'd like to change
 
         if processes == 1:
             outs = {}
