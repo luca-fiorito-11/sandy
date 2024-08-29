@@ -21,8 +21,10 @@ import multiprocessing as mp
 import numpy as np
 import pandas as pd
 import numpy as np
+import random
 
 import sandy
+
 from sandy.libraries import (
     N_FILES_ENDFB_71_IAEA,
     N_FILES_ENDFB_80_IAEA,
@@ -2229,8 +2231,13 @@ class Endf6(_FormattedFile):
         # this could have been a decorator...
         if 457 in self.mt:
             out = self.get_perturbations_rdd(*args, **kwargs)
+
+        elif 454 in self.mt:
+            out = self.get_perturbations_fy(*args, **kwargs)
+
         else:
             out = self.get_perturbations_xs(*args, **kwargs)
+
         return out
 
     def get_perturbations_xs(self, nsmp, njoy_kws={}, smp_kws={}, **kwargs,):
@@ -2406,6 +2413,117 @@ class Endf6(_FormattedFile):
             "HL": smp_hl,
             }
         return smp
+
+    def get_perturbations_fy(self, nsmp, smp_kws={}, covariance=None, **kwargs,):
+        """
+        Construct multivariate distributions with a unit vector for  mean and
+        with relative covariances taken from the evaluated fission yield
+        data files in `self`.
+
+        Perturbation factors are sampled for the independent fission yields only.        
+
+        Parameters
+        ----------
+        nsmp : `int`
+            Sample size.
+        smp_kws : `dict`, optional
+            Keyword arguments for :obj:`~sandy.core.cov.CategoryCov.sampling`.
+            The default is {}.
+        covariance : `None` or `str`, optional
+            Flag to adopt fission yield covariance matrices.
+            The only acceptable flag is `covariance='cea'`, which uses
+            the covariance evaluation for U-235 and Pu-239 produced by CEA for
+            thermal fission yields.
+            See :obj:`~sandy.fy.get_cea_fy`.
+            The default is `None`.
+        **kwargs : `dict`
+            Not used.
+
+        Returns
+        -------
+        smps : `pd.DataFrame`
+            Dataframe with perturbation coefficients given per:
+                
+                - ZAM: fissioning nuclide
+                - E: neutron energy
+                - ZAP: fission product
+                - SMP: sample ID
+            
+            .. note:: This is different from :obj:`~sandy.core.endf6.Endf6.get_perturbations_xs`
+                      and :obj:`~sandy.core.endf6.Endf6.get_perturbations_rdd`, which return
+                      a :obj:`~sandy.core.samples.Samples` instance.
+
+        Examples
+        --------
+        
+        Default use case.
+
+        >>> import sandy
+        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
+        >>> smps = tape.get_perturbations_fy(2, smp_kws=dict(seed=3))
+
+        Pass already processed fission yield object.
+
+        >>> nfpy = sandy.Fy.from_endf6(tape)
+        
+        Ensure reproducibility by fixing seed.
+        
+        >>> smps2 = tape.get_perturbations_fy(2, nfpy=nfpy, smp_kws=dict(seed=3))
+        >>> assert smps.equals(smps2)
+        
+        Test `covariance='cea'` option.
+        This is done by checking the sample correlation between nuclides
+        `zap=451140` and `461140`, which in the source data is larger tahn 0.9
+
+        >>> smps = tape.get_perturbations_fy(50, nfpy=nfpy, covariance=None)
+        >>> data = smps2.query("ZAP in [451140, 461140] & E==0.0253").pivot_table(index="ZAP", columns="SMP", values="VALS")
+        >>> assert np.corrcoef(data)[0, 1] < 0.3
+        >>> smps = tape.get_perturbations_fy(50, nfpy=nfpy, covariance='cea')
+        >>> data = smps.query("ZAP in [451140, 461140] & E==0.0253").pivot_table(index="ZAP", columns="SMP", values="VALS")
+        >>> assert np.corrcoef(data)[0, 1] > 0.9
+        """
+        
+        from .cov import CategoryCov              # lazy import to avoid circular import issue
+        from ..fy import Fy, get_cea_fy           # lazy import to avoid circular import issue
+        
+        # if already available in kwargs, do not extract fission yields again
+        nfpy = kwargs.get("nfpy")
+        if not nfpy:
+            nfpy = Fy.from_endf6(self, verbose=kwargs.get("verbose"))
+
+        # if seed is given in "smp_kws", it ensures reproducibility
+        seed_start = smp_kws.get("seed", random.randrange(2**32 - 1))
+        # set the seed that will be used to ensure the same seed generation sequence when calling CategoryCov.sampling
+        random.seed(seed_start)
+
+        smps = []
+        for (zam, e), fy in nfpy.data.query("MT==454").groupby(["ZAM", "E"]):
+            
+            if covariance == "cea" and zam in [922350, 942390] and e==0.0253:
+                fy, rcov = get_cea_fy(zam)
+                
+            else:
+                rstd = (fy.DFY / fy.FY).fillna(0)  # relative uncertainties
+                rcov =  CategoryCov(pd.DataFrame(np.diag(rstd**2), index=fy.ZAP, columns=fy.ZAP))
+
+            # this is a Samples instance, I cannot pass a seed because it would be used for all fissioning systems
+            smp = rcov.sampling(nsmp, seed=random.randrange(2**32 - 1))
+            # this is not a Samples instance anymore
+            smp = smp.data.rename_axis(index="ZAP").\
+                       stack().rename("VALS").reset_index(). \
+                       assign(E=e, ZAM=zam)[["ZAM", "E", "ZAP", "SMP", "VALS"]]  # add energy and ZAM and sort keys
+            smps.append(smp)
+
+        # stack with all samples for all ZAM, energy and ZAP
+        smps = pd.concat(smps, ignore_index=True)
+                          
+        xlsx_file = 'PERT_MF8_MT454.xlsx'
+        logging.info(f"writing to file '{xlsx_file}'...")
+        with pd.ExcelWriter(xlsx_file) as writer:
+            for zam, smp in smps.groupby("ZAM"):
+                smp.pivot_table(index=["E", "ZAP"], columns="SMP", values="VALS").to_excel(writer, sheet_name=f"{zam}")
+
+        return smps
 
     def apply_perturbations(self, *args, **kwargs,):
         """
@@ -2926,7 +3044,7 @@ def rdd_perturb_worker(endf6, rdd, smp_hl, smp_de, smp_br, ismp,
         Flag to write outputs to file. The default is False.
         This key changes the output type.
     **kwargs : `dict`
-        Additional keyword arguments.
+        Additional keyword arguments (not used).
 
     Returns
     -------
@@ -2974,5 +3092,94 @@ def rdd_perturb_worker(endf6, rdd, smp_hl, smp_de, smp_br, ismp,
         print(f"... writing file '{file}'")
     out.to_file(file)
     return file
+
+
+
+def fy_perturb_worker(endf6, fy, smps, ismp,
+                       verbose=False, to_file=False, **kwargs):
+    """
+    
+
+    Parameters
+    ----------
+    endf6 : `dict`
+        `data` attribute of :obj:`~sandy.core.endf6.Endf6`.
+        It contains the nominal ENDF6 data.
+    fy : `pd.DataFrame`
+        `data` attribute of :obj:`~sandy.fy.Fy`.
+        It contains the nominal fission yield data.
+    smps : `pd.DataFrame`
+        It contains the perturbation coefficients for fission yields.
+        Columns are `MAT`, `MT`, `E`, `ZAM`, `ZAP`, `SMP`, `VALS`.
+        This dataframe is generally produced with `pd.pivot_table`.
+    ismp : `int`
+        sample ID.
+    verbose : `bool`, optional
+        Flag to activate verbosity. The default is False.
+    to_file : `bool`, optional
+        Flag to write outputs to file. The default is False.
+        This key changes the output type.
+    **kwargs : `dict`
+        Additional keyword arguments (not used).
         
+    Notes
+    -----
+    .. note:: It follows the logic of :obj:`~sandy.core.endf6.endf6_perturb_worker` and
+              :obj:`~sandy.core.endf6.rdd_perturb_worker`.
+
+    Returns
+    -------
+    `dict`
+        Either a dictionary of :obj:`~sandy.core.endf6.Endf6` instances for each set of
+        perturbation coefficients (if `to_file=False`), or a dictionary
+        of `str` with the output file name for each set of perturbation
+        coefficients.
+
+    Notes
+    -----
+    .. note: This method is written so that it can be handled by the
+             `multiprocess` module (pickling).
+
+    Examples
+    --------
+    
+    Default test: create 1 sample and perturb fission yields for 1 fissioning system.
+    
+    >>> nsmp = 1   # sample size
+    >>> zam, e = 922350, 0.0253
+    >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", zam)
+    >>> nfpy = sandy.Fy.from_endf6(tape)
+    >>> idx = nfpy.data.query(f"E=={e} & MT==454 & ZAM=={zam}").index
+    >>> fy = nfpy.data.loc[idx]
+    >>> smps = sandy.CategoryCov(pd.DataFrame(np.diag((fy.DFY/fy.FY)**2), index=fy.ZAP, columns=fy.ZAP).fillna(0)).sampling(nsmp)
+    >>> smps = smps.data.rename_axis(index="ZAP").stack().rename("VALS").reset_index().assign(E=e, ZAM=zam)[["ZAM", "E", "ZAP", "SMP", "VALS"]]
+    >>> out = sandy.core.endf6.fy_perturb_worker(tape.data, nfpy.data, smps, nsmp-1, verbose=True, to_file=False)
+    >>> out = sandy.Endf6(out)
+    
+    Silly test: assert the `MT=454` was changed, and `MT=459` was not.
+
+    >>> assert sandy.Fy.from_endf6(out).data.query("MT==459").equals(nfpy.data.query("MT==459"))
+    >>> assert not sandy.Fy.from_endf6(out).data.query("MT==454").equals(nfpy.data.query("MT==454"))
+    """
+    from ..fy import Fy  # lazy import to avoid circular import issue
+    endf6_ = Endf6(endf6.copy())  # this was a dictionary
+    fy_ = Fy(fy.copy())    # this was a dataframe
+
+    for (zam, e), smp in smps.groupby(["ZAM", "E"]):
+        idx = fy_.data.query(f"ZAM=={zam} & E=={e} & MT==454").index
+        # we assume both FY's and perturbations are sorted by ZAP
+        fy_.data.loc[idx, "FY"] *= smp.query(f"SMP=={ismp}")["VALS"].values  # IMPORTANT, this does not update the CFYs, which in random ENDF-6 file are inconsistent with the perturbed IFYs
+
+    out = fy_.to_endf6(endf6_)
+    
+    # Stop here and return dict of Endf6 instance. not Endf6 because it cannot be pickled
+    if not to_file:
+        return out.data
+ 
+    # continue and return filename where data was written
+    file = f"fy_{ismp}"
+    if verbose:
+        print(f"... writing file '{file}'")
+    out.to_file(file)
+    return file
     
