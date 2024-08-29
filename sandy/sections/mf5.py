@@ -218,7 +218,7 @@ def write_mf5(sec):
 
     >>> ## LF = 1
     >>> tape = sandy.get_endf6_file('jeff_33', 'xs', 932390)
-    >>> mat, mf, mt = 9446, 5, 18
+    >>> mat, mf, mt = 9352, 5, 18
     >>> sec = tape.read_section(mat, mf, mt)
     >>> np.testing.assert_equal(
     ... sandy.read_mf5(sandy.Endf6.from_text(write_mf5(sec)), mat, mt), sec
