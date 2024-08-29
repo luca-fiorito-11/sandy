@@ -2279,12 +2279,19 @@ class Endf6(_FormattedFile):
         >>> assert len(smps) == 1
         >>> assert isinstance(smps[33], sandy.Samples)
         >>> assert (smps[33].data.index.get_level_values("MT") == 102).all()
+
+        Test get perturbations from MF 35
+        >>> njoy_kws = dict(err=1, errorr_kws=dict(mt=18))
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 922350)
+        >>> smps = tape.get_perturbations(nsmp=2, njoy_kws=njoy_kws)
+        >>> assert len(smps) == 3
+        >>> assert isinstance(smps[35], sandy.Samples)
+        >>> assert (smps[35].data.index.get_level_values("MT") == 18).all()
         """
         smp = {}
 
         # -- produce ERRORR files with covariance data
         njoy_kws["mubar"] = False
-        njoy_kws["chi"] = False
         outs = self.get_errorr(**njoy_kws)
         filename = "PERT_{}_MF{}.xlsx"
         filenamecov = "COV_{}_MF{}.tape"
@@ -2300,6 +2307,12 @@ class Endf6(_FormattedFile):
             outs["errorr33"].to_file(filenamecov.format(self.get_id(), 33))
             xls = filename.format(self.get_id(), 33)
             smp[33] = outs["errorr33"].get_cov().sampling(nsmp, to_excel=xls, seed=smp_kws.get("seed33"), **smp_kws)
+
+        # -- Extract samples from MF35 covariance data
+        if "errorr35" in outs:
+            outs["errorr35"].to_file(filenamecov.format(self.get_id(), 35))
+            xls = filename.format(self.get_id(), 35)
+            smp[35] = outs["errorr35"].get_cov().sampling(nsmp, to_excel=xls, seed=smp_kws.get("seed35"), **smp_kws)
 
         return smp
 
