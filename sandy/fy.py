@@ -21,7 +21,7 @@ from os.path import join, dirname
 import re
 
 from .zam import ELEMENTS
-from .core.cov import CategoryCov
+from .core.cov import CategoryCov, corr2cov
 from .core.endf6 import Endf6
 from .sections.mf8 import write_mf8
 from .gls import _gls_parameters_update, ishikawa_factor
@@ -34,6 +34,7 @@ __all__ = [
         "fy_cea_pu239th_corr",
         "fy_cea_u235th",
         "fy_cea_u235th_corr",
+        "get_cea_fy",
         ]
 
 
@@ -60,6 +61,100 @@ minimal_fytest_2 = pd.DataFrame([
      [9437, 459, 942390, 601480, 500e3, 0.1 * 2, 0.01]],
     columns=["MAT", "MT", "ZAM", "ZAP", "E", "FY", "DFY"]
     )
+
+
+
+def get_cea_fy(zam, e=0.0253):
+    """
+    Exctra thermal independent fission yields and covariance matrix for U-235
+    or Pu-239 evaluation provided by CEA for JEFF-4.
+
+    Parameters
+    ----------
+    zam : `int`
+        ZAM number. Either `zam=922350` or `zam=942390`.
+    e : `float`, optional
+        Energy of the fissioning system. The default is 0.0253.
+        No other energy is accepted.
+
+    Raises
+    ------
+    ValueError
+        Raise if ZAM or energy are not acceptable.
+
+    Returns
+    -------
+    fy : :obj:`~sandy.fy.Fy`
+        Fission yield object containing independent fission yield data proposed
+        by CEA for the thermal fission of the selected nuclide.
+    rcov : :obj:`~sandy.core.cov.CategoryCov`
+        Corresponding covariance matrix (relative) with ZAP as index and columns.
+
+    Notes
+    -----
+    .. note:: The conservative evaluation C1 is used for U235.
+
+    Examples
+    --------
+    
+    Default use case: U-235 thermal fission yields.
+    
+    >>> import sandy, pytest
+    >>> fy, cov = sandy.get_cea_fy(922350)
+
+    Fission yield and covariance object contain the same ZAP (sorted) for `MT=454`.
+
+    >>> assert (fy.data.MT == 454).all()
+    >>> assert (fy.data.ZAP == cov.data.index).all()
+
+    Default use case: Pu-239 thermal fission yields.
+
+    >>> fy, cov = sandy.get_cea_fy(942390)
+    >>> assert isinstance(fy, sandy.Fy) and isinstance(cov, sandy.CategoryCov)
+    
+    Error if `ZAM!=922350` or `ZAM!=942390`.
+    
+    >>> with pytest.raises(Exception):
+    ...    sandy.get_cea_fy(942400)
+
+    Error if `e!=0.0253`.
+    
+    >>> with pytest.raises(Exception):
+    ...    sandy.get_cea_fy(922350, e=4e5)  
+    """
+    
+    if e != 0.0253:
+        raise ValueError("Only accepted 'e' value is 0.0253")
+
+    if zam == 922350:
+        file_cov = fy_cea_u235th_corr
+        file = fy_cea_u235th
+
+    elif zam == 942390:
+        file_cov = fy_cea_pu239th_corr
+        file = fy_cea_pu239th
+    
+    else:
+        raise ValueError("Only accepted 'zam' values are 922350 and 942390")
+
+    # ensure symmetry to correlation matrix
+    corr = pd.read_csv(file_cov, sep=r"\s+", header=None)
+    u = np.triu(corr, k=1)
+    corr = u + u.T + np.diag(np.diag(corr))                   
+
+    # extract fy
+    tape = Endf6.from_file(file)
+    df = Fy.from_endf6(tape).data.query(f"E=={e} & MT==454")
+    fy = Fy(df)                                                                            # Only thermal IFY's
+
+    # Get relative covariance from correlation matrix
+    acov = corr2cov(corr, df.DFY.values)                                                   # absolute covariance matrix
+    rcov = np.divide(acov, df.FY.values.reshape(-1, 1) @ df.FY.values.reshape(1, -1))      # convert to relative terms
+    rcov = CategoryCov(pd.DataFrame(rcov, index=df.ZAP.values, columns=df.ZAP.values))
+
+    return fy, rcov
+
+
 
 def get_chain_yields():
     r"""
@@ -118,6 +213,7 @@ def get_chain_yields():
     df["DCHY"] = df.Y.apply(lambda x: errors[x[-1]]) * df.CHY
     return df[["ZAM", "E", "CHY", "DCHY"]].sort_values(by=["ZAM", "E"]) \
                                           .reset_index()
+
 
 
 class Fy():
