@@ -12,7 +12,7 @@ from .tsl import *
 from .gls import *
 from .libraries import *
 from .pert import *
-from .pfns import *
+from .edistr import *
 from sandy.zam import *
 from .njoy import *
 from .sections import *
