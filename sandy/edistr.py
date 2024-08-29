@@ -543,7 +543,7 @@ class Edistr():
     def to_endf6(self, endf6):
         """
         Update cross sections in :obj:`~sandy.core.endf6.Endf6` instance with those available in a
-        :obj:`~sandy.pfns.Edistr` instance.
+        :obj:`~sandy.edistr.Edistr` instance.
 
         Parameters
         ----------
