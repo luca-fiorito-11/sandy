@@ -9,7 +9,9 @@ import logging
 import pandas as pd
 import numpy as np
 
-import sandy
+from pert import Pert
+from core.endf6 import Endf6
+from .sections.mf5 import write_mf5
 
 __author__ = "Luca Fiorito"
 __all__ = [
@@ -141,7 +143,7 @@ class Edistr():
         condition = self.data[key] == value
         out = self.data.copy()[condition].reset_index(drop=True)
         if out.empty:
-            raise sandy.Error("applied filter returned empty dataframe")
+            raise NotImplementedError("applied filter returned empty dataframe")
         return self.__class__(out)
 
     def get_table(self, mat, mt, k):
@@ -209,6 +211,8 @@ class Edistr():
 
         Examples
         --------
+
+        >>> import sandy
         >>> orig = Edistr(minimal_edistrtest)
         >>> new = orig.add_energy_point(9437, 18, 0, 1.5)
         >>> new
@@ -282,6 +286,8 @@ class Edistr():
 
         Examples
         --------
+
+        >>> import sandy
         >>> orig = Edistr(minimal_edistrtest)
         >>> new = orig.add_energy_points(9437, 18, 0, [1, 1.5, 1.7])
         >>> new
@@ -318,6 +324,8 @@ class Edistr():
 
         Examples
         --------
+        
+        >>> import sandy
         >>> Edistr(minimal_edistrtest).get_integrals()
             MAT  MT  K         EIN    INTEGRAL
         0  9437  18  0 1.00000e+00 1.00000e+07
@@ -350,6 +358,8 @@ class Edistr():
 
         Examples
         --------
+        
+        >>> import sandy
         >>> new = Edistr(minimal_edistrtest).normalize()
         >>> new
             MAT  MT  K         EIN        EOUT       VALUE
@@ -416,6 +426,8 @@ class Edistr():
 
         Examples
         --------
+        
+        >>> import sandy
         >>> orig = Edistr(minimal_edistrtest)
         >>> pert = sandy.Pert([1.3], index=[1e-3])
         >>> orig.custom_perturbation(pert, 9437, 18, 0, 1.5, 2.5)
@@ -437,7 +449,7 @@ class Edistr():
         for ein, df in data[condition].groupby("EIN"):
             series = pert.reshape(df.EOUT).data.loc[df.EOUT]
             # truncate extremes and replace them with boundaries
-            px = sandy.Pert(series).truncate()
+            px = Pert(series).truncate()
             df.VALUE *= px.data.values
             dfs.append(df)
         out = pd.concat(dfs)
@@ -525,8 +537,66 @@ class Edistr():
                             }
                         data.append(dct)
         if not data:
-            raise sandy.Error("no tabulated energy distribution was found")
+            raise NotImplementedError("no tabulated energy distribution was found")
         return cls(data)
 
-    def to_endf6(self):
-        pass
+    def to_endf6(self, endf6):
+        """
+        Update cross sections in :obj:`~sandy.core.endf6.Endf6` instance with those available in a
+        :obj:`~sandy.pfns.Edistr` instance.
+
+        Parameters
+        ----------
+        `endf6` : :obj:`~sandy.core.endf6.Endf6`
+            ENDF6 object.
+
+        Returns
+        -------
+        endf6new : :obj:`~sandy.core.endf6.Endf6`
+            ENDF6 object with updated xs.
+
+        Examples
+        --------
+
+        >>> import sandy
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350)
+        >>> ed = sandy.Edistr.from_endf6(endf6)
+
+        >>> np.testing.assert_equal(
+        ... sandy.read_mf5(ed.to_endf6(endf6), 9228, 18),
+        ... sandy.read_mf5(endf6, 9228, 18)
+        ... )
+
+        >>> s = ed.data.query("MT==18")['VALUE'].copy()
+        >>> s.loc[0] = 1234567
+        >>> ed.data["VALUE"] = s
+        >>> newEndf6 = ed.to_endf6(endf6)
+
+        >>> assert newEndf6.data.keys() == endf6.data.keys()
+
+        >>> assert sandy.read_mf5(newEndf6, 9228, 18)["PDISTR"][0]["EIN"][1e-5]["EDISTR"][0] == 1234567
+
+        >>> np.testing.assert_equal(
+        ... sandy.read_mf5(newEndf6, 9228, 18)["PDISTR"][0]["EIN"][1e-5]["EDISTR"][1:],
+        ... sandy.read_mf5(endf6, 9228, 18)["PDISTR"][0]["EIN"][1e-5]["EDISTR"][1:]
+        ... )
+
+        >>> np.testing.assert_equal(
+        ... sandy.read_mf5(newEndf6, 9228, 18)["PDISTR"][0]["EIN"][1e-5]["EOUT"],
+        ... sandy.read_mf5(endf6, 9228, 18)["PDISTR"][0]["EIN"][1e-5]["EOUT"]
+        ... )
+        """
+        data = endf6.data.copy()
+        mf = 5
+        for (mat, mt), df in self.data.groupby(["MAT", "MT"]):
+            # Must read original section to extract info not given in `Xs`
+            # instance, e.g. QI, QM
+            if (mat, mf, mt) not in endf6.data.keys():
+                continue
+            sec = endf6.read_section(mat, mf, mt)
+            for (k, ein), dd in df.groupby(['K', 'EIN']):
+                # EOUT rewritten in case points were added to the grid
+                sec["PDISTR"][k]["EIN"][ein]["EOUT"] = dd["EOUT"].values
+                sec["PDISTR"][k]["EIN"][ein]["EDISTR"] = dd["VALUE"].values
+            data[mat, mf, mt] = write_mf5(sec)
+        return Endf6(data)
