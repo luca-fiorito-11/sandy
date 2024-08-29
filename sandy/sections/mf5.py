@@ -191,6 +191,7 @@ def write_mf5(sec):
     --------
 
     >>> import sandy
+    >>> import numpy as np
     >>> ## LF = 7
     >>> tape = sandy.get_endf6_file('jeff_33', 'xs', 942420)
     >>> mat, mf, mt = 9446, 5, 18
