@@ -9,8 +9,8 @@ import logging
 import pandas as pd
 import numpy as np
 
-from pert import Pert
-from core.endf6 import Endf6
+from .pert import Pert
+from .core.endf6 import Endf6
 from .sections.mf5 import write_mf5
 
 __author__ = "Luca Fiorito"
