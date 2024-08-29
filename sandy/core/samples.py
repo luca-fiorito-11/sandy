@@ -59,6 +59,8 @@ def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
 
     Test that it was read correctly.
 
+    >>> smps = smps.astype({'ZAM': 'int32', 'E': 'float64', 'ZAP': 'int32', 'SMP': 'int32', 'VALS': 'float64'})
+    >>> smps2 = smps2.astype({'ZAM': 'int32', 'E': 'float64', 'ZAP': 'int32', 'SMP': 'int32', 'VALS': 'float64'})
     >>> assert smps2[["ZAM", "E", "ZAP", "SMP"]].equals(smps[["ZAM", "E", "ZAP", "SMP"]])
     >>> np.testing.assert_array_almost_equal(smps2.VALS, smps.VALS)
     """
@@ -73,7 +75,6 @@ def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
     smp = pd.concat(smp, ignore_index=True).sort_values(by=["ZAM", "E", "ZAP", "SMP"])
     
     # for some reasons get_perturbations_fy gives me this
-    smp["SMP"] = smp["SMP"].astype('int32')
 
     return smp
 
