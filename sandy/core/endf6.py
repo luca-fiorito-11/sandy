@@ -2486,7 +2486,7 @@ class Endf6(_FormattedFile):
         
         Test `covariance='cea'` option.
         This is done by checking the sample correlation between nuclides
-        `zap=451140` and `461140`, which in the source data is larger tahn 0.9
+        `zap=451140` and `461140`, which in the source data is larger than 0.9.
 
         >>> smps = tape.get_perturbations_fy(50, nfpy=nfpy, covariance=None)
         >>> data = smps2.query("ZAP in [451140, 461140] & E==0.0253").pivot_table(index="ZAP", columns="SMP", values="VALS")
@@ -2571,6 +2571,10 @@ class Endf6(_FormattedFile):
         # this could have been a decorator...same as get_perturbations
         if 457 in self.mt:
             out = self.apply_perturbations_rdd(*args, **kwargs)
+
+        elif 454 in self.mt:
+            out = self.apply_perturbations_fy(*args, **kwargs)
+
         else:
             out = self.apply_perturbations_xs(*args, **kwargs)
         return out
@@ -2800,11 +2804,11 @@ class Endf6(_FormattedFile):
             Dictionary with sample objects.
             See output of :obj:`~sandy.core.endf6.Endf6.get_perturbations_rdd`
         processes : `int`, optional, default is `1`
-            number of processes used to complete the task.
+            Number of processes used to complete the task.
             Creation of ENDF6 files and post-processing is done in parallel if
             `processes>1`.
         **kwargs : `dict`
-            additional keyword arguments, such as:
+            Additional keyword arguments, such as:
                 - `rdd`: to pass directly an already processed :obj:`~sandy.decay.DecayData` instance.
                 - `verbose`: to activate output verbosity.
                 - `to_file`: to write output :obj:`~sandy.core.endf6.Endf6` instances to file.
@@ -2917,6 +2921,101 @@ class Endf6(_FormattedFile):
 
         return outs
 
+    def apply_perturbations_fy(self, smps, processes=1, **kwargs):
+        """
+        Apply relative perturbations to the data contained in
+        :obj:`~sandy.core.endf6.Endf6` instance of fission yield files.
+
+        Parameters
+        ----------
+        smps : `pd.DataFrame`
+            Fission yield sample object.
+            See output of :obj:`~sandy.core.endf6.Endf6.get_perturbations_fy`.
+            See also :obj:`~sandy`
+        processes : `int`, optional, default is `1`
+            Number of processes used to complete the task.
+            Creation of ENDF6 files and post-processing is done in parallel if
+            `processes>1`.
+        **kwargs : `dict`
+            Additional keyword arguments, such as:
+                - `nfpy`: to pass directly an already processed :obj:`~sandy.fy.Fy` instance.
+                - `verbose`: to activate output verbosity.
+                - `to_file`: to write output :obj:`~sandy.core.endf6.Endf6` instances to file.
+
+        Returns
+        -------
+        outs : `dict` of :obj:`~sandy.core.endf6.Endf6` or `dict` of `str`
+            Depending on whether keyword argument `to_file` is given or not:
+                - `to_file=True`: `dict` with filenames, sample ID's are keys
+                - `to_file=False`: `dict` with :obj:`~sandy.core.endf6.Endf6` instances, sample ID's are keys
+
+        Notes
+        -----
+        .. note :: if `to_file=True`, outputs have names `'fy_0'`, `'fy_1'`, etc.
+
+        Examples
+        --------
+        
+        Default use case.
+
+        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
+        >>> smps = tape.get_perturbations(2, covariance=None)
+        >>> outs = tape.apply_perturbations_fy(smps, verbose=False, to_file=True)
+        
+        Check that data is written to file with key `to_file`.
+
+        >>> assert os.path.exists(outs[0])
+        >>> assert outs[0] == 'fy_0'
+        """
+        from ..fy import Fy
+
+        # --- PRE-PROCESSING
+        # Get nominal fission yield data. pop it or it will be given twice to fy_perturb_worker
+        nfpy = kwargs.pop("nfpy", None)
+        if not nfpy:
+            nfpy = Fy.from_endf6(self, verbose=kwargs.get("verbose"))
+
+        # --- PROCESSING
+        if processes == 1:
+            outs = {}
+            # iterate over columns of samples instance, then samples size is known and key matching is guaranteed
+            # assume HL, BR and DE have all the same key matching (sample ids)
+            for ismp, smp in smps.groupby("SMP"):
+               outs[ismp] = fy_perturb_worker(
+                   self.data,
+                   nfpy.data,
+                   smp,
+                   ismp,
+                   **kwargs,
+                   )
+
+        elif processes > 1:
+            pool = mp.Pool(processes=processes)
+            outs = {}
+            # iterate over columns of samples instance, then samples size is known and key matching is guaranteed
+            # assume HL, BR and DE have all the same key matching (sample ids)
+            for ismp, smp in smps.groupby("SMP"):
+                outs[ismp] = pool.apply_async(
+                    rdd_perturb_worker,
+                    (
+                        self.data,
+                        nfpy.data,
+                        smp,
+                        ismp,
+                        ),
+                    kwargs,
+                    )
+            outs = {n: out.get() for n, out in outs.items()}
+            pool.close()
+            pool.join()
+
+        # --- POST-PROCESSING
+        # if we keep ENDF6 files in memory, convert them back into Endf6 instances
+        # (must do it here because Endf6 object cannot be pickled)
+        if not kwargs.get("to_file"):
+            outs = {k: Endf6(v) for k, v in outs.items()}
+
+        return outs
 
 def endf6_perturb_worker(e6, pendf, n,
                          pxs=None,
@@ -3151,7 +3250,7 @@ def rdd_perturb_worker(endf6, rdd, smp_hl, smp_de, smp_br, ismp,
 def fy_perturb_worker(endf6, fy, smps, ismp,
                        verbose=False, to_file=False, **kwargs):
     """
-    
+    Worker to handle ENDF6 fission yield perturbation.
 
     Parameters
     ----------
@@ -3213,6 +3312,23 @@ def fy_perturb_worker(endf6, fy, smps, ismp,
 
     >>> assert sandy.Fy.from_endf6(out).data.query("MT==459").equals(nfpy.data.query("MT==459"))
     >>> assert not sandy.Fy.from_endf6(out).data.query("MT==454").equals(nfpy.data.query("MT==454"))
+    
+    Test to check that the output random ENDF6 are perturbed correctly.
+
+    >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
+    >>> smps = tape.get_perturbations(2, covariance=None)
+    >>> nfpy = sandy.Fy.from_endf6(tape)
+    >>> out = sandy.core.endf6.fy_perturb_worker(tape.data, nfpy.data, smps, 0)
+    >>> nfpy0 = sandy.Fy.from_endf6(sandy.Endf6(out))
+
+    Assert that ratio of perturbed to nominal FY's is equal to samples.
+
+    >>> n = nfpy.data.query("ZAM==922350 and MT==454")
+    >>> n0 = nfpy0.data.query("ZAM==922350 and MT==454")
+    >>> assert not n.equals(n0)
+    >>> sp = (n0.set_index(["MAT", "MT", "ZAM", "E", "ZAP"]).FY /  n.set_index(["MAT", "MT", "ZAM", "E", "ZAP"]).FY).fillna(1)
+    >>> p = smps.query("ZAM==922350 and SMP==0").VALS
+    >>> np.testing.assert_array_almost_equal(p, sp, decimal=4)
     """
     from ..fy import Fy  # lazy import to avoid circular import issue
     endf6_ = Endf6(endf6.copy())  # this was a dictionary
@@ -3220,8 +3336,13 @@ def fy_perturb_worker(endf6, fy, smps, ismp,
 
     for (zam, e), smp in smps.groupby(["ZAM", "E"]):
         idx = fy_.data.query(f"ZAM=={zam} & E=={e} & MT==454").index
-        # we assume both FY's and perturbations are sorted by ZAP
-        fy_.data.loc[idx, "FY"] *= smp.query(f"SMP=={ismp}")["VALS"].values  # IMPORTANT, this does not update the CFYs, which in random ENDF-6 file are inconsistent with the perturbed IFYs
+
+        # do not assume both FY's and perturbations are sorted, make them match by ZAP
+        zap = fy_.data.loc[idx]["ZAP"]
+        # update data directly in Fy instance
+        fy_.data.loc[idx, "FY"] *= smp.query(f"SMP=={ismp}").set_index("ZAP").loc[zap].VALS.values
+        
+        # IMPORTANT, this does not update the CFYs, which in random ENDF-6 file are inconsistent with the perturbed IFYs
 
     out = fy_.to_endf6(endf6_)
     
