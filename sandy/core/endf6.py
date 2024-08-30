@@ -2651,6 +2651,26 @@ class Endf6(_FormattedFile):
         >>> assert outs_31[0]["pendf"].data == outs_31[1]["pendf"].data
         >>> assert outs_31[0]["endf6"].data != outs_31[1]["endf6"].data
 
+        Now the same for chi and xs
+
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 942390)
+        >>> smps = tape.get_perturbations(2, njoy_kws=dict(err=1, nubar=False, mubar=False, errorr_kws=dict(ign=19, iwt=8), smp_kws=dict(seed33=3, seed35=5))
+        >>> outs_33_35 = tape.apply_perturbations(smps, njoy_kws=dict(err=1), processes=1)
+        >>> outs_33 = tape.apply_perturbations({33: smps[33]}, njoy_kws=dict(err=1), processes=1)
+        >>> outs_35 = tape.apply_perturbations({35: smps[35]}, njoy_kws=dict(err=1), processes=1)
+        
+        >>> for i in range(2):
+        ...    assert(outs_33[i]["endf6"].data == tape.data)
+        ...    assert(outs_35[i]["endf6"].data != tape.data)
+        ...    assert(outs_35[i]["endf6"].data == outs_33_35[i]["endf6"].data)
+        ...    assert(outs_33[i]["pendf"].data != outs_35[i]["pendf"].data)
+        ...    assert(outs_33[i]["pendf"].data == outs_33_35[i]["pendf"].data)
+
+        >>> assert outs_33[0]["pendf"].data != outs_33[1]["pendf"].data
+        >>> assert outs_33[0]["endf6"].data == outs_33[1]["endf6"].data
+        >>> assert outs_35[0]["pendf"].data == outs_35[1]["pendf"].data
+        >>> assert outs_35[0]["endf6"].data != outs_35[1]["endf6"].data
+
         Check that redundant nubar is also perturbed.
 
         >>> nu0 = sandy.Xs.from_endf6(outs_31[0]["endf6"].filter_by(listmt=[452, 455, 456]))
@@ -2699,7 +2719,7 @@ class Endf6(_FormattedFile):
         >>> assert outs1[0]["pendf"].write_string() == outs2[0]["pendf"].write_string()
         """
 
-        if 33 not in smps and 31 not in smps:
+        if 33 not in smps and 31 not in smps and 35 not in smps:
             logging.info("no perturbation coefficient was found.")
             return
 
@@ -2713,7 +2733,10 @@ class Endf6(_FormattedFile):
             data["pnu"] = smps[31].iterate_xs_samples()
         if 33 in smps:
             data["pxs"] = smps[33].iterate_xs_samples()
-        # this I'd like to change
+        if 35 in smps:
+            # At this level, the samples have the same index
+            # as a covariance matrix and can be treated as xs
+            data["pchi"] = smps[35].iterate_xs_samples()
 
         if processes == 1:
             outs = {}
@@ -2897,7 +2920,7 @@ def endf6_perturb_worker(e6, pendf, n,
                          pxs=None,
                          pnu=None,
                          plpc=None,
-                         pedistr=None,
+                         pchi=None,
                          verbose=False,
                          to_ace=False,
                          to_file=False,
@@ -2970,8 +2993,23 @@ def endf6_perturb_worker(e6, pendf, n,
         pass
 
     # apply edistr perturbation
-    if pedistr is not None:
-        pass
+    if pchi is not None:
+        # Applies the same perturbation to all incident particle energies and K
+        edistr_pert = []
+        for (ein, k), df in sandy.Edistr.from_endf6(endf6_pert).data.groupby(['EIN', 'K']):
+            dummy_xs = sandy.Xs(
+                df.rename({"EOUT": "E"}, axis=1).set_index(["MAT","MT"])[["E","VALUE"]].pivot(columns="E").T.droplevel(level=0)
+            )
+            dummy_xs_pert = sandy.core.xs.xs_perturb_worker(dummy_xs, n, pchi, verbose=verbose)
+            edistr_pert.append(
+                dummy_xs_pert.data.stack().stack().        # multiple column index to columns
+                to_frame().reset_index().                  # Edistr.data has every info in columns
+                rename({"E": "EOUT", 0: "VALUE"}, axis=1). # rename columns to match Edistr.data
+                assign(K=k, EIN=ein)[["MAT", "MT", "K", "EIN", "EOUT", "VALUE"]]  # sort columns to match Edistr.data
+            )
+        endf6_pert = sandy.Edistr(
+                                pd.concat(edistr_pert, ignore_index=True)
+                                ).normalize().to_endf6(endf6_pert).update_intro()
 
     # apply xs perturbation
     if pxs is not None:
