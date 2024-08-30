@@ -20,7 +20,6 @@ import warnings
 import multiprocessing as mp
 import numpy as np
 import pandas as pd
-import numpy as np
 import random
 
 import sandy
@@ -3100,6 +3099,33 @@ def endf6_perturb_worker(e6, pendf, n,
     TYPE
         DESCRIPTION.
 
+    Examples
+    --------
+    Test chi
+
+    >>> import sandy
+    
+    Creation of dummy perturbation
+
+    >>> idx = pd.MultiIndex.from_tuples([(9437, 18, 3)], names=("MAT", "MT", "E"))
+    >>> pert = 1.1
+    >>> df = pd.DataFrame([[pert]], index=idx).reset_index()
+    >>> ethresh = 10
+    >>> df.loc[0,"E"] = pd.IntervalIndex.from_breaks([1e-8,ethresh])
+    >>> smps = sandy.Samples(df.set_index(["MAT", "MT", "E"]))
+
+    Creation of reference and perturbed `Edistr`
+    
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 942390)
+    >>> pendf = tape.get_pendf(err=1)
+    >>> er = sandy.Edistr.from_endf6(tape)
+    >>> perturbed = sandy.core.endf6.endf6_perturb_worker(tape.data, pendf.data, 0, pchi=dict(smps.iterate_xs_samples())[0])
+    >>> e0 = sandy.Edistr.from_endf6(sandy.Endf6(perturbed['endf6']))
+
+    Test that the perturbation is correct and happened below `ethresh` only
+
+    >>> np.testing.assert_array_almost_equal(e0.data.query("EOUT < 10").VALUE, er.data.query("EOUT < 10").VALUE * 1.1)
+    >>> np.testing.assert_array_almost_equal(e0.data.query("EOUT >= 10").VALUE, er.data.query("EOUT >= 10").VALUE)
     """
     # default initialization
     endf6_pert = sandy.Endf6(e6.copy())
@@ -3144,10 +3170,11 @@ def endf6_perturb_worker(e6, pendf, n,
             )
             dummy_xs_pert = sandy.core.xs.xs_perturb_worker(dummy_xs, n, pchi, verbose=verbose)
             edistr_pert.append(
-                dummy_xs_pert.data.stack().stack().        # multiple column index to columns
-                to_frame().reset_index().                  # Edistr.data has every info in columns
-                rename({"E": "EOUT", 0: "VALUE"}, axis=1). # rename columns to match Edistr.data
-                assign(K=k, EIN=ein)[["MAT", "MT", "K", "EIN", "EOUT", "VALUE"]]  # sort columns to match Edistr.data
+                # dummy_xs_pert.data.stack().stack().        # multiple column index to columns
+                # to_frame().reset_index().                  # Edistr.data has every info in columns
+                # rename({"E": "EOUT", 0: "VALUE"}, axis=1). # rename columns to match Edistr.data
+                # assign(K=k, EIN=ein)[["MAT", "MT", "K", "EIN", "EOUT", "VALUE"]]  # sort columns to match Edistr.data
+                dummy_xs_pert.data.stack().stack().to_frame().reset_index().rename({"E": "EOUT", 0: "VALUE"}, axis=1).assign(K=k, EIN=ein)[["MAT", "MT", "K", "EIN", "EOUT", "VALUE"]]  # sort columns to match Edistr.data
             )
         endf6_pert = sandy.Edistr(
                                 pd.concat(edistr_pert, ignore_index=True)
