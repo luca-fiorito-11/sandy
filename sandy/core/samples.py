@@ -73,8 +73,6 @@ def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
     
     # same sorting structure as when it was produced in get_perturbations_fy
     smp = pd.concat(smp, ignore_index=True).sort_values(by=["ZAM", "E", "ZAP", "SMP"])
-    
-    # for some reasons get_perturbations_fy gives me this
 
     return smp
 
@@ -276,10 +274,13 @@ class Samples():
         >>> expected = pd.MultiIndex.from_product([[9440], [1, 2, 51]], names=["MAT", "MT"])
         >>> assert next(smps.iterate_xs_samples())[1].columns.equals(expected)
 
-        Test for MF 35
+        Default use case for MF35.
 
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 942390)
         >>> smps = tape.get_perturbations(2, njoy_kws=dict(err=1, nubar=False, mubar=False))
+
+        Check that output is not empty, and with correct shape.
+
         >>> assert(next(smps[35].iterate_xs_samples())[1].shape == (240, 5))
         """
         levels = Xs._columnsnames
