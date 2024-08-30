@@ -3057,7 +3057,7 @@ class Endf6(_FormattedFile):
 
         return outs
 
-def endf6_perturb_worker(e6, pendf, n,
+def endf6_perturb_worker(e6, pendf, ismp,
                          pxs=None,
                          pnu=None,
                          plpc=None,
@@ -3069,43 +3069,71 @@ def endf6_perturb_worker(e6, pendf, n,
                          ace_kws={},
                          **kwargs):
     """
-    
+    Worker to handle ENDF6 neutron data perturbation (xs, nubar, chi).
 
     Parameters
     ----------
-    e6 : TYPE
-        DESCRIPTION.
-    pendf : TYPE
-        DESCRIPTION.
-    n : TYPE
-        DESCRIPTION.
-    pxs : TYPE
-        DESCRIPTION.
-    verbose : TYPE, optional
-        DESCRIPTION. The default is False.
+    e6 : `dict`
+        `data` attribute of :obj:`~sandy.core.endf6.Endf6`.
+        It contains the nominal ENDF6 data.
+    pendf : `dict`
+        `data` attribute of :obj:`~sandy.core.endf6.Endf6`.
+        It contains the nominal PENDF data.
+    ismp : `int`
+        sample ID.
+    pxs : `pd.DataFrame`
+        It contains the perturbation coefficients for cross section.
+        It corresponds to one single sample (in principle the one with ID `ismp`).
+        It should have the same structure as a :obj:`~sandy.core.xs.Xs` object.
+        The default is `None`.
+    pnu: `pd.DataFrame`
+        It contains the perturbation coefficients for nubar.
+        It corresponds to one single sample (in principle the one with ID `ismp`).
+        It should have the same structure as a :obj:`~sandy.core.xs.Xs` object.
+        The default is `None`.
+    plpc: `pd.DataFrame`
+        Not implemented.
+    pchi: `pd.DataFrame`
+        It contains the perturbation coefficients for chi.
+        It corresponds to one single sample (in principle the one with ID `ismp`).
+        It should have the same structure as a :obj:`~sandy.core.xs.Xs` object.
+        The default is `None`.
+    verbose : `bool`, optional
+        Flag to activate verbosity. The default is `False`.
     to_ace : TYPE, optional
         DESCRIPTION. The default is False.
-    to_file : TYPE, optional
-        DESCRIPTION. The default is False.
-    filename : TYPE, optional
-        DESCRIPTION. The default is "{ZA}_{SMP:d}".
-    ace_kws : TYPE, optional
-        DESCRIPTION. The default is {}.
-    **kwargs : TYPE
-        DESCRIPTION.
+    to_file : `bool`, optional
+        Flag to write outputs to file. The default is `False`.
+        This key changes the output type.
+    filename : `str`, optional
+        The default is "{ZA}_{SMP:d}".
+    ace_kws : `dict` , optional
+        Additional keyword arguments for ACE file production. The default is {}.
+    **kwargs : `dict`
+        Additional keyword arguments (not used).
 
     Returns
     -------
-    TYPE
-        DESCRIPTION.
+    `dict`
+        
+        - if `to_file=False`: a `dict` with keys, values:
+            
+            - `endf6`: a perturbed :obj:`~sandy.core.endf6.Endf6` instance of the given ENDF6
+            - `pendf`: a perturbed :obj:`~sandy.core.endf6.Endf6` instance of the given PENDF
+
+        - if `to_file=True`: a `dict` with keys, values:
+
+            - `endf6`: the filename of the perturbed ENDF6
+            - `pendf`: the filenmae of the perturbed PENDF
 
     Examples
     --------
-    Test chi
+    Test that energy distributions are correctly perturbed.
+    Example for Pu239.
 
     >>> import sandy
     
-    Creation of dummy perturbation
+    Creation of dummy perturbation.
 
     >>> idx = pd.MultiIndex.from_tuples([(9437, 18, 3)], names=("MAT", "MT", "E"))
     >>> pert = 1.1
@@ -3114,7 +3142,7 @@ def endf6_perturb_worker(e6, pendf, n,
     >>> df.loc[0,"E"] = pd.IntervalIndex.from_breaks([1e-8,ethresh])
     >>> smps = sandy.Samples(df.set_index(["MAT", "MT", "E"]))
 
-    Creation of reference and perturbed `Edistr`
+    Creation of reference and perturbed :obj:`~sandy.edistr.Edistr`.
     
     >>> tape = sandy.get_endf6_file("jeff_33", "xs", 942390)
     >>> pendf = tape.get_pendf(err=1)
@@ -3122,10 +3150,42 @@ def endf6_perturb_worker(e6, pendf, n,
     >>> perturbed = sandy.core.endf6.endf6_perturb_worker(tape.data, pendf.data, 0, pchi=dict(smps.iterate_xs_samples())[0])
     >>> e0 = sandy.Edistr.from_endf6(sandy.Endf6(perturbed['endf6']))
 
-    Test that the perturbation is correct and happened below `ethresh` only
+    Test that the perturbation is correct and happened below `ethresh` only.
+    This test works for all incident energies.
 
     >>> np.testing.assert_array_almost_equal(e0.data.query("EOUT < 10").VALUE, er.data.query("EOUT < 10").VALUE * 1.1)
     >>> np.testing.assert_array_almost_equal(e0.data.query("EOUT >= 10").VALUE, er.data.query("EOUT >= 10").VALUE)
+
+
+    Test that cross sections are correctly perturbed.
+    Example for H1.
+
+    Creation of dummy perturbation for scattering `MT=2`.
+
+    >>> mat, mt, eleft, eright = 125, 2, 1e-8, 10 
+    >>> df = pd.DataFrame([[mat, mt, eleft, eright]], columns=["MAT", "MT", "ELEFT", "ERIGHT"])
+    >>> loc = df.columns.get_loc("ELEFT")
+    >>> idx = df.iloc[:, :loc]
+    >>> idx.insert(loc, "E", pd.IntervalIndex.from_arrays(df.ELEFT, df.ERIGHT))
+    >>> idx = pd.MultiIndex.from_frame(idx)
+    >>> smp = sandy.Samples([[1.2]], index=idx)
+
+    Creation of reference and perturbed :obj:`~sandy.core.xs.Xs`.
+    
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
+    >>> pendf = tape.get_pendf(err=1)
+    >>> xs = sandy.Xs.from_endf6(pendf)
+    
+    >>> pxs = dict(smp.iterate_xs_samples())
+    >>> outs = sandy.core.endf6.endf6_perturb_worker(tape.data, pendf.data, 0, pxs=pxs[0])
+    >>> xs0 = sandy.Xs.from_endf6(sandy.Endf6(outs["pendf"]))
+
+    Test that the perturbation is correct.
+
+    >>> np.testing.assert_array_almost_equal(xs0.data.query("E<=10")[(125, 2)], xs.data.query("E<=10")[(125, 2)] * 1.2)
+    >>> np.testing.assert_array_almost_equal(xs0.data.query("E>10")[(125, 2)], xs.data.query("E>10")[(125, 2)])
+    >>> np.testing.assert_array_almost_equal(xs0.data[(125, 102)], xs.data[(125, 102)])
+    >>> assert not np.array_equal(xs0.data[(125, 1)], xs.data[(125, 1)])
     """
     # default initialization
     endf6_pert = sandy.Endf6(e6.copy())
@@ -3146,14 +3206,14 @@ def endf6_perturb_worker(e6, pendf, n,
         ZAM=zam,
         META=meta,
         ZA=za,
-        SMP=n,
+        SMP=ismp,
         )
     fn = filename.format(**params)
 
     # apply nubar perturbation
     if pnu is not None:
         nu = sandy.Xs.from_endf6(endf6_pert.filter_by(listmt=[452, 455, 456]))
-        nu_pert = sandy.core.xs.xs_perturb_worker(nu, n, pnu, verbose=verbose)
+        nu_pert = sandy.core.xs.xs_perturb_worker(nu, ismp, pnu, verbose=verbose)
         endf6_pert = nu_pert.reconstruct_sums(drop=True).to_endf6(endf6_pert).update_intro()
 
     # apply lpc perturbation
@@ -3168,12 +3228,8 @@ def endf6_perturb_worker(e6, pendf, n,
             dummy_xs = sandy.Xs(
                 df.rename({"EOUT": "E"}, axis=1).set_index(["MAT","MT"])[["E","VALUE"]].pivot(columns="E").T.droplevel(level=0)
             )
-            dummy_xs_pert = sandy.core.xs.xs_perturb_worker(dummy_xs, n, pchi, verbose=verbose)
+            dummy_xs_pert = sandy.core.xs.xs_perturb_worker(dummy_xs, ismp, pchi, verbose=verbose)
             edistr_pert.append(
-                # dummy_xs_pert.data.stack().stack().        # multiple column index to columns
-                # to_frame().reset_index().                  # Edistr.data has every info in columns
-                # rename({"E": "EOUT", 0: "VALUE"}, axis=1). # rename columns to match Edistr.data
-                # assign(K=k, EIN=ein)[["MAT", "MT", "K", "EIN", "EOUT", "VALUE"]]  # sort columns to match Edistr.data
                 dummy_xs_pert.data.stack().stack().to_frame().reset_index().rename({"E": "EOUT", 0: "VALUE"}, axis=1).assign(K=k, EIN=ein)[["MAT", "MT", "K", "EIN", "EOUT", "VALUE"]]  # sort columns to match Edistr.data
             )
         endf6_pert = sandy.Edistr(
@@ -3183,7 +3239,7 @@ def endf6_perturb_worker(e6, pendf, n,
     # apply xs perturbation
     if pxs is not None:
         xs = sandy.Xs.from_endf6(pendf_pert)
-        xs_pert = sandy.core.xs.xs_perturb_worker(xs, n, pxs, verbose=verbose)
+        xs_pert = sandy.core.xs.xs_perturb_worker(xs, ismp, pxs, verbose=verbose)
         pendf_pert = xs_pert.reconstruct_sums(drop=True).to_endf6(pendf_pert).update_intro()
 
     # Run NJOY and convert to ace
