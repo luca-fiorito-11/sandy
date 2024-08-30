@@ -2655,8 +2655,8 @@ class Endf6(_FormattedFile):
 
         >>> smps_ = tape.get_perturbations(2, njoy_kws=dict(err=1, nubar=False, mubar=False), smp_kws=dict(seed33=3, seed35=5))
         >>> outs_33_35 = tape.apply_perturbations(smps, njoy_kws=dict(err=1), processes=1)
-        >>> outs_33_ = tape.apply_perturbations({33: smps[33]}, njoy_kws=dict(err=1), processes=1)
-        >>> outs_35 = tape.apply_perturbations({35: smps[35]}, njoy_kws=dict(err=1), processes=1)
+        >>> outs_33_ = tape.apply_perturbations({33: smps_[33]}, njoy_kws=dict(err=1), processes=1)
+        >>> outs_35 = tape.apply_perturbations({35: smps_[35]}, njoy_kws=dict(err=1), processes=1)
         
         >>> for i in range(2):
         ...    assert(outs_33_[i]["endf6"].data == tape.data)
