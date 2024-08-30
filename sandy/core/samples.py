@@ -1,12 +1,83 @@
 import numpy as np
 import pandas as pd
 
-from ..core.xs import Xs, redundant_xs
+from .xs import Xs, redundant_xs
 
 __author__ = "Luca Fiorito"
 __all__ = [
         "Samples",
+        "read_fy_samples",
         ]
+
+
+def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
+    """
+    Read relative perturbations for fission yields from excel file produced by
+    :obj:`~sandy.core.endf6.Endf6.get_perturbations_fy`.
+
+    Parameters
+    ----------
+    file : `str`, optional
+        The name of the file containing the perturbations for MT454.
+        The default is `'PERT_MF8_MT454.xlsx'`.
+        The default of the tabulated excel file is:
+            
+            - 1st column: energy in eV
+            - 2nd column: ZAP
+            - 3rd - nth columns: sample ID
+        
+        The name of each sheet is a ZAM number.
+
+    Returns
+    -------
+    smp : `pd.DataFrame`
+        Dataframe with perturbation coefficients given per:
+            
+            - ZAM: fissioning nuclide
+            - E: neutron energy
+            - ZAP: fission product
+            - SMP: sample ID
+
+    Notes
+    -----
+    .. note:: This does not use the object :obj:`~sandy.core.samples.Samples`.
+
+
+    Examples
+    --------
+    
+    Default use case.
+    Produce an excel file of samples.
+
+    >>> import sandy
+    >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", [922350, 922380])
+    >>> smps = tape.get_perturbations(2)
+
+    Read it.
+    
+    >>> smps2 = sandy.read_fy_samples()
+
+    Test that it was read correctly.
+
+    >>> smps = smps.astype({'ZAM': 'int32', 'E': 'float64', 'ZAP': 'int32', 'SMP': 'int32', 'VALS': 'float64'})
+    >>> smps2 = smps2.astype({'ZAM': 'int32', 'E': 'float64', 'ZAP': 'int32', 'SMP': 'int32', 'VALS': 'float64'})
+    >>> assert smps2[["ZAM", "E", "ZAP", "SMP"]].equals(smps[["ZAM", "E", "ZAP", "SMP"]])
+    >>> np.testing.assert_array_almost_equal(smps2.VALS, smps.VALS)
+    """
+    all_sheets = pd.read_excel(file, sheet_name=None)
+    
+    smp = []
+    for k, v in all_sheets.items():
+        s = v.ffill().assign(ZAM=int(k)).set_index(["ZAM", "E", "ZAP"]).rename_axis("SMP", axis=1).stack().rename("VALS").reset_index()
+        smp.append(s)
+    
+    # same sorting structure as when it was produced in get_perturbations_fy
+    smp = pd.concat(smp, ignore_index=True).sort_values(by=["ZAM", "E", "ZAP", "SMP"])
+    
+    # for some reasons get_perturbations_fy gives me this
+
+    return smp
+
 
 
 class Samples():
@@ -33,7 +104,7 @@ class Samples():
     get_rstd
         Return relative standard deviation vector of samples.   
     iterate_xs_samples
-        Generator that iterates over each sample (in the form of :func:`sandy.Xs`).
+        Generator that iterates over each sample (in the form of :obj:`~sandy.core.xs.Xs`).
     """
 
     _columnsname = "SMP"
@@ -51,16 +122,16 @@ class Samples():
 
         Attributes
         ----------
-        index : `pandas.Index` or `pandas.MultiIndex`
+        index : `pd.Index` or `pandas.MultiIndex`
             indices
-        columns : `pandas.Index`
+        columns : `pd.Index`
             samples numbering
-        values : `numpy.array`
+        values : `np.array`
             sample values as `float`
 
         Returns
         -------
-        `pandas.DataFrame`
+        `pd.DataFrame`
             tabulated samples
         """
         return self._data
@@ -76,7 +147,7 @@ class Samples():
 
         Notes
         -----
-        ..note:: the condition number can help assess multicollinearity.
+        ..note:: The condition number can help assess multicollinearity.
         """
         # The first step is to normalize the independent variables to have
         # unit length
@@ -108,15 +179,15 @@ class Samples():
 
     def iterate_xs_samples(self):
         """
-        Iterate samples one by one and shape them as a :func:`sandy.Xs`
+        Iterate samples one by one and shape them as a :obj:`~sandy.core.xs.Xs`
         dataframe, but with mutligroup structure.
-        This output should be passed to :func:`sandy.Xs._perturb`.
-        The function is called by :func:`sandy.Endf6.apply_perturbations`
+        This output should be passed to :obj:`~sandy.core.xs.Xs._perturb`.
+        The function is called by :obj:`~sandy.core.endf6..Endf6.apply_perturbations`.
 
         Yields
         ------
         n : `int`
-            .
+            sample ID.
         s : `pd.DataFrame`
             dataframe of perturbation coefficients with:
                 
@@ -128,25 +199,25 @@ class Samples():
         If samples refer to redundant MT number, the same identical samples
         are passed one level down to the partial MT components.
         For instance:
+
             - MT=4 samples will be assigned to MT=50-91
             - MT=1 samples will be assigned to MT=2 and MT=3
             - MT=18 samples will be assigned to MT=19-21 and MT=38
         
-        ..important:: Assigning samples from redundant MT number to partial
+        .. important:: Assigning samples from redundant MT number to partial
                       components only applies if the partial components do not
                       have their own samples, and it only goes one level deep.
 
         Examples
         --------
 
-        Get samples fot MT=1
-        
+        Get samples fot MT=1.
         >>> import sandy
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010)
         >>> smps2 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=2)))[33]
 
-        Copy samples each time to a redundant or partial MT
-        
+        Copy samples each time to a redundant or partial MT.
+
         >>> smps1 = sandy.Samples(smps2.data.reset_index().assign(MT=1).set_index(["MAT", "MT", "E"]))
         >>> smps3 = sandy.Samples(smps1.data.reset_index().assign(MT=3).set_index(["MAT", "MT", "E"]))
         >>> smps18 = sandy.Samples(smps1.data.reset_index().assign(MT=18).set_index(["MAT", "MT", "E"]))
@@ -157,8 +228,8 @@ class Samples():
         >>> smps101 = sandy.Samples(smps1.data.reset_index().assign(MT=101).set_index(["MAT", "MT", "E"]))
         >>> smps452 = sandy.Samples(smps1.data.reset_index().assign(MT=452).set_index(["MAT", "MT", "E"]))
 
-        Check that samples are passed correctly to daughter MTs (only one level deep)
-        
+        Check that samples are passed correctly to daughter MTs (only one level deep).
+
         >>> expected = pd.MultiIndex.from_product([[125], [51]], names=["MAT", "MT"])
         >>> assert next(smps51.iterate_xs_samples())[1].columns.equals(expected)
 
@@ -188,17 +259,14 @@ class Samples():
 
 
         In this example the original covariance contains data for MT=1 and MT=51.
-        
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 942400)
         >>> smps = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=[1, 51])))[33]
 
         Then, since MT=1 is redundant, samples are passed to its partial components (MT=2 and MT=3).
-        
         >>> expected = pd.MultiIndex.from_product([[9440], [1, 51] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
         >>> assert next(smps.iterate_xs_samples())[1].columns.equals(expected)
         
         If case one of the partial components already has samples, i.e., MT=2...
-        
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 942400)
         >>> smps = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=[1, 2, 51])))[33]
 
@@ -262,20 +330,20 @@ class Samples():
         """
         Read perturbation coefficients (for nubar and xs) from excel file.
         The file format is compatible with what written in
-        :obj: `~sandy.cov.CategoryCov.sampling`
+        :obj:`~sandy.cov.CategoryCov.sampling`
         
         Parameters
         ----------
         file : `str`
-            excel file name.
+            Excel file name.
         beg : `int`
-            first sample to consider. Default is first in dataframe.
+            First sample to consider. Default is first in dataframe.
         end : `int`
-            last samples to conisder. Default is last in dataframe.
+            Last samples to conisder. Default is last in dataframe.
 
         Returns
         -------
-        smp : :obj: `Samples`
+        smp : :obj:`~sandy.core.samples.Samples`
             Samples dataframe.
         """
         df = pd.read_excel(file, sheet_name="SMP")
