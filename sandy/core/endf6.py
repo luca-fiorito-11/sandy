@@ -2654,7 +2654,7 @@ class Endf6(_FormattedFile):
         Now the same for chi and xs
 
         >>> smps_ = tape.get_perturbations(2, njoy_kws=dict(err=1, nubar=False, mubar=False), smp_kws=dict(seed33=3, seed35=5))
-        >>> outs_33_35 = tape.apply_perturbations(smps, njoy_kws=dict(err=1), processes=1)
+        >>> outs_33_35 = tape.apply_perturbations(smps_, njoy_kws=dict(err=1), processes=1)
         >>> outs_33_ = tape.apply_perturbations({33: smps_[33]}, njoy_kws=dict(err=1), processes=1)
         >>> outs_35 = tape.apply_perturbations({35: smps_[35]}, njoy_kws=dict(err=1), processes=1)
         
