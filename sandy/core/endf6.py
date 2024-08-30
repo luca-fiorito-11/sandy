@@ -2651,7 +2651,7 @@ class Endf6(_FormattedFile):
         >>> assert outs_31[0]["pendf"].data == outs_31[1]["pendf"].data
         >>> assert outs_31[0]["endf6"].data != outs_31[1]["endf6"].data
 
-        Defualt use case for chi and xs, perturbed together.
+        Default use case for chi and xs, perturbed together.
 
         >>> smps_ = tape.get_perturbations(2, njoy_kws=dict(err=1, nubar=False, mubar=False), smp_kws=dict(seed33=3, seed35=5))
         >>> outs_33_35 = tape.apply_perturbations(smps_, njoy_kws=dict(err=1), processes=1)
