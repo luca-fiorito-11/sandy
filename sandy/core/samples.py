@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-import sandy
+from ..core.xs import Xs, redundant_xs
 
 __author__ = "Luca Fiorito"
 __all__ = [
@@ -138,11 +138,15 @@ class Samples():
 
         Examples
         --------
+
         Get samples fot MT=1
+        
+        >>> import sandy
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010)
         >>> smps2 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=2)))[33]
 
         Copy samples each time to a redundant or partial MT
+        
         >>> smps1 = sandy.Samples(smps2.data.reset_index().assign(MT=1).set_index(["MAT", "MT", "E"]))
         >>> smps3 = sandy.Samples(smps1.data.reset_index().assign(MT=3).set_index(["MAT", "MT", "E"]))
         >>> smps18 = sandy.Samples(smps1.data.reset_index().assign(MT=18).set_index(["MAT", "MT", "E"]))
@@ -154,6 +158,7 @@ class Samples():
         >>> smps452 = sandy.Samples(smps1.data.reset_index().assign(MT=452).set_index(["MAT", "MT", "E"]))
 
         Check that samples are passed correctly to daughter MTs (only one level deep)
+        
         >>> expected = pd.MultiIndex.from_product([[125], [51]], names=["MAT", "MT"])
         >>> assert next(smps51.iterate_xs_samples())[1].columns.equals(expected)
 
@@ -183,23 +188,33 @@ class Samples():
 
 
         In this example the original covariance contains data for MT=1 and MT=51.
+        
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 942400)
         >>> smps = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=[1, 51])))[33]
 
         Then, since MT=1 is redundant, samples are passed to its partial components (MT=2 and MT=3).
+        
         >>> expected = pd.MultiIndex.from_product([[9440], [1, 51] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
         >>> assert next(smps.iterate_xs_samples())[1].columns.equals(expected)
         
         If case one of the partial components already has samples, i.e., MT=2...
+        
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 942400)
         >>> smps = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=[1, 2, 51])))[33]
 
         Then the MT=1 samples are not passed to the partial components, which 
         in this case it means that MT=2 is not changed and MT=3 is not created.
+
         >>> expected = pd.MultiIndex.from_product([[9440], [1, 2, 51]], names=["MAT", "MT"])
         >>> assert next(smps.iterate_xs_samples())[1].columns.equals(expected)
+
+        Test for MF 35
+
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 942390)
+        >>> smps = tape.get_perturbations(2, njoy_kws=dict(err=1, nubar=False, mubar=False))
+        >>> assert(next(smps[35].iterate_xs_samples())[1].shape == (240, 5))
         """
-        levels = sandy.Xs._columnsnames
+        levels = Xs._columnsnames
         df = self.data.unstack(level=levels)
         
         # -- Iterate over samples
@@ -209,7 +224,7 @@ class Samples():
             for mat in s.columns.get_level_values("MAT").unique():
                 
                 # -- Iterate redundant xs (from MT107 to MT1)
-                for k, v in sandy.redundant_xs.items():
+                for k, v in redundant_xs.items():
                     if not (mat, k) in s.columns:
                         continue
                     daughters = pd.MultiIndex.from_product([[mat], v], names=["MAT", "MT"])
@@ -242,7 +257,8 @@ class Samples():
         foo = lambda x: smp.loc[:x].mean()
         return pd.DataFrame(map(foo, rng), index=rng)
 
-    def from_excel(file, beg=None, end=None):
+    @classmethod
+    def from_excel(cls, file, beg=None, end=None):
         """
         Read perturbation coefficients (for nubar and xs) from excel file.
         The file format is compatible with what written in
@@ -275,5 +291,4 @@ class Samples():
 
         df = df.iloc[:, loc+2:].loc[:, beg:end].reset_index(drop=True)
         df.index = idx
-        smp = sandy.Samples(df)
-        return smp
+        return cls(df)
