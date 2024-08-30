@@ -2653,21 +2653,20 @@ class Endf6(_FormattedFile):
 
         Now the same for chi and xs
 
-        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 942390)
-        >>> smps = tape.get_perturbations(2, njoy_kws=dict(err=1, nubar=False, mubar=False), smp_kws=dict(seed33=3, seed35=5))
+        >>> smps_ = tape.get_perturbations(2, njoy_kws=dict(err=1, nubar=False, mubar=False), smp_kws=dict(seed33=3, seed35=5))
         >>> outs_33_35 = tape.apply_perturbations(smps, njoy_kws=dict(err=1), processes=1)
-        >>> outs_33 = tape.apply_perturbations({33: smps[33]}, njoy_kws=dict(err=1), processes=1)
+        >>> outs_33_ = tape.apply_perturbations({33: smps[33]}, njoy_kws=dict(err=1), processes=1)
         >>> outs_35 = tape.apply_perturbations({35: smps[35]}, njoy_kws=dict(err=1), processes=1)
         
         >>> for i in range(2):
-        ...    assert(outs_33[i]["endf6"].data == tape.data)
+        ...    assert(outs_33_[i]["endf6"].data == tape.data)
         ...    assert(outs_35[i]["endf6"].data != tape.data)
         ...    assert(outs_35[i]["endf6"].data == outs_33_35[i]["endf6"].data)
-        ...    assert(outs_33[i]["pendf"].data != outs_35[i]["pendf"].data)
-        ...    assert(outs_33[i]["pendf"].data == outs_33_35[i]["pendf"].data)
+        ...    assert(outs_33_[i]["pendf"].data != outs_35[i]["pendf"].data)
+        ...    assert(outs_33_[i]["pendf"].data == outs_33_35[i]["pendf"].data)
 
-        >>> assert outs_33[0]["pendf"].data != outs_33[1]["pendf"].data
-        >>> assert outs_33[0]["endf6"].data == outs_33[1]["endf6"].data
+        >>> assert outs_33_[0]["pendf"].data != outs_33_[1]["pendf"].data
+        >>> assert outs_33_[0]["endf6"].data == outs_33_[1]["endf6"].data
         >>> assert outs_35[0]["pendf"].data == outs_35[1]["pendf"].data
         >>> assert outs_35[0]["endf6"].data != outs_35[1]["endf6"].data
 
