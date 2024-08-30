@@ -2921,7 +2921,7 @@ class Endf6(_FormattedFile):
 
         return outs
 
-    def apply_perturbations_fy(self, smps, processes=1, **kwargs):
+    def apply_perturbations_fy(self, smps, processes=1, covariance=None, **kwargs):
         """
         Apply relative perturbations to the data contained in
         :obj:`~sandy.core.endf6.Endf6` instance of fission yield files.
@@ -2936,6 +2936,12 @@ class Endf6(_FormattedFile):
             Number of processes used to complete the task.
             Creation of ENDF6 files and post-processing is done in parallel if
             `processes>1`.
+        covariance : `None` or `str`, optional
+            Flag to adopt fission yield covariance matrices.
+            The only acceptable flag is `covariance='cea'`.
+            This ensures that the nominal values for U-235 and Pu-239 are taken from 
+            the CEA evaluations. It must be used if it aws used for the production of `smps`.
+            The default is `None`.
         **kwargs : `dict`
             Additional keyword arguments, such as:
                 - `nfpy`: to pass directly an already processed :obj:`~sandy.fy.Fy` instance.
@@ -2956,16 +2962,37 @@ class Endf6(_FormattedFile):
         Examples
         --------
         
-        Default use case.
+        Default use case (write data to file).
 
-        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
-        >>> smps = tape.get_perturbations(2, covariance=None)
-        >>> outs = tape.apply_perturbations_fy(smps, verbose=False, to_file=True)
+        >>> import sandy, pytest
+        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", [922350, 922380, 942390])
+        >>> smps = tape.get_perturbations(2, covariance='cea')
+        >>> outs = tape.apply_perturbations_fy(smps, covariance='cea', verbose=False, to_file=True)
         
-        Check that data is written to file with key `to_file`.
+        If the samples were produced with keyword `covariance='cea'`, the same must be 
+        used in `apply_perturbations_fy`.
 
-        >>> assert os.path.exists(outs[0])
-        >>> assert outs[0] == 'fy_0'
+        >>> nfpy = sandy.Fy.from_endf6(tape)
+        >>> nfpy_u235 = sandy.Fy.from_endf6(sandy.Endf6.from_file(sandy.fy_cea_u235th))
+        >>> nfpy0 = sandy.Fy.from_endf6(sandy.Endf6.from_file(outs[0]))
+        
+        >>> n = nfpy.data.query("ZAM==922350 and MT==454")
+        >>> n0 = nfpy0.data.query("ZAM==922350 and MT==454")
+        >>> nu235 = nfpy_u235.data.query("ZAM==922350 and MT==454")
+
+        To match the perturbation values, the ratio must be taken with respect to the 
+        CEA nominal values.
+        
+        >>> sp = n0.set_index("ZAP").FY.divide(nu235.set_index("ZAP").FY).fillna(1)
+        >>> p = smps.query("ZAM==922350 and SMP==0").set_index("ZAP").VALS.rename("FY")
+        >>> np.testing.assert_array_almost_equal(p, sp, decimal=4)
+        
+        If `covariance='cea'` was used to produce the samples, at it is not used in 
+        `apply_perturbations_fy`, then there is a mismatch between the ZAP numbers of 
+        the samples and of the fission yields.
+
+        >>> with pytest.raises(Exception):
+        ...    tape.apply_perturbations_fy(smps, verbose=False, to_file=True)
         """
         from ..fy import Fy
 
@@ -2974,6 +3001,20 @@ class Endf6(_FormattedFile):
         nfpy = kwargs.pop("nfpy", None)
         if not nfpy:
             nfpy = Fy.from_endf6(self, verbose=kwargs.get("verbose"))
+        
+        # Change nominal values to CEA values if asked
+        # this is needed to ensure that the samples are given for the same nominal values
+        if covariance == 'cea':
+            tape_u235 = sandy.Endf6.from_file(sandy.fy_cea_u235th).data if 922350 in nfpy.data.ZAM.values else {}
+            tape_pu239 = sandy.Endf6.from_file(sandy.fy_cea_pu239th).data if 942390 in nfpy.data.ZAM.values else {}
+            tape = sandy.Endf6({**self.data, **tape_u235, **tape_pu239})
+            
+            # also the fission yields must be re-extracted
+            nfpy = Fy.from_endf6(tape, verbose=kwargs.get("verbose"))
+
+        else:
+            tape = self
+            
 
         # --- PROCESSING
         if processes == 1:
@@ -2982,7 +3023,7 @@ class Endf6(_FormattedFile):
             # assume HL, BR and DE have all the same key matching (sample ids)
             for ismp, smp in smps.groupby("SMP"):
                outs[ismp] = fy_perturb_worker(
-                   self.data,
+                   tape.data,
                    nfpy.data,
                    smp,
                    ismp,
@@ -2998,7 +3039,7 @@ class Endf6(_FormattedFile):
                 outs[ismp] = pool.apply_async(
                     rdd_perturb_worker,
                     (
-                        self.data,
+                        tape.data,
                         nfpy.data,
                         smp,
                         ismp,
@@ -3260,6 +3301,7 @@ def fy_perturb_worker(endf6, fy, smps, ismp,
     fy : `pd.DataFrame`
         `data` attribute of :obj:`~sandy.fy.Fy`.
         It contains the nominal fission yield data.
+        It i sassume they match all the ZAP of the samples.
     smps : `pd.DataFrame`
         It contains the perturbation coefficients for fission yields.
         Columns are `MAT`, `MT`, `E`, `ZAM`, `ZAP`, `SMP`, `VALS`.
