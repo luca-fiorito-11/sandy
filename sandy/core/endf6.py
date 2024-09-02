@@ -3230,7 +3230,7 @@ def endf6_perturb_worker(e6, pendf, ismp,
             )
             dummy_xs_pert = sandy.core.xs.xs_perturb_worker(dummy_xs, ismp, pchi, verbose=verbose)
             edistr_pert.append(
-                dummy_xs_pert.data.stack().stack().to_frame().reset_index().rename({"E": "EOUT", 0: "VALUE"}, axis=1).assign(K=k, EIN=ein)[["MAT", "MT", "K", "EIN", "EOUT", "VALUE"]]  # sort columns to match Edistr.data
+                dummy_xs_pert.data.stack([1, 0]).to_frame().reset_index().rename({"E": "EOUT", 0: "VALUE"}, axis=1).assign(K=k, EIN=ein)[["MAT", "MT", "K", "EIN", "EOUT", "VALUE"]]  # sort columns to match Edistr.data
             )
         endf6_pert = sandy.Edistr(
                                 pd.concat(edistr_pert, ignore_index=True)
