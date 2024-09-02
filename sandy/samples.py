@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .xs import Xs, redundant_xs
+from .core.xs import Xs, redundant_xs
 
 __author__ = "Luca Fiorito"
 __all__ = [

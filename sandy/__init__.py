@@ -28,6 +28,8 @@ import sandy.tools
 import sandy.shared
 import sandy.sampling
 
+from .samples import *
+
 testdir = "tests"
 
 
