@@ -52,6 +52,11 @@ def parse(iargs=None):
                         action="store_true",
                         help="activate debug options (err=1, verbose=True, minimal_processing=True)")
 
+    parser.add_argument('--fycov',
+                        default=False,
+                        action="store_true",
+                        help="use CEA covariance data for U-235 and Pu-239 thermal fission yields")
+
     parser.add_argument("--from_perturbations",
                         default=False,
                         nargs=3,
@@ -346,6 +351,13 @@ def run(iargs):
     >>> sandy.get_endf6_file("jeff_33", "decay", [10010, 10040, 270600]).to_file("AAA.txt")
     >>> sandy.sampling.run("AAA.txt --samples 3 --processes 1".split())
     >>> assert {'decay_data_0', 'decay_data_1', 'decay_data_2'}.issubset(set(glob.glob("decay_data*")))
+
+    Default use case for fission yield sampling.
+
+    >>> import sandy
+    >>> sandy.get_endf6_file("jeff_33", "nfpy", [922350, 922380]).to_file("AAA.txt")
+    >>> sandy.sampling.run("AAA.txt --samples 3 --processes 1".split())
+    >>> assert {'fy_0', 'fy_1', 'fy_2'}.issubset(set(glob.glob("fy*")))
     """
 
     loglevels = {
@@ -376,7 +388,20 @@ def run(iargs):
             verbose=iargs.debug,
         )
         return
-        
+
+    if 454 in endf6.mt:
+        # very dirty way to add decay data sampling from command line interface
+        # Let's use CEA covariance data by default
+        covariance = "cea" if iargs.fycov else None
+        smps = endf6.get_perturbations(iargs.samples, covariance=covariance)
+        endf6.apply_perturbations(
+            smps,
+            processes=iargs.processes,
+            covariance=covariance,
+            to_file=True,
+            verbose=iargs.debug,
+        )
+        return       
 
     njoy_output = sp.DEVNULL if iargs.supressnjoy else None
 

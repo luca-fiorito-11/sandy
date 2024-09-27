@@ -697,17 +697,17 @@ class Fy():
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, cut_hl=False)
         >>> npfy_pert.data.query("MT==459")
             MAT   MT     ZAM     ZAP           E          FY         DFY
-        3  9437  459  942390  591480 5.00000e+05 1.00000e-01 4.00000e-02
-        4  9437  459  942390  591481 5.00000e+05 2.00000e-01 5.00000e-02
-        5  9437  459  942390  601480 5.00000e+05 6.00000e-01 6.48074e-02
-        6  9437  459  942390  621480 5.00000e+05 6.00000e-01 6.48074e-02
+        3  9437  459  942390  591480 5.00000e+05 1.00000e-01 0.00000e+00
+        4  9437  459  942390  591481 5.00000e+05 2.00000e-01 0.00000e+00
+        5  9437  459  942390  601480 5.00000e+05 6.00000e-01 0.00000e+00
+        6  9437  459  942390  621480 5.00000e+05 6.00000e-01 0.00000e+00
 
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, cut_hl=True)
         >>> npfy_pert.data.query("MT==459")
             MAT   MT     ZAM     ZAP           E          FY         DFY
-        3  9437  459  942390  591480 5.00000e+05 1.00000e-01 4.00000e-02
-        4  9437  459  942390  591481 5.00000e+05 2.00000e-01 5.00000e-02
-        5  9437  459  942390  601480 5.00000e+05 6.00000e-01 6.48074e-02
+        3  9437  459  942390  591480 5.00000e+05 1.00000e-01 0.00000e+00
+        4  9437  459  942390  591481 5.00000e+05 2.00000e-01 0.00000e+00
+        5  9437  459  942390  601480 5.00000e+05 6.00000e-01 0.00000e+00
         6  9437  459  942390  621480 5.00000e+05 0.00000e+00 0.00000e+00
 
         >>> zam = [591480, 591481, 601480]
@@ -717,41 +717,53 @@ class Fy():
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
         >>> npfy_pert.data.query("MT==459")
             MAT   MT     ZAM     ZAP           E          FY         DFY
-        3  9437  459  942390  591480 5.00000e+05 1.00000e-01 4.00000e-02
-        4  9437  459  942390  591481 5.00000e+05 2.00000e-01 5.00000e-02
-        5  9437  459  942390  601480 5.00000e+05 6.00000e-01 6.48074e-02
+        3  9437  459  942390  591480 5.00000e+05 1.00000e-01 0.00000e+00
+        4  9437  459  942390  591481 5.00000e+05 2.00000e-01 0.00000e+00
+        5  9437  459  942390  601480 5.00000e+05 6.00000e-01 0.00000e+00
         """
-        # Obtain the data:
-        data = self.data.copy()
+        data = self.data
         conditions = {'ZAM': zam, 'MT': 454, "E": energy}
-        fy_data = self._filters(conditions).data
+        fy_data = self._filters(conditions).data.set_index('ZAP')
+
         mat = fy_data.MAT.iloc[0]
-        std = fy_data.set_index('ZAP')['DFY']
-        fy_data = fy_data.set_index('ZAP')['FY']
+        std = fy_data['DFY']
+        fy_data = fy_data['FY']
+        
         if keep_fy_index:
             original_index = fy_data.index
+
         Q = decay_data.get_qmatrix(cut_hl=cut_hl)
 
-        # Put the data in a approppiate format
+        # Apply the mask without copying data
         mask = (data.ZAM == zam) & (data.MT == 459) & (data.E == energy)
         data = data.loc[~mask]
-        fy_data = fy_data.reindex(Q.columns).fillna(0)
-        std = std.reindex(Q.columns).fillna(0)
-        cov_data = CategoryCov.from_stdev(std)
 
-        # Apply qmatrix
+        fy_data = fy_data.reindex(Q.columns, fill_value=0)  # Ensure no missing values
+        std = std.reindex(Q.columns, fill_value=0)
+
+        # Perform matrix multiplication to get CFY's
+        # For uncertainties you should do: pd.Series(np.sqrt(np.diag(cov_data.sandwich(Q).data)), index=Q.index)
+        # uncertainty propagation was removed because too time consuming
         cfy_calc_values = (Q @ fy_data).rename('FY')
-        cov_calc_values = np.sqrt(np.diag(cov_data.sandwich(Q).data))
-        cov_calc_values = pd.Series(cov_calc_values, index=Q.index)
+
         if keep_fy_index:
-            cfy_calc_values = cfy_calc_values.reindex(original_index).fillna(0)
-            cov_calc_values = cov_calc_values.reindex(original_index).fillna(0)
-        calc_values = cfy_calc_values.reset_index().rename(columns={'DAUGHTER': 'ZAP'})
-        calc_values['DFY'] = cov_calc_values.values
-        calc_values = calc_values.assign(MAT=mat, ZAM=zam, MT=459, E=energy)
+            cfy_calc_values = cfy_calc_values.reindex(original_index, fill_value=0)
+
+        # Build the final DataFrame in one go
+        calc_values = pd.DataFrame({
+            'ZAP': cfy_calc_values.index,
+            'FY': cfy_calc_values.values,
+            'DFY': 0,  # do not propagate uncertainty, set it to zero
+            'MAT': mat,
+            'ZAM': zam,
+            'MT': 459,
+            'E': energy
+        })
+
+        # Append the calculated values to the rest of the fission yield database
         data = pd.concat([data, calc_values], ignore_index=True)
         return self.__class__(data)
-    
+
     def gls_update(self, zam, energy, S, y_extra, Vy_extra=None):
         r"""
         Perform the GLS update of fission yields and their related covariance
