@@ -85,10 +85,10 @@ def parse(iargs=None):
 
     parser.add_argument('--mf',
                         type=int,
-                        default=[31, 33,],
+                        default=[31, 33, 35],
                         action='store',
                         nargs="+",
-                        metavar="{31,33}",
+                        metavar="{31,33,35}",
                         help="draw samples only from the selected MF sections "
                              "(default = keep all)")
 
@@ -253,7 +253,7 @@ def multi_run(foo):
 
     >>> file = "942410.jeff33"
     >>> sandy.get_endf6_file("jeff_33", "xs", 942410).to_file(file)
-    >>> cl = f"{file}" + " --samples 2 -O {SMP}-{ZAM} --seed33 1 --seed31 1 --mt33 2"
+    >>> cl = f"{file}" + " --samples 2 -O {SMP}-{ZAM} --seed33 1 --seed31 1 --seed35 1 --mt33 2"
     >>> sandy.sampling.run(cl.split())
 
     Now, let's interrupt the process after that the perturbations are
@@ -409,7 +409,7 @@ def run(iargs):
     nubar = bool(31 in iargs.mf) and (31 in endf6.mf)
     xs = bool(33 in iargs.mf) and (33 in endf6.mf or 32 in endf6.mf)  # this handles together MF32 and MF33
     mubar = False
-    chi = False
+    chi = bool(35 in iargs.mf) and (35 in endf6.mf)
     errorr_kws = dict(
         verbose=iargs.debug,
         err=err_errorr,
