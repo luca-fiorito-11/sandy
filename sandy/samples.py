@@ -95,6 +95,10 @@ class Samples():
         Return correlation matrix of samples.
     get_cov
         Return covariance matrix of samples.
+    get_eleft
+        Replace energy intervals with left bounds.
+    get_eright
+        Replace energy intervals with right bounds.
     get_mean
         Return mean vector of samples.
     get_std
@@ -168,6 +172,114 @@ class Samples():
 
     def get_cov(self):
         return self.data.T.cov()
+
+    def get_eright(self):
+        """
+        Create a new DataFrame with an updated index, where the 'E' level in the MultiIndex 
+        (representing energy intervals) is replaced by the right bound of each interval, 
+        and the original 'E' level is dropped. The new level is named 'ERIGHT'.
+    
+        The method performs the following steps:
+        1. Extracts the right bounds of the energy intervals in the 'E' level of the MultiIndex.
+        2. Constructs a new MultiIndex that includes the right bound values as a new level, 
+           and removes the original 'E' level.
+        3. Creates a copy of the current DataFrame, replacing the index with the newly 
+           constructed MultiIndex.
+        4. Returns the modified DataFrame with the updated index.
+    
+        Returns
+        -------
+        pd.DataFrame
+            A new DataFrame with the same data as the original, but with an updated MultiIndex 
+            where the 'E' level has been replaced by the 'ERIGHT' level.
+    
+        Notes
+        -----
+        - The method assumes that the original MultiIndex has a level named 'E', which contains 
+          intervals.
+        - The method will drop the 'E' level from the MultiIndex and replace it with the right bounds 
+          of the intervals, renaming the new level to 'ERIGHT'.
+
+        Examples
+        --------
+        >>> import sandy
+        >>> import numpy as np
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010)
+        >>> smps1 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=2, ek=[1, 2, 3])))[33]
+        >>> np.testing.assert_array_equal(smps1.get_eright().index.get_level_values("ERIGHT"), [2, 3])
+        >>> np.testing.assert_array_equal(smps1.get_eright().values, smps1.data.values)
+        """
+        multi_index = self.data.index
+
+        # right bound of the energy intervals, which will become the new level
+        new_level = [x.right for x in multi_index.get_level_values("E")]
+
+        # Add the new level and drop the EnergyInterval index
+        new_multi_index = pd.MultiIndex.from_tuples(
+            [(*old, new) for old, new in zip(multi_index, new_level)],
+            names=[*multi_index.names, "ERIGHT"]
+        ).droplevel("E")
+
+        # Create a copy of the samples with the new index
+        copy = self.data.copy()
+        copy.index = new_multi_index
+
+        # Return a dataframe, not the Samples object
+        return copy
+
+    def get_eleft(self):
+        """
+        Create a new DataFrame with an updated index, where the 'E' level in the MultiIndex 
+        (representing energy intervals) is replaced by the left bound of each interval, 
+        and the original 'E' level is dropped. The new level is named 'ELEFT'.
+    
+        The method performs the following steps:
+        1. Extracts the left bounds of the energy intervals in the 'E' level of the MultiIndex.
+        2. Constructs a new MultiIndex that includes the left bound values as a new level, 
+           and removes the original 'E' level.
+        3. Creates a copy of the current DataFrame, replacing the index with the newly 
+           constructed MultiIndex.
+        4. Returns the modified DataFrame with the updated index.
+    
+        Returns
+        -------
+        pd.DataFrame
+            A new DataFrame with the same data as the original, but with an updated MultiIndex 
+            where the 'E' level has been replaced by the 'ELEFT' level.
+    
+        Notes
+        -----
+        - The method assumes that the original MultiIndex has a level named 'E', which contains 
+          intervals.
+        - The method will drop the 'E' level from the MultiIndex and replace it with the left bounds 
+          of the intervals, renaming the new level to 'ELEFT'.
+
+        Examples
+        --------
+        >>> import sandy
+        >>> import numpy as np
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010)
+        >>> smps1 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=2, ek=[1, 2, 3])))[33]
+        >>> np.testing.assert_array_equal(smps1.get_eleft().index.get_level_values("ELEFT"), [1, 2])
+        >>> np.testing.assert_array_equal(smps1.get_eleft().values, smps1.data.values)
+        """
+        multi_index = self.data.index
+
+        # right bound of the energy intervals, which will become the new level
+        new_level = [x.left for x in multi_index.get_level_values("E")]
+
+        # Add the new level and drop the EnergyInterval index
+        new_multi_index = pd.MultiIndex.from_tuples(
+            [(*old, new) for old, new in zip(multi_index, new_level)],
+            names=[*multi_index.names, "ELEFT"]
+        ).droplevel("E")
+
+        # Create a copy of the samples with the new index
+        copy = self.data.copy()
+        copy.index = new_multi_index
+
+        # Return a dataframe, not the Samples object
+        return copy
 
     def get_std(self):
         return self.data.std(axis=1).rename("STD")

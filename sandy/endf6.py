@@ -3220,21 +3220,41 @@ def endf6_perturb_worker(e6, pendf, ismp,
     if plpc is not None:
         pass
 
-    # apply edistr perturbation
+    # Apply energy distribution (edistr) perturbation
     if pchi is not None:
-        # Applies the same perturbation to all incident particle energies and K
+        # Applies the same perturbation to all incident particle energies (EIN) and K
         edistr_pert = []
+        
+        # Group data by EIN and K for processing
         for (ein, k), df in sandy.Edistr.from_endf6(endf6_pert).data.groupby(['EIN', 'K']):
+            # Prepare dummy energy distribution data as a xs object
             dummy_xs = sandy.Xs(
-                df.rename({"EOUT": "E"}, axis=1).set_index(["MAT","MT"])[["E","VALUE"]].pivot(columns="E").T.droplevel(level=0)
+                df.rename({"EOUT": "E"}, axis=1)
+                  .set_index(["MAT","MT"])[["E","VALUE"]]
+                  .pivot(columns="E").T.droplevel(level=0)
             )
+
+            # Apply perturbation to dummy energy distribution
             dummy_xs_pert = sandy.xs.xs_perturb_worker(dummy_xs, ismp, pchi, verbose=verbose)
-            edistr_pert.append(
-                dummy_xs_pert.data.stack([1, 0]).to_frame().reset_index().rename({"E": "EOUT", 0: "VALUE"}, axis=1).assign(K=k, EIN=ein)[["MAT", "MT", "K", "EIN", "EOUT", "VALUE"]]  # sort columns to match Edistr.data
+            
+            # Transform xs data into edistr data and append perturbed data
+            perturbed_data = (
+                dummy_xs_pert.data.stack([1, 0], future_stack=True)  # Use future_stack=True to adopt the new behavior
+                .to_frame()
+                .reset_index()
+                .rename({"E": "EOUT", 0: "VALUE"}, axis=1)
+                .assign(K=k, EIN=ein)
+                [["MAT", "MT", "K", "EIN", "EOUT", "VALUE"]]
             )
-        endf6_pert = sandy.Edistr(
-                                pd.concat(edistr_pert, ignore_index=True)
-                                ).normalize().to_endf6(endf6_pert).update_intro()
+            edistr_pert.append(perturbed_data)
+
+        # Combine and normalize perturbed data, then update ENDF6
+        endf6_pert = (
+            sandy.Edistr(pd.concat(edistr_pert, ignore_index=True))
+            .normalize()
+            .to_endf6(endf6_pert)
+            .update_intro()
+            )
 
     # apply xs perturbation
     if pxs is not None:
