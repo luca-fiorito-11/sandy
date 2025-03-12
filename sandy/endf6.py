@@ -1002,11 +1002,18 @@ class _FormattedFile():
                  2       1.001000+3 9.991673-1          0          0  ...
                  102     1.001000+3 9.991673-1          0          0  ...
         dtype: object
-        
+
         Read file with trailing empty lines (top and bottom of the file) without error.
-        
+
         >>> text = sandy.get_endf6_file("jeff_33", 'xs', 10010).write_string()
-        >>> tape = sandy.Endf6.from_text(10 * "\n" + text + 10 * "\n")
+        >>> text_with_empty_lines = fr'''        
+        
+        {text}
+        
+        
+        ''')
+        >>> tape = sandy.Endf6.from_text(text_with_empty_lines)
+
         """
         df = pd.read_fwf(
             io.StringIO(text),
