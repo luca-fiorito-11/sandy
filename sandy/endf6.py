@@ -1006,7 +1006,7 @@ class _FormattedFile():
         Read file with trailing empty lines (top and bottom of the file) without error.
 
         >>> text = sandy.get_endf6_file("jeff_33", 'xs', 10010).write_string()
-        >>> text_with_empty_lines = 10 * "\\n" + "Hello" + 10 * "\\n"   
+        >>> text_with_empty_lines = 10 * "\\n" + text + 10 * "\\n"   
         >>> tape = sandy.Endf6.from_text(text_with_empty_lines)
 
         """
