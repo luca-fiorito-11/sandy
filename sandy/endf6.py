@@ -985,6 +985,7 @@ class _FormattedFile():
         Examples
         --------
         Read hydrogen tape from text.
+
         >>> file = "h1.endf"
         >>> sandy.get_endf6_file("jeff_33", "xs", 10010).to_file(file)
         >>> text = open(file).read()
@@ -1001,6 +1002,11 @@ class _FormattedFile():
                  2       1.001000+3 9.991673-1          0          0  ...
                  102     1.001000+3 9.991673-1          0          0  ...
         dtype: object
+        
+        Read file with trailing empty lines (top and bottom of the file) without error.
+        
+        >>> text = sandy.get_endf6_file("jeff_33", 'xs', 10010).write_string()
+        >>> tape = sandy.Endf6.from_text(10 * "\n" + text + 10 * "\n")
         """
         df = pd.read_fwf(
             io.StringIO(text),
@@ -1012,11 +1018,14 @@ class _FormattedFile():
             # whitespaces
             usecols=("MAT", "MF", "MT"),
             )
-        # use splitlines instead of readlines to remove "\n"
-        df["TEXT"] = text.splitlines()
-        #
+
+        # Use splitlines instead of readlines to remove "\n"
+        # The if clause removes empty lines.
+        df["TEXT"] = [line for line in text.splitlines() if line.split()]
+
         title = df["TEXT"].iloc[0]
         title_mat = df["MAT"].iloc[0]
+
         try:
             int(title_mat)
         except ValueError:
@@ -1024,6 +1033,7 @@ class _FormattedFile():
             df = df.iloc[1:].reset_index(drop=True)
         finally:
             df["MAT"] = df["MAT"].astype(int)
+
         condition = (df.MT > 0) & (df.MF > 0) & (df.MAT > 0)
         data = df[condition].groupby(["MAT", "MF", "MT"])\
                             .agg({"TEXT": "\n".join})\
