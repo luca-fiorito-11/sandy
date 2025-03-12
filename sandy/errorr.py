@@ -235,7 +235,7 @@ class Errorr(_FormattedFile):
         eg = pd.IntervalIndex.from_breaks(eg)  # multigroup
     
         # initialize global cov matrix with all MAT, MT
-        ix = pd.DataFrame(self.filter_by(listmf=[31, 33, 35]).data.keys(),
+        ix = pd.DataFrame(self.filter_by(listmf=[31, 33, 34, 35]).data.keys(),
                           columns=["MAT", "MF", "MT"])[["MAT", "MT"]]
         ix["IMIN"] = ix.index * eg.size
         ix["IMAX"] = (ix.index + 1) * eg.size
@@ -244,10 +244,17 @@ class Errorr(_FormattedFile):
         c = np.zeros((nsize, nsize))
         
         # Fill matrix
-        for mat, mf, mt in self.filter_by(listmf=[31, 33, 35]).data:
+        for mat, mf, mt in self.filter_by(listmf=[31, 33, 34, 35]).data:
             mf33 = read_mf33(self, mat, mt, 33 if mf == 31 else mf)
         
             for mt1, cov in mf33["COVS"].items():
+                
+                # it seems that when processing MF34 mubar, NJOY keeps 251 for MT
+                # but it sets MT1 to 1.
+                # Here we manually set MT1 back to 251.
+                if mf == 34 and mt1 == 1:
+                    mt1 = 251
+
                 ivals = ix.query("MAT==@mat & MT==@mt").squeeze()
                 imin, imax = ivals.IMIN, ivals.IMAX
                 jvals = ix.query("MAT==@mat & MT==@mt1").squeeze()
