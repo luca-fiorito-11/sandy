@@ -2305,25 +2305,41 @@ class Endf6(_FormattedFile):
         njoy_kws["mubar"] = False
         outs = self.get_errorr(**njoy_kws)
         filename = "PERT_{}_MF{}.xlsx"
-        filenamecov = "COV_{}_MF{}.tape"
+        filename_err = "ERRORR_{}_MF{}.tape"
 
-        # -- Extract samples from MF31 covariance data
-        if "errorr31" in outs:
-            outs["errorr31"].to_file(filenamecov.format(self.get_id(), 31))
-            xls = filename.format(self.get_id(), 31)
-            smp[31] = outs["errorr31"].get_cov().sampling(nsmp, to_excel=xls, seed=smp_kws.get("seed31"), **smp_kws)
+        # -- Extract samples from covariance data, iterate over MF31, 33 and 35
+        for k, out in outs.items():
 
-        # -- Extract samples from MF33 covariance data
-        if "errorr33" in outs:
-            outs["errorr33"].to_file(filenamecov.format(self.get_id(), 33))
-            xls = filename.format(self.get_id(), 33)
-            smp[33] = outs["errorr33"].get_cov().sampling(nsmp, to_excel=xls, seed=smp_kws.get("seed33"), **smp_kws)
+            # -- Get MF from keys of get_errorr ouput dictionary
+            mf = int(k[-2:])
+            logging.info(f" - Processing covariance matrix for MF={mf}...")
+            
+            # -- Print ERRORR tape to file
+            out.to_file(filename_err.format(self.get_id(), mf))
 
-        # -- Extract samples from MF35 covariance data
-        if "errorr35" in outs:
-            outs["errorr35"].to_file(filenamecov.format(self.get_id(), 35))
-            xls = filename.format(self.get_id(), 35)
-            smp[35] = outs["errorr35"].get_cov().sampling(nsmp, to_excel=xls, seed=smp_kws.get("seed35"), **smp_kws)
+            xls = filename.format(self.get_id(), mf)
+
+            # -- Extract covariance matrix
+            cov = out.get_cov()
+
+            # -- Extract sample
+            seed = smp_kws.get(f"seed{mf}")
+            smp[mf] = cov.sampling(nsmp, seed=seed, **smp_kws)
+
+            # -- Dump sample and cov to file
+            smp[mf].to_excel(xls)
+            cov.to_excel(xls)
+            
+            # Write to Excel
+            with pd.ExcelWriter(xls, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
+                
+                summary = sandy.samples.summarize_sample(smp[mf], cov)
+                df = pd.Series(summary, name="summary")
+                df.to_excel(writer, index=False, sheet_name="STATS SMP")
+
+                summary = cov.summarize()
+                df = pd.Series(summary, name="summary")
+                df.to_excel(writer, sheet_name="STATS COV")
 
         return smp
 
