@@ -375,9 +375,9 @@ class Samples():
         >>> data = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=["A", "B", "C"])
         >>> obj = Samples(data)
         >>> obj.get_std()
-        A    1.0
-        B    1.0
-        C    1.0
+        A   1.00000e+00
+        B   1.00000e+00
+        C   1.00000e+00
         Name: STD, dtype: float64
         """
         return self.data.std(axis=1).rename("STD")
