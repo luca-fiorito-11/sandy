@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
+from math import isnan
 import logging
 from numpy.linalg import norm as matrixnorm
 from scipy.stats import kstest, norm
@@ -82,15 +83,14 @@ def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
 
 
 
-def summarize_sample(s, cov, level=5):
+def summarize_sample(s, cov):
     """
-    Computes statistical summaries of sample covariance deviations from a reference covariance matrix.
+    Compute statistical summaries of sample covariance deviations from a reference covariance matrix.
 
-    This function compares the sample covariance matrix obtained from `s` against 
-    the reference covariance matrix `cov` using various matrix norms. It evaluates 
-    deviations in terms of total norm, diagonal norm, and off-diagonal norm. Additionally, 
-    it performs a stratified analysis by partitioning the sample into `level` groups 
-    and computes mean and standard deviation metrics for each subset.
+    This function quantifies deviations between the sample covariance matrix obtained 
+    from `s` and the reference covariance matrix `cov` using matrix norms. It evaluates 
+    the total deviation, diagonal deviation, and off-diagonal deviation. Additionally, 
+    it assesses normality and log-normality of the sample distribution.
 
     Parameters
     ----------
@@ -98,22 +98,65 @@ def summarize_sample(s, cov, level=5):
         An object containing sample data from which the sample covariance matrix is computed.
     cov : :obj:`~sandy.samples.CategoryCov`
         A DataFrame containing the reference covariance matrix for comparison.
-    level : int, optional
-        The number of partitions for stratified analysis. Default is 5.
 
     Returns
     -------
-    df : pd.DataFrame
-        A DataFrame summarizing the deviations of the sample covariance matrix from 
-        the reference covariance matrix across different metrics, sample sizes, and 
-        partitioning levels.
+    dict
+        A dictionary summarizing the deviations of the sample covariance matrix from 
+        the reference covariance matrix across different metrics.
+
+        - `"Sample Size"` : int  
+          The number of samples used.
+        - `"Frobenius Norm"` : float  
+          Relative Frobenius norm of the deviation matrix.
+        - `"Diag Frobenius Norm"` : float  
+          Relative Frobenius norm of the deviation in the diagonal elements.
+        - `"Off-Diag Frobenius Norm"` : float  
+          Relative Frobenius norm of the deviation in the off-diagonal elements.
+        - `"Frobenius Norm < 5%"` : bool  
+          Whether the total deviation is below 5%.
+        - `"Diag Frobenius Norm < 5%"` : bool  
+          Whether the diagonal deviation is below 5%.
+        - `"Off-Diag Frobenius Norm < 5%"` : bool  
+          Whether the off-diagonal deviation is below 5%.
+        - `"% Accept Normality Test"` : float  
+          Percentage of rows passing the Kolmogorov-Smirnov normality test.
+        - `"% Accept LogNormality Test"` : float  
+          Percentage of rows passing the log-normality test.
 
     Notes
     -----
-    - The function normalizes deviations using matrix norms.
-    - Three primary metrics are computed: total norm, diagonal norm, and off-diagonal norm.
-    - Stratified analysis is performed by dividing the sample into `level` groups, 
-      computing mean and standard deviation for each partition.
+    - The function normalizes deviations using the Frobenius norm.
+    - The diagonal and off-diagonal components are analyzed separately.
+    - Normality and log-normality tests are performed on the sample data.
+
+    Warnings
+    --------
+    If the sample size is less than 2, a warning is logged, and an empty dictionary is returned.
+
+    Examples
+    --------
+    Generate a sample covariance matrix and compare it to a reference:
+
+    >>> import numpy as np
+    >>> import sandy, pytest
+    >>> mean = [1, 1]
+    >>> ref_cov = sandy.CategoryCov([[0.1, 0.03], [0.03, 0.05]])
+    >>> rng = np.random.default_rng(42)
+    >>> samples = rng.multivariate_normal(mean, ref_cov.data, 10).T
+    >>> samples = sandy.Samples(samples)
+    >>> out = sandy.samples.summarize_sample(samples, ref_cov)
+    >>> expected = {
+    ...    'Sample Size': 10,
+    ...    'Frobenius Norm': 0.42515077325028816,
+    ...    'Diag Frobenius Norm': 0.2977355253229127,
+    ...    'Off-Diag Frobenius Norm': 0.9057501298621863,
+    ...    'Frobenius Norm < 5%': False,
+    ...    'Diag Frobenius Norm < 5%': False,
+    ...    'Off-Diag Frobenius Norm < 5%': False,
+    ...    '% Accept Normality Test': 100.0,
+    ...    '% Accept LogNormality Test': 100.0}
+    >>> assert out == pytest.approx(expected, rel=1e-2)
 
     """
 
@@ -122,11 +165,9 @@ def summarize_sample(s, cov, level=5):
     SC = s.get_cov().values
     N = s.data.shape[1]
 
-    level_ = level
-    if level_ > N:
-        logging.warning(f"summary level cannot be larger than half the sample size. Reset to {N // 2}")
-        level_ = N // 2
-    
+    if N < 2:
+        logging.warning(f"cannot produce sample summary because sample size is {N}")
+        return {}
 
     # Compute reference norms
     ref_total = matrixnorm(C)
@@ -139,7 +180,9 @@ def summarize_sample(s, cov, level=5):
 
     # test normality and lognomality
     test_norm = s.test_normality().values
+    percent_normal = test_norm.sum() / test_norm.size * 100
     test_lognorm = s.test_normality(lognormal=True).values
+    percent_lognormal = test_lognorm.sum() / test_lognorm.size * 100
 
     # Compute overall metrics
     summary = {
@@ -150,8 +193,8 @@ def summarize_sample(s, cov, level=5):
         "Frobenius Norm < 5%": diff_total / ref_total < 0.05,
         "Diag Frobenius Norm < 5%": diff_diag / ref_diag < 0.05,
         "Off-Diag Frobenius Norm < 5%": diff_offdiag / ref_offdiag < 0.05,
-        "% Accept Normality Test": test_norm.sum() / test_norm.size * 100,
-        "% Accept LogNormality Test": test_lognorm.sum() / test_lognorm.size * 100,
+        "% Accept Normality Test": percent_normal,
+        "% Accept LogNormality Test": percent_lognormal,
         }
     return summary
 
@@ -159,31 +202,49 @@ def summarize_sample(s, cov, level=5):
 
 class Samples():
     """
-    Container for samples.
-    
+    A container for managing and analyzing Monte Carlo samples of nuclear data.
+
+    This class provides a structured way to store, manipulate, and analyze samples 
+    from nuclear data perturbations. It includes methods for computing statistical 
+    properties such as mean, standard deviation, covariance, and correlation matrices.
+    Additionally, it offers tools for data transformation, exporting, and normality 
+    testing.
+
     Attributes
     ----------
-    data
-        Dataframe of samples.
+    data : pd.DataFrame
+        A DataFrame containing the sample values, where:
+        - Rows represent individual nuclear reactions or energy bins.
+        - Columns represent different sample realizations.
 
     Methods
     -------
-    get_corr
-        Return correlation matrix of samples.
-    get_cov
-        Return covariance matrix of samples.
-    get_eleft
-        Replace energy intervals with left bounds.
-    get_eright
-        Replace energy intervals with right bounds.
-    get_mean
-        Return mean vector of samples.
-    get_std
-        Return standard deviation vector of samples.
-    get_rstd
-        Return relative standard deviation vector of samples.   
-    iterate_xs_samples
-        Generator that iterates over each sample (in the form of :obj:`~sandy.xs.Xs`).
+    apply_function(func)
+        Apply a function to each sample.
+    from_excel(file, beg=None, end=None)
+        Load sample data from an Excel file.
+    get_corr()
+        Compute and return the correlation matrix of the samples.
+    get_cov()
+        Compute and return the covariance matrix of the samples.
+    get_eleft()
+        Replace energy intervals with their left bounds.
+    get_eright()
+        Replace energy intervals with their right bounds.
+    get_mean()
+        Compute and return the mean values of the samples.
+    get_std()
+        Compute and return the standard deviation of the samples.
+    get_rstd()
+        Compute and return the relative standard deviation of the samples.
+    iterate_xs_samples()
+        Generator that iterates over each sample as an `Xs` object.
+    test_normality(lognormal=False, alpha=0.05)
+        Perform a Kolmogorov-Smirnov test for normality.
+    to_excel(file)
+        Export sample data to an Excel file.
+    truncate_normal()
+        Truncate negative and extreme values in normally distributed samples.
     """
 
     _columnsname = "SMP"
@@ -220,34 +281,82 @@ class Samples():
         self._data = data.rename_axis(self.__class__._columnsname, axis=1)
         self._data.columns = self._data.columns.astype(int)
 
-    def get_condition_number(self):
-        """
-        Return condition number of samples.
-
-        Notes
-        -----
-        ..note:: The condition number can help assess multicollinearity.
-        """
-        # The first step is to normalize the independent variables to have
-        # unit length
-        X = self.data.T.copy()
-        norm_x = X.values
-        for i, name in enumerate(X):
-            norm_x[:, i] = X[name] / np.linalg.norm(X[name])
-        norm_xtx = np.dot(norm_x.T, norm_x)
-
-        # Then, we take the square root of the ratio of the biggest to the
-        # smallest eigen values
-        eigs = np.linalg.eigvals(norm_xtx)
-        return np.sqrt(eigs.max() / eigs.min())
-
     def get_mean(self):
+        """
+        Compute the mean of each row in the dataset.
+    
+        This method calculates the mean along axis 1 (row-wise) and returns a pandas Series.
+    
+        Returns
+        -------
+        pd.Series
+            A Series containing the mean value for each row.
+            The index matches `self.data.index`, and the series is named "MEAN".
+    
+        Examples
+        --------
+        >>> import sandy
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], index=["row1", "row2"])
+        >>> obj = sandy.Samples(df)
+        >>> obj.get_mean()
+        row1    2.00000e+00
+        row2    5.00000e+00
+        Name: MEAN, dtype: float64
+
+        """
         return self.data.mean(axis=1).rename("MEAN")
 
     def get_corr(self):
+        """
+        Compute the correlation matrix of the dataset.
+    
+        This method calculates the Pearson correlation coefficients between columns 
+        in `self.data` and returns a correlation matrix.
+    
+        Returns
+        -------
+        pd.DataFrame
+            A square matrix where each entry (i, j) represents the Pearson correlation 
+            coefficient between column i and column j.
+    
+        Examples
+        --------
+        >>> import sandy
+        >>> df = pd.DataFrame({0: [1, 2, 1], 1: [2, 4, 3], 2: [3, 6, 2]}, index=["A", "B", "C"])
+        >>> obj = sandy.Samples(df)
+        >>> obj.get_corr()
+                 A         B         C
+        A  1.00000e+00  1.00000e+00  5.00000e-01
+        B  1.00000e+00  1.00000e+00  5.00000e-01
+        C  5.00000e-01  5.00000e-01  1.00000e+00
+        """
         return self.data.T.corr()
 
     def get_cov(self):
+        """
+        Compute the covariance matrix of the dataset.
+    
+        This method calculates the covariance between columns in `self.data` and 
+        returns a covariance matrix.
+    
+        Returns
+        -------
+        pd.DataFrame
+            A square matrix where each entry (i, j) represents the covariance between 
+            column i and column j.
+    
+        Examples
+        --------
+        >>> import sandy
+        >>> df = pd.DataFrame({0: [1, 2, 1], 1: [2, 4, 3], 2: [3, 6, 2]}, index=["A", "B", "C"])
+        >>> obj = sandy.Samples(df)
+        >>> obj.get_cov()
+                 A         B         C
+        A  1.00000e+00  2.00000e+00  5.00000e-01
+        B  2.00000e+00  4.00000e+00  1.00000e+00
+        C  5.00000e-01  1.00000e+00  1.00000e+00
+    
+        """
         return self.data.T.cov()
 
     def get_eright(self):
@@ -285,6 +394,7 @@ class Samples():
         >>> smps1 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=2, ek=[1, 2, 3])))[33]
         >>> np.testing.assert_array_equal(smps1.get_eright().index.get_level_values("ERIGHT"), [2, 3])
         >>> np.testing.assert_array_equal(smps1.get_eright().values, smps1.data.values)
+
         """
         multi_index = self.data.index
 
@@ -298,7 +408,8 @@ class Samples():
         ).droplevel("E")
 
         # Create a copy of the samples with the new index
-        copy = self.data.copy()
+        # deep=True prevents overwriting self
+        copy = self.data.copy(deep=True)
         copy.index = new_multi_index
 
         # Return a dataframe, not the Samples object
@@ -339,7 +450,9 @@ class Samples():
         >>> smps1 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=2, ek=[1, 2, 3])))[33]
         >>> np.testing.assert_array_equal(smps1.get_eleft().index.get_level_values("ELEFT"), [1, 2])
         >>> np.testing.assert_array_equal(smps1.get_eleft().values, smps1.data.values)
+
         """
+
         multi_index = self.data.index
 
         # right bound of the energy intervals, which will become the new level
@@ -352,7 +465,8 @@ class Samples():
         ).droplevel("E")
 
         # Create a copy of the samples with the new index
-        copy = self.data.copy()
+        # deep=True prevents overwriting self
+        copy = self.data.copy(deep=True)
         copy.index = new_multi_index
 
         # Return a dataframe, not the Samples object
@@ -379,6 +493,7 @@ class Samples():
         B   1.00000e+00
         C   1.00000e+00
         Name: STD, dtype: float64
+
         """
         return self.data.std(axis=1).rename("STD")
     
@@ -404,13 +519,15 @@ class Samples():
         --------
         >>> import pandas as pd
         >>> import numpy as np
+        >>> import sandy
         >>> data = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=["A", "B", "C"])
-        >>> obj = Samples(data)
+        >>> obj = sandy.Samples(data)
         >>> obj.get_rstd()
-        A    0.5
-        B    0.2
-        C    0.142857
+        A   5.00000e-01
+        B   2.00000e-01
+        C   1.25000e-01
         Name: RSTD, dtype: float64
+
         """
         return (self.get_std() / self.get_mean()).rename("RSTD")
 
@@ -434,6 +551,7 @@ class Samples():
         
         Test that this method can be used to shift samples.
 
+        >>> import sandy
         >>> smp = sandy.Samples([[1, 1], [1, 1]])
         >>> shifted_smp = smp.apply_function(lambda x: x + 1).data
         >>> np.testing.assert_array_equal(shifted_smp, np.ones((2, 2)) * 2)
@@ -469,6 +587,7 @@ class Samples():
         
         Test mode 1.
 
+        >>> import sandy
         >>> smp = sandy.Samples([[3, 1], [-2, 0.5]])
         >>> smp_1 = smp.truncate_normal(mode=1).data
         >>> np.testing.assert_array_equal(smp_1, [[2, 1], [0, 0.5]])
@@ -531,9 +650,34 @@ class Samples():
         - The KS test compares each row’s empirical distribution to a standard normal distribution.
         - Rows with constant values (zero standard deviation) are excluded from the test.
         - The result is a boolean series where `True` indicates normality.
+    
+        Examples
+        --------
+
+        >>> import numpy as np
+        >>> import pandas as pd
+        >>> from sandy.samples import Samples
+        >>> rng = np.random.default_rng(42)
+    
+        Generate a normal dataset (should pass the normality test).
+            
+        >>> normal_data = rng.normal(loc=0, scale=1, size=(5, 1000))
+        >>> samples = Samples(pd.DataFrame(normal_data))
+        >>> normality_result = samples.test_normality()
+        >>> assert normality_result.all()  # All rows should be normally distributed
+    
+        Generate a lognormal dataset (should fail normality test but pass lognormal test).
+
+        >>> lognormal_data = np.exp(normal_data)
+        >>> samples = Samples(pd.DataFrame(lognormal_data))
+        >>> normality_result = samples.test_normality()
+        >>> assert not normality_result.any()  # Lognormal data should fail the normality test
+        >>> lognormality_result = samples.test_normality(lognormal=True)
+        >>> assert lognormality_result.all()  # Lognormal data should pass when tested for lognormality
+
         """
         # Convert data to a NumPy array
-        s = self.data.values
+        s = self.data.copy().values
 
         if lognormal:
             s = np.log(s)
@@ -549,13 +693,14 @@ class Samples():
    
         # Perform KS test for each row and store p-values
         p_values = np.array([kstest(row, norm.cdf).pvalue for row in standardized_data])
-        
+
         # Determine normality based on alpha threshold
         normality_results = p_values > alpha
     
         # Return results as a pandas Series
-        return pd.Series(normality_results, index=self.data.index[valid_rows], name="KS TEST")
-        
+        series = pd.Series(normality_results, index=self.data.index[valid_rows], name="KS TEST")
+        return series
+
     def to_excel(self, file):
         """
         Save the sample dataset to an Excel file.
@@ -581,9 +726,38 @@ class Samples():
           'ELEFT' (left bound) and 'ERIGHT' (right bound) before being removed.
         - The data is saved in a sheet named 'SMP' using the 'openpyxl' engine.
         - If the file already exists, the function appends the data instead of overwriting it.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> from sandy.samples import Samples
+        >>> from pandas import Interval
+    
+        Create sample data with an interval index.
+
+        >>> data = pd.DataFrame(
+        ...     {
+        ...         "MT": [102, 102, 18, 18],
+        ...         "E": [Interval(1e-5, 1.0), Interval(1.0, 20.0), Interval(1e-5, 1.0), Interval(1.0, 20.0)],
+        ...         0: [1.01, 0.99, 1.02, 1.03],
+        ...         1: [1.02, 1.00, 1.01, 1.05],
+        ...     }
+        ... ).set_index(["MT", "E"])
+        
+        >>> samples = Samples(data)
+        >>> samples.to_excel("test_output.xlsx")
+    
+        Read the data back and check correctness.
+
+        >>> df_read = pd.read_excel("test_output.xlsx", sheet_name="SMP")
+        >>> assert "ELEFT" in df_read.columns and "ERIGHT" in df_read.columns
+        >>> assert df_read.shape == (4, 5)  # Expect 4 rows and 5 columns including ELEFT and ERIGHT
+
         """
         # Reset index and prepare data
-        df = self.data
+        # deep=True makes also a copy of the metadata, or else the index of self will be change
+        df = self.data.copy(deep=True)
     
         if "E" in df.index.names:
             index_df = df.index.to_frame()
@@ -596,12 +770,12 @@ class Samples():
             # Convert back to MultiIndex
             df.index = pd.MultiIndex.from_frame(index_df)
 
-        df = self.data.reset_index()
+        df = df.reset_index()
 
         # Determine write mode
         mode = "a" if os.path.exists(file) else "w"
         if_sheet_exists = "replace" if mode == "a" else None
-    
+
         # Write to Excel
         with pd.ExcelWriter(file, mode=mode, engine="openpyxl", if_sheet_exists=if_sheet_exists) as writer:
             df.to_excel(writer, index=False, sheet_name="SMP")
@@ -714,6 +888,8 @@ class Samples():
 
         >>> assert(next(smps[35].iterate_xs_samples())[1].shape == (240, 5))
         """
+        # the tests in this docstrings are very slow...might improve it
+        
         levels = Xs._columnsnames
         df = self.data.unstack(level=levels)
         
@@ -760,9 +936,10 @@ class Samples():
     @classmethod
     def from_excel(cls, file, beg=None, end=None):
         """
-        Read perturbation coefficients (for nubar and xs) from excel file.
-        The file format is compatible with what written in
-        :obj:`~sandy.cov.CategoryCov.sampling`
+        Read perturbation coefficients (for nubar and xs) from an Excel file.
+        
+        The file format should be compatible with what is written in 
+        :obj:`~sandy.samples.Samples.to_excel`.
         
         Parameters
         ----------
@@ -777,6 +954,34 @@ class Samples():
         -------
         smp : :obj:`~sandy.samples.Samples`
             Samples dataframe.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> from sandy.samples import Samples
+    
+        Create a sample Excel file.
+
+        >>> data = {
+        ...     "MT": [102, 102, 18, 18],
+        ...     "ELEFT": [1e-5, 1.0, 1e-5, 1.0],
+        ...     "ERIGHT": [1.0, 20.0, 1.0, 20.0],
+        ...     0: [1.01, 0.99, 1.02, 1.03],
+        ...     1: [1.02, 1.00, 1.01, 1.05],
+        ... }
+        >>> df = pd.DataFrame(data)
+        >>> df.to_excel("test_samples.xlsx", sheet_name="SMP", index=False)
+    
+        Read the data back.
+
+        >>> samples = Samples.from_excel("test_samples.xlsx")
+        
+        Check the resulting dataframe.
+
+        >>> assert isinstance(samples, Samples)
+        >>> assert samples.data.shape == (4, 2)  # 4 rows, 2 samples
+
         """
         df = pd.read_excel(file, sheet_name="SMP")
         

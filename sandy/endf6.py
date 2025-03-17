@@ -2239,6 +2239,9 @@ class Endf6(_FormattedFile):
         .. note :: The perturbation method is selected based on the MT's found
                    in `self`.
         """
+        logging.info("########################################################")
+        logging.info("                GET PERTURBATIONS                       ")
+        logging.info("########################################################")
         # this could have been a decorator...
         if 457 in self.mt:
             out = self.get_perturbations_rdd(*args, **kwargs)
@@ -2302,8 +2305,10 @@ class Endf6(_FormattedFile):
         smp = {}
 
         # -- produce ERRORR files with covariance data
+        logging.info(" - Produce ERRORR file with NJOY...")
         njoy_kws["mubar"] = False
         outs = self.get_errorr(**njoy_kws)
+
         filename = "PERT_{}_MF{}.xlsx"
         filename_err = "ERRORR_{}_MF{}.tape"
 
@@ -2315,9 +2320,9 @@ class Endf6(_FormattedFile):
             logging.info(f" - Processing covariance matrix for MF={mf}...")
             
             # -- Print ERRORR tape to file
-            out.to_file(filename_err.format(self.get_id(), mf))
-
-            xls = filename.format(self.get_id(), mf)
+            xls = filename_err.format(self.get_id(), mf)
+            logging.info(f" - Writing ERRORR file to '{xls}'...")
+            out.to_file(xls)
 
             # -- Extract covariance matrix
             cov = out.get_cov()
@@ -2327,15 +2332,22 @@ class Endf6(_FormattedFile):
             smp[mf] = cov.sampling(nsmp, seed=seed, **smp_kws)
 
             # -- Dump sample and cov to file
+            xls = filename.format(self.get_id(), mf)
+            logging.info(f" - Writing perturbation file '{xls}'...")
             smp[mf].to_excel(xls)
             cov.to_excel(xls)
             
             # Write to Excel
             with pd.ExcelWriter(xls, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
                 
-                summary = sandy.samples.summarize_sample(smp[mf], cov)
+                if nsmp > 1:
+                    summary = sandy.samples.summarize_sample(smp[mf], cov)
+                else:
+                    # don't call the sample summary for nmsp=1 to avoid warnings
+                    summary = {}
+
                 df = pd.Series(summary, name="summary")
-                df.to_excel(writer, index=False, sheet_name="STATS SMP")
+                df.to_excel(writer, sheet_name="STATS SMP")
 
                 summary = cov.summarize()
                 df = pd.Series(summary, name="summary")
@@ -2516,11 +2528,12 @@ class Endf6(_FormattedFile):
         `zap=451140` and `461140`, which in the source data is larger than 0.9.
 
         >>> smps = tape.get_perturbations_fy(50, nfpy=nfpy, covariance=None)
-        >>> data = smps2.query("ZAP in [451140, 461140] & E==0.0253").pivot_table(index="ZAP", columns="SMP", values="VALS")
+        >>> data = smps.query("ZAP in [451140, 461140] & E==0.0253").pivot_table(index="ZAP", columns="SMP", values="VALS")
         >>> assert np.corrcoef(data)[0, 1] < 0.3
         >>> smps = tape.get_perturbations_fy(50, nfpy=nfpy, covariance='cea')
         >>> data = smps.query("ZAP in [451140, 461140] & E==0.0253").pivot_table(index="ZAP", columns="SMP", values="VALS")
         >>> assert np.corrcoef(data)[0, 1] > 0.9
+
         """
         
         from .cov import CategoryCov              # lazy import to avoid circular import issue
@@ -2549,14 +2562,16 @@ class Endf6(_FormattedFile):
             # this is a Samples instance, I cannot pass a seed because it would be used for all fissioning systems
             smp = rcov.sampling(nsmp, seed=random.randrange(2**32 - 1))
             # this is not a Samples instance anymore
-            smp = smp.data.rename_axis(index="ZAP").\
-                       stack().rename("VALS").reset_index(). \
-                       assign(E=e, ZAM=zam)[["ZAM", "E", "ZAP", "SMP", "VALS"]]  # add energy and ZAM and sort keys
+            smp = (
+                smp.data.rename_axis(index="ZAP").
+                stack().rename("VALS").reset_index().
+                assign(E=e, ZAM=zam)[["ZAM", "E", "ZAP", "SMP", "VALS"]]  # add energy and ZAM and sort keys
+                )
             smps.append(smp)
 
         # stack with all samples for all ZAM, energy and ZAP
         smps = pd.concat(smps, ignore_index=True)
-                          
+
         xlsx_file = 'PERT_MF8_MT454.xlsx'
         logging.info(f"writing to file '{xlsx_file}'...")
         with pd.ExcelWriter(xlsx_file) as writer:
@@ -2595,6 +2610,10 @@ class Endf6(_FormattedFile):
         >>> smps = taped.get_perturbations(2, rdd=rdd)
         >>> assert not tape.apply_perturbations(smps, rdd=rdd)
         """
+        logging.info("########################################################")
+        logging.info("              APPLY PERTURBATIONS                       ")
+        logging.info("########################################################")
+
         # this could have been a decorator...same as get_perturbations
         if 457 in self.mt:
             out = self.apply_perturbations_rdd(*args, **kwargs)
