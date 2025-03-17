@@ -2339,7 +2339,7 @@ class Endf6(_FormattedFile):
                 xls = filename.format(self.get_id(), mf)
                 logging.info(f" - Writing perturbation file '{xls}'...")
                 smp[mf].to_excel(xls)
-                cov.to_excel(xls)
+                # cov.to_excel(xls)
             
                 # Write sample and cov stats to Excel
                 with pd.ExcelWriter(xls, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:

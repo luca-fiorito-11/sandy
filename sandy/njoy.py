@@ -1262,7 +1262,7 @@ def _prepare_njoy_input(
     g = 39
     if groupr_:
         if len(temperatures) > 1:
-            logging.info("Multiple temperatures were requested.\nGROUPR will only process the first.")
+            logging.warning("Multiple temperatures were requested.\nGROUPR will only process the first.")
         temperature = temperatures[0]
         text += _groupr_input(-e, -p, -g, 
                               mat=mat, temperature=temperature,
@@ -1273,7 +1273,7 @@ def _prepare_njoy_input(
     # this part produces a maximimum of four ERRORR files, one per data type
     if errorr33 or errorr31 or errorr34 or errorr35:
         if len(temperatures) > 1:
-            logging.info("Multiple temperatures were requested.\nERRORR will only process the first.")
+            logging.warning("Multiple temperatures were requested.\nERRORR will only process the first.")
         temperature = temperatures[0]
     if errorr33:
         # for xs use a GENDF file only if explicitely asked, not just if
@@ -1381,7 +1381,7 @@ def process_neutron(
         suffixes_ = ["." + get_temperature_suffix(t, meta_) for t in temperatures_]
     text = _prepare_njoy_input(mat, temperatures_, suffixes_, **kwargs)
     if verbose:
-        print(text)
+        logging.info(text)
 
     # Run njoy
     if dryrun:

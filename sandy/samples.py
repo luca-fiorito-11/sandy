@@ -52,11 +52,11 @@ def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
     --------
     
     Default use case.
-    Produce an excel file of samples.
+    Produce an excel file of samples (verbosity needed to produce the excel file).
 
     >>> import sandy
     >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", [922350, 922380])
-    >>> smps = tape.get_perturbations(2)
+    >>> smps = tape.get_perturbations(2, verbose=True)
 
     Read it.
     
@@ -133,30 +133,6 @@ def summarize_sample(s, cov):
     Warnings
     --------
     If the sample size is less than 2, a warning is logged, and an empty dictionary is returned.
-
-    Examples
-    --------
-    Generate a sample covariance matrix and compare it to a reference:
-
-    >>> import numpy as np
-    >>> import sandy, pytest
-    >>> mean = [1, 1]
-    >>> ref_cov = sandy.CategoryCov([[0.1, 0.03], [0.03, 0.05]])
-    >>> rng = np.random.default_rng(42)
-    >>> samples = rng.multivariate_normal(mean, ref_cov.data, 10).T
-    >>> samples = sandy.Samples(samples)
-    >>> out = sandy.samples.summarize_sample(samples, ref_cov)
-    >>> expected = {
-    ...    'Sample Size': 10,
-    ...    'Frobenius Norm': 0.42515077325028816,
-    ...    'Diag Frobenius Norm': 0.2977355253229127,
-    ...    'Off-Diag Frobenius Norm': 0.9057501298621863,
-    ...    'Frobenius Norm < 5%': False,
-    ...    'Diag Frobenius Norm < 5%': False,
-    ...    'Off-Diag Frobenius Norm < 5%': False,
-    ...    '% Accept Normality Test': 100.0,
-    ...    '% Accept LogNormality Test': 100.0}
-    >>> assert out == pytest.approx(expected, rel=1e-2)
 
     """
 

@@ -16,7 +16,8 @@ __all__ = []
 
 
 def parse(iargs=None):
-    """Parse command line arguments for sampling option.
+    """
+    Parse command line arguments for sampling option.
 
     Parameters
     ----------
@@ -30,6 +31,10 @@ def parse(iargs=None):
         namespace object containing processed given arguments and/or default
         options.
     """
+    if iargs:
+        command_line = " ".join(iargs)
+        logging.info(f" - Parsing input file options...\n\t{command_line}")
+
     description = "Produce perturbed files containing sampled parameters that represent the information stored in the evaluated nuclear data covariances."""
     parser = argparse.ArgumentParser(
                         prog="sandy",
@@ -178,8 +183,10 @@ def parse(iargs=None):
                         help="SANDY's version.")
 
     init = parser.parse_known_args(args=iargs)[0]
+
     if init.acer and not init.temperatures:
         parser.error("--acer requires --temperatures")
+
     return init
 
 
@@ -368,8 +375,11 @@ def run(iargs):
         "critical": logging.CRITICAL,
     }
     logging.getLogger().setLevel(loglevels[iargs.loglevel])
-    logging.info(f"processing file: '{iargs.file}'")
+    logging.info(f" - Processing file: '{iargs.file}'...")
 
+    # verbosity is activated if
+    # - debug options are requested
+    # need to write perturbations (pert file only written when verbosity is on)
     verbose = iargs.debug or iargs.only_perturbations
 
     err_pendf = 0.01
@@ -443,12 +453,19 @@ def run(iargs):
         for mf in [31, 33, 34, 35]:
             xls = file.format(ID, mf)
             if os.path.isfile(xls):
+                logging.info(f" - Reading perturbations for MF={mf} from file '{xls}'...")
                 smps[mf] = Samples.from_excel(xls, beg=beg, end=end)
+
         if not smps:
             logging.warning(f"No perturbation file was found for {ID}")
 
     else:
-        smps = endf6.get_perturbations(iargs.samples, njoy_kws=errorr_kws, smp_kws=smp_kws)
+        smps = endf6.get_perturbations(
+            iargs.samples,
+            njoy_kws=errorr_kws,
+            smp_kws=smp_kws,
+            verbose=verbose,
+            )
 
     if iargs.only_perturbations:
         return smps

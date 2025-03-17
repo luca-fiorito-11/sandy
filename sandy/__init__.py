@@ -33,11 +33,24 @@ class Error(Exception):
     pass
 
 
-FORMAT = '%(levelname)s:  %(message)s'
-logging.basicConfig(format=FORMAT)
-logging.getLogger().setLevel(logging.INFO)
-logging.getLogger().addHandler(ShutdownHandler(level=40))
-# logging.getLogger().addFilter(DuplicateFilter())
+class ConditionalFormatter(logging.Formatter):
+    """Change format dynamically based on log level."""
+    
+    FORMATS = {
+        logging.INFO: logging.Formatter('%(message)s'),  # No level prefix for INFO
+        'default': logging.Formatter('%(levelname)s:  %(message)s'),  # Default format
+    }
+    
+    def format(self, record):
+        formatter = self.FORMATS.get(record.levelno, self.FORMATS['default'])
+        return formatter.format(record)
+
+# Setup logging
+logger = logging.getLogger()
+handler = logging.StreamHandler()
+handler.setFormatter(ConditionalFormatter())  # Apply the custom formatter
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 
 __version__ = '1.1b1'
