@@ -2239,6 +2239,9 @@ class Endf6(_FormattedFile):
         .. note :: The perturbation method is selected based on the MT's found
                    in `self`.
         """
+        logging.info("########################################################")
+        logging.info("                GET PERTURBATIONS                       ")
+        logging.info("########################################################")
         # this could have been a decorator...
         if 457 in self.mt:
             out = self.get_perturbations_rdd(*args, **kwargs)
@@ -2300,30 +2303,59 @@ class Endf6(_FormattedFile):
         >>> assert (smps[35].data.index.get_level_values("MT") == 18).all()
         """
         smp = {}
+        
+        debug = kwargs.get("verbose", False)
 
         # -- produce ERRORR files with covariance data
+        logging.info(" - Produce ERRORR file with NJOY...")
         njoy_kws["mubar"] = False
         outs = self.get_errorr(**njoy_kws)
+
         filename = "PERT_{}_MF{}.xlsx"
-        filenamecov = "COV_{}_MF{}.tape"
+        filename_err = "ERRORR_{}_MF{}.tape"
 
-        # -- Extract samples from MF31 covariance data
-        if "errorr31" in outs:
-            outs["errorr31"].to_file(filenamecov.format(self.get_id(), 31))
-            xls = filename.format(self.get_id(), 31)
-            smp[31] = outs["errorr31"].get_cov().sampling(nsmp, to_excel=xls, seed=smp_kws.get("seed31"), **smp_kws)
+        # -- Extract samples from covariance data, iterate over MF31, 33 and 35
+        for k, out in outs.items():
 
-        # -- Extract samples from MF33 covariance data
-        if "errorr33" in outs:
-            outs["errorr33"].to_file(filenamecov.format(self.get_id(), 33))
-            xls = filename.format(self.get_id(), 33)
-            smp[33] = outs["errorr33"].get_cov().sampling(nsmp, to_excel=xls, seed=smp_kws.get("seed33"), **smp_kws)
+            # -- Get MF from keys of get_errorr ouput dictionary
+            mf = int(k[-2:])
+            logging.info(f" - Processing covariance matrix for MF={mf}...")
+            
+            # -- Print ERRORR tape to file
+            if debug:
+                xls = filename_err.format(self.get_id(), mf)
+                logging.info(f" - Writing ERRORR file to '{xls}'...")
+                out.to_file(xls)
 
-        # -- Extract samples from MF35 covariance data
-        if "errorr35" in outs:
-            outs["errorr35"].to_file(filenamecov.format(self.get_id(), 35))
-            xls = filename.format(self.get_id(), 35)
-            smp[35] = outs["errorr35"].get_cov().sampling(nsmp, to_excel=xls, seed=smp_kws.get("seed35"), **smp_kws)
+            # -- Extract covariance matrix
+            cov = out.get_cov()
+
+            # -- Extract sample
+            seed = smp_kws.get(f"seed{mf}")
+            smp[mf] = cov.sampling(nsmp, seed=seed, **smp_kws)
+
+            # -- Dump sample and cov to file
+            if debug:
+                xls = filename.format(self.get_id(), mf)
+                logging.info(f" - Writing perturbation file '{xls}'...")
+                smp[mf].to_excel(xls)
+                # cov.to_excel(xls)
+            
+                # Write sample and cov stats to Excel
+                with pd.ExcelWriter(xls, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
+                    
+                    if nsmp > 1:
+                        summary = sandy.samples.summarize_sample(smp[mf], cov)
+                    else:
+                        # don't call the sample summary for nmsp=1 to avoid warnings
+                        summary = {}
+    
+                    df = pd.Series(summary, name="summary")
+                    df.to_excel(writer, sheet_name="STATS SMP")
+
+                summary = cov.summarize()
+                df = pd.Series(summary, name="summary")
+                df.to_excel(writer, sheet_name="STATS COV")
 
         return smp
 
@@ -2394,6 +2426,9 @@ class Endf6(_FormattedFile):
         >>> with pytest.raises(ValueError) as exc_info:
         ...    sandy.get_endf6_file("jeff_33", "decay", 10010).get_perturbations(2)
         """
+        
+        debug = kwargs.get("verbose", False)
+
         # if already available in kwargs, do not extract DecayData again
         rdd = kwargs.get("rdd")
         if not rdd:
@@ -2424,12 +2459,13 @@ class Endf6(_FormattedFile):
             dbr = (br.data.DBR / br.data.BR).fillna(0)
             smp_br = sandy.CategoryCov.from_stdev(dbr).sampling(nsmp, **smp_br_kws)
         
-        xlsx_file = 'PERT_MF8_MT457.xlsx'
-        logging.info(f"writing to file '{xlsx_file}'...")
-        with pd.ExcelWriter(xlsx_file, engine="openpyxl") as writer:
-            smp_hl.data.to_excel(writer, sheet_name='HALF LIFE')
-            smp_de.data.to_excel(writer, sheet_name='DECAY ENERGY')
-            smp_br.data.to_excel(writer, sheet_name='BRANCHING RATIO')
+        if debug:
+            xlsx_file = 'PERT_MF8_MT457.xlsx'
+            logging.info(f"writing to file '{xlsx_file}'...")
+            with pd.ExcelWriter(xlsx_file, engine="openpyxl") as writer:
+                smp_hl.data.to_excel(writer, sheet_name='HALF LIFE')
+                smp_de.data.to_excel(writer, sheet_name='DECAY ENERGY')
+                smp_br.data.to_excel(writer, sheet_name='BRANCHING RATIO')
 
         smp = {
             "BR": smp_br,
@@ -2500,16 +2536,18 @@ class Endf6(_FormattedFile):
         `zap=451140` and `461140`, which in the source data is larger than 0.9.
 
         >>> smps = tape.get_perturbations_fy(50, nfpy=nfpy, covariance=None)
-        >>> data = smps2.query("ZAP in [451140, 461140] & E==0.0253").pivot_table(index="ZAP", columns="SMP", values="VALS")
+        >>> data = smps.query("ZAP in [451140, 461140] & E==0.0253").pivot_table(index="ZAP", columns="SMP", values="VALS")
         >>> assert np.corrcoef(data)[0, 1] < 0.3
         >>> smps = tape.get_perturbations_fy(50, nfpy=nfpy, covariance='cea')
         >>> data = smps.query("ZAP in [451140, 461140] & E==0.0253").pivot_table(index="ZAP", columns="SMP", values="VALS")
         >>> assert np.corrcoef(data)[0, 1] > 0.9
+
         """
-        
         from .cov import CategoryCov              # lazy import to avoid circular import issue
         from .fy import Fy, get_cea_fy           # lazy import to avoid circular import issue
         
+        debug = kwargs.get("verbose", False)
+
         # if already available in kwargs, do not extract fission yields again
         nfpy = kwargs.get("nfpy")
         if not nfpy:
@@ -2533,19 +2571,22 @@ class Endf6(_FormattedFile):
             # this is a Samples instance, I cannot pass a seed because it would be used for all fissioning systems
             smp = rcov.sampling(nsmp, seed=random.randrange(2**32 - 1))
             # this is not a Samples instance anymore
-            smp = smp.data.rename_axis(index="ZAP").\
-                       stack().rename("VALS").reset_index(). \
-                       assign(E=e, ZAM=zam)[["ZAM", "E", "ZAP", "SMP", "VALS"]]  # add energy and ZAM and sort keys
+            smp = (
+                smp.data.rename_axis(index="ZAP").
+                stack().rename("VALS").reset_index().
+                assign(E=e, ZAM=zam)[["ZAM", "E", "ZAP", "SMP", "VALS"]]  # add energy and ZAM and sort keys
+                )
             smps.append(smp)
 
         # stack with all samples for all ZAM, energy and ZAP
         smps = pd.concat(smps, ignore_index=True)
-                          
-        xlsx_file = 'PERT_MF8_MT454.xlsx'
-        logging.info(f"writing to file '{xlsx_file}'...")
-        with pd.ExcelWriter(xlsx_file) as writer:
-            for zam, smp in smps.groupby("ZAM"):
-                smp.pivot_table(index=["E", "ZAP"], columns="SMP", values="VALS").to_excel(writer, sheet_name=f"{zam}")
+
+        if debug:
+            xlsx_file = 'PERT_MF8_MT454.xlsx'
+            logging.info(f"writing to file '{xlsx_file}'...")
+            with pd.ExcelWriter(xlsx_file) as writer:
+                for zam, smp in smps.groupby("ZAM"):
+                    smp.pivot_table(index=["E", "ZAP"], columns="SMP", values="VALS").to_excel(writer, sheet_name=f"{zam}")
 
         return smps
 
@@ -2579,6 +2620,10 @@ class Endf6(_FormattedFile):
         >>> smps = taped.get_perturbations(2, rdd=rdd)
         >>> assert not tape.apply_perturbations(smps, rdd=rdd)
         """
+        logging.info("########################################################")
+        logging.info("              APPLY PERTURBATIONS                       ")
+        logging.info("########################################################")
+
         # this could have been a decorator...same as get_perturbations
         if 457 in self.mt:
             out = self.apply_perturbations_rdd(*args, **kwargs)
