@@ -2303,6 +2303,8 @@ class Endf6(_FormattedFile):
         >>> assert (smps[35].data.index.get_level_values("MT") == 18).all()
         """
         smp = {}
+        
+        debug = kwargs.get("verbose", False)
 
         # -- produce ERRORR files with covariance data
         logging.info(" - Produce ERRORR file with NJOY...")
@@ -2320,9 +2322,10 @@ class Endf6(_FormattedFile):
             logging.info(f" - Processing covariance matrix for MF={mf}...")
             
             # -- Print ERRORR tape to file
-            xls = filename_err.format(self.get_id(), mf)
-            logging.info(f" - Writing ERRORR file to '{xls}'...")
-            out.to_file(xls)
+            if debug:
+                xls = filename_err.format(self.get_id(), mf)
+                logging.info(f" - Writing ERRORR file to '{xls}'...")
+                out.to_file(xls)
 
             # -- Extract covariance matrix
             cov = out.get_cov()
@@ -2332,22 +2335,23 @@ class Endf6(_FormattedFile):
             smp[mf] = cov.sampling(nsmp, seed=seed, **smp_kws)
 
             # -- Dump sample and cov to file
-            xls = filename.format(self.get_id(), mf)
-            logging.info(f" - Writing perturbation file '{xls}'...")
-            smp[mf].to_excel(xls)
-            cov.to_excel(xls)
+            if debug:
+                xls = filename.format(self.get_id(), mf)
+                logging.info(f" - Writing perturbation file '{xls}'...")
+                smp[mf].to_excel(xls)
+                cov.to_excel(xls)
             
-            # Write to Excel
-            with pd.ExcelWriter(xls, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
-                
-                if nsmp > 1:
-                    summary = sandy.samples.summarize_sample(smp[mf], cov)
-                else:
-                    # don't call the sample summary for nmsp=1 to avoid warnings
-                    summary = {}
-
-                df = pd.Series(summary, name="summary")
-                df.to_excel(writer, sheet_name="STATS SMP")
+                # Write sample and cov stats to Excel
+                with pd.ExcelWriter(xls, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
+                    
+                    if nsmp > 1:
+                        summary = sandy.samples.summarize_sample(smp[mf], cov)
+                    else:
+                        # don't call the sample summary for nmsp=1 to avoid warnings
+                        summary = {}
+    
+                    df = pd.Series(summary, name="summary")
+                    df.to_excel(writer, sheet_name="STATS SMP")
 
                 summary = cov.summarize()
                 df = pd.Series(summary, name="summary")
@@ -2422,6 +2426,9 @@ class Endf6(_FormattedFile):
         >>> with pytest.raises(ValueError) as exc_info:
         ...    sandy.get_endf6_file("jeff_33", "decay", 10010).get_perturbations(2)
         """
+        
+        debug = kwargs.get("verbose", False)
+
         # if already available in kwargs, do not extract DecayData again
         rdd = kwargs.get("rdd")
         if not rdd:
@@ -2452,12 +2459,13 @@ class Endf6(_FormattedFile):
             dbr = (br.data.DBR / br.data.BR).fillna(0)
             smp_br = sandy.CategoryCov.from_stdev(dbr).sampling(nsmp, **smp_br_kws)
         
-        xlsx_file = 'PERT_MF8_MT457.xlsx'
-        logging.info(f"writing to file '{xlsx_file}'...")
-        with pd.ExcelWriter(xlsx_file, engine="openpyxl") as writer:
-            smp_hl.data.to_excel(writer, sheet_name='HALF LIFE')
-            smp_de.data.to_excel(writer, sheet_name='DECAY ENERGY')
-            smp_br.data.to_excel(writer, sheet_name='BRANCHING RATIO')
+        if debug:
+            xlsx_file = 'PERT_MF8_MT457.xlsx'
+            logging.info(f"writing to file '{xlsx_file}'...")
+            with pd.ExcelWriter(xlsx_file, engine="openpyxl") as writer:
+                smp_hl.data.to_excel(writer, sheet_name='HALF LIFE')
+                smp_de.data.to_excel(writer, sheet_name='DECAY ENERGY')
+                smp_br.data.to_excel(writer, sheet_name='BRANCHING RATIO')
 
         smp = {
             "BR": smp_br,
@@ -2535,10 +2543,11 @@ class Endf6(_FormattedFile):
         >>> assert np.corrcoef(data)[0, 1] > 0.9
 
         """
-        
         from .cov import CategoryCov              # lazy import to avoid circular import issue
         from .fy import Fy, get_cea_fy           # lazy import to avoid circular import issue
         
+        debug = kwargs.get("verbose", False)
+
         # if already available in kwargs, do not extract fission yields again
         nfpy = kwargs.get("nfpy")
         if not nfpy:
@@ -2572,11 +2581,12 @@ class Endf6(_FormattedFile):
         # stack with all samples for all ZAM, energy and ZAP
         smps = pd.concat(smps, ignore_index=True)
 
-        xlsx_file = 'PERT_MF8_MT454.xlsx'
-        logging.info(f"writing to file '{xlsx_file}'...")
-        with pd.ExcelWriter(xlsx_file) as writer:
-            for zam, smp in smps.groupby("ZAM"):
-                smp.pivot_table(index=["E", "ZAP"], columns="SMP", values="VALS").to_excel(writer, sheet_name=f"{zam}")
+        if debug:
+            xlsx_file = 'PERT_MF8_MT454.xlsx'
+            logging.info(f"writing to file '{xlsx_file}'...")
+            with pd.ExcelWriter(xlsx_file) as writer:
+                for zam, smp in smps.groupby("ZAM"):
+                    smp.pivot_table(index=["E", "ZAP"], columns="SMP", values="VALS").to_excel(writer, sheet_name=f"{zam}")
 
         return smps
 
