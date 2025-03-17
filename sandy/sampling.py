@@ -370,6 +370,8 @@ def run(iargs):
     logging.getLogger().setLevel(loglevels[iargs.loglevel])
     logging.info(f"processing file: '{iargs.file}'")
 
+    verbose = iargs.debug or iargs.only_perturbations
+
     err_pendf = 0.01
     err_ace = 0.01
     err_errorr = 0.1
@@ -385,7 +387,7 @@ def run(iargs):
             smps,
             processes=iargs.processes,
             to_file=True,
-            verbose=iargs.debug,
+            verbose=verbose,
         )
         return
 
@@ -399,7 +401,7 @@ def run(iargs):
             processes=iargs.processes,
             covariance=covariance,
             to_file=True,
-            verbose=iargs.debug,
+            verbose=verbose,
         )
         return       
 
@@ -411,7 +413,7 @@ def run(iargs):
     mubar = False
     chi = bool(35 in iargs.mf) and (35 in endf6.mf)
     errorr_kws = dict(
-        verbose=iargs.debug,
+        verbose=verbose,
         err=err_errorr,
         xs=xs,
         nubar=nubar,
@@ -459,7 +461,7 @@ def run(iargs):
 
     # PENDF KEYWORDS
     pendf_kws = dict(
-        verbose=iargs.debug,
+        verbose=verbose,
         err=err_pendf,
         minimal_processing=iargs.debug,
         njoy_output=njoy_output,
@@ -467,7 +469,7 @@ def run(iargs):
 
     # ACE KEYWORDS
     ace_kws = dict(
-        verbose=iargs.debug,
+        verbose=verbose,
         err=err_ace,
         minimal_processing=iargs.debug,
         temperature=temperature,
@@ -484,7 +486,7 @@ def run(iargs):
         filename=iargs.outname,
         njoy_kws=pendf_kws,
         ace_kws=ace_kws,
-        verbose=iargs.debug,
+        verbose=verbose,
     )
 
     return
