@@ -1560,7 +1560,7 @@ class Endf6(_FormattedFile):
                 msg = """Zero or no temperature was requested, NJOY processing will stop after RECONR.
     If you want to process 0K cross sections use `temperature=0.1`.
     """
-                logging.info(msg)
+                logging.warning(msg)
 
             # handle err
             reconr_kws = kwds_njoy.get("reconr_kws", {})
