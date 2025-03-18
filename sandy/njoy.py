@@ -1380,7 +1380,9 @@ def process_neutron(
         meta_ = 0 if zaid == "nndc" else meta
         suffixes_ = ["." + get_temperature_suffix(t, meta_) for t in temperatures_]
     text = _prepare_njoy_input(mat, temperatures_, suffixes_, **kwargs)
+
     if verbose:
+        logging.info(" - Dumping NJOY input file to output stream...")
         logging.info(text)
 
     # Run njoy

@@ -6,7 +6,6 @@ Created on Wed Dec  4 14:50:33 2019
 """
 import io
 import os
-import shutil
 from os.path import dirname, join
 from functools import reduce
 from tempfile import TemporaryDirectory
@@ -15,7 +14,7 @@ import urllib
 from urllib.request import urlopen, Request
 from zipfile import ZipFile
 import re
-import warnings
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import multiprocessing as mp
 import numpy as np
@@ -2294,7 +2293,8 @@ class Endf6(_FormattedFile):
         >>> assert isinstance(smps[33], sandy.Samples)
         >>> assert (smps[33].data.index.get_level_values("MT") == 102).all()
 
-        Test get perturbations from MF 35
+        Test get perturbations from MF 35.
+
         >>> njoy_kws = dict(err=1, errorr_kws=dict(mt=18))
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 922350)
         >>> smps = tape.get_perturbations(nsmp=2, njoy_kws=njoy_kws)
@@ -2334,7 +2334,7 @@ class Endf6(_FormattedFile):
             seed = smp_kws.get(f"seed{mf}")
             smp[mf] = cov.sampling(nsmp, seed=seed, **smp_kws)
 
-            # -- Dump sample and cov to file
+            # -- Dump sample to file
             if debug:
                 xls = filename.format(self.get_id(), mf)
                 logging.info(f" - Writing perturbation file '{xls}'...")
@@ -2637,64 +2637,77 @@ class Endf6(_FormattedFile):
 
     def apply_perturbations_xs(self, smps, processes=1, pendf=None, njoy_kws={}, **kwargs):
         """
-        Apply relative perturbations to the data contained in ENDF6 file.
-        At the moment only the procedure for cross sections and nubar is
-        implemented.
-        Options are included to directly convert perturbed PENDF data to ACE
-        and to write data on files.
-        
+        Apply relative perturbations to the cross-section (XS), nubar and
+        prompt fission neutron spectrum (chi) data in an ENDF6 file.
+    
+        This method perturbs reaction cross sections and nubar values based on provided 
+        perturbation samples. The process can be performed in parallel for efficiency. 
+        If a PENDF file is not provided, it will be generated automatically.
+    
         Parameters
         ----------
-        smps : `dict` of :obj:`~sandy.samples.Samples` instances
-            Relative perturbation coefficients.
-        processes : `int`, optional, default is `1`
-            Number of processes used to complete the task.
-            Creation of perturbed PENDF files and conversion to ACE 
-            format is done in parallel if `processes>1`.
-        pendf : :obj:`~sandy.endf6.Endf6` instance, optional, default is `None`
-            If given apply pertubrations to provided instance, or else generate
-            a pendf file from `self` (more time consuming).
-        njoy_kws : `dict`
-            Keyword arguments passed to :obj:`~sandy.endf6.Endf6.get_pendf`
-            to produce PENDF file.
-        **kwargs : `dict`
-            Keyword argument to produce ACE file plus keyword arguments
-            to pass to `endf6_perturb_worker`.
-
+        smps : dict of :obj:`~sandy.samples.Samples`
+            Dictionary containing relative perturbation coefficients for XS and nubar.
+            Expected keys:
+            - `31`: nubar perturbations
+            - `33`: cross-section perturbations
+            - `35`: chi perturbations
+        processes : int, optional, default=1
+            Number of parallel processes. If `processes > 1`, perturbations are applied in parallel.
+        pendf : :obj:`~sandy.endf6.Endf6`, optional, default=None
+            If provided, perturbations are applied to this PENDF file. 
+            Otherwise, a new PENDF file is generated from `self` (more time-consuming).
+        njoy_kws : dict, optional
+            Dictionary of keyword arguments for `sandy.endf6.Endf6.get_pendf`, 
+            used to generate a PENDF file if `pendf` is not provided.
+        **kwargs : dict, optional
+            Additional options for ACE file generation and arguments passed to :obj:`~sandy.endf6.endf6_perturb_worker`.
+    
         Returns
         -------
-        A dictionary of endf/pendf file or ace files depending on `to_ace`.  
-
+        dict
+            A dictionary (indexed by sample ID) of perturbed ENDF/PENDF files
+            or ACE files, depending on `to_ace` and `to_file` options.
+            - If `to_file=False` and `to_ace=False`: Returns a dictionary of `sandy.Endf6` objects (both `'endf6'` and `'pendf'`).
+            - If `to_file=True`: Saves perturbed files to disk and returns filenames.
+            - If `to_ace=True`: Generates ACE files and returns filenames.
+    
         Notes
         -----
-        .. note:: ACE file temperature. Two options are implemented:
-            
-                  - Generation of a PENDF file at 0K to which perturbations
-                    are applied. Then, Doppler-broadening to the 
-                    required temperature is done for every perturbed file when
-                    the ACE files are created.
-                  - Generation of a PENDF file at given temperature to which
-                    perturbations are applied.
-                    THe Doppler-broadeding is not performed when the ACE files
-                    are created.
-                    This approach takes into account implicit effects.
-                    
-                  The first option is implemented by default.
-                  The second option can be implemented with a specific set of
-                  keywords (see notebooks).
+        - **Temperature Treatment**:
+            - By default, perturbations are applied to a 0K PENDF, followed by Doppler broadening.
+            - Alternatively, perturbations can be applied directly to a temperature-specific PENDF.
+        - **Parallelization**:
+            - If `processes=1`, perturbations are applied sequentially.
+            - If `processes>1`, a `ProcessPoolExecutor` is used for parallel processing.
+        - **Supported Perturbations**:
+            - Nubar (`pnu`, MT=31)
+            - Cross-sections (`pxs`, MF=3)
+            - Chi (`pchi`, MF=5)
+    
         Examples
         --------
-        Example to produce and apply perturbations to Pu-239 xs and nubar.
-
+        Apply perturbations to Pu-239 XS and nubar.
+    
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 942390)
-        >>> smps = tape.get_perturbations(2, njoy_kws=dict(err=1, chi=False, mubar=False, errorr33_kws=dict(mt=[2, 4, 18]),), smp_kws=dict(seed31=1, seed33=3))
-        
-        Let's apply both nubar and xs perturbations, then only nubar and then only xs.
-
-        >>> outs_31_33 = tape.apply_perturbations(smps, njoy_kws=dict(err=1), processes=1)
-        >>> outs_31 = tape.apply_perturbations({31: smps[31]}, njoy_kws=dict(err=1), processes=1)
-        >>> outs_33 = tape.apply_perturbations({33: smps[33]}, njoy_kws=dict(err=1), processes=1)
-
+        >>> smps = tape.get_perturbations(
+        ...     2, 
+        ...     njoy_kws={"err": 1, "chi": False, "mubar": False, "errorr33_kws": {"mt": [2, 4, 18]}}, 
+        ...     smp_kws={"seed31": 1, "seed33": 3}
+        ... )
+    
+        Apply both nubar and XS perturbations.
+    
+        >>> outs_31_33 = tape.apply_perturbations_xs(smps, njoy_kws={"err": 1}, processes=1)
+    
+        Apply only nubar perturbations.
+    
+        >>> outs_31 = tape.apply_perturbations_xs({31: smps[31]}, njoy_kws={"err": 1}, processes=1)
+    
+        Apply only XS perturbations.
+    
+        >>> outs_33 = tape.apply_perturbations_xs({33: smps[33]}, njoy_kws={"err": 1}, processes=1)
+    
         Check that files are different for different samples.
 
         >>> for i in range(2):
@@ -2779,6 +2792,7 @@ class Endf6(_FormattedFile):
         >>> outs1 = endf6.apply_perturbations(smps, njoy_kws=dict(err=1))
         >>> outs2 = endf6.apply_perturbations(smps, pendf=pendf)
         >>> assert outs1[0]["pendf"].write_string() == outs2[0]["pendf"].write_string()
+
         """
 
         if 33 not in smps and 31 not in smps and 35 not in smps:
@@ -2800,53 +2814,73 @@ class Endf6(_FormattedFile):
             # as a covariance matrix and can be treated as xs
             data["pchi"] = smps[35].iterate_xs_samples()
 
+        # This dict indexed by sample will contain the output of the worker:
+        #    - either perturbed endf6 and pendf tape as `Endf6` objects
+        #    - or ace files as string
+        outs = {}
+
         if processes == 1:
-            outs = {}
+
+            logging.info(" - Apply XS perturbations in series...")
 
             while True:
                 kws = {}
-
-                # -- Iterate perturbation data (xs, nubar)
+                # -- Iterate perturbation data (xs, nubar, chi)
                 for k, v in data.items():
-                    item = next(v, False)
-                    if not item:
-                        break
-                    n, s = item
-                    kws[k] = s
-                if not item:
-                    break
-                kws.update(**kwargs)
-                outs[n] = endf6_perturb_worker(self.data, pendf_.data, n, **kws)
+                    try:
+                        n, s = next(v)  # Get the next (index, sample) from generator
+                        kws[k] = s  # Store sample with generator key
+                    except StopIteration:
+                        break  # Exit the loop immediately if any generator is exhausted
+        
+                else:  # Only executes if `for` loop completes normally (no `break`)
+                    kws.update(kwargs)  # Merge static kwargs
+
+                    # Call `endf6_perturb_worker` directly
+                    outs[n] = endf6_perturb_worker(self.data, pendf_.data, n, **kws)
+                    continue  # Continue to the next iteration
+        
+                break  # If any generator is exhausted, exit the while loop
 
         elif processes > 1:
-            pool = mp.Pool(processes=processes)
-            outs = {}
+            # switched from mp.Pool to ProcessPoolExecutor because compatible with windows
 
-            while True:
-                kws = {}
-                for k, v in data.items():
-                    item = next(v, False)
-                    if not item:
-                        break
-                    n, s = item
-                    kws[k] = s
-                if not item:
-                    break
-                kws.update(**kwargs)
-                outs[n] = pool.apply_async(
-                    endf6_perturb_worker,
-                    (self.data, pendf_.data, n),
-                    kws,
-                    )
+            logging.info(f" - Apply XS perturbations using a pool of {processes} workers...")
 
-            outs = {n: out.get() for n, out in outs.items()}
-            pool.close()
-            pool.join()
-
+            with ProcessPoolExecutor(max_workers=processes) as executor:
+                futures = {}
+            
+                while True:
+                    kws = {}
+                    # -- Iterate perturbation data (xs, nubar, chi)
+                    for k, v in data.items():
+                        try:
+                            n, s = next(v)  # Get the next (index, sample) from generator
+                            kws[k] = s  # Store sample with generator key
+                        except StopIteration:
+                            break  # Exit the loop immediately if any generator is exhausted
+            
+                    else:  # Only executes if `for` loop completes normally (no `break`)
+                        kws.update(kwargs)  # Merge static kwargs
+            
+                        # Submit to the process pool, calling `endf6_perturb_worker` directly
+                        futures[executor.submit(endf6_perturb_worker, self.data, pendf_.data, n, **kws)] = n
+                        continue  # Continue to the next iteration
+            
+                    break  # If any generator is exhausted, exit the while loop
+            
+                for future in as_completed(futures):
+                    n = futures[future]
+                    try:
+                        outs[n] = future.result()
+                    except Exception as e:
+                        print(f"Error in task {n}: {e}")  # Error handling
+        
         # if we keep ENDF6 and PENDF files in memory, convert them back into
         # sandy Endf6 instances (must do it here because Endf6 object cannot be pickled)
         if not kwargs.get("to_file", False) and not kwargs.get("to_ace", False):
             outs = {k: {k1: sandy.Endf6(v1) for k1, v1 in v.items()} for k, v in outs.items()}
+
         return outs
 
     def apply_perturbations_rdd(self, smps, processes=1, **kwargs):
@@ -3321,28 +3355,32 @@ def endf6_perturb_worker(e6, pendf, ismp,
 
     # Run NJOY and convert to ace
     if to_ace:
+
         temperature = ace_kws.get("temperature", 0)
         suffix = ace_kws.get("suffix", "." + sandy.njoy.get_temperature_suffix(temperature))
         ace = endf6_pert.get_ace(pendf=pendf_pert, **ace_kws)
 
         if to_file:
             outfiles = {}
+
             file = f"{fn}{suffix}c"
             with open(file, "w") as f:
-                if verbose:
-                    print(f"writing to file '{file}'")
+                logging.info(f" - Writing ACE file '{file}'")
                 f.write(ace["ace"])
             outfiles["ace"] = file
+
             file = f"{file}.xsd"
             with open(file, "w") as f:
-                if verbose:
-                    print(f"writing to file '{file}'")
+                logging.info(f"writing XSD file '{file}'")
                 f.write(ace["xsdir"])
             outfiles["xsdir"] = file
+
             return outfiles
+
         return ace
 
     else:
+
         out = {
             "endf6": endf6_pert.data,
             "pendf": pendf_pert.data,
