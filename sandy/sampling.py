@@ -55,22 +55,32 @@ def parse(iargs=None):
     parser.add_argument('--debug',
                         default=False,
                         action="store_true",
-                        help="activate debug options (err=1, verbose=True, minimal_processing=True)")
+                        help="Activate debug options (err=1, verbose=True, minimal_processing=True)")
 
     parser.add_argument('--fycov',
                         default=False,
                         action="store_true",
-                        help="use CEA covariance data for U-235 and Pu-239 thermal fission yields")
+                        help="Use CEA covariance data for U-235 and Pu-239 thermal fission yields")
 
     parser.add_argument("--from_perturbations",
                         default=False,
                         nargs=3,
-                        help="resume the sampling pipeline reading the "
+                        help="Resume the sampling pipeline reading the "
                              "perturbation coefficients from file\n"
-                             "The three entires are:\n"
+                             "The three entries are:\n"
                              " - directory where perturbation coefficients are stored\n"
                              " - first perturbation coefficient to consider\n"
                              " - last perturbation coefficient to consider")
+
+    parser.add_argument("--cov_energy_grid",
+                        default="csewg239",
+                        choices=["csewg239", "lanl30", "epri69", "ecco33"],
+                        help="Energy grid to process covariance matrix\n"
+                             "Allowed entries are:\n"
+                             " - csewg239 (default)\n"
+                             " - lanl30\n"
+                             " - epri69\n"
+                             " - ecco33")
 
     parser.add_argument('--loglevel',
                         type=str,
@@ -85,7 +95,7 @@ def parse(iargs=None):
                         action='store',
                         nargs="+",
                         metavar="{1,..,9999}",
-                        help="draw samples only from the selected MAT "
+                        help="Draw samples only from the selected MAT "
                              "sections (default = keep all)")
 
     parser.add_argument('--mf',
@@ -94,7 +104,7 @@ def parse(iargs=None):
                         action='store',
                         nargs="+",
                         metavar="{31,33,35}",
-                        help="draw samples only from the selected MF sections "
+                        help="Draw samples only from the selected MF sections "
                              "(default = keep all)")
 
     parser.add_argument('--mt33',
@@ -103,7 +113,7 @@ def parse(iargs=None):
                         action='store',
                         nargs="+",
                         metavar="{1,..,999}",
-                        help="draw samples only from the selected MT sections for MF33"
+                        help="Draw samples only from the selected MT sections for MF33"
                              "(default = keep all)")
 
     parser.add_argument('--njoy',
@@ -115,52 +125,52 @@ def parse(iargs=None):
     parser.add_argument("--only_perturbations",
                         default=False,
                         action="store_true",
-                        help="stop the sampling pipeline after the creation "
-                             "of perturbation the coefficients")
+                        help="Stop the sampling pipeline after the creation "
+                             "of perturbation coefficients")
 
     parser.add_argument('--outname', '-O',
                         type=str,
                         default="{ZA}_{SMP}",
-                        help="name template for the output files\n"
+                        help="Name template for the output files\n"
                              "(use formatting options in https://pyformat.info/ ,\n"
                              "available keywords are MAT, ZAM, ZA, META, SMP)")
 
     parser.add_argument('--processes', '-N',
                         type=int,
                         default=1,
-                        help="number of worker processes (default = 1)")
+                        help="Number of worker processes (default = 1)")
 
     parser.add_argument('--samples', '-S',
                         type=int,
                         default=200,
-                        help="number of samples (default = 200)")
+                        help="Number of samples (default = 200)")
 
     parser.add_argument('--seed31',
                         type=int,
                         default=get_seed(),
                         metavar="S31",
-                        help="seed for random sampling of MF31 covariance "
+                        help="Seed for random sampling of MF31 covariance "
                              "matrix (default = random)")
 
     parser.add_argument('--seed33',
                         type=int,
                         default=get_seed(),
                         metavar="S33",
-                        help="seed for random sampling of MF33 covariance "
+                        help="Seed for random sampling of MF33 covariance "
                              "matrix (default = random)")
 
     parser.add_argument('--seed34',
                         type=int,
                         default=get_seed(),
                         metavar="S34",
-                        help="seed for random sampling of MF34 covariance "
+                        help="Seed for random sampling of MF34 covariance "
                              "matrix (default = random)")
 
     parser.add_argument('--seed35',
                         type=int,
                         default=get_seed(),
                         metavar="S35",
-                        help="seed for random sampling of MF35 covariance "
+                        help="Seed for random sampling of MF35 covariance "
                              "matrix (default = random)")
 
     parser.add_argument('--supressnjoy',
@@ -174,7 +184,7 @@ def parse(iargs=None):
                         action='store',
                         nargs="+",
                         metavar="T",
-                        help="for each perturbed file, produce ACE files at "
+                        help="For each perturbed file, produce ACE files at "
                              "given temperatures")
 
     parser.add_argument("--version", "-v",
@@ -422,6 +432,9 @@ def run(iargs):
     xs = bool(33 in iargs.mf) and (33 in endf6.mf or 32 in endf6.mf)  # this handles together MF32 and MF33
     mubar = False
     chi = bool(35 in iargs.mf) and (35 in endf6.mf)
+    grids = dict(zip(["csewg239", "lanl30", "epri69", "ecco33"], [2, 3, 9, 19]))
+    ign = grids[iargs.cov_energy_grid]
+
     errorr_kws = dict(
         verbose=verbose,
         err=err_errorr,
@@ -429,8 +442,8 @@ def run(iargs):
         nubar=nubar,
         chi=chi,
         mubar=mubar,
-        groupr_kws=dict(nubar=nubar, chi=chi, mubar=mubar, ign=2),
-        errorr_kws=dict(ign=2),
+        groupr_kws=dict(nubar=nubar, chi=chi, mubar=mubar, ign=ign),  # both groupr and errorr take the same IGN
+        errorr_kws=dict(ign=ign),
         njoy_output=njoy_output
         )
     if iargs.mt33:
