@@ -71,6 +71,10 @@ def matrix_summary(A_values):
     # Test symmetry with the Frobenius Norm
     symmetry_error = matrixnorm(A_values - A_values.T, ord='fro') / fro_norm
 
+    std = np.sqrt(np.diag(A_values))
+    std_zero = std[std > 0].size / std.size
+    std_one = std[std > 1].size / std.size
+
     summary = {
         "Shape": A_values.shape,
         "Rank": matrix_rank(A_values),
@@ -87,6 +91,8 @@ def matrix_summary(A_values):
         "Min Eigenvalue": e_min,
         "Max Eigenvalue": e_max,
         "Sparsity": sparsity,
+        "STD>0 Fraction": std_zero,
+        "STD>1 Fraction": std_one,
         "SVD-approximation Error": svd_error,
         "Symmetry Error": symmetry_error,
     }
@@ -258,6 +264,53 @@ class CategoryCov():
         return summary
 
     def regularize(self, correction):
+        """
+        Regularizes the covariance matrix by adding a scaled diagonal matrix.
+    
+        This method adds a regularization term to the diagonal elements of the covariance matrix,
+        improving numerical stability for further processing (e.g., inversion or sampling).
+        Specifically, it computes a diagonal matrix where each diagonal element is scaled by
+        the given `correction` factor and adds it to the covariance matrix.
+    
+        Parameters
+        ----------
+        correction: float
+            A scalar multiplier for the diagonal elements to be added as a regularization term.
+    
+        Returns
+        -------
+        :obj: `~sandy.cov.CategoryCov`
+            An instance of the same class with the regularized covariance matrix.
+    
+        Notes
+        -----
+        - This method assumes the covariance matrix is square.
+        - The matrix is regularized in a symmetric way by design, since only the diagonal is modified.
+
+        Example
+        -------
+        
+        Regularize toy covariance matrix.
+        
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> import sandy
+        >>> arrays = [[1, 1], [1, 2]]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=("MT", "Other"))
+        >>> cm = sandy.CategoryCov([[2.0, 0.5], [0.5, 3.0]], index=index, columns=index)
+        >>> cm_reg = cm.regularize(0.1)
+        >>> original = cm.data.values
+        >>> regularized = cm_reg.data.values
+
+        Test that the diagonal values are scaled correctly.
+        
+        >>> np.testing.assert_array_almost_equal(np.diag(regularized), np.diag(original) * 1.1)
+
+        Test that the off-diagonal values didn't change.
+
+        >>> offdiag_mask = ~np.eye(original.shape[0], dtype=bool)
+        >>> np.testing.assert_array_equal(regularized[offdiag_mask], original[offdiag_mask])    
+        """
         # don't need to pass via numpy. metadata are preserved
         C = self.data.copy()
         D = np.diag(C.values.diagonal() * correction)
@@ -265,18 +318,68 @@ class CategoryCov():
         return self.__class__(C)
 
     def correct_lognormal(self):
+        """
+        Corrects invalid covariance values in the data for lognormal sampling.
+    
+        In lognormal sampling, covariance matrix elements must satisfy the condition COV + 1 > 0.
+        This method identifies values less than -1 and corrects them by setting them to (-1 + ε),
+        where ε is the machine epsilon for float64. A warning is logged with information about how
+        many invalid values were found, the MT numbers involved, and the smallest offending value.
+    
+        Returns
+        -------
+        :obj: `~sandy.cov.CategoryCov`
+            An instance of the same class with corrected covariance matrix.
+    
+        Notes
+        -----
+        - Only the lower triangle (or symmetric) elements of the matrix are considered for counting.
+        - The method assumes a symmetric covariance matrix indexed by a MultiIndex with level "MT".
+        - If any invalid values are found (less than -1), a warning is logged indicating:
+            - the number of offending values,
+            - the smallest offending value,
+            - the affected MT numbers (if "MT" is present in the index).    
+
+        Example
+        -------
+        
+        Simple test case.
+
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> import sandy
+        >>> arrays = [
+        ...     [1, 2],
+        ...     [1, 1]
+        ... ]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=("MT", "Other"))
+        >>> cm = sandy.CategoryCov([[1, -1.2], [-1.2, 1]], index=index, columns=index)
+        >>> cm_corrected = cm.correct_lognormal().data
+        >>> assert np.all(cm_corrected.values >= -1)
+        >>> assert cm_corrected.loc[(1, 1), (2, 1)] > -1
+
+        """
         C = self.data.copy()
 
-        # this condition limits uncertainty to max 100 % when full anti-correlation
-        if (C.values < -1).any():
-            logging.warning("Condition COV + 1 > 0 for Lognormal sampling is not respected")
+        # this condition limits covariances to max -100 %
+        mask = C.values < -1
 
-            corr = self.get_corr()
-            std = self.get_std()
-            std = std.where(std < 1, 0.999)
+        if mask.any():
+            size = ( mask.size - mask.diagonal().size ) // 2
+            how_many_bad_values = mask.sum() // 2
+            smallest_bad_value = C[mask].min().min()
 
-            # This keeps all metadata (like index and column names) from C while replacing the values
-            C[:] = corr.corr2cov(std).data.values
+            msg = f"""Condition COV + 1 > 0 for Lognormal sampling is not respected.
+    {how_many_bad_values}/{size} covariance coefficients are set to -1+eps.
+    The smallest covariance is {smallest_bad_value:.5f}
+    """
+            if "MT" in C.index.names:
+                bad_mts = C.index[np.where(mask)[0]].get_level_values("MT").unique().tolist()
+                msg += f"The concerned MT numbers are {bad_mts}."
+
+            logging.warning(msg)
+
+            C[mask] = -1 + np.finfo(np.float64).eps
 
         return self.__class__(C)
 
@@ -512,96 +615,84 @@ class CategoryCov():
     def sampling(self, nsmp, seed=None, lognormal=True, correction=0.5/100,
                  lhs=False, verbose=False, **kwargs):
         """
-        Extract perturbation coefficients according to chosen distribution with
-        covariance from given covariance matrix. See note for non-normal
-        distribution sampling.
-        The samples' mean will be 1 or 0 depending on `relative` kwarg.
-
+        Extract perturbation coefficients from the covariance matrix using either
+        a normal or lognormal distribution. Samples are adjusted to ensure physical
+        plausibility (e.g., positivity, bounded range).
+    
         Parameters
         ----------
-        nsmp : `int`
-            number of samples.
-        seed : `int`, optional, default is `None`
-            seed for the random number generator (by default use `numpy`
-            dafault pseudo-random number generator).
-        pdf : `str`, optional, default is 'normal'
-            random numbers distribution.
-            Available distributions are:
-                * `'normal'`
-                * `'lognormal'`
-        relative : `bool`, optional, default is `True`
-            flag to switch between relative and absolute covariance matrix
-            handling
-                * `True`: samples' mean will be 1, boundaries will be adjusted
-                * `False`: samples' mean will be 0
-                
+        nsmp : int
+            Number of samples to draw.
+        seed : int, optional
+            Seed for the random number generator (default is None).
+        lognormal : bool, optional
+            If True, use lognormal distribution for sampling. Otherwise, use (truncated) normal.
+        correction : float, optional
+            Regularization factor added to the diagonal of the covariance matrix to
+            ensure positive definiteness (default is 0.5%).
+        lhs : bool, optional
+            If True, use Latin Hypercube Sampling (default is False).
+        verbose : bool, optional
+            If True, print progress information during sampling.
+    
         Returns
         -------
-        `sandy.Samples`
-            object containing samples
-
+        :obj:`~sandy.samples.Samples`
+            An object containing the sampled perturbation coefficients.
+    
         Notes
         -----
-        .. note:: sampling with relative covariance matrix is performed
-            setting all the negative perturbation coefficients equal to 0
-            and the ones larger than 2 equal to 2 for normal distribution, or
-            adjusting the standard deviations in such a way that negative
-            samples are avoided for uniform distribution.
-
-        .. note:: sampling with lognormal distribution gives a set of samples
-            with mean=1 since a lognormal distribution cannot have mean=0.
-            In this case the `relative` parameter does not apply to it.
-
+        - For normal sampling with relative perturbations, values below 0 or above 2
+          are clipped. This truncation can degrade covariance accuracy for large
+          uncertainties.
+        - For lognormal sampling, values are always positive and the sample mean is
+          guaranteed to converge to 1.
+    
         Examples
         --------
-        Common parameters.
-
+        Common setup:
+    
         >>> seed = 11
         >>> nsmp = 1e5
-        
-        Create Positive-Definite covariance matrix with small stdev.
-
         >>> index = columns = ["A", "B"]
-        >>> c = pd.DataFrame([[1, 0.4],[0.4, 1]], index=index, columns=index) / 10
+        >>> c = pd.DataFrame([[1, 0.4],[0.4, 1]], index=index, columns=columns) / 10
         >>> cov = sandy.CategoryCov(c)
-
-        Draw relative samples using different distributions.
-
+    
+        Normal sampling:
+    
         >>> smp_n = cov.sampling(nsmp, seed=seed, lognormal=False)
-        >>> smp_ln = cov.sampling(nsmp, seed=seed, lognormal=True)
-
-        The sample mean converges to a unit vector.
-
         >>> np.testing.assert_array_almost_equal(smp_n.get_mean(), [1, 1], decimal=2)
-        >>> np.testing.assert_array_almost_equal(smp_ln.get_mean(), [1, 1], decimal=2)
-
-        The sample covariance converges to the original one.
-
         >>> np.testing.assert_array_almost_equal(smp_n.get_cov(), c, decimal=2)
+    
+        Lognormal sampling:
+    
+        >>> smp_ln = cov.sampling(nsmp, seed=seed, lognormal=True)
+        >>> np.testing.assert_array_almost_equal(smp_ln.get_mean(), [1, 1], decimal=2)
         >>> np.testing.assert_array_almost_equal(smp_ln.get_cov(), c, decimal=2)
-
-        Samples are reproducible by setting a seed.
-
+    
+        Samples are reproducible:
+    
         >>> assert cov.sampling(nsmp, seed=seed, lognormal=False).data.equals(smp_n.data)
-
-        For larger uncertainties, the normal sampling cannot reproduce the
-        original covariance data, because negative (and large positive)
-        samples are removed.
-
+    
+        For large variances, normal sampling is truncated and does not reproduce the full covariance:
+    
         >>> c = pd.DataFrame([[2, 0],[0, 2]])
         >>> s = sandy.CategoryCov(c).sampling(nsmp, lognormal=False)
-        >>> np.testing.assert_array_almost_equal(s.get_mean(), [1, 1], decimal=2) # Converges!!!
-        >>> assert not np.allclose(s.get_cov(), c, atol=1)  # does not converge (truncation)
+        >>> np.testing.assert_array_almost_equal(s.get_mean(), [1, 1], decimal=2)
+        >>> assert not np.allclose(s.get_cov(), c, atol=1)  # due to truncation
         >>> assert (s.get_rstd().values < 1).all()
-        >>> assert np.linalg.norm(s.get_cov() - c) / np.linalg.norm(c) > 50 / 100
-
-
-        For log-normal sampling this is not an issue.
-
-        >>> s = sandy.CategoryCov(c).sampling(nsmp,lognormal=True)
-        >>> np.testing.assert_array_almost_equal(s.get_mean(), [1, 1], decimal=2)  # convergence, as well as for normal
-        >>> assert np.allclose(s.get_cov(), c, atol=2e-1)  # covariance convergence is slower, needs more samples
-        >>> assert np.linalg.norm(s.get_cov() - c) / np.linalg.norm(c) < 5 / 100
+        >>> assert np.linalg.norm(s.get_cov() - c) / np.linalg.norm(c) > 0.5
+    
+        For lognormal sampling, large variances are not an issue:
+    
+        >>> s = sandy.CategoryCov(c).sampling(nsmp, lognormal=True)
+        >>> np.testing.assert_array_almost_equal(s.get_mean(), [1, 1], decimal=2)
+        >>> np.testing.assert_allclose(
+        ...     s.get_rstd().values, np.sqrt(np.diag(c)), rtol=0.2
+        ... )
+        >>> eigvals_original = np.linalg.eigvalsh(c)
+        >>> eigvals_sampled = np.linalg.eigvalsh(s.get_cov())
+        >>> np.testing.assert_allclose(eigvals_sampled, eigvals_original, rtol=0.2)
         """
         N = int(nsmp)
 

@@ -156,21 +156,18 @@ def summarize_sample(s, cov):
 
     # test normality and lognomality
     test_norm = s.test_normality().values
-    percent_normal = test_norm.sum() / test_norm.size * 100
+    fraction_normal = test_norm.sum() / test_norm.size
     test_lognorm = s.test_normality(lognormal=True).values
-    percent_lognormal = test_lognorm.sum() / test_lognorm.size * 100
+    fraction_lognormal = test_lognorm.sum() / test_lognorm.size
 
     # Compute overall metrics
     summary = {
         "Sample Size": N,
-        "Frobenius Norm": diff_total / ref_total,
-        "Diag Frobenius Norm": diff_diag / ref_diag,
-        "Off-Diag Frobenius Norm": diff_offdiag / ref_offdiag,
-        "Frobenius Norm < 5%": diff_total / ref_total < 0.05,
-        "Diag Frobenius Norm < 5%": diff_diag / ref_diag < 0.05,
-        "Off-Diag Frobenius Norm < 5%": diff_offdiag / ref_offdiag < 0.05,
-        "% Accept Normality Test": percent_normal,
-        "% Accept LogNormality Test": percent_lognormal,
+        "Frobenius Norm Diff": diff_total / ref_total,
+        "Diag Frobenius Norm Diff": diff_diag / ref_diag,
+        "Off-Diag Frobenius Norm Diff": diff_offdiag / ref_offdiag,
+        "Accept Normality Test": fraction_normal,
+        "Accept LogNormality Test": fraction_lognormal,
         }
     return summary
 
