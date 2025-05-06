@@ -71,6 +71,10 @@ def matrix_summary(A_values):
     # Test symmetry with the Frobenius Norm
     symmetry_error = matrixnorm(A_values - A_values.T, ord='fro') / fro_norm
 
+    std = np.sqrt(np.diag(A_values))
+    std_zero = std[std > 0].size / std.size
+    std_one = std[std > 1].size / std.size
+
     summary = {
         "Shape": A_values.shape,
         "Rank": matrix_rank(A_values),
@@ -87,6 +91,8 @@ def matrix_summary(A_values):
         "Min Eigenvalue": e_min,
         "Max Eigenvalue": e_max,
         "Sparsity": sparsity,
+        "STD>0 Fraction": std_zero,
+        "STD>1 Fraction": std_one,
         "SVD-approximation Error": svd_error,
         "Symmetry Error": symmetry_error,
     }
@@ -258,6 +264,53 @@ class CategoryCov():
         return summary
 
     def regularize(self, correction):
+        """
+        Regularizes the covariance matrix by adding a scaled diagonal matrix.
+    
+        This method adds a regularization term to the diagonal elements of the covariance matrix,
+        improving numerical stability for further processing (e.g., inversion or sampling).
+        Specifically, it computes a diagonal matrix where each diagonal element is scaled by
+        the given `correction` factor and adds it to the covariance matrix.
+    
+        Parameters
+        ----------
+        correction: float
+            A scalar multiplier for the diagonal elements to be added as a regularization term.
+    
+        Returns
+        -------
+        :obj: `~sandy.cov.CategoryCov`
+            An instance of the same class with the regularized covariance matrix.
+    
+        Notes
+        -----
+        - This method assumes the covariance matrix is square.
+        - The matrix is regularized in a symmetric way by design, since only the diagonal is modified.
+
+        Example
+        -------
+        
+        Regularize toy covariance matrix.
+        
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> import sandy
+        >>> arrays = [[1, 1], [1, 2]]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=("MT", "Other"))
+        >>> cm = sandy.CategoryCov([[2.0, 0.5], [0.5, 3.0]], index=index, columns=index)
+        >>> cm_reg = cm.regularize(0.1)
+        >>> original = cm.data.values
+        >>> regularized = cm_reg.data.values
+
+        Test that the diagonal values are scaled correctly.
+        
+        >>> np.testing.assert_array_almost_equal(np.diag(regularized), np.diag(original) * 1.1)
+
+        Test that the off-diagonal values didn't change.
+
+        >>> offdiag_mask = ~np.eye(original.shape[0], dtype=bool)
+        >>> np.testing.assert_array_equal(regularized[offdiag_mask], original[offdiag_mask])    
+        """
         # don't need to pass via numpy. metadata are preserved
         C = self.data.copy()
         D = np.diag(C.values.diagonal() * correction)
@@ -265,18 +318,68 @@ class CategoryCov():
         return self.__class__(C)
 
     def correct_lognormal(self):
+        """
+        Corrects invalid covariance values in the data for lognormal sampling.
+    
+        In lognormal sampling, covariance matrix elements must satisfy the condition COV + 1 > 0.
+        This method identifies values less than -1 and corrects them by setting them to (-1 + ε),
+        where ε is the machine epsilon for float64. A warning is logged with information about how
+        many invalid values were found, the MT numbers involved, and the smallest offending value.
+    
+        Returns
+        -------
+        :obj: `~sandy.cov.CategoryCov`
+            An instance of the same class with corrected covariance matrix.
+    
+        Notes
+        -----
+        - Only the lower triangle (or symmetric) elements of the matrix are considered for counting.
+        - The method assumes a symmetric covariance matrix indexed by a MultiIndex with level "MT".
+        - If any invalid values are found (less than -1), a warning is logged indicating:
+            - the number of offending values,
+            - the smallest offending value,
+            - the affected MT numbers (if "MT" is present in the index).    
+
+        Example
+        -------
+        
+        Simple test case.
+
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> import sandy
+        >>> arrays = [
+        ...     [1, 2],
+        ...     [1, 1]
+        ... ]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=("MT", "Other"))
+        >>> cm = sandy.CategoryCov([[1, -1.2], [-1.2, 1]], index=index, columns=index)
+        >>> cm_corrected = cm.correct_lognormal().data
+        >>> assert np.all(cm_corrected.values >= -1)
+        >>> assert cm_corrected.loc[(1, 1), (2, 1)] > -1
+
+        """
         C = self.data.copy()
 
-        # this condition limits uncertainty to max 100 % when full anti-correlation
-        if (C.values < -1).any():
-            logging.warning("Condition COV + 1 > 0 for Lognormal sampling is not respected")
+        # this condition limits covariances to max -100 %
+        mask = C.values < -1
 
-            corr = self.get_corr()
-            std = self.get_std()
-            std = std.where(std < 1, 0.999)
+        if mask.any():
+            size = ( mask.size - mask.diagonal().size ) // 2
+            how_many_bad_values = mask.sum() // 2
+            smallest_bad_value = C[mask].min().min()
 
-            # This keeps all metadata (like index and column names) from C while replacing the values
-            C[:] = corr.corr2cov(std).data.values
+            msg = f"""Condition COV + 1 > 0 for Lognormal sampling is not respected.
+    {how_many_bad_values}/{size} covariance coefficients are set to -1+eps.
+    The smallest covariance is {smallest_bad_value:.5f}
+    """
+            if "MT" in C.index.names:
+                bad_mts = C.index[np.where(mask)[0]].get_level_values("MT").unique().tolist()
+                msg += f"The concerned MT numbers are {bad_mts}."
+
+            logging.warning(msg)
+
+            C[mask] = -1 + np.finfo(np.float64).eps
 
         return self.__class__(C)
 
