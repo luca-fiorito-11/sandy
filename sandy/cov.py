@@ -1,11 +1,17 @@
 import numpy as np
-from numpy.linalg import svd
-from scipy.sparse import csr_matrix
-from scipy.linalg import eig, qr
 import pandas as pd
-from sandy.gls import sandwich, _gls_cov_update
+from numpy import count_nonzero
+from numpy.linalg import svd, matrix_rank
+from numpy.linalg import norm as matrixnorm
+from scipy.sparse import csr_matrix
+from scipy.linalg import eig, qr, eigvals
+from numpy.random import default_rng
 import logging
-from scipy.stats import qmc, norm
+import os
+from scipy.stats import norm
+from scipy.stats.qmc import LatinHypercube
+from sandy.gls import sandwich
+
 
 import sandy
 
@@ -16,8 +22,6 @@ __all__ = [
         "CategoryCov",
         "triu_matrix",
         "corr2cov",
-        "random_corr",
-        "random_cov",
         ]
 
 S = np.array([[1, 1, 1],
@@ -35,6 +39,64 @@ minimal_covtest = pd.DataFrame(
      [9437, 102, 2e5, 9437, 102, 2e5, 0.01]],
     columns=["MAT", "MT", "E", "MAT1", "MT1", 'E1', "VAL"]
     )
+
+
+def matrix_summary(A_values):
+    """
+    Summarizes key properties of a covariance matrix.
+    """
+    D = np.diag(A_values)
+    
+    A_nodiag = (A_values - np.diag(D))
+
+    # calculate singular values
+    U, s, V = svd(A_values, hermitian=True)
+    s_max = np.max(s[s!=0])
+    s_min = np.min(s[s!=0])
+    svd_error = matrixnorm(A_values - U @ np.diag(s) @ U.T, ord="fro") / matrixnorm(A_values, ord="fro")
+
+    # calculate eigenvalues
+    e = eigvals(A_values)
+    e_max = np.max(e[e!=0])
+    e_min = np.min(e[e!=0])
+
+    # calculate sparsity
+    sparsity = 1.0 - ( count_nonzero(A_values) / float(A_values.size) )
+    
+    # norms
+    fro_norm = matrixnorm(A_values, ord="fro")
+    diag_norm = matrixnorm(np.diag(D), ord="fro")
+    offdiag_norm = matrixnorm(A_nodiag, ord="fro")
+    
+    # Test symmetry with the Frobenius Norm
+    symmetry_error = matrixnorm(A_values - A_values.T, ord='fro') / fro_norm
+
+    std = np.sqrt(np.diag(A_values))
+    std_zero = std[std > 0].size / std.size
+    std_one = std[std > 1].size / std.size
+
+    summary = {
+        "Shape": A_values.shape,
+        "Rank": matrix_rank(A_values),
+        "Min Variance": np.min(D[D!=0]),
+        "Max Variance": np.max(D[D!=0]),
+        "Min Covariance": np.min(A_nodiag),
+        "Max Covariance": np.max(A_nodiag),
+        "Min Singular Values": s_min,
+        "Max Singular Values": s_max,
+        "Frobenius Norm": fro_norm,
+        "Diagonal Norm": diag_norm,
+        "Off-Diagonal Norm": offdiag_norm,
+        "Condition number": s_max / s_min,
+        "Min Eigenvalue": e_min,
+        "Max Eigenvalue": e_max,
+        "Sparsity": sparsity,
+        "STD>0 Fraction": std_zero,
+        "STD>1 Fraction": std_one,
+        "SVD-approximation Error": svd_error,
+        "Symmetry Error": symmetry_error,
+    }
+    return summary
 
 
 class CategoryCov():
@@ -126,65 +188,6 @@ class CategoryCov():
         return self.data.values.shape[0]
 
     @classmethod
-    def random_corr(cls, size, correlations=True, seed=None, **kwargs):
-        """
-        >>> sandy.CategoryCov.random_corr(2, seed=1)
-                    0           1
-        0 1.00000e+00 4.40649e-01
-        1 4.40649e-01 1.00000e+00
-
-        >>> sandy.CategoryCov.random_corr(2, correlations=False, seed=1)
-                    0           1
-        0 1.00000e+00 0.00000e+00
-        1 0.00000e+00 1.00000e+00
-        """
-        np.random.seed(seed=seed)
-        corr = np.eye(size)
-        if correlations:
-            offdiag = np.random.uniform(-1, 1, size**2).reshape(size, size)
-            up = np.triu(offdiag, 1)
-        else:
-            up = np.zeros([size, size])
-        corr += up + up.T
-        return cls(corr, **kwargs)
-
-    @classmethod
-    def random_cov(cls, size, stdmin=0.0, stdmax=1.0, correlations=True,
-                   seed=None, **kwargs):
-        """
-        Construct a covariance matrix with random values
-
-        Parameters
-        ----------
-        size : `int`
-            Dimension of the original matrix
-        stdmin : `float`, default is 0
-            minimum value of the uniform standard deviation vector
-        stdmax : `float`, default is 1
-            maximum value of the uniform standard deviation vector
-        correlation : `bool`, default is True
-            flag to insert the random correlations in the covariance matrix
-        seed : `int`, optional, default is `None`
-            seed for the random number generator (by default use `numpy`
-            dafault pseudo-random number generator)
-
-        Returns
-        -------
-        `CategoryCov`
-            object containing covariance matrix
-
-        Examples
-        --------
-        >>> sandy.CategoryCov.random_cov(2, seed=1)
-                    0           1
-        0 2.15373e-02 5.97134e-03
-        1 5.97134e-03 8.52642e-03
-        """
-        corr = random_corr(size, correlations=correlations, seed=seed)
-        std = np.random.uniform(stdmin, stdmax, size)
-        return CategoryCov(corr).corr2cov(std)
-
-    @classmethod
     def from_stdev(cls, std):
         """
         Construct the covariance matrix from the standard deviation vector.
@@ -252,6 +255,204 @@ class CategoryCov():
         cov = pd.DataFrame(values, index=var_.index, columns=var_.index)
         return cls(cov)
 
+    def summarize(self):
+        """
+        Summarizes key properties of the covariance matrix
+        """
+        A_values = self.data.values  # Convert to NumPy for calculations
+        summary = matrix_summary(A_values)
+        return summary
+
+    def regularize(self, correction):
+        """
+        Regularizes the covariance matrix by adding a scaled diagonal matrix.
+    
+        This method adds a regularization term to the diagonal elements of the covariance matrix,
+        improving numerical stability for further processing (e.g., inversion or sampling).
+        Specifically, it computes a diagonal matrix where each diagonal element is scaled by
+        the given `correction` factor and adds it to the covariance matrix.
+    
+        Parameters
+        ----------
+        correction: float
+            A scalar multiplier for the diagonal elements to be added as a regularization term.
+    
+        Returns
+        -------
+        :obj: `~sandy.cov.CategoryCov`
+            An instance of the same class with the regularized covariance matrix.
+    
+        Notes
+        -----
+        - This method assumes the covariance matrix is square.
+        - The matrix is regularized in a symmetric way by design, since only the diagonal is modified.
+
+        Example
+        -------
+        
+        Regularize toy covariance matrix.
+        
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> import sandy
+        >>> arrays = [[1, 1], [1, 2]]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=("MT", "Other"))
+        >>> cm = sandy.CategoryCov([[2.0, 0.5], [0.5, 3.0]], index=index, columns=index)
+        >>> cm_reg = cm.regularize(0.1)
+        >>> original = cm.data.values
+        >>> regularized = cm_reg.data.values
+
+        Test that the diagonal values are scaled correctly.
+        
+        >>> np.testing.assert_array_almost_equal(np.diag(regularized), np.diag(original) * 1.1)
+
+        Test that the off-diagonal values didn't change.
+
+        >>> offdiag_mask = ~np.eye(original.shape[0], dtype=bool)
+        >>> np.testing.assert_array_equal(regularized[offdiag_mask], original[offdiag_mask])    
+        """
+        # don't need to pass via numpy. metadata are preserved
+        C = self.data.copy()
+        D = np.diag(C.values.diagonal() * correction)
+        C += D
+        return self.__class__(C)
+
+    def correct_lognormal(self):
+        """
+        Corrects invalid covariance values in the data for lognormal sampling.
+    
+        In lognormal sampling, covariance matrix elements must satisfy the condition COV + 1 > 0.
+        This method identifies values less than -1 and corrects them by setting them to (-1 + ε),
+        where ε is the machine epsilon for float64. A warning is logged with information about how
+        many invalid values were found, the MT numbers involved, and the smallest offending value.
+    
+        Returns
+        -------
+        :obj: `~sandy.cov.CategoryCov`
+            An instance of the same class with corrected covariance matrix.
+    
+        Notes
+        -----
+        - Only the lower triangle (or symmetric) elements of the matrix are considered for counting.
+        - The method assumes a symmetric covariance matrix indexed by a MultiIndex with level "MT".
+        - If any invalid values are found (less than -1), a warning is logged indicating:
+            - the number of offending values,
+            - the smallest offending value,
+            - the affected MT numbers (if "MT" is present in the index).    
+
+        Example
+        -------
+        
+        Simple test case.
+
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> import sandy
+        >>> arrays = [
+        ...     [1, 2],
+        ...     [1, 1]
+        ... ]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=("MT", "Other"))
+        >>> cm = sandy.CategoryCov([[1, -1.2], [-1.2, 1]], index=index, columns=index)
+        >>> cm_corrected = cm.correct_lognormal().data
+        >>> assert np.all(cm_corrected.values >= -1)
+        >>> assert cm_corrected.loc[(1, 1), (2, 1)] > -1
+
+        """
+        C = self.data.copy()
+
+        # this condition limits covariances to max -100 %
+        mask = C.values < -1
+
+        if mask.any():
+            size = ( mask.size - mask.diagonal().size ) // 2
+            how_many_bad_values = mask.sum() // 2
+            smallest_bad_value = C[mask].min().min()
+
+            msg = f"""Condition COV + 1 > 0 for Lognormal sampling is not respected.
+    {how_many_bad_values}/{size} covariance coefficients are set to -1+eps.
+    The smallest covariance is {smallest_bad_value:.5f}
+    """
+            if "MT" in C.index.names:
+                bad_mts = C.index[np.where(mask)[0]].get_level_values("MT").unique().tolist()
+                msg += f"The concerned MT numbers are {bad_mts}."
+
+            logging.warning(msg)
+
+            C[mask] = -1 + np.finfo(np.float64).eps
+
+        return self.__class__(C)
+
+    def transform_lognormal(self):
+        """
+        Assuming that `self` constains the covariance matrix of a lognormal
+        multivariate distribution centered in a unit vector, this method applies
+        a transformation to calculate the covariance matrix of the underlying
+        normal distribution.
+        
+        The function is taken from https://doi.org/10.1016/j.nima.2012.06.036
+
+        Returns
+        -------
+        :obj: `~sandy.cov.CategoryCov`
+            Covariance matrix of the underlying normal distribution.
+
+        """
+        # don't need to pass via numpy. metadata are preserved
+        C = self.data.copy()
+        C = np.log(C + 1)
+        return self.__class__(C)
+
+    def draw_sample(self, N, lhs=False, verbose=False, seed=None):
+        M = self.size
+
+        # -- Prepare index and columns for Samples object
+        index = self.data.index
+        columns = list(range(N))
+
+        C = self.data.values
+        D = C.diagonal()
+
+        # -- Reduce matrix size by removing rows and columns with zero on diag
+        nz = np.flatnonzero(D)
+        Cr = C[nz][:, nz]
+
+        # -- Decompose covariance (SVD better than QR or cholesky)
+        Ur, Sr, Vr = svd(Cr, hermitian=True)  # hermitian is twice faster (U5 from JEFF33, 240 groups)
+
+        Mr = Sr.size
+
+        # -- Get U back to original size
+        U = np.zeros((M, Mr))
+        U[nz] = Ur
+
+        # -- Draw IID samples with mu=0 and std=1
+        seed_ = seed if seed else sandy.get_seed()
+        if lhs:
+            engine = LatinHypercube(d=Mr, seed=seed_)
+            lhd = engine.random(n=N)
+            X_ = norm(loc=0, scale=1).ppf(lhd).T
+        else:
+            rng = default_rng(seed=seed_)
+            X_ = rng.standard_normal(size=(Mr, N))
+
+        if verbose:
+            summary = pd.Series(self.__class__(C).summarize()).to_string()
+            print("======================================================")
+            print(f"drawing sample of size N={N} from covariance matrix")
+            print(f"seed: {seed_}")
+            print("------------------------------------------------------")
+            print("Covariance properties:")
+            print(summary)
+            print("======================================================")
+
+        # -- Apply covariance to samples
+        # -- 12 times faster with sparse (U5 from JEFF33, 240 groups)
+        X = (csr_matrix(U) @ csr_matrix(np.diag(np.sqrt(Sr))) @ csr_matrix(X_)).todense()
+
+        samples = pd.DataFrame(X, index=index, columns=columns)
+        return sandy.Samples(samples)
+
     def get_std(self):
         """
         Extract standard deviations.
@@ -274,86 +475,88 @@ class CategoryCov():
 
     def get_eig(self, tolerance=None):
         """
-        Extract eigenvalues and eigenvectors.
-
+        Compute the eigenvalues and eigenvectors of the dataset.
+    
+        This method extracts the eigenvalues and eigenvectors of `self.data`, 
+        which is assumed to be a square symmetric matrix (e.g., a covariance 
+        or correlation matrix). The eigenvalues are sorted in descending order, 
+        and small values can optionally be set to zero using a tolerance threshold.
+    
         Parameters
         ----------
-        tolerance : `float`, optional, default is `None`
-            replace all eigenvalues smaller than a given tolerance with zeros.
-            The replacement condition is implemented as:
-
+        tolerance : float, optional (default: None)
+            If specified, replaces eigenvalues smaller than a given fraction of 
+            the largest eigenvalue with zero. The condition is:
+    
             .. math::
-                $$
-                \frac{e_i}{e_{MAX}} < tolerance
-                $$
-
-            Then, a `tolerance=1e-3` will replace all eigenvalues
-            1000 times smaller than the largest eigenvalue.
-            A `tolerance=0` will replace all negative eigenvalues.
-
+                \\frac{e_i}{e_{MAX}} < \text{tolerance}
+    
+            - A value of `tolerance=1e-3` sets all eigenvalues 1000 times 
+              smaller than the largest eigenvalue to zero.
+            - A value of `tolerance=0` replaces all negative eigenvalues with zero.
+            - If `None`, all eigenvalues are returned as computed.
+    
         Returns
         -------
-        `Pandas.Series`
-            array of eigenvalues
-        `pandas.DataFrame`
-            matrix of eigenvectors
-
+        pd.Series
+            A Series of eigenvalues sorted in descending order, named "EIG".
+        pd.DataFrame
+            A DataFrame containing the corresponding eigenvectors, where each column 
+            represents an eigenvector.
+    
         Notes
         -----
-        .. note:: only the real part of the eigenvalues is preserved
-        
-        .. note:: the discussion associated to the implementeation
-                  of this algorithm is available [here](https://github.com/luca-fiorito-11/sandy/discussions/135)
-
+        - Only the **real part** of the eigenvalues and eigenvectors is preserved.
+        - The eigenvalues are not necessarily positive, especially for covariance matrices.
+        - The implementation discussion is available [here](https://github.com/luca-fiorito-11/sandy/discussions/135).
+    
         Examples
         --------
-        Extract eigenvalues of correlation matrix.
+        Extract eigenvalues of a correlation matrix.
+
         >>> sandy.CategoryCov([[1, 0.4], [0.4, 1]]).get_eig()[0]
         0   1.40000e+00
         1   6.00000e-01
         Name: EIG, dtype: float64
+    
+        Extract eigenvectors.
 
-        Extract eigenvectors of correlation matrix.
         >>> sandy.CategoryCov([[1, 0.4], [0.4, 1]]).get_eig()[1]
                     0            1
-        0 7.07107e-01 -7.07107e-01
-        1 7.07107e-01  7.07107e-01
+        0  7.07107e-01 -7.07107e-01
+        1  7.07107e-01  7.07107e-01
+    
+        Replace small eigenvalues using a tolerance.
 
-        Extract eigenvalues of covariance matrix.
-        >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).get_eig()[0]
-        0   8.90228e-02
-        1   1.01098e+00
-        Name: EIG, dtype: float64
-
-        Set up a tolerance.
         >>> sandy.CategoryCov([[0.1, 0.1], [0.1, 1]]).get_eig(tolerance=0.1)[0]
         0   0.00000e+00
         1   1.01098e+00
         Name: EIG, dtype: float64
+    
+        Handle negative eigenvalues.
 
-        Test with negative eigenvalues.
         >>> sandy.CategoryCov([[1, 2], [2, 1]]).get_eig()[0]
         0    3.00000e+00
         1   -1.00000e+00
         Name: EIG, dtype: float64
+    
+        Replace negative eigenvalues with zero.
 
-        Replace negative eigenvalues.
         >>> sandy.CategoryCov([[1, 2], [2, 1]]).get_eig(tolerance=0)[0]
         0   3.00000e+00
         1   0.00000e+00
         Name: EIG, dtype: float64
-
-        Check output size.
-        >>> cov = sandy.CategoryCov.random_cov(50, seed=11)
-        >>> assert cov.get_eig()[0].size == cov.data.shape[0] == 50
+    
+        Example with a covariance matrix.
 
         >>> sandy.CategoryCov([[1, 0.2, 0.1], [0.2, 2, 0], [0.1, 0, 3]]).get_eig()[0]
         0   9.56764e-01
         1   2.03815e+00
         2   3.00509e+00
         Name: EIG, dtype: float64
+    
+        Real test on H1 file.
 
-        Real test on H1 file
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> ek = sandy.energy_grids.CASMO12
         >>> err = endf6.get_errorr(errorr_kws=dict(ek=ek), err=1)["errorr33"]
@@ -367,16 +570,18 @@ class CategoryCov():
         5    1.81078e-06
         6    1.26691e-07
         Name: EIG, dtype: float64
-
-        >>> assert not (cov.get_eig()[0] >= 0).all()
+    
+        Ensure all eigenvalues are non-negative when using `tolerance=0`.
 
         >>> assert (cov.get_eig(tolerance=0)[0] >= 0).all()
         """
         E, V = eig(self.data)
         E = pd.Series(E.real, name="EIG")
         V = pd.DataFrame(V.real)
+    
         if tolerance is not None:
-            E[E/E.max() < tolerance] = 0
+            E[E / E.max() < tolerance] = 0
+    
         return E, V
 
     def get_corr(self):
@@ -385,7 +590,7 @@ class CategoryCov():
 
         Returns
         -------
-        df : :obj: `CatgoryCov`
+        df : :obj: `~sandy.cov.CategoryCov`
             correlation matrix
 
         Examples
@@ -407,330 +612,115 @@ class CategoryCov():
             )
         return self.__class__(df)
 
-    def invert(self):
+    def sampling(self, nsmp, seed=None, lognormal=True, correction=0.5/100,
+                 lhs=False, verbose=False, **kwargs):
         """
-        Method for calculating the inverse matrix.
-
-        Returns
-        -------
-        `pandas.DataFrame`
-            The inverse matrix.
-
-        Notes
-        -----
-        Many covariance matrices for nuclear data are ill-defined and might
-        have condition numbers that make the matrix inversion process
-        impossible.
-        To make up for this limitation we produce the (Moore-Penrose)
-        pseudo-inverse of a Hermitian matrix, as implemented in `numpy`.
-        Default options are used.
-        This method does not require any pre-processing of the covariance
-        data, e.g. removing zeros from the matrix diagonal or truncating
-        eigenvalues.
-        
-        >>> c = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
-        >>> c.invert()
-                    0           1           2
-        0 1.00000e+00 0.00000e+00 0.00000e+00
-        1 0.00000e+00 5.00000e-01 0.00000e+00
-        2 0.00000e+00 0.00000e+00 3.33333e-01
-
-        Test product $A^T A = 1$.
-        >>> c = sandy.CategoryCov([[2, 0.5], [0.5, 2]])
-        >>> np.testing.assert_array_almost_equal(c.data @ c.invert(), np.eye(2))
-
-        Test inverse of inverse.
-        >>> c = sandy.CategoryCov(np.diag(np.array([1, 2, 3])))
-        >>> np.testing.assert_array_equal(sandy.CategoryCov(c.invert()).invert(), c.data)
-        
-        Test on real ND covariance. With previous implementation this test failed.
-        >>> c = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1, errorr_kws=dict(mt=102))["errorr33"].get_cov()
-        >>> cinv = c.invert()
-        >>> a = c.data.values
-        >>> b = cinv.values
-        >>> np.testing.assert_array_almost_equal(a, a @ b @  a, decimal=4)
-        >>> assert (cinv.index == c.data.index).all()
-        >>> assert (cinv.columns == c.data.columns).all()
-        """
-        return pd.DataFrame(
-            np.linalg.pinv(self.data, hermitian=True),
-            index=self.data.index,
-            columns=self.data.columns,
-        )  # do not return CategoryCov because variance can be negative
-
-    def sampling(self, nsmp, seed=None, pdf='lognormal', relative=True,
-                 correction=0.5/100, lhs=False, to_excel=None, **kwargs):
-        """
-        Extract perturbation coefficients according to chosen distribution with
-        covariance from given covariance matrix. See note for non-normal
-        distribution sampling.
-        The samples' mean will be 1 or 0 depending on `relative` kwarg.
-
+        Extract perturbation coefficients from the covariance matrix using either
+        a normal or lognormal distribution. Samples are adjusted to ensure physical
+        plausibility (e.g., positivity, bounded range).
+    
         Parameters
         ----------
-        nsmp : `int`
-            number of samples.
-        seed : `int`, optional, default is `None`
-            seed for the random number generator (by default use `numpy`
-            dafault pseudo-random number generator).
-        pdf : `str`, optional, default is 'normal'
-            random numbers distribution.
-            Available distributions are:
-                * `'normal'`
-                * `'lognormal'`
-        relative : `bool`, optional, default is `True`
-            flag to switch between relative and absolute covariance matrix
-            handling
-                * `True`: samples' mean will be 1, boundaries will be adjusted
-                * `False`: samples' mean will be 0
-                
+        nsmp : int
+            Number of samples to draw.
+        seed : int, optional
+            Seed for the random number generator (default is None).
+        lognormal : bool, optional
+            If True, use lognormal distribution for sampling. Otherwise, use (truncated) normal.
+        correction : float, optional
+            Regularization factor added to the diagonal of the covariance matrix to
+            ensure positive definiteness (default is 0.5%).
+        lhs : bool, optional
+            If True, use Latin Hypercube Sampling (default is False).
+        verbose : bool, optional
+            If True, print progress information during sampling.
+    
         Returns
         -------
-        `sandy.Samples`
-            object containing samples
-
+        :obj:`~sandy.samples.Samples`
+            An object containing the sampled perturbation coefficients.
+    
         Notes
         -----
-        .. note:: sampling with relative covariance matrix is performed
-            setting all the negative perturbation coefficients equal to 0
-            and the ones larger than 2 equal to 2 for normal distribution, or
-            adjusting the standard deviations in such a way that negative
-            samples are avoided for uniform distribution.
-
-        .. note:: sampling with lognormal distribution gives a set of samples
-            with mean=1 since a lognormal distribution cannot have mean=0.
-            In this case the `relative` parameter does not apply to it.
-
+        - For normal sampling with relative perturbations, values below 0 or above 2
+          are clipped. This truncation can degrade covariance accuracy for large
+          uncertainties.
+        - For lognormal sampling, values are always positive and the sample mean is
+          guaranteed to converge to 1.
+    
         Examples
         --------
-        Common parameters.
+        Common setup:
+    
         >>> seed = 11
         >>> nsmp = 1e5
-        
-        Create Positive-Definite covariance matrix with small stdev.
         >>> index = columns = ["A", "B"]
-        >>> c = pd.DataFrame([[1, 0.4],[0.4, 1]], index=index, columns=index) / 10
+        >>> c = pd.DataFrame([[1, 0.4],[0.4, 1]], index=index, columns=columns) / 10
         >>> cov = sandy.CategoryCov(c)
-
-        Draw relative samples using different distributions.
-        >>> smp_n = cov.sampling(nsmp, seed=seed, pdf='normal')
-        >>> smp_ln = cov.sampling(nsmp, seed=seed, pdf='lognormal')
-
-        The sample mean converges to a unit vector.
+    
+        Normal sampling:
+    
+        >>> smp_n = cov.sampling(nsmp, seed=seed, lognormal=False)
         >>> np.testing.assert_array_almost_equal(smp_n.get_mean(), [1, 1], decimal=2)
-        >>> np.testing.assert_array_almost_equal(smp_ln.get_mean(), [1, 1], decimal=2)
-
-        The sample covariance converges to the original one.
         >>> np.testing.assert_array_almost_equal(smp_n.get_cov(), c, decimal=2)
+    
+        Lognormal sampling:
+    
+        >>> smp_ln = cov.sampling(nsmp, seed=seed, lognormal=True)
+        >>> np.testing.assert_array_almost_equal(smp_ln.get_mean(), [1, 1], decimal=2)
         >>> np.testing.assert_array_almost_equal(smp_ln.get_cov(), c, decimal=2)
-
-        Samples are reproducible by setting a seed.
-        >>> assert cov.sampling(nsmp, seed=seed, pdf='normal').data.equals(smp_n.data)
-
-        For larger uncertainties, the normal sampling cannot reproduce the
-        original covariance data, because negative (and large positive)
-        samples are removed.
+    
+        Samples are reproducible:
+    
+        >>> assert cov.sampling(nsmp, seed=seed, lognormal=False).data.equals(smp_n.data)
+    
+        For large variances, normal sampling is truncated and does not reproduce the full covariance:
+    
         >>> c = pd.DataFrame([[2, 0],[0, 2]])
-        >>> s = sandy.CategoryCov(c).sampling(nsmp, pdf="normal")
-        >>> np.testing.assert_array_almost_equal(s.get_mean(), [1, 1], decimal=2) # Converges!!!
-        >>> assert not np.allclose(s.get_cov(), c, atol=1)  # does not converge (truncation)
+        >>> s = sandy.CategoryCov(c).sampling(nsmp, lognormal=False)
+        >>> np.testing.assert_array_almost_equal(s.get_mean(), [1, 1], decimal=2)
+        >>> assert not np.allclose(s.get_cov(), c, atol=1)  # due to truncation
         >>> assert (s.get_rstd().values < 1).all()
-        >>> assert np.linalg.norm(s.get_cov() - c) / np.linalg.norm(c) > 50 / 100
-
-        Truncating the normal distribution is only done when `relative=True`.
-        When working in absolute values the covariance is correctly reproduced.
-        >>> s = sandy.CategoryCov(c).sampling(nsmp, pdf="normal", relative=False)
-        >>> np.testing.assert_array_almost_equal(s.get_mean(), [0, 0], decimal=2)
-        >>> assert np.allclose(s.get_cov(), c, atol=1e-1)
-        >>> assert np.linalg.norm(s.get_cov() - c) / np.linalg.norm(c) < 1 / 100
-
-        For log-normal sampling this is not an issue.
-        >>> s = sandy.CategoryCov(c).sampling(nsmp, pdf="lognormal")
-        >>> np.testing.assert_array_almost_equal(s.get_mean(), [1, 1], decimal=2)  # convergence, as well as for normal
-        >>> assert np.allclose(s.get_cov(), c, atol=1e-1)  # covariance convergence is slower, needs more samples
-        >>> assert np.linalg.norm(s.get_cov() - c) / np.linalg.norm(c) < 5 / 100
+        >>> assert np.linalg.norm(s.get_cov() - c) / np.linalg.norm(c) > 0.5
+    
+        For lognormal sampling, large variances are not an issue:
+    
+        >>> s = sandy.CategoryCov(c).sampling(nsmp, lognormal=True)
+        >>> np.testing.assert_array_almost_equal(s.get_mean(), [1, 1], decimal=2)
+        >>> np.testing.assert_allclose(
+        ...     s.get_rstd().values, np.sqrt(np.diag(c)), rtol=0.2
+        ... )
+        >>> eigvals_original = np.linalg.eigvalsh(c)
+        >>> eigvals_sampled = np.linalg.eigvalsh(s.get_cov())
+        >>> np.testing.assert_allclose(eigvals_sampled, eigvals_original, rtol=0.2)
         """
-        allowed_pdf = [
-            "normal",
-            "lognormal",
-            ]
-        if pdf not in allowed_pdf:
-            raise ValueError(f"pdf='{pdf}' not allowed")
-
-        if not relative and pdf=='lognormal':
-            raise ValueError("`pdf='lognormal'` and `relative=False` is not a valid combination")
-
         N = int(nsmp)
 
-        if to_excel:
-            logging.info(f"writing to file '{to_excel}'...")
+        if lognormal:
+            C = self.correct_lognormal()
 
-        # -- Prepare index and columns for Samples object
-        index = self.data.index
-        columns = list(range(N))
-
-        C = self.data.values.copy()
-
-        # -- Fix covariance matrix according to distribution
-        if pdf == 'lognormal':
-
-            if (C < -1).any():
-                logging.warning("Condition COV + 1 > 0 for Lognormal sampling is not respected")
-                corr = self.get_corr()
-                std = self.get_std()
-                std = std.where(std < 1, 0.999)
-                C = corr.corr2cov(std).data.values
-
-            var = C.diagonal()  # this will be used to adjust the mean
-
-            # covariance matrix of underlying normal distribution
-            C = np.log(C + 1)
-
-        # -- Correct matrix diagonal by 0.5%, to have a condition number <5e7 (U5 from JEFF33, 240 groups)
-        # -- which should guarantee that U == V.T, but it doesn;t for lognormal
-        # -- Then check 2-norm
-        D = C.diagonal()
-        M = D.size
-        C += np.diag(D * correction)
-
-        # -- Reduce matrix size by removing rows and columns with zero on diag
-        nz = np.flatnonzero(D)
-        Cr = C[nz][:, nz]
-
-        # -- Decompose covariance (SVD better than QR or cholesky)
-        Ur, Sr, Vr = svd(Cr, hermitian=True)  # hermitian is twice faster (U5 from JEFF33, 240 groups)
-
-        cond = Sr.max() / Sr.min()
-        if cond > 5e7:
-            logging.warning(f"Large condition number of covariance matrix: {cond:7.2e}")
-
-        Mr = Sr.size
-
-        # -- Get U back to original size
-        U = np.zeros((M, Mr))
-        U[nz] = Ur
-
-        # -- Draw IID samples with mu=0 and std=1
-        seed_ = seed if seed else sandy.get_seed()
-        np.random.seed(seed=seed_)
-        if lhs:
-            engine = qmc.LatinHypercube(d=Mr)
-            lhd = engine.random(n=N)
-            X_ = norm(loc=0, scale=1).ppf(lhd).T
-        else:
-            X_ = np.random.randn(Mr, N)
-
-        # -- Save seed and singulare values
-        if to_excel:
-            with pd.ExcelWriter(to_excel, mode='w', engine='openpyxl') as writer:
-                pd.Series(seed_).to_excel(writer, header=None, index=None, sheet_name='SEED')
-                pd.Series(Sr).to_excel(writer, header=None, index=None, sheet_name='SVALUES')
-
-        # -- Apply covariance to samples
-        # -- 12 times faster with sparse (U5 from JEFF33, 240 groups)
-        X = (csr_matrix(U) @ csr_matrix(np.diag(np.sqrt(Sr))) @ csr_matrix(X_)).todense()
-
-        samples = pd.DataFrame(X, index=index, columns=columns)
-
-        # -- Fix sample (and sample mean) according to distribution
-        if pdf == 'lognormal':
+            var = C.data.values.diagonal()  # this will be used to adjust the mean
             # mean of the underlying normal distribution
             # https://stats.stackexchange.com/questions/573808/intuition-for-why-mean-of-lognormal-distribution-depends-on-variance-of-normally
             umu = np.log(1 / np.sqrt(var + 1))
-            samples = np.exp(samples + umu.reshape(M, -1))
-        elif relative:
-            samples += 1
-            lower_bound = samples > 0
-            upper_bound = samples < 2
-            samples = samples.where(lower_bound, 0)
-            samples = samples.where(upper_bound, 2)
 
-        # -- Save samples
-        if to_excel:
-            with pd.ExcelWriter(to_excel, mode='a', engine="openpyxl") as writer:
-                # this might go into Samples
-                s = samples.reset_index()
-                loc = s.columns.get_loc("E")
-                ERIGHT = s.E.apply(lambda x: x.right)
-                s.insert(loc=loc, column='ERIGHT', value=ERIGHT)
-                ELEFT = s.E.apply(lambda x: x.left)
-                s.insert(loc=loc, column='ELEFT', value=ELEFT)
-                s.drop("E", inplace=True, axis=1)
-                s.to_excel(writer, index=False, sheet_name='SMP')
+            samples = (
+                C.transform_lognormal()
+                .regularize(correction=correction)
+                .draw_sample(N, lhs=lhs, verbose=verbose, seed=seed)
+                .apply_function(lambda x: x + umu.reshape(var.size, -1))
+                .apply_function(np.exp)
+                )
 
-        return sandy.Samples(samples)
-
-    def gls_cov_update(self, S, Vy_extra=None):
-        r"""
-        Perform GlS update for a given covariance matrix, sensitivity and
-        covariance matrix of the extra information:
-        .. math::
-            $$
-            V_{x_{post}} = V_{x_{prior}} - V_{x_{prior}}\cdot S^T\cdot \left(S\cdot V_{x_{prior}}\cdot S^T + V_{y_{extra}}\right)^{-1}\cdot S\cdot V_{x_{prior}}
-            $$
-
-        Parameters
-        ----------
-        Vy_extra : 2D iterable or sigle element 1D iterable
-            covariance matrix of the extra information,
-            (M, M) or (1,).
-        S : 2D or 1D iterable
-            Sensitivity matrix (M, N) or sensitivity vector (N,).
-
-        Returns
-        -------
-        `sandy.CategoryCov`
-            `CategoryCov` object corresponding to the updated covariance matrix
-            adjusted with the GLS technique.
-
-        Notes
-        -----
-        .. note:: If Vy_extra=None the constraint GLS update technique
-        will be performed
-
-        Example
-        -------
-        >>> S = np.array([[1, 2], [3, 4]])
-        >>> cov = sandy.CategoryCov.from_var([1, 1])
-        >>> Vy = np.diag(pd.Series([1, 1]))
-        >>> cov.gls_cov_update(S, Vy)
-                     0            1
-        0  6.00000e-01 -4.00000e-01
-        1 -4.00000e-01  3.14286e-01
-
-        >>> cov = pd.DataFrame([[1, 0], [0, 1]], index=[2, 3], columns=[2, 3])
-        >>> cov = sandy.CategoryCov(cov)
-        >>> cov.gls_cov_update(S, Vy)
-                    2            3
-        2  6.00000e-01 -4.00000e-01
-        3 -4.00000e-01  3.14286e-01
-
-        >>> S = pd.DataFrame([[1, 0], [0, 1], [0, 1]], index=[2, 3, 4], columns=[1, 2])
-        >>> cov = pd.DataFrame([[1, 0], [0, 1]], index=[2, 3], columns=[2, 3])
-        >>> cov = sandy.CategoryCov(cov)
-        >>> Vy = np.diag(pd.Series([1, 1, 1]))
-        >>> cov.gls_cov_update(S, Vy)
-                    2           3
-        2 5.00000e-01 0.00000e+00
-        3 0.00000e+00 3.33333e-01
-
-        >>> S = np.array([1, 2])
-        >>> cov = sandy.CategoryCov.from_var([1, 1])
-        >>> Vy = [1]
-        >>> cov.gls_cov_update(S, Vy)
-                     0            1
-        0  8.33333e-01 -3.33333e-01
-        1 -3.33333e-01  3.33333e-01
-        """
-        idx = self.data.index
-        S_ = np.array(S)
-        if Vy_extra is not None:
-            Vy_extra_ = pd.DataFrame(Vy_extra).values
-            Vx_post = _gls_cov_update(self.data.values, S_, Vy_extra=Vy_extra_)
         else:
-            Vx_post = _gls_cov_update(self.data.values, S_)
-        Vx_post = pd.DataFrame(Vx_post, index=idx, columns=idx)
-        return self.__class__(Vx_post)
+            samples = (
+                self.regularize(correction=correction)
+                .draw_sample(N, lhs=lhs, verbose=verbose, seed=seed)
+                .apply_function(lambda x: x + 1)
+                .truncate_normal()
+                )
+
+        return samples
 
     def sandwich(self, s):
         r"""
@@ -848,7 +838,8 @@ class CategoryCov():
 
         Examples
         --------
-        Positive define matrix:
+        Positive define matrix.
+
         >>> a = np.array([[4, 12, -16], [12, 37, -43], [-16, -43, 98]])
         >>> sandy.CategoryCov(a).get_L()
                        0	          1	          2
@@ -867,7 +858,8 @@ class CategoryCov():
         0	-1.08204e+00	0.00000e+00
         1	 1.75078e+00	0.00000e+00
 
-        Decomposition test:
+        Decomposition test.
+
         >>> L = sandy.CategoryCov(a).get_L()
         >>> L.dot(L.T)
                        0	           1	           2
@@ -875,7 +867,8 @@ class CategoryCov():
         1	 1.20000e+01	 3.70000e+01	-4.30000e+01
         2	-1.60000e+01	-4.30000e+01	 9.80000e+01
 
-        Matrix with negative eigenvalues, tolerance of 0:
+        Matrix with negative eigenvalues, tolerance of 0.
+
         >>> L = sandy.CategoryCov([[1, -2],[-2, 3]]).get_L(tolerance=0)
         >>> L.dot(L.T)
         	           0	           1
@@ -899,6 +892,41 @@ class CategoryCov():
 
         return pd.DataFrame(L, index=index, columns=columns)
 
+    def to_excel(self, file):
+        """
+        Save the sample dataset to an Excel file.
+
+        This method exports the sample data to an Excel file, writing the dataset to 
+        the 'COV' sheet. If the file already exists, the sheet is replaced; otherwise, 
+        a new file is created.
+
+        Parameters
+        ----------
+        file : str
+            The path to the Excel file. If the file exists, the 'COV' sheet is replaced; 
+            otherwise, a new file is created.
+
+        Returns
+        -------
+        None
+            This function does not return a value but writes the dataset to an Excel file.
+
+        Notes
+        -----
+        - The dataset is saved in a sheet named 'COV' using the 'openpyxl' engine.
+        - If the file exists, the function appends to it, replacing the 'COV' sheet.
+        - The index of the DataFrame remains unchanged.
+        """
+        # Resetting indices messes everything up
+        df = self.data
+    
+        # Determine write mode
+        mode = "a" if os.path.exists(file) else "w"
+        if_sheet_exists = "replace" if mode == "a" else None
+    
+        # Write to Excel
+        with pd.ExcelWriter(file, mode=mode, engine="openpyxl", if_sheet_exists=if_sheet_exists) as writer:
+            df.to_excel(writer, sheet_name="COV")
 
 def corr2cov(corr, s):
     """
@@ -1095,25 +1123,3 @@ def restore_size(nonzero_idxs, mat_reduced, dim):
     for i, ni in enumerate(nonzero_idxs):
         mat[ni, nonzero_idxs] = mat_reduced[i]
     return pd.DataFrame(mat)
-
-
-def random_corr(size, correlations=True, seed=None):
-    np.random.seed(seed=seed)
-    corr = np.eye(size)
-    if correlations:
-        up = np.triu(np.random.uniform(-1, 1, size**2).reshape(size, size), 1)
-    else:
-        up = np.zeros([size, size])
-    corr += up + up.T
-    return corr
-
-
-def random_cov(size, stdmin=0.0, stdmax=1.0, correlations=True, seed=None):
-    corr = random_corr(size, correlations=correlations , seed=seed)
-    std = np.random.uniform(stdmin, stdmax, size)
-    return corr2cov(corr, std)
-
-
-def random_ctg_cov(index, stdmin=0.0, stdmax=1.0, correlations=True, seed=None):
-    cov = random_cov(len(index), stdmin=stdmin, stdmax=stdmax, correlations=correlations, seed=seed)
-    return pd.DataFrame(cov, index=index, columns=index)

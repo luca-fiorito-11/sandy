@@ -27,6 +27,9 @@ def grouper(iterable, n, fillvalue=None):
     return zip_longest(*args, fillvalue=fillvalue)
 
 def get_seed():
-    upper_limit = 2**32  # limit from numpy.random.seed
-    return int(np.random.rand() * (upper_limit - 1))
+    """
+    Wrapper to `np.random.SeedSequence().entropy`.
+    """
+    seed = np.random.SeedSequence().entropy
+    return seed
     
