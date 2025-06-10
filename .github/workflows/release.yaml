@@ -1,3 +1,17 @@
+# ------------------------------------------------------------------------------
+# GitHub Actions Workflow: PyPI_test Release
+#
+# This workflow is designed to:
+# - Trigger on either a manual dispatch (via GitHub UI) or a Git tag push.
+# - Ensure the version in `sandy.__version__` matches the provided tag or input.
+# - Build the Python package using `setup.cfg` and `pyproject.toml` (via `build`).
+# - Upload the distribution to Test PyPI for testing purposes.
+#
+# Requirements:
+# - `sandy.__version__` must be defined and match the release version.
+# - Secrets `PYPI_TEST_USERNAME` and `PYPI_TEST_PASSWORD` must be set in the repo.
+# ------------------------------------------------------------------------------
+
 name: PyPI_test Release
 
 on:
@@ -22,7 +36,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract version from sandy.__init__.py
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Cache pip dependencies from setup.cfg
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('setup.cfg') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies and package
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine
+          pip install .[pack]
+
+      - name: Extract version from sandy.__version__
         id: get_version
         run: |
           version=$(python -c "import sandy; print(sandy.__version__)")
@@ -48,25 +81,6 @@ jobs:
             echo "::error::Version mismatch: sandy.__version__ ($actual) does not match expected ($expected)"
             exit 1
           fi
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-
-      - name: Cache pip dependencies from setup.cfg
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('setup.cfg') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install setuptools wheel twine
-          pip install .[pack]
 
       - name: Build distribution
         run: python -m build
