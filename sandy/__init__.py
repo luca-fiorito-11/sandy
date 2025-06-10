@@ -53,7 +53,7 @@ logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
 
-__version__ = '1.1b1'
+__version__ = '1.1b2'
 
 
 # Must import submodules after __version__ and everything above.
