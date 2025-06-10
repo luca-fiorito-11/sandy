@@ -3,33 +3,77 @@ name: PyPI_test Release
 on:
   push:
     tags:
-      - "*"
+      - "*"  # Trigger on all tags
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (must match sandy.__version__)"
+        required: false
+        type: string
 
 jobs:
   release:
+    name: Publish to Test PyPI
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          # The branch, tag or SHA to checkout. When checking out the repository that
-          # triggered a workflow, this defaults to the reference or SHA for that event.
-          # Otherwise, defaults to `master`.
-          ref: 'develop'
-      - name: Setup Python
-        uses: actions/setup-python@v2
+          fetch-depth: 0
+
+      - name: Extract version from sandy.__init__.py
+        id: get_version
+        run: |
+          version=$(python -c "import sandy; print(sandy.__version__)")
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Determine expected version
+        id: determine_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            expected="${{ github.event.inputs.version }}"
+          else
+            expected="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "expected=$expected" >> $GITHUB_OUTPUT
+
+      - name: Compare version
+        run: |
+          actual="${{ steps.get_version.outputs.version }}"
+          expected="${{ steps.determine_version.outputs.expected }}"
+          echo "Extracted version: $actual"
+          echo "Expected version: $expected"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::Version mismatch: sandy.__version__ ($actual) does not match expected ($expected)"
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: "3.x"
+
+      - name: Cache pip dependencies from setup.cfg
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('setup.cfg') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install setuptools wheel twine
-      - name: Build the dist files
-        run: python setup.py sdist bdist_wheel
-      - name: Publish
+          pip install .[pack]
+
+      - name: Build distribution
+        run: python -m build
+
+      - name: Publish to Test PyPI
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_TEST_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
-        run: twine upload dist/* --verbose
+        run: |
+          twine upload --repository-url https://test.pypi.org/legacy/ dist/* --verbose
