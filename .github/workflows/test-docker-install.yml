@@ -12,11 +12,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-
       - name: Build Docker image
-        run: |
-          docker build -t sandy-test -f Dockerfile.pypi .
-
+        run: |
+          docker build -t sandy-test -f Dockerfile.pypi .
 
       - name: Run container and verify installation
         run: docker run --rm sandy-test python -c "import sandy; print(f'Sandy version {sandy.__version__} installed successfully')"
