@@ -30,9 +30,18 @@ ENV NJOY=/app/NJOY2016/build/njoy
 # Copy your package source code into the container
 COPY . /app
 
+# Define build argument to choose install method
+ARG INSTALL_MODE=pypi
+
+# Install sandy either from PyPI or from source
+RUN if [ "$INSTALL_MODE" = "source" ]; then \
+      pip install --no-cache-dir .; \
+    else \
+      pip install --no-cache-dir sandy; \
+    fi
+
 # Install Python packages from PyPI
 RUN pip install --no-cache-dir \
-    sandy \
     jupyterlab \
     notebook \
     matplotlib \
