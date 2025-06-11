@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-docker-install:
+  test-docker-localinstall:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
