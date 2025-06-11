@@ -1,0 +1,18 @@
+name: Setup NJOY2016
+description: Clone and build NJOY2016
+
+runs:
+  using: "composite"
+  steps:
+    - name: Clone NJOY2016
+      shell: bash
+      run: |
+        git clone https://github.com/njoy/NJOY2016.git
+        cd NJOY2016
+        mkdir build && cd build
+        cmake -DPython3_EXECUTABLE=$(which python3) ..
+        make
+
+    - name: Remove NJOY2016 tests
+      shell: bash
+      run: rm -rf NJOY2016/tests

@@ -1,64 +1,59 @@
-# CI workflow for automated testing and documentation generation
+# Continuous Integration workflow for testing, version checking, and NJOY2016 setup
 
-name: CI
+name: Continuous Integration
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events for the develop and v1.1 branches
+  # Trigger on push or pull request to develop and v1.1 branches
   push:
-    branches: 
+    branches:
       - develop
-      - v1.1
+      - v*
   pull_request:
-    branches: 
+    branches:
       - develop
-      - v1.1
-
-  # Allows manual triggering of the workflow from the Actions tab
+      - v*
+  # Allow manual trigger from GitHub Actions UI
   workflow_dispatch:
 
-# Environment variables accessible to all jobs
 env:
+  # Path to the NJOY binary after build
   NJOY: ${{ github.workspace }}/NJOY2016/build/njoy
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# Define the jobs to be run
 jobs:
   build:
-    # Use the latest Ubuntu environment
+    name: Build, Test, and Validate
     runs-on: ubuntu-latest
 
     steps:
-      # Check out the repository to the GitHub workspace
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # Retrieves the source code
 
-      # Set up the latest Python 3 version
-      - uses: actions/setup-python@v3
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.x"
+        # Installs the latest Python 3.x version
 
-      # Clone and build NJOY2016
-      - name: Clone and build NJOY2016
-        run: |
-          git clone https://github.com/njoy/NJOY2016.git
-          cd NJOY2016
-          mkdir build
-          cd build
-          cmake -DPython3_EXECUTABLE=$(which python3) ..
-          make
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.cfg') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+        # Speeds up builds by caching Python packages
 
-      # Remove NJOY2016 tests from the repository to avoid conflicts with SANDY tests
-      - name: Remove NJOY2016 tests
-        run: rm -rf NJOY2016/tests
+      - name: Setup NJOY2016
+        uses: ./.github/actions/setup-njoy
+        # Builds NJOY2016 from source
 
-      # Install the sandy package
-      - name: Install sandy
-        run: pip install --no-cache-dir --user .[test,doc]
+      - name: Install SANDY with test dependencies
+        run: pip install --no-cache-dir --user .[test]
+        # Installs your package with test extras
 
-      # Run tests with coverage reporting
-      - name: Run tests with pytest
+      - name: Run tests with coverage
         run: pytest --cov=sandy sandy
+        # Runs tests and reports code coverage
 
-      # Build documentation
-      - name: Build documentation
-        run: bash make_docs.sh html
