@@ -14,10 +14,7 @@ This document outlines the guidelines for contributing to this project.
 - The **main branch is `develop`**.
 - All new version developments are done in branches named **`vX.Y`**, where `X.Y` indicates the upcoming version (e.g., `v1.1`).
 - All **features or fixes are branched from `vX.Y`** and submitted via **Pull Requests** (PRs).
-- **If a version is bumped in `vX.Y`**, it must follow the format `X.Y-betaN` (e.g., `1.1-beta1`, `1.1-beta2`, etc.).
-  - Each such bump should produce a **tag and a beta release to PyPI**.
-- **Every PR to `develop` must be a version bump**, e.g. `1.1`, from the corresponding `vX.Y` branch.
-  - These will produce a **tag and a full release to PyPI**.
+- **Tags and full releases to PyPI** are run via action workflows.
 - **GitHub releases are added manually**.
 
 **Current active development branch:** `v1.1`
