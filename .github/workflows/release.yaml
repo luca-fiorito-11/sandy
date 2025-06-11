@@ -12,6 +12,10 @@ on:
   push:
     tags:
       - "*"  # Trigger on all tags
+  workflow_run:
+    workflows: ["Tag Beta Release"]
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       version:
