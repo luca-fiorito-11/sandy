@@ -1,0 +1,21 @@
+name: Docker Test for local Sandy installation
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - v*
+
+jobs:
+  test-docker-localinstall:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build --build-arg INSTALL_MODE=source -t sandy-source .
+
+      - name: Run container and verify installation
+        run: docker run --rm sandy-source python -c "import sandy; print(f'Sandy version {sandy.__version__} installed successfully')"

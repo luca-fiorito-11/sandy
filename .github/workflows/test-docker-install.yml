@@ -1,0 +1,21 @@
+name: Weekly Docker Test for Sandy
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday at 06:00 UTC
+  # Allow manual trigger from GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  test-docker-install:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build --build-arg INSTALL_MODE=pypi -t sandy-pypi .
+
+      - name: Run container and verify installation
+        run: docker run --rm sandy-pypi python -c "import sandy; print(f'Sandy version {sandy.__version__} installed successfully')"
