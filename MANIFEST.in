@@ -1,0 +1,11 @@
+# MANIFEST.in ensures everything I want is included in the source package (sdist),
+# including README and extra folders outside your package code.
+
+# Include the README at the root
+include README.md
+
+# Include all files inside appendix/ directory recursively
+recursive-include appendix *
+
+# Include any additional package data files
+# (adjust if you have package data inside your packages)
