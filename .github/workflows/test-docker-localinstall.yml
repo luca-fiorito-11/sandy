@@ -1,4 +1,4 @@
-name: Weekly Docker Test for Sandy
+name: Docker Test for local Sandy installation
 
 on:
   pull_request:
