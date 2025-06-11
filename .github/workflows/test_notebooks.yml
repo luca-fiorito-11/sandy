@@ -1,63 +1,42 @@
-name: notebook CI
+name: Notebook CI
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the develop branch
   schedule:
-  - cron:  '30 14 * * 1,3,5'
-
-  # Allows you to run this workflow manually from the Actions tab
+    - cron: '30 14 * * 1,3,5'  # Mon, Wed, Fri at 14:30 UTC
   workflow_dispatch:
 
-# Environment variables accessible to all jobs
 env:
-  NJOY: ${GITHUB_WORKSPACE}/NJOY2016/build/njoy
+  NJOY: ${{ github.workspace }}/NJOY2016/build/njoy
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# Define the jobs to be run
 jobs:
   build:
-    # Use the latest Ubuntu environment
     runs-on: ubuntu-latest
 
     steps:
-      # Check out the repository to the GitHub workspace
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # Set up the latest Python 3 version
-      - uses: actions/setup-python@v3
+      - name: Set up Python
+        uses: actions/setup-python@v3
         with:
           python-version: ">=3.8 <3.12"  # to comply with serpentTools
 
-      # Clone and build NJOY2016
-      - name: Clone and build NJOY2016
-        run: |
-          git clone https://github.com/njoy/NJOY2016.git
-          cd NJOY2016
-          mkdir build
-          cd build
-          cmake -DPython3_EXECUTABLE=$(which python3) ..
-          make
+      - name: Set up NJOY2016
+        uses: ./.github/actions/setup-njoy
 
-      # Remove NJOY2016 tests from the repository to avoid conflicts with SANDY tests
-      - name: Remove NJOY2016 tests
-        run: rm -rf NJOY2016/tests
-
-      # Install the sandy package
-      - name: Install sandy
+      - name: Install sandy and dependencies
         run: pip install --no-cache-dir --user .[test,notebook,doc] "numpy<2"  # to comply with serpentTools
 
-      # Run all the jupyter notebooks
-      - name: run notebooks
+      - name: Execute Jupyter notebooks
         run: |
           cd notebooks
-          mkdir executed_notebooks
-          jupyter nbconvert --to notebook --execute *.ipynb --ExecutePreprocessor.kernel_name='python3' --inplace
+          mkdir -p executed_notebooks
+          jupyter nbconvert --to notebook --execute *.ipynb \
+            --ExecutePreprocessor.kernel_name='python3' --inplace
           mv *.ipynb executed_notebooks/
 
-      # Push rendered notebooks to sandy_notebooks page
-      - name: Pushes to another repository
-        id: push_directory
+      - name: Push executed notebooks to external repo
         uses: cpina/github-action-push-to-another-repository@main
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
