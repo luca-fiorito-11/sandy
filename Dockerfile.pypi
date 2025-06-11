@@ -1,0 +1,44 @@
+FROM python:3.11-slim
+
+# Avoid writing .pyc files and enable unbuffered output
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gfortran \
+    cmake \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Clone and build NJOY2016
+RUN git clone https://github.com/njoy/NJOY2016.git && \
+    cd NJOY2016 && \
+    mkdir build && cd build && \
+    cmake -DPython3_EXECUTABLE=$(which python3) .. && \
+    make && \
+    make install
+
+# Set NJOY environment variable
+ENV NJOY=/app/NJOY2016/build/njoy
+
+# Copy your package source code into the container
+COPY . /app
+
+# Install Python packages from PyPI
+RUN pip install --no-cache-dir \
+    sandy \
+    jupyterlab \
+    notebook \
+    matplotlib \
+    seaborn \
+    scikit-learn \
+    serpentTools
+
+# Default command to verify sandy installation
+CMD ["python", "-c", "import sandy; print('Sandy installed successfully')"]
