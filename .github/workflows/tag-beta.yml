@@ -6,7 +6,6 @@ on:
     types: [closed]
     branches:
       - 'v*'
-  workflow_dispatch:
 
 jobs:
   tag-beta:
