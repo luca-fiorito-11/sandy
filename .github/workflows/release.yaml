@@ -29,9 +29,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Fetch all branches and tags
+        run: git fetch --all --tags
+      
+      - name: Find branch that contains the base version of the tag
+        id: find_branch
+        run: |
+          full_tag="${GITHUB_REF#refs/tags/}"
+          # Strip -betaN or other suffixes like -rc1, -alpha2, etc.
+          base_version=$(echo "$full_tag" | sed -E 's/-(beta|rc|alpha)[0-9]+$//')
+          echo "Base version: $base_version"
+      
+          # Try to find a remote branch that matches the base version
+          branch=$(git branch -r --contains "refs/tags/$full_tag" | grep "origin/v$base_version" | head -n 1 | sed 's|origin/||')
+      
+          if [ -z "$branch" ]; then
+            echo "::error::No branch found that matches base version v$base_version"
+            exit 1
+          fi
+      
+          echo "branch=$branch" >> $GITHUB_OUTPUT
+
+      - name: Checkout branch that created the tag
         uses: actions/checkout@v4
         with:
+          ref: ${{ steps.find_branch.outputs.branch }}
           fetch-depth: 0
 
       - name: Set up Python
