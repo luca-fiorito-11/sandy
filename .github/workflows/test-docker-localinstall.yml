@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - v*
+    workflow_dispatch:
 
 jobs:
   test-docker-localinstall:
@@ -18,4 +19,4 @@ jobs:
           docker build --build-arg INSTALL_MODE=source -t sandy-source .
 
       - name: Run container and verify installation
-        run: docker run --rm sandy-source python -c "import sandy; print(f'Sandy version {sandy.__version__} installed successfully')"
+        run: docker run --rm sandy-source python -c "import sandy; print(f'Sandy version {sandy.__version__} installed successfully'); print(f'NJOY executable is {sandy.get_njoy()}')"
