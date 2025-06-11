@@ -1,41 +1,20 @@
-name: Tag Beta Release
+name: Tag and Release
 
-# Trigger this workflow when a pull request is closed on any branch starting with 'v'
 on:
-  pull_request:
-    types: [closed]
-    branches:
-      - 'v*'
+  workflow_dispatch:
 
 jobs:
-  tag-beta:
-    # Run this job only if the pull request was merged (not just closed)
-    if: github.event.pull_request.merged == true
+  tag:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the base branch (the branch the PR was merged into)
       - name: Checkout base branch
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.base.ref }}
 
-      # Step 2: Run a custom action to check if the version is valid and unique
       - name: Check version is unique and valid
         id: check_version
         uses: ./.github/actions/check-version
 
-      # Step 3: Ensure the version string ends with a beta suffix (e.g., -beta1)
-      - name: Ensure version is a beta release
-        shell: bash
-        run: |
-          version=${{ steps.check_version.outputs.version }}
-          if [[ ! "$version" =~ -beta[0-9]+$ ]]; then
-            echo "::notice::Version $version is not a beta release. Skipping tag creation."
-            exit 0
-          fi
-  
-      # Step 4: Create and push a Git tag from the base branch using the validated version
       - name: Create and push tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,3 +25,40 @@ jobs:
           git config user.email "github-actions@github.com"
           git tag "$tag"
           git push origin "$tag"
+
+  release:
+    name: Publish to Test PyPI
+    needs: tag  # This ensures the release job runs after the tag job
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch all branches and tags
+        run: git fetch --all --tags
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Cache pip dependencies from setup.cfg
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('setup.cfg') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build distribution
+        run: python -m build
+
+      - name: Publish to Test PyPI
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_TEST_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
+        run: |
+          twine upload --repository-url https://test.pypi.org/legacy/ dist/* --verbose
