@@ -18,4 +18,4 @@ jobs:
           docker build --build-arg INSTALL_MODE=pypi -t sandy-pypi .
 
       - name: Run container and verify installation
-        run: docker run --rm sandy-pypi python -c "import sandy; print(f'Sandy version {sandy.__version__} installed successfully')"
+        run: docker run --rm sandy-pypi python -c "import sandy; print(f'Sandy version {sandy.__version__} installed successfully'); print(f'NJOY executable is {sandy.get_njoy()}')"

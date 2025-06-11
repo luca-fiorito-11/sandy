@@ -13,6 +13,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Upgrade pip and tools, and ensure correct index
+RUN pip install --upgrade pip setuptools wheel --index-url https://pypi.org/simple/
+
 # Set working directory
 WORKDIR /app
 
