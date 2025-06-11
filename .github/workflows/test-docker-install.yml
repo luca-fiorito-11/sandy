@@ -3,6 +3,11 @@ name: Weekly Docker Test for Sandy
 on:
   schedule:
     - cron: '0 6 * * 1'  # Every Monday at 06:00 UTC
+  pull_request:
+    branches:
+      - develop
+      - v*
+  # Allow manual trigger from GitHub Actions UI
   workflow_dispatch:
 
 jobs:

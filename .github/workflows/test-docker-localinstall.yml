@@ -2,11 +2,9 @@ name: Docker Test for local Sandy installation
 
 on:
   pull_request:
-    # branches:
-    #   - develop
-    #   - v*
-  # Allow manual trigger from GitHub Actions UI
-  workflow_dispatch:
+    branches:
+      - develop
+      - v*
 
 jobs:
   test-docker-localinstall:
