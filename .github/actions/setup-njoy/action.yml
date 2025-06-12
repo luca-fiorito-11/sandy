@@ -10,8 +10,8 @@ runs:
         git clone https://github.com/njoy/NJOY2016.git
         cd NJOY2016
         mkdir build && cd build
-        cmake -DPython3_EXECUTABLE=$(which python3) ..
-        make
+        cmake -DPython3_EXECUTABLE=$(which python3) -DCMAKE_CXX_FLAGS="-w" ..  # suppress all warnings
+        make -s  # run in silent mode
 
     - name: Remove NJOY2016 tests
       shell: bash
