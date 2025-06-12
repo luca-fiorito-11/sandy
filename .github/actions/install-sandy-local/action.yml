@@ -6,5 +6,6 @@ runs:
   steps:
     - name: Install SANDY
       shell: bash
+      working-directory: ${{ github.workspace }}
       run: |
-        pip install --no-cache-dir --user .[test]
+        pip install --no-cache-dir .[test]
