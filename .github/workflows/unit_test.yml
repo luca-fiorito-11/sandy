@@ -55,8 +55,7 @@ jobs:
 
       - name: Run tests with coverage
         env:
-          PYTEST_LOG_LEVEL: ERROR
-        # remove warnings (see conftest.py)
+          PYTEST_LOG_LEVEL: ERROR  # suppress logging to ERROR level, see conftest.py
         run: pytest --cov=sandy sandy
         # Runs tests and reports code coverage
 
