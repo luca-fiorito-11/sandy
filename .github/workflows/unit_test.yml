@@ -54,6 +54,9 @@ jobs:
         # Installs package with test extras
 
       - name: Run tests with coverage
-        run: pytest --cov=sandy sandy -q --tb=short --disable-warnings --log-level=ERROR
+        env:
+          PYTEST_LOG_LEVEL: ERROR
+        # remove warnings (see conftest.py)
+        run: pytest --cov=sandy sandy
         # Runs tests and reports code coverage
 
