@@ -25,15 +25,16 @@ jobs:
       - name: Set up NJOY2016
         uses: ./.github/actions/setup-njoy
 
-      - name: Install sandy and dependencies
-        run: pip install --no-cache-dir --user .[test,notebook,doc] "numpy<2"  # to comply with serpentTools
+      - name: Install SANDY with all extras
+        uses: ./.github/actions/install-sandy-local-extras
+        # Installs package with test extras
 
       - name: Execute Jupyter notebooks
         run: |
           cd notebooks
           mkdir -p executed_notebooks
           jupyter nbconvert --to notebook --execute *.ipynb \
-            --ExecutePreprocessor.kernel_name='python3' --inplace
+            --ExecutePreprocessor.kernel_name='python3' --inplace > /dev/null  # suppress NJOY output
           mv *.ipynb executed_notebooks/
 
       - name: Push executed notebooks to external repo

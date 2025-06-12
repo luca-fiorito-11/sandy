@@ -1,0 +1,9 @@
+name: Install SANDY with all extras
+description: Installs the SANDY package with all extras
+runs:
+  using: "composite"
+  steps:
+    - name: Install SANDY with extras
+      shell: bash
+      run: |
+        pip install --no-cache-dir --user .[test,notebook,doc] "numpy<2"  # to comply with serpentTools
