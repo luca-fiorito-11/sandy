@@ -173,10 +173,10 @@ def parse(iargs=None):
                         help="Seed for random sampling of MF35 covariance "
                              "matrix (default = random)")
 
-    parser.add_argument('--supressnjoy',
+    parser.add_argument('--suppressnjoy',
                         default=False,
                         action="store_true",
-                        help="Supress NJOY ouputs.")
+                        help="Suppress NJOY ouputs.")
 
     parser.add_argument('--temperatures', '-T',
                         default=None,
@@ -425,7 +425,7 @@ def run(iargs):
         )
         return       
 
-    njoy_output = sp.DEVNULL if iargs.supressnjoy else None
+    njoy_output = sp.DEVNULL if iargs.suppressnjoy else None
 
     # ERRORR KEYWORDS
     nubar = bool(31 in iargs.mf) and (31 in endf6.mf)
