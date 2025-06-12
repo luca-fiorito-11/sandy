@@ -50,7 +50,7 @@ jobs:
         # Builds NJOY2016 from source
 
       - name: Install SANDY with test dependencies
-        run: ./.github/actions/install-sandy-local
+        uses: ./.github/actions/install-sandy-local
         # Installs package with test extras
 
       - name: Run tests with coverage
