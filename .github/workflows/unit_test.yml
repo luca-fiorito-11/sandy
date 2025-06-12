@@ -54,6 +54,6 @@ jobs:
         # Installs package with test extras
 
       - name: Run tests with coverage
-        run: pytest --cov=sandy sandy
+        run: pytest --cov=sandy sandy > /dev/null
         # Runs tests and reports code coverage
 
