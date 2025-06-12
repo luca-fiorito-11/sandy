@@ -1,5 +1,6 @@
 name: Install SANDY with all extras
 description: Installs the SANDY package with all extras
+
 runs:
   using: "composite"
   steps:

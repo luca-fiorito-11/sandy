@@ -1,5 +1,6 @@
 name: Install SANDY with test dependencies
 description: Installs the SANDY package with test extras
+
 runs:
   using: "composite"
   steps:
