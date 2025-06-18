@@ -3,8 +3,7 @@ Collection of utilities, functions and classes that are requetsed in all code
 components.
 """
 from itertools import zip_longest
-import random
-import sys
+import numpy as np
 
 from sandy.shared import pad_from_beginning, \
                          pad_from_beginning_fast, \
@@ -28,6 +27,9 @@ def grouper(iterable, n, fillvalue=None):
     return zip_longest(*args, fillvalue=fillvalue)
 
 def get_seed():
-    upper_limit = 2**32  # limit from numpy.random.seed
-    return random.randrange(upper_limit)
+    """
+    Wrapper to `np.random.SeedSequence().entropy`.
+    """
+    seed = np.random.SeedSequence().entropy
+    return seed
     

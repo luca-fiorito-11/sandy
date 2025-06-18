@@ -1,0 +1,24 @@
+name: Version Check
+
+on:
+  pull_request:
+    branches:
+      - 'v*'
+
+jobs:
+  check-version:
+    name: Ensure version is new and valid
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # Retrieves the source code
+
+      - name: Run version uniqueness check
+        id: check_version
+        uses: ./.github/actions/check-version
+        # This will:
+        # - Extract version from sandy/__init__.py
+        # - Validate format (X.Y.Z or X.Y.Z-betaN)
+        # - Fail if the version already exists as a tag

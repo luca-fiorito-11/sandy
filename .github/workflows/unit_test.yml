@@ -1,46 +1,62 @@
-# This is a basic workflow to help you get started with Actions
+# Continuous Integration workflow for testing, version checking, and NJOY2016 setup
 
-name: CI
+name: Continuous Integration
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the develop branch
+  # Trigger on push or pull request to develop and v1.1 branches
   push:
-    branches: [ develop, v1.0 ]
+    branches:
+      - develop
+      - v*
   pull_request:
-    branches: [ develop, v1.0 ]
-
-  # Allows you to run this workflow manually from the Actions tab
+    branches:
+      - develop
+      - v*
+  # Allow manual trigger from GitHub Actions UI
   workflow_dispatch:
 
 env:
-  NJOY: ${GITHUB_WORKSPACE}/NJOY2016/build/njoy
+  # Path to the NJOY binary after build
+  NJOY: ${{ github.workspace }}/NJOY2016/build/njoy
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
+    name: Build, Test, and Validate
     runs-on: ubuntu-latest
 
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
-      - uses: "actions/setup-python@v3"
-        with:
-          python-version: "3.7.15"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # Retrieves the source code
 
-      # Run commands using the runners shell
-      - name: clone and install njoy
-        run: git clone https://github.com/njoy/NJOY2016.git && (cd NJOY2016 && mkdir build && cd build && cmake -DPython3_EXECUTABLE=$(which python3) .. && make)
-      - name: remove njoy tests from unit testing
-        run: rm -rf NJOY2016/tests
-      - name: install general python dependencies
-        run: pip install sphinx sphinx_rtd_theme codecov numpydoc coveralls pytest-cov nbval
-      - name: install sandy's requirements
-        run: pip install -r requirements.txt
-      - name: install sandy
-        run: python setup.py install --user
-      - name: pytest
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+        # Installs the latest Python 3.x version
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.cfg') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+        # Speeds up builds by caching Python packages
+
+      - name: Setup NJOY2016
+        uses: ./.github/actions/setup-njoy
+        # Builds NJOY2016 from source
+
+      - name: Install SANDY with test dependencies
+        uses: ./.github/actions/install-sandy-local
+        # Installs package with test extras
+
+      - name: Run tests with coverage
+        env:
+          CI: true
+          PYTEST_LOG_LEVEL: ERROR  # suppress logging to ERROR level, see conftest.py
         run: pytest --cov=sandy sandy
-      - name: make docs
-        run: bash make_docs.sh html
+        # Runs tests and reports code coverage
+

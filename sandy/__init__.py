@@ -1,32 +1,6 @@
 import logging
 import sys
 
-from .settings import *
-from .constants import *
-from .decay import *
-from .energy_grids import *
-from .errorr import *
-from .gendf import *
-from .fy import *
-from .tsl import *
-from .gls import *
-from .libraries import *
-from .pert import *
-from .pfns import *
-from sandy.zam import *
-from .njoy import *
-from .sections import *
-from .shared import *
-from .utils import *
-from .core import *
-# from .sampling import *  # don't do this
-from .spectra import *
-import sandy.mcnp
-import sandy.aleph2
-import sandy.tools
-import sandy.shared
-import sandy.sampling
-
 testdir = "tests"
 
 
@@ -59,11 +33,57 @@ class Error(Exception):
     pass
 
 
-FORMAT = '%(levelname)s:  %(message)s'
-logging.basicConfig(format=FORMAT)
-logging.getLogger().setLevel(logging.INFO)
-logging.getLogger().addHandler(ShutdownHandler(level=40))
-# logging.getLogger().addFilter(DuplicateFilter())
+class ConditionalFormatter(logging.Formatter):
+    """Change format dynamically based on log level."""
+    
+    FORMATS = {
+        logging.INFO: logging.Formatter('%(message)s'),  # No level prefix for INFO
+        'default': logging.Formatter('%(levelname)s:  %(message)s'),  # Default format
+    }
+    
+    def format(self, record):
+        formatter = self.FORMATS.get(record.levelno, self.FORMATS['default'])
+        return formatter.format(record)
+
+# Setup logging
+logger = logging.getLogger()
+handler = logging.StreamHandler()
+handler.setFormatter(ConditionalFormatter())  # Apply the custom formatter
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 
-__version__ = '1.0.40'
+__version__ = '1.1.0-beta1'
+
+
+# Must import submodules after __version__ and everything above.
+from .constants import *
+from .cov import *
+from .decay import *
+from .endf6 import *
+from .energy_grids import *
+from .errorr import *
+from .fy import *
+from .gendf import *
+from .gls import *
+from .libraries import *
+from .lpc import *
+from .pert import *
+from .edistr import *
+from .njoy import *
+from .records import *
+from .samples import *
+from .sections import *
+from .settings import *
+from .shared import *
+from .tools import *
+from .tsl import *
+from .utils import *
+from .zam import *
+from .sampling import *
+from .spectra import *
+from .xs import *
+
+# These are folders
+from . import mcnp
+from . import aleph2

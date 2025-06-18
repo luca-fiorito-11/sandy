@@ -1,56 +1,43 @@
-name: notebook CI
+name: Notebook CI
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the develop branch
   schedule:
-  - cron:  '30 14 * * 1,3,5'
-
-  # Allows you to run this workflow manually from the Actions tab
+    - cron: '30 14 * * 1,3,5'  # Mon, Wed, Fri at 14:30 UTC
   workflow_dispatch:
 
 env:
-  NJOY: ${GITHUB_WORKSPACE}/NJOY2016/build/njoy
+  NJOY: ${{ github.workspace }}/NJOY2016/build/njoy
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
-        with:
-          # The branch, tag or SHA to checkout. When checking out the repository that
-          # triggered a workflow, this defaults to the reference or SHA for that event.
-          # Otherwise, defaults to `master`.
-          ref: 'v1.0'
-      - uses: actions/setup-python@v3
-        with:
-          python-version: "3.x"
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # Run commands using the runners shell
-      - name: clone and install njoy
-        run: git clone https://github.com/njoy/NJOY2016.git && (cd NJOY2016 && mkdir build && cd build && cmake -DPython3_EXECUTABLE=$(which python3) .. && make)
-      - name: remove njoy tests from unit testing
-        run: rm -rf NJOY2016/tests
-      - name: install general python dependencies
-        run: pip install sphinx sphinx_rtd_theme codecov numpydoc coveralls pytest-cov nbval
-      - name: install sandy's requirements
-        run: pip install -r requirements.txt
-      - name: install jupyter packages to run notebooks
-        run: pip install jupyterlab matplotlib seaborn
-      - name: install sandy
-        run: python setup.py install --user
-      - name: run notebooks
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: ">=3.8 <3.12"  # to comply with serpentTools
+
+      - name: Set up NJOY2016
+        uses: ./.github/actions/setup-njoy
+
+      - name: Install SANDY with all extras
+        uses: ./.github/actions/install-sandy-local-extras
+        # Installs package with test extras
+
+      - name: Execute Jupyter notebooks
         run: |
           cd notebooks
-          mkdir executed_notebooks
-          jupyter nbconvert --to notebook --execute *.ipynb --ExecutePreprocessor.kernel_name='python3' --inplace
+          mkdir -p executed_notebooks
+          jupyter nbconvert --to notebook --execute *.ipynb \
+            --ExecutePreprocessor.kernel_name='python3' --inplace > /dev/null  # suppress NJOY output
           mv *.ipynb executed_notebooks/
-      - name: Pushes to another repository
-        id: push_directory
+
+      - name: Push executed notebooks to external repo
         uses: cpina/github-action-push-to-another-repository@main
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
@@ -60,4 +47,4 @@ jobs:
           destination-repository-name: 'sandy_notebooks'
           user-email: lucafiorito.11@gmail.com
           commit-message: pushing notebooks...
-          target-branch: executed_notebooks_v1.0
+          target-branch: executed_notebooks_v1.1

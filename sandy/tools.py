@@ -1,17 +1,11 @@
 # -*- coding: utf-8 -*-
-"""
-"""
-import pdb
 import os
 import time
 import ctypes
-import sys
-from ast import literal_eval
-
-import numpy as np
 
 __author__ = "Luca Fiorito"
-__all__ = []
+__all__ = [
+    ]
 
 
 def is_valid_file(parser, arg, r=True, w=False, x=False):

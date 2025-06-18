@@ -19,7 +19,7 @@ __all__ = [
 
 
 def gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
-    """
+    r"""
     Perform the GlS update of a prior vector and its related covariance matrix,
     according with
     https://www.tandfonline.com/action/journalInformation?journalCode=tnst2
@@ -77,7 +77,7 @@ def gls_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
 
 
 def _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
-    """
+    r"""
     Perform the GlS update of a prior vector, given its prior covariance
     matrix, additional info on the model observable and their covariance
     matrix.
@@ -151,7 +151,7 @@ def _gls_parameters_update(x_prior, S, Vx_prior, y_extra, Vy_extra=None):
 
 
 def _gls_cov_update(Vx_prior, S, Vy_extra=None):
-    """
+    r"""
     Perform GlS update for a given covariance matrix, sensitivity and
     covariance matrix of the extra information, according with
     https://www.tandfonline.com/action/journalInformation?journalCode=tnst20:
@@ -215,7 +215,7 @@ def _gls_cov_update(Vx_prior, S, Vy_extra=None):
 
 
 def _gls_G_inv(Vx_prior, s, Vy_extra=None):
-    """
+    r"""
     Compute part of the GLS update technique. Output calculated using
     .. math::
         $$
@@ -284,7 +284,7 @@ def _gls_G_inv(Vx_prior, s, Vy_extra=None):
 
 
 def sandwich(cov, s):
-    """
+    r"""
     Apply the "sandwich formula" to the covariance matrix passed for a given
     sensitivity. According with https://doi.org/10.1155/2013/380284,
     the moment propagation equation is implemented as:
@@ -321,16 +321,19 @@ def sandwich(cov, s):
            [ 0,  8,  0],
            [ 0,  0, 27]])
     """
-    s_ = np.array(s)
-    cov_ = np.array(cov)
-    sandwich = np.array(s_.dot(cov_).dot(s_.T))
-    ndim = s_.ndim
-    sandwich = sandwich.reshape(-1, ndim) if ndim == 1 else sandwich
-    return sandwich
+    s_ = np.asarray(s)
+    cov_ = np.asarray(cov)
+
+    sandwich_results = s_ @ cov_ @ s_.T
+
+    if s_.ndim == 1:
+        sandwich_results = sandwich_results.reshape(-1, s_.ndim)
+
+    return sandwich_results
 
 
 def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
-    """
+    r"""
     Function to calculate individual chi-value measured in sigmas according to
     https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
     (page 9, equation (4.2))
@@ -386,7 +389,7 @@ def chi_individual(x_prior, S, Vx_prior, Vy_extra, y_extra):
 
 
 def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
-    """
+    r"""
     Function to calculate diagonal chi-value
     $\chi_{ind,i}$>>1 according to
     https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
@@ -441,7 +444,7 @@ def chi_diag(x_prior, S, Vx_prior, Vy_extra, y_extra):
 
 
 def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
-    """
+    r"""
     Function to calculate contribution to chi-square value according to
     https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
     (page 10, equation (4.4))
@@ -496,7 +499,7 @@ def chi_square(x_prior, S, Vx_prior, Vy_extra, y_extra, N_e):
 
 
 def ishikawa_factor(S, Vx_prior, Vy_extra):
-    """
+    r"""
     Function to obtain Ishikawa factor according to
     https://www.oecd-nea.org/jcms/pl_19760/intermediate-report-on-methods-and-approaches-to-provide-feedback-from-nuclear-and-covariance-data-adjustment-for-improvement-of-nuclear-data-files
     (page 10, equation (4.5))

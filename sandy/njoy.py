@@ -106,6 +106,27 @@ NJOY_TEMPERATURES = [293.6]
 NJOY_SIG0 = [1e10]
 NJOY_THERMR_EMAX = 10
 
+# input taken from
+# https://www-nds.iaea.org/index-meeting-crp/TM_NDP/docs/OCabellos_2017.pdf
+_input_mf32_nomf33 = """errorr
+999/
+20 33/
+1/
+2/
+18/
+102/
+0/
+stop"""
+# same but no fissile
+_input_mf32_nomf33_no18 = """errorr
+999/
+20 33/
+1/
+2/
+102/
+0/
+stop"""
+
 
 def get_njoy():
     """
@@ -576,7 +597,7 @@ def _acer_input(endfin, pendfin, aceout, dirout, mat,
 def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
                   ign=2, ek=None, spectrum=None,
                   iwt=2, relative=True,
-                  mt=None, irespr=0,
+                  mt=None, irespr=1,
                   temperature=NJOY_TEMPERATURES[0], mfcov=33,
                   iprint=False,
                   **kwargs):
@@ -606,7 +627,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     iprint : `bool`, optional
         print option (default is `False`)
     irespr: `int`, optional
-        processing for resonance parameter covariances (default is 0)
+        processing for resonance parameter covariances (default is 1)
         - 0: area sensitivity method
         - 1: 1% sensitivity method
     iwt : `int`, optional
@@ -644,7 +665,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 33 0/
+    0 33 1/
 
     Test argument `temperature`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9440, temperature=600))
@@ -652,7 +673,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9440 2 2 0 1 /
     0 600.0 /
-    0 33 0/
+    0 33 1/
 
     Test argument `iwt`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, iwt=6))
@@ -660,7 +681,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 6 0 1 /
     0 293.6 /
-    0 33 0/
+    0 33 1/
 
     Test argument `ek`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, ek=[1e-2, 1e3, 2e5]))
@@ -668,7 +689,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 1 2 0 1 /
     0 293.6 /
-    0 33 0/
+    0 33 1/
     2 /
     1.00000e-02 1.00000e+03 2.00000e+05 /
 
@@ -678,7 +699,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 3 2 0 1 /
     0 293.6 /
-    0 33 0/
+    0 33 1/
 
     Test nubar
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=31))
@@ -686,7 +707,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 31 0/
+    0 31 1/
 
     Test mubar
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=34))
@@ -694,7 +715,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 34 0/
+    0 34 1/
 
     Test chi
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=35))
@@ -702,7 +723,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 35 0/
+    0 35 1/
 
     Test keyword `relative`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, relative=False))
@@ -710,15 +731,15 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 0 /
     0 293.6 /
-    0 33 0/
+    0 33 1/
 
     Test keyword `irespr`
-    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, irespr=1))
+    >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, irespr=0))
     errorr
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    0 33 1/
+    0 33 0/
 
     Test keyword `mt` as `list`
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt=[1, 2]))
@@ -726,7 +747,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    1 33 0/
+    1 33 1/
     2 0 /
     1 2 /    
 
@@ -736,7 +757,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     20 21 0 22 0 /
     9237 2 2 0 1 /
     0 293.6 /
-    1 33 0/
+    1 33 1/
     1 0 /
     2 /    
     """
@@ -1035,7 +1056,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     return "\n".join(text) + "\n"
 
 
-def _run_njoy(text, endf, pendf=None, exe=None):
+def _run_njoy(text, endf, pendf=None, exe=None, njoy_output=None):
     """
     Run njoy executable for given input.
 
@@ -1049,10 +1070,14 @@ def _run_njoy(text, endf, pendf=None, exe=None):
         njoy input file passed to `Popen` as `stdin` (it must be encoded first)
     exe : `str`, optional, default is `None`
         njoy executable: if `None` (default) get it from `NJOY` env variable
+    njoy_output : `int`, optional, default is `None`
+        target of stderr and stdout for the NJOY process. If `None`, NJOY will 
+        print its output in the terminal. If `subprocess.DEVNULL`, NJOY
+        output will be suppressed, default is `None`.
     """
     if exe is None:
         exe = get_njoy()
-    stdout = stderr = None
+    stdout = stderr = njoy_output
     stdin = text.encode()
     with TemporaryDirectory() as tmpdir:
         shutil.copy(endf, os.path.join(tmpdir, "tape20"))
@@ -1069,7 +1094,16 @@ def _run_njoy(text, endf, pendf=None, exe=None):
         logging.debug(stderrdata)
         retrn = process.returncode
         if retrn != 0:
-            msg = f"process status={retrn}, cannot run njoy executable"
+            cwd = os.getcwd()
+            dir = join(cwd, "njoy_outputs")
+            if os.path.exists(dir):
+                shutil.rmtree(dir)
+            os.makedirs(dir)
+            for filename in os.listdir(tmpdir):
+                shutil.copy(join(tmpdir, filename), join(dir, filename))
+            with open(join(dir, "input"), "w") as f:
+                f.write(stdin.decode("utf-8"))
+            msg = f"process status={retrn} when running njoy executable '{exe}'.\nInputs/Outputs were moved to '{dir}'"
             raise ValueError(msg)
 
         # Move outputs
@@ -1228,7 +1262,7 @@ def _prepare_njoy_input(
     g = 39
     if groupr_:
         if len(temperatures) > 1:
-            logging.info("Multiple temperatures were requested.\nGROUPR will only process the first.")
+            logging.warning("Multiple temperatures were requested.\nGROUPR will only process the first.")
         temperature = temperatures[0]
         text += _groupr_input(-e, -p, -g, 
                               mat=mat, temperature=temperature,
@@ -1239,7 +1273,7 @@ def _prepare_njoy_input(
     # this part produces a maximimum of four ERRORR files, one per data type
     if errorr33 or errorr31 or errorr34 or errorr35:
         if len(temperatures) > 1:
-            logging.info("Multiple temperatures were requested.\nERRORR will only process the first.")
+            logging.warning("Multiple temperatures were requested.\nERRORR will only process the first.")
         temperature = temperatures[0]
     if errorr33:
         # for xs use a GENDF file only if explicitely asked, not just if
@@ -1290,6 +1324,7 @@ def process_neutron(
         exe=None,
         verbose=True,
         dryrun=False,
+        njoy_output=None,
         **kwargs,
         ):
     """
@@ -1308,6 +1343,10 @@ def process_neutron(
         njoy executable (with path)
         .. note:: if no executable is given, SANDY looks for a default
                   executable in `PATH` and in env variable `NJOY`
+    njoy_output : `int`, optional, default is `None`
+        target of stderr and stdout for the NJOY process. If `None`, NJOY will 
+        print its output in the terminal. If `subprocess.DEVNULL`, NJOY
+        output will be suppressed, default is `None`.
     route : `str`, optional, default is `0`
         xsdir "route" parameter
     suffixes : iterable of `int`, optional, default is `None`
@@ -1341,13 +1380,15 @@ def process_neutron(
         meta_ = 0 if zaid == "nndc" else meta
         suffixes_ = ["." + get_temperature_suffix(t, meta_) for t in temperatures_]
     text = _prepare_njoy_input(mat, temperatures_, suffixes_, **kwargs)
+
     if verbose:
-        print(text)
+        logging.info(" - Dumping NJOY input file to output stream...")
+        logging.info(text)
 
     # Run njoy
     if dryrun:
         return text
-    outputs = _run_njoy(text, endftape, pendftape, exe=exe)
+    outputs = _run_njoy(text, endftape, pendftape, exe=exe, njoy_output=njoy_output)
     
     # Minimal output post-processing
     if "xsdir" in outputs:
@@ -1371,6 +1412,7 @@ def process_proton(
         tag="",
         exe=None,
         route="0",
+        njoy_output=None,
         **kwargs,
         ):
     """Run sequence to process proton file with njoy.
@@ -1386,6 +1428,10 @@ def process_proton(
             any `xsdir` file
     dryrun : `bool`
         option to produce the njoy input file without running njoy
+    njoy_output : `int`, optional, default is `None`
+        target of stderr and stdout for the NJOY process. If `None`, NJOY will 
+        print its output in the terminal. If `subprocess.DEVNULL`, NJOY
+        output will be suppressed, default is `None`.
     tag : `str`
         tag to append to each output filename beofre the extension
         (default is `None`)
@@ -1425,7 +1471,7 @@ def process_proton(
     outputs["tape70"] = join(wdir, "{}{}{}h.xsd".format(za_new, tag, suff))
     text += "stop"
     if not dryrun:
-        _run_njoy(text, inputs, outputs, exe=exe)
+        _run_njoy(text, inputs, outputs, exe=exe, njoy_output=njoy_output)
         # Change route and filename in xsdir file.
         acefile = outputs["tape50"]
         xsdfile = outputs["tape70"]
@@ -1436,7 +1482,7 @@ def process_proton(
         # If isotope is metatable rewrite ZA in xsdir and ace as
         # ZA = Z*1000 + 300 + A + META*100.
         if meta:
-            pattern = f'{za:d}' + '\.(?P<ext>\d{2}[ct])'
+            pattern = f'{za:d}' + r'.(?P<ext>\d{2}[ct])'
             found = re.search(pattern, text_xsd)
             ext = found.group("ext")
             text_xsd = text_xsd.replace("{:d}.{}".format(za, ext), "{:d}.{}".format(za_new, ext), 1)

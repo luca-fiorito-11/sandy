@@ -61,9 +61,39 @@ The [latest](https://github.com/luca-fiorito-11/sandy/releases/latest) and older
 
 <br>
 
-## :notebook_with_decorative_cover: Documentation
+## :notebook_with_decorative_cover: Documentation and how to use SANDY
 
 The official SANDY documentation can be found [here](https://luca-fiorito-11.github.io/sandy-docs/index.html).
+
+The primary use for SANDY is to produce perturbed nuclear data files that statistically represent the covariance information found in evaluated libraries.
+This can be done using a command line interface.
+
+### Example for cross sections and nubar sampling
+
+```bash
+python -m sandy.sampling  U235.jeff33  --processes 20  --samples 200
+
+python -m sandy.sampling  U235.jeff33  --processes 20  --samples 200  --acer  --temperatures 900 
+```
+
+For a more advanced use, look at these notebooks:
+- [Direct sampling procedure: produce random ENDF-6 / ACE files](https://nbviewer.org/github/luca-fiorito-11/sandy_notebooks/blob/executed_notebooks_v1.1/notebook_random_files.ipynb)
+- [2-step sampling procedure](https://github.com/luca-fiorito-11/sandy_notebooks/blob/executed_notebooks_v1.1/notebook_random_files_2steps.ipynb)
+
+### Example for radioactive decay data sampling
+
+```bash
+python -m sandy.sampling  decay_data.jeff33  --processes 20  --samples 200
+```
+
+### Example for fission yield data sampling
+
+A command line interface for sampling fission yield data does not exist, yet.
+For a more advanced use, look at these notebooks:
+- [FY Sampling: create perturbed FY files (only variance, all energies)](https://nbviewer.org/github/luca-fiorito-11/sandy_notebooks/blob/executed_notebooks_v1.1/notebook_sampling_ify.ipynb)
+- [FY sampling: create perturbed FY files with ad-hoc covariance matrix (all energies)](https://nbviewer.org/github/luca-fiorito-11/sandy_notebooks/blob/executed_notebooks_v1.1/notebook_sampling_ify_with_cov.ipynb)
+- [FY sampling: create perturbed FY files using CEA conservative evaluation for U-235 thermal fission](https://nbviewer.org/github/luca-fiorito-11/sandy_notebooks/blob/executed_notebooks_v1.1/notebook_sampling_ify_u235th_cea_c1.ipynb)
+- [FY sampling: create perturbed FY files using CEA conservative evaluation for Pu-239 thermal fission](https://nbviewer.org/github/luca-fiorito-11/sandy_notebooks/blob/executed_notebooks_v1.1/notebook_sampling_ify_pu239th_cea.ipynb)
 
 <br>
 

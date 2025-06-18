@@ -1,5 +1,0 @@
-numpy
-pandas
-pyyaml
-scipy
-tables

@@ -1,8 +1,9 @@
 import pandas as pd
 import numpy as np
 
-import sandy
-from sandy.core.endf6 import _FormattedFile
+from .endf6 import _FormattedFile
+from .xs import Xs
+from .records import read_cont, read_list
 
 __author__ = "Luca Fiorito"
 __all__ = [
@@ -24,10 +25,12 @@ class Gendf(_FormattedFile):
         Returns
         -------
         `np.array`
-            The energy grid of the :func:`~sandy.Gendf` object.
+            The energy grid of the :obj:`~sandy.gendf.Gendf` object.
 
         Examples
         --------
+
+        >>> import sandy
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> gendf = endf6.get_gendf(verborse=True)
         >>> assert len(gendf.get_n_energy_grid()) == 241
@@ -48,10 +51,12 @@ class Gendf(_FormattedFile):
         Returns
         -------
         `np.array`
-            The energy grid of the :func:`~sandy.Gendf` object.
+            The energy grid of the :obj:`~sandy.gendf.Gendf` object.
 
         Examples
         --------
+
+        >>> import sandy
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> gendf = endf6.get_gendf(groupr_kws=dict(ep=sandy.energy_grids.CASMO12))
         >>> np.testing.assert_allclose(gendf.get_g_energy_grid(), sandy.energy_grids.CASMO12, atol=1e-14, rtol=1e-14)
@@ -67,11 +72,13 @@ class Gendf(_FormattedFile):
 
         Returns
         -------
-        xs : :func:`~sandy.Xs`
+        xs : :obj:`~sandy.xs.Xs`
             multigroup cross sections
 
         Examples
         --------
+
+        >>> import sandy
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> gendf = endf6.get_gendf(minimal_processing=True, err=0.005, temperature=293.6, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
         >>> gendf.get_xs()
@@ -125,7 +132,8 @@ class Gendf(_FormattedFile):
         (821000.0, 2231000.0]   3.48869e+00 3.48866e+00
         (2231000.0, 10000000.0] 1.52409e+00 1.52406e+00
 
-        `err=1` or else it takes too long
+        Use `err=1` or else it takes too long.
+
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922350)
         >>> gendf = endf6.get_gendf(minimal_processing=True, err=1, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
         >>> gendf.get_xs(mt=[4, 5])
@@ -156,7 +164,7 @@ class Gendf(_FormattedFile):
         for mat, mf, mt in self.filter_by(listmf=[3],
                                           listmt=listmt_,
                                           listmat=listmat_).data:
-            mf3 = sandy.gendf.read_mf3(self, mat, mt)
+            mf3 = read_mf3(self, mat, mt)
             lowest_range = mf3["GROUPS"][0]["IG"] - 1
             xs = np.array([x["DATA"][1].tolist() for x in mf3["GROUPS"]])
             xs = np.insert(xs, [0]*lowest_range, 0) if lowest_range != 0 else xs
@@ -165,7 +173,7 @@ class Gendf(_FormattedFile):
             index = pd.Index(egn, name="E")
             data.append(pd.DataFrame(xs.T, index=index, columns=columns))
         data = pd.concat(data, axis=1).fillna(0)
-        return sandy.Xs(data)
+        return Xs(data)
 
     def get_flux(self, **kwargs):
         """
@@ -178,6 +186,8 @@ class Gendf(_FormattedFile):
 
         Examples
         --------
+
+        >>> import sandy
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> gendf = endf6.get_gendf(minimal_processing=True, err=1, temperature=293.6, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
         >>> gendf.get_flux()
@@ -224,17 +234,17 @@ class Gendf(_FormattedFile):
 
 def read_mf1(tape, mat):
     """
-    Parse MAT/MF=1/MT=451 section from `sandy.Gendf` object and return
+    Parse MAT/MF=1/MT=451 section from :obj:`~sandy.gendf.Gendf` object and return
     structured content in nested dcitionaries.
 
     Parameters
     ----------
-    tape : :func:`~sandy.Gendf`
-        endf6 object containing requested section
+    tape : :obj:`~sandy.gendf.Gendf`
+        ENDF6 object containing requested section.
     mat : `int`
-        MAT number
+        MAT number.
     mt : `int`
-        MT number
+        MT number.
 
     Returns
     -------
@@ -243,6 +253,8 @@ def read_mf1(tape, mat):
 
     Examples
     --------
+
+    >>> import sandy
     >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
     >>> gendf = endf6.get_gendf(groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
     >>> mf1 = sandy.gendf.read_mf1(gendf, 125)
@@ -271,7 +283,7 @@ def read_mf1(tape, mat):
             "MT": mt,
             }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     NZ = C.L2
     NTW = C.N2
     add = {
@@ -280,7 +292,7 @@ def read_mf1(tape, mat):
         "LRP": C.N1,
     }
     out.update(add)
-    L, i = sandy.read_list(df, i)
+    L, i = read_list(df, i)
     NGN = L.L1
     NGG = L.L2
     out["TEMPIN"] = L.C1
@@ -296,17 +308,17 @@ def read_mf1(tape, mat):
 
 def read_mf3(tape, mat, mt):
     """
-    Parse MAT/MF=33/MT section from `sandy.Errorr` object and return
+    Parse MAT/MF=33/MT section from :obj:`~sandy.errorr.Errorr` object and return
     structured content in nested dcitionaries.
 
     Parameters
     ----------
-    tape : :func:`~sandy.Gendf`
-        endf6 object containing requested section
+    tape : :obj:`~sandy.gendf.Gendf`
+        ENDF6 object containing requested section.
     mat : `int`
-        MAT number
+        MAT number.
     mt : `int`
-        MT number
+        MT number.
 
     Returns
     -------
@@ -315,6 +327,8 @@ def read_mf3(tape, mat, mt):
 
     Examples
     --------
+
+    >>> import sandy
     >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
     >>> gendf = endf6.get_gendf(temperature=293.6, err=0.005, minimal_processing=True, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
     >>> sandy.gendf.read_mf3(gendf, 125, 1)['GROUPS'][0]
@@ -332,7 +346,7 @@ def read_mf3(tape, mat, mt):
             "MT": mt,
             }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     NGN = C.N2
     add = {
         "ZA": C.C1,
@@ -342,7 +356,7 @@ def read_mf3(tape, mat, mt):
     }
     out.update(add)
     groups = []
-    L, i = sandy.read_list(df, i)
+    L, i = read_list(df, i)
     add = {
             "TEMPIN": L.C1,  # Material temperature (Kelvin)
             "NG2": L.L1,  # Number of secondary positions
@@ -353,7 +367,7 @@ def read_mf3(tape, mat, mt):
     groups.append(add)
     NGN_file = NGN - L.N2
     for ig in range(NGN_file):
-        L, i = sandy.read_list(df, i)
+        L, i = read_list(df, i)
         add = {
             "TEMPIN": L.C1,  # Material temperature (Kelvin)
             "NG2": L.L1,  # Number of secondary positions
