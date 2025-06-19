@@ -8,8 +8,8 @@ env:
   NJOY: ${{ github.workspace }}/NJOY2016/build/njoy
 
 jobs:
-  setup:
-    name: setup python and NJOY
+  test-testpypi:
+    name: Test from Test PyPI
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -23,12 +23,6 @@ jobs:
       - name: Set up NJOY2016
         uses: ./.github/actions/setup-njoy
 
-  test-testpypi:
-    name: Test from Test PyPI
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-
       - name: Install Sandy from Test PyPI
         run: |
           python -m pip install --upgrade pip
@@ -37,15 +31,24 @@ jobs:
 
       - name: Run tests
         run: |
-          mkdir tests_pypi
-          cd tests_pypi
-          pytest -v ..
+          cd ..
+          ls .
+          pytest -v 
 
   test-pypi:
     name: Test from PyPI
-    needs: setup
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Set up NJOY2016
+        uses: ./.github/actions/setup-njoy
 
       - name: Install Sandy from PyPI
         run: |
@@ -55,6 +58,6 @@ jobs:
 
       - name: Run tests
         run: |
-          mkdir tests_testpypi
-          cd tests_testpypi
-          pytest -v ..
+          cd ..
+          ls .
+          pytest -v 
