@@ -1,20 +1,28 @@
 name: Tag and Release
 
+# Trigger the workflow manually with an input to choose the target repository
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Publish target (testpypi or pypi)'
+        required: true
+        default: 'testpypi'
 
 jobs:
   tag:
     runs-on: ubuntu-latest
-
     steps:
+      # Checkout the code from the base branch
       - name: Checkout base branch
         uses: actions/checkout@v4
 
+      # Run a custom action to check if the version is valid and unique
       - name: Check version is unique and valid
         id: check_version
         uses: ./.github/actions/check-version
 
+      # Create and push a Git tag based on the version
       - name: Create and push tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -27,20 +35,22 @@ jobs:
           git push origin "$tag"
 
   release:
-    name: Publish to Test PyPI
-    needs: tag  # This ensures the release job runs after the tag job
+    name: Publish to PyPI or Test PyPI
+    needs: tag  # Ensure this job runs after the tag job
     runs-on: ubuntu-latest
-
     steps:
+      # Fetch all tags to ensure the latest tag is available
       - name: Fetch all branches and tags
         run: git fetch --all --tags
 
+      # Set up Python environment
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.x"
 
-      - name: Cache pip dependencies from setup.cfg
+      # Cache pip dependencies based on setup.cfg
+      - name: Cache pip dependencies
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
@@ -48,17 +58,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
+      # Install build and publishing tools
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
           pip install build twine
 
+      # Build the distribution package
       - name: Build distribution
         run: python -m build
 
-      - name: Publish to Test PyPI
+      # Upload to the selected repository (Test PyPI or PyPI)
+      - name: Publish to selected repository
         env:
-          TWINE_USERNAME: ${{ secrets.PYPI_TEST_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
+          TWINE_USERNAME: ${{ github.event.inputs.target == 'pypi' && secrets.PYPI_USERNAME || secrets.PYPI_TEST_USERNAME }}
+          TWINE_PASSWORD: ${{ github.event.inputs.target == 'pypi' && secrets.PYPI_PASSWORD || secrets.PYPI_TEST_PASSWORD }}
         run: |
-          twine upload --repository-url https://test.pypi.org/legacy/ dist/* --verbose
+          if [ "${{ github.event.inputs.target }}" = "pypi" ]; then
+            repo_url="https://upload.pypi.org/legacy/"
+          else
+            repo_url="https://test.pypi.org/legacy/"
+          fi
+          twine upload --repository-url "$repo_url" dist/* --verbose
