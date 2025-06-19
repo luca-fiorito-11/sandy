@@ -32,7 +32,7 @@ jobs:
       - name: Install Sandy from Test PyPI
         run: |
           python -m pip install --upgrade pip
-          pip install pytest
+          pip install pytest
           pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple sandy
 
       - name: Run tests
@@ -50,7 +50,7 @@ jobs:
       - name: Install Sandy from PyPI
         run: |
           python -m pip install --upgrade pip
-          pip install pytest
+          pip install pytest
           pip install sandy
 
       - name: Run tests
