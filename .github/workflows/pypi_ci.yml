@@ -31,8 +31,7 @@ jobs:
 
       - name: Run tests
         run: |
-          ls sandy/.
-          pytest --rootdir=sandy -v 
+          pytest --rootdir=sandy --ignore=NJOY2016 -v 
 
   test-pypi:
     name: Test from PyPI
@@ -57,5 +56,4 @@ jobs:
 
       - name: Run tests
         run: |
-          ls sandy/.
-          pytest --rootdir=sandy -v 
+          pytest --rootdir=sandy --ignore=NJOY2016 -v 
