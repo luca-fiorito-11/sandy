@@ -10,9 +10,8 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  build:
+  setup:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -27,24 +26,76 @@ jobs:
 
       - name: Install SANDY with all extras
         uses: ./.github/actions/install-sandy-local-extras
-        # Installs package with test extras
 
-      - name: Execute Jupyter notebooks
+  execute_batch_1:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Execute notebooks in batch_1
         run: |
-          cd notebooks
-          mkdir -p executed_notebooks
+          cd notebooks/batch_1
+          mkdir -p executed
           jupyter nbconvert --to notebook --execute *.ipynb \
-            --ExecutePreprocessor.kernel_name='python3' --inplace > /dev/null  # suppress NJOY output
-          mv *.ipynb executed_notebooks/
+            --ExecutePreprocessor.kernel_name='python3' --inplace > /dev/null
+          mv *.ipynb executed/
 
-      - name: Push executed notebooks to external repo
+      - name: Upload executed notebooks from batch_1
+        uses: actions/upload-artifact@v3
+        with:
+          name: executed_batch_1
+          path: notebooks/batch_1/executed/
+
+  execute_batch_2:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Execute notebooks in batch_2
+        run: |
+          cd notebooks/batch_2
+          mkdir -p executed
+          jupyter nbconvert --to notebook --execute *.ipynb \
+            --ExecutePreprocessor.kernel_name='python3' --inplace > /dev/null
+          mv *.ipynb executed/
+
+      - name: Upload executed notebooks from batch_2
+        uses: actions/upload-artifact@v3
+        with:
+          name: executed_batch_2
+          path: notebooks/batch_2/executed/
+
+  push_notebooks:
+    needs: [execute_batch_1, execute_batch_2]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download executed notebooks from batch_1
+        uses: actions/download-artifact@v3
+        with:
+          name: executed_batch_1
+          path: notebooks/batch_1/executed/
+
+      - name: Download executed notebooks from batch_2
+        uses: actions/download-artifact@v3
+        with:
+          name: executed_batch_2
+          path: notebooks/batch_2/executed/
+
+      - name: Push all executed notebooks
         uses: cpina/github-action-push-to-another-repository@main
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
-          source-directory: notebooks/executed_notebooks/
+          source-directory: notebooks/
           destination-github-username: 'luca-fiorito-11'
           destination-repository-name: 'sandy_notebooks'
           user-email: lucafiorito.11@gmail.com
-          commit-message: pushing notebooks...
+          commit-message: pushing all executed notebooks...
           target-branch: executed_notebooks_v1.1
