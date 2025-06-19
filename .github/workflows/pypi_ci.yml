@@ -39,7 +39,7 @@ jobs:
         run: |
           mkdir tests_pypi
           cd tests_pypi
-          pytest -v ../sandy
+          pytest -v ..
 
   test-pypi:
     name: Test from PyPI
@@ -57,4 +57,4 @@ jobs:
         run: |
           mkdir tests_testpypi
           cd tests_testpypi
-          pytest -v ../sandy
+          pytest -v ..
