@@ -31,7 +31,6 @@ jobs:
 
       - name: Run tests
         run: |
-          cd ..
           ls .
           pytest -v 
 
@@ -58,6 +57,5 @@ jobs:
 
       - name: Run tests
         run: |
-          cd ..
           ls .
           pytest -v 
