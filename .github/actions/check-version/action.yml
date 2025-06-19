@@ -18,7 +18,7 @@ runs:
       id: get_version
       shell: bash
       run: |
-        version=$(grep -E "^__version__ *= *'\"?)['\"]" sandy/__init__.py | sed -E "s/__version__ *= *'\"['\"]/\\1/")
+        version=$(grep -E "^__version__ *= *'\"?)['\"]" sandy/__init__.py | sed -E "s/__version__ *= *'\"?)['\"]/\\1/")
         echo "Extracted version: $version"
         echo "version=$version" >> "$GITHUB_OUTPUT"
 
