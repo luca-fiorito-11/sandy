@@ -1,48 +1,61 @@
-name: Check Version is Unique (from sandy/__init__.py)
-description: Fails if the version in sandy/__init__.py matches an existing Git tag (ignoring 'v' prefix), and enforces semver format X.Y.Z or X.Y.Z-betaN
+name: Check Version is Unique
+description: |
+  Fails if the version in sandy/__init__.py matches an existing Git tag (with or without 'v' prefix)
+  or if the version already exists on PyPI. Also validates SemVer format.
+
+outputs:
+  version:
+    description: "Extracted version from sandy/__init__.py"
+    value: ${{ steps.get_version.outputs.version }}
 
 runs:
   using: "composite"
   steps:
-    - name: Checkout code (if not done in caller)
+    - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Extract version from sandy/__init__.py
       id: get_version
       shell: bash
       run: |
-        version=$(grep -E "^__version__ *= *['\"]([0-9]+\.[0-9]+\.[0-9]+(-beta[0-9]+)?)['\"]" sandy/__init__.py | sed -E "s/__version__ *= *['\"](.*)['\"]/\\1/")
+        version=$(grep -E "^__version__ *= *'\"?)['\"]" sandy/__init__.py | sed -E "s/__version__ *= *'\"['\"]/\\1/")
         echo "Extracted version: $version"
         echo "version=$version" >> "$GITHUB_OUTPUT"
 
-    - name: Validate version format (must match X.Y.Z or X.Y.Z-betaN)
+    - name: Validate version format
       shell: bash
       run: |
         version=${{ steps.get_version.outputs.version }}
         if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-beta[0-9]+)?$ ]]; then
-          echo "::error::Invalid version format: $version. Must match X.Y.Z or X.Y.Z-betaN (e.g., 1.2.3 or 1.2.3-beta1)."
+          echo "::error::Invalid version format: $version. Must match X.Y.Z or X.Y.Z-betaN."
           exit 1
         fi
 
-    - name: Fetch tags
+    - name: Fetch Git tags
       shell: bash
       run: git fetch --tags
 
-    - name: Check if version already exists (with or without v-prefix)
+    - name: Check if version exists as Git tag
       shell: bash
       run: |
         version=${{ steps.get_version.outputs.version }}
-
         echo "Checking if tag '$version' or 'v$version' exists..."
-
         if git rev-parse "$version" >/dev/null 2>&1 || git rev-parse "v$version" >/dev/null 2>&1; then
-          echo "::error::Version $version already exists as a tag (with or without v-prefix). Please bump the version."
+          echo "::error::Version $version already exists as a Git tag."
           exit 1
         else
-          echo "Version $version is unique."
+          echo "Version $version is unique in Git tags."
         fi
 
-outputs:
-  version:
-    description: "Extracted version from sandy/__init__.py"
-    value: ${{ steps.get_version.outputs.version }}
+    - name: Check if version exists on PyPI
+      shell: bash
+      run: |
+        version=${{ steps.get_version.outputs.version }}
+        package_name="sandy"
+        echo "Checking if version $version exists on PyPI for package $package_name..."
+        if curl -s "https://pypi.org/pypi/$package_name/json" | jq -e ".releases[\"$version\"]" > /dev/null; then
+          echo "::error::Version $version already exists on PyPI."
+          exit 1
+        else
+          echo "Version $version does not exist on PyPI."
+        fi
