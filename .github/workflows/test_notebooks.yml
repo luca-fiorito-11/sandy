@@ -14,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: ">=3.8 <3.12"  # to comply with serpentTools
 
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Execute notebooks in batch_1
         run: |
@@ -43,7 +43,7 @@ jobs:
           mv *.ipynb executed/
 
       - name: Upload executed notebooks from batch_1
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: executed_batch_1
           path: notebooks/batch_1/executed/
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Execute notebooks in batch_2
         run: |
@@ -64,7 +64,7 @@ jobs:
           mv *.ipynb executed/
 
       - name: Upload executed notebooks from batch_2
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: executed_batch_2
           path: notebooks/batch_2/executed/
@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Execute notebooks in batch_3
         run: |
@@ -85,7 +85,7 @@ jobs:
           mv *.ipynb executed/
 
       - name: Upload executed notebooks from batch_3
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: executed_batch_3
           path: notebooks/batch_3/executed/
@@ -95,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Execute notebooks in batch_4
         run: |
@@ -106,7 +106,7 @@ jobs:
           mv *.ipynb executed/
 
       - name: Upload executed notebooks from batch_4
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: executed_batch_4
           path: notebooks/batch_1/executed/
@@ -116,28 +116,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download executed notebooks from batch_1
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: executed_batch_1
           path: notebooks/batch_1/executed/
 
       - name: Download executed notebooks from batch_2
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: executed_batch_2
           path: notebooks/batch_2/executed/
 
       - name: Download executed notebooks from batch_3
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: executed_batch_3
           path: notebooks/batch_3/executed/
 
       - name: Download executed notebooks from batch_4
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: executed_batch_4
           path: notebooks/batch_4/executed/
