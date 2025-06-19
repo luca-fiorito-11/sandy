@@ -36,20 +36,21 @@ jobs:
 
   release:
     name: Publish to PyPI or Test PyPI
-    needs: tag  # Ensure this job runs after the tag job
+    needs: tag
     runs-on: ubuntu-latest
     steps:
-      # Fetch all tags to ensure the latest tag is available
+      # ✅ Checkout the repository to enable git commands
+      - name: Checkout repository
+        uses: actions/checkout@v4
+  
       - name: Fetch all branches and tags
         run: git fetch --all --tags
-
-      # Set up Python environment
+  
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.x"
-
-      # Cache pip dependencies based on setup.cfg
+  
       - name: Cache pip dependencies
         uses: actions/cache@v3
         with:
@@ -57,18 +58,15 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('setup.cfg') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-
-      # Install build and publishing tools
+  
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
           pip install build twine
-
-      # Build the distribution package
+  
       - name: Build distribution
         run: python -m build
-
-      # Upload to the selected repository (Test PyPI or PyPI)
+  
       - name: Publish to selected repository
         env:
           TWINE_USERNAME: ${{ github.event.inputs.target == 'pypi' && secrets.PYPI_USERNAME || secrets.PYPI_TEST_USERNAME }}
