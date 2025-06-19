@@ -69,8 +69,50 @@ jobs:
           name: executed_batch_2
           path: notebooks/batch_2/executed/
 
+  execute_batch_3:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Execute notebooks in batch_3
+        run: |
+          cd notebooks/batch_3
+          mkdir -p executed
+          jupyter nbconvert --to notebook --execute *.ipynb \
+            --ExecutePreprocessor.kernel_name='python3' --inplace > /dev/null
+          mv *.ipynb executed/
+
+      - name: Upload executed notebooks from batch_3
+        uses: actions/upload-artifact@v3
+        with:
+          name: executed_batch_3
+          path: notebooks/batch_3/executed/
+
+  execute_batch_4:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Execute notebooks in batch_4
+        run: |
+          cd notebooks/batch_4
+          mkdir -p executed
+          jupyter nbconvert --to notebook --execute *.ipynb \
+            --ExecutePreprocessor.kernel_name='python3' --inplace > /dev/null
+          mv *.ipynb executed/
+
+      - name: Upload executed notebooks from batch_4
+        uses: actions/upload-artifact@v3
+        with:
+          name: executed_batch_4
+          path: notebooks/batch_1/executed/
+
   push_notebooks:
-    needs: [execute_batch_1, execute_batch_2]
+    needs: [execute_batch_1, execute_batch_2, execute_batch_3, execute_batch_4]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -87,6 +129,18 @@ jobs:
         with:
           name: executed_batch_2
           path: notebooks/batch_2/executed/
+
+      - name: Download executed notebooks from batch_3
+        uses: actions/download-artifact@v3
+        with:
+          name: executed_batch_3
+          path: notebooks/batch_3/executed/
+
+      - name: Download executed notebooks from batch_4
+        uses: actions/download-artifact@v3
+        with:
+          name: executed_batch_4
+          path: notebooks/batch_4/executed/
 
       - name: Push all executed notebooks
         uses: cpina/github-action-push-to-another-repository@main
