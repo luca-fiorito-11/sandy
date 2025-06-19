@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - 'v*'
+  workflow_dispatch:
 
 jobs:
   check-version:
