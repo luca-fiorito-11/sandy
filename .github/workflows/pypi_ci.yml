@@ -3,71 +3,59 @@ name: Test Sandy from Test PyPI and PyPI
 on:
   workflow_dispatch:
 
+env:
+  # Path to the NJOY binary after build
+  NJOY: ${{ github.workspace }}/NJOY2016/build/njoy
+
 jobs:
-  test-testpypi:
-    name: Test from Test PyPI
+  setup:
+    name: setup python and NJOY
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
-      - name: Cache pip dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-testpypi
-          restore-keys: |
-            ${{ runner.os }}-pip-
+      - name: Install test dependencies
+        run: pip install pytest
+
+      - name: Set up NJOY2016
+        uses: ./.github/actions/setup-njoy
+
+  test-testpypi:
+    name: Test from Test PyPI
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
 
       - name: Install Sandy from Test PyPI
         run: |
           python -m pip install --upgrade pip
           pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple sandy
 
-      - name: Install test dependencies
-        run: pip install pytest
-
       - name: Run tests
         run: |
-          mkdir tests
-          cd tests
+          mkdir tests_pypi
+          cd tests_pypi
           pytest -v ../sandy
 
   test-pypi:
     name: Test from PyPI
+    needs: setup
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-
-      - name: Cache pip dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-pypi
-          restore-keys: |
-            ${{ runner.os }}-pip-
 
       - name: Install Sandy from PyPI
         run: |
           python -m pip install --upgrade pip
           pip install sandy
 
-      - name: Install test dependencies
-        run: pip install pytest
-
       - name: Run tests
         run: |
-          mkdir tests
-          cd tests
+          mkdir tests_testpypi
+          cd tests_testpypi
           pytest -v ../sandy
