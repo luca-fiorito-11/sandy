@@ -1,7 +1,39 @@
 # Installation and configuration
 
-## Installing SANDY on Windows/Linux with pip/conda
-The recommended way to install SANDY both on Windows and Linux is on an Anaconda virtual environment that already includes several python packages. Click [here](#anaconda) for more details on Anaconda.
+## Installing SANDY with pip
+
+The recommended way to install **SANDY** both on **Windows** and **Linux** is via `pip`.
+Open a terminal and run the following commands:
+
+```sh
+# Upgrade pip to the latest version
+python -m pip install --upgrade pip
+
+# Install the latest stable version of SANDY from PyPI
+pip install sandy
+```
+
+SANDY also acts as a wrapper for the **NJOY** nuclear data processing code, enabling the generation of **PENDF** and **ACE** files. While NJOY is not required for basic functionality, it is recommended—especially if you plan to produce random samples.
+
+To enable NJOY integration, set the path to the NJOY executable using an environment variable:
+```sh
+export NJOY=/path/to/njoy
+```
+On Windows (Command Prompt), use:
+
+```bat
+set NJOY=C:\path\to\njoy.exe
+```
+
+To check if SANDY correctly recognizes the NJOY executable, open a Python terminal and run:
+```sh
+import sandy
+sandy.get_njoy()
+```
+If NJOY is correctly configured, this will return the path to the executable.
+
+## Installing SANDY on Windows/Linux using conda
+The recommended way to install SANDY both on Windows and Linux is on an Anaconda virtual environment that already includes several python packages. Click [here](https://www.anaconda.com/) for more details on Anaconda.
 
 We advise to install the SANDY dependences in a python environment that was not previously altered. You can do so from a terminal/Anaconda Prompt using the package/environment management system `conda` included in Anaconda, as
 ```sh
@@ -59,7 +91,7 @@ git config --global http.sslVerify false
 Move to the folder `sandy` that you cloned with git and run the installation command,
 ```sh
 cd sandy
-python setup.py install --user
+pip install .
 ```
 > Don't forget to activate the virtual environment if you are using one.
 
