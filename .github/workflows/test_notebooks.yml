@@ -165,14 +165,23 @@ jobs:
           name: executed_batch_4
           path: notebooks/batch_4/executed/
 
+      - name: Flatten executed notebooks into a single directory
+        run: |
+          mkdir -p notebooks_flat
+          mv notebooks/batch_1/executed/*.ipynb notebooks_flat/
+          mv notebooks/batch_2/executed/*.ipynb notebooks_flat/
+          mv notebooks/batch_3/executed/*.ipynb notebooks_flat/
+          mv notebooks/batch_4/executed/*.ipynb notebooks_flat/
+
       - name: Push all executed notebooks
         uses: cpina/github-action-push-to-another-repository@main
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
-          source-directory: notebooks/
+          source-directory: notebooks_flat/
           destination-github-username: 'luca-fiorito-11'
           destination-repository-name: 'sandy_notebooks'
           user-email: lucafiorito.11@gmail.com
           commit-message: pushing all executed notebooks...
           target-branch: executed_notebooks_v1.1
+
