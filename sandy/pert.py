@@ -236,7 +236,7 @@ class Pert():
         ----------
         file : `str`
             file name (absolute or relative path)
-        sep : `str`, optional, default `"\s+"`
+        sep : `str`, optional, default `r"\\s+"`
             column separator. By default it takes blankspaces as separators.
             .. note:: for `csv` files use `","`
         **kwargs : `pandas.read_csv` properties, optional

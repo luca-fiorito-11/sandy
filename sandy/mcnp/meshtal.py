@@ -216,11 +216,11 @@ class MshtTally():
             sections = block.split("\n\n")
             idx = int(sections[0].splitlines()[0])
             data = re.sub(
-                    "Rslt \* Vol",
+                    r"Rslt \* Vol",
                     "RsltVol",
                     re.sub("Rel Error", "RelError", sections[2]),
                     )
-            df = pd.read_csv(io.StringIO(data), sep="\s+")
+            df = pd.read_csv(io.StringIO(data), sep=r"\s+")
             out[idx] = cls(df)
         return out
 
