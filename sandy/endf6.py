@@ -26,6 +26,7 @@ import sandy
 from sandy.libraries import (
     N_FILES_ENDFB_71_IAEA,
     N_FILES_ENDFB_80_IAEA,
+    N_FILES_ENDFB_81_IAEA,
     N_FILES_JEFF_32_NEA,
     N_FILES_JEFF_311_IAEA,
     N_FILES_JEFF_33_IAEA,
@@ -39,37 +40,44 @@ from sandy.libraries import (
     URL_N_JEFF_33_IAEA,
     URL_N_JEFF_40T0_NEA,
     URL_N_ENDFB_80_IAEA,
+    URL_N_ENDFB_81_IAEA,
     URL_N_JENDL_40U_IAEA,
     URL_N_TENDL_2023_PSI,
     URL_N_IRDFF_2_IAEA,
 
     NFPY_FILES_ENDFB_71_IAEA,
     NFPY_FILES_ENDFB_80_IAEA,
+    NFPY_FILES_ENDFB_81_IAEA,
     NFPY_FILES_JEFF_311_IAEA,
     NFPY_FILES_JEFF_33_IAEA,
     NFPY_FILES_JENDL_40U_IAEA,
     URL_NFPY_ENDFB_71_IAEA,
     URL_NFPY_ENDFB_80_IAEA,
+    URL_NFPY_ENDFB_81_IAEA,
     URL_NFPY_JEFF_311_IAEA,
     URL_NFPY_JEFF_33_IAEA,
     URL_NFPY_JENDL_40U_IAEA,
 
     DECAY_FILES_ENDFB_71_IAEA,
     DECAY_FILES_ENDFB_80_IAEA,
+    DECAY_FILES_ENDFB_81_IAEA,
     DECAY_FILES_JEFF_311_IAEA,
     DECAY_FILES_JEFF_33_IAEA,
     URL_DECAY_ENDFB_71_IAEA,
     URL_DECAY_ENDFB_80_IAEA,
+    URL_DECAY_ENDFB_81_IAEA,
     URL_DECAY_JEFF_311_IAEA,
     URL_DECAY_JEFF_33_IAEA,
 
     TSL_FILES_ENDFB_71_IAEA,
     TSL_FILES_ENDFB_80_IAEA,
+    TSL_FILES_ENDFB_81_IAEA,
     TSL_FILES_JEFF_33_IAEA,
     TSL_FILES_JENDL_40U_IAEA,
     URL_TSL_JENDL_40U_IAEA,
     URL_TSL_ENDFB_71_IAEA,
     URL_TSL_ENDFB_80_IAEA,
+    URL_TSL_ENDFB_81_IAEA,
     URL_TSL_JEFF_33_IAEA,
 
     DXS_FILES_JEFF_33_IAEA,
@@ -101,6 +109,7 @@ def get_tsl_index(library):
             * `'endfb_71'`
             * `'jeff_33'`
             * `'endfb_80'`
+            * `'endfb_81'`
             * `'jendl_40u`
             * `'irdff_ii`
 
@@ -140,6 +149,7 @@ def get_tsl_index(library):
     available_libs = (
             "endfb_71".upper(),
             "endfb_80".upper(),
+            "endfb_81".upper(),
             "jeff_33".upper(),
             "jendl_40u".upper(),
             "irdff_ii".upper(),
@@ -149,6 +159,8 @@ def get_tsl_index(library):
         index = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VII.1/tsl-index.htm"
     elif library_ == "endfb_80":
         index = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VIII.0/tsl-index.htm"
+    elif library_ == "endfb_81":
+        index = "https://www-nds.iaea.org/public/download-endf/ENDF-B-VIII.1/tsl-index.htm"
     elif library_ == "jeff_33":
         index = "https://www-nds.iaea.org/public/download-endf/JEFF-3.3/tsl-index.htm"
     elif library_ == "jendl_40u":
@@ -194,6 +206,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
         for 'xs':
             * `'endfb_71'`
             * `'endfb_80'`
+            * `'endfb_81'`
             * `'irdff_2'`
             * `'jeff_311'`
             * `'jeff_32'`
@@ -205,16 +218,19 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * `'jeff_311'`
             * `'jeff_33'`
             * `'endfb_80'`
+            * `'endfb_81'`
             * `'jendl_40u'`
         for 'decay':
             * `'endfb_71'`
             * `'jeff_311'`
             * `'jeff_33'`
             * `'endfb_80'`
+            * `'endfb_81'`
         for 'tsl': (read the note)
             * `'endfb_71'`
             * `'jeff_33'`
             * `'endfb_80'`
+            * `'endfb_81'`
             * `'jendl_40u'`
         for 'dxs':
             * `'jeff_33'`
@@ -278,6 +294,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
     >>> tape = sandy.get_endf6_file("endfb_80", 'xs', 10010)
     >>> assert type(tape) is sandy.Endf6
 
+    Import hydrogen file from ENDF/B-VIII.1.
+
+    >>> tape = sandy.get_endf6_file("endfb_81", 'xs', 10010)
+    >>> assert type(tape) is sandy.Endf6
+
     Import hydrogen file from JENDL-4.0u
 
     >>> tape = sandy.get_endf6_file("jendl_40u", 'xs', 10010)
@@ -296,6 +317,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Import Neutron-Induced Fission Product Yields for Th-227 from ENDF/B-VIII.0
 
     >>> tape = sandy.get_endf6_file("endfb_80", 'nfpy', 902270)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import Neutron-Induced Fission Product Yields for Th-227 from ENDF/B-VIII.1
+
+    >>> tape = sandy.get_endf6_file("endfb_81", 'nfpy', 902270)
     >>> assert type(tape) is sandy.Endf6
 
     Import Neutron-Induced Fission Product Yields for Th-227 from JENDL-4.0u
@@ -333,6 +359,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
     >>> tape = sandy.get_endf6_file("endfb_80", 'decay', 10010)
     >>> assert type(tape) is sandy.Endf6
 
+    Import Radioactive Decay Data for H-1 from ENDF/B-VIII.1.
+
+    >>> tape = sandy.get_endf6_file("endfb_81", 'decay', 10010)
+    >>> assert type(tape) is sandy.Endf6
+
     Import all Neutron-Induced Fission Product Yields from ENDF/B-VII.1.
 
     >>> tape = sandy.get_endf6_file("endfb_71", 'nfpy', 'all')
@@ -359,6 +390,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
     >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', [1, 2, 3])
     >>> assert type(tape) is sandy.Endf6
 
+    Thermal Neutron Scattering Data from ENDF/B-VIII.1.
+
+    >>> tape = sandy.get_endf6_file("endfb_81", 'tsl', [1, 2, 3])
+    >>> assert type(tape) is sandy.Endf6
+
     Thermal Neutron Scattering Data from JEFF-3.3.
 
     >>> tape = sandy.get_endf6_file("jeff_33", 'tsl', [1, 2, 3])
@@ -383,6 +419,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             "jeff_33".upper(),
             "endfb_71".upper(),
             "endfb_80".upper(),
+            "endfb_81".upper(),
             "jendl_40u".upper(),
             "irdff_2".upper(),
             )
@@ -409,6 +446,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "endfb_80":
             url = URL_N_ENDFB_80_IAEA
             files = N_FILES_ENDFB_80_IAEA
+        elif library_ == "endfb_81":
+            url = URL_N_ENDFB_81_IAEA
+            files = N_FILES_ENDFB_81_IAEA
         elif library_ == "jendl_40u":
             url = URL_N_JENDL_40U_IAEA
             files = N_FILES_JENDL_40U_IAEA
@@ -452,6 +492,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
         available_libs = (
             "endfb_71".upper(),
             "endfb_80".upper(),
+            "endfb_81".upper(),
             "jendl_40u".upper(),
             "jeff_311".upper(),
             "jeff_33".upper(),
@@ -463,6 +504,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "endfb_80":
             url = URL_NFPY_ENDFB_80_IAEA
             files = NFPY_FILES_ENDFB_80_IAEA
+        elif library_ == "endfb_81":
+            url = URL_NFPY_ENDFB_81_IAEA
+            files = NFPY_FILES_ENDFB_81_IAEA
         elif library_ == "jendl_40u":
             url = URL_NFPY_JENDL_40U_IAEA
             files = NFPY_FILES_JENDL_40U_IAEA
@@ -482,6 +526,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
         available_libs = (
             "endfb_71".upper(),
             "endfb_80".upper(),
+            "endfb_81".upper(),
             "jeff_311".upper(),
             "jeff_33".upper(),
             "jendl_40u".upper(),
@@ -493,6 +538,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "endfb_80":
             url = URL_DECAY_ENDFB_80_IAEA
             files = DECAY_FILES_ENDFB_80_IAEA
+        elif library_ == "endfb_81":
+            url = URL_DECAY_ENDFB_81_IAEA
+            files = DECAY_FILES_ENDFB_81_IAEA
         elif library_ == "jeff_311":
             url = URL_DECAY_JEFF_311_IAEA
             files = DECAY_FILES_JEFF_311_IAEA
@@ -512,6 +560,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
         available_libs = (
             "endfb_71".upper(),
             "endfb_80".upper(),
+            "endfb_81".upper(),
             "jeff_33".upper(),
             "jendl_40u".upper(),
             )
@@ -522,6 +571,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "endfb_80":
             url = URL_TSL_ENDFB_80_IAEA
             files = TSL_FILES_ENDFB_80_IAEA
+        elif library_ == "endfb_81":
+            url = URL_TSL_ENDFB_81_IAEA
+            files = TSL_FILES_ENDFB_81_IAEA
         elif library_ == "jeff_33":
             url = URL_TSL_JEFF_33_IAEA
             files = TSL_FILES_JEFF_33_IAEA
