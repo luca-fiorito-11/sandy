@@ -32,6 +32,7 @@ from sandy.libraries import (
     N_FILES_JEFF_33_IAEA,
     N_FILES_JEFF_40T0_NEA,
     N_FILES_JENDL_40U_IAEA,
+    N_FILES_JENDL_5_IAEA,
     N_FILES_TENDL_2023_PSI,
     N_FILES_IRDFF_2_IAEA,
     URL_N_ENDFB_71_IAEA,
@@ -42,6 +43,7 @@ from sandy.libraries import (
     URL_N_ENDFB_80_IAEA,
     URL_N_ENDFB_81_IAEA,
     URL_N_JENDL_40U_IAEA,
+    URL_N_JENDL_5_IAEA,
     URL_N_TENDL_2023_PSI,
     URL_N_IRDFF_2_IAEA,
 
@@ -152,6 +154,7 @@ def get_tsl_index(library):
             "endfb_81".upper(),
             "jeff_33".upper(),
             "jendl_40u".upper(),
+            "jendl_5".upper(),
             "irdff_ii".upper(),
             )
     library_ = library.lower()
@@ -212,6 +215,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * `'jeff_32'`
             * `'jeff_33'`
             * `'jendl_40u'`
+            * `'jendl_5'`
             * `'tendl_2023'`
         for 'nfpy':
             * `'endfb_71'`
@@ -302,6 +306,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Import hydrogen file from JENDL-4.0u
 
     >>> tape = sandy.get_endf6_file("jendl_40u", 'xs', 10010)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import hydrogen file from JENDL-5
+
+    >>> tape = sandy.get_endf6_file("jendl_5", 'xs', 10010)
     >>> assert type(tape) is sandy.Endf6
 
     Import hydrogen file from TENDL-2023
@@ -421,6 +430,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             "endfb_80".upper(),
             "endfb_81".upper(),
             "jendl_40u".upper(),
+            "jendl_5".upper()
             "irdff_2".upper(),
             )
         library_ = library.lower()
@@ -452,6 +462,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jendl_40u":
             url = URL_N_JENDL_40U_IAEA
             files = N_FILES_JENDL_40U_IAEA
+        elif library_ == "jendl_5":
+            url = URL_N_JENDL_5_IAEA
+            files = N_FILES_JENDL_5_IAEA
         elif library_ == "tendl_2023":
             url = URL_N_TENDL_2023_PSI
             files = N_FILES_TENDL_2023_PSI
