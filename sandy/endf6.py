@@ -457,7 +457,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             "endfb_80".upper(),
             "endfb_81".upper(),
             "jendl_40u".upper(),
-            "jendl_5".upper()
+            "jendl_5".upper(),
             "irdff_2".upper(),
             )
         library_ = library.lower()
