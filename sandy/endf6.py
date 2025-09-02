@@ -32,6 +32,7 @@ from sandy.libraries import (
     N_FILES_JEFF_33_IAEA,
     N_FILES_JEFF_40T0_NEA,
     N_FILES_JENDL_40U_IAEA,
+    N_FILES_JENDL_5_IAEA,
     N_FILES_TENDL_2023_PSI,
     N_FILES_IRDFF_2_IAEA,
     URL_N_ENDFB_71_IAEA,
@@ -42,6 +43,7 @@ from sandy.libraries import (
     URL_N_ENDFB_80_IAEA,
     URL_N_ENDFB_81_IAEA,
     URL_N_JENDL_40U_IAEA,
+    URL_N_JENDL_5_IAEA,
     URL_N_TENDL_2023_PSI,
     URL_N_IRDFF_2_IAEA,
 
@@ -51,30 +53,36 @@ from sandy.libraries import (
     NFPY_FILES_JEFF_311_IAEA,
     NFPY_FILES_JEFF_33_IAEA,
     NFPY_FILES_JENDL_40U_IAEA,
+    NFPY_FILES_JENDL_5_IAEA,
     URL_NFPY_ENDFB_71_IAEA,
     URL_NFPY_ENDFB_80_IAEA,
     URL_NFPY_ENDFB_81_IAEA,
     URL_NFPY_JEFF_311_IAEA,
     URL_NFPY_JEFF_33_IAEA,
     URL_NFPY_JENDL_40U_IAEA,
+    URL_NFPY_JENDL_5_IAEA,
 
     DECAY_FILES_ENDFB_71_IAEA,
     DECAY_FILES_ENDFB_80_IAEA,
     DECAY_FILES_ENDFB_81_IAEA,
     DECAY_FILES_JEFF_311_IAEA,
     DECAY_FILES_JEFF_33_IAEA,
+    DECAY_FILES_JENDL_5_IAEA,
     URL_DECAY_ENDFB_71_IAEA,
     URL_DECAY_ENDFB_80_IAEA,
     URL_DECAY_ENDFB_81_IAEA,
     URL_DECAY_JEFF_311_IAEA,
     URL_DECAY_JEFF_33_IAEA,
+    URL_DECAY_JENDL_5_IAEA,
 
     TSL_FILES_ENDFB_71_IAEA,
     TSL_FILES_ENDFB_80_IAEA,
     TSL_FILES_ENDFB_81_IAEA,
     TSL_FILES_JEFF_33_IAEA,
     TSL_FILES_JENDL_40U_IAEA,
+    TSL_FILES_JENDL_5_IAEA,
     URL_TSL_JENDL_40U_IAEA,
+    URL_TSL_JENDL_5_IAEA,
     URL_TSL_ENDFB_71_IAEA,
     URL_TSL_ENDFB_80_IAEA,
     URL_TSL_ENDFB_81_IAEA,
@@ -111,6 +119,7 @@ def get_tsl_index(library):
             * `'endfb_80'`
             * `'endfb_81'`
             * `'jendl_40u`
+            * `'jendl_5`
             * `'irdff_ii`
 
     Raises
@@ -152,6 +161,7 @@ def get_tsl_index(library):
             "endfb_81".upper(),
             "jeff_33".upper(),
             "jendl_40u".upper(),
+            "jendl_5".upper(),
             "irdff_ii".upper(),
             )
     library_ = library.lower()
@@ -165,6 +175,8 @@ def get_tsl_index(library):
         index = "https://www-nds.iaea.org/public/download-endf/JEFF-3.3/tsl-index.htm"
     elif library_ == "jendl_40u":
         index = "https://www-nds.iaea.org/public/download-endf/JENDL-4.0u2-20160106/tsl-index.htm"
+    elif library_ == "jendl_5":
+        index = "https://www-nds.iaea.org/public/download-endf/JENDL-5/tsl-index.htm"
     elif library_ == "irdff_ii":
         index = "https://www-nds.iaea.org/public/download-endf/IRDFF-II/n-index.htm"
     else:
@@ -212,6 +224,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * `'jeff_32'`
             * `'jeff_33'`
             * `'jendl_40u'`
+            * `'jendl_5'`
             * `'tendl_2023'`
         for 'nfpy':
             * `'endfb_71'`
@@ -220,18 +233,21 @@ def get_endf6_file(library, kind, zam, to_file=False):
             * `'endfb_80'`
             * `'endfb_81'`
             * `'jendl_40u'`
+            * `'jendl_5'`
         for 'decay':
             * `'endfb_71'`
             * `'jeff_311'`
             * `'jeff_33'`
             * `'endfb_80'`
             * `'endfb_81'`
+            * `'jendl_5'`
         for 'tsl': (read the note)
             * `'endfb_71'`
             * `'jeff_33'`
             * `'endfb_80'`
             * `'endfb_81'`
             * `'jendl_40u'`
+            * `'jendl_5'`
         for 'dxs':
             * `'jeff_33'`
             * `'proton'`
@@ -304,6 +320,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
     >>> tape = sandy.get_endf6_file("jendl_40u", 'xs', 10010)
     >>> assert type(tape) is sandy.Endf6
 
+    Import hydrogen file from JENDL-5
+
+    >>> tape = sandy.get_endf6_file("jendl_5", 'xs', 10010)
+    >>> assert type(tape) is sandy.Endf6
+
     Import hydrogen file from TENDL-2023
 
     >>> tape = sandy.get_endf6_file("tendl_2023", 'xs', 10010)
@@ -327,6 +348,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Import Neutron-Induced Fission Product Yields for Th-227 from JENDL-4.0u
 
     >>> tape = sandy.get_endf6_file("jendl_40u", 'nfpy', 902270)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import Neutron-Induced Fission Product Yields for Th-227 from JENDL-5
+
+    >>> tape = sandy.get_endf6_file("jendl_5", 'nfpy', 902270)
     >>> assert type(tape) is sandy.Endf6
 
     Import Neutron-Induced Fission Product Yields for Th-232 from JEFF-3.1.1
@@ -362,6 +388,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
     Import Radioactive Decay Data for H-1 from ENDF/B-VIII.1.
 
     >>> tape = sandy.get_endf6_file("endfb_81", 'decay', 10010)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import Radioactive Decay Data for H-1 from JENDL-5.
+
+    >>> tape = sandy.get_endf6_file("jendl_5", 'decay', 10010)
     >>> assert type(tape) is sandy.Endf6
 
     Import all Neutron-Induced Fission Product Yields from ENDF/B-VII.1.
@@ -405,6 +436,11 @@ def get_endf6_file(library, kind, zam, to_file=False):
     >>> tape = sandy.get_endf6_file("jendl_40u", 'tsl', [1, 2, 3])
     >>> assert type(tape) is sandy.Endf6
     
+    Thermal Neutron Scattering Data from JENDL-5
+
+    >>> tape = sandy.get_endf6_file("jendl_5", 'tsl', [1, 2, 3])
+    >>> assert type(tape) is sandy.Endf6
+
     Import natural Fe for IRDFF-II
 
     >>> tape = sandy.get_endf6_file("irdff_2", "xs", 260000)
@@ -421,6 +457,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             "endfb_80".upper(),
             "endfb_81".upper(),
             "jendl_40u".upper(),
+            "jendl_5".upper(),
             "irdff_2".upper(),
             )
         library_ = library.lower()
@@ -452,6 +489,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jendl_40u":
             url = URL_N_JENDL_40U_IAEA
             files = N_FILES_JENDL_40U_IAEA
+        elif library_ == "jendl_5":
+            url = URL_N_JENDL_5_IAEA
+            files = N_FILES_JENDL_5_IAEA
         elif library_ == "tendl_2023":
             url = URL_N_TENDL_2023_PSI
             files = N_FILES_TENDL_2023_PSI
@@ -494,6 +534,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             "endfb_80".upper(),
             "endfb_81".upper(),
             "jendl_40u".upper(),
+            "jendl_5".upper(),
             "jeff_311".upper(),
             "jeff_33".upper(),
             )
@@ -510,6 +551,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jendl_40u":
             url = URL_NFPY_JENDL_40U_IAEA
             files = NFPY_FILES_JENDL_40U_IAEA
+        elif library_ == "jendl_5":
+            url = URL_NFPY_JENDL_5_IAEA
+            files = NFPY_FILES_JENDL_5_IAEA
         elif library_ == "jeff_311":
             url = URL_NFPY_JEFF_311_IAEA
             files = NFPY_FILES_JEFF_311_IAEA
@@ -530,6 +574,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             "jeff_311".upper(),
             "jeff_33".upper(),
             "jendl_40u".upper(),
+            "jendl_5".upper(),
             )
         library_ = library.lower()
         if library_ == "endfb_71":
@@ -550,6 +595,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jendl_40u":
             # it will fail for indivdual files, but it works for the ntire library
             pass
+        elif library_ == "jendl_5":
+            url = URL_DECAY_JENDL_5_IAEA
+            files = DECAY_FILES_JENDL_5_IAEA
         else:
             raise ValueError(
                 f"""library '{library}' is not available.
@@ -563,6 +611,7 @@ def get_endf6_file(library, kind, zam, to_file=False):
             "endfb_81".upper(),
             "jeff_33".upper(),
             "jendl_40u".upper(),
+            "jendl_5".upper(),
             )
         library_ = library.lower()
         if library_ == "endfb_71":
@@ -580,6 +629,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jendl_40u":
             url = URL_TSL_JENDL_40U_IAEA
             files = TSL_FILES_JENDL_40U_IAEA
+        elif library_ == "jendl_5":
+            url = URL_TSL_JENDL_5_IAEA
+            files = TSL_FILES_JENDL_5_IAEA
         else:
             raise ValueError(
                 f"""library '{library}' is not available.
