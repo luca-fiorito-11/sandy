@@ -480,7 +480,10 @@ def _read_intro(tape, mat):
     sections = []
     for j in range(NXC):
         T, i = sandy.read_text(df, i)
-        s = tuple(map(int, re.findall(".{11}" , T[0])[2:]))
+        # if MOD is left empty, add a 0 
+        s = tuple(map(lambda x: 0 if x.strip() == "" else int(x), 
+                      re.findall(".{11}", T[0])[2:])
+                  )
         sections.append(s)
     out.update({
         "SECTIONS": sections,
