@@ -1,10 +1,6 @@
 name: Version Check
 
 on:
-  pull_request:
-    branches:
-      - 'v*'
-      - 'develop'
   workflow_dispatch:
 
 jobs:
