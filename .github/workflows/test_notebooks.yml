@@ -134,8 +134,39 @@ jobs:
           name: executed_batch_4
           path: notebooks/batch_4/executed/
 
+  execute_batch_5:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ">=3.8 <3.12"  # to comply with serpentTools
+
+      - name: Set up NJOY2016
+        uses: ./.github/actions/setup-njoy
+
+      - name: Install SANDY with all extras
+        uses: ./.github/actions/install-sandy-local-extras
+
+      - name: Execute notebooks in batch_5
+        run: |
+          cd notebooks/batch_5
+          mkdir -p executed
+          jupyter nbconvert --to notebook --execute *.ipynb \
+            --ExecutePreprocessor.kernel_name='python3' --inplace > /dev/null
+          mv *.ipynb executed/
+
+      - name: Upload executed notebooks from batch_5
+        uses: actions/upload-artifact@v4
+        with:
+          name: executed_batch_5
+          path: notebooks/batch_5/executed/
+
   push_notebooks:
-    needs: [execute_batch_1, execute_batch_2, execute_batch_3, execute_batch_4]
+    needs: [execute_batch_1, execute_batch_2, execute_batch_3, execute_batch_4, execute_batch_5]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -165,6 +196,12 @@ jobs:
           name: executed_batch_4
           path: notebooks/batch_4/executed/
 
+      - name: Download executed notebooks from batch_5
+        uses: actions/download-artifact@v4
+        with:
+          name: executed_batch_5
+          path: notebooks/batch_5/executed/
+
       - name: Flatten executed notebooks into a single directory
         run: |
           mkdir -p notebooks_flat
@@ -172,6 +209,7 @@ jobs:
           mv notebooks/batch_2/executed/*.ipynb notebooks_flat/
           mv notebooks/batch_3/executed/*.ipynb notebooks_flat/
           mv notebooks/batch_4/executed/*.ipynb notebooks_flat/
+          mv notebooks/batch_5/executed/*.ipynb notebooks_flat/
 
       - name: Push all executed notebooks
         uses: cpina/github-action-push-to-another-repository@main
