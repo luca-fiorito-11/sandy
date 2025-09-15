@@ -26,7 +26,7 @@ RUN git clone https://github.com/njoy/NJOY2016.git && \
     cmake -DPython3_EXECUTABLE=$(which python3) .. && \
     make && \
     make install
-
+    
 # Set NJOY environment variable
 ENV NJOY=/app/NJOY2016/build/njoy
 
@@ -52,6 +52,3 @@ RUN pip install --no-cache-dir \
     seaborn \
     scikit-learn \
     serpentTools
-
-# Default command to verify sandy installation
-CMD ["python", "-c", "import sandy; print('Sandy installed successfully')"]
