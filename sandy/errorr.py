@@ -46,6 +46,9 @@ class Errorr(_FormattedFile):
         Examples
         --------
 
+        This example shows functioning of the `get_cov` method with `MF=31`, `MF=33` and `MF=35`.
+        The first case if for `MF=31`.
+
         >>> import sandy
         >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
         >>> ek = sandy.energy_grids.CASMO12
@@ -57,110 +60,178 @@ class Errorr(_FormattedFile):
         mf1 = read_mf1(self, mat_)
         return mf1["EG"]
 
-    def get_xs(self, **kwargs):
+    def get_xs(self, mts=None, **kwargs):
         """
-        Extract multigroup xs values.
+        Extract multigroup xs/nubar/pfns values.
+
+        Parameters
+        ----------
+        mts : `list` of `int`, optional
+            MT number(s) to extract. Default is `None` (all available MTs).
 
         Returns
         -------
-        xs : `pd.Series`
-            For a given mat and mt, the xs values in the energy grid.
+        xs : `pd.DataFrame`
+            MultiIndex DataFrame with XS values for the selected MAT/MT and energy groups.
+            Index: energy intervals (E)
+            Columns: MultiIndex (MAT, MT)
 
         Examples
         --------
+        This example shows how to use of the `get_xs` method with `MF=31`, `MF=33` and `MF=35`.
 
-        >>> import sandy
-        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> import sandy, pytest
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350)
         >>> ek = sandy.energy_grids.CASMO12
-        >>> err = e6.get_errorr(err=1, errorr_kws=dict(ek=ek))['errorr33']
-        >>> err.get_xs()
-        MAT                     125                        
-        MT                      1           2           102
+        >>> errs = e6.get_errorr(err=1, errorr_kws=dict(ek=ek), groupr_kws=dict(ek=ek))
+
+        The first case is for `MF=33`.
+
+        >>> errs['errorr33'].get_xs().data.iloc[:, :3]
+        MAT                            9228                        
+        MT                                1           2           4
         E                                                          
-        (1e-05, 0.03]           2.10540e+01 2.04363e+01 6.17622e-01
-        (0.03, 0.058]           2.06986e+01 2.04363e+01 2.62307e-01
-        (0.058, 0.14]           2.06134e+01 2.04363e+01 1.77108e-01
-        (0.14, 0.28]            2.05574e+01 2.04363e+01 1.21068e-01
-        (0.28, 0.35]            2.05377e+01 2.04363e+01 1.01449e-01
-        (0.35, 0.625]           2.05156e+01 2.04363e+01 7.93598e-02
-        (0.625, 4.0]            2.04756e+01 2.04360e+01 3.95521e-02
-        (4.0, 48.052]           2.04452e+01 2.04328e+01 1.23376e-02
-        (48.052, 5530.0]        2.00727e+01 2.00714e+01 1.31829e-03
-        (5530.0, 821000.0]      8.05810e+00 8.05804e+00 6.41679e-05
-        (821000.0, 2231000.0]   3.48867e+00 3.48863e+00 3.54246e-05
-        (2231000.0, 10000000.0] 1.52409e+00 1.52406e+00 3.44005e-05
+        (1e-05, 0.03]           1.33136e+03 1.40944e+01 0.00000e+00
+        (0.03, 0.058]           5.26782e+02 1.40005e+01 0.00000e+00
+        (0.058, 0.14]           3.41410e+02 1.38400e+01 0.00000e+00
+        (0.14, 0.28]            2.50115e+02 1.35755e+01 0.00000e+00
+        (0.28, 0.35]            2.22318e+02 1.35530e+01 0.00000e+00
+        (0.35, 0.625]           1.31990e+02 1.33804e+01 0.00000e+00
+        (0.625, 4.0]            5.56383e+01 1.21305e+01 0.00000e+00
+        (4.0, 48.052]           9.39232e+01 1.14789e+01 0.00000e+00
+        (48.052, 5530.0]        2.19874e+01 1.18636e+01 8.60022e-07
+        (5530.0, 821000.0]      9.53303e+00 6.75610e+00 1.22176e+00
+        (821000.0, 2231000.0]   7.06399e+00 3.78697e+00 1.94841e+00
+        (2231000.0, 10000000.0] 6.95725e+00 3.82719e+00 1.40637e+00
 
-        >>> err.get_xs(mt=[1, 2])
-        MAT                             125            
-        MT                                1           2
-        E                                              
-        (1e-05, 0.03]           2.10540e+01 2.04363e+01
-        (0.03, 0.058]           2.06986e+01 2.04363e+01
-        (0.058, 0.14]           2.06134e+01 2.04363e+01
-        (0.14, 0.28]            2.05574e+01 2.04363e+01
-        (0.28, 0.35]            2.05377e+01 2.04363e+01
-        (0.35, 0.625]           2.05156e+01 2.04363e+01
-        (0.625, 4.0]            2.04756e+01 2.04360e+01
-        (4.0, 48.052]           2.04452e+01 2.04328e+01
-        (48.052, 5530.0]        2.00727e+01 2.00714e+01
-        (5530.0, 821000.0]      8.05810e+00 8.05804e+00
-        (821000.0, 2231000.0]   3.48867e+00 3.48863e+00
-        (2231000.0, 10000000.0] 1.52409e+00 1.52406e+00
+        Use `mts` to select only specific MT numbers.
 
-        >>> err.get_xs(mt=1)
-        MAT                             125
-        MT                                1
+        >>> errs['errorr33'].get_xs(mts=[18])
+        MAT                            9228
+        MT                               18
         E                                  
-        (1e-05, 0.03]           2.10540e+01
-        (0.03, 0.058]           2.06986e+01
-        (0.058, 0.14]           2.06134e+01
-        (0.14, 0.28]            2.05574e+01
-        (0.28, 0.35]            2.05377e+01
-        (0.35, 0.625]           2.05156e+01
-        (0.625, 4.0]            2.04756e+01
-        (4.0, 48.052]           2.04452e+01
-        (48.052, 5530.0]        2.00727e+01
-        (5530.0, 821000.0]      8.05810e+00
-        (821000.0, 2231000.0]   3.48867e+00
-        (2231000.0, 10000000.0] 1.52409e+00
-        """
-        data = []
-        listmt_ = kwargs.get('mt', range(1, 10000))
-        listmt_ = [listmt_] if isinstance(listmt_, int) else listmt_
-        listmat_ = kwargs.get('mat', range(1, 10000))
-        listmat_ = [listmat_] if isinstance(listmat_, int) else listmat_
-        for mat, mf, mt in self.filter_by(listmf=[3],
-                                          listmt=listmt_,
-                                          listmat=listmat_).data:
-            mf1 = read_mf1(self, mat)
-            egn = pd.IntervalIndex.from_breaks(mf1["EG"])
-            mf3 = read_mf3(self, mat, mt)
-            columns = pd.MultiIndex.from_tuples([(mat, mt)],
-                                                names=["MAT", "MT"])
-            index = pd.Index(egn, name="E")
-            data.append(pd.DataFrame(mf3["XS"], index=index, columns=columns))
-        data = pd.concat(data, axis=1).fillna(0)
-        return Xs(data)
+        (1e-05, 0.03]           1.11449e+03
+        (0.03, 0.058]           4.39929e+02
+        (0.058, 0.14]           2.80260e+02
+        (0.14, 0.28]            1.95476e+02
+        (0.28, 0.35]            1.72670e+02
+        (0.35, 0.625]           1.02640e+02
+        (0.625, 4.0]            3.15194e+01
+        (4.0, 48.052]           4.87917e+01
+        (48.052, 5530.0]        7.12775e+00
+        (5530.0, 821000.0]      1.29401e+00
+        (821000.0, 2231000.0]   1.23450e+00
+        (2231000.0, 10000000.0] 1.39786e+00
 
-    def get_cov(self, mts=None):
+        An error is raised if no requested MT number is found.
+
+        >>> with pytest.raises(ValueError) as exc:
+        ...     errs['errorr33'].get_xs(mts=[10])
+        >>> assert str(exc.value) == 'No requested MT number [10] was found in ERRORR file'
+
+        The first case is for `MF=31`.
+
+        >>> errs["errorr31"].get_xs()
+        MAT                            9228
+        MT                              456
+        E                                  
+        (1e-05, 0.03]           2.40910e+00
+        (0.03, 0.058]           2.40910e+00
+        (0.058, 0.14]           2.40910e+00
+        (0.14, 0.28]            2.40910e+00
+        (0.28, 0.35]            2.40910e+00
+        (0.35, 0.625]           2.40910e+00
+        (0.625, 4.0]            2.40910e+00
+        (4.0, 48.052]           2.40910e+00
+        (48.052, 5530.0]        2.40930e+00
+        (5530.0, 821000.0]      2.44782e+00
+        (821000.0, 2231000.0]   2.57604e+00
+        (2231000.0, 10000000.0] 3.28604e+00
+
+        The third case is for `MF=35`.
+
+        >>> errs["errorr35"].get_xs()
+        MAT                            9228
+        MT                               18
+        E                                  
+        (1e-05, 0.03]           2.14656e-12
+        (0.03, 0.058]           3.63873e-12
+        (0.058, 0.14]           1.59188e-11
+        (0.14, 0.28]            3.95395e-11
+        (0.28, 0.35]            2.42436e-11
+        (0.35, 0.625]           1.19290e-10
+        (0.625, 4.0]            3.10112e-09
+        (4.0, 48.052]           1.34526e-07
+        (48.052, 5530.0]        1.69897e-04
+        (5530.0, 821000.0]      2.43142e-01
+        (821000.0, 2231000.0]   4.11862e-01
+        (2231000.0, 10000000.0] 3.44826e-01
+
         """
-        Extract cross section/nubar covariance from :obj:`~sandy.errorr.Errorr` instance.
+        # Check if MT numbers (if requested) exist
+        if mts is not None:
+            requested_mts = set(mts)
+            available_mts = set(self.mt)
+            if not requested_mts & available_mts:
+                raise ValueError(f"No requested MT number {sorted(requested_mts)} was found in ERRORR file")
+            
+            notfound = requested_mts - available_mts
+            if notfound:
+                logging.warning(f"The following MT's were not found in ERRORR file: {sorted(notfound)}")
+
+        listmt_ = mts if mts is not None else range(1, 10000)
+
+        listmf_ = [3, 5]   # not 1 because nubar is given in MF3
+
+        filtered_data = self.filter_by(listmf=listmf_, listmt=listmt_)
+
+        data = []
+        for mat, mf, mt in filtered_data.data:
+
+            # This reads intro and MG neutron flux
+            mf1 = read_mf1(self, mat)
+            energy_index  = pd.IntervalIndex.from_breaks(mf1["EG"], name="E")
+
+            # This reads all nubar, xs and pfns
+            mf3 = read_mf3(self, mat, mt, mf)
+            columns = pd.MultiIndex.from_tuples([(mat, mt)], names=["MAT", "MT"])
+
+            data.append(pd.DataFrame(mf3["XS"], index=energy_index , columns=columns))
+
+        # Concatenate all MT/MAT columns and fill missing energy bins with 0
+        data = pd.concat(data, axis=1).fillna(0)
+        xs = Xs(data)
+        
+        return xs
+
+    def get_cov(self, mts=None, covariance_checks=True):
+        """
+        Extract cross section/nubar covariance from this :obj:`~sandy.errorr.Errorr` instance.
 
         Parameters
         ----------
         mts : `list`, optional
-            List of MT numbers. The default is `None`, i.e., keep all.
+            List of MT numbers. If `None` (default), keep all MT numbers.
             Use this command if you want to keep only a subsection of the
             MT numbers available in the ERRORR file.
             The output covariance matrix will containt only the MT numbers
             found both in `mts` and in the ERRORR file.
-            A warning is raised if a MT is not found.
-            An error is raised if no requested MT is found.
+            If some requested MTs are missing, a warning is logged.
+            If none are found, a `ValueError` is raised.
+        covariance_checks : `bool`, optional, default is `True`
+            Perform symmetry and variance checks on the covariance matrix.
+            Set to `False` to disable these checks (useful for debugging).
+            See also :obj:`~sandy.cov.CategoryCov.data`.
 
         Returns
         -------
         :obj:`~sandy.cov.CategoryCov`
-            xs/nubar/pfns covariance matrix for all MAT/MT in ERRORR file.
+            Covariance matrix of xs/nubar/pfns for all MAT/MT pairs found in ERRORR file.
+
+        Raises
+        ------
+        `ValueError`
+            If none of the requested MT numbers are found in the ERRORR file.
 
         Examples
         --------
@@ -198,8 +269,8 @@ class Errorr(_FormattedFile):
         (20000000.0, 24000000.0]               6.81128e-02               0.00000e+00               0.00000e+00
         (24000000.0, 28000000.0]               7.52293e-02               0.00000e+00               0.00000e+00
 
-        This example shows functioning of the `get_cov` method with `MF=31`, `MF=33` and `MF=35`.
-        The first case if for `MF=31`.
+        This example shows how to use the `get_cov` method with `MF=31`, `MF=33` and `MF=35`.
+        The first case is for `MF=31`.
         
         >>> import numpy as np
         >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350)
@@ -207,47 +278,69 @@ class Errorr(_FormattedFile):
         >>> datamg = err.get_cov().data
         >>> np.testing.assert_equal(datamg.values, [[3.153674e-05, 1.413344e-05],[1.413344e-05, 1.643044e-05]])
 
-        The second case if for `MF=33`.
+        The second case is for `MF=33`.
         
         >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350)
         >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1, xs=True, chi=False, nubar=False, mubar=False)['errorr33']
         >>> datamg = err.get_cov().data
         >>> np.testing.assert_equal(datamg.loc[(9228, 1), (9228, 1)].values, [[2.060002e-04, 6.686222e-08],[6.686222e-08, 7.581125e-05]])
 
-        The third case if for `MF=35`.
+        The third case is for `MF=35`.
 
         >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350)
         >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), groupr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1, xs=False, chi=True, nubar=False, mubar=False)['errorr35']
         >>> datamg = err.get_cov().data
         >>> np.testing.assert_equal(datamg.values, [[1.750390e-03, 4.450283e-08],[4.450283e-08, 1.622930e-10]])
+        
+        In some cases, ERRORR produces non-symmetric covariance matrices.
+        The generation of a `CategoryCov` can be enforced with `covariance_checks=False`.
+
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350)
+        >>> err = e6.get_errorr(errorr_kws=dict(ek=sandy.energy_grids.SCALE238), groupr_kws=dict(ek=sandy.energy_grids.SCALE238), err=1, xs=False, chi=True, nubar=False, mubar=False)['errorr35']
+        >>> with pytest.raises(TypeError) as excinfo:
+        ...     err.get_cov().data
+        >>> cov = err.get_cov(covariance_checks=False).data
 
         Test selecting only specific MT's.
 
         >>> err = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1)["errorr33"]
         >>> cov = err.get_cov()
         >>> np.testing.assert_array_equal(cov.data.index.get_level_values("MT").unique(), [1, 2, 102])
-        >>> cov = err.get_cov(mts={2, 452})
-        >>> assert cov.data.index.get_level_values("MT").unique().to_series().squeeze() == 2
         >>> with pytest.raises(Exception) as exc:
         ...    err.get_cov(mts={4, 452})
+        >>> assert str(exc.value) == 'No requested MT number [4, 452] was found in ERRORR file'
+
         """
-        eg = self.get_energy_grid()
-        eg = pd.IntervalIndex.from_breaks(eg)  # multigroup
-    
+        # Check if MT numbers (if requested) exist
+        if mts is not None:
+            requested_mts = set(mts)
+            available_mts = set(self.mt)
+            if not requested_mts & available_mts:
+                raise ValueError(f"No requested MT number {sorted(requested_mts)} was found in ERRORR file")
+            
+            notfound = requested_mts - available_mts
+            if notfound:
+                logging.warning(f"The following MT's were not found in ERRORR file: {sorted(notfound)}")
+
+        # Retrieve multigroup energy grid
+        energy_grid = pd.IntervalIndex.from_breaks(self.get_energy_grid())
+
+        # Filter ERRORR data for relevant MF sections
+        filtered_data = self.filter_by(listmf=[31, 33, 34, 35]).data
+
         # initialize global cov matrix with all MAT, MT
-        ix = pd.DataFrame(self.filter_by(listmf=[31, 33, 34, 35]).data.keys(),
-                          columns=["MAT", "MF", "MT"])[["MAT", "MT"]]
-        ix["IMIN"] = ix.index * eg.size
-        ix["IMAX"] = (ix.index + 1) * eg.size
-        nd = ix.shape[0]
-        nsize = nd * eg.size
-        c = np.zeros((nsize, nsize))
+        ix = pd.DataFrame(filtered_data.keys(), columns=["MAT", "MF", "MT"])[["MAT", "MT"]]
+        ix["IMIN"] = ix.index * energy_grid.size
+        ix["IMAX"] = (ix.index + 1) * energy_grid.size
+
+        total_size = ix.shape[0] * energy_grid.size
+        c = np.zeros((total_size, total_size))
         
-        # Fill matrix
-        for mat, mf, mt in self.filter_by(listmf=[31, 33, 34, 35]).data:
+        # Fill covariance matrix
+        for mat, mf, mt in filtered_data:
             mf33 = read_mf33(self, mat, mt, 33 if mf == 31 else mf)
-        
-            for mt1, cov in mf33["COVS"].items():
+
+            for mt1, subcov in mf33["COVS"].items():
                 
                 # it seems that when processing MF34 mubar, NJOY keeps 251 for MT
                 # but it sets MT1 to 1.
@@ -255,34 +348,27 @@ class Errorr(_FormattedFile):
                 if mf == 34 and mt1 == 1:
                     mt1 = 251
 
-                ivals = ix.query("MAT==@mat & MT==@mt").squeeze()
-                imin, imax = ivals.IMIN, ivals.IMAX
-                jvals = ix.query("MAT==@mat & MT==@mt1").squeeze()
-                jmin, jmax = jvals.IMIN, jvals.IMAX
-                c[imin: imax, jmin: jmax] = cov
+                i = ix.query("MAT==@mat & MT==@mt").squeeze()
+                j = ix.query("MAT==@mat & MT==@mt1").squeeze()
+
+                c[i.IMIN: i.IMAX, j.IMIN: j.IMAX] = subcov
                 if mt != mt1:
-                    c[jmin: jmax, imin: imax] = cov.T
+                    c[j.IMIN: j.IMAX, i.IMIN: i.IMAX] = subcov.T
         
-        # Add index and columns and convert to CategoryCov
+        # Build MultiIndex for rows/columns
         idx = pd.MultiIndex.from_tuples(
-            [(mat, mt, e) for i, (mat, mt) in ix[["MAT", "MT"]].iterrows() for e in eg],
+            [(mat, mt, e) for i, (mat, mt) in ix[["MAT", "MT"]].iterrows() for e in energy_grid],
             names=["MAT", "MT", "E"],
         )
   
-        # choose only specific MT's
-        if mts:
-            mask = idx.get_level_values("MT").isin(mts)
-            if not mask.any():
-                raise ValueError("No requested MT number was found in ERRORR file")
-            out = CategoryCov(c[mask][:, mask], index=idx[mask], columns=idx[mask])
-            
-            notfound = set(mts) - set(idx.get_level_values("MT"))
-            if notfound:
-                logging.warning(f"The following MT's were not found in ERRORR file: {notfound}")
+        # Filter by requested MTs if provided
+        if mts is not None:
+            mask = idx.get_level_values("MT").isin(requested_mts)
+            c = c[mask][:, mask]
+            idx = idx[mask]
   
-        else:
-            out = CategoryCov(c, index=idx, columns=idx)
-  
+        out = CategoryCov(c, index=idx, columns=idx, covariance_checks=covariance_checks)
+
         return out
 
 
@@ -327,7 +413,7 @@ def read_mf1(tape, mat):
     return out
 
 
-def read_mf3(tape, mat, mt):
+def read_mf3(tape, mat, mt, mf=3):
     """
     Parse MAT/MF=33/MT section from :obj:`~sandy.errorr.Errorr` object and return
     structured content in nested dcitionaries.
@@ -346,7 +432,6 @@ def read_mf3(tape, mat, mt):
     out : `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
     """
-    mf = 3
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,
