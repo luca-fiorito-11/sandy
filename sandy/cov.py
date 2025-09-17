@@ -10,10 +10,9 @@ import logging
 import os
 from scipy.stats import norm
 from scipy.stats.qmc import LatinHypercube
-from sandy.gls import sandwich
 
-
-import sandy
+from .samples import Samples
+from .gls import sandwich
 
 pd.options.display.float_format = '{:.5e}'.format
 
@@ -135,6 +134,7 @@ class CategoryCov():
         return self.data.__repr__()
 
     def __init__(self, *args, **kwargs):
+        self._covariance_checks = kwargs.pop("covariance_checks", True)     # store the flag so data.setter can access it
         self.data = pd.DataFrame(*args, dtype=float, **kwargs)
 
     @property
@@ -163,10 +163,18 @@ class CategoryCov():
 
         Examples
         --------
-        >>> import pytest
-        >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array[1])
+        
+        Test incorrect covariance matrices.
+
+        >>> import sandy, pytest
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array([[1, 2], [2, -4]]))
         >>> with pytest.raises(TypeError): sandy.CategoryCov(np.array([[1, 2], [3, 4]]))
+
+        By-pass checks using `covariance_checks=False`.
+
+        >>> c = sandy.CategoryCov(np.array([[1, 2], [2, -4]]), covariance_checks=False)
+        >>> c = sandy.CategoryCov(np.array([[1, 2], [3, 4]]), covariance_checks=False)
+
         """
         return self._data
 
@@ -174,13 +182,13 @@ class CategoryCov():
     def data(self, data):
         self._data = data
 
-        if not len(data.shape) == 2 and data.shape[0] == data.shape[1]:
+        if self._covariance_checks and not len(data.shape) == 2 and data.shape[0] == data.shape[1]:
             raise TypeError("Covariance matrix must have two dimensions")
 
-        if not (np.diag(data) >= 0).all():
+        if self._covariance_checks and not (np.diag(data) >= 0).all():
             raise TypeError("Covariance matrix must have positive variance")
 
-        if not np.allclose(data.values, data.values.T):
+        if self._covariance_checks and not np.allclose(data.values, data.values.T):
             raise TypeError("Covariance matrix must be symmetric")
 
     @property
@@ -205,6 +213,8 @@ class CategoryCov():
         Example
         -------
         Create covariance from stdev in `pd.Series`.
+
+        >>> import sandy
         >>> var = pd.Series(np.array([0, 2, 3]), index=pd.Index(["A", "B", "C"]))
         >>> std = np.sqrt(var)
         >>> cov = sandy.CategoryCov.from_stdev(std)
@@ -235,6 +245,8 @@ class CategoryCov():
         Example
         -------
         Create covariance from variance in `pd.Series`.
+
+        >>> import sandy
         >>> var = pd.Series(np.array([0, 2, 3]), index=pd.Index(["A", "B", "C"]))
         >>> cov = sandy.CategoryCov.from_var(var)
         >>> cov
@@ -244,6 +256,7 @@ class CategoryCov():
         C 0.00000e+00 0.00000e+00 3.00000e+00
 
         Create covariance from variance in list.
+
         >>> sandy.CategoryCov.from_var([1, 2, 3])
                     0           1           2
         0 1.00000e+00 0.00000e+00 0.00000e+00
@@ -427,7 +440,8 @@ class CategoryCov():
         U[nz] = Ur
 
         # -- Draw IID samples with mu=0 and std=1
-        seed_ = seed if seed else sandy.get_seed()
+        from sandy import get_seed  # lazy import
+        seed_ = seed if seed else get_seed()
         if lhs:
             engine = LatinHypercube(d=Mr, seed=seed_)
             lhd = engine.random(n=N)
@@ -451,7 +465,7 @@ class CategoryCov():
         X = (csr_matrix(U) @ csr_matrix(np.diag(np.sqrt(Sr))) @ csr_matrix(X_)).todense()
 
         samples = pd.DataFrame(X, index=index, columns=columns)
-        return sandy.Samples(samples)
+        return Samples(samples)
 
     def get_std(self):
         """
@@ -464,6 +478,8 @@ class CategoryCov():
 
         Examples
         --------
+
+        >>> import sandy
         >>> sandy.CategoryCov([[1, 0.4],[0.4, 1]]).get_std()
         0   1.00000e+00
         1   1.00000e+00
@@ -514,6 +530,7 @@ class CategoryCov():
         --------
         Extract eigenvalues of a correlation matrix.
 
+        >>> import sandy
         >>> sandy.CategoryCov([[1, 0.4], [0.4, 1]]).get_eig()[0]
         0   1.40000e+00
         1   6.00000e-01
@@ -595,6 +612,8 @@ class CategoryCov():
 
         Examples
         --------
+
+        >>> import sandy
         >>> sandy.CategoryCov([[4, 2.4],[2.4, 9]]).get_corr()
                     0           1
         0 1.00000e+00 4.00000e-01
@@ -652,6 +671,7 @@ class CategoryCov():
         --------
         Common setup:
     
+        >>> import sandy
         >>> seed = 11
         >>> nsmp = 1e5
         >>> index = columns = ["A", "B"]
@@ -747,6 +767,8 @@ class CategoryCov():
 
         Examples
         --------
+
+        >>> import sandy
         >>> var = np.array([1, 2, 3])
         >>> s = np.array([[1, 2, 3]])
         >>> assert s.shape == (1, 3)
@@ -804,6 +826,8 @@ class CategoryCov():
         Examples
         --------
         Initialize index and columns
+
+        >>> import sandy
         >>> idx = ["A", "B", "C"]
         >>> std = np.array([1, 2, 3])
         >>> corr = sandy.CategoryCov([[1, 0, 2], [0, 3, 0], [2, 0, 1]], index=idx, columns=idx)
@@ -840,6 +864,7 @@ class CategoryCov():
         --------
         Positive define matrix.
 
+        >>> import sandy
         >>> a = np.array([[4, 12, -16], [12, 37, -43], [-16, -43, 98]])
         >>> sandy.CategoryCov(a).get_L()
                        0	          1	          2
@@ -879,7 +904,7 @@ class CategoryCov():
         columns = self.data.columns
 
         # Obtain the eigenvalues and eigenvectors
-        E, V = sandy.CategoryCov(self.data).get_eig(tolerance=tolerance)
+        E, V = self.get_eig(tolerance=tolerance)
 
         # need sparse because much faster for large matrices (2kx2k from J33 Pu9)
         # with a lot of zero eigs
@@ -948,6 +973,7 @@ def corr2cov(corr, s):
     Examples
     --------
     Test with integers
+
     >>> s = np.array([1, 2, 3])
     >>> corr = np.array([[1, 0, 2], [0, 3, 0], [2, 0, 1]])
     >>> corr2cov(corr, s).astype(int)
@@ -956,6 +982,7 @@ def corr2cov(corr, s):
            [ 6,  0,  9]])
 
     Test with float
+
     >>> corr2cov(corr, s.astype(float))
     array([[ 1.,  0.,  6.],
            [ 0., 12.,  0.],
@@ -986,6 +1013,7 @@ def triu_matrix(matrix, kind='upper'):
 
     Examples
     --------
+
     >>> S = pd.DataFrame(np.array([[1, 2, 1], [0, 2, 4], [0, 0, 3]]))
     >>> triu_matrix(S).data
                 0           1           2
@@ -994,6 +1022,7 @@ def triu_matrix(matrix, kind='upper'):
     2 1.00000e+00 4.00000e+00 3.00000e+00
 
     Overwrite the lower triangular part of the matrix:
+
     >>> S = pd.DataFrame(np.array([[1, 2, 1], [-8, 2, 4], [-6, -5, 3]]))
     >>> triu_matrix(S).data
                 0           1           2
@@ -1002,6 +1031,7 @@ def triu_matrix(matrix, kind='upper'):
     2 1.00000e+00 4.00000e+00 3.00000e+00
 
     Test for lower triangular matrix:
+
     >>> S = pd.DataFrame(np.array([[3, 0, 0], [5, 2, 0], [1, 2, 1]]))
     >>> triu_matrix(S, kind='lower').data
                 0           1           2
@@ -1010,6 +1040,7 @@ def triu_matrix(matrix, kind='upper'):
     2 1.00000e+00 2.00000e+00 1.00000e+00
     
     Overwrite the upper triangular part of the matrix:
+    
     >>> S = pd.DataFrame(np.array([[3, 5, -9], [5, 2, 8], [1, 2, 1]]))
     >>> triu_matrix(S, kind='lower').data
                 0           1           2
@@ -1048,6 +1079,7 @@ def reduce_size(data):
 
     Examples
     --------
+
     >>> S = pd.DataFrame(np.diag(np.array([1, 2, 3])))
     >>> non_zero_index, reduce_matrix = reduce_size(S)
     >>> assert reduce_matrix.equals(S)
@@ -1099,6 +1131,7 @@ def restore_size(nonzero_idxs, mat_reduced, dim):
 
     Examples
     --------
+
     >>> S = pd.DataFrame(np.diag(np.array([0, 2, 3, 0])))
     >>> M_nonzero_idxs, M_reduce = reduce_size(S)
     >>> M_reduce[::] = 1
