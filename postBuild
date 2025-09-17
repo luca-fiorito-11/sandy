@@ -1,0 +1,3 @@
+#!/bin/bash
+echo "Binder postBuild: launching JupyterLab..."
+./start.sh
