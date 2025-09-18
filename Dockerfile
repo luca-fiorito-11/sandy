@@ -71,3 +71,5 @@ RUN pip install --no-cache-dir \
 
 # --- Default workdir back to home ---
 WORKDIR ${HOME}
+
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--NotebookApp.token=''"]
