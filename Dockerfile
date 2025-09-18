@@ -16,26 +16,38 @@ RUN apt-get update && apt-get install -y \
 # Upgrade pip and tools, and ensure correct index
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel --index-url https://pypi.org/simple/
 
+# --- Create Binder-compatible user ---
+ARG NB_USER=jovyan
+ARG NB_UID=1000
+ENV USER ${NB_USER}
+ENV HOME /home/${NB_USER}
+RUN adduser --disabled-password --gecos "Default user" --uid ${NB_UID} ${NB_USER}
+
 # Set working directory
 WORKDIR /app
 
 # --- Build NJOY2016 and keep only the binary ---
-RUN git clone --depth 1 https://github.com/njoy/NJOY2016.git \
- && cd NJOY2016 && mkdir build && cd build \
+RUN git clone --depth 1 https://github.com/njoy/NJOY2016.git /tmp/NJOY2016 \
+ && mkdir /tmp/NJOY2016/build \
+ && cd /tmp/NJOY2016/build \
  && cmake -DPython3_EXECUTABLE=$(which python3) .. \
  && make -j$(nproc) && make install \
- # Save binary and remove everything else
+ # Keep only the binary
  && cp /usr/local/bin/njoy /tmp/njoy_binary \
- && apt-get purge -y build-essential gfortran cmake git \
- && apt-get autoremove -y \
- && rm -rf /var/lib/apt/lists/* /app/NJOY2016 \
+ && rm -rf /tmp/NJOY2016 \
  && mv /tmp/njoy_binary /usr/local/bin/njoy
-    
+
 # Set NJOY environment variable
 ENV NJOY=/app/NJOY2016/build/njoy
 
-# Copy your package source code into the container
-COPY . /app
+# --- Copy your package and notebooks into $HOME ---
+COPY --chown=${NB_USER}:${NB_USER} . ${HOME}
+
+# --- Switch to non-root user ---
+USER ${NB_USER}
+
+# --- Install sandy (pypi or source) ---
+WORKDIR ${HOME}
 
 # Define build argument to choose install method
 ARG INSTALL_MODE=pypi
@@ -56,3 +68,6 @@ RUN pip install --no-cache-dir \
     seaborn \
     scikit-learn \
     serpentTools
+
+# --- Default workdir back to home ---
+WORKDIR ${HOME}
