@@ -37,9 +37,6 @@ ENV NJOY=/app/NJOY2016/build/njoy
 # Copy your package source code into the container
 COPY . /app
 
-# Make scripts executable and binder-ready
-RUN chmod +x /app/start.sh /app/postBuild
-
 # Define build argument to choose install method
 ARG INSTALL_MODE=pypi
 
