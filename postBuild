@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+
+echo "Running postBuild..."
+
+# Prebuild kernelspec to make JupyterLab start faster
+python -m ipykernel install --user --name=python3 --display-name "Python 3"
+
+echo "postBuild finished."
