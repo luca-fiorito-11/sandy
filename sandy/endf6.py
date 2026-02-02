@@ -13,6 +13,7 @@ import logging
 import urllib
 from urllib.request import urlopen, Request
 from zipfile import ZipFile
+from pathlib import Path
 import re
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
@@ -22,6 +23,7 @@ import pandas as pd
 import random
 
 import sandy
+from sandy.tools import log
 
 from sandy.libraries import (
     N_FILES_ENDFB_71_IAEA,
@@ -3260,8 +3262,9 @@ def endf6_perturb_worker(e6, pendf, ismp,
                          verbose=False,
                          to_ace=False,
                          to_file=False,
+                         keep_pendf=False,
                          filename="{ZA}_{SMP}",
-                         ace_kws={},
+                         ace_kws=None,
                          **kwargs):
     """
     Worker to handle ENDF6 neutron data perturbation (xs, nubar, chi).
@@ -3382,10 +3385,11 @@ def endf6_perturb_worker(e6, pendf, ismp,
     >>> np.testing.assert_array_almost_equal(xs0.data[(125, 102)], xs.data[(125, 102)])
     >>> assert not np.array_equal(xs0.data[(125, 1)], xs.data[(125, 1)])
     """
-    # default initialization
+    ace_kws = ace_kws or {}
+
+    # --- Initialize data ---
     endf6_pert = sandy.Endf6(e6.copy())
     pendf_pert = sandy.Endf6(pendf.copy())
-
 
     # filename options, in case we write to file
     mat = endf6_pert.mat[0]
@@ -3457,9 +3461,50 @@ def endf6_perturb_worker(e6, pendf, ismp,
         xs_pert = sandy.xs.xs_perturb_worker(xs, ismp, pxs, verbose=verbose)
         pendf_pert = xs_pert.reconstruct_sums(drop=True).to_endf6(pendf_pert).update_intro()
 
-    # Run NJOY and convert to ace
-    if to_ace:
 
+    if to_ace:
+        temperature = ace_kws.get("temperature", 0)
+        suffix = ace_kws.get("suffix", "." + sandy.njoy.get_temperature_suffix(temperature))
+        ace = endf6_pert.get_ace(pendf=pendf_pert, **ace_kws)
+    
+    if to_file:
+        # --- Return filenames
+        outfiles= {}
+        
+        file = f"{fn}{suffix}c"
+        log(f" - Writing ACE to file '{file}'", verbose=verbose)
+        with open(file, "w") as f:
+            f.write(ace["ace"])
+        outfiles["ace"] = file
+
+        file = f"{file}.xsd"
+        log(f" - Writing XSD to file '{file}'", verbose=verbose)
+        with open(file, "w") as f:
+            f.write(ace["xsdir"])
+        outfiles["xsdir"] = file
+        
+        file = f"{fn}.endf6"
+        log(f" - Writing ENDF-6 to file '{file}'", verbose=verbose)
+        endf6_pert.to_file(file)
+        outfiles["endf6"] = file
+
+        file = f"{fn}.pendf"
+        log(f" - Writing PENDF to file '{file}'", verbose=verbose)
+        pendf_pert.to_file(file)
+        outfiles["pendf"] = file
+        
+        return outfiles
+    
+    else:
+        # --- Return ENDF objects and ACE text
+        outfiles = {
+            "endf6": endf6_pert.data,
+            "pendf": pendf_pert.data,
+            "ace": ace,
+            }
+        
+    # --- ACE / file outputs ---
+    if to_ace:
         temperature = ace_kws.get("temperature", 0)
         suffix = ace_kws.get("suffix", "." + sandy.njoy.get_temperature_suffix(temperature))
         ace = endf6_pert.get_ace(pendf=pendf_pert, **ace_kws)
@@ -3468,21 +3513,33 @@ def endf6_perturb_worker(e6, pendf, ismp,
             outfiles = {}
 
             file = f"{fn}{suffix}c"
+            log(f" - Writing ACE to file '{file}'", verbose=verbose)
             with open(file, "w") as f:
-                logging.info(f" - Writing ACE file '{file}'")
                 f.write(ace["ace"])
             outfiles["ace"] = file
 
             file = f"{file}.xsd"
+            log(f" - Writing XSD to file '{file}'", verbose=verbose)
             with open(file, "w") as f:
-                logging.info(f"writing XSD file '{file}'")
                 f.write(ace["xsdir"])
             outfiles["xsdir"] = file
+            
+            if keep_pendf:
+                file = f"{fn}.endf6"
+                log(f" - Writing ENDF-6 to file '{file}'", verbose=verbose)
+                endf6_pert.to_file(file)
+                outfiles["endf6"] = file
+
+                file = f"{fn}.pendf"
+                log(f" - Writing PENDF to file '{file}'", verbose=verbose)
+                pendf_pert.to_file(file)
+                outfiles["pendf"] = file
 
             return outfiles
 
         return ace
 
+    # --- non-ACE outputs / ENDF-6 and PENDF ---
     else:
 
         out = {
@@ -3493,16 +3550,16 @@ def endf6_perturb_worker(e6, pendf, ismp,
         if to_file:
             outfiles = {}
             file = f"{fn}.endf6"
-            if verbose:
-                print(f"writing to file '{file}'")
+            verbose and logging.info(f" - Writing ENDF-6 to file '{file}'")
             endf6_pert.to_file(file)
             outfiles["endf6"] = file
+
             if pendf_pert:
                 file = f"{fn}.pendf"
-                if verbose:
-                    print(f"writing to file '{file}'")
+                verbose and logging.info(f" - Writing PENDF to file '{file}'")
                 pendf_pert.to_file(file)
                 outfiles["pendf"] = file
+
             return outfiles
 
         return out
@@ -3583,9 +3640,9 @@ def rdd_perturb_worker(endf6, rdd, smp_hl, smp_de, smp_br, ismp,
  
     # continue and return filename where data was written
     file = f"decay_data_{ismp}"
-    if verbose:
-        print(f"... writing file '{file}'")
+    sandy.log(f" - Writing RDD to file '{file}'", verbose=verbose)
     out.to_file(file)
+
     return file
 
 
@@ -3696,8 +3753,8 @@ def fy_perturb_worker(endf6, fy, smps, ismp,
  
     # continue and return filename where data was written
     file = f"fy_{ismp}"
-    if verbose:
-        print(f"... writing file '{file}'")
+    sandy.log(f" - Writing NFY to file '{file}'")
     out.to_file(file)
+
     return file
     
