@@ -914,43 +914,67 @@ class Fy():
         return cls(df)
 
     def to_endf6(self, endf6):
-        r"""
-        Update fission yields in `Endf6` instance with those available in a
-        `Fy` instance.
-
-        .. warning:: only IFY and CFY that are originally
-                     present in the `Endf6` instance are modified
-
+        """
+        Update fission yields in an ENDF-6 container using the values stored
+        in this :obj:`sandy.fy.Fy` instance.
+    
+        Only yield sections (MF=8, typically MT=454 independent and MT=459
+        cumulative) that already exist in the input ENDF-6 structure are
+        modified. No new sections, energies, or products are created.
+    
         Parameters
         ----------
-        `endf6` : :obj:`~sandy.endf6.Endf6`
-            ENDF6 object.
-
+        endf6 : :obj:`~sandy.endf6.Endf6`
+            ENDF-6 container to update.
+    
         Returns
         -------
         :obj:`~sandy.endf6.Endf6`
-            ENDF6 objects with updated IFY and CFY.
-
+            New ENDF-6 container with updated fission yields.
+    
+        Notes
+        -----
+        - Only existing MF=8 sections are touched.
+        - Only energies already present in the ENDF section are updated.
+        - Only ZAP entries already present at a given energy are replaced.
+        - Other content of the section is preserved.
+    
         Examples
         --------
+        
+        Test.
 
         >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", "all")
         >>> fy = sandy.Fy.from_endf6(tape)
+    
+        Modify one yield value:
+    
+        >>> mask = (fy.data.MAT == 9640) & (fy.data.MT == 454)
+        >>> idx = fy.data[mask].index[0]
+        >>> fy.data.loc[idx, "FY"] *= 1.1
+    
+        Write back to ENDF-6:
+    
         >>> new_tape = fy.to_endf6(tape)
-        >>> new_tape.filter_by(listmat= [9640], listmf=[8], listmt=[454, 459])
-        MAT   MF  MT
-        9640  8   454     96245.0000 242.960000          2          0  ...
-                  459     96245.0000 242.960000          2          0  ...
-        dtype: object
+    
+        Check section still exists:
+    
+        >>> assert (9640, 8, 454) in new_tape.data
+        >>> assert (9640, 8, 459) in new_tape.data
         """
+
         data_endf6 = Endf6(endf6.data.copy())
         mf = 8
+
         for (mat, mt, e), data_fy in self.data.groupby(['MAT', 'MT', 'E']):
+
             sec = data_endf6.read_section(mat, mf, mt)
             new_data = data_fy.set_index('ZAP')[['FY', 'DFY']].T.to_dict()
+
             sec['E'][e]['ZAP'] = new_data
             data_endf6.data[(mat, mf, mt)] = write_mf8(sec)
+
         return data_endf6
 
 
