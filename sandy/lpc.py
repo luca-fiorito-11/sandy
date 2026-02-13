@@ -129,7 +129,7 @@ class Lpc():
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33",'xs',[922350, 922380])
+        >>> tape = sandy.get_endf6_file("jeff_33",'xs',[922350, 922380], local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> comp = LPC.filter_by('MAT', 9228).data.index.get_level_values(0) == 9228
         >>> assert comp.all() == True
@@ -164,7 +164,7 @@ class Lpc():
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33",'xs',[922350, 922380])
+        >>> tape = sandy.get_endf6_file("jeff_33",'xs',[922350, 922380], local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> LPC._filters({'MT': 2, 'E': 1e-05}).data.index
         MultiIndex([(9228, 2, 1e-05),
@@ -200,7 +200,7 @@ class Lpc():
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922350)
+        >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922350, local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> mat= 9228
         >>> mt=  2
@@ -250,7 +250,7 @@ class Lpc():
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922350)
+        >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922350, local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> eg = np.array([1, 2])
         >>> LPC.reshape(eg).data.reset_index()[['E', 1, 2]].head()
@@ -370,7 +370,7 @@ class Lpc():
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922350)
+        >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922350, local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> cosines=np.linspace(-1, 1, 43)
         >>> LPC._to_tab(9228, 2, 2.20000e+07, cosines).head()
@@ -409,7 +409,7 @@ class Lpc():
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922350)
+        >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922350, local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> LPC._add_points([1,2]).data.iloc[:,:2].head()
 		                      P	          0	          1

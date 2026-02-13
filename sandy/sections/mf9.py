@@ -40,7 +40,7 @@ def read_mf9(tape, mat, mt):
     Endf-6 tape structured 'dict' of Radiactive capture of Am-241 from
     the ENDFB-VII.1 library to obtain the multiplicities for production
     of radioactive nuclides
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 952410)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 952410, local=True)
     >>> read_mf9(tape, 9543, 102)
     {'MAT': 9543,
      'MF': 9,
@@ -119,7 +119,7 @@ def write_mf9(sec):
     String reproducing the content of a ENDF-6 section for Radiactive capture
     of Am-241 from the ENDFB-VII.1 library to obtain the multiplicities for
     production of radioactive nuclides
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 952410)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 952410, local=True)
     >>> sec = read_mf9(tape, 9543, 102)
     >>> text = write_mf9(sec)
     >>> print(text)

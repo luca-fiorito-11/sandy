@@ -300,7 +300,7 @@ class Xs():
         Get H1 file and process it to PENDF.
 
         >>> import sandy
-        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> pendf = tape.get_pendf(minimal_processing=True)
         
         Show content of `sandy.Xs` instance.
@@ -393,7 +393,7 @@ class Xs():
         Get ENDF-6 file for H1, process it in PENDF and extract xs.
 
         >>> import sandy
-        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> pendf = tape.get_pendf(minimal_processing=True, err=1)
         >>> xs = sandy.Xs.from_endf6(pendf)
 
@@ -420,7 +420,7 @@ class Xs():
 
         This example shows that also the inelastic cross section is correclty reconstructed.
 
-        >>> pendf = sandy.get_endf6_file("jeff_33", "xs", 952410).get_pendf(minimal_processing=True, err=1)
+        >>> pendf = sandy.get_endf6_file("jeff_33", "xs", 952410, local=True).get_pendf(minimal_processing=True, err=1)
         >>> xs = sandy.Xs.from_endf6(pendf)
         >>> xsr = xs.reconstruct_sums(drop=True)
         >>> assert not xs.data[(9543, 4)].equals(xs.data[9543].loc[:, 50:91].sum(axis=1))
@@ -474,7 +474,7 @@ class Xs():
         Get plutonium cross sections.
 
         >>> import sandy
-        >>> pendf = sandy.get_endf6_file("jeff_33", "xs", 942390).get_pendf(err=1, minimal_processing=True)
+        >>> pendf = sandy.get_endf6_file("jeff_33", "xs", 942390, local=True).get_pendf(err=1, minimal_processing=True)
         >>> xs = sandy.Xs.from_endf6(pendf)
 
         Apply multiplication coefficient equal to 1 to elastic and inelastic

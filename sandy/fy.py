@@ -408,7 +408,7 @@ class Fy():
         --------
         
         >>> import sandy
-        >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy', 922350)
+        >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy', 922350, local=True)
         >>> nfpy = Fy.from_endf6(tape_nfpy)
         >>> out = nfpy.get_mass_yield(922350, 0.0253).loc[148]
         >>> np.testing.assert_almost_equal(out, 0.0169029147)
@@ -446,9 +446,9 @@ class Fy():
 
         >>> import sandy
         >>> zam = [591480, 591481, 601480, 561480, 571480, 571490, 581480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam, local=True)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
-        >>> tape_nfpy = sandy.get_endf6_file("jeff_33", 'nfpy', 922350)
+        >>> tape_nfpy = sandy.get_endf6_file("jeff_33", 'nfpy', 922350, local=True)
         >>> nfpy = Fy.from_endf6(tape_nfpy)
         >>> result_value  = float(nfpy.get_chain_yield(922350, 0.0253, decay_fytest).loc[148])  # Convert to native Python float
         >>> assert result_value == 0.01692277272
@@ -588,7 +588,7 @@ class Fy():
 
         >>> import sandy
         >>> zam = [591480, 591481, 601480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam, local=True)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest)
@@ -600,7 +600,7 @@ class Fy():
         6  9437  454  942390  621480 5.00000e+05 -2.00000e-01 1.00000e-02
         
         >>> zam = [591480, 591481, 601480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam, local=True)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
@@ -691,7 +691,7 @@ class Fy():
 
         >>> import sandy
         >>> zam = [591480, 591481, 601480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam, local=True)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, cut_hl=False)
@@ -711,7 +711,7 @@ class Fy():
         6  9437  459  942390  621480 5.00000e+05 0.00000e+00 0.00000e+00
 
         >>> zam = [591480, 591481, 601480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam, local=True)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)

@@ -31,11 +31,11 @@ class Gendf(_FormattedFile):
         --------
 
         >>> import sandy
-        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> gendf = endf6.get_gendf(verborse=True)
         >>> assert len(gendf.get_n_energy_grid()) == 241
 
-        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> gendf = endf6.get_gendf(groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
         >>> np.testing.assert_allclose(gendf.get_n_energy_grid(), sandy.energy_grids.CASMO12, atol=1e-14, rtol=1e-14)
         >>> np.testing.assert_allclose(gendf.get_n_energy_grid(mat=125), sandy.energy_grids.CASMO12, atol=1e-14, rtol=1e-14)
@@ -57,7 +57,7 @@ class Gendf(_FormattedFile):
         --------
 
         >>> import sandy
-        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> gendf = endf6.get_gendf(groupr_kws=dict(ep=sandy.energy_grids.CASMO12))
         >>> np.testing.assert_allclose(gendf.get_g_energy_grid(), sandy.energy_grids.CASMO12, atol=1e-14, rtol=1e-14)
         >>> np.testing.assert_allclose(gendf.get_g_energy_grid(mat=125), sandy.energy_grids.CASMO12, atol=1e-14, rtol=1e-14)
@@ -79,7 +79,7 @@ class Gendf(_FormattedFile):
         --------
 
         >>> import sandy
-        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> gendf = endf6.get_gendf(minimal_processing=True, err=0.005, temperature=293.6, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
         >>> gendf.get_xs()
         MAT                             125
@@ -134,7 +134,7 @@ class Gendf(_FormattedFile):
 
         Use `err=1` or else it takes too long.
 
-        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922350)
+        >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922350, local=True)
         >>> gendf = endf6.get_gendf(minimal_processing=True, err=1, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
         >>> gendf.get_xs(mt=[4, 5])
         MAT                            9228            
@@ -188,7 +188,7 @@ class Gendf(_FormattedFile):
         --------
 
         >>> import sandy
-        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> gendf = endf6.get_gendf(minimal_processing=True, err=1, temperature=293.6, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
         >>> gendf.get_flux()
         (1e-05, 0.03]             2.99900e-02
@@ -255,7 +255,7 @@ def read_mf1(tape, mat):
     --------
 
     >>> import sandy
-    >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+    >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
     >>> gendf = endf6.get_gendf(groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
     >>> mf1 = sandy.gendf.read_mf1(gendf, 125)
     >>> mf1['AWR'] = round(mf1['AWR'], 3)
@@ -329,7 +329,7 @@ def read_mf3(tape, mat, mt):
     --------
 
     >>> import sandy
-    >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+    >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
     >>> gendf = endf6.get_gendf(temperature=293.6, err=0.005, minimal_processing=True, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
     >>> sandy.gendf.read_mf3(gendf, 125, 1)['GROUPS'][0]
     {'TEMPIN': 293.6,

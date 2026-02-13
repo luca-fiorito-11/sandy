@@ -55,7 +55,7 @@ def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
     Produce an excel file of samples (verbosity needed to produce the excel file).
 
     >>> import sandy
-    >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", [922350, 922380])
+    >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", [922350, 922380], local=True)
     >>> smps = tape.get_perturbations(2, verbose=True)
 
     Read it.
@@ -363,7 +363,7 @@ class Samples():
         --------
         >>> import sandy
         >>> import numpy as np
-        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010)
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010, local=True)
         >>> smps1 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=2, ek=[1, 2, 3])))[33]
         >>> np.testing.assert_array_equal(smps1.get_eright().index.get_level_values("ERIGHT"), [2, 3])
         >>> np.testing.assert_array_equal(smps1.get_eright().values, smps1.data.values)
@@ -419,7 +419,7 @@ class Samples():
         --------
         >>> import sandy
         >>> import numpy as np
-        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010)
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010, local=True)
         >>> smps1 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=2, ek=[1, 2, 3])))[33]
         >>> np.testing.assert_array_equal(smps1.get_eleft().index.get_level_values("ELEFT"), [1, 2])
         >>> np.testing.assert_array_equal(smps1.get_eleft().values, smps1.data.values)
@@ -789,7 +789,7 @@ class Samples():
 
         Get samples fot MT=1.
         >>> import sandy
-        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010)
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010, local=True)
         >>> smps2 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=2)))[33]
 
         Copy samples each time to a redundant or partial MT.
@@ -835,7 +835,7 @@ class Samples():
 
 
         In this example the original covariance contains data for MT=1 and MT=51.
-        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 942400)
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 942400, local=True)
         >>> smps = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=[1, 51])))[33]
 
         Then, since MT=1 is redundant, samples are passed to its partial components (MT=2 and MT=3).
@@ -843,7 +843,7 @@ class Samples():
         >>> assert next(smps.iterate_xs_samples())[1].columns.equals(expected)
         
         If case one of the partial components already has samples, i.e., MT=2...
-        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 942400)
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 942400, local=True)
         >>> smps = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=[1, 2, 51])))[33]
 
         Then the MT=1 samples are not passed to the partial components, which 
@@ -854,7 +854,7 @@ class Samples():
 
         Default use case for MF35.
 
-        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 942390)
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 942390, local=True)
         >>> smps = tape.get_perturbations(2, njoy_kws=dict(err=1, nubar=False, mubar=False))
 
         Check that output is not empty, and with correct shape.

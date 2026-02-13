@@ -560,7 +560,7 @@ class Edistr():
 
         >>> import sandy
         >>> import numpy as np
-        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350)
+        >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 922350, local=True)
         >>> ed = sandy.Edistr.from_endf6(endf6)
 
         >>> np.testing.assert_equal(

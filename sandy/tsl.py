@@ -47,7 +47,7 @@ class Tsl():
         Examples
         --------
         Load test ENDF-6 file with data for Be-4:
-        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
         >>> tsl = Tsl.from_endf6(tape)
 
         Coherent elastic scattering:
@@ -59,7 +59,7 @@ class Tsl():
         dict_keys([296.0, 400.0, 500.0, 600.0, 700.0, 800.0, 1000.0, 1200.0])
 
         Incoherent elastic scattering:
-        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 10)
+        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 10, local=True)
         >>> tsl = Tsl.from_endf6(tape)
         >>> tsl.data['elastic incoherent']['Debye-Waller']
         array([14.70372, 19.1224 , 20.37892, 21.65261, 21.97355, 22.94205,
@@ -111,7 +111,7 @@ class Tsl():
         Examples
         --------
         Load test ENDF-6 file with data for Be-4:
-        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
         >>> tsl = Tsl.from_endf6(tape)
         >>> tsl._S_elastic_coherent()[0][0:5]
                       T	          E	          S
@@ -146,7 +146,7 @@ class Tsl():
         Examples
         --------
         Load test ENDF-6 file with data for Be-4:
-        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
         >>> tsl = Tsl.from_endf6(tape)
         >>> tsl._S_inelastic_incoherent()[0][0:5]
                    beta	          T	      alpha	          S
@@ -194,7 +194,7 @@ class Tsl():
         Examples
         --------
         Load test ENDF-6 file with data for Be-4:
-        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
         >>> tsl = Tsl.from_endf6(tape)
 
         Elastic coherent S-matrix:
@@ -248,7 +248,7 @@ class Tsl():
         Examples
         --------
         Incoherent elastic scattering
-        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 10)
+        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 10, local=True)
         >>> from_endf = sandy.sections.mf7.read_mf7(tape, 10, 2)
         >>> text = sandy.sections.mf7.write_mf7(from_endf)
         >>> tsl = sandy.Tsl.from_endf6(tape)
@@ -258,7 +258,7 @@ class Tsl():
         >>> assert new_text == text
 
         Coherent elastic scattering
-        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
         >>> from_endf = sandy.sections.mf7.read_mf7(tape, 26, 2)
         >>> text = sandy.sections.mf7.write_mf7(from_endf)
         >>> tsl = sandy.Tsl.from_endf6(tape)
@@ -268,7 +268,7 @@ class Tsl():
         >>> assert new_text == text
 
         Incoherent inelastic scattering
-        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+        >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
         >>> from_endf = sandy.sections.mf7.read_mf7(tape, 26, 4)
         >>> text = sandy.sections.mf7.write_mf7(from_endf)
         >>> tsl = sandy.Tsl.from_endf6(tape)

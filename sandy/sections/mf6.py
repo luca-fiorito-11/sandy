@@ -50,7 +50,7 @@ def read_mf6(tape, mat, mt):
 
     **LAW 1**:
 
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 70140)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 70140, local=True)
     >>> test = read_mf6(tape, 725, 5)
     >>> test["NK"][10010]["EGROUPS"][1e-05]
      {'ND': 0,
@@ -63,7 +63,7 @@ def read_mf6(tape, mat, mt):
     **LAW 2**:
 
     >>> import pprint
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010, local=True)
     >>> test = read_mf6(tape, 125, 102)
     >>> test["NK"][10020]['AWP'] = round (test["NK"][10020]['AWP'], 5)
     >>> pprint.pprint(test["NK"][10020])
@@ -76,7 +76,7 @@ def read_mf6(tape, mat, mt):
 
     **LAW 6**:
 
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10020)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10020, local=True)
     >>> test = read_mf6(tape, 128, 16)
     >>> test["NK"][10]['APSX'] = round (test["NK"][10]['APSX'],5)
     >>> test["NK"][10]
@@ -91,7 +91,7 @@ def read_mf6(tape, mat, mt):
 
     **LAW 7**:
 
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 40090)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 40090, local=True)
     >>> test = read_mf6(tape, 425, 16)
     >>> test["NK"][10]["EGROUPS"][1748830.0]['COSGROUPS'][-1.0]
     {'NRP': [15],
@@ -318,7 +318,7 @@ def write_mf6(sec):
     --------
     As we have a law-dependent structure, I will develop a test for each law.
     **LAW 1**:
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 70140)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 70140, local=True)
     >>> sec = read_mf6(tape, 725, 5)
     >>> text = write_mf6(sec)
     >>> print(text[:1000])
@@ -337,7 +337,7 @@ def write_mf6(sec):
      0.00000000 1.000000-5
 
     **LAW 2**:
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010, local=True)
     >>> sec = read_mf6(tape, 125, 102)
     >>> text = write_mf6(sec)
     >>> print(text[:1000])
@@ -356,7 +356,7 @@ def write_mf6(sec):
      0.00000000 1.000000-4
 
     **LAW 6**:
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10020)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10020, local=True)
     >>> sec = read_mf6(tape, 128, 16)
     >>> text = write_mf6(sec)
     >>> print (text)
@@ -371,7 +371,7 @@ def write_mf6(sec):
      2.99862000 0.00000000          0          0          0          3 128 6 16    9
 
     **LAW 7**:
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 40090)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 40090, local=True)
     >>> sec = read_mf6(tape, 425, 16)
     >>> text = write_mf6(sec)
     >>> print(text[:1000])

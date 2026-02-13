@@ -44,7 +44,7 @@ def read_mf1(tape, mat, mt):
     check only some information for the test:
 
     **mt = 451** :
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350, local=True)
     >>> test = sandy.read_mf1(tape, 9228, 451)
     >>> test['SECTIONS'][::5]
     [(1, 451, 934, 7),
@@ -140,12 +140,12 @@ def read_mf1(tape, mat, mt):
     'ET': -0.1379,
     'DET': 0.01379}
 
-    >>> tape = sandy.get_endf6_file("endfb_71", 'nfpy', 922350)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'nfpy', 922350, local=True)
     >>> test = read_mf1(tape, 9228, 451)
     >>> test['SECTIONS']
     [(1, 451, 17, 2), (8, 454, 2501, 2), (8, 459, 2501, 2)]
 
-    >>> tape = sandy.get_endf6_file("endfb_71", 'decay', 922350)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'decay', 922350, local=True)
     >>> test = sandy.read_mf1(tape, 3515, 451)
     >>> print("\n".join(test['DESCRIPTION']))
      92-U -235  BNL        EVAL-NOV05 Conversion from ENSDF           
@@ -582,7 +582,7 @@ def write_mf1(sec):
     check only some information for the test:
 
     **mt = 452** :
-    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350)
+    >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350, local=True)
     >>> sec = sandy.read_mf1(tape, 9228, 452)
     >>> text = sandy.write_mf1(sec)
     >>> print(text[:1000])

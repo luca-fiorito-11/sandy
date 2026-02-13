@@ -170,12 +170,12 @@ def _read_fy(tape, mat, mt):
 
     Examples
     --------
-    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
+    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350, local=True)
     >>> IFY = sandy.sections.mf8.read_mf8(nfpy, 9228, 454)
     >>> IFY["E"][0.0253]['ZAP'][10010]
     {'FY': 1.711e-05, 'DFY': 2.9483e-06}
 
-    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
+    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350, local=True)
     >>> IFY = sandy.sections.mf8.read_mf8(nfpy, 9228, 459)
     >>> IFY["E"][0.0253]['ZAP'][10010]
     {'FY': 1.711e-05, 'DFY': 1.8479e-06}
@@ -230,7 +230,7 @@ def _read_rdd(tape, mat):
 
     Examples
     --------
-    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
+    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350, local=True)
     >>> rdd = sandy.sections.mf8.read_mf8(decay, 3542, 457)
     >>> rdd['SPECTRA'][0]['ER'][1]
     {'ER': 31580.0,
@@ -248,7 +248,7 @@ def _read_rdd(tape, mat):
      'RICL': 502.0,
      'DRICL': 50.702}
 
-    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
+    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350, local=True)
     >>> rdd = sandy.sections.mf8.read_mf8(decay, 3542, 457)
     >>> rdd.keys()
     dict_keys(['MAT', 'MF', 'MT', 'ZA', 'AWR', 'LIS',
@@ -457,7 +457,7 @@ def _write_fy(sec):
     Examples
     --------
     Independent fission yield:
-    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
+    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350, local=True)
     >>> sec = sandy.sections.mf8.read_mf8(nfpy, 9228, 454)
     >>> text = _write_fy(sec)
     >>> print(text[:1000])
@@ -476,7 +476,7 @@ def _write_fy(sec):
      5012.00000 0.00000000 1.261
 
     Cumulative fission yield:
-    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350)
+    >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350, local=True)
     >>> sec = sandy.sections.mf8.read_mf8(nfpy, 9228, 459)
     >>> text = _write_fy(sec)
     >>> print(text[:1000])
@@ -536,7 +536,7 @@ def _write_rdd(sec):
     Examples
     --------
     Stable nuclide:
-    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 551340)
+    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 551340, local=True)
     >>> sec = sandy.sections.mf8.read_mf8(decay, 1803, 457)
     >>> text = _write_rdd(sec)
     >>> print(text[:1000])
@@ -555,7 +555,7 @@ def _write_rdd(sec):
      1.00000000 0.00000000 1.709
 
     Unstable nuclide:
-    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
+    >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350, local=True)
     >>> sec = sandy.sections.mf8.read_mf8(decay, 3542, 457)
     >>> text = _write_rdd(sec)
     >>> print(text[:1000])
@@ -573,7 +573,7 @@ def _write_rdd(sec):
      31580.0000 10.0000000          0          0         12          03542 8457   12
      4.00000000 0.00000000 3.000
 
-     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350)
+     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350, local=True)
      >>> sec = sandy.sections.mf8.read_mf8(decay, 3542, 457)
      >>> text = _write_rdd(sec)
      >>> assert(len(text) == len(decay.data[3542, 8, 457]))
