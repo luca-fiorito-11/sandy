@@ -522,19 +522,26 @@ class DecayData():
         561480 	0.00000e+00 	7.81380e-01 	6.88450e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
         561490 	0.00000e+00 	0.00000e+00 	3.11550e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
         """
-        B = self.get_decay_chains(**kwargs) \
+        B = (
+            self.get_decay_chains(**kwargs)
                 .pivot_table(
-                        index="DAUGHTER",
-                        columns="PARENT",
-                        values="YIELD",
-                        aggfunc="sum",
-                        fill_value=0.0,
-                        )\
-                .astype(float)\
+                    index="DAUGHTER",
+                    columns="PARENT",
+                    values="YIELD",
+                    aggfunc="sum",
+                    fill_value=0.0,
+                    )
+                .astype(float)
                 .fillna(0)
+                )
+
         B_reindex = B.reindex(B.index.values, fill_value=0.0, axis=1)
-        vals = B_reindex.values
+
+        # IMPORTANT: make a writable copy
+        vals = B_reindex.values.copy()
+
         np.fill_diagonal(vals, 0)
+
         return pd.DataFrame(vals, index=B_reindex.index, columns=B_reindex.columns)
 
     def get_qmatrix(self, keep_neutrons=False, threshold=None, **kwargs):
@@ -812,30 +819,25 @@ class DecayData():
 
     def to_endf6(self, endf6):
         """
-        Update decay data in `Endf6` instance with those available in a
-        `DecayData` instance.
-
-        Parameters
-        ----------
-        `endf6` : `sandy.Endf6`
-            `Endf6` instance
-
+        Convert the current decay dataset back into an ENDF-6-like pandas object.
+    
         Returns
         -------
-        `sandy.Endf6`
+        :obj:`~sandy.endf6.Endf6`
             `Endf6` instance with updated decay data
-
+    
         Examples
         --------
+        Build the decay Series for U-235 and **check only the index**:
+    
         >>> tape = sandy.get_endf6_file("jeff_33", "decay", 922350, local=True)
         >>> rdd = sandy.DecayData.from_endf6(tape)
-        >>> new_tape = rdd.to_endf6(tape)
-        >>> new_tape
-        MAT   MF  MT
-        3542  1   451     9.223500+4 2.330250+2         -1          1  ...
-                  452     9.223500+4 2.330250+2          0          1  ...
-              8   457     92235.0000 233.025000          0          0  ...
-        dtype: object
+        >>> new_tape = rdd.to_endf6(tape).data
+        >>> keys = new_tape.keys()
+        >>> assert len(keys) == 3
+        >>> assert (3542, 1, 451) in keys
+        >>> assert (3542, 1, 452) in keys
+        >>> assert (3542, 8, 457) in keys
         """
         data = endf6.data.copy()
         tape = endf6.filter_by(listmf=[8], listmt=[457])

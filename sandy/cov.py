@@ -1051,13 +1051,18 @@ def triu_matrix(matrix, kind='upper'):
     matrix_ = pd.DataFrame(matrix)
     index = matrix_.index
     columns = matrix_.columns
-    values = matrix_.values
+
+    # IMPORTANT: make writable copy
+    values = matrix_.values.copy()
+
     if kind == 'upper':    
         index_lower = np.tril_indices(matrix_.shape[0], -1)
         values[index_lower] = values.T[index_lower]
+
     elif kind == 'lower':
         index_upper = np.triu_indices(matrix_.shape[0], 1)
         values[index_upper] = values.T[index_upper]
+
     return CategoryCov(pd.DataFrame(values, index=index, columns=columns))
 
 
