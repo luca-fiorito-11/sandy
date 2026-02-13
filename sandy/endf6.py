@@ -626,46 +626,50 @@ class _FormattedFile():
 
         Returns
         -------
-        `sandy.formats.endf6.BaseFile` or derived instance
+        :obj:`sandy.endf6._FormattedFile` or derived instance
             Dataframe containing ENDF6 data grouped by MAT/MF/MT
 
         Examples
         --------
-        Read hydrogen tape from endf-6 formatted file.
-        >>> file = "h1.endf"
-        >>> sandy.get_endf6_file("jeff_33", "xs", 10010, local=True).to_file(file)
-        >>> _FormattedFile.from_file(file)
-        MAT  MF  MT
-        125  1   451     1.001000+3 9.991673-1          0          0  ...
-             2   151     1.001000+3 9.991673-1          0          0  ...
-             3   1       1.001000+3 9.991673-1          0          0  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-             4   2       1.001000+3 9.991673-1          0          1  ...
-             6   102     1.001000+3 9.991673-1          0          2  ...
-             33  1       1.001000+3 9.991673-1          0          0  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-        dtype: object
 
-        Read hydrogen tape from text stream.
+        Read hydrogen tape from endf-6 formatted file.
+
+        >>> file = "h1.endf"
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
+        >>> tape.to_file(file)
+        >>> obj = _FormattedFile.from_file(file)
+    
+        The returned object must be a formatted ENDF-6 file:
+    
+        >>> assert isinstance(obj, _FormattedFile)
+    
+        Check that all known keys are present:
+    
+        >>> keys = obj.data.keys()
+        >>> assert len(keys) == 10
+        >>> assert (125, 1, 451) in keys
+        >>> assert (125, 2, 151) in keys
+        >>> assert (125, 3,   1) in keys
+        >>> assert (125, 3,   2) in keys
+        >>> assert (125, 3, 102) in keys
+        >>> assert (125, 4,   2) in keys
+        >>> assert (125, 6, 102) in keys
+        >>> assert (125,33,   1) in keys
+        >>> assert (125,33,   2) in keys
+        >>> assert (125,33, 102) in keys
+    
+        Reading from a text stream must yield the same result:
+    
+        >>> import io
         >>> stream = io.StringIO(open(file).read())
-        >>> _FormattedFile.from_file(stream)
-        MAT  MF  MT
-        125  1   451     1.001000+3 9.991673-1          0          0  ...
-             2   151     1.001000+3 9.991673-1          0          0  ...
-             3   1       1.001000+3 9.991673-1          0          0  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-             4   2       1.001000+3 9.991673-1          0          1  ...
-             6   102     1.001000+3 9.991673-1          0          2  ...
-             33  1       1.001000+3 9.991673-1          0          0  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-        dtype: object
+        >>> obj2 = _FormattedFile.from_file(stream)
+    
+        >>> assert obj2.data == obj.data
+
         """
         if isinstance(file, io.StringIO):
             text = file.read()
+
         else:
             with open(file) as f:
                 text = f.read()
@@ -738,29 +742,21 @@ class _FormattedFile():
         --------
         Read hydrogen tape from text.
 
+
         >>> file = "h1.endf"
-        >>> sandy.get_endf6_file("jeff_33", "xs", 10010, local=True).to_file(file)
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
+        >>> tape.to_file(file)
         >>> text = open(file).read()
-        >>> _FormattedFile.from_text(text)
-        MAT  MF  MT
-        125  1   451     1.001000+3 9.991673-1          0          0  ...
-             2   151     1.001000+3 9.991673-1          0          0  ...
-             3   1       1.001000+3 9.991673-1          0          0  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-             4   2       1.001000+3 9.991673-1          0          1  ...
-             6   102     1.001000+3 9.991673-1          0          2  ...
-             33  1       1.001000+3 9.991673-1          0          0  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-        dtype: object
-
-        Read file with trailing empty lines (top and bottom of the file) without error.
-
-        >>> text = sandy.get_endf6_file("jeff_33", 'xs', 10010, local=True).write_string()
-        >>> text_with_empty_lines = 10 * "\\n" + text + 10 * "\\n"   
-        >>> tape = sandy.Endf6.from_text(text_with_empty_lines)
-
+        >>> obj = _FormattedFile.from_text(text)
+        
+        The returned object must be a formatted ENDF-6 file (tested in `.frome_file`).
+        
+        Reading the same text with extra empty lines at top and bottom
+        should yield identical parsed data:
+        
+        >>> text_with_empty = "\\n" * 10 + text + "\\n" * 10
+        >>> obj2 = _FormattedFile.from_text(text_with_empty)
+        >>> assert obj2.data == obj.data
         """
         df = pd.read_fwf(
             io.StringIO(text),
@@ -840,31 +836,50 @@ class _FormattedFile():
 
     def add_section(self, mat, mf, mt, text):
         """
-        Given MAT, MF and MT add/replace the corresponding section in the
-        `Endf6.data`.
-
+        Add or replace a section identified by (MAT, MF, MT) in the underlying
+        ENDF-6 container.
+    
+        The method returns a **new** instance with the updated content; the
+        original object is not modified.
+    
         Parameters
         ----------
-        mat : `int`
-            MAT number
-        mf : `int`
-            MF number
-        mt : `int`
-            MT number
+        mat : int
+            MAT number.
+        mf : int
+            MF number.
+        mt : int
+            MT number.
+        text : str
+            ENDF-6 section body to store at the given (MAT, MF, MT).
 
         Returns
         -------
-        `sandy._FormattedFile` or derived instance
+        :obj:`~sandy.endf6._FormattedFile` or derived instance
             object with new section
 
         Examples
         --------
+
+        Basic add of a new section and structural checks:
+
         >>> tape = sandy.Endf6({(9437, 3, 102) : "lorem ipsum"})
-        >>> tape.add_section(9999, 1, 1, "dolor sit amet")
-        MAT   MF  MT
-        9437  3   102       lorem ipsum
-        9999  1   1      dolor sit amet
-        dtype: object
+        >>> new_tape = tape.add_section(9999, 1, 1, "dolor sit amet")
+
+
+        The returned object must be an Endf6 instance
+
+        >>> assert isinstance(new_tape, sandy.Endf6)
+        
+        It must contain exactly the two keys
+
+        >>> keys = new_tape.data.keys()
+        >>> assert len(keys) == 2
+        
+        Values must be preserved and correctly inserted
+
+        >>> assert new_tape.data[(9437, 3, 102)] == "lorem ipsum"
+        >>> assert new_tape.data[(9999, 1, 1)] == "dolor sit amet"
         """
         d = self.data.copy()
         key = (mat, mf, mt)
@@ -880,40 +895,63 @@ class _FormattedFile():
 
     def delete_section(self, mat, mf, mt, raise_error=True):
         """
-        Given MAT, MF and MT delete the corresponding section from the
-        `Endf6.data`.
-
+        Delete the section identified by (MAT, MF, MT) from `Endf6.data`.
+    
+        The method returns a **new** instance with the section removed; the
+        original object is not modified.
+    
         Parameters
         ----------
-        mat : `int`
-            MAT number
-        mf : `int`
-            MF number
-        mt : `int`
-            MT number
-
+        mat : int
+            MAT number.
+        mf : int
+            MF number.
+        mt : int
+            MT number.
+        raise_error : bool, optional
+            If True (default), raise a KeyError when the (MAT, MF, MT) section
+            does not exist. If False, return the object unchanged when the key
+            is absent.
+    
         Returns
         -------
-        `sandy._FormattedFile` or derived instance
-            object without given section
-
+        :obj:`sandy.endf6._FormattedFile`
+            A new instance (same concrete class as `self`) without the given section.
+    
+        Raises
+        ------
+        KeyError
+            If the key does not exist and `raise_error=True`.
+    
         Examples
         --------
-        Delete capture cross section from hydrogen file.
+        Delete capture cross section from hydrogen (JEFF-3.3) and verify
+        the key is removed while other sections remain:
+
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> new = tape.delete_section(125, 3, 102)
-        >>> new
-        MAT  MF  MT
-        125  1   451     1.001000+3 9.991673-1          0          0  ...
-             2   151     1.001000+3 9.991673-1          0          0  ...
-             3   1       1.001000+3 9.991673-1          0          0  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-             4   2       1.001000+3 9.991673-1          0          1  ...
-             6   102     1.001000+3 9.991673-1          0          2  ...
-             33  1       1.001000+3 9.991673-1          0          0  ...
-                 2       1.001000+3 9.991673-1          0          0  ...
-                 102     1.001000+3 9.991673-1          0          0  ...
-        dtype: object
+    
+        The removed key must not be present
+
+        >>> keys = new.data.keys()
+        >>> assert (125, 3, 102) not in keys
+    
+        Some other known sections must still be present
+        >>> assert (125, 1, 451) in keys
+        >>> assert (125, 6, 102) in keys
+        >>> assert len(keys) == 9
+    
+        If the section is absent and raise_error=False, no exception is raised:
+    
+        >>> _ = new.delete_section(125, 99, 999, raise_error=False)
+    
+        If the section is absent and raise_error=True, a KeyError is raised:
+    
+        >>> try:
+        ...     _ = new.delete_section(125, 99, 999, raise_error=True)
+        ...     assert False, "Expected KeyError"
+        ... except KeyError:
+        ...     pass
         """
         d = self.data.copy()
         key = (mat, mf, mt)

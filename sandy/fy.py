@@ -857,32 +857,57 @@ class Fy():
         Examples
         --------
 
+        Read fission yield files and compare content against expected values.
+
         >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 'all')
         >>> fy = sandy.Fy.from_endf6(tape)
-        >>> fy.data.query("ZAM==952421 & MT==454 & E==0.0253").head()
-                MAT   MT     ZAM    ZAP           E          FY         DFY
-        56250  9547  454  952421  10010 2.53000e-02 3.32190e-05 1.17790e-05
-        56251  9547  454  952421  10020 2.53000e-02 1.01520e-05 3.52080e-06
-        56252  9547  454  952421  10030 2.53000e-02 1.60000e-04 5.00220e-05
-        56253  9547  454  952421  20030 2.53000e-02 0.00000e+00 0.00000e+00
-        56254  9547  454  952421  20040 2.53000e-02 2.10000e-03 6.64080e-04
+        >>> q = (
+        ...     fy.data
+        ...     .query("ZAM == 952421 & MT == 454 & E == 0.0253")
+        ...     .head(5)
+        ...     .reset_index(drop=True)
+        ... )
+        >>> expected = pd.DataFrame({
+        ...     "MAT": [9547]*5,
+        ...     "MT": [454]*5,
+        ...     "ZAM": [952421]*5,
+        ...     "ZAP": [10010, 10020, 10030, 20030, 20040],
+        ...     "E": [0.0253]*5,
+        ...     "FY": [3.3219e-05, 1.0152e-05, 1.6e-04, 0.0, 2.1e-03],
+        ...     "DFY": [1.1779e-05, 3.5208e-06, 5.0022e-05, 0.0, 6.6408e-04],
+        ... })
+        >>> assert q.equals(expected)
         """
         data = []
         dict_zam = {}
+
+        # --- pass 1: collect MAT -> ZAM mapping (MF=1)
         for (mat, mf, mt) in endf6.keys:
+
             sec = endf6.read_section(mat, mf, mt)
+
             if mf == 1:
                 dict_zam[mat] = int(sec["ZA"] * 10 + sec["LISO"])
+
             else:
+
                 if verbose:
                     logging.info(f"reading 'MAT={mat}/MT={mt}'...")
+
                 for e in sec["E"]:
                     for zap in sec["E"][e]["ZAP"]:
                         fy = sec["E"][e]["ZAP"][zap]["FY"]
                         dfy = sec["E"][e]["ZAP"][zap]["DFY"]
-                        values = (mat, mt, zap, e, fy, dfy)
-                        data.append(dict(zip(["MAT", "MT", "ZAP", "E", "FY", "DFY"], values)))
+                        data.append({
+                            "MAT": mat,
+                            "MT": mt,
+                            "ZAP": zap,
+                            "E": e,
+                            "FY": fy,
+                            "DFY": dfy,
+                            })
+
         df_zam = pd.DataFrame([dict_zam]).T.reset_index()
         df_zam.columns = ['MAT', 'ZAM']
         df = pd.DataFrame(data).merge(df_zam, on='MAT')
