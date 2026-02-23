@@ -1404,7 +1404,7 @@ class Endf6(_FormattedFile):
         ID = zam if method.lower() == "aleph" else za_new
         return ID
 
-    def _run_njoy(self, pendf=None, **njoy_kws):
+    def _run_njoy(self, pendf=None, pendftape=None, **njoy_kws):
         """
         Internal helper: run NJOY on this ENDF6 tape.
     
@@ -1413,26 +1413,46 @@ class Endf6(_FormattedFile):
         - writing optional PENDF
         - preparing arguments for process_neutron
         - returning outputs
+        
+        Parameters
+        ----------
+        pendf : :obj:`sandy.endf6.Endf6`, optional, default is `None`.
+            Endf6 object containing the pendf file (treated as a python object)
+        pendftape : `str`, optional, default is `None`.
+            filename (with path) of the pendf file (in this case it is read from file)
+
+        Notes
+        -----
+        Keyword argument `pendf` is used to pass aPENDF as `Endf6` object,
+        while `pendftape` is used to pass a PENDF as the name of a file written on disk.
         """
         with TemporaryDirectory() as td:
-            # Write ENDF
+            # 1. Write ENDF6 main tape to temp folder
             endf6file = join(td, "tape20")
             self.to_file(endf6file)
-    
-            # Pass optional PENDF (used by get_pendf)
+
+            # 2. Handle optional PENDF input
             pendf_file = None
+
             if pendf is not None:
+                # Used passed PENDF object (used by get_pendf)
                 if pendf.kind != "pendf":
                     raise TypeError("'pendf' must contain a PENDF tape")
                 pendf_file = join(td, "tape21")
                 pendf.to_file(pendf_file)
-    
+
+            elif pendftape is not None:
+                # User passed filename + path to an existing PENDF file
+                pendf_file = pendftape
+
+            # 3. Run NJOY through sandy
             outputs = sandy.njoy.process_neutron(
                 endf6file,
                 pendftape=pendf_file,
                 **njoy_kws,
             )
-    
+
+        # 4. Return NJOY output (dict)
         return outputs
     
     def _prepare_groupr_kws(self, **groupr_kws):
@@ -1676,7 +1696,7 @@ class Endf6(_FormattedFile):
     
         # --- run via the shared helper ---
         outputs = self._run_njoy(**njoy_kws_)
-    
+                
         # --- In case of dryrun, 'outputs' contains the text of the NJOY input
         if dryrun:
             return outputs
