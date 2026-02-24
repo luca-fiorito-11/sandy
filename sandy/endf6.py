@@ -138,8 +138,8 @@ def get_endf6_file(library, kind, zam, to_file=False, local=False):
     library : str
         Name of the nuclear data library. Valid options depend on the
         requested `kind` and typically include:
-        ``"endfb_71"``, ``"endfb_80"``, ``"endfb_81"``,
-        ``"jeff_311"``, ``"jeff_33"``, ``"jendl_40u"``,
+        ``"endfb_71"``, ``"endfb_80"``, ``"endfb_81"``, ``"tendl_2023"``,
+        ``"jeff_311"``, ``"jeff_33"``, ``"jeff_40"``, ``"jendl_40u"``,
         ``"jendl_5"``, ``"irdff_2"``, etc.
 
     kind : str
@@ -220,6 +220,16 @@ def get_endf6_file(library, kind, zam, to_file=False, local=False):
     Import hydrogen file from JENDL-4.0u
 
     >>> tape = sandy.get_endf6_file("jendl_40u", 'xs', 10010, local=True)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import hydrogen file from JEFF-4.0, non local
+
+    >>> tape = sandy.get_endf6_file("jeff_40", 'xs', 10010)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import hydrogen file from TENDL-2023, non local
+
+    >>> tape = sandy.get_endf6_file("tendl_2023", 'xs', 10010)
     >>> assert type(tape) is sandy.Endf6
 
     Import hydrogen file from JENDL-5
