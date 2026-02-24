@@ -50,7 +50,7 @@ class Errorr(_FormattedFile):
         The first case if for `MF=31`.
 
         >>> import sandy
-        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> ek = sandy.energy_grids.CASMO12
         >>> err = e6.get_errorr(errorr_kws=dict(ek=ek), err=1)['errorr33']
         >>> np.testing.assert_allclose(err.get_energy_grid(), ek, atol=1e-14, rtol=1e-14)
@@ -81,7 +81,7 @@ class Errorr(_FormattedFile):
         This example shows how to use of the `get_xs` method with `MF=31`, `MF=33` and `MF=35`.
 
         >>> import sandy, pytest
-        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350)
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
         >>> ek = sandy.energy_grids.CASMO12
         >>> errs = e6.get_errorr(err=1, errorr_kws=dict(ek=ek), groupr_kws=dict(ek=ek))
 
@@ -239,7 +239,7 @@ class Errorr(_FormattedFile):
         Read cross section covariance matrix for simple case (H1).
 
         >>> import sandy, pytest
-        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010)
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1, temperature=0.1)['errorr33']
         >>> datamg = err.get_cov().data
         >>> datamg
@@ -259,7 +259,7 @@ class Errorr(_FormattedFile):
         energy.
         There is no correlation in the last two groups. 
 
-        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 641530)
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 641530, local=True)
         >>> out = tape.get_errorr(err=1, errorr33_kws=dict(irespr=0, mt=[1, 51, 52],ek=[1e7,2e7,2.4e7, 2.8e7]))
         >>> cov = out["errorr33"].get_cov().data
         >>> cov.loc[(6428,1)][(6428,51)]
@@ -273,21 +273,21 @@ class Errorr(_FormattedFile):
         The first case is for `MF=31`.
         
         >>> import numpy as np
-        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350)
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
         >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), groupr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1, xs=False, chi=False, nubar=True, mubar=False)['errorr31']
         >>> datamg = err.get_cov().data
         >>> np.testing.assert_equal(datamg.values, [[3.153674e-05, 1.413344e-05],[1.413344e-05, 1.643044e-05]])
 
         The second case is for `MF=33`.
         
-        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350)
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
         >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1, xs=True, chi=False, nubar=False, mubar=False)['errorr33']
         >>> datamg = err.get_cov().data
         >>> np.testing.assert_equal(datamg.loc[(9228, 1), (9228, 1)].values, [[2.060002e-04, 6.686222e-08],[6.686222e-08, 7.581125e-05]])
 
         The third case is for `MF=35`.
 
-        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350)
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
         >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), groupr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1, xs=False, chi=True, nubar=False, mubar=False)['errorr35']
         >>> datamg = err.get_cov().data
         >>> np.testing.assert_equal(datamg.values, [[1.750390e-03, 4.450283e-08],[4.450283e-08, 1.622930e-10]])
@@ -295,7 +295,7 @@ class Errorr(_FormattedFile):
         In some cases, ERRORR produces non-symmetric covariance matrices.
         The generation of a `CategoryCov` can be enforced with `covariance_checks=False`.
 
-        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350)
+        >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
         >>> err = e6.get_errorr(errorr_kws=dict(ek=sandy.energy_grids.SCALE238), groupr_kws=dict(ek=sandy.energy_grids.SCALE238), err=1, xs=False, chi=True, nubar=False, mubar=False)['errorr35']
         >>> with pytest.raises(TypeError) as excinfo:
         ...     err.get_cov().data
@@ -303,7 +303,7 @@ class Errorr(_FormattedFile):
 
         Test selecting only specific MT's.
 
-        >>> err = sandy.get_endf6_file("jeff_33", "xs", 10010).get_errorr(err=1)["errorr33"]
+        >>> err = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True).get_errorr(err=1)["errorr33"]
         >>> cov = err.get_cov()
         >>> np.testing.assert_array_equal(cov.data.index.get_level_values("MT").unique(), [1, 2, 102])
         >>> with pytest.raises(Exception) as exc:

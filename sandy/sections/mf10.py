@@ -44,7 +44,7 @@ def read_mf10(tape, mat, mt):
     Examples
     --------
     >>> import pprint
-    >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 410930)
+    >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 410930, local=True)
     >>> test = read_mf10(tape, 4125, 16)
     >>> test['AWR'] = round (test['AWR'],5)
     >>> pprint.pprint(test, width=1)
@@ -144,7 +144,7 @@ def write_mf10(sec):
     String reproducing the content of a ENDF-6 section for (n,2n)
     of Nb-93 from the JEFF-33 library to obtain the cross sections for
     production of radiactive nuclides
-    >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 410930)
+    >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 410930, local=True)
     >>> sec = read_mf10(tape, 4125, 16)
     >>> text = write_mf10(sec)
     >>> print(text)

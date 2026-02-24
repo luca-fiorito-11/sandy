@@ -408,7 +408,7 @@ class Fy():
         --------
         
         >>> import sandy
-        >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy', 922350)
+        >>> tape_nfpy = sandy.get_endf6_file("jeff_33",'nfpy', 922350, local=True)
         >>> nfpy = Fy.from_endf6(tape_nfpy)
         >>> out = nfpy.get_mass_yield(922350, 0.0253).loc[148]
         >>> np.testing.assert_almost_equal(out, 0.0169029147)
@@ -446,9 +446,9 @@ class Fy():
 
         >>> import sandy
         >>> zam = [591480, 591481, 601480, 561480, 571480, 571490, 581480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam, local=True)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
-        >>> tape_nfpy = sandy.get_endf6_file("jeff_33", 'nfpy', 922350)
+        >>> tape_nfpy = sandy.get_endf6_file("jeff_33", 'nfpy', 922350, local=True)
         >>> nfpy = Fy.from_endf6(tape_nfpy)
         >>> result_value  = float(nfpy.get_chain_yield(922350, 0.0253, decay_fytest).loc[148])  # Convert to native Python float
         >>> assert result_value == 0.01692277272
@@ -588,7 +588,7 @@ class Fy():
 
         >>> import sandy
         >>> zam = [591480, 591481, 601480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam, local=True)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest)
@@ -600,7 +600,7 @@ class Fy():
         6  9437  454  942390  621480 5.00000e+05 -2.00000e-01 1.00000e-02
         
         >>> zam = [591480, 591481, 601480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam, local=True)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_bmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
@@ -691,7 +691,7 @@ class Fy():
 
         >>> import sandy
         >>> zam = [591480, 591481, 601480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam, local=True)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, cut_hl=False)
@@ -711,7 +711,7 @@ class Fy():
         6  9437  459  942390  621480 5.00000e+05 0.00000e+00 0.00000e+00
 
         >>> zam = [591480, 591481, 601480]
-        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam)
+        >>> decay_minimal = sandy.get_endf6_file("jeff_33", 'decay', zam, local=True)
         >>> decay_fytest = sandy.DecayData.from_endf6(decay_minimal)
         >>> npfy = Fy(minimal_fytest_2)
         >>> npfy_pert = npfy.apply_qmatrix(942390, 5.00000e+05, decay_fytest, keep_fy_index=True)
@@ -857,75 +857,124 @@ class Fy():
         Examples
         --------
 
+        Read fission yield files and compare content against expected values.
+
         >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 'all')
         >>> fy = sandy.Fy.from_endf6(tape)
-        >>> fy.data.query("ZAM==952421 & MT==454 & E==0.0253").head()
-                MAT   MT     ZAM    ZAP           E          FY         DFY
-        56250  9547  454  952421  10010 2.53000e-02 3.32190e-05 1.17790e-05
-        56251  9547  454  952421  10020 2.53000e-02 1.01520e-05 3.52080e-06
-        56252  9547  454  952421  10030 2.53000e-02 1.60000e-04 5.00220e-05
-        56253  9547  454  952421  20030 2.53000e-02 0.00000e+00 0.00000e+00
-        56254  9547  454  952421  20040 2.53000e-02 2.10000e-03 6.64080e-04
+        >>> q = (
+        ...     fy.data
+        ...     .query("ZAM == 952421 & MT == 454 & E == 0.0253")
+        ...     .head(5)
+        ...     .reset_index(drop=True)
+        ... )
+        >>> expected = pd.DataFrame({
+        ...     "MAT": [9547]*5,
+        ...     "MT": [454]*5,
+        ...     "ZAM": [952421]*5,
+        ...     "ZAP": [10010, 10020, 10030, 20030, 20040],
+        ...     "E": [0.0253]*5,
+        ...     "FY": [3.3219e-05, 1.0152e-05, 1.6e-04, 0.0, 2.1e-03],
+        ...     "DFY": [1.1779e-05, 3.5208e-06, 5.0022e-05, 0.0, 6.6408e-04],
+        ... })
+        >>> assert q.equals(expected)
         """
         data = []
         dict_zam = {}
+
+        # --- pass 1: collect MAT -> ZAM mapping (MF=1)
         for (mat, mf, mt) in endf6.keys:
+
             sec = endf6.read_section(mat, mf, mt)
+
             if mf == 1:
                 dict_zam[mat] = int(sec["ZA"] * 10 + sec["LISO"])
+
             else:
+
                 if verbose:
                     logging.info(f"reading 'MAT={mat}/MT={mt}'...")
+
                 for e in sec["E"]:
                     for zap in sec["E"][e]["ZAP"]:
                         fy = sec["E"][e]["ZAP"][zap]["FY"]
                         dfy = sec["E"][e]["ZAP"][zap]["DFY"]
-                        values = (mat, mt, zap, e, fy, dfy)
-                        data.append(dict(zip(["MAT", "MT", "ZAP", "E", "FY", "DFY"], values)))
+                        data.append({
+                            "MAT": mat,
+                            "MT": mt,
+                            "ZAP": zap,
+                            "E": e,
+                            "FY": fy,
+                            "DFY": dfy,
+                            })
+
         df_zam = pd.DataFrame([dict_zam]).T.reset_index()
         df_zam.columns = ['MAT', 'ZAM']
         df = pd.DataFrame(data).merge(df_zam, on='MAT')
         return cls(df)
 
     def to_endf6(self, endf6):
-        r"""
-        Update fission yields in `Endf6` instance with those available in a
-        `Fy` instance.
-
-        .. warning:: only IFY and CFY that are originally
-                     present in the `Endf6` instance are modified
-
+        """
+        Update fission yields in an ENDF-6 container using the values stored
+        in this :obj:`sandy.fy.Fy` instance.
+    
+        Only yield sections (MF=8, typically MT=454 independent and MT=459
+        cumulative) that already exist in the input ENDF-6 structure are
+        modified. No new sections, energies, or products are created.
+    
         Parameters
         ----------
-        `endf6` : :obj:`~sandy.endf6.Endf6`
-            ENDF6 object.
-
+        endf6 : :obj:`~sandy.endf6.Endf6`
+            ENDF-6 container to update.
+    
         Returns
         -------
         :obj:`~sandy.endf6.Endf6`
-            ENDF6 objects with updated IFY and CFY.
-
+            New ENDF-6 container with updated fission yields.
+    
+        Notes
+        -----
+        - Only existing MF=8 sections are touched.
+        - Only energies already present in the ENDF section are updated.
+        - Only ZAP entries already present at a given energy are replaced.
+        - Other content of the section is preserved.
+    
         Examples
         --------
+        
+        Test.
 
         >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", "all")
         >>> fy = sandy.Fy.from_endf6(tape)
+    
+        Modify one yield value:
+    
+        >>> mask = (fy.data.MAT == 9640) & (fy.data.MT == 454)
+        >>> idx = fy.data[mask].index[0]
+        >>> fy.data.loc[idx, "FY"] *= 1.1
+    
+        Write back to ENDF-6:
+    
         >>> new_tape = fy.to_endf6(tape)
-        >>> new_tape.filter_by(listmat= [9640], listmf=[8], listmt=[454, 459])
-        MAT   MF  MT
-        9640  8   454     96245.0000 242.960000          2          0  ...
-                  459     96245.0000 242.960000          2          0  ...
-        dtype: object
+    
+        Check section still exists:
+    
+        >>> assert (9640, 8, 454) in new_tape.data
+        >>> assert (9640, 8, 459) in new_tape.data
         """
+
         data_endf6 = Endf6(endf6.data.copy())
         mf = 8
+
         for (mat, mt, e), data_fy in self.data.groupby(['MAT', 'MT', 'E']):
+
             sec = data_endf6.read_section(mat, mf, mt)
             new_data = data_fy.set_index('ZAP')[['FY', 'DFY']].T.to_dict()
+
             sec['E'][e]['ZAP'] = new_data
             data_endf6.data[(mat, mf, mt)] = write_mf8(sec)
+
         return data_endf6
 
 
