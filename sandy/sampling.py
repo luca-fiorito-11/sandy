@@ -211,25 +211,25 @@ def multi_run(foo):
     
     >>> import sandy, filecmp
     >>> import pandas as pd
-    >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, minimal_processing=True, temperature=300, dryrun=True)
+    >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True).get_gendf(err=1, minimal_processing=True, temperature=300, dryrun=True)
     >>> assert "broadr" in g and "reconr" in g
     >>> assert "thermr" not in g and "purr" not in g and "heatr" not in g and "unresr" not in g and "gaspr" not in g
 
     Test `minimal_processing=False`.
 
-    >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, temperature=300, dryrun=True)
+    >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True).get_gendf(err=1, temperature=300, dryrun=True)
     >>> assert "broadr" in g and "reconr" in g
     >>> assert "thermr" in g and "purr" in g and "heatr" in g and "gaspr" in g
 
     Check that for `temperature=0` the calculation stops after RECONR.
 
-    >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010).get_gendf(err=1, dryrun=True)
+    >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True).get_gendf(err=1, dryrun=True)
     >>> assert "reconr" in g
     >>> assert "broadr" not in g and "thermr" not in g and "purr" not in g and "heatr" not in g and "unresr" not in g and "gaspr" not in g
 
     Retrieve ENDF-6 tape and write it to file.
 
-    >>> sandy.get_endf6_file("jeff_33", "xs", 10010).to_file("H1.jeff33")
+    >>> sandy.get_endf6_file("jeff_33", "xs", 10010, local=True).to_file("H1.jeff33")
 
     Produce perturbed ACE file.
 
@@ -244,34 +244,50 @@ def multi_run(foo):
     >>> assert "1001.09c" in open("1001_1.09c.xsd").read()
     >>> assert not filecmp.cmp("1001_0.09c", "1001_1.09c", shallow=False)
 
-    Run the same on a single process.
+    Run the same on a single process. But first move files.
 
-    >>> cli = "H1.jeff33 --acer True --samples 2 --processes 2 --temperatures 900 --seed33 5 --outname={ZAM}_{SMP}_SP"
+    >>> from os import remove, rename
+    >>> for f in ["1001_0_MP.09c", "1001_0_MP.09c.xsd", "1001_1_MP.09c", "1001_1_MP.09c.xsd"]:
+    ...    try: remove(f)
+    ...    except FileNotFoundError: pass
+    >>> rename("1001_0.09c",     "1001_0_MP.09c")
+    >>> rename("1001_0.09c.xsd", "1001_0_MP.09c.xsd")
+    >>> rename("1001_1.09c",     "1001_1_MP.09c")
+    >>> rename("1001_1.09c.xsd", "1001_1_MP.09c.xsd")
+    >>> cli = "H1.jeff33 --acer True --samples 2 --processes 2 --temperatures 900 --seed33 5"
     >>> sandy.sampling.run(cli.split())
 
     The identical seed ensures consistent results with the previous run.
 
-    >>> assert filecmp.cmp("1001_0.09c", "10010_0_SP.09c")
-    >>> assert filecmp.cmp("1001_1.09c", "10010_1_SP.09c")
-    >>> assert filecmp.cmp("1001_0.09c.xsd", "10010_0_SP.09c.xsd")
-    >>> assert filecmp.cmp("1001_1.09c.xsd", "10010_1_SP.09c.xsd")
+    >>> assert filecmp.cmp("1001_0_MP.09c", "1001_0.09c")
+    >>> assert filecmp.cmp("1001_1_MP.09c", "1001_1.09c")
+    >>> assert filecmp.cmp("1001_0_MP.09c.xsd", "1001_0.09c.xsd")
+    >>> assert filecmp.cmp("1001_1_MP.09c.xsd", "1001_1.09c.xsd")
 
     Produce perturbed ENDF6 and PENDF files.
 
-    >>> cli = "H1.jeff33 --samples 2 --processes 2 --outname=H1_{MAT}_{SMP} --mt 102"
+    >>> cli = "H1.jeff33 --samples 2 --processes 2 --mt 102"
     >>> sandy.sampling.run(cli.split())
-    >>> assert os.path.getsize("H1_125_0.pendf") > 0 and os.path.getsize("H1_125_1.pendf") > 0
+    >>> assert os.path.getsize("1001_0.pendf") > 0 and os.path.getsize("1001_1.pendf") > 0
 
-    >>> assert filecmp.cmp("H1_125_0.endf6", "H1_125_1.endf6")
-    >>> assert filecmp.cmp("H1_125_0.endf6", "H1.jeff33")
+    >>> assert filecmp.cmp("1001_0.endf6", "1001_1.endf6")
+    >>> assert filecmp.cmp("1001_0.endf6", "H1.jeff33")
     
-    Let's see how the sampling process can be interrupted fater.
+    Let's see how the sampling process can be interrupted.
     Produce random ENDF-6 and PENDF files for Pu-241 with the standard procedure.
 
     >>> file = "942410.jeff33"
-    >>> sandy.get_endf6_file("jeff_33", "xs", 942410).to_file(file)
-    >>> cl = f"{file}" + " --samples 2 -O {SMP}-{ZAM} --seed33 1 --seed31 1 --seed35 1 --mt33 2"
+    >>> sandy.get_endf6_file("jeff_33", "xs", 942410, local=True).to_file(file)
+    >>> cl = f"{file}" + " --samples 2 --seed33 1 --seed31 1 --seed35 1 --mt33 2"
     >>> sandy.sampling.run(cl.split())
+    >>> for f in ["0-942410.endf6", "0-942410.pendf", "1-942410.endf6", "1-942410.pendf"]:
+    ...    try: remove(f)
+    ...    except FileNotFoundError: pass
+    >>> rename("94241_0.endf6", "0-942410.endf6")
+    >>> rename("94241_0.pendf", "0-942410.pendf")
+    >>> rename("94241_1.endf6", "1-942410.endf6")
+    >>> rename("94241_1.pendf", "1-942410.pendf")
+
 
     Now, let's interrupt the process after that the perturbations are
     created (reproducible with fixed seed).
@@ -280,8 +296,9 @@ def multi_run(foo):
 
     We can read these perturbation coefficients without the need of regenerating them.
 
-    >>> cl = f"{file} --from_perturbations {os.getcwd()} 1 1 --only_perturbations"
-    >>> smps2 = sandy.sampling.run(cl.split())
+    >>> cl = f"{file} --from_perturbations '{os.getcwd()}' 1 1 --only_perturbations"
+    >>> import shlex
+    >>> smps2 = sandy.sampling.run(shlex.split(cl))
     >>> assert smps2[33].data.shape[1] == smps2[31].data.shape[1] == 1
     >>> assert smps[33].data.reset_index().MT.unique() == 2
     >>> assert smps[31].data.reset_index().MT.unique().size == 3
@@ -291,17 +308,22 @@ def multi_run(foo):
     Using the perturbation coefficients from the excel files we generate the
     same random files of the standard pipeline.
 
-    >>> cl = f"{file}" + " -O new_{SMP}-{ZAM} " + f"--from_perturbations {os.getcwd()} 1 1"
-    >>> sandy.sampling.run(cl.split())
+    >>> cl = f"{file}" + f" --from_perturbations '{os.getcwd()}' 1 1"
+    >>> sandy.sampling.run(shlex.split(cl))
+    >>> for f in ["new_1-942410.endf6", "new_1-942410.pendf"]:
+    ...    try: remove(f)
+    ...    except FileNotFoundError: pass
+    >>> rename("94241_1.endf6", "new_1-942410.endf6")
+    >>> rename("94241_1.pendf", "new_1-942410.pendf")
     >>> assert filecmp.cmp("new_1-942410.endf6", "1-942410.endf6")
     >>> assert filecmp.cmp("new_1-942410.pendf", "1-942410.pendf")
 
     If no perturbation file exist, the calculation stops.
 
     >>> file = "741840.jeff33"
-    >>> sandy.get_endf6_file("jeff_33", "xs", 741840).to_file(file)
-    >>> cl = f"{file} --from_perturbations {os.getcwd()} 1 1 --only_perturbations"
-    >>> assert not sandy.sampling.run(cl.split())
+    >>> sandy.get_endf6_file("jeff_33", "xs", 741840, local=True).to_file(file)
+    >>> cl = f"{file} --from_perturbations '{os.getcwd()}' 1 1 --only_perturbations"
+    >>> assert not sandy.sampling.run(shlex.split(cl))
     """
     def inner(cli=None):
         """
@@ -365,14 +387,14 @@ def run(iargs):
     Default use case for decay data sampling.
 
     >>> import sandy
-    >>> sandy.get_endf6_file("jeff_33", "decay", [10010, 10040, 270600]).to_file("AAA.txt")
+    >>> sandy.get_endf6_file("jeff_33", "decay", [10010, 10040, 270600], local=True).to_file("AAA.txt")
     >>> sandy.sampling.run("AAA.txt --samples 3 --processes 1".split())
     >>> assert {'decay_data_0', 'decay_data_1', 'decay_data_2'}.issubset(set(glob.glob("decay_data*")))
 
     Default use case for fission yield sampling.
 
     >>> import sandy
-    >>> sandy.get_endf6_file("jeff_33", "nfpy", [922350, 922380]).to_file("AAA.txt")
+    >>> sandy.get_endf6_file("jeff_33", "nfpy", [922350, 922380], local=True).to_file("AAA.txt")
     >>> sandy.sampling.run("AAA.txt --samples 3 --processes 1".split())
     >>> assert {'fy_0', 'fy_1', 'fy_2'}.issubset(set(glob.glob("fy*")))
     """

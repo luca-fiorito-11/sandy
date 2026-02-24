@@ -23,7 +23,6 @@ Routines
 ========
 
 """
-import pdb
 import logging
 
 import numpy as np
@@ -129,7 +128,7 @@ class Lpc():
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33",'xs',[922350, 922380])
+        >>> tape = sandy.get_endf6_file("jeff_33",'xs',[922350, 922380], local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> comp = LPC.filter_by('MAT', 9228).data.index.get_level_values(0) == 9228
         >>> assert comp.all() == True
@@ -164,7 +163,7 @@ class Lpc():
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33",'xs',[922350, 922380])
+        >>> tape = sandy.get_endf6_file("jeff_33",'xs',[922350, 922380], local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> LPC._filters({'MT': 2, 'E': 1e-05}).data.index
         MultiIndex([(9228, 2, 1e-05),
@@ -179,49 +178,85 @@ class Lpc():
 
     def custom_perturbation(self, mat, mt, p, pert):
         """
-        Apply a custom perturbation (energy dependent) to a given
-        Legendre polynomial coefficient.
-
+        Apply an energy-dependent multiplicative perturbation to one
+        Legendre polynomial coefficient series.
+    
+        The perturbation is applied as a factor to coefficient order `p`
+        for the selected (MAT, MT) over energy. The LPC grid is first
+        unioned with the perturbation grid, then both are reshaped on the
+        combined grid before applying the scaling.
+    
         Parameters
         ----------
-        mat : `int`
-            MAT material number
-        mt : `int`
-            MT reaction number
-        p : `int`
-            order of the Legendre polynomial coefficient
-        pert : `sandy.Pert`
-            tabulated perturbations
+        mat : int
+            MAT material number.
+        mt : int
+            MT reaction number.
+        p : int
+            Legendre polynomial order (column label in LPC dataframe).
+        pert : :obj:`sandy.pert.Pert`
+            Tabulated multiplicative perturbation versus energy.
 
         Returns
         -------
-        `Lpc`
-            lpc instance with given series polynomial coefficient perturbed
+        :obj:`~sandy.lpc.Lpc`
+            New `Lpc` instance with coefficient `p` perturbed for the
+            selected (MAT, MT).
+    
+        Notes
+        -----
+        - Energies from LPC and perturbation grids are merged.
+        - Outside the perturbation tabulation range, the perturbation
+          factor follows the behavior implemented in `Pert.reshape`.
+        - Other coefficients are unchanged.
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922350)
+
+        Test.
+        
+        >>> tape = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
-        >>> mat= 9228
-        >>> mt=  2
-        >>> p = 1 
-        >>> pert= sandy.Pert([1, 1.05], index=[1.00000e+03, 5.00000e+03])
-        >>> pert = LPC.custom_perturbation(mat, mt, p, pert)._filters({'MAT': mat, 'MT':2}).data.loc[:,1].iloc[0:5]
-        >>> data = LPC._filters({'MAT': mat, 'MT':2}).data.loc[:,1].iloc[0:5]
-        >>> (pert/data).fillna(0)
-        MAT   MT  E          
-        9228  2   1.00000e-05   0.00000e+00
-                  1.00000e+03   1.00000e+00
-                  2.00000e+03   1.05000e+00
-                  5.00000e+03   1.05000e+00
-                  1.00000e+04   1.00000e+00
-        Name: 1, dtype: float64
+    
+        >>> mat, mt, p = 9228, 2, 1
+        >>> pert = sandy.Pert([1, 1.05], index=[1e3, 5e3])
+    
+        Apply perturbation and extract first values:
+    
+        >>> new = LPC.custom_perturbation(mat, mt, p, pert)
+        >>> s_new = new._filters({'MAT': mat, 'MT': mt}).data.loc[:, p].iloc[:5]
+        >>> s_old = LPC._filters({'MAT': mat, 'MT': mt}).data.loc[:, p].iloc[:5]
+    
+        Ratios match perturbation factors on grid:
+    
+        >>> r = (s_new / s_old).fillna(0).values
+        >>> assert np.allclose(r, [0.0, 1.0, 1.05, 1.05, 1.0])
+
         """
-        eg = self.data.loc[(mat, mt)].index.values
-        enew = np.union1d(eg, pert.right.index.values)
-        u_lpc = self.reshape(enew, selected_mat=mat, selected_mt=mt)
-        u_pert = pert.reshape(enew)
-        u_lpc.data.loc[(mat, mt)][p] *= u_pert.right.values
+        # --- validate presence
+        if (mat, mt) not in self.data.index:
+            raise KeyError(f"(MAT={mat}, MT={mt}) not found in LPC data")
+        
+        if p not in self.data.columns:
+            raise KeyError(f"Legendre order p={p} not found")
+
+        # --- build union energy grid
+        e_lpc = self.data.loc[(mat, mt)].index.values
+        e_pert = pert.right.index.values
+        e_union = np.union1d(e_lpc, e_pert)
+
+        # --- reshape on union grid
+        u_lpc = self.reshape(e_union, selected_mat=mat, selected_mt=mt)
+        u_pert = pert.reshape(e_union)
+        
+        # --- safe assignment (avoid chained indexing)
+        idx = (mat, mt)
+        col = p
+        u_lpc.data.loc[idx, col] = (
+            u_lpc.data.loc[idx, col].values *
+            u_pert.right.values
+        )
+
         return Lpc(u_lpc.data)
 
     def reshape(self, eg, selected_mat=None, selected_mt=None):
@@ -250,7 +285,7 @@ class Lpc():
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922350)
+        >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922350, local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> eg = np.array([1, 2])
         >>> LPC.reshape(eg).data.reset_index()[['E', 1, 2]].head()
@@ -370,7 +405,7 @@ class Lpc():
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922350)
+        >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922350, local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> cosines=np.linspace(-1, 1, 43)
         >>> LPC._to_tab(9228, 2, 2.20000e+07, cosines).head()
@@ -409,7 +444,7 @@ class Lpc():
 
         Examples
         --------
-        >>> tape = sandy.get_endf6_file("jeff_33",'xs',922350)
+        >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922350, local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> LPC._add_points([1,2]).data.iloc[:,:2].head()
 		                      P	          0	          1

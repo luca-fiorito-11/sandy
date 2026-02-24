@@ -2,6 +2,7 @@
 import os
 import time
 import ctypes
+import logging
 
 __author__ = "Luca Fiorito"
 __all__ = [
@@ -57,6 +58,13 @@ def force_symlink(file1, file2):
     except FileExistsError:
         os.remove(file2)
         os.symlink(file1, file2)
+
+
+def log(msg, verbose=False, level=logging.INFO):
+    """Log message at given level; 'verbose' only controls INFO-level output."""
+    if level == logging.INFO and not verbose:
+        return
+    logging.log(level, msg)
 
 
 def TimeDecorator(foo):

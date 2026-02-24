@@ -40,7 +40,7 @@ def read_mf34(tape, mat, mt):
 
     Examples
     --------
-    >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922380)
+    >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922380, local=True)
     >>> read_mf34(tape, mat=9237, mt=2)["REAC"][(0,2)]["P"][(1, 1)]["NI"][0]["FKK"][0:15]
     [1.51558,
      1.51558,

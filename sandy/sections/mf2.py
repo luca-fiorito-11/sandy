@@ -48,7 +48,7 @@ def read_mf2(tape, mat):
     --------
     Resonance parameters of the Thorium 233
     LRU = 0
-    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902330)
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902330, local=True)
     >>> sandy.read_mf2(tape, 9043)
     {'MAT': 9043,
      'MF': 2,
@@ -68,7 +68,7 @@ def read_mf2(tape, mat):
 
     Resonance parameters of the Thorium 230
     LRU = 1 LRF = 2
-    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902300)
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902300, local=True)
     >>> dic = sandy.read_mf2(tape, 9034)
     >>> print (dic["NIS"][90230]["NER"][(1e-05, 251.0)]["L"][0])
     {'AWRI': 228.06, 'QX': 0.0, 'LRX': 0,
@@ -98,7 +98,7 @@ def read_mf2(tape, mat):
 
     Resonance parameters of the iron 58
     LRU = 1 LRF = 3
-    >>> tape = sandy.get_endf6_file("endfb_80", "xs", 260580)
+    >>> tape = sandy.get_endf6_file("endfb_80", "xs", 260580, local=True)
     >>> dic = sandy.read_mf2(tape, 2637)
     >>> print (dic["NIS"][26058]["NER"][(1e-05, 350000.0)]["L"][0]["RES_PAR"][20])
     {'ER': -3612.8, 'AJ': 0.5, 'GN': 271.55, 'GG': 0.74169, 'GFA': 0.0, 'GFB': 0.0}
@@ -107,7 +107,7 @@ def read_mf2(tape, mat):
 
     Resonance parameters of the iron 58
     LRU = 2 LFW = 0 LRF = 1
-    >>> tape = sandy.get_endf6_file("endfb_80", "xs", 260580)
+    >>> tape = sandy.get_endf6_file("endfb_80", "xs", 260580, local=True)
     >>> dic = sandy.read_mf2(tape, 2637)
     >>> print (dic["NIS"][26058]["NER"][(350000.0, 3000000.0)]["L"][3])
     {'AWRI': 57.43561,
@@ -117,7 +117,7 @@ def read_mf2(tape, mat):
 
     Resonance parameters of the iron 54
     LRU = 1 LRF = 7
-    >>> tape = sandy.get_endf6_file("endfb_80", "xs", 260540)
+    >>> tape = sandy.get_endf6_file("endfb_80", "xs", 260540, local=True)
     >>> dic = sandy.read_mf2(tape, 2625)
     >>> print (dic["NIS"][26054]["NER"][(1e-05, 1036000.0)]["J"][(-0.5, 0.0)]['SPIN_GROUP'])
     [{'PPI': 1.0, 'L': 0.0, 'SCH': 0.0, 'BND': 0.0, 'APE': 0.0, 'APT': 0.0},
@@ -126,7 +126,7 @@ def read_mf2(tape, mat):
 
     Resonance parameters of the Uranium 235
     LRU = 2 LRF = 2
-    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 922350)
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
     >>> dic = sandy.read_mf2(tape, 9228)
     >>> print (dic["NIS"][92235]["NER"][(2250.0, 46200.0)]['L'][0]["J"][3.0]['RES_PAR'][0])
     {'ES': 2250.0, 'D': 1.058, 'GX': 0.0, 'GN0': 0.000107789, 'GG': 0.038513, 'GF': 0.40102}
@@ -531,7 +531,7 @@ def write_mf2(sec):
     --------
     resonance parameters of Thorium 233
     LRU = 0
-    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902330)
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902330, local=True)
     >>> dic = sandy.read_mf2(tape, 9043)
     >>> text = sandy.write_mf2(dic)
     >>> print(text[:1000])
@@ -542,7 +542,7 @@ def write_mf2(sec):
 
     resonance parameters of Thorium 230
     LRU = 1 LRF = 2
-    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902300)
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902300, local=True)
     >>> dic = sandy.read_mf2(tape, 9034)
     >>> text = sandy.write_mf2(dic)
     >>> print(text[:1054])
@@ -563,7 +563,7 @@ def write_mf2(sec):
 
     resonance parameters of Uranium 235
     LRU = 1 LRF = 3
-    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 922350)
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
     >>> dic = sandy.read_mf2(tape, 9228)
     >>> text = sandy.write_mf2(dic)
     >>> print(text[:1054])
@@ -584,7 +584,7 @@ def write_mf2(sec):
 
     resonance parameters of Iron 54
     LRU = 1 LRF = 7
-    >>> tape = sandy.get_endf6_file("endfb_80", "xs", 260540)
+    >>> tape = sandy.get_endf6_file("endfb_80", "xs", 260540, local=True)
     >>> dic = sandy.read_mf2(tape, 2625)
     >>> text = sandy.write_mf2(dic)
     >>> print(text[:1053])
@@ -606,7 +606,7 @@ def write_mf2(sec):
 
      resonance parameters of Iron 58
      LRU = 2 LFW = 0 LRF = 1
-     >>> tape = sandy.get_endf6_file("endfb_80", "xs", 260580)
+     >>> tape = sandy.get_endf6_file("endfb_80", "xs", 260580, local=True)
      >>> dic = sandy.read_mf2(tape, 2637)
      >>> text = sandy.write_mf2(dic)
      >>> print(text[:1053])
@@ -628,7 +628,7 @@ def write_mf2(sec):
 
      resonance parameters of Uranium 235
      LRU = 2 LRF = 2
-     >>> tape = sandy.get_endf6_file("jeff_33", "xs", 922350)
+     >>> tape = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
      >>> dic = sandy.read_mf2(tape, 9228)
      >>> text = sandy.write_mf2(dic)
      >>> print(text[10046:12068])

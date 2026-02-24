@@ -193,7 +193,7 @@ def write_mf5(sec):
     >>> import sandy
     >>> import numpy as np
     >>> ## LF = 7
-    >>> tape = sandy.get_endf6_file('jeff_33', 'xs', 942420)
+    >>> tape = sandy.get_endf6_file('jeff_33', 'xs', 942420, local=True)
     >>> mat, mf, mt = 9446, 5, 18
     >>> sec = tape.read_section(mat, mf, mt)
     >>> np.testing.assert_equal(
@@ -201,7 +201,7 @@ def write_mf5(sec):
     ... )
 
     >>> ## LF = 9
-    >>> tape = sandy.get_endf6_file('jeff_33', 'xs', 942420)
+    >>> tape = sandy.get_endf6_file('jeff_33', 'xs', 942420, local=True)
     >>> mat, mf, mt = 9446, 5, 37
     >>> sec = tape.read_section(mat, mf, mt)
     >>> np.testing.assert_equal(
@@ -209,7 +209,7 @@ def write_mf5(sec):
     ... )
 
     >>> ## LF = 5
-    >>> tape = sandy.get_endf6_file('jeff_33', 'xs', 942420)
+    >>> tape = sandy.get_endf6_file('jeff_33', 'xs', 942420, local=True)
     >>> mat, mf, mt = 9446, 5, 18
     >>> sec = tape.read_section(mat, mf, mt)
     >>> np.testing.assert_equal(
@@ -217,7 +217,7 @@ def write_mf5(sec):
     ... )
 
     >>> ## LF = 1
-    >>> tape = sandy.get_endf6_file('jeff_33', 'xs', 932390)
+    >>> tape = sandy.get_endf6_file('jeff_33', 'xs', 932390, local=True)
     >>> mat, mf, mt = 9352, 5, 18
     >>> sec = tape.read_section(mat, mf, mt)
     >>> np.testing.assert_equal(

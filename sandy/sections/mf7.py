@@ -94,7 +94,7 @@ def _read_elastic_scattering(tape, mat, mt):
     Examples
     --------
     Incoherent
-    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 10)
+    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 10, local=True)
     >>> sandy.sections.mf7._read_elastic_scattering(tls, 10, 2)
     {'MAT': 10,
      'MF': 7,
@@ -111,7 +111,7 @@ def _read_elastic_scattering(tape, mat, mt):
             23.26671, 24.24591, 24.57398])}
 
     Coherent
-    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
     >>> sandy.sections.mf7._read_elastic_scattering(tls, 26, 2)['T'].keys()
     dict_keys([296.0, 400.0, 500.0, 600.0, 700.0, 800.0, 1000.0, 1200.0])
     """
@@ -186,7 +186,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
         Content of the ENDF-6 tape structured as nested `dict`.
 
     Coherent
-    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
     >>> dict = sandy.sections.mf7._read_incoherent_inelastic(tls, 26, 4)
     >>> dict['BN']
     [6.153875, 197.6285, 8.93478, 5.000001, 0.0, 1.0]
@@ -317,12 +317,12 @@ def _write_elastic_scattering(sec):
     Examples
     --------
     Coherent elastic scattering:
-    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
     >>> sec = sandy.sections.mf7._read_elastic_scattering(tls, 26, 2)
     >>> assert len(_write_elastic_scattering(sec)) == len(tls.data[(26, 7, 2)])
 
     Incoherent elastic scattering:
-    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 10)
+    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 10, local=True)
     >>> sec = sandy.sections.mf7._read_elastic_scattering(tls, 10, 2)
     >>> print(_write_elastic_scattering(sec))
      110.000000 9.992800-1          2          0          0          0  10 7  2    1
@@ -388,7 +388,7 @@ def _write_inelastic_scattering(sec):
     Examples
     --------
     Incoherent inelastic scattering:
-    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26)
+    >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
     >>> sec = sandy.sections.mf7._read_incoherent_inelastic(tls, 26, 4)
     >>> assert len(_write_inelastic_scattering(sec)) == len(tls.data[(26, 7, 4)])
     """

@@ -128,7 +128,7 @@ def read_mf32(tape, mat):
     --------
     Covariances of resonance parameters of the Curium 2245
     LCOMP = 0
-    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 962450)
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 962450, local=True)
     >>> dic = sandy.read_mf32(tape, 9640)
     >>> print( dic["NIS"][96245]['NER'][(1e-05, 100.0)]["L"][0]['COVAR_PAR'][0:2])
     [{'ER': -0.1, 'AJ': 3.0, 'GT': 0.230946, 'GN': 4.61e-05, 'GG': 0.0359, 'GF': 0.195,
@@ -140,7 +140,7 @@ def read_mf32(tape, mat):
     
     Covariances of resonance parameters of the Americium 241
     LCOMP = 1 LRF = 2
-    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 952410)
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 952410, local=True)
     >>> dic = sandy.read_mf32(tape, 9543)
     >>> print(dic["NIS"][95241]['NER'][(1e-05, 150.0)]["COVAR_PAR"][0][10:50])
     [ 2.494710e-10  7.847580e-11 -9.012000e-10 -9.512310e-12 -2.029530e-10
@@ -154,7 +154,7 @@ def read_mf32(tape, mat):
     
     Covariances of resonance parameters of the Caesium 137
     LCOMP = 2 LRF = 2
-    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 551370)
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 551370, local=True)
     >>> dic = sandy.read_mf32(tape, 5537)
     >>> dic['NIS'][55137]["NER"][(1e-05, 56666.38)]['RES_PAR'][20::30]
     [{'ER': -1342.1, 'AJ': 4.0, 'GT': 10.75884, 'GN': 10.09489, 'GG': 0.66395, 'GF': 0.0, 
@@ -168,7 +168,7 @@ def read_mf32(tape, mat):
    
     Covariances of resonance parameters of the Caesium 137
     LCOMP = 2 LRF = 3
-    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902320)
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902320, local=True)
     >>> dic = sandy.read_mf32(tape, 9040)
     >>> dic['NIS'][90232]["NER"][(1e-05, 4000.0)]["INTG"][350]
     {'II': 795,
