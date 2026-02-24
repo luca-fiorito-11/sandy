@@ -30,16 +30,20 @@ from sandy.libraries import (
     N_FILES_ENDFB_81_IAEA,
     N_FILES_JEFF_311_IAEA,
     N_FILES_JEFF_33_IAEA,
+    N_FILES_JEFF_40_IAEA,
+    N_FILES_TENDL_2023_IAEA,
     N_FILES_JENDL_40U_IAEA,
     N_FILES_JENDL_5_IAEA,
     N_FILES_IRDFF_2_IAEA,
     URL_N_ENDFB_71_IAEA,
     URL_N_JEFF_311_IAEA,
     URL_N_JEFF_33_IAEA,
+    URL_N_JEFF_40_IAEA,
     URL_N_ENDFB_80_IAEA,
     URL_N_ENDFB_81_IAEA,
     URL_N_JENDL_40U_IAEA,
     URL_N_JENDL_5_IAEA,
+    URL_N_TENDL_2023_IAEA,
     URL_N_IRDFF_2_IAEA,
 
     NFPY_FILES_ENDFB_71_IAEA,
@@ -47,6 +51,7 @@ from sandy.libraries import (
     NFPY_FILES_ENDFB_81_IAEA,
     NFPY_FILES_JEFF_311_IAEA,
     NFPY_FILES_JEFF_33_IAEA,
+    NFPY_FILES_JEFF_40_IAEA,
     NFPY_FILES_JENDL_40U_IAEA,
     NFPY_FILES_JENDL_5_IAEA,
     URL_NFPY_ENDFB_71_IAEA,
@@ -54,6 +59,7 @@ from sandy.libraries import (
     URL_NFPY_ENDFB_81_IAEA,
     URL_NFPY_JEFF_311_IAEA,
     URL_NFPY_JEFF_33_IAEA,
+    URL_NFPY_JEFF_40_IAEA,
     URL_NFPY_JENDL_40U_IAEA,
     URL_NFPY_JENDL_5_IAEA,
 
@@ -62,18 +68,21 @@ from sandy.libraries import (
     DECAY_FILES_ENDFB_81_IAEA,
     DECAY_FILES_JEFF_311_IAEA,
     DECAY_FILES_JEFF_33_IAEA,
+    DECAY_FILES_JEFF_40_IAEA,
     DECAY_FILES_JENDL_5_IAEA,
     URL_DECAY_ENDFB_71_IAEA,
     URL_DECAY_ENDFB_80_IAEA,
     URL_DECAY_ENDFB_81_IAEA,
     URL_DECAY_JEFF_311_IAEA,
     URL_DECAY_JEFF_33_IAEA,
+    URL_DECAY_JEFF_40_IAEA,
     URL_DECAY_JENDL_5_IAEA,
 
     TSL_FILES_ENDFB_71_IAEA,
     TSL_FILES_ENDFB_80_IAEA,
     TSL_FILES_ENDFB_81_IAEA,
     TSL_FILES_JEFF_33_IAEA,
+    TSL_FILES_JEFF_40_IAEA,
     TSL_FILES_JENDL_40U_IAEA,
     TSL_FILES_JENDL_5_IAEA,
     URL_TSL_JENDL_40U_IAEA,
@@ -82,6 +91,7 @@ from sandy.libraries import (
     URL_TSL_ENDFB_80_IAEA,
     URL_TSL_ENDFB_81_IAEA,
     URL_TSL_JEFF_33_IAEA,
+    URL_TSL_JEFF_40_IAEA,
 
     DXS_FILES_JEFF_33_IAEA,
     DXS_FILES_PROTON_IAEA,
@@ -128,8 +138,8 @@ def get_endf6_file(library, kind, zam, to_file=False, local=False):
     library : str
         Name of the nuclear data library. Valid options depend on the
         requested `kind` and typically include:
-        ``"endfb_71"``, ``"endfb_80"``, ``"endfb_81"``,
-        ``"jeff_311"``, ``"jeff_33"``, ``"jendl_40u"``,
+        ``"endfb_71"``, ``"endfb_80"``, ``"endfb_81"``, ``"tendl_2023"``,
+        ``"jeff_311"``, ``"jeff_33"``, ``"jeff_40"``, ``"jendl_40u"``,
         ``"jendl_5"``, ``"irdff_2"``, etc.
 
     kind : str
@@ -212,6 +222,16 @@ def get_endf6_file(library, kind, zam, to_file=False, local=False):
     >>> tape = sandy.get_endf6_file("jendl_40u", 'xs', 10010, local=True)
     >>> assert type(tape) is sandy.Endf6
 
+    Import hydrogen file from JEFF-4.0, non local
+
+    >>> tape = sandy.get_endf6_file("jeff_40", 'xs', 10010)
+    >>> assert type(tape) is sandy.Endf6
+
+    Import hydrogen file from TENDL-2023, non local
+
+    >>> tape = sandy.get_endf6_file("tendl_2023", 'xs', 10010)
+    >>> assert type(tape) is sandy.Endf6
+
     Import hydrogen file from JENDL-5
 
     >>> tape = sandy.get_endf6_file("jendl_5", 'xs', 10010, local=True)
@@ -253,16 +273,19 @@ def get_endf6_file(library, kind, zam, to_file=False, local=False):
         "xs": {
             "jeff_311": (URL_N_JEFF_311_IAEA, N_FILES_JEFF_311_IAEA),
             "jeff_33": (URL_N_JEFF_33_IAEA, N_FILES_JEFF_33_IAEA),
+            "jeff_40": (URL_N_JEFF_40_IAEA, N_FILES_JEFF_40_IAEA),
             "endfb_71": (URL_N_ENDFB_71_IAEA, N_FILES_ENDFB_71_IAEA),
             "endfb_80": (URL_N_ENDFB_80_IAEA, N_FILES_ENDFB_80_IAEA),
             "endfb_81": (URL_N_ENDFB_81_IAEA, N_FILES_ENDFB_81_IAEA),
             "jendl_40u": (URL_N_JENDL_40U_IAEA, N_FILES_JENDL_40U_IAEA),
             "jendl_5": (URL_N_JENDL_5_IAEA, N_FILES_JENDL_5_IAEA),
             "irdff_2": (URL_N_IRDFF_2_IAEA, N_FILES_IRDFF_2_IAEA),
+            "tendl_2023": (URL_N_TENDL_2023_IAEA, N_FILES_TENDL_2023_IAEA),
             },
         "nfpy": {
             "jeff_311": (URL_NFPY_JEFF_311_IAEA, NFPY_FILES_JEFF_311_IAEA),
             "jeff_33": (URL_NFPY_JEFF_33_IAEA, NFPY_FILES_JEFF_33_IAEA),
+            "jeff_40": (URL_NFPY_JEFF_40_IAEA, NFPY_FILES_JEFF_40_IAEA),
             "endfb_71": (URL_NFPY_ENDFB_71_IAEA, NFPY_FILES_ENDFB_71_IAEA),
             "endfb_80": (URL_NFPY_ENDFB_80_IAEA, NFPY_FILES_ENDFB_80_IAEA),
             "endfb_81": (URL_NFPY_ENDFB_81_IAEA, NFPY_FILES_ENDFB_81_IAEA),
@@ -272,6 +295,7 @@ def get_endf6_file(library, kind, zam, to_file=False, local=False):
         "decay": {
             "jeff_311": (URL_DECAY_JEFF_311_IAEA, DECAY_FILES_JEFF_311_IAEA),
             "jeff_33": (URL_DECAY_JEFF_33_IAEA, DECAY_FILES_JEFF_33_IAEA),
+            "jeff_40": (URL_DECAY_JEFF_40_IAEA, DECAY_FILES_JEFF_40_IAEA),
             "endfb_71": (URL_DECAY_ENDFB_71_IAEA, DECAY_FILES_ENDFB_71_IAEA),
             "endfb_80": (URL_DECAY_ENDFB_80_IAEA, DECAY_FILES_ENDFB_80_IAEA),
             "endfb_81": (URL_DECAY_ENDFB_81_IAEA, DECAY_FILES_ENDFB_81_IAEA),
@@ -279,6 +303,7 @@ def get_endf6_file(library, kind, zam, to_file=False, local=False):
             },
         "tsl": {
             "jeff_33": (URL_TSL_JEFF_33_IAEA, TSL_FILES_JEFF_33_IAEA),
+            "jeff_40": (URL_TSL_JEFF_40_IAEA, TSL_FILES_JEFF_40_IAEA),
             "endfb_71": (URL_TSL_ENDFB_71_IAEA, TSL_FILES_ENDFB_71_IAEA),
             "endfb_80": (URL_TSL_ENDFB_80_IAEA, TSL_FILES_ENDFB_80_IAEA),
             "endfb_81": (URL_TSL_ENDFB_81_IAEA, TSL_FILES_ENDFB_81_IAEA),
