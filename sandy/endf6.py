@@ -30,20 +30,24 @@ from sandy.libraries import (
     N_FILES_JEFF_32_NEA,
     N_FILES_JEFF_311_IAEA,
     N_FILES_JEFF_33_IAEA,
+    N_FILES_JEFF_40_IAEA,
     N_FILES_JEFF_40T0_NEA,
     N_FILES_JENDL_40U_IAEA,
     N_FILES_JENDL_5_IAEA,
+    N_FILES_TENDL_2023_IAEA,
     N_FILES_TENDL_2023_PSI,
     N_FILES_IRDFF_2_IAEA,
     URL_N_ENDFB_71_IAEA,
     URL_N_JEFF_32_NEA,
     URL_N_JEFF_311_IAEA,
     URL_N_JEFF_33_IAEA,
+    URL_N_JEFF_40_IAEA,
     URL_N_JEFF_40T0_NEA,
     URL_N_ENDFB_80_IAEA,
     URL_N_ENDFB_81_IAEA,
     URL_N_JENDL_40U_IAEA,
     URL_N_JENDL_5_IAEA,
+    URL_N_TENDL_2023_IAEA,
     URL_N_TENDL_2023_PSI,
     URL_N_IRDFF_2_IAEA,
 
@@ -52,6 +56,7 @@ from sandy.libraries import (
     NFPY_FILES_ENDFB_81_IAEA,
     NFPY_FILES_JEFF_311_IAEA,
     NFPY_FILES_JEFF_33_IAEA,
+    NFPY_FILES_JEFF_40_IAEA,
     NFPY_FILES_JENDL_40U_IAEA,
     NFPY_FILES_JENDL_5_IAEA,
     URL_NFPY_ENDFB_71_IAEA,
@@ -59,6 +64,7 @@ from sandy.libraries import (
     URL_NFPY_ENDFB_81_IAEA,
     URL_NFPY_JEFF_311_IAEA,
     URL_NFPY_JEFF_33_IAEA,
+    URL_NFPY_JEFF_40_IAEA,
     URL_NFPY_JENDL_40U_IAEA,
     URL_NFPY_JENDL_5_IAEA,
 
@@ -67,18 +73,21 @@ from sandy.libraries import (
     DECAY_FILES_ENDFB_81_IAEA,
     DECAY_FILES_JEFF_311_IAEA,
     DECAY_FILES_JEFF_33_IAEA,
+    DECAY_FILES_JEFF_40_IAEA,
     DECAY_FILES_JENDL_5_IAEA,
     URL_DECAY_ENDFB_71_IAEA,
     URL_DECAY_ENDFB_80_IAEA,
     URL_DECAY_ENDFB_81_IAEA,
     URL_DECAY_JEFF_311_IAEA,
     URL_DECAY_JEFF_33_IAEA,
+    URL_DECAY_JEFF_40_IAEA,
     URL_DECAY_JENDL_5_IAEA,
 
     TSL_FILES_ENDFB_71_IAEA,
     TSL_FILES_ENDFB_80_IAEA,
     TSL_FILES_ENDFB_81_IAEA,
     TSL_FILES_JEFF_33_IAEA,
+    TSL_FILES_JEFF_40_IAEA,
     TSL_FILES_JENDL_40U_IAEA,
     TSL_FILES_JENDL_5_IAEA,
     URL_TSL_JENDL_40U_IAEA,
@@ -87,6 +96,7 @@ from sandy.libraries import (
     URL_TSL_ENDFB_80_IAEA,
     URL_TSL_ENDFB_81_IAEA,
     URL_TSL_JEFF_33_IAEA,
+    URL_TSL_JEFF_40_IAEA,
 
     DXS_FILES_JEFF_33_IAEA,
     DXS_FILES_PROTON_IAEA,
@@ -472,6 +482,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jeff_33":
             url = URL_N_JEFF_33_IAEA
             files = N_FILES_JEFF_33_IAEA
+        elif library_ == "jeff_40":
+            url = URL_N_JEFF_40_IAEA
+            files = N_FILES_JEFF_40_IAEA
         elif library_ == "jeff_32":
             url = URL_N_JEFF_32_NEA
             files = N_FILES_JEFF_32_NEA
@@ -493,8 +506,8 @@ def get_endf6_file(library, kind, zam, to_file=False):
             url = URL_N_JENDL_5_IAEA
             files = N_FILES_JENDL_5_IAEA
         elif library_ == "tendl_2023":
-            url = URL_N_TENDL_2023_PSI
-            files = N_FILES_TENDL_2023_PSI
+            url = URL_N_TENDL_2023_IAEA
+            files = N_FILES_TENDL_2023_IAEA
             foo_read = Endf6.read_url
             foo_get = Endf6.from_url
         elif library_ == "irdff_2":
@@ -560,6 +573,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jeff_33":
             url = URL_NFPY_JEFF_33_IAEA
             files = NFPY_FILES_JEFF_33_IAEA
+        elif library_ == "jeff_40":
+            url = URL_NFPY_JEFF_40_IAEA
+            files = NFPY_FILES_JEFF_40_IAEA
         else:
             raise ValueError(
                 f"""library '{library}' is not available.
@@ -592,6 +608,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jeff_33":
             url = URL_DECAY_JEFF_33_IAEA
             files = DECAY_FILES_JEFF_33_IAEA
+        elif library_ == "jeff_40":
+            url = URL_DECAY_JEFF_40_IAEA
+            files = DECAY_FILES_JEFF_40_IAEA
         elif library_ == "jendl_40u":
             # it will fail for indivdual files, but it works for the ntire library
             pass
@@ -626,6 +645,9 @@ def get_endf6_file(library, kind, zam, to_file=False):
         elif library_ == "jeff_33":
             url = URL_TSL_JEFF_33_IAEA
             files = TSL_FILES_JEFF_33_IAEA
+        elif library_ == "jeff_40":
+            url = URL_TSL_JEFF_40_IAEA
+            files = TSL_FILES_JEFF_40_IAEA
         elif library_ == "jendl_40u":
             url = URL_TSL_JENDL_40U_IAEA
             files = TSL_FILES_JENDL_40U_IAEA
