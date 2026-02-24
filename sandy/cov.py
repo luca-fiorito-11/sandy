@@ -632,7 +632,7 @@ class CategoryCov():
         return self.__class__(df)
 
     def sampling(self, nsmp, seed=None, lognormal=True, correction=0.5/100,
-                 lhs=False, verbose=False, **kwargs):
+                 lhs=False, verbose=False, truncate_normal=True, **kwargs):
         """
         Extract perturbation coefficients from the covariance matrix using either
         a normal or lognormal distribution. Samples are adjusted to ensure physical
@@ -653,6 +653,8 @@ class CategoryCov():
             If True, use Latin Hypercube Sampling (default is False).
         verbose : bool, optional
             If True, print progress information during sampling.
+        truncate_normal : bool, optional
+            If True, use truncated normal distribution for sampling. Otherwise, use untruncated normal distribution.
     
         Returns
         -------
@@ -664,6 +666,9 @@ class CategoryCov():
         - For normal sampling with relative perturbations, values below 0 or above 2
           are clipped. This truncation can degrade covariance accuracy for large
           uncertainties.
+        - For untruncated normal sampling, the full covariance structure is preserved.
+          Nevertheless, values can be negative or above 2 (only applicable to perturbed parameters
+          that can have a negative value, e.g., Legendre polynomial coefficients in MF=4).
         - For lognormal sampling, values are always positive and the sample mean is
           guaranteed to converge to 1.
     
@@ -681,6 +686,12 @@ class CategoryCov():
         Normal sampling:
     
         >>> smp_n = cov.sampling(nsmp, seed=seed, lognormal=False)
+        >>> np.testing.assert_array_almost_equal(smp_n.get_mean(), [1, 1], decimal=2)
+        >>> np.testing.assert_array_almost_equal(smp_n.get_cov(), c, decimal=2)
+
+        Untruncated normal sampling:
+
+        >>> smp_n = cov.sampling(nsmp, seed=seed, lognormal=False, turncate_normal=False)
         >>> np.testing.assert_array_almost_equal(smp_n.get_mean(), [1, 1], decimal=2)
         >>> np.testing.assert_array_almost_equal(smp_n.get_cov(), c, decimal=2)
     
@@ -703,6 +714,16 @@ class CategoryCov():
         >>> assert (s.get_rstd().values < 1).all()
         >>> assert np.linalg.norm(s.get_cov() - c) / np.linalg.norm(c) > 0.5
     
+        For untruncated normal sampling, large variances are not an issue:
+
+        >>> s = sandy.CategoryCov(c).sampling(nsmp, lognormal=True, truncate_normal=False)
+        >>> np.testing.assert_array_almost_equal(s.get_mean(), [1, 1], decimal=2)
+        >>> np.testing.assert_allclose(
+        >>> np.testing.assert_allclose(s.get_rstd().values, np.sqrt(np.diag(c)), rtol=0.2)
+        >>> eigvals_original = np.linalg.eigvalsh(c)
+        >>> eigvals_sampled = np.linalg.eigvalsh(s.get_cov())
+        >>> np.testing.assert_allclose(eigvals_sampled, eigvals_original, rtol=0.2)       
+        
         For lognormal sampling, large variances are not an issue:
     
         >>> s = sandy.CategoryCov(c).sampling(nsmp, lognormal=True)
@@ -737,9 +758,10 @@ class CategoryCov():
                 self.regularize(correction=correction)
                 .draw_sample(N, lhs=lhs, verbose=verbose, seed=seed)
                 .apply_function(lambda x: x + 1)
-                .truncate_normal()
-                )
-
+            )            
+            if truncate_normal:
+                samples = samples.truncate_normal()
+                
         return samples
 
     def sandwich(self, s):
