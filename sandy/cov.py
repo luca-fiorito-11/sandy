@@ -1290,20 +1290,29 @@ class CategoryCov():
         >>> np.testing.assert_allclose(eigvals_sampled, eigvals_original, rtol=0.2)
         """
         N = int(nsmp)
+        if N <= 0:
+            raise ValueError(f"'nsmp' must be > 0, got {nsmp}")
+
 
         if lognormal:
+            # 1) Start from the "relative covariance" C
             C = self.correct_lognormal()
 
-            var = C.data.values.diagonal()  # this will be used to adjust the mean
+            var = np.diag(C.data.to_numpy())  # this will be used to adjust the mean
+            
+            
+            # 2) Compute log-space mean shift to enforce E[exp(Y)] ≈ 1
             # mean of the underlying normal distribution
             # https://stats.stackexchange.com/questions/573808/intuition-for-why-mean-of-lognormal-distribution-depends-on-variance-of-normally
-            umu = np.log(1 / np.sqrt(var + 1))
+            umu = -0.5 * np.log1p(var)  # (m,) identical to np.log(1 / np.sqrt(var + 1))
+            umu = umu[:, None]          # (m, N) identical to umu.reshape(var.size, -1)
 
+            # 3) Transform covariance to log-space and draw samples
             samples = (
                 C.transform_lognormal()
                 .regularize(correction=correction)
                 .draw_sample(N, lhs=lhs, verbose=verbose, seed=seed)
-                .apply_function(lambda x: x + umu.reshape(var.size, -1))
+                .apply_function(lambda x: x + umu)
                 .apply_function(np.exp)
                 )
 
