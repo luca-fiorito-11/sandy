@@ -26,7 +26,7 @@ def read_fy_output(file):
     df : `pandas.DataFrame`
         dataframe with fission yields.
     """
-    df = pd.read_csv(file, sep='\s+', skiprows=1, index_col=0).iloc[:-1]
+    df = pd.read_csv(file, sep=r'\s+', skiprows=1, index_col=0).iloc[:-1]
     df.index.name = "DAUGHTER"
     df.index = df.index.astype(int)
     df.columns.name = "PARENT"

@@ -22,48 +22,48 @@ from sandy.utils import grouper
 
 
 summary_header = "\n".join((
-    "\*" * 80,
-    "\*                            ALEPH problem summary                             \*",
-    "\*" * 80,
+    r"\*" * 80,
+    r"\*                            ALEPH problem summary                             \*",
+    r"\*" * 80,
 ))
 
 table_header = "\n".join((
-    "\*" * 80,
-    "\*\-\-\- Table (?P<table_number>[0-9\s]{2}) \-\-\- (?P<table_name>.*?)\*",
-    "\*" * 80,
+    r"\*" * 80,
+    r"\*\-\-\- Table (?P<table_number>[0-9\s]{2}) \-\-\- (?P<table_name>.*?)\*",
+    r"\*" * 80,
 ))
-material_header = "\*\*\*\*\*   Material (?P<material_number>[0-9\s]{7})\n"
-element_header = "\*\*\*\*\*   Per element.*\n"
-contributor_header = "Main contributors.*\n\n\n"
-info_header = "\*+\n\n\nALEPH info:"
+material_header = r"\*\*\*\*\*   Material (?P<material_number>[0-9\s]{7})\n"
+element_header = r"\*\*\*\*\*   Per element.*\n"
+contributor_header = r"Main contributors.*\n\n\n"
+info_header = r"\*+\n\n\nALEPH info:"
 
-table_footer = "^\s+Total"
+table_footer = r"^\s+Total"
 
-PATTERN_TIMEKEFF = re.compile("\s+Global neutronics parameters\n\s+\-+\n\s+Time\s+\((?P<unit>[a-z]+)\)\s+(?P<data>.*?)\n")
-PATTERN_BURNUP = re.compile("^\sFuel burnup \(MWd/kg HM\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_KEFF = re.compile("^\s+Keff  eff. mult. factor\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_KEFF_NPS = re.compile("^\s+Keff estimate NPS problem\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_DKEFF = re.compile("^\s+Relative std. deviation\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_TIMEKEFF = re.compile(r"\s+Global neutronics parameters\n\s+\-+\n\s+Time\s+\((?P<unit>[a-z]+)\)\s+(?P<data>.*?)\n")
+PATTERN_BURNUP = re.compile(r"^\sFuel burnup \(MWd/kg HM\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_KEFF = re.compile(r"^\s+Keff  eff. mult. factor\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_KEFF_NPS = re.compile(r"^\s+Keff estimate NPS problem\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_DKEFF = re.compile(r"^\s+Relative std. deviation\s+(?P<data>.*?)$", flags=re.MULTILINE)
 
-PATTERN_MAT_BEGIN = re.compile("\s+Irradiated materials\n\s+\-{20}")
-PATTERN_MAT_END = re.compile("\s+\*{28}\n\s+\* Total over all materials \*\n\s+\*{28}")
+PATTERN_MAT_BEGIN = re.compile(r"\s+Irradiated materials\n\s+\-{20}")
+PATTERN_MAT_END = re.compile(r"\s+\*{28}\n\s+\* Total over all materials \*\n\s+\*{28}")
 
-PATTERN_MATERIAL = re.compile("^\*{5}\s+Material\s+(?P<mat>.*?)$", flags=re.MULTILINE)
-PATTERN_CELLS = re.compile("\n\n\s+Cells\s+=\s+(?P<data>(?:[0-9, ]+\n)+)\n")
-PATTERN_VOLUME = re.compile("^\s+Volumes \(cm3\)\s+=\s+(?P<data>.*?) $", flags=re.MULTILINE)
+PATTERN_MATERIAL = re.compile(r"^\*{5}\s+Material\s+(?P<mat>.*?)$", flags=re.MULTILINE)
+PATTERN_CELLS = re.compile(r"\n\n\s+Cells\s+=\s+(?P<data>(?:[0-9, ]+\n)+)\n")
+PATTERN_VOLUME = re.compile(r"^\s+Volumes \(cm3\)\s+=\s+(?P<data>.*?) $", flags=re.MULTILINE)
 
-PATTERN_TIME = re.compile("^\s+Time\s+\((?P<unit>[a-z]+)\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_WDENSITY = re.compile("^\s+Density\s+\(g/cm3\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_ADENSITY = re.compile("^\s+Density\s+\(at/\(b\*cm\)\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_TEMPERATURE = re.compile("^\s+Temperature\s+\(K\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_SOURCE = re.compile("^\s+Source strength\s+\(part/s\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_NFLUX = re.compile("^\s+Neutron flux\s+\(n/\(cm2\*s\)\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_HFLUX = re.compile("^\s+Proton flux\s+\(h/\(cm2\*s\)\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_POWER = re.compile("^\s+Thermal power\s+\(MW\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_BURNUP = re.compile("^\s+Fuel burnup\s+\(MWd/kg HM\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_TOTBURNUP = re.compile("^\s+Total burnup \(MWd/kg HM\):\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_FISSIONS = re.compile("^\s+Integral number of fissions\s+(?P<data>.*?)$", flags=re.MULTILINE)
-PATTERN_TOTFISSIONS = re.compile("^\s+Total number of fissions:\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_TIME = re.compile(r"^\s+Time\s+\((?P<unit>[a-z]+)\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_WDENSITY = re.compile(r"^\s+Density\s+\(g/cm3\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_ADENSITY = re.compile(r"^\s+Density\s+\(at/\(b\*cm\)\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_TEMPERATURE = re.compile(r"^\s+Temperature\s+\(K\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_SOURCE = re.compile(r"^\s+Source strength\s+\(part/s\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_NFLUX = re.compile(r"^\s+Neutron flux\s+\(n/\(cm2\*s\)\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_HFLUX = re.compile(r"^\s+Proton flux\s+\(h/\(cm2\*s\)\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_POWER = re.compile(r"^\s+Thermal power\s+\(MW\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_BURNUP = re.compile(r"^\s+Fuel burnup\s+\(MWd/kg HM\)\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_TOTBURNUP = re.compile(r"^\s+Total burnup \(MWd/kg HM\):\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_FISSIONS = re.compile(r"^\s+Integral number of fissions\s+(?P<data>.*?)$", flags=re.MULTILINE)
+PATTERN_TOTFISSIONS = re.compile(r"^\s+Total number of fissions:\s+(?P<data>.*?)$", flags=re.MULTILINE)
 
 MATERIAL_KEYS = [
     "ID",
@@ -502,7 +502,7 @@ def parse_output_for_tables(text, index="ZAM"):
             string = io.StringIO(lines[0])
             columns = pd.read_csv(
                 string,
-                sep="\s+",
+                sep=r"\s+",
                 header=None,
                 index_col=0,
                 ).iloc[:, 1:].squeeze()
@@ -511,7 +511,7 @@ def parse_output_for_tables(text, index="ZAM"):
                 string = io.StringIO("\n".join(lines[begin:]))
                 df = pd.read_csv(
                     string,
-                    sep="\s+",
+                    sep=r"\s+",
                     header=None,
                     index_col=0,
                     )
@@ -521,7 +521,7 @@ def parse_output_for_tables(text, index="ZAM"):
                 string = io.StringIO("\n".join(lines[begin:]))
                 df = pd.read_csv(
                     string,
-                    sep="\s+",
+                    sep=r"\s+",
                     header=None,
                     index_col=index_col,
                     ).iloc[:, 1:]
@@ -542,7 +542,7 @@ def parse_table_nuclide(text, index="ZAM", data_row=3, **kwargs):
     string = io.StringIO(lines[0])
     columns = pd.read_csv(
         string,
-        sep="\s+",
+        sep=r"\s+",
         header=None,
         index_col=0,
         ).iloc[:, 1:].squeeze()
@@ -552,7 +552,7 @@ def parse_table_nuclide(text, index="ZAM", data_row=3, **kwargs):
         string = io.StringIO("\n".join(lines[begin:]))
         df = pd.read_csv(
             string,
-            sep="\s+",
+            sep=r"\s+",
             header=None,
             index_col=index_col,
             ).iloc[:, 1:]
@@ -568,7 +568,7 @@ def parse_table_energy(text, index="Energy", **kwargs):
     string = io.StringIO(lines[0])
     columns = pd.read_csv(
         string,
-        sep="\s+",
+        sep=r"\s+",
         header=None,
         index_col=0,
         ).iloc[:, 1:].squeeze()
@@ -578,7 +578,7 @@ def parse_table_energy(text, index="Energy", **kwargs):
         string = io.StringIO("\n".join(lines[begin:]))
         df = pd.read_csv(
             string,
-            sep="\s+",
+            sep=r"\s+",
             header=None,
             index_col=index_col,
             )
@@ -594,7 +594,7 @@ def parse_table_element(text, index="Element", **kwargs):
     string = io.StringIO(lines[0])
     columns = pd.read_csv(
         string,
-        sep="\s+",
+        sep=r"\s+",
         header=None,
         index_col=0,
         ).iloc[:, 1:].squeeze()
@@ -604,7 +604,7 @@ def parse_table_element(text, index="Element", **kwargs):
         string = io.StringIO("\n".join(lines[begin:]))
         df = pd.read_csv(
             string,
-            sep="\s+",
+            sep=r"\s+",
             header=None,
             index_col=index_col,
             ).iloc[:, 1:]
@@ -620,7 +620,7 @@ def parse_table_contributor(text, index="Main contributor", **kwargs):
     string = io.StringIO(lines[0])
     columns = pd.read_csv(
         string,
-        sep="\s+",
+        sep=r"\s+",
         header=None,
         index_col=(0, 1),  # "Time" and "(<unit>)" are in the first two columns
         ).iloc[0].reset_index(drop=True)
@@ -632,7 +632,7 @@ def parse_table_contributor(text, index="Main contributor", **kwargs):
         string = io.StringIO("\n".join(lines[begin:]))
         df = pd.read_csv(
             string,
-            sep="\s+",
+            sep=r"\s+",
             header=None,
             index_col=index_col,
             )
@@ -675,14 +675,14 @@ def parse_table(text, index="ZAM"):
     string = io.StringIO(lines[0])
     columns = pd.read_csv(
         string,
-        sep="\s+",
+        sep=r"\s+",
         header=None,
         index_col=0,
         ).iloc[:, 1:].squeeze()
     string = io.StringIO("\n".join(lines[begin:]))
     df = pd.read_csv(
         string,
-        sep="\s+",
+        sep=r"\s+",
         header=None,
         index_col=index_col,
         ).iloc[:, 1:]

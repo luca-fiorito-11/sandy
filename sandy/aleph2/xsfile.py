@@ -29,7 +29,7 @@ test_aleph2xs = """              952410                   4                   4 
   6.0000000000000000  5.0000000000000000
 """
 
-pattern_alephxsfile = "^.*_(?P<lib>.*)\\.(?P<tmp>.*)al"
+pattern_alephxsfile = r"^.*_(?P<lib>.*)\\.(?P<tmp>.*)al"
 
 
 def _lib_from_filename(file):

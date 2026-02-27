@@ -27,7 +27,7 @@ def read_xs_output(file):
         dataframe with cross sections.
     """
     df = pd.read_csv(file,
-                     sep='\s{2,}',
+                     sep=r'\s{2,}',
                      engine="python",
                      skiprows=1,
                      index_col=0,

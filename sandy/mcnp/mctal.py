@@ -229,7 +229,7 @@ def _from_block(text):
     if lines[ipos][0] != "f":  # skip fc comment
         ipos += 1
     # F bins
-    fdata = pd.read_csv(StringIO(lines[ipos]), header=None, sep="\s+", engine='python').iloc[0]
+    fdata = pd.read_csv(StringIO(lines[ipos]), header=None, sep=r"\s+", engine='python').iloc[0]
     nf = fdata[1]
     fbins = []
     while len(fbins) != nf:
@@ -237,12 +237,12 @@ def _from_block(text):
         fbins += list(map(int, lines[ipos].split()))
     ipos += 1
     # D bins
-    ddata = pd.read_csv(StringIO(lines[ipos]), header=None, sep="\s+", engine='python').iloc[0]
+    ddata = pd.read_csv(StringIO(lines[ipos]), header=None, sep=r"\s+", engine='python').iloc[0]
     nd = ddata[1]
     dbins = list(range(nd))
     ipos += 1
     # user bins
-    udata = pd.read_csv(StringIO(lines[ipos]), header=None, sep="\s+", engine='python').iloc[0]
+    udata = pd.read_csv(StringIO(lines[ipos]), header=None, sep=r"\s+", engine='python').iloc[0]
     nu = udata[1]
     if nu > 0:
         if udata[0].lower() == "ut":
@@ -255,7 +255,7 @@ def _from_block(text):
         ubins = list(range(1))
     ipos += 1
     # segment bin
-    sdata = pd.read_csv(StringIO(lines[ipos]), header=None, sep="\s+", engine='python').iloc[0]
+    sdata = pd.read_csv(StringIO(lines[ipos]), header=None, sep=r"\s+", engine='python').iloc[0]
     ns = sdata[1]
     if ns > 0:
         if sdata[0].lower() == "st":
@@ -268,7 +268,7 @@ def _from_block(text):
         sbins = list(range(1))
     ipos += 1
     # cosine bins
-    mdata = pd.read_csv(StringIO(lines[ipos]), header=None, sep="\s+", engine='python').iloc[0]
+    mdata = pd.read_csv(StringIO(lines[ipos]), header=None, sep=r"\s+", engine='python').iloc[0]
     nm = mdata[1]
     if nm > 0:
         if mdata[0].lower() == "mt":
@@ -281,7 +281,7 @@ def _from_block(text):
         mbins = list(range(1))
     ipos += 1
     # cosine bins
-    cdata = pd.read_csv(StringIO(lines[ipos]), header=None, sep="\s+", engine='python').iloc[0]
+    cdata = pd.read_csv(StringIO(lines[ipos]), header=None, sep=r"\s+", engine='python').iloc[0]
     nc = cdata[1]
     limit = int(np.ceil((nc-1)/6)) if cdata[0].lower() == "ct" or cdata[0].lower() == "cc" else int(np.ceil((nc)/6))
     cbins = []
@@ -297,7 +297,7 @@ def _from_block(text):
         cbins = list(range(1))
     ipos += 1
     # energy bins
-    edata = pd.read_csv(StringIO(lines[ipos]), header=None, sep="\s+", engine='python').iloc[0]
+    edata = pd.read_csv(StringIO(lines[ipos]), header=None, sep=r"\s+", engine='python').iloc[0]
     ne = edata[1]
     limit = int(np.ceil((ne-1)/6)) if edata[0].lower() == "et" or edata[0].lower() == "ec" else int(np.ceil((ne)/6))
     ebins = []
@@ -313,7 +313,7 @@ def _from_block(text):
         ebins = list(range(1))
     ipos += 1
     # time bins
-    tdata = pd.read_csv(StringIO(lines[ipos]), header=None, sep="\s+", engine='python').iloc[0]
+    tdata = pd.read_csv(StringIO(lines[ipos]), header=None, sep=r"\s+", engine='python').iloc[0]
     nt = tdata[1]
     limit = int(np.ceil((nt-1)/6)) if tdata[0].lower() == "tt" or tdata[0].lower() == "tc" else int(np.ceil((nt)/6))
     tbins = []

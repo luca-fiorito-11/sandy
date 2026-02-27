@@ -16,7 +16,7 @@ __all__ = [
 def get_keff(file):
     with open(file, 'r') as f:
         text = f.read()
-    PATTERN = "final estimate.*= (?P<keff>[\.0-9]+).*?(?P<stdev>[\.0-9]+)"
+    PATTERN = r"final estimate.*= (?P<keff>[\.0-9]+).*?(?P<stdev>[\.0-9]+)"
     match = re.search(PATTERN, text)
     keff = float(match.group("keff"))
     std = float(match.group("stdev"))
@@ -28,7 +28,7 @@ def get_table126(file):
     with open(file, 'r') as f:
         text = f.read()
 
-    PATTERN = "(?:^1neutron.*table 126\n)(?P<table>(?:.*\n)+?)(?P<end>^\s{11}total\s{2})"
+    PATTERN = r"(?:^1neutron.*table 126\n)(?P<table>(?:.*\n)+?)(?P<end>^\s{11}total\s{2})"
     match = re.search(PATTERN, text, re.MULTILINE).group("table")
     widths=[9, 10, 12, 14, 13, 14, 13, 13, 13, 13]
     dtypes = [int] * 5 + [float] * 5
@@ -57,7 +57,7 @@ def get_table140(file):
     with open(file, 'r') as f:
         text = f.read()
 
-    PATTERN = "(?:^1neutron.*table 140\n)(?P<table>(?:.*\n)+?)(?P<end>^\s+total\s{20})"
+    PATTERN = r"(?:^1neutron.*table 140\n)(?P<table>(?:.*\n)+?)(?P<end>^\s+total\s{20})"
     match = re.search(PATTERN, text, re.MULTILINE).group("table")
     widths=[10, 9, 11, 9,] + [12] * 6
     dtypes = [int, int, str, float, int, float, float, float, float, int]
