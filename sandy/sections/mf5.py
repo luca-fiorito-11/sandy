@@ -13,12 +13,8 @@ Function `write_mf5` writes a content object for a MF5/MT section into a
 string.
 MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
 """
-from ..records import read_cont, read_tab1, read_tab2, write_cont, write_eol, write_tab1, write_tab2
 
 __author__ = "Luca Fiorito"
-__all__ = [
-        "read_mf5",
-        ]
 
 allowed_mt = (
         451,
@@ -49,6 +45,8 @@ def read_mf5(tape, mat, mt):
     `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
     """
+    from ..records import read_cont, read_tab1, read_tab2
+
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,
@@ -135,7 +133,7 @@ def read_mf5(tape, mat, mt):
         
         # Energy-Dependent Fission Neutron Spectrum (Madland and Nix) (LF=12)
         elif LF == 12:
-            TM, i = sandy.read_tab1(df, i)
+            TM, i = read_tab1(df, i)
             sub["EFL"] = T.C1
             sub["EHL"] = T.C2
             sub["NBT_TM"] = T.NBT
@@ -224,6 +222,8 @@ def write_mf5(sec):
     ... sandy.read_mf5(sandy.Endf6.from_text(write_mf5(sec)), mat, mt), sec
     ... )
     """
+    from ..records import write_cont, write_eol, write_tab1, write_tab2
+
     lines = write_cont(
     sec["ZA"], sec["AWR"], 0, 0, len(sec["PDISTR"].keys()), 0
     )

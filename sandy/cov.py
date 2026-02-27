@@ -802,7 +802,7 @@ class CategoryCov():
         verbose : bool, optional
             Print diagnostic information. Default is False.
         seed : int or None, optional
-            Random seed. If None, a seed is obtained from sandy.get_seed().
+            Random seed. If None, a seed is obtained from get_seed().
     
         Returns
         -------
@@ -858,7 +858,7 @@ class CategoryCov():
         from scipy.stats import norm
         from scipy.stats.qmc import LatinHypercube
 
-        from sandy import get_seed           # lazy import
+        from .utils import get_seed           # lazy import
         from .samples import Samples
 
         M = self.size

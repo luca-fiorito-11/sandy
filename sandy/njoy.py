@@ -761,6 +761,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     1 0 /
     2 /    
     """
+    from .records import write_tab1
+
     irelco = 0 if relative is False else 1
     iread = 1 if (mt is not None and mfcov == 33) else 0
     iwt_ = 1 if spectrum is not None else iwt
@@ -783,7 +785,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     if iwt_ == 1:
         INT = 1               # constant interpolation
         NBT = int(len(spectrum) / 2)  # only 1 interpolation group
-        tab1 = "\n".join(sandy.write_tab1(0, 0, 0, 0, [NBT], [INT],
+        tab1 = "\n".join(write_tab1(0, 0, 0, 0, [NBT], [INT],
                                           spectrum[::2],
                                           spectrum[1::2]))
         text += [tab1]
@@ -855,7 +857,10 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
 
     Examples
     --------
+
     Default test without keyword arguments
+
+    >>> import sandy
     >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237))
     groupr
     20 21 0 22 /
@@ -1364,7 +1369,9 @@ def process_neutron(
     outputs : `map`
         map of {`tape` : `text`) for ouptut files
     """
-    tape = sandy.Endf6.from_file(endftape)
+    from .endf6 import Endf6
+
+    tape = Endf6.from_file(endftape)
     mat = tape.mat[0]
     info = tape.read_section(mat, 1, 451)
     za = int(info["ZA"])

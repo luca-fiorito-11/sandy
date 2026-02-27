@@ -1,14 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-"""
-
-import sandy
-
 __author__ = "Jan Malec"
-__all__ = [
-        "read_mf40",
-        "write_mf40"
-        ]
 
 
 def read_mf40(tape, mat, mt, mf=40):
@@ -35,6 +25,8 @@ def read_mf40(tape, mat, mt, mf=40):
     Notes
     -----
     """
+    from ..records import read_cont, read_list
+
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,
@@ -42,14 +34,14 @@ def read_mf40(tape, mat, mt, mf=40):
             "MT": mt,
             }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     out["ZA"] = C.C1
     out["AWR"] = C.C2
     out["NS"] = C.N1
     nsub = C.N1
     subs = {}
     for j in range(nsub):
-        C, i = sandy.read_cont(df, i)
+        C, i = read_cont(df, i)
         qm = C.C1
         qi = C.C2
         izap = C.L1
@@ -58,7 +50,7 @@ def read_mf40(tape, mat, mt, mf=40):
         lfs_key = (izap, lfs)
         sub_list = []
         for _ in range(nl):
-            C, i = sandy.read_cont(df, i)
+            C, i = read_cont(df, i)
             xmf1 = C.C1
             xlfs1 = C.C2
             mat1 = C.L1
@@ -78,10 +70,10 @@ def read_mf40(tape, mat, mt, mf=40):
             # Read NC blocks
             ncdict = {}
             for k in range(nc):
-                C, i = sandy.read_cont(df, i)
+                C, i = read_cont(df, i)
                 lty = C.L2
                 subsub = {"LTY": lty}
-                L, i = sandy.read_list(df, i)
+                L, i = read_list(df, i)
                 if lty == 0:
                     subsub["E1"] = L.C1
                     subsub["E2"] = L.C2
@@ -103,7 +95,7 @@ def read_mf40(tape, mat, mt, mf=40):
             # Read NI blocks
             nidict = {}
             for k in range(ni):
-                L, i = sandy.read_list(df, i)
+                L, i = read_list(df, i)
                 lb = L.L2
                 subsub = {"LB": lb}
                 if lb in [0, 1, 2, 3, 4]:
@@ -152,6 +144,7 @@ def read_mf40(tape, mat, mt, mf=40):
         out["SUB"] = subs
     return out
 
+
 def write_mf40(sec):
     """
     Given the content of a MF40 section as nested dictionaries, write it
@@ -172,7 +165,9 @@ def write_mf40(sec):
     -----
     The string does not end with a newline symbol `\\n`.
     """
-    lines = sandy.write_cont(
+    from ..records import write_cont, write_list, write_eol
+
+    lines = write_cont(
         sec["ZA"],
         sec["AWR"],
         0,
@@ -185,7 +180,7 @@ def write_mf40(sec):
         for (izap, lfs), sublist in sorted(sec["SUB"].items()):
             nl = len(sublist)
             # First CONT record for the (IZAP, LFS) group
-            lines += sandy.write_cont(
+            lines += write_cont(
                 sublist[0]["QM"],
                 sublist[0]["QI"],
                 izap,
@@ -195,7 +190,7 @@ def write_mf40(sec):
             )
             for sub in sublist:
                 # Second CONT for each subsection
-                lines += sandy.write_cont(
+                lines += write_cont(
                     sub["XMF1"],
                     sub["XLFS1"],
                     sub["MAT1"],
@@ -206,13 +201,13 @@ def write_mf40(sec):
                 # NC subsections
                 for k in sorted(sub.get("NC", {}).keys()):
                     nc_sub = sub["NC"][k]
-                    lines += sandy.write_cont(
+                    lines += write_cont(
                         0, 0, 0, nc_sub["LTY"], 0, 0
                     )
                     if nc_sub["LTY"] == 0:
                         b = list(nc_sub["CI"]) + list(nc_sub["XMTI"])
                         nci = len(nc_sub["CI"])
-                        lines += sandy.write_list(
+                        lines += write_list(
                             nc_sub["E1"],
                             nc_sub["E2"],
                             0,
@@ -223,7 +218,7 @@ def write_mf40(sec):
                     elif nc_sub["LTY"] in (1, 2, 3):
                         nei = len(nc_sub["EI"])
                         b = [nc_sub["XMFS"], nc_sub["XLFSS"]] + list(nc_sub["EI"]) + list(nc_sub["WEI"])
-                        lines += sandy.write_list(
+                        lines += write_list(
                             nc_sub["E1"],
                             nc_sub["E2"],
                             nc_sub["MATS"],
@@ -266,7 +261,7 @@ def write_mf40(sec):
                     else:
                         raise ValueError(f"Cannot write unsupported LB={lb} in NI section")
 
-                    lines += sandy.write_list(
+                    lines += write_list(
                         0,
                         0,
                         l1,
@@ -274,4 +269,4 @@ def write_mf40(sec):
                         n2,
                         b
                     )
-    return "\n".join(sandy.write_eol(lines, sec["MAT"], sec["MF"], sec["MT"]))
+    return "\n".join(write_eol(lines, sec["MAT"], sec["MF"], sec["MT"]))

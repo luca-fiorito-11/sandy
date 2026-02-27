@@ -11,12 +11,7 @@ string.
 MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
 """
 __author__ = "Aitor Bengoechea"
-__all__ = [
-        "read_mf9",
-        "write_mf9",
-        ]
 
-import sandy
 
 
 def read_mf9(tape, mat, mt):
@@ -40,6 +35,8 @@ def read_mf9(tape, mat, mt):
     Endf-6 tape structured 'dict' of Radiactive capture of Am-241 from
     the ENDFB-VII.1 library to obtain the multiplicities for production
     of radioactive nuclides
+
+    >>> import sandy
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 952410, local=True)
     >>> read_mf9(tape, 9543, 102)
     {'MAT': 9543,
@@ -69,11 +66,13 @@ def read_mf9(tape, mat, mt):
        'Y': array([0.1    , 0.1    , 0.1333 , 0.158  , 0.18467, 0.25618, 0.4297 ,
               0.48   , 0.48   ])}}}
     """
+    from ..records import read_cont, read_tab1
+
     mf = 9
     df = tape._get_section_df(mat, mf, mt)
     out = {"MAT": mat, "MF": mf, "MT": mt}
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     out.update({
         "ZA": C.C1,
         "AWR": C.C2,
@@ -81,7 +80,7 @@ def read_mf9(tape, mat, mt):
         })
     subsections = {}
     for hx in range(C.N1):
-        T, i = sandy.read_tab1(df, i)
+        T, i = read_tab1(df, i)
         LFS = T.L2
         add = {
                 "QM": T.C1,
@@ -101,24 +100,31 @@ def write_mf9(sec):
     """
     Given the content of a MF9 section as nested dictionaries, write it
     to string.
+
     Parameters
     ----------
     sec : 'dic'
         Content of the ENDF-6 tape structured as nested `dict`.
+
     Returns
     -------
     `str`
         Multiline string reproducing the content of a ENDF-6 section.
+
     Notes
     -----
     .. note:: The end-of-line records MAT, MF, MT and line number are added at
               the end of each line.
     .. important:: The string does not endf with a newline symbol `\n`.
+
     Examples
     --------
+
     String reproducing the content of a ENDF-6 section for Radiactive capture
     of Am-241 from the ENDFB-VII.1 library to obtain the multiplicities for
     production of radioactive nuclides
+
+    >>> import sandy
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 952410, local=True)
     >>> sec = read_mf9(tape, 9543, 102)
     >>> text = write_mf9(sec)
@@ -135,8 +141,9 @@ def write_mf9(sec):
      100000.000 1.580000-1 600000.100 1.846700-1 1000000.00 2.561800-19543 9102   10
      2000000.00 4.297000-1 4000001.00 4.800000-1 30000000.0 4.800000-19543 9102   11
     """
+    from ..records import write_cont, write_tab1, write_eol
 
-    lines = sandy.write_cont(
+    lines = write_cont(
             sec["ZA"],
             sec["AWR"],
             sec["LIS"],
@@ -146,7 +153,7 @@ def write_mf9(sec):
             )
 
     for LFS, subsection in sec["LFS"].items():
-        lines += sandy.write_tab1(
+        lines += write_tab1(
                 subsection["QM"],
                 subsection["QI"],
                 subsection["IZAP"],
@@ -156,4 +163,4 @@ def write_mf9(sec):
                 subsection["E"],
                 subsection["Y"],
                 )
-    return "\n".join(sandy.write_eol(lines, sec["MAT"], 9, sec["MT"]))
+    return "\n".join(write_eol(lines, sec["MAT"], 9, sec["MT"]))

@@ -14,13 +14,6 @@ string.
 MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
 """
 __author__ = "Aitor Bengoechea"
-__all__ = [
-        "read_mf10",
-        "write_mf10",
-        ]
-
-import sandy
-
 
 def read_mf10(tape, mat, mt):
     """
@@ -43,6 +36,7 @@ def read_mf10(tape, mat, mt):
 
     Examples
     --------
+    >>> import sandy
     >>> import pprint
     >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 410930, local=True)
     >>> test = read_mf10(tape, 4125, 16)
@@ -89,11 +83,13 @@ def read_mf10(tape, mat, mt):
      'MT': 16,
      'ZA': 41093.0}
     """
+    from ..records import read_cont, read_tab1
+
     mf = 10
     df = tape._get_section_df(mat, mf, mt)
     out = {"MAT": mat, "MF": mf, "MT": mt}
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     out.update({
                 "ZA": C.C1,
                 "AWR": C.C2,
@@ -101,7 +97,7 @@ def read_mf10(tape, mat, mt):
     })
     subsections = {}
     for hx in range(C.N1):
-        T, i = sandy.read_tab1(df, i)
+        T, i = read_tab1(df, i)
         LFS = T.L2
         add = {
                     "QM": T.C1,
@@ -144,6 +140,8 @@ def write_mf10(sec):
     String reproducing the content of a ENDF-6 section for (n,2n)
     of Nb-93 from the JEFF-33 library to obtain the cross sections for
     production of radiactive nuclides
+    
+    >>> import sandy
     >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 410930, local=True)
     >>> sec = read_mf10(tape, 4125, 16)
     >>> text = write_mf10(sec)
@@ -175,7 +173,8 @@ def write_mf10(sec):
      27000000.0 1.507150-1 28000000.0 1.421910-1 29000000.0 1.353680-1412510 16   25
      30000000.0 1.291160-1 30000000.0 0.00000000  200000000 0.00000000412510 16   26
     """
-    lines = sandy.write_cont(
+    from ..records import write_cont, write_tab1, write_eol
+    lines = write_cont(
             sec["ZA"],
             sec["AWR"],
             sec["LIS"],
@@ -185,7 +184,7 @@ def write_mf10(sec):
             )
 
     for LFS, subsection in sec["LFS"].items():
-        lines += sandy.write_tab1(
+        lines += write_tab1(
                 subsection["QM"],
                 subsection["QI"],
                 subsection["IZAP"],
@@ -195,4 +194,4 @@ def write_mf10(sec):
                 subsection["E"],
                 subsection["XS"],
                 )
-    return "\n".join(sandy.write_eol(lines, sec["MAT"], 10, sec["MT"]))
+    return "\n".join(write_eol(lines, sec["MAT"], 10, sec["MT"]))

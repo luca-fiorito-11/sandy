@@ -14,19 +14,10 @@ string.
 MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
 """
 
-import sandy
-import pandas as pd
-
 __author__ = "Rayan HADDAD"
-__all__ = [
-    "read_mf2",
-    "write_mf2"
-]
 
 mf = 2
 mt = 151
-
-pd.options.display.float_format = '{:.5e}'.format
 
 
 def read_mf2(tape, mat):
@@ -44,10 +35,14 @@ def read_mf2(tape, mat):
     -------
     `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
+
     Examples
     --------
+
     Resonance parameters of the Thorium 233
     LRU = 0
+    
+    >>> import sandy
     >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902330, local=True)
     >>> sandy.read_mf2(tape, 9043)
     {'MAT': 9043,
@@ -132,6 +127,8 @@ def read_mf2(tape, mat):
     {'ES': 2250.0, 'D': 1.058, 'GX': 0.0, 'GN0': 0.000107789, 'GG': 0.038513, 'GF': 0.40102}
 
     """
+    from ..records import read_cont, read_list, read_tab1
+    from ..utils import grouper
     df = tape._get_section_df(mat, mf, mt)
     out = {
         "MAT": mat,
@@ -139,7 +136,7 @@ def read_mf2(tape, mat):
         "MT": mt,
     }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     add = {
         "ZA": C.C1,  # designation for an isotope
         "AWR": C.C2,  # AWR is defines as the ratio of the mass of the material to that of the neutron
@@ -152,7 +149,7 @@ def read_mf2(tape, mat):
         M = {}
         NER1 = {}
         ISO = {}
-        C, i = sandy.read_cont(df, i)
+        C, i = read_cont(df, i)
         header1 = {
             "ABN": C.C2,  # Abundance of an isotope in the material
             "LFW": C.L2,  # indication whether average fission wifths are given in the unresolbed resonance region
@@ -164,7 +161,7 @@ def read_mf2(tape, mat):
         dico = {}
         for j in range(NER):
             info = {}
-            C, i = sandy.read_cont(df, i)
+            C, i = read_cont(df, i)
             header2 = {
                 # Flag indicating whether this energy range contains data for
                 # resolved or unresolved resonance parameters:
@@ -183,7 +180,7 @@ def read_mf2(tape, mat):
             if LRU == 0:
                 LRU0 = {}
                 LRU0.update(header2)
-                C, i = sandy.read_cont(df, i)
+                C, i = read_cont(df, i)
                 add = {
                     "SPI": C.C1,  # Spin, I, of the target nucleus.
                     "AP": C.C2,  # Scattering radius in units of 10e-12cm.
@@ -197,7 +194,7 @@ def read_mf2(tape, mat):
                     if NRO == 0:
                         LRU1_LRF1_2_NRO0 = {}
                         LRU1_LRF1_2_NRO0.update(header2)
-                        C, i = sandy.read_cont(df, i)
+                        C, i = read_cont(df, i)
                         add = {
                             "SPI": C.C1,
                             "AP": C.C2,
@@ -206,7 +203,7 @@ def read_mf2(tape, mat):
                         LRU1_LRF1_2_NRO0.update(add)
                         LRU1_LRF1_2_NRO0_NLS = {}
                         for k in range(NLS):
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "AWRI": L.C1,  # Ratio of the mass of a particular isotope to that of a neutron
                                 # Q-value to be added to the incident
@@ -220,8 +217,7 @@ def read_mf2(tape, mat):
                             }
                             l = L.L1
                             keys = ["ER", "AJ", "GT", "GN", "GG", "GF"]
-                            RES_PAR = [dict(zip(keys, items))
-                                       for items in sandy.utils.grouper(L.B, 6)]
+                            RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 6)]
                             add.update({"RES_PAR": RES_PAR})
                             LRU1_LRF1_2_NRO0_NLS.update({l: add})
                             LRU1_LRF1_2_NRO0.update(
@@ -230,7 +226,7 @@ def read_mf2(tape, mat):
                     else:
                         LRU1_LRF1_2_NRO1 = {}
                         LRU1_LRF1_2_NRO1.update(header2)
-                        T, i = sandy.read_tab1(df, i)
+                        T, i = read_tab1(df, i)
                         add = {
                             "NR": T.NBT,
                             "NP": T.INT,
@@ -238,7 +234,7 @@ def read_mf2(tape, mat):
                             "AP(E)": T.y,
                         }
                         LRU1_LRF1_2_NRO1.update(add)
-                        C, i = sandy.read_cont(df, i)
+                        C, i = read_cont(df, i)
                         add = {
                             "SPI": C.C1,
                             "AP": C.C2,
@@ -247,7 +243,7 @@ def read_mf2(tape, mat):
                         LRU1_LRF1_2_NRO1.update(add)
                         LRU1_LRF1_2_NRO1_NLS = {}
                         for k in range(NLS):
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "AWRI": L.C1,  # Ratio of the mass of a particular isotope to that of a neutron
                                 # Q-value to be added to the incident
@@ -259,8 +255,7 @@ def read_mf2(tape, mat):
                             }
                             l = L.L1
                             keys = ["ER", "AJ", "GT", "GN", "GG", "GF"]
-                            RES_PAR = [dict(zip(keys, items))
-                                       for items in sandy.utils.grouper(L.B, 6)]
+                            RES_PAR = [dict(zip(keys, items))for items in grouper(L.B, 6)]
                             add.update({"RES_PAR": RES_PAR})
                             LRU1_LRF1_2_NRO1_NLS.update({l: add})
                         LRU1_LRF1_2_NRO1.update({"L": LRU1_LRF1_2_NRO1_NLS})
@@ -269,7 +264,7 @@ def read_mf2(tape, mat):
                     if NRO == 0:
                         LRU1_LRF3_NRO0 = {}
                         LRU1_LRF3_NRO0.update(header2)
-                        C, i = sandy.read_cont(df, i)
+                        C, i = read_cont(df, i)
                         add = {
                             "SPI": C.C1,
                             "AP": C.C2,
@@ -286,7 +281,7 @@ def read_mf2(tape, mat):
                         LRU1_LRF3_NRO0.update(add)
                         LRU1_LRF3_NRO0_NLS = {}
                         for k in range(NLS):
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "AWRI": L.C1,
                                 "APL": L.C2,
@@ -296,15 +291,14 @@ def read_mf2(tape, mat):
                             l = L.L1
 
                             keys = ["ER", "AJ", "GN", "GG", "GFA", "GFB"]
-                            RES_PAR = [dict(zip(keys, items))
-                                       for items in sandy.utils.grouper(L.B, 6)]
+                            RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 6)]
                             add.update({"RES_PAR": RES_PAR})
                             LRU1_LRF3_NRO0_NLS.update({l: add})
                         LRU1_LRF3_NRO0.update({"L": LRU1_LRF3_NRO0_NLS})
                         dico[(EL, EH)] = LRU1_LRF3_NRO0
                     else:
                         LRU1_LRF3_NRO1 = {}
-                        T, i = sandy.read_tab1(df, i)
+                        T, i = read_tab1(df, i)
                         add = {
                             "NR": T.NBT,
                             "NP": T.INT,
@@ -312,7 +306,7 @@ def read_mf2(tape, mat):
                             "AP(E)": T.y,
                         }
                         LRU1_LRF3_NRO1.update(add)
-                        C, i = sandy.read_cont(df, i)
+                        C, i = read_cont(df, i)
                         add = {
                             "SPI": C.C1,
                             "AP": C.C2,
@@ -323,7 +317,7 @@ def read_mf2(tape, mat):
                         LRU1_LRF3_NRO1.update(add)
                         LRU1_LRF3_NRO1_NLS = {}
                         for k in range(NLS):
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "AWRI": L.C1,
                                 "APL": L.C2,
@@ -332,8 +326,7 @@ def read_mf2(tape, mat):
                             }
                             l = L.L1
                             keys = ["ER", "AJ", "GN", "GG", "GFA", "GFB"]
-                            RES_PAR = [dict(zip(keys, items))
-                                       for items in sandy.utils.grouper(L.B, 6)]
+                            RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 6)]
                             add.update({"RES_PAR": RES_PAR})
                             LRU1_LRF3_NRO1_NLS.update({l: add})
                         LRU1_LRF3_NRO1.update({"L": LRU1_LRF3_NRO1_NLS})
@@ -343,7 +336,7 @@ def read_mf2(tape, mat):
                 elif LRF == 7:
                     LRU1_LRF7 = {}
                     LRU1_LRF7.update(header2)
-                    C, i = sandy.read_cont(df, i)
+                    C, i = read_cont(df, i)
                     add = {
                         "IFG": C.L1,
                         "KRM": C.L2,  # Flag to specify which formulae for the R-matrix are to be used
@@ -351,7 +344,7 @@ def read_mf2(tape, mat):
                     }
                     NJS = int(C.N1)
                     LRU1_LRF7.update(add)
-                    L, i = sandy.read_list(df, i)
+                    L, i = read_list(df, i)
                     keys = [
                         "MA",
                         "MB",
@@ -365,13 +358,12 @@ def read_mf2(tape, mat):
                         "MT",
                         "PA",
                         "PB"]
-                    PAIR_PART = [dict(zip(keys, items))
-                                 for items in sandy.utils.grouper(L.B, 12)]
+                    PAIR_PART = [dict(zip(keys, items)) for items in grouper(L.B, 12)]
                     LRU1_LRF7.update({"PAIR_PART": PAIR_PART})
                     LRU1_LRF7_NJS = {}
                     for k in range(NJS):
                         LISTS = {}
-                        L, i = sandy.read_list(df, i)
+                        L, i = read_list(df, i)
                         add1 = {
                             "KBK": L.L1,  # Non-zero if background R-matrix exists
                             # Non-zero if non-hard-sphere phase shift are to be
@@ -383,11 +375,10 @@ def read_mf2(tape, mat):
                         AJ = L.C1
                         PJ = L.C2
                         keys = ["PPI", "L", "SCH", "BND", "APE", "APT"]
-                        SPIN_GROUP = [dict(zip(keys, items))
-                                      for items in sandy.utils.grouper(L.B, 6)]
+                        SPIN_GROUP = [dict(zip(keys, items)) for items in grouper(L.B, 6)]
                         add1.update({"SPIN_GROUP": SPIN_GROUP})
 
-                        L, i = sandy.read_list(df, i)
+                        L, i = read_list(df, i)
                         add2 = {
                             "NRS": L.L2,  # Number of resonances for the given J pi
                             "NX": L.N2,
@@ -395,8 +386,7 @@ def read_mf2(tape, mat):
                         keys = ["ER"]
                         for k in range(5): 
                             keys.append(f"GAM{k}")
-                        A = [dict(zip(keys, items))
-                                      for items in sandy.utils.grouper(L.B, 6)]
+                        A = [dict(zip(keys, items)) for items in grouper(L.B, 6)]
                         for j in range(len(A)):
                             GAM = []
                             for k in range(5):
@@ -422,7 +412,7 @@ def read_mf2(tape, mat):
                 if LFW == 0 and LRF == 1:
                     LRU2_LFW0_LRF1 = {}
                     LRU2_LFW0_LRF1.update(header2)
-                    C, i = sandy.read_cont(df, i)
+                    C, i = read_cont(df, i)
                     add = {
                         "SPI": C.C1,
                         "AP": C.C2,
@@ -432,15 +422,14 @@ def read_mf2(tape, mat):
                     LRU2_LFW0_LRF1.update(add)
                     LRU2_LFW0_LRF1_NLS = {}
                     for k in range(NLS):
-                        L, i = sandy.read_list(df, i)
+                        L, i = read_list(df, i)
                         add = {
                             "AWRI": L.C1,
                         }
                         NJS = L.N2
                         l = L.L1
                         keys = ["D", "AJ", "AMUN", "GN0", "GG", "0"]
-                        RES_PAR = [dict(zip(keys, items))
-                                   for items in sandy.utils.grouper(L.B, 6)]
+                        RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 6)]
                         RES_PAR1 = RES_PAR
                         for h in range(NJS):
                             del RES_PAR1[h]["0"]
@@ -455,7 +444,7 @@ def read_mf2(tape, mat):
                 elif LRF == 2:
                     LRU2_LRF2 = {}
                     LRU2_LRF2.update(header2)
-                    C, i = sandy.read_cont(df, i)
+                    C, i = read_cont(df, i)
                     add = {
                         "SPI": C.C1,
                         "AP": C.C2,
@@ -465,7 +454,7 @@ def read_mf2(tape, mat):
                     LRU2_LRF2.update(add)
                     LRU2_LRF2_NLS = {}
                     for m in range(NLS):
-                        C, i = sandy.read_cont(df, i)
+                        C, i = read_cont(df, i)
                         add_1 = {
                             "AWRI": C.C1,
                         }
@@ -474,7 +463,7 @@ def read_mf2(tape, mat):
                         LRU2_LRF2_NjS = {}
                         LIST = {}
                         for k in range(NJS):
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add_2 = {
                                 # Interpolation scheme to be used for
                                 # interpolating between the cross sections
@@ -495,8 +484,7 @@ def read_mf2(tape, mat):
                             }
                             AJ = L.C1
                             keys = ["ES", "D", "GX", "GN0", "GG", "GF"]
-                            RES_PAR = [dict(zip(keys, items))
-                                       for items in sandy.utils.grouper(L.B[6::], 6)]
+                            RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B[6::], 6)]
                             add_2.update({"RES_PAR": RES_PAR})
                             LIST.update({AJ: add_2})
                         LRU2_LRF2_NjS.update(add_1)
@@ -531,6 +519,8 @@ def write_mf2(sec):
     --------
     resonance parameters of Thorium 233
     LRU = 0
+
+    >>> import sandy
     >>> tape = sandy.get_endf6_file("jeff_33", "xs", 902330, local=True)
     >>> dic = sandy.read_mf2(tape, 9043)
     >>> text = sandy.write_mf2(dic)
@@ -658,7 +648,9 @@ def write_mf2(sec):
      65.7741300-3.00000000 4.208330-4 3.762744-2-1.429333-2-1.591547-29228 2151  148
      66.2503700-3.00000000 7.161637-5 3.759448-2 2.357995-2 1.894606-19228 2151  149
     """
-    lines = sandy.write_cont(
+    from ..records import write_cont, write_list, write_tab1, write_eol
+
+    lines = write_cont(
         sec["ZA"],
         sec["AWR"],
         0,
@@ -667,7 +659,7 @@ def write_mf2(sec):
         0,
     )
     for ZAI, sec2 in sec["NIS"].items():
-        lines += sandy.write_cont(
+        lines += write_cont(
             ZAI,
             sec2["ABN"],
             0,
@@ -676,7 +668,7 @@ def write_mf2(sec):
             0,
         )
         for (EL, EH), sec3 in sec2["NER"].items():
-            lines += sandy.write_cont(
+            lines += write_cont(
                 EL,
                 EH,
                 sec3["LRU"],
@@ -685,7 +677,7 @@ def write_mf2(sec):
                 sec3["NAPS"],
             )
             if sec3["LRU"] == 0:
-                lines += sandy.write_cont(
+                lines += write_cont(
                     sec3["SPI"],
                     sec3["AP"],
                     0,
@@ -696,7 +688,7 @@ def write_mf2(sec):
             elif sec3["LRU"] == 1:
                 if sec3["LRF"] == 1 or sec3["LRF"] == 2:
                     if sec3["NRO"] == 0:
-                        lines += sandy.write_cont(
+                        lines += write_cont(
                             sec3["SPI"],
                             sec3["AP"],
                             0,
@@ -708,7 +700,7 @@ def write_mf2(sec):
                             keys = ["ER", "AJ", "GT", "GN", "GG", "GF"]
                             tab = [res[k] for res in sec4["RES_PAR"]
                                    for k in keys]
-                            lines += sandy.write_list(
+                            lines += write_list(
                                 sec4["AWRI"],
                                 sec4["QX"],
                                 L,
@@ -717,7 +709,7 @@ def write_mf2(sec):
                                 tab,
                             )
                     else:
-                        lines += sandy.write_tab1(
+                        lines += write_tab1(
                             0,
                             0,
                             0,
@@ -728,7 +720,7 @@ def write_mf2(sec):
                             sec3["E_int"],
                             sec3["AP(E)"],
                         )
-                        lines += sandy.write_cont(
+                        lines += write_cont(
                             sec3["SPI"],
                             sec3["AP"],
                             0,
@@ -740,7 +732,7 @@ def write_mf2(sec):
                             keys = ["ER", "AJ", "GT", "GN", "GG", "GF"]
                             tab = [res[k] for res in sec4["RES_PAR"]
                                    for k in keys]
-                            lines += sandy.write_list(
+                            lines += write_list(
                                 sec4["AWRI"],
                                 sec4["QX"],
                                 L,
@@ -750,7 +742,7 @@ def write_mf2(sec):
                             )
                 elif sec3["LRF"] == 3:
                     if sec3["NRO"] == 0:
-                        lines += sandy.write_cont(
+                        lines += write_cont(
                             sec3["SPI"],
                             sec3["AP"],
                             sec3["LAD"],
@@ -762,7 +754,7 @@ def write_mf2(sec):
                             keys = ["ER", "AJ", "GN", "GG", "GFA", "GFB"]
                             tab = [res[k] for res in sec4["RES_PAR"]
                                    for k in keys]
-                            lines += sandy.write_list(
+                            lines += write_list(
                                 sec4["AWRI"],
                                 sec4["APL"],
                                 L,
@@ -771,7 +763,7 @@ def write_mf2(sec):
                                 tab,
                             )
                     else:
-                        lines += sandy.write_tab1(
+                        lines += write_tab1(
                             0,
                             0,
                             0,
@@ -782,7 +774,7 @@ def write_mf2(sec):
                             sec3["E_int"],
                             sec3["AP(E)"],
                         )
-                        lines += sandy.write_cont(
+                        lines += write_cont(
                             sec3["SPI"],
                             sec3["AP"],
                             sec3["LAD"],
@@ -794,7 +786,7 @@ def write_mf2(sec):
                             keys = ["ER", "AJ", "GN", "GG", "GFA", "GFB"]
                             tab = [res[k] for res in sec4["RES_PAR"]
                                    for k in keys]
-                            lines += sandy.write_list(
+                            lines += write_list(
                                 sec4["AWRI"],
                                 sec4["APL"],
                                 L,
@@ -803,7 +795,7 @@ def write_mf2(sec):
                                 tab,
                             )
                 elif sec3["LRF"] == 7:
-                    lines += sandy.write_cont(
+                    lines += write_cont(
                         0,
                         0,
                         sec3["IFG"],
@@ -825,7 +817,7 @@ def write_mf2(sec):
                         "PA",
                         "PB"]
                     tab2 = [res[k] for res in sec3["PAIR_PART"] for k in keys]
-                    lines += sandy.write_list(
+                    lines += write_list(
                         0,
                         0,
                         int(len(tab2) / 12),
@@ -837,7 +829,7 @@ def write_mf2(sec):
                         keys = ["PPI", "L", "SCH", "BND", "APE", "APT"]
                         tab2 = [res[k] for res in sec4["SPIN_GROUP"]
                                 for k in keys]
-                        lines += sandy.write_list(
+                        lines += write_list(
                             AJ,
                             PJ,
                             sec4["KBK"],
@@ -850,7 +842,7 @@ def write_mf2(sec):
                             tab3.append(sec4["RES_PAR"][i]["ER"])
                             for j in range(5):
                                 tab3.append(sec4["RES_PAR"][i]["GAM"][j])
-                        lines += sandy.write_list(
+                        lines += write_list(
                             0,
                             0,
                             0,
@@ -860,7 +852,7 @@ def write_mf2(sec):
                         )
             elif sec3["LRU"] == 2:
                 if sec2["LFW"] == 0 and sec3["LRF"] == 1:
-                    lines += sandy.write_cont(
+                    lines += write_cont(
                         sec3["SPI"],
                         sec3["AP"],
                         sec3["LSSF"],
@@ -874,7 +866,7 @@ def write_mf2(sec):
                             sec4["RES_PAR"][i].update({"0": r})
                         keys = ["D", "AJ", "AMUN", "GN0", "GG", "0"]
                         tab = [res[k] for res in sec4["RES_PAR"] for k in keys]
-                        lines += sandy.write_list(
+                        lines += write_list(
                             sec4["AWRI"],
                             0,
                             L,
@@ -883,7 +875,7 @@ def write_mf2(sec):
                             tab,
                         )
                 elif sec3["LRF"] == 2:
-                    lines += sandy.write_cont(
+                    lines += write_cont(
                         sec3["SPI"],
                         sec3["AP"],
                         sec3["LSSF"],
@@ -892,7 +884,7 @@ def write_mf2(sec):
                         0,
                     )
                     for L, sec4 in sec3["L"].items():
-                        lines += sandy.write_cont(
+                        lines += write_cont(
                             sec4["AWRI"],
                             0,
                             L,
@@ -910,7 +902,7 @@ def write_mf2(sec):
                             add1[4] = sec5["AMUG"]
                             add1[5] = sec5["AMUF"]
                             add = add1 + tab
-                            lines += sandy.write_list(
+                            lines += write_list(
                                 AJ,
                                 0,
                                 sec5["INT"],
@@ -918,4 +910,4 @@ def write_mf2(sec):
                                 int((len(add) - 6) / 6),
                                 add,
                             )
-    return "\n".join(sandy.write_eol(lines, sec["MAT"], 2, 151))
+    return "\n".join(write_eol(lines, sec["MAT"], 2, 151))

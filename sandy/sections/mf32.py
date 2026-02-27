@@ -13,21 +13,12 @@ string.
 MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
 """
 
-import sandy
-from collections import namedtuple
-import numpy as np
-import pandas as pd
-import io
-
 __author__ = "Rayan HADDAD"
-__all__ = [
-    "read_mf32",
-]
 
 mf = 32
 mt = 151
 
-pd.options.display.float_format = '{:.5e}'.format
+
 
 def read_intg(tape, mat, NDIGIT,ipos):
     """
@@ -49,6 +40,10 @@ def read_intg(tape, mat, NDIGIT,ipos):
             for NDIGIT = 5 KIJ is an array of 8 str 
             
     """
+    from collections import namedtuple
+    import pandas as pd
+    import io
+
     INTG = namedtuple('INTG', 'II JJ KIJ')
     
     if NDIGIT == 2:
@@ -128,6 +123,8 @@ def read_mf32(tape, mat):
     --------
     Covariances of resonance parameters of the Curium 2245
     LCOMP = 0
+    
+    >>> import sandy
     >>> tape = sandy.get_endf6_file("jeff_33", "xs", 962450, local=True)
     >>> dic = sandy.read_mf32(tape, 9640)
     >>> print( dic["NIS"][96245]['NER'][(1e-05, 100.0)]["L"][0]['COVAR_PAR'][0:2])
@@ -175,6 +172,10 @@ def read_mf32(tape, mat):
      'JJ': 793,
      'KIJ': array([44, 69,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0])}
     """
+    from ..records import read_cont, read_list
+    from ..utils import grouper
+    import numpy as np
+
     df = tape._get_section_df(mat, mf, mt)
     out = {
         "MAT": mat,
@@ -182,7 +183,7 @@ def read_mf32(tape, mat):
         "MT": mt,
     }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     add = {
         "ZA": C.C1,  # designation for an isotope
         "AWR": C.C2,  # AWR is defines as the ratio of the mass of the material to that of the neutron
@@ -194,7 +195,7 @@ def read_mf32(tape, mat):
         M = {}
         NER1 = {}
         ISO = {}
-        C, i = sandy.read_cont(df, i)
+        C, i = read_cont(df, i)
         header1 = {
             "ABN": C.C2,  # Abundance of an isotope in the material
             "LFW": C.L2,  # indication whether average fission wifths are given in the unresolbed resonance region
@@ -205,7 +206,7 @@ def read_mf32(tape, mat):
         dico = {}
         for j in range(NER):
             info = {}
-            C, i = sandy.read_cont(df, i)
+            C, i = read_cont(df, i)
             header2 = {
                 # Flag indicating whether this energy range contains data for
                 # resolved or unresolved resonance parameters:
@@ -222,14 +223,14 @@ def read_mf32(tape, mat):
             LRF = C.L2
             if NRO != 0:
                 NRO1 = {}
-                C, i = sandy.read_cont(df, i)
+                C, i = read_cont(df, i)
                 add = {
                     "NI": C.N2,
                 }
                 NRO1.update(add)
                 dico[(EL, EH)] = NRO1
             else:
-                C, i = sandy.read_cont(df, i)
+                C, i = read_cont(df, i)
                 header3 = {
                     "SPI": C.C1,  # Flag controlling the use of the two radii
                     "AP": C.C2,
@@ -245,14 +246,14 @@ def read_mf32(tape, mat):
                     LCOMP0.update(header2)
                     LCOMP0.update(header3)
                     if ISR > 0:
-                        C, i = sandy.read_cont(df, i)
+                        C, i = read_cont(df, i)
                         add = {
                             "DAP": C.C2,
                         }
                         LCOMP0.update(add)
                         LCOMP0_NLS = {}
                         for k in range(NLS):
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "AWRI": L.C1,  # Ratio of the mass of a particular isotope to that of a neutron
                                 # Number of resolved resonances for a given
@@ -278,8 +279,7 @@ def read_mf32(tape, mat):
                                 "DJDF",
                                 "DJ²",
                             ]
-                            COVAR_PAR = [dict(zip(keys, items))
-                                         for items in sandy.utils.grouper(L.B, 18)]
+                            COVAR_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 18)]
                             add.update({"COVAR_PAR": COVAR_PAR})
                             LCOMP0_NLS.update({L.L1: add})
                             LCOMP0.update({"L": LCOMP0_NLS})
@@ -287,7 +287,7 @@ def read_mf32(tape, mat):
                     else:
                         LCOMP0_NLS = {}
                         for k in range(NLS):
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "AWRI": L.C1,  # Ratio of the mass of a particular isotope to that of a neutron
                                 # Number of resolved resonances for a given
@@ -313,8 +313,7 @@ def read_mf32(tape, mat):
                                 "DJDF",
                                 "DJ²",
                             ]
-                            COVAR_PAR = [dict(zip(keys, items))
-                                         for items in sandy.utils.grouper(L.B, 18)]
+                            COVAR_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 18)]
                             add.update({"COVAR_PAR": COVAR_PAR})
                             LCOMP0_NLS.update({L.L1: add})
                             LCOMP0.update({"L": LCOMP0_NLS})
@@ -325,19 +324,19 @@ def read_mf32(tape, mat):
                     LCOMP1.update(header3)
                     if LRF == 1 or LRF == 2:  # Breit-Wigner
                         if ISR > 0:
-                            C, i = sandy.read_cont(df, i)
+                            C, i = read_cont(df, i)
                             add = {
                                 "DAP": C.C2,
                             }
                             LCOMP1.update(add)
-                            C, i = sandy.read_cont(df, i)
+                            C, i = read_cont(df, i)
                             add = {
                                 "AWRI": C.C1,
                                 "NSRS": C.N1,
                                 "NLRS": C.N2,
                             }
                             LCOMP1.update(add)
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "MPAR": L.L1,
                                 "NRB": L.N2,
@@ -345,8 +344,7 @@ def read_mf32(tape, mat):
                             NRB = int(L.N2)
                             MPAR = int(L.L1)
                             keys = ["ER", "AJ", "GT", "GN", "GG", "GF"]
-                            RES_PAR = [dict(zip(keys, items)) for items in sandy.utils.grouper(
-                                L.B[:6 * NRB], 6)]
+                            RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B[:6 * NRB], 6)]
                             add.update({"RES_PAR": RES_PAR})
                             tri = np.zeros((MPAR * NRB, MPAR * NRB))
                             tri[np.triu_indices(
@@ -358,14 +356,14 @@ def read_mf32(tape, mat):
                             LCOMP1.update(add)
                             dico[(EL, EH)] = LCOMP1
                         if ISR == 0:
-                            C, i = sandy.read_cont(df, i)
+                            C, i = read_cont(df, i)
                             add = {
                                 "AWRI": C.C1,
                                 "NSRS": C.N1,
                                 "NLRS": C.N2,
                             }
                             LCOMP1.update(add)
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "MPAR": L.L1,
                                 "NRB": L.N2,
@@ -373,8 +371,7 @@ def read_mf32(tape, mat):
                             NRB = int(L.N2)
                             MPAR = int(L.L1)
                             keys = ["ER", "AJ", "GT", "GN", "GG", "GF"]
-                            RES_PAR = [dict(zip(keys, items)) for items in sandy.utils.grouper(
-                                L.B[:6 * NRB], 6)]
+                            RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B[:6 * NRB], 6)]
                             add.update({"RES_PAR": RES_PAR})
                             tri = np.zeros((MPAR * NRB, MPAR * NRB))
                             tri[np.triu_indices(
@@ -388,26 +385,26 @@ def read_mf32(tape, mat):
                     elif LRF == 3:  # Reich-Moore
                         add = {}
                         if ISR > 0:
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             # DAP is uncertainty on scattering radius
-                            DAP = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B, 1)]
+                            DAP = [dict(zip(keys, items)) for items in grouper(L.B, 1)]
                             add.update({
                                 "MLS": L.NPL,
                                 "DAP": DAP,
                             })
-                        C, i = sandy.read_cont(df, i)
+                        C, i = read_cont(df, i)
                         add.update({
                             "AWRI": C.C1,
                             "NSRS": C.N1,
                             "NLRS": C.N2,
                         })
-                        L, i = sandy.read_list(df, i)
+                        L, i = read_list(df, i)
                         NRB = int(L.N2)
                         MPAR = int(L.L1)
                         keys = ["ER", "AJ", "GN", "GG", "GFA", "GFB"]
                         
                         # resonance parameters
-                        RES_PAR = [dict(zip(keys, items)) for items in sandy.utils.grouper(L.B[:6 * NRB], 6)]
+                        RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B[:6 * NRB], 6)]
                         # resonance parameters covariance data
                         tri = np.zeros((MPAR * NRB, MPAR * NRB))
                         tri[np.triu_indices(MPAR * NRB, 0)] = np.array(L.B[6 * NRB:])
@@ -423,7 +420,7 @@ def read_mf32(tape, mat):
 
                         dico[(EL, EH)] = LCOMP1
                     elif LRF == 4:
-                        L, i = sandy.read_list(df, i)
+                        L, i = read_list(df, i)
                         add = {
                             "MPAR": L.L1,
                             "NRB": L.N2,
@@ -443,8 +440,7 @@ def read_mf32(tape, mat):
                             "DWC",
                             "GRC",
                             "GIC"]
-                        RES_PAR = [dict(zip(keys, items))
-                                   for items in sandy.utils.grouper(L.B[:6 * NRB], 12)]
+                        RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B[:6 * NRB], 12)]
                         add.update({"RES_PAR": RES_PAR})
                         tri = np.zeros((MPAR * NRB, MPAR * NRB))
                         tri[np.triu_indices(MPAR * NRB, 0)
@@ -457,20 +453,20 @@ def read_mf32(tape, mat):
                         dico[(EL, EH)] = LCOMP1
                     elif LRF == 7:
                         if ISR > 0:
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "JCH": L.NPL,
                                 "(1+(NJCH-1)/6)": L.N2,
                                 "DAP": L.B,
                             }
-                            C, i = sandy.read_cont(df, i)
+                            C, i = read_cont(df, i)
                             add = {
                                 "NJSX": C.L1,
                             }
                             add.update(add)
                             NJSX = int(C.L1)
                             for k in range(NJSX):
-                                L, i = sandy.read_list(df, i)
+                                L, i = read_list(df, i)
                                 add = {
                                     "NCH": L.L1,
                                     "NRB": L.L2,
@@ -487,7 +483,7 @@ def read_mf32(tape, mat):
                                 }
                                 LIST2.update({k: add_3})
                             add.update({"J": LIST2})
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "N": L.NPL,
                                 "NPARB": L.N2,
@@ -504,14 +500,14 @@ def read_mf32(tape, mat):
                             LCOMP1.update(add)
                             dico[(EL, EH)] = LCOMP1
                         else:
-                            C, i = sandy.read_cont(df, i)
+                            C, i = read_cont(df, i)
                             add = {
                                 "NJSX": C.L1,
                             }
                             add.update(add)
                             NJSX = int(C.L1)
                             for k in range(NJSX):
-                                L, i = sandy.read_list(df, i)
+                                L, i = read_list(df, i)
                                 add = {
                                     "NCH": L.L1,
                                     "NRB": L.L2,
@@ -528,7 +524,7 @@ def read_mf32(tape, mat):
                                 }
                                 LIST2.update({k: add_3})
                             add.update({"J": LIST2})
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "N": L.NPL,
                                 "NPARB": L.N2,
@@ -550,12 +546,12 @@ def read_mf32(tape, mat):
                     LCOMP2.update(header3)
                     if LRF == 1 or LRF == 2:
                         if ISR > 0:
-                            C, i = sandy.read_cont(df, i)
+                            C, i = read_cont(df, i)
                             add = {
                                 "DAP": C.C2,
                             }
                             LCOMP2.update(add)
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "AWRI": C.C1,
                                 "QX": C.C2,
@@ -564,8 +560,7 @@ def read_mf32(tape, mat):
                             NRSA = L.N2
                             keys = ["ER", "AJ", "GT", "GN", "GG", "GF",
                                     "DER", "01", "02", "DGN", "DGG", "DGF"]
-                            RES_PAR = [dict(zip(keys, items))
-                                       for items in sandy.utils.grouper(L.B, 12)]
+                            RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 12)]
                             RES_PAR1 = RES_PAR
                             for h in range(NRSA):
                                 del RES_PAR1[h]["01"]
@@ -573,7 +568,7 @@ def read_mf32(tape, mat):
                             RES_PAR = RES_PAR1
                             add.update({"RES_PAR": RES_PAR})
                             LCOMP2.update(add)
-                            C, i = sandy.read_cont(df, i)
+                            C, i = read_cont(df, i)
                             add = {
                                 "NDIGIT": C.L1,
                                 "NNN": C.L2,
@@ -596,7 +591,7 @@ def read_mf32(tape, mat):
                             LCOMP2.update(add)
                             dico[(EL, EH)] = LCOMP2
                         elif ISR == 0:
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "AWRI": C.C1,
                                 "QX": C.C2,
@@ -604,15 +599,14 @@ def read_mf32(tape, mat):
                             }
                             keys = ["ER", "AJ", "GT", "GN", "GG", "GF",
                                     "DER", "01", "02", "DGN", "DGG", "DGF"]
-                            RES_PAR = [dict(zip(keys, items))
-                                       for items in sandy.utils.grouper(L.B, 12)]
+                            RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 12)]
                             RES_PAR1 = RES_PAR
                             for h in range(NRSA):
                                 del RES_PAR1[h]["01"]
                                 del RES_PAR1[h]["02"]
                             RES_PAR = RES_PAR1
                             add.update({"RES_PAR": RES_PAR})
-                            C, i = sandy.read_cont(df, i)
+                            C, i = read_cont(df, i)
                             add = {
                                 "NDIGIT": C.L1,
                                 "NNN": C.L2,
@@ -636,12 +630,12 @@ def read_mf32(tape, mat):
                             dico[(EL, EH)] = LCOMP2
                     elif LRF == 3:
                         if ISR == 1:
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "MLS": L.NPL,
                                 "DAP": L.B
                             }
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "AWRI": C.C1,
                                 "APL": C.C2,
@@ -660,14 +654,13 @@ def read_mf32(tape, mat):
                                 "DGG",
                                 "DGFA",
                                 "DGFB"]
-                            RES_PAR = [dict(zip(keys, items))
-                                       for items in sandy.utils.grouper(L.B, 12)]
+                            RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 12)]
                             RES_PAR1 = RES_PAR
                             for h in range(NRSA):
                                 del RES_PAR1[h]["0"]
                             RES_PAR = RES_PAR1
                             add.update({"RES_PAR": RES_PAR})
-                            C, i = sandy.read_cont(df, i)
+                            C, i = read_cont(df, i)
                             add = {
                                 "NDIGIT": C.L1,
                                 "NNN": C.L2,
@@ -690,7 +683,7 @@ def read_mf32(tape, mat):
                             LCOMP2.update(add)
                             dico[(EL, EH)] = LCOMP2
                         else:
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "AWRI": C.C1,
                                 "APL": C.C2,
@@ -710,14 +703,13 @@ def read_mf32(tape, mat):
                                 "DGG",
                                 "DGFA",
                                 "DGFB"]
-                            RES_PAR = [dict(zip(keys, items))
-                                       for items in sandy.utils.grouper(L.B, 12)]
+                            RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 12)]
                             RES_PAR1 = RES_PAR
                             for h in range(NRSA):
                                 del RES_PAR1[h]["0"]
                             RES_PAR = RES_PAR1
                             add.update({"RES_PAR": RES_PAR})
-                            C, i = sandy.read_cont(df, i)
+                            C, i = read_cont(df, i)
                             add = {
                                 "NDIGIT": C.L1,
                                 "NNN": C.L2,
@@ -741,7 +733,7 @@ def read_mf32(tape, mat):
                             dico[(EL, EH)] = LCOMP2
                     elif LRF == 7:
                         if ISR > 0:
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
 
                                 "JCH": L.NPL,
@@ -749,20 +741,19 @@ def read_mf32(tape, mat):
                                 "DAP": L.B,
                             }
                             LCOMP2.update(add)
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "NPP": L.L1,
                                 "NJSX": L.L2,
                             }
                             keys = ["MA", "MB", "ZA", "ZB", "IA", "IB",
                                     "Q", "PNT", "SHF", "MT", "PA", "PB"]
-                            RES_PAR = [dict(zip(keys, items))
-                                       for items in sandy.utils.grouper(L.B, 12)]
+                            RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 12)]
                             add.update({"RES_PAR": RES_PAR})
                             LCOMP2.update(add)
                             for k in range(NLS):
                                 LIST = {}
-                                L, i = sandy.read_list(df, i)
+                                L, i = read_list(df, i)
                                 add = {
                                     "AJ": L.C1,
                                     "PJ": L.C2,
@@ -770,11 +761,10 @@ def read_mf32(tape, mat):
                                 }
                                 NCH = int(L.N1)
                                 keys = ["PPI", "L", "SCH", "BND", "APE", "APT"]
-                                RES_PAR = [dict(zip(keys, items))
-                                           for items in sandy.utils.grouper(L.B, 6)]
+                                RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 6)]
                                 add.update({"RES_PAR": RES_PAR})
                                 LCOMP2.update(add)
-                                L, i = sandy.read_list(df, i)
+                                L, i = read_list(df, i)
                                 add = {
                                     "NCH": L.L1,
                                     "NRB": L.L2,
@@ -791,7 +781,7 @@ def read_mf32(tape, mat):
                                 add.update(add_2)
                                 LIST.update({k: add})
                             LCOMP2.update({"J": LIST})
-                            C, i = sandy.read_cont(df, i)
+                            C, i = read_cont(df, i)
                             add = {
                                 "NDIGIT": C.L1,
                                 "NNN": C.L2,
@@ -813,20 +803,19 @@ def read_mf32(tape, mat):
                             LCOMP2.update(add)
                             dico[(EL, EH)] = LCOMP2
                         else:
-                            L, i = sandy.read_list(df, i)
+                            L, i = read_list(df, i)
                             add = {
                                 "NPP": L.L1,
                                 "NJSX": L.L2,
                             }
                             keys = ["MA", "MB", "ZA", "ZB", "IA", "IB",
                                     "Q", "PNT", "SHF", "MT", "PA", "PB"]
-                            RES_PAR = [dict(zip(keys, items))
-                                       for items in sandy.utils.grouper(L.B, 12)]
+                            RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 12)]
                             add.update({"RES_PAR": RES_PAR})
                             LCOMP2.update(add)
                             for k in range(NLS):
                                 LIST = {}
-                                L, i = sandy.read_list(df, i)
+                                L, i = read_list(df, i)
                                 add = {
                                     "AJ": L.C1,
                                     "PJ": L.C2,
@@ -834,11 +823,10 @@ def read_mf32(tape, mat):
                                 }
                                 NCH = int(L.N1)
                                 keys = ["PPI", "L", "SCH", "BND", "APE", "APT"]
-                                RES_PAR = [dict(zip(keys, items))
-                                           for items in sandy.utils.grouper(L.B, 6)]
+                                RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 6)]
                                 add.update({"RES_PAR": RES_PAR})
                                 LCOMP2.update(add)
-                                L, i = sandy.read_list(df, i)
+                                L, i = read_list(df, i)
                                 add = {
                                     "NCH": L.L1,
                                     "NRB": L.L2,
@@ -854,7 +842,7 @@ def read_mf32(tape, mat):
                                 add.update(add_2)
                                 LIST.update({k: add})
                             LCOMP2.update({"J": LIST})
-                            C, i = sandy.read_cont(df, i)
+                            C, i = read_cont(df, i)
                             add = {
                                 "NDIGIT": C.L1,
                                 "NNN": C.L2,

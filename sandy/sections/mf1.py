@@ -1,13 +1,7 @@
 import logging
 import re
 
-import sandy
-
 __author__ = "Luca Fiorito"
-__all__ = [
-        "read_mf1",
-        "write_mf1",
-        ]
 
 allowed_mt = (
         451,
@@ -44,6 +38,7 @@ def read_mf1(tape, mat, mt):
     check only some information for the test:
 
     **mt = 451** :
+    >>> import sandy
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350, local=True)
     >>> test = sandy.read_mf1(tape, 9228, 451)
     >>> test['SECTIONS'][::5]
@@ -199,6 +194,8 @@ def read_mf1(tape, mat, mt):
 
 
 def _read_nubar(tape, mat):
+    from ..records import read_cont, read_list, read_tab1
+
     mt = 452
     df = tape._get_section_df(mat, mf, mt)
     out = {
@@ -207,7 +204,7 @@ def _read_nubar(tape, mat):
             "MT": mt,
             }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     LNU = C.L2
     add = {
             "ZA": C.C1,
@@ -216,13 +213,13 @@ def _read_nubar(tape, mat):
             }
     out.update(add)
     if LNU == 1:
-        L, i = sandy.read_list(df, i)
+        L, i = read_list(df, i)
         add = {
                 "C": L.B,
                 }
         out.update(add)
     elif LNU == 2:
-        T, i = sandy.read_tab1(df, i)
+        T, i = read_tab1(df, i)
         add = {
                 "NBT": T.NBT,
                 "INT": T.INT,
@@ -236,6 +233,8 @@ def _read_nubar(tape, mat):
 
 
 def _read_pnubar(tape, mat):
+    from ..records import read_cont, read_list, read_tab1
+
     mt = 456
     df = tape._get_section_df(mat, mf, mt)
     out = {
@@ -244,7 +243,7 @@ def _read_pnubar(tape, mat):
             "MT": mt,
             }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     LNU = C.L2
     add = {
             "ZA": C.C1,
@@ -253,13 +252,13 @@ def _read_pnubar(tape, mat):
             }
     out.update(add)
     if LNU == 1:
-        L, i = sandy.read_list(df, i)
+        L, i = read_list(df, i)
         add = {
                 "NU": L.B,
                 }
         out.update(add)
     elif LNU == 2:
-        T, i = sandy.read_tab1(df, i)
+        T, i = read_tab1(df, i)
         add = {
                 "NBT": T.NBT,
                 "INT": T.INT,
@@ -273,6 +272,8 @@ def _read_pnubar(tape, mat):
 
 
 def _read_dnubar(tape, mat):
+    from ..records import read_cont, read_list, read_tab1, read_tab2
+
     mt = 455
     df = tape._get_section_df(mat, mf, mt)
     out = {
@@ -281,7 +282,7 @@ def _read_dnubar(tape, mat):
             "MT": mt,
             }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     LDG = C.L1
     LNU = C.L2
     add = {
@@ -292,12 +293,12 @@ def _read_dnubar(tape, mat):
             }
     out.update(add)
     if LDG == 0 and LNU == 2:
-        L, i = sandy.read_list(df, i)
+        L, i = read_list(df, i)
         add = {
                 "LAMBDA": L.B,
                 }
         out.update(add)
-        T, i = sandy.read_tab1(df, i)
+        T, i = read_tab1(df, i)
         add = {
                 "NBT": T.NBT,
                 "INT": T.INT,
@@ -306,7 +307,7 @@ def _read_dnubar(tape, mat):
                 }
         out.update(add)
     elif LDG == 1 and LNU == 2:
-        T2, i = sandy.read_tab2(df, i)
+        T2, i = read_tab2(df, i)
         NE = T2.NZ
         add = {
                 "ENBT": T2.NBT,
@@ -315,7 +316,7 @@ def _read_dnubar(tape, mat):
         out.update(add)
         add = {}
         for j in range(NE):
-            L, i = sandy.read_list(df, i)
+            L, i = read_list(df, i)
             E = L.C2
             LAMBDA = L.B[::2]
             ALPHA = L.B[1::2]
@@ -324,7 +325,7 @@ def _read_dnubar(tape, mat):
                     "ALPHA": ALPHA,
                     }
         out["EGROUPS"] = add
-        T, i = sandy.read_tab1(df, i)
+        T, i = read_tab1(df, i)
         add = {
                 "NBT": T.NBT,
                 "INT": T.INT,
@@ -335,12 +336,12 @@ def _read_dnubar(tape, mat):
     elif LDG == 0 and LNU == 1:
         logging.warning(f"""'(LDG, LNU) = ({LDG}, {LNU})' is not validated.
                         Please, report any possible bug/error.""")
-        L, i = sandy.read_list(df, i)
+        L, i = read_list(df, i)
         add = {
                 "LAMBDA": L.B,
                 }
         out.update(add)
-        T, i = sandy.read_tab1(df, i)
+        T, i = read_tab1(df, i)
         add = {
                 "NBT": T.NBT,
                 "INT": T.INT,
@@ -351,7 +352,7 @@ def _read_dnubar(tape, mat):
     elif LDG == 1 and LNU == 1:
         logging.warning(f"""'(LDG, LNU) = ({LDG}, {LNU})' is not validated.
                         Please, report any possible bug/error.""")
-        T2, i = sandy.read_tab2(df, i)
+        T2, i = read_tab2(df, i)
         NE = T2.NZ
         add = {
                 "ENBT": T2.NBT,
@@ -360,7 +361,7 @@ def _read_dnubar(tape, mat):
         out.update(add)
         add = {}
         for j in range(NE):
-            L, i = sandy.read_list(df, i)
+            L, i = read_list(df, i)
             E = L.C2
             LAMBDA = L.B[::2]
             ALPHA = L.B[1::2]
@@ -369,7 +370,7 @@ def _read_dnubar(tape, mat):
                     "ALPHA": ALPHA,
                     }
         out["EGROUPS"] = add
-        T, i = sandy.read_tab1(df, i)
+        T, i = read_tab1(df, i)
         add = {
                 "NBT": T.NBT,
                 "INT": T.INT,
@@ -383,6 +384,8 @@ def _read_dnubar(tape, mat):
 
 
 def _read_intro(tape, mat):
+    from ..records import read_cont, read_text
+
     mt = 451
     df = tape._get_section_df(mat, mf, mt)
     out = {
@@ -391,7 +394,7 @@ def _read_intro(tape, mat):
             "MT": mt,
             }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     add = {
             "ZA": C.C1,
             "AWR": C.C2,
@@ -401,7 +404,7 @@ def _read_intro(tape, mat):
             "MOD": C.N2,   # Modification number for this material
             }
     out.update(add)
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     add = {
             "ELIS": C.C1,  # Excitation energy of the target nucleus relative to 0.0 for the ground state.
             "STA": C.C2,   # Target stability flag
@@ -410,7 +413,7 @@ def _read_intro(tape, mat):
             "NFOR": C.N2,  # Library format. NFOR=6 for ENDF-6
             }
     out.update(add)
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     add = {
             "AWI": C.C1,   # Mass of the projectile in neutron mass units
             "EMAX": C.C2,  # Upper limit of the energy range for evaluation
@@ -419,7 +422,7 @@ def _read_intro(tape, mat):
             "NVER": C.N2,  # Library version number; for example, NVER=7 for version ENDF/B-VII
             }
     out.update(add)
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     NWD = C.N1
     NXC = C.N2
     add = {
@@ -431,7 +434,7 @@ def _read_intro(tape, mat):
     out.update(add)
     descr = []
     for j in range(NWD):
-        T, i = sandy.read_text(df, i)
+        T, i = read_text(df, i)
         descr.append(T[0])
     add = {
         "DESCRIPTION": descr,
@@ -479,7 +482,7 @@ def _read_intro(tape, mat):
     #         })
     sections = []
     for j in range(NXC):
-        T, i = sandy.read_text(df, i)
+        T, i = read_text(df, i)
         # if MOD is left empty, add a 0 
         s = tuple(map(lambda x: 0 if x.strip() == "" else int(x), 
                       re.findall(".{11}", T[0])[2:])
@@ -504,6 +507,8 @@ def _get_sections(df):
     
 
 def _read_fission_energy(tape, mat):
+    from ..records import read_cont, read_list
+
     mt = 458
     df = tape._get_section_df(mat, mf, mt)
     out = {
@@ -512,13 +517,13 @@ def _read_fission_energy(tape, mat):
             "MT": mt,
             }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     add = {
             "ZA": C.C1,
             "AWR": C.C2,
             }
     out.update(add)
-    L, i = sandy.read_list(df, i)
+    L, i = read_list(df, i)
     NPLY = L.L2
     add = {
             "NPLY": NPLY,   # Order of the polynomial expansion of the energy-components
@@ -582,6 +587,7 @@ def write_mf1(sec):
     check only some information for the test:
 
     **mt = 452** :
+    >>> import sandy
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 922350, local=True)
     >>> sec = sandy.read_mf1(tape, 9228, 452)
     >>> text = sandy.write_mf1(sec)
@@ -647,10 +653,12 @@ def write_mf1(sec):
 
 
 def _write_nubar(sec):
+    from ..records import write_cont, write_list, write_tab1, write_eol
+
     mat = sec["MAT"]
     mt = 452
     LNU = sec["LNU"]
-    lines = sandy.write_cont(
+    lines = write_cont(
             sec["ZA"],
             sec["AWR"],
             0,
@@ -659,7 +667,7 @@ def _write_nubar(sec):
             0,
             )
     if LNU == 1:
-        lines += sandy.write_list(
+        lines += write_list(
                 0,
                 0,
                 0,
@@ -668,7 +676,7 @@ def _write_nubar(sec):
                 sec["C"],
                 )
     elif LNU == 2:
-        lines += sandy.write_tab1(
+        lines += write_tab1(
                 0,
                 0,
                 0,
@@ -680,14 +688,16 @@ def _write_nubar(sec):
                 )
     else:
         raise ValueError(f"'LNU' cannot be '{LNU}'")
-    return "\n".join(sandy.write_eol(lines, mat, mf, mt))
+    return "\n".join(write_eol(lines, mat, mf, mt))
 
 
 def _write_pnubar(sec):
+    from ..records import write_cont, write_list, write_tab1, write_eol
+
     mat = sec["MAT"]
     mt = 456
     LNU = sec["LNU"]
-    lines = sandy.write_cont(
+    lines = write_cont(
             sec["ZA"],
             sec["AWR"],
             0,
@@ -696,7 +706,7 @@ def _write_pnubar(sec):
             0,
             )
     if LNU == 1:
-        lines += sandy.write_list(
+        lines += write_list(
                 0,
                 0,
                 0,
@@ -705,7 +715,7 @@ def _write_pnubar(sec):
                 sec["NU"],
                 )
     elif LNU == 2:
-        lines += sandy.write_tab1(
+        lines += write_tab1(
                 0,
                 0,
                 0,
@@ -717,15 +727,17 @@ def _write_pnubar(sec):
                 )
     else:
         raise ValueError(f"'LNU' cannot be '{LNU}'")
-    return "\n".join(sandy.write_eol(lines, mat, mf, mt))
+    return "\n".join(write_eol(lines, mat, mf, mt))
 
 
 def _write_dnubar(sec):
+    from ..records import write_cont, write_list, write_tab1, write_tab2, write_eol
+
     mat = sec["MAT"]
     mt = 455
     LDG = sec["LDG"]
     LNU = sec["LNU"]
-    lines = sandy.write_cont(
+    lines = write_cont(
             sec["ZA"],
             sec["AWR"],
             LDG,
@@ -734,7 +746,7 @@ def _write_dnubar(sec):
             0,
             )
     if LDG == 0 and LNU == 2:
-        lines += sandy.write_list(
+        lines += write_list(
                 0,
                 0,
                 0,
@@ -742,7 +754,7 @@ def _write_dnubar(sec):
                 0,
                 sec["LAMBDA"],
                 )
-        lines += sandy.write_tab1(
+        lines += write_tab1(
                 0,
                 0,
                 0,
@@ -753,7 +765,7 @@ def _write_dnubar(sec):
                 sec["NU"],
                 )
     elif LDG == 1 and LNU == 2:
-        lines += sandy.write_tab2(
+        lines += write_tab2(
                 0,
                 0,
                 0,
@@ -765,7 +777,7 @@ def _write_dnubar(sec):
         for e, v in sec["EGROUPS"]:
             LAMBDA = v["LAMBDA"]
             ALPHA = v["ALPHA"]
-            lines += sandy.write_list(
+            lines += write_list(
                     0,
                     e,
                     0,
@@ -773,7 +785,7 @@ def _write_dnubar(sec):
                     0,
                     [item for pair in zip(LAMBDA, ALPHA) for item in pair],
                     )
-        lines += sandy.write_tab1(
+        lines += write_tab1(
                 0,
                 0,
                 0,
@@ -784,7 +796,7 @@ def _write_dnubar(sec):
                 sec["NU"],
                 )
     elif LDG == 0 and LNU == 1:
-        lines += sandy.write_list(
+        lines += write_list(
                 0,
                 0,
                 0,
@@ -792,7 +804,7 @@ def _write_dnubar(sec):
                 0,
                 sec["LAMBDA"],
                 )
-        lines += sandy.write_tab1(
+        lines += write_tab1(
                 0,
                 0,
                 0,
@@ -803,7 +815,7 @@ def _write_dnubar(sec):
                 sec["NU"],
                 )
     elif LDG == 1 and LNU == 1:
-        lines += sandy.write_tab2(
+        lines += write_tab2(
                 0,
                 0,
                 0,
@@ -815,7 +827,7 @@ def _write_dnubar(sec):
         for e, v in sec["EGROUPS"]:
             LAMBDA = v["LAMBDA"]
             ALPHA = v["ALPHA"]
-            lines += sandy.write_list(
+            lines += write_list(
                     0,
                     e,
                     0,
@@ -823,7 +835,7 @@ def _write_dnubar(sec):
                     0,
                     [item for pair in zip(LAMBDA, ALPHA) for item in pair],
                     )
-        lines += sandy.write_tab1(
+        lines += write_tab1(
                 0,
                 0,
                 0,
@@ -835,13 +847,15 @@ def _write_dnubar(sec):
                 )
     else:
         raise ValueError(f"'(LDG, LNU)' cannot be '({LDG}, {LNU})'")
-    return "\n".join(sandy.write_eol(lines, mat, mf, mt))
+    return "\n".join(write_eol(lines, mat, mf, mt))
 
 
 def _write_intro(sec):
+    from ..records import write_cont, write_text, write_eol
+
     mat = sec["MAT"]
     mt = 451
-    lines = sandy.write_cont(
+    lines = write_cont(
             sec["ZA"],
             sec["AWR"],
             sec["LRP"],
@@ -849,7 +863,7 @@ def _write_intro(sec):
             sec["NLIB"],
             sec["MOD"],
             )
-    lines += sandy.write_cont(
+    lines += write_cont(
             sec["ELIS"],
             sec["STA"],
             sec["LIS"],
@@ -857,7 +871,7 @@ def _write_intro(sec):
             0,
             sec["NFOR"],
             )
-    lines += sandy.write_cont(
+    lines += write_cont(
             sec["AWI"],
             sec["EMAX"],
             sec["LREL"],
@@ -867,7 +881,7 @@ def _write_intro(sec):
             )
     NWD = len(sec["DESCRIPTION"])
     NXC = len(sec["SECTIONS"])
-    lines += sandy.write_cont(
+    lines += write_cont(
             sec["TEMP"],
             0,
             sec["LDRV"],
@@ -876,8 +890,8 @@ def _write_intro(sec):
             NXC,
             )
     for t in sec["DESCRIPTION"]:
-        lines += sandy.write_text(t)
+        lines += write_text(t)
     for MF, MT, NL, MOD in sec["SECTIONS"]:
         t = " "*22 + f"{MF:>11d}{MT:>11d}{NL:>11d}{MOD:>11d}"
-        lines += sandy.write_text(t)
-    return "\n".join(sandy.write_eol(lines, mat, mf, mt))
+        lines += write_text(t)
+    return "\n".join(write_eol(lines, mat, mf, mt))
