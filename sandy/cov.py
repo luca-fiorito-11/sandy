@@ -1265,14 +1265,14 @@ class CategoryCov():
         Normal sampling reproduces the mean and covariance approximately.
     
         >>> smp_n = cov.sampling(nsmp, seed=seed, lognormal=False)
-        >>> expcted_mean = [1, 1]
-        >>> np.testing.assert_array_almost_equal(smp_n.get_mean(), expcted_mean, decimal=2)
+        >>> expected_mean = [1, 1]
+        >>> np.testing.assert_array_almost_equal(smp_n.get_mean(), expected_mean, decimal=2)
         >>> np.testing.assert_array_almost_equal(smp_n.get_cov(), c, decimal=2)
     
         Lognormal sampling also reproduces the targets.
     
         >>> smp_ln = cov.sampling(nsmp, seed=seed, lognormal=True)
-        >>> np.testing.assert_array_almost_equal(smp_ln.get_mean(), expcted_mean, decimal=2)
+        >>> np.testing.assert_array_almost_equal(smp_ln.get_mean(), expected_mean, decimal=2)
         >>> np.testing.assert_array_almost_equal(smp_ln.get_cov(), c, decimal=2)
     
         Reproducibility with a fixed seed.
@@ -1308,7 +1308,7 @@ class CategoryCov():
 
         This is tested by checking any mean shift.
 
-        >>> np.testing.assert_array_almost_equal(s.get_mean(), [1, 1], decimal=2)
+        >>> np.testing.assert_array_almost_equal(s.get_mean(), expected_mean, decimal=2)
 
         ... and by checking that the standard deviations are preserved.
 
