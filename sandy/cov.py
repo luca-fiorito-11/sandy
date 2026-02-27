@@ -1299,7 +1299,7 @@ class CategoryCov():
         ...in this particular case, the relative error between sample covariance
         matrix and original one is large.
 
-        >>> rel_err np.linalg.norm(s.get_cov() - c) / np.linalg.norm(c)
+        >>> rel_err = np.linalg.norm(s.get_cov() - c) / np.linalg.norm(c)
         >>> assert rel_err > 0.5
     
         For lognormal sampling, large variances remain well-behaved.
