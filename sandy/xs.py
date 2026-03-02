@@ -564,29 +564,3 @@ class Xs():
         # Use concat instead of merge because indexes are the same
         frame = pd.concat(listxs, axis=1).reindex(eg, method="ffill")
         return cls(frame)
-
-
-def xs_perturb_worker(xs, n, s, verbose=False):
-    """
-    
-
-    Parameters
-    ----------
-    xs : TYPE
-        DESCRIPTION.
-    n : TYPE
-        DESCRIPTION.
-    s : `pd.DataFrame`
-        see :func:`~sandy.Xs._perturb`
-    verbose : TYPE, optional
-        DESCRIPTION. The default is False.
-
-    Returns
-    -------
-    TYPE
-        DESCRIPTION.
-
-    """
-    if verbose:
-        print(f"Processing xs sample {n}...")
-    return xs._perturb(s)

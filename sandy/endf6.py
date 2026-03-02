@@ -3303,7 +3303,7 @@ def _endf6_perturb_worker(
 
     """
     from copy import deepcopy
-    from .xs import xs_perturb_worker, Xs
+    from .xs import Xs
     from .edistr import Edistr
     from .zam import za2zam, zam2za
 
@@ -3314,7 +3314,7 @@ def _endf6_perturb_worker(
     # apply nubar perturbation
     if pnu is not None:
         nu = Xs.from_endf6(endf6_pert.filter_by(listmt=[452, 455, 456]))
-        nu_pert = xs_perturb_worker(nu, ismp, pnu, verbose=verbose)
+        nu_pert = nu._perturb(pnu)
         endf6_pert = nu_pert.reconstruct_sums(drop=True).to_endf6(endf6_pert).update_intro()
 
     # apply lpc perturbation
@@ -3336,7 +3336,7 @@ def _endf6_perturb_worker(
             )
 
             # Apply perturbation to dummy energy distribution
-            dummy_xs_pert = xs_perturb_worker(dummy_xs, ismp, pchi, verbose=verbose)
+            dummy_xs_pert = dummy_xs.perturb(pchi)
             
             # Transform xs data into edistr data and append perturbed data
             perturbed_data = (
@@ -3360,7 +3360,7 @@ def _endf6_perturb_worker(
     # apply xs perturbation
     if pxs is not None:
         xs = Xs.from_endf6(pendf_pert)
-        xs_pert = xs_perturb_worker(xs, ismp, pxs, verbose=verbose)
+        xs_pert = xs.perturb(xs, ismp, pxs, verbose=verbose)
         pendf_pert = xs_pert.reconstruct_sums(drop=True).to_endf6(pendf_pert).update_intro()
 
 
