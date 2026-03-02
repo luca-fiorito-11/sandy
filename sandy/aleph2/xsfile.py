@@ -143,7 +143,7 @@ class AlephFile():
         None.
 
         """
-        from ..shared import pad_from_beginning_fast
+        from ..utils import pad_from_beginning_fast
 
         mt = 4581
         mtf = 18
@@ -253,7 +253,7 @@ class AlephFile():
         1.00000e-01 3.00000e+00 3.00000e+00  ... 6.00000e+02 1.50000e+01
         1.00000e+01 4.00000e+00 4.00000e+00  ... 8.00000e+02 2.00000e+01
         """
-        from ..shared import pad_from_beginning_fast
+        from ..utils import pad_from_beginning_fast
 
         keys = []
         vals = []
@@ -531,7 +531,7 @@ def write_line(a="", b="", c="", d=""):
 
 
 def write_array(array, per_line=4):
-    from ..shared import grouper
+    from ..utils import grouper
 
     lines = [
         write_line(*block) for block in grouper(array, per_line, fillvalue="")

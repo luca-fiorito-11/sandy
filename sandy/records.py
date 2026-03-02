@@ -119,7 +119,7 @@ def write_integer_list(lst):
     `list` of `str`
         list of 66-characters-long ENDF-6 formatted string
     """
-    from .shared import grouper
+    from .utils import grouper
 
     itr = grouper(map("{:11d}".format, lst), 6, fillvalue=" "*11)
 
@@ -135,7 +135,7 @@ def write_float_list(lst):
     `list` of `str`
         list of 66-characters-long ENDF-6 formatted string
     """
-    from .shared import grouper
+    from .utils import grouper
 
     itr = grouper(map(write_float, lst), 6, fillvalue=" "*11)
 
@@ -191,7 +191,7 @@ def write_tab2(C1, C2, L1, L2, N2, NBT, INT):
     `list` of `str`
         list of 66-characters-long ENDF-6 formatted string
     """
-    from .shared import interwine_lists
+    from .utils import interwine_lists
 
     N1 = len(NBT)
     lines = write_cont(C1, C2, L1, L2, N1, N2)
@@ -244,7 +244,8 @@ def write_tab1(C1, C2, L1, L2, NBT, INT, x, y):
     `list` of `str`
         list of 66-characters-long ENDF-6 formatted string
     """
-    from .shared import interwine_lists
+    from .utils import interwine_lists
+
     N2 = len(x)
     lines = write_tab2(C1, C2, L1, L2, N2, NBT, INT)
     lines += write_float_list(interwine_lists(x, y))

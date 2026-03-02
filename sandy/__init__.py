@@ -66,7 +66,6 @@ __version__ = '1.1.0'
 
 # List of available sandy submodules (lazy-loaded)
 _SUBMODULES  = [
-
     # modules
     "constants",
     "cov",
@@ -75,7 +74,6 @@ _SUBMODULES  = [
     "endf6",
     "energy_grids",
     "errorr",
-    "functions",
     "fy",
     "gendf",
     "gls",
@@ -87,9 +85,7 @@ _SUBMODULES  = [
     "samples",
     "sampling",
     "settings",
-    "shared",
     "spectra",
-    "tools",
     "tsl",
     "utils",
     "xs",
@@ -346,36 +342,3 @@ def __dir__():
     base.update(_SUBMODULES)
     base.update(_PUBLIC.keys())
     return sorted(base)
-
-
-# # Must import submodules after __version__ and everything above.
-# from .constants import *
-# from .cov import *
-# from .decay import *
-# from .endf6 import *
-# from .energy_grids import *
-# from .errorr import *
-# from .fy import *
-# from .gendf import *
-# from .gls import *
-# from .libraries import *
-# from .lpc import *
-# from .pert import *
-# from .edistr import *
-# from .njoy import *
-# from .records import *
-# from .samples import *
-# from .sections import *
-# from .settings import *
-# from .shared import *
-# from .tools import *
-# from .tsl import *
-# from .utils import *
-# from .zam import *
-# from .sampling import *
-# from .spectra import *
-# from .xs import *
-
-# # These are folders
-# from . import mcnp
-# from . import aleph2
