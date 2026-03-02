@@ -4,19 +4,12 @@ data and, more in general, any tabulated energy distribution provided in
 MF5 sections.
 """
 import logging
-
-
 import pandas as pd
 import numpy as np
 
-from .pert import Pert
-from .endf6 import Endf6
-from .sections.mf5 import write_mf5
 
 __author__ = "Luca Fiorito"
-__all__ = [
-    "Edistr",
-    ]
+
 
 minimal_edistrtest = pd.DataFrame(
     [[9437, 18, 0, 1e0, 1e-5, 0.4],
@@ -438,6 +431,8 @@ class Edistr():
         3  9437  18  0 2.00000e+00 1.00000e+00 7.00000e-01
         4  9437  18  0 2.00000e+00 1.00000e+07 1.00000e-01
         """
+        from .pert import Pert
+
         data = self.data.copy()
         condition = (data.MT == mt) &\
                     (data.MAT == mat) &\
@@ -587,6 +582,9 @@ class Edistr():
         ... sandy.read_mf5(endf6, 9228, 18)["PDISTR"][0]["EIN"][1e-5]["EOUT"]
         ... )
         """
+        from .endf6 import Endf6
+        from .sections.mf5 import write_mf5
+
         data = endf6.data.copy()
         mf = 5
         for (mat, mt), df in self.data.groupby(["MAT", "MT"]):

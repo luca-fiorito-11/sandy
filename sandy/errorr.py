@@ -3,16 +3,9 @@ import numpy as np
 import logging
 
 from .endf6 import _FormattedFile
-from .cov import CategoryCov
-from .xs import Xs
-from .records import read_cont, read_list
 
 __author__ = "Luca Fiorito"
-__all__ = [
-        "Errorr",
-        ]
 
-pd.options.display.float_format = '{:.5e}'.format
 
 
 class Errorr(_FormattedFile):
@@ -168,6 +161,8 @@ class Errorr(_FormattedFile):
         (2231000.0, 10000000.0] 3.44826e-01
 
         """
+        from .xs import Xs
+
         # Check if MT numbers (if requested) exist
         if mts is not None:
             requested_mts = set(mts)
@@ -311,6 +306,8 @@ class Errorr(_FormattedFile):
         >>> assert str(exc.value) == 'No requested MT number [4, 452] was found in ERRORR file'
 
         """
+        from .cov import CategoryCov
+
         # Check if MT numbers (if requested) exist
         if mts is not None:
             requested_mts = set(mts)
@@ -389,6 +386,8 @@ def read_mf1(tape, mat):
     out : `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
     """
+    from .records import read_cont, read_list
+
     mf = 1
     mt = 451
     df = tape._get_section_df(mat, mf, mt)
@@ -432,6 +431,8 @@ def read_mf3(tape, mat, mt, mf=3):
     out : `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
     """
+    from .records import read_list
+
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,
@@ -474,6 +475,8 @@ def read_mf33(tape, mat, mt, mf=33):
     out : `dict`
         Content of the ERRORR tape structured as nested `dict`.
     """
+    from .records import read_cont, read_list
+
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,

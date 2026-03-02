@@ -1,18 +1,9 @@
 import numpy as np
 import pandas as pd
 import os
-from math import isnan
 import logging
-from numpy.linalg import norm as matrixnorm
-from scipy.stats import kstest, norm
-
-from .xs import Xs, redundant_xs
 
 __author__ = "Luca Fiorito"
-__all__ = [
-        "Samples",
-        "read_fy_samples",
-        ]
 
 
 def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
@@ -60,7 +51,7 @@ def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
 
     Read it.
     
-    >>> smps2 = sandy.read_fy_samples()
+    >>> smps2 = sandy.samples.read_fy_samples()
 
     Test that it was read correctly.
 
@@ -135,6 +126,7 @@ def summarize_sample(s, cov):
     If the sample size is less than 2, a warning is logged, and an empty dictionary is returned.
 
     """
+    from numpy.linalg import norm as matrixnorm
 
     # Extract covariance matrices
     C = cov.data.values
@@ -268,6 +260,7 @@ class Samples():
     
         Examples
         --------
+
         >>> import sandy
         >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], index=["row1", "row2"])
         >>> obj = sandy.Samples(df)
@@ -294,6 +287,7 @@ class Samples():
     
         Examples
         --------
+
         >>> import sandy
         >>> df = pd.DataFrame({0: [1, 2, 1], 1: [2, 4, 3], 2: [3, 6, 2]}, index=["A", "B", "C"])
         >>> obj = sandy.Samples(df)
@@ -320,6 +314,7 @@ class Samples():
     
         Examples
         --------
+
         >>> import sandy
         >>> df = pd.DataFrame({0: [1, 2, 1], 1: [2, 4, 3], 2: [3, 6, 2]}, index=["A", "B", "C"])
         >>> obj = sandy.Samples(df)
@@ -361,6 +356,7 @@ class Samples():
 
         Examples
         --------
+
         >>> import sandy
         >>> import numpy as np
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010, local=True)
@@ -417,6 +413,7 @@ class Samples():
 
         Examples
         --------
+
         >>> import sandy
         >>> import numpy as np
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010, local=True)
@@ -457,6 +454,7 @@ class Samples():
     
         Examples
         --------
+
         >>> import pandas as pd
         >>> import numpy as np
         >>> data = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=["A", "B", "C"])
@@ -490,6 +488,7 @@ class Samples():
     
         Examples
         --------
+
         >>> import pandas as pd
         >>> import numpy as np
         >>> import sandy
@@ -649,6 +648,8 @@ class Samples():
         >>> assert lognormality_result.all()  # Lognormal data should pass when tested for lognormality
 
         """
+        from scipy.stats import kstest, norm
+
         # Convert data to a NumPy array
         s = self.data.copy().values
 
@@ -702,6 +703,7 @@ class Samples():
 
         Examples
         --------
+
         >>> import pandas as pd
         >>> import numpy as np
         >>> from sandy.samples import Samples
@@ -788,6 +790,7 @@ class Samples():
         --------
 
         Get samples fot MT=1.
+
         >>> import sandy
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010, local=True)
         >>> smps2 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=2)))[33]
@@ -861,6 +864,8 @@ class Samples():
 
         >>> assert(next(smps[35].iterate_xs_samples())[1].shape == (240, 5))
         """
+        from .xs import Xs, redundant_xs
+
         # the tests in this docstrings are very slow...might improve it
         
         levels = Xs._columnsnames
@@ -930,6 +935,7 @@ class Samples():
 
         Examples
         --------
+
         >>> import pandas as pd
         >>> import numpy as np
         >>> from sandy.samples import Samples
