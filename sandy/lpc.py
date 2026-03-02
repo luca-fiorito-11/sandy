@@ -121,6 +121,8 @@ class Lpc():
 
         Examples
         --------
+        
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33",'xs',[922350, 922380], local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> comp = LPC.filter_by('MAT', 9228).data.index.get_level_values(0) == 9228
@@ -156,6 +158,8 @@ class Lpc():
 
         Examples
         --------
+
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33",'xs',[922350, 922380], local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> LPC._filters({'MT': 2, 'E': 1e-05}).data.index
@@ -208,6 +212,7 @@ class Lpc():
 
         Test.
         
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
     
@@ -278,6 +283,8 @@ class Lpc():
 
         Examples
         --------
+
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922350, local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> eg = np.array([1, 2])
@@ -403,6 +410,8 @@ class Lpc():
 
         Examples
         --------
+
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922350, local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> cosines=np.linspace(-1, 1, 43)
@@ -444,6 +453,8 @@ class Lpc():
 
         Examples
         --------
+
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922350, local=True)
         >>> LPC = sandy.Lpc.from_endf6(tape)
         >>> LPC._add_points([1,2]).data.iloc[:,:2].head()
@@ -615,11 +626,6 @@ class Tpd():
         -------
         `pandas.DataFrame`
             tabulated angular distibutions
-
-        Raises
-        ------
-        `sandy.Error`
-            if `data` is not a `pandas.DataFrame`
         """
         return self._data
 
