@@ -6,10 +6,6 @@ __all__ = [
         "get_custom_spectrum",
         ]
 
-
-pd.options.display.float_format = '{:.5e}'.format
-
-
 custom_spectra = {
     "PWR_UO2_0_1102": "https://fispact.ukaea.uk/wiki/images/2/29/1102_PWR-UO2-0.txt",
     "PWR_UO2_15_1102": "https://fispact.ukaea.uk/wiki/images/3/33/1102_PWR-UO2-15.txt",
