@@ -345,14 +345,14 @@ def write_int(x):
     --------
     
     >>> import sandy
-    >>> sandy.write_int(10)
+    >>> sandy.records.write_int(10)
     '         10'
 
-    >>> sandy.write_int(-1e5)
+    >>> sandy.records.write_int(-1e5)
     '    -100000'
 
     >>> import pytest
-    >>> with pytest.raises(ValueError): sandy.write_int(-1e10)
+    >>> with pytest.raises(ValueError): sandy.records.write_int(-1e10)
     """
     y = f"{int(x):>11d}"
     if len(y) > 11:

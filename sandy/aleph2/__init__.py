@@ -26,7 +26,7 @@ def __getattr__(name):
     imported through the lazy loader.
     
     >>> import sandy.aleph2 as al2
-    >>> for name in mcnp.__all__:
+    >>> for name in al2.__all__:
     ...     obj = getattr(al2, name)
     ...     assert obj is not None, f"Failed to import sections.{name}"
     
