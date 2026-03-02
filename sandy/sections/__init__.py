@@ -48,6 +48,29 @@ __all__ = [
 ]
 
 def __getattr__(name):
+    """
+    Lazy attribute resolution. 
+    
+    To keep imports fast and avoid loading all MF modules eagerly, this module
+    implements ``__getattr__`` (PEP 562). When an attribute such as
+    ``sandy.sections.mf1`` is accessed, the corresponding module is imported
+    *on demand*.
+
+    Examples
+    --------
+
+    Below is a minimal smoke test that ensures all declared MF modules can be
+    imported through the lazy loader.
+    
+    >>> import sandy.sections as sec
+    >>> for name in sec.__all__:
+    ...     obj = getattr(sec, name)
+    ...     assert obj is not None, f"Failed to import sections.{name}"
+    
+    This test does *not* validate semantics. It only that lazy loading works and
+    ``__all__`` is complete.
+
+    """
     if name in __all__:
         return import_module(f"sandy.sections.{name}")
     raise AttributeError(f"module 'sandy.sections' has no attribute '{name}'")
