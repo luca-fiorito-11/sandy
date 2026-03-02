@@ -6,16 +6,13 @@ This module contains all classes and functions to provide a API for a MCNP
 import re
 import io
 import logging
-
 import pandas as pd
 import numpy as np
 
 
+
 __author__ = "Luca Fiorito"
 
-__all__ = [
-        "MshtTally",
-        ]
 
 
 class MshtTally():

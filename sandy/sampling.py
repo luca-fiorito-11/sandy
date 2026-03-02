@@ -1,18 +1,11 @@
 import os
 import time
 import logging
-import argparse
-import subprocess as sp
 
-from .endf6 import Endf6
-from .tools import is_valid_file
-from .utils import get_seed
-from .samples import Samples
-from . import __version__
 
 
 __author__ = "Luca Fiorito"
-__all__ = []
+
 
 
 def parse(iargs=None):
@@ -31,6 +24,11 @@ def parse(iargs=None):
         namespace object containing processed given arguments and/or default
         options.
     """
+    import argparse
+    from .tools import is_valid_file
+    from .utils import get_seed
+    from . import __version__
+
     if iargs:
         command_line = " ".join(iargs)
         logging.info(f" - Parsing input file options...\n\t{command_line}")
@@ -393,11 +391,14 @@ def run(iargs):
 
     Default use case for fission yield sampling.
 
-    >>> import sandy
     >>> sandy.get_endf6_file("jeff_33", "nfpy", [922350, 922380], local=True).to_file("AAA.txt")
     >>> sandy.sampling.run("AAA.txt --samples 3 --processes 1".split())
     >>> assert {'fy_0', 'fy_1', 'fy_2'}.issubset(set(glob.glob("fy*")))
     """
+    import subprocess as sp
+    
+    from .endf6 import Endf6
+    from .samples import Samples
 
     loglevels = {
         "debug": logging.DEBUG,

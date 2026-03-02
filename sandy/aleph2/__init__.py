@@ -12,8 +12,8 @@ __all__ = [
 
 def __getattr__(name):
     if name in __all__:
-        return import_module(f"sandy.sections.{name}")
-    raise AttributeError(f"module 'sandy.sections' has no attribute '{name}'")
+        return import_module(f"sandy.aleph2.{name}")
+    raise AttributeError(f"module 'sandy.aleph2' has no attribute '{name}'")
 
 def __dir__():
     return sorted(list(globals().keys()) + __all__)

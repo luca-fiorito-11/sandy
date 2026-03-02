@@ -3,20 +3,15 @@ This module contains all classes and functions to provide a API for a MCNP
 *mctal* file.
 """
 
-import pdb
 import re
 import logging
 from io import StringIO
-
 import numpy as np
 import pandas as pd
 
 
 __author__ = "Luca Fiorito"
 
-__all__ = [
-        "MctalTally",
-        ]
 
 
 class MctalTally():
@@ -333,10 +328,6 @@ def _from_block(text):
     vals = []
     for jpos in range(int(np.ceil(dim/8))):
         ipos += 1
-        try:
-            A= list(map(float, lines[ipos].split()))
-        except:
-            pdb.set_trace()
         vals += list(map(float, lines[ipos].split()))
     # vals = np.array(vals).reshape(max(1, nt), max(1, ne), max(1, nc), max(1, nm), max(1, ns), max(1, nu), max(1, nd), max(1, nf), 2)
     df = pd.MultiIndex.from_product(
