@@ -343,6 +343,8 @@ def write_int(x):
     """
     Examples
     --------
+    
+    >>> import sandy
     >>> sandy.write_int(10)
     '         10'
 

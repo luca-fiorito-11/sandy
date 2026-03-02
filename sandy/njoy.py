@@ -189,6 +189,7 @@ def get_temperature_suffix(temperature, meta=False):
     
     Test reference ALEPH temperatures for ground and meta states.
 
+    >>> import sandy
     >>> for k, v in sandy.njoy.tmp2ext.items():
     ...    assert v == get_temperature_suffix(k)
     ...    assert v == get_temperature_suffix(k, 0)
@@ -656,6 +657,7 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
 
     Default test without keyword arguments.
 
+    >>> import sandy
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237))
     errorr
     20 21 0 22 0 /

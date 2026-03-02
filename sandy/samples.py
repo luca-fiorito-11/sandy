@@ -812,28 +812,28 @@ class Samples():
         >>> expected = pd.MultiIndex.from_product([[125], [51]], names=["MAT", "MT"])
         >>> assert next(smps51.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [4] + list(sandy.redundant_xs[4])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [4] + list(sandy.xs.redundant_xs[4])], names=["MAT", "MT"])
         >>> assert next(smps4.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [1] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [1] + list(sandy.xs.redundant_xs[1])], names=["MAT", "MT"])
         >>> assert next(smps1.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [3] + list(sandy.redundant_xs[3])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [3] + list(sandy.xs.redundant_xs[3])], names=["MAT", "MT"])
         >>> assert next(smps3.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [1] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [1] + list(sandy.xs.redundant_xs[1])], names=["MAT", "MT"])
         >>> assert next(smps1.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [18] + list(sandy.redundant_xs[18])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [18] + list(sandy.xs.redundant_xs[18])], names=["MAT", "MT"])
         >>> assert next(smps18.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [27] + list(sandy.redundant_xs[27])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [27] + list(sandy.xs.redundant_xs[27])], names=["MAT", "MT"])
         >>> assert next(smps27.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [101] + list(sandy.redundant_xs[101])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [101] + list(sandy.xs.redundant_xs[101])], names=["MAT", "MT"])
         >>> assert next(smps101.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [452] + list(sandy.redundant_xs[452])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [452] + list(sandy.xs.redundant_xs[452])], names=["MAT", "MT"])
         >>> assert next(smps452.iterate_xs_samples())[1].columns.equals(expected)
 
 
@@ -842,7 +842,7 @@ class Samples():
         >>> smps = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=[1, 51])))[33]
 
         Then, since MT=1 is redundant, samples are passed to its partial components (MT=2 and MT=3).
-        >>> expected = pd.MultiIndex.from_product([[9440], [1, 51] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[9440], [1, 51] + list(sandy.xs.redundant_xs[1])], names=["MAT", "MT"])
         >>> assert next(smps.iterate_xs_samples())[1].columns.equals(expected)
         
         If case one of the partial components already has samples, i.e., MT=2...

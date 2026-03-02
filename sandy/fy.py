@@ -8,12 +8,11 @@ Examples
 Get CEA fission yield evaluations and correlation matrices.
 
 >>> import os, sandy
->>> assert os.path.exists(sandy.fy2.fy_cea_u235th)
+>>> assert os.path.exists(sandy.fy.fy_cea_u235th)
 >>> assert os.path.exists(sandy.fy.fy_cea_pu239th)
 >>> assert os.path.exists(sandy.fy.fy_cea_u235th_corr)
 >>> assert os.path.exists(sandy.fy.fy_cea_pu239th_corr)
 
->>> import os, sandy
 >>> assert os.path.exists(sandy.fy_cea_u235th)
 >>> assert os.path.exists(sandy.fy_cea_pu239th)
 >>> assert os.path.exists(sandy.fy_cea_u235th_corr)
