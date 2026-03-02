@@ -3360,7 +3360,7 @@ def _endf6_perturb_worker(
     # apply xs perturbation
     if pxs is not None:
         xs = Xs.from_endf6(pendf_pert)
-        xs_pert = xs._perturb(xs, ismp, pxs, verbose=verbose)
+        xs_pert = xs._perturb(pxs)
         pendf_pert = xs_pert.reconstruct_sums(drop=True).to_endf6(pendf_pert).update_intro()
 
 
