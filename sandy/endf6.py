@@ -3336,7 +3336,7 @@ def _endf6_perturb_worker(
             )
 
             # Apply perturbation to dummy energy distribution
-            dummy_xs_pert = dummy_xs.perturb(pchi)
+            dummy_xs_pert = dummy_xs._perturb(pchi)
             
             # Transform xs data into edistr data and append perturbed data
             perturbed_data = (
@@ -3360,7 +3360,7 @@ def _endf6_perturb_worker(
     # apply xs perturbation
     if pxs is not None:
         xs = Xs.from_endf6(pendf_pert)
-        xs_pert = xs.perturb(xs, ismp, pxs, verbose=verbose)
+        xs_pert = xs._perturb(xs, ismp, pxs, verbose=verbose)
         pendf_pert = xs_pert.reconstruct_sums(drop=True).to_endf6(pendf_pert).update_intro()
 
 
