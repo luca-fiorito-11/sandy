@@ -16,13 +16,7 @@ MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
 """
 import math
 
-import sandy
-
 __author__ = "Luca Fiorito"
-__all__ = [
-        "read_mf8",
-        "write_mf8",
-        ]
 
 mf = 8
 
@@ -93,6 +87,8 @@ def _read_nucl_prod(tape, mat, mt):
     `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
     """
+    from ..records import read_cont, read_list
+
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,
@@ -100,7 +96,7 @@ def _read_nucl_prod(tape, mat, mt):
             "MT": mt,
             }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     NS = C.N1
     add = {
             "ZAM": int(C.C1*10),
@@ -113,7 +109,7 @@ def _read_nucl_prod(tape, mat, mt):
     out.update(add)
     products = {}
     for j in range(NS):
-        L, i = sandy.read_list(df, i)
+        L, i = read_list(df, i)
         LFS = L.L2
         ND = int(L.NPL / 6)
         LIST = L.B[:]
@@ -170,6 +166,8 @@ def _read_fy(tape, mat, mt):
 
     Examples
     --------
+
+    >>> import sandy
     >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350, local=True)
     >>> IFY = sandy.sections.mf8.read_mf8(nfpy, 9228, 454)
     >>> IFY["E"][0.0253]['ZAP'][10010]
@@ -180,6 +178,8 @@ def _read_fy(tape, mat, mt):
     >>> IFY["E"][0.0253]['ZAP'][10010]
     {'FY': 1.711e-05, 'DFY': 1.8479e-06}
     """
+    from ..records import read_cont, read_list
+
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,
@@ -187,7 +187,7 @@ def _read_fy(tape, mat, mt):
             "MT": mt,
             }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     add = {
             "ZA": int(C.C1),
             "AWR": C.C2,
@@ -196,7 +196,7 @@ def _read_fy(tape, mat, mt):
     nranges = C.L1
     eranges = {}
     for j in range(nranges):
-        L, i = sandy.read_list(df, i)
+        L, i = read_list(df, i)
         data = {}
         for zafp, fps, fy, dfy in zip(*[iter(L.B)]*4):
             zap = int(zafp*10 + fps)
@@ -230,6 +230,8 @@ def _read_rdd(tape, mat):
 
     Examples
     --------
+
+    >>> import sandy
     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350, local=True)
     >>> rdd = sandy.sections.mf8.read_mf8(decay, 3542, 457)
     >>> rdd['SPECTRA'][0]['ER'][1]
@@ -255,6 +257,8 @@ def _read_rdd(tape, mat):
                'LISO', 'NST', 'HL', 'DHL', 'E', 'DE',
                'LAMBDA', 'DLAMBDA', 'SPI', 'PAR', 'DK', 'SPECTRA'])
     """
+    from ..records import read_cont, read_list, read_tab1
+
     mt = 457
     df = tape._get_section_df(mat, mf, mt)
     out = {
@@ -263,7 +267,7 @@ def _read_rdd(tape, mat):
             "MT": mt,
             }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     add = {
             # Designation of the original (radioactive) nuclide (Z*1000 + A)
             "ZA": C.C1,
@@ -282,7 +286,7 @@ def _read_rdd(tape, mat):
     # Total number of radiation types (STYP) for which spectral information is
     # given (NSP may be zero)
     NSP = C.N2
-    L, i = sandy.read_list(df, i)
+    L, i = read_list(df, i)
     add = {
             # half-life of the original nuclide (seconds)
             "HL": L.C1,
@@ -299,7 +303,7 @@ def _read_rdd(tape, mat):
             "DLAMBDA": math.log(2.0) * L.C2 / L.C1**2 if L.C1 else 0
             }
     out.update(add)
-    L, i = sandy.read_list(df, i)
+    L, i = read_list(df, i)
     add = {
             # Spin of the nuclide in its LIS state
             "SPI": L.C1,
@@ -343,7 +347,7 @@ def _read_rdd(tape, mat):
         spectra = {}
         # Update list of spectra
         for ist in range(NSP):
-            L, i = sandy.read_list(df, i)
+            L, i = read_list(df, i)
             # Decay spectrum type
             STYP = int(L.C2)
             spectra[STYP] = {}
@@ -366,7 +370,7 @@ def _read_rdd(tape, mat):
                 discrete_spectrum = []
                 for ier in range(NER):
                     discr = {}
-                    L, i = sandy.read_list(df, i)
+                    L, i = read_list(df, i)
                     # Discrete energy (eV) of radiation produced
                     discr['ER'] = L.C1
                     # Uncertainty on discrete energy
@@ -421,7 +425,7 @@ def _read_rdd(tape, mat):
             if LCON != 0:
                 spectra[STYP]["CONT"] = {}
                 cont = {}
-                T, i = sandy.read_tab1(df, i)
+                T, i = read_tab1(df, i)
                 # Decay mode
                 cont["RTYP"] = T.C1
                 # Flag indicating whether covariance data are given
@@ -456,7 +460,9 @@ def _write_fy(sec):
 
     Examples
     --------
-    Independent fission yield:
+    Independent fission yield.
+
+    >>> import sandy
     >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350, local=True)
     >>> sec = sandy.sections.mf8.read_mf8(nfpy, 9228, 454)
     >>> text = _write_fy(sec)
@@ -475,7 +481,8 @@ def _write_fy(sec):
      4.071000-7 1.101800-7 5010.00000 0.00000000 5.201000-6 8.994800-79228 8454   12
      5012.00000 0.00000000 1.261
 
-    Cumulative fission yield:
+    Cumulative fission yield.
+
     >>> nfpy = sandy.get_endf6_file("jeff_33", "nfpy", 922350, local=True)
     >>> sec = sandy.sections.mf8.read_mf8(nfpy, 9228, 459)
     >>> text = _write_fy(sec)
@@ -494,20 +501,23 @@ def _write_fy(sec):
      4.071000-7 2.849700-8 5010.00000 0.00000000 5.201000-6 2.548500-79228 8459   12
      5012.00000 0.00000000 2.522
     """
+    from ..records import write_cont, write_list, write_eol
+    from ..zam import expand_zam, get_za
+
     LE = len(sec["E"])
-    lines = sandy.write_cont(sec["ZA"], sec["AWR"], LE, 0, 0, 0)
+    lines = write_cont(sec["ZA"], sec["AWR"], LE, 0, 0, 0)
     for E, FY_information in sec['E'].items():
         interp = FY_information['INTERP']
         energy_data = FY_information['ZAP']
         NFP = len(energy_data)
         B = []
         for zap, fy_dat in energy_data.items():
-            z, a, m = sandy.zam.expand_zam(zap)
-            zaps, fps = sandy.zam.get_za(z, a, m, method='none')
+            z, a, m = expand_zam(zap)
+            zaps, fps = get_za(z, a, m, method='none')
             fy = fy_dat['FY']
             dfy = fy_dat['DFY']
             B.extend([zaps, fps, fy, dfy])
-        lines += sandy.write_list(
+        lines += write_list(
                     E,
                     0,
                     interp,
@@ -515,7 +525,7 @@ def _write_fy(sec):
                     NFP,
                     B,
                     )
-    return "\n".join(sandy.write_eol(lines, sec["MAT"], 8, sec["MT"]))
+    return "\n".join(write_eol(lines, sec["MAT"], 8, sec["MT"]))
 
 
 def _write_rdd(sec):
@@ -535,7 +545,9 @@ def _write_rdd(sec):
 
     Examples
     --------
-    Stable nuclide:
+    Stable nuclide.
+
+    >>> import sandy
     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 551340, local=True)
     >>> sec = sandy.sections.mf8.read_mf8(decay, 1803, 457)
     >>> text = _write_rdd(sec)
@@ -554,7 +566,8 @@ def _write_rdd(sec):
      326585.000 14.0000000          0          0         12          01803 8457   12
      1.00000000 0.00000000 1.709
 
-    Unstable nuclide:
+    Unstable nuclide.
+
     >>> decay = sandy.get_endf6_file("jeff_33", "decay", 922350, local=True)
     >>> sec = sandy.sections.mf8.read_mf8(decay, 3542, 457)
     >>> text = _write_rdd(sec)
@@ -578,7 +591,9 @@ def _write_rdd(sec):
      >>> text = _write_rdd(sec)
      >>> assert(len(text) == len(decay.data[3542, 8, 457]))
     """
-    lines = sandy.write_cont(
+    from ..records import write_cont, write_list, write_tab1, write_eol
+
+    lines = write_cont(
         sec["ZA"],
         sec["AWR"],
         sec['LIS'],
@@ -594,7 +609,7 @@ def _write_rdd(sec):
         add[1::2] = sec['DE']
     else:
         add = [0] * 6
-    lines += sandy.write_list(
+    lines += write_list(
         sec['HL'] if 'HL' in sec.keys() else 0,
         sec['DHL'] if 'DHL' in sec.keys() else 0,
         0,
@@ -617,7 +632,7 @@ def _write_rdd(sec):
     else:
         NDK = 0
         add = [0] * 6
-    lines += sandy.write_list(
+    lines += write_list(
         sec['SPI'],
         sec['PAR'],
         0,
@@ -635,7 +650,7 @@ def _write_rdd(sec):
                 spectra['FC'],
                 spectra['DFC'],
                 ]
-            lines += sandy.write_list(
+            lines += write_list(
                 0,
                 STYP,
                 spectra['LCON'],
@@ -645,7 +660,7 @@ def _write_rdd(sec):
                 )
             if spectra['LCON'] != 1 and 'ER' in spectra:
                 for discr in spectra['ER']:
-                    lines += sandy.write_list(
+                    lines += write_list(
                         discr['ER'],
                         discr['DER'],
                         0,
@@ -655,7 +670,7 @@ def _write_rdd(sec):
                         )
             if spectra['LCON'] != 0 and 'CONT' in spectra.keys():
                 for RTYP, cont in spectra['CONT'].items():
-                    lines += sandy.write_tab1(
+                    lines += write_tab1(
                         cont['RTYP'],
                         0.0,
                         0,
@@ -665,4 +680,4 @@ def _write_rdd(sec):
                         cont['E'][0],
                         cont["RP"],
                         )
-    return "\n".join(sandy.write_eol(lines, sec["MAT"], 8, sec["MT"]))
+    return "\n".join(write_eol(lines, sec["MAT"], 8, sec["MT"]))

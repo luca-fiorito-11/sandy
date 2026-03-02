@@ -1,31 +1,7 @@
-# -*- coding: utf-8 -*-
 from collections import namedtuple
-import itertools
-
 import numpy as np
 
-import sandy
-
 __author__ = "Luca Fiorito"
-__all__ = [
-        "read_cont",
-        "read_tab1",
-        "read_tab2",
-        "read_list",
-        "read_text",
-        "write_cont",
-        "write_tab1",
-        "write_tab2",
-        "write_list",
-        "write_float",
-        "write_int",
-        "write_integer_list",
-        "write_float_list",
-        "line_numbers",
-        "write_line",
-        "write_eol",
-        "write_text",
-        ]
 
 
 line_pattern = "{:<66}{:4d}{:2d}{:3d}{:5d}"
@@ -143,7 +119,10 @@ def write_integer_list(lst):
     `list` of `str`
         list of 66-characters-long ENDF-6 formatted string
     """
-    itr = sandy.shared.grouper(map("{:11d}".format, lst), 6, fillvalue=" "*11)
+    from .shared import grouper
+
+    itr = grouper(map("{:11d}".format, lst), 6, fillvalue=" "*11)
+
     return ["".join(vals) for vals in itr]
 
 
@@ -156,7 +135,10 @@ def write_float_list(lst):
     `list` of `str`
         list of 66-characters-long ENDF-6 formatted string
     """
-    itr = sandy.shared.grouper(map(write_float, lst), 6, fillvalue=" "*11)
+    from .shared import grouper
+
+    itr = grouper(map(write_float, lst), 6, fillvalue=" "*11)
+
     return ["".join(vals) for vals in itr]
 
 
@@ -209,9 +191,11 @@ def write_tab2(C1, C2, L1, L2, N2, NBT, INT):
     `list` of `str`
         list of 66-characters-long ENDF-6 formatted string
     """
+    from .shared import interwine_lists
+
     N1 = len(NBT)
     lines = write_cont(C1, C2, L1, L2, N1, N2)
-    lines += write_integer_list(sandy.shared.interwine_lists(NBT, INT))
+    lines += write_integer_list(interwine_lists(NBT, INT))
     return lines
 
 
@@ -260,16 +244,20 @@ def write_tab1(C1, C2, L1, L2, NBT, INT, x, y):
     `list` of `str`
         list of 66-characters-long ENDF-6 formatted string
     """
+    from .shared import interwine_lists
     N2 = len(x)
     lines = write_tab2(C1, C2, L1, L2, N2, NBT, INT)
-    lines += write_float_list(sandy.shared.interwine_lists(x, y))
+    lines += write_float_list(interwine_lists(x, y))
+
     return lines
 
 
 def _read_list(df, ipos, size):
+    from itertools import chain
+
     iadd = int(np.ceil(size/6))
     vals = df.iloc[ipos:ipos+iadd].values
-    tab = list(itertools.chain.from_iterable(vals))[:size]
+    tab = list(chain.from_iterable(vals))[:size]
     ipos += iadd
     return tab, ipos
 
@@ -308,19 +296,21 @@ def write_float(x):
 
     Examples
     --------
-    >>> assert sandy.write_float(2) == ' 2.00000000'
-    >>> assert sandy.write_float(2e1) == ' 20.0000000'
-    >>> assert sandy.write_float(2e2) == ' 200.000000'
-    >>> assert sandy.write_float(2e3) == ' 2000.00000'
-    >>> assert sandy.write_float(2e4) == ' 20000.0000'
-    >>> assert sandy.write_float(2e5) == ' 200000.000'
-    >>> assert sandy.write_float(2e6) == ' 2000000.00'
-    >>> assert sandy.write_float(2e7) == ' 20000000.0'
-    >>> assert sandy.write_float(2e8) == '  200000000'
-    >>> assert sandy.write_float(0) == ' 0.00000000'
-    >>> assert sandy.write_float(2e-3) == ' 2.000000-3'
-    >>> assert sandy.write_float(2e-10) == ' 2.00000-10'
-    >>> assert sandy.write_float(1-1e-8) == ' 1.000000+0'
+
+    >>> import sandy
+    >>> assert sandy.records.write_float(2) == ' 2.00000000'
+    >>> assert sandy.records.write_float(2e1) == ' 20.0000000'
+    >>> assert sandy.records.write_float(2e2) == ' 200.000000'
+    >>> assert sandy.records.write_float(2e3) == ' 2000.00000'
+    >>> assert sandy.records.write_float(2e4) == ' 20000.0000'
+    >>> assert sandy.records.write_float(2e5) == ' 200000.000'
+    >>> assert sandy.records.write_float(2e6) == ' 2000000.00'
+    >>> assert sandy.records.write_float(2e7) == ' 20000000.0'
+    >>> assert sandy.records.write_float(2e8) == '  200000000'
+    >>> assert sandy.records.write_float(0) == ' 0.00000000'
+    >>> assert sandy.records.write_float(2e-3) == ' 2.000000-3'
+    >>> assert sandy.records.write_float(2e-10) == ' 2.00000-10'
+    >>> assert sandy.records.write_float(1-1e-8) == ' 1.000000+0'
     """
     if abs(x) >= 1e0 and abs(x) < 1e1:
         y = f"{x:11.8f}"
@@ -353,14 +343,16 @@ def write_int(x):
     """
     Examples
     --------
-    >>> sandy.write_int(10)
+    
+    >>> import sandy
+    >>> sandy.records.write_int(10)
     '         10'
 
-    >>> sandy.write_int(-1e5)
+    >>> sandy.records.write_int(-1e5)
     '    -100000'
 
     >>> import pytest
-    >>> with pytest.raises(ValueError): sandy.write_int(-1e10)
+    >>> with pytest.raises(ValueError): sandy.records.write_int(-1e10)
     """
     y = f"{int(x):>11d}"
     if len(y) > 11:

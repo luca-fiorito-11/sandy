@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 This module contains a single public function:
 
@@ -9,7 +8,6 @@ content object with a dictionary-like structure.
 The content object can be accessed using most of the keywords specified in
 the ENDF6 manual for this specific MF section.
 """
-import sandy
 
 __author__ = "Aitor Bengoechea"
 
@@ -35,6 +33,7 @@ def read_mf35(tape, mat, mt):
 
     Examples
     --------
+    >>> import sandy
     >>> import numpy as np
     >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922380, local=True)
     >>> out = read_mf35(tape, mat=9237, mt=18)["SUB"][1]["FKK"][0:15]
@@ -43,19 +42,21 @@ def read_mf35(tape, mat, mt):
            2.80000e-34, 9.60000e-34, 6.17000e-33, 8.96000e-33, 3.04700e-32,
            1.95070e-31, 2.83330e-31, 9.63620e-31, 6.16871e-30, 8.95957e-30])
     """
+    from ..records import read_cont, read_list
+
     mf = 35
     df = tape._get_section_df(mat, mf, mt)
     out = {"MAT": mat,
            "MF": mf,
            "MT": mt}
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     out.update({"ZA": C.C1,
                 "AWR": C.C2,
                 "NK": C.N1, # Number of subsections
                 "SUB": {}})
     for k in range(out["NK"]):
-        L, i = sandy.read_list(df, i)
+        L, i = read_list(df, i)
         D = {"ELO": L.C1,  # Lowest incident neutron energy for this subsection
              "EHI": L.C2,  # Highest incident neutron energy for this subsection
              "LS": L.L1,  # Flago to indicate if the covariance matrix is symmetric

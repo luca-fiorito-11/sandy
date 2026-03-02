@@ -4,38 +4,37 @@ yield data.
 
 Examples
 --------
+
 Get CEA fission yield evaluations and correlation matrices.
 
 >>> import os, sandy
+>>> assert os.path.exists(sandy.fy.fy_cea_u235th)
+>>> assert os.path.exists(sandy.fy.fy_cea_pu239th)
+>>> assert os.path.exists(sandy.fy.fy_cea_u235th_corr)
+>>> assert os.path.exists(sandy.fy.fy_cea_pu239th_corr)
+
 >>> assert os.path.exists(sandy.fy_cea_u235th)
 >>> assert os.path.exists(sandy.fy_cea_pu239th)
 >>> assert os.path.exists(sandy.fy_cea_u235th_corr)
 >>> assert os.path.exists(sandy.fy_cea_pu239th_corr)
+
 """
 import logging
 
 import pandas as pd
 import numpy as np
-import scipy.sparse as sps
 from os.path import join, dirname
 import re
 
-from .zam import ELEMENTS
-from .cov import CategoryCov, corr2cov
-from .endf6 import Endf6
-from .sections.mf8 import write_mf8
-from .gls import _gls_parameters_update, ishikawa_factor
-from .shared import expand_zam
-
 __author__ = "Luca Fiorito"
-__all__ = [
-        "Fy",
-        "fy_cea_pu239th",
-        "fy_cea_pu239th_corr",
-        "fy_cea_u235th",
-        "fy_cea_u235th_corr",
-        "get_cea_fy",
-        ]
+# __all__ = [
+#         "Fy",
+#         "fy_cea_pu239th",
+#         "fy_cea_pu239th_corr",
+#         "fy_cea_u235th",
+#         "fy_cea_u235th_corr",
+#         "get_cea_fy",
+#         ]
 
 
 fy_cea_pu239th = join(dirname(__file__), 'appendix', 'fission_yields', r"jeff-4t3_cea_pu9_cons_28-09-2023.stn")
@@ -122,6 +121,8 @@ def get_cea_fy(zam, e=0.0253):
     >>> with pytest.raises(Exception):
     ...    sandy.get_cea_fy(922350, e=4e5)  
     """
+    from .cov import CategoryCov, corr2cov
+    from .endf6 import Endf6
     
     if e != 0.0253:
         raise ValueError("Only accepted 'e' value is 0.0253")
@@ -187,6 +188,8 @@ def get_chain_yields():
     3  69  902270  thermal 2.35000e-08 7.52000e-09
     4  70  902270  thermal 5.19000e-08 1.66080e-08
     """
+    from .zam import ELEMENTS
+
     errors = {'a': 0.0035, 'b': 0.0050, 'c': 0.0070, 'd': 0.01, 'e': 0.014,
                'f': 0.02, 'g': 0.028, 'h': 0.04,
                'i': 0.06, 'j': 0.08, 'k': 0.11, 'l': 0.16, 'm': 0.23,
@@ -360,6 +363,8 @@ class Fy():
         3 	9437 	454 	942390 	551370 	5.00000e+05 	1.00000e+00 	5.00000e-02 	55 	137 	0
         4 	9437 	454 	942390 	541350 	5.00000e+05 	2.00000e-01 	1.00000e-02 	54 	135 	0
         """
+        from .shared import expand_zam
+
         zam = pd.DataFrame(map(expand_zam, self.data.ZAP),
                            columns=["Z", "A", "M"],
                            dtype=int)
@@ -383,6 +388,8 @@ class Fy():
         3 	9437 	454 	942390 	551370 	5.00000e+05 	1.00000e+00 	5.00000e-02 	94 	239 	0
         4 	9437 	454 	942390 	541350 	5.00000e+05 	2.00000e-01 	1.00000e-02 	94 	239 	0
         """
+        from .shared import expand_zam
+
         zam = pd.DataFrame(map(expand_zam, self.data.ZAM),
                            columns=["Z", "A", "M"],
                            dtype=int)
@@ -610,6 +617,10 @@ class Fy():
         4  9437  454  942390  591481 5.00000e+05  1.00000e+00 5.00000e-02
         5  9437  454  942390  601480 5.00000e+05 -1.60000e+00 6.48074e-02
         """
+        import scipy.sparse as sps
+
+        from .cov import CategoryCov
+
         # Obtain the data:
         data = self.data.copy()
         conditions = {'ZAM': zam, 'MT': 459, "E": energy}
@@ -963,6 +974,8 @@ class Fy():
         >>> assert (9640, 8, 454) in new_tape.data
         >>> assert (9640, 8, 459) in new_tape.data
         """
+        from .endf6 import Endf6
+        from .sections.mf8 import write_mf8
 
         data_endf6 = Endf6(endf6.data.copy())
         mf = 8

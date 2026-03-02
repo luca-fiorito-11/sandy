@@ -7,9 +7,9 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 
-import sandy
 
 __author__ = "Luca Fiorito"
+
 
 __all__ = [
         "AlephFile",
@@ -37,12 +37,12 @@ def _lib_from_filename(file):
     match = re.match(pattern_alephxsfile, fname)
     msg = f"cannot automatically determine 'library' from filename '{fname}'"
     if not match:
-        raise sandy.Error(msg)
+        raise ValueError(msg)
     ext = match.group("lib")
     if ext.lower() in ext2lib:
         library = ext2lib[ext.lower()]
     else:
-        raise sandy.Error(msg)
+        raise ValueError(msg)
     return library
 
 
@@ -51,14 +51,14 @@ def _tmp_from_filename(file):
     match = re.match(pattern_alephxsfile, fname)
     msg = f"cannot automatically determine 'temperature' from filename '{fname}'"
     if not match:
-        raise sandy.Error(msg)
+        raise ValueError(msg)
     ext = match.group("tmp")
     if ext in ext2tmp:
         temperature = ext2tmp[ext]
     elif ext in ext2tmp_meta:
         temperature = ext2tmp_meta[ext]
     else:
-        raise sandy.Error(msg)
+        raise ValueError(msg)
     return temperature
 
 
@@ -143,12 +143,14 @@ class AlephFile():
         None.
 
         """
+        from ..shared import pad_from_beginning_fast
+
         mt = 4581
         mtf = 18
         mtef = 1458
         reacts = self.data["reactions"]
         qval = self.data["fission_qvalue"]
-        pad = sandy.utils.pad_from_beginning_fast
+        pad = pad_from_beginning_fast
         if mtf in reacts:
             xs = pad([reacts[mtf]["xs"]], self.npoints)[0]
         else:
@@ -251,6 +253,8 @@ class AlephFile():
         1.00000e-01 3.00000e+00 3.00000e+00  ... 6.00000e+02 1.50000e+01
         1.00000e+01 4.00000e+00 4.00000e+00  ... 8.00000e+02 2.00000e+01
         """
+        from ..shared import pad_from_beginning_fast
+
         keys = []
         vals = []
         parent = self.data['nuclide']
@@ -258,7 +262,7 @@ class AlephFile():
         for key, item in self.data['reactions'].items():
             keys.append((parent, key))
             vals.append(item["xs"])
-        matrix = sandy.utils.pad_from_beginning_fast(vals, index.size)
+        matrix = pad_from_beginning_fast(vals, index.size)
         columns = pd.MultiIndex.from_tuples(keys, names=["PARENT", "DAUGHTER"])
         df = pd.DataFrame(matrix.T, index=index, columns=columns)
         return df
@@ -527,9 +531,10 @@ def write_line(a="", b="", c="", d=""):
 
 
 def write_array(array, per_line=4):
-    foo = sandy.utils.grouper
+    from ..shared import grouper
+
     lines = [
-        write_line(*block) for block in foo(array, per_line, fillvalue="")
+        write_line(*block) for block in grouper(array, per_line, fillvalue="")
         ]
     return lines
 

@@ -1,18 +1,9 @@
 import numpy as np
 import pandas as pd
 import os
-from math import isnan
 import logging
-from numpy.linalg import norm as matrixnorm
-from scipy.stats import kstest, norm
-
-from .xs import Xs, redundant_xs
 
 __author__ = "Luca Fiorito"
-__all__ = [
-        "Samples",
-        "read_fy_samples",
-        ]
 
 
 def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
@@ -60,7 +51,7 @@ def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
 
     Read it.
     
-    >>> smps2 = sandy.read_fy_samples()
+    >>> smps2 = sandy.samples.read_fy_samples()
 
     Test that it was read correctly.
 
@@ -135,6 +126,7 @@ def summarize_sample(s, cov):
     If the sample size is less than 2, a warning is logged, and an empty dictionary is returned.
 
     """
+    from numpy.linalg import norm as matrixnorm
 
     # Extract covariance matrices
     C = cov.data.values
@@ -268,6 +260,7 @@ class Samples():
     
         Examples
         --------
+
         >>> import sandy
         >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], index=["row1", "row2"])
         >>> obj = sandy.Samples(df)
@@ -294,6 +287,7 @@ class Samples():
     
         Examples
         --------
+
         >>> import sandy
         >>> df = pd.DataFrame({0: [1, 2, 1], 1: [2, 4, 3], 2: [3, 6, 2]}, index=["A", "B", "C"])
         >>> obj = sandy.Samples(df)
@@ -320,6 +314,7 @@ class Samples():
     
         Examples
         --------
+
         >>> import sandy
         >>> df = pd.DataFrame({0: [1, 2, 1], 1: [2, 4, 3], 2: [3, 6, 2]}, index=["A", "B", "C"])
         >>> obj = sandy.Samples(df)
@@ -361,6 +356,7 @@ class Samples():
 
         Examples
         --------
+
         >>> import sandy
         >>> import numpy as np
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010, local=True)
@@ -417,6 +413,7 @@ class Samples():
 
         Examples
         --------
+
         >>> import sandy
         >>> import numpy as np
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010, local=True)
@@ -457,6 +454,7 @@ class Samples():
     
         Examples
         --------
+
         >>> import pandas as pd
         >>> import numpy as np
         >>> data = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=["A", "B", "C"])
@@ -490,6 +488,7 @@ class Samples():
     
         Examples
         --------
+
         >>> import pandas as pd
         >>> import numpy as np
         >>> import sandy
@@ -649,6 +648,8 @@ class Samples():
         >>> assert lognormality_result.all()  # Lognormal data should pass when tested for lognormality
 
         """
+        from scipy.stats import kstest, norm
+
         # Convert data to a NumPy array
         s = self.data.copy().values
 
@@ -702,6 +703,7 @@ class Samples():
 
         Examples
         --------
+
         >>> import pandas as pd
         >>> import numpy as np
         >>> from sandy.samples import Samples
@@ -788,6 +790,7 @@ class Samples():
         --------
 
         Get samples fot MT=1.
+
         >>> import sandy
         >>> endf6 = sandy.get_endf6_file('jeff_33', 'xs', 10010, local=True)
         >>> smps2 = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=2)))[33]
@@ -809,28 +812,28 @@ class Samples():
         >>> expected = pd.MultiIndex.from_product([[125], [51]], names=["MAT", "MT"])
         >>> assert next(smps51.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [4] + list(sandy.redundant_xs[4])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [4] + list(sandy.xs.redundant_xs[4])], names=["MAT", "MT"])
         >>> assert next(smps4.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [1] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [1] + list(sandy.xs.redundant_xs[1])], names=["MAT", "MT"])
         >>> assert next(smps1.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [3] + list(sandy.redundant_xs[3])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [3] + list(sandy.xs.redundant_xs[3])], names=["MAT", "MT"])
         >>> assert next(smps3.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [1] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [1] + list(sandy.xs.redundant_xs[1])], names=["MAT", "MT"])
         >>> assert next(smps1.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [18] + list(sandy.redundant_xs[18])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [18] + list(sandy.xs.redundant_xs[18])], names=["MAT", "MT"])
         >>> assert next(smps18.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [27] + list(sandy.redundant_xs[27])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [27] + list(sandy.xs.redundant_xs[27])], names=["MAT", "MT"])
         >>> assert next(smps27.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [101] + list(sandy.redundant_xs[101])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [101] + list(sandy.xs.redundant_xs[101])], names=["MAT", "MT"])
         >>> assert next(smps101.iterate_xs_samples())[1].columns.equals(expected)
 
-        >>> expected = pd.MultiIndex.from_product([[125], [452] + list(sandy.redundant_xs[452])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[125], [452] + list(sandy.xs.redundant_xs[452])], names=["MAT", "MT"])
         >>> assert next(smps452.iterate_xs_samples())[1].columns.equals(expected)
 
 
@@ -839,7 +842,7 @@ class Samples():
         >>> smps = endf6.get_perturbations(1, njoy_kws=dict(err=1, chi=False, mubar=False, nubar=False, errorr33_kws=dict(mt=[1, 51])))[33]
 
         Then, since MT=1 is redundant, samples are passed to its partial components (MT=2 and MT=3).
-        >>> expected = pd.MultiIndex.from_product([[9440], [1, 51] + list(sandy.redundant_xs[1])], names=["MAT", "MT"])
+        >>> expected = pd.MultiIndex.from_product([[9440], [1, 51] + list(sandy.xs.redundant_xs[1])], names=["MAT", "MT"])
         >>> assert next(smps.iterate_xs_samples())[1].columns.equals(expected)
         
         If case one of the partial components already has samples, i.e., MT=2...
@@ -861,6 +864,8 @@ class Samples():
 
         >>> assert(next(smps[35].iterate_xs_samples())[1].shape == (240, 5))
         """
+        from .xs import Xs, redundant_xs
+
         # the tests in this docstrings are very slow...might improve it
         
         levels = Xs._columnsnames
@@ -930,6 +935,7 @@ class Samples():
 
         Examples
         --------
+
         >>> import pandas as pd
         >>> import numpy as np
         >>> from sandy.samples import Samples

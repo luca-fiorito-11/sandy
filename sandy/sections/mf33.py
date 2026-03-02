@@ -1,13 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-"""
-
-import sandy
 
 __author__ = "Luca Fiorito"
-__all__ = [
-        "read_mf33",
-        ]
 
 
 def read_mf33(tape, mat, mt, mf=33):
@@ -36,6 +28,8 @@ def read_mf33(tape, mat, mt, mf=33):
     .. note:: this function can parse MF=31 sections if `mf=31` is passed
               as argument
     """
+    from ..records import read_cont, read_list
+
     df = tape._get_section_df(mat, mf, mt)
     out = {
             "MAT": mat,
@@ -43,14 +37,14 @@ def read_mf33(tape, mat, mt, mf=33):
             "MT": mt,
             }
     i = 0
-    C, i = sandy.read_cont(df, i)
+    C, i = read_cont(df, i)
     out["ZA"] = C.C1
     out["AWR"] = C.C2
     out["MTL"] = C.L2
     nsub = C.N2
     subs = {}
     for j in range(nsub):
-        C, i = sandy.read_cont(df, i)
+        C, i = read_cont(df, i)
         xmf1 = C.C1
         xlfs1 = C.C2
         mat1 = C.L1
@@ -60,10 +54,10 @@ def read_mf33(tape, mat, mt, mf=33):
         ni = C.N2  # number of NI-type sections
         ncdict = {}
         for k in range(nc):
-            C, i = sandy.read_cont(df, i)
+            C, i = read_cont(df, i)
             lty = C.L2
             subsub = {"LTY": lty}
-            L, i = sandy.read_list(df, i)
+            L, i = read_list(df, i)
             if lty == 0:
                 subsub["E1"] = L.C1,
                 subsub["E2"] = L.C2,
@@ -84,7 +78,7 @@ def read_mf33(tape, mat, mt, mf=33):
         sub["NC"] = ncdict
         nidict = {}
         for k in range(ni):
-            L, i = sandy.read_list(df, i)
+            L, i = read_list(df, i)
             lb = L.L2
             subsub = {"LB": lb}
             if lb in [0, 1, 2, 3, 4]:
