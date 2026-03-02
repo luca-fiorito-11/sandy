@@ -2,22 +2,13 @@
 Collection of utilities, functions and classes that are requetsed in all code components.
 """
 
-import pdb
-import os
 import re
-from itertools import zip_longest
 from scipy.constants import Avogadro
-
 import numpy as np
-import pandas as pd
 import scipy.interpolate
 
+
 __author__ = "Luca Fiorito"
-__all__ = [
-        "pad_from_beginning",
-        "pad_from_beginning_fast",
-        "uniform_loggrid",
-        ]
 
 
 MeV_MWs = 1.60217733e-19 # conversion coefficient MeV --> MW s
@@ -28,6 +19,8 @@ def grouper(iterable, n, fillvalue=None):
     """
     Collect data into fixed-length chunks or blocks
     """
+    from itertools import zip_longest
+
     args = [iter(iterable)] * n
     return zip_longest(*args, fillvalue=fillvalue)
 

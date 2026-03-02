@@ -252,6 +252,9 @@ _PUBLIC: Dict[str, str] = {
     
     # Legendre polynomial coefficients
     "Lpc": "lpc",
+    
+    # NJOY
+    "get_njoy": "njoy",
 
     # Perturbations
     "Pert": "pert",

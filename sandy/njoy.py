@@ -1,24 +1,16 @@
-
 import os
 from os.path import join
 import shutil
 import re
 import logging
-import pdb
-from tempfile import TemporaryDirectory
-import subprocess as sp
 
 import pandas as pd
 import numpy as np
 
-import sandy
 
 __author__ = "Luca Fiorito"
-__all__ = [
-    "process_neutron",
-    "process_proton",
-    "get_njoy",
-    ]
+
+
 
 sab = pd.DataFrame.from_records([[48,9237,1,1,241,'uuo2'],
                                   [42,125,0,8,221,'tol'],
@@ -189,12 +181,14 @@ def get_temperature_suffix(temperature, meta=False):
 
     Examples
     -------- 
-    Test temperatures outside range
+    Test temperatures outside range.
+
     >>> assert get_temperature_suffix(3000, True) == get_temperature_suffix(3000, False)
     >>> assert get_temperature_suffix(3000, True) == get_temperature_suffix(0, True)
     >>> assert get_temperature_suffix(3000, True) == get_temperature_suffix(0, False)
     
-    Test reference ALEPH temperatures for ground and meta states
+    Test reference ALEPH temperatures for ground and meta states.
+
     >>> for k, v in sandy.njoy.tmp2ext.items():
     ...    assert v == get_temperature_suffix(k)
     ...    assert v == get_temperature_suffix(k, 0)
@@ -659,7 +653,9 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
 
     Examples
     --------
-    Default test without keyword arguments
+
+    Default test without keyword arguments.
+
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237))
     errorr
     20 21 0 22 0 /
@@ -667,7 +663,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 293.6 /
     0 33 1/
 
-    Test argument `temperature`
+    Test argument `temperature`.
+
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9440, temperature=600))
     errorr
     20 21 0 22 0 /
@@ -675,7 +672,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 600.0 /
     0 33 1/
 
-    Test argument `iwt`
+    Test argument `iwt`.
+
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, iwt=6))
     errorr
     20 21 0 22 0 /
@@ -683,7 +681,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 293.6 /
     0 33 1/
 
-    Test argument `ek`
+    Test argument `ek`.
+
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, ek=[1e-2, 1e3, 2e5]))
     errorr
     20 21 0 22 0 /
@@ -693,7 +692,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     2 /
     1.00000e-02 1.00000e+03 2.00000e+05 /
 
-    Test argument `ign`
+    Test argument `ign`.
+
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, ign=3))
     errorr
     20 21 0 22 0 /
@@ -701,7 +701,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 293.6 /
     0 33 1/
 
-    Test nubar
+    Test nubar.
+
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=31))
     errorr
     20 21 0 22 0 /
@@ -709,7 +710,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 293.6 /
     0 31 1/
 
-    Test mubar
+    Test mubar.
+
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=34))
     errorr
     20 21 0 22 0 /
@@ -717,7 +719,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 293.6 /
     0 34 1/
 
-    Test chi
+    Test chi.
+
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mfcov=35))
     errorr
     20 21 0 22 0 /
@@ -725,7 +728,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 293.6 /
     0 35 1/
 
-    Test keyword `relative`
+    Test keyword `relative`.
+
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, relative=False))
     errorr
     20 21 0 22 0 /
@@ -733,7 +737,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 293.6 /
     0 33 1/
 
-    Test keyword `irespr`
+    Test keyword `irespr`.
+
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, irespr=0))
     errorr
     20 21 0 22 0 /
@@ -741,7 +746,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     0 293.6 /
     0 33 0/
 
-    Test keyword `mt` as `list`
+    Test keyword `mt` as `list`.
+
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt=[1, 2]))
     errorr
     20 21 0 22 0 /
@@ -751,7 +757,8 @@ def _errorr_input(endfin, pendfin, gendfin, errorrout, mat,
     2 0 /
     1 2 /    
 
-    Test keyword `mt` as `int`:
+    Test keyword `mt` as `int`.
+
     >>> print(sandy.njoy._errorr_input(20, 21, 0, 22, 9237, mt=2))
     errorr
     20 21 0 22 0 /
@@ -858,7 +865,7 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     Examples
     --------
 
-    Default test without keyword arguments
+    Default test without keyword arguments.
 
     >>> import sandy
     >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237))
@@ -872,7 +879,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    Test argument `temperature`
+    Test argument `temperature`.
+
     >>> print(sandy.njoy._groupr_input(20, 21, 22, 9440, temperature=600))
     groupr
     20 21 0 22 /
@@ -884,7 +892,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    Test argument `iwt`
+    Test argument `iwt`.
+
     >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, iwt=6))
     groupr
     20 21 0 22 /
@@ -896,7 +905,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    Test argument `ign`
+    Test argument `ign`.
+
     >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, ign=3))
     groupr
     20 21 0 22 /
@@ -908,7 +918,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    Test argument `igg`
+    Test argument `igg`.
+
     >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, igg=3))
     groupr
     20 21 0 22 /
@@ -920,7 +931,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
     
-    Test argument `ek`
+    Test argument `ek`.
+
     >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ek=[1e-2, 1e3, 2e5]))
     groupr
     20 21 0 0 /
@@ -934,7 +946,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    Test argument `ep`
+    Test argument `ep`.
+
     >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, ep=[1e-2, 1e3, 2e5]))
     groupr
     20 21 0 0 /
@@ -948,7 +961,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    Test argument `lord`
+    Test argument `lord`.
+
     >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, lord=3))
     groupr
     20 21 0 0 /
@@ -960,7 +974,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    Test mubar:
+    Test mubar.
+
     >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, mubar=True))
     groupr
     20 21 0 22 /
@@ -973,7 +988,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    Test chi:
+    Test chi.
+
     >>> print(sandy.njoy._groupr_input(20, 21, 22, 9237, chi=True))
     groupr
     20 21 0 22 /
@@ -987,7 +1003,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/
 
-    Test keyword `mt` as `list`
+    Test keyword `mt` as `list`.
+
     >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=[1, 2]))
     groupr
     20 21 0 0 /
@@ -1000,7 +1017,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/       
 
-    Test keyword `mt` as `int`
+    Test keyword `mt` as `int`.
+
     >>> print(sandy.njoy._groupr_input(20, 21, 0, 22, 9237, mt=2))
     groupr
     20 21 0 0 /
@@ -1012,6 +1030,8 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     0/
     0/       
     """
+    from .records import write_tab1
+
     iwt_ = 1 if spectrum is not None else iwt
     ign_ = 1 if ek is not None else ign
     igg_ = 1 if ep is not None else igg
@@ -1035,9 +1055,13 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
     if iwt_ == 1:
         INT = 1               # constant interpolation
         NBT = int(len(spectrum) / 2)  # only 1 interpolation group
-        tab1 = "\n".join(sandy.write_tab1(0, 0, 0, 0, [NBT], [INT],
-                                          spectrum[::2],
-                                          spectrum[1::2]))
+        tab1 = "\n".join(
+            write_tab1(
+                0, 0, 0, 0,
+                [NBT], [INT],
+                spectrum[::2], spectrum[1::2],
+                )
+            )
         text += [tab1]
         text += ["/"]
 
@@ -1048,11 +1072,11 @@ def _groupr_input(endfin, pendfin, gendfout, mat,
         for mt_ in mtlist:
             text += [f"3 {mt_:d} /"]
     if nubar:
-        text += [f"3 452 /"]
-        text += [f"3 455 /"]
-        text += [f"3 456 /"]
+        text += ["3 452 /"]
+        text += ["3 455 /"]
+        text += ["3 456 /"]
     if mubar:
-        text += [f"3 251 /"]
+        text += ["3 251 /"]
     if chi:
         text += ["5/"]
         text += ["5 18 /"]
@@ -1080,6 +1104,9 @@ def _run_njoy(text, endf, pendf=None, exe=None, njoy_output=None):
         print its output in the terminal. If `subprocess.DEVNULL`, NJOY
         output will be suppressed, default is `None`.
     """
+    import subprocess as sp
+    from tempfile import TemporaryDirectory
+
     if exe is None:
         exe = get_njoy()
     stdout = stderr = njoy_output
@@ -1370,6 +1397,7 @@ def process_neutron(
         map of {`tape` : `text`) for ouptut files
     """
     from .endf6 import Endf6
+    from .zam import zam2za
 
     tape = Endf6.from_file(endftape)
     mat = tape.mat[0]
@@ -1401,7 +1429,7 @@ def process_neutron(
     if "xsdir" in outputs:
         outputs["xsdir"] = outputs["xsdir"].replace("route", route)
     if zaid == "nndc":
-        za_new = sandy.zam.zam2za(za*10 + meta, method=zaid)[0]
+        za_new = zam2za(za*10 + meta, method=zaid)[0]
         for s in suffixes_:
             pattern = f"{za}{s}[c]"
             new_pattern = f"{za_new}{s}c"
@@ -1461,7 +1489,9 @@ def process_proton(
     outputs : `map`
         map of {`tape` : `file`) for ouptut files
     """
-    tape = sandy.Endf6.from_file(endftape)
+    from .endf6 import Endf6
+
+    tape = Endf6.from_file(endftape)
     mat = tape.mat[0]
     info = tape.read_section(mat, 1, 451)
     meta = info["LISO"]

@@ -1,25 +1,5 @@
-import os
-
-import pandas as pd
-
-import sandy
-
 __author__ = "Luca Fiorito"
-__all__ = [
-        "ELEMENTS",
-        "ATOMIC_NUMBERS",
-        "METASTATES",
-        "METASTATES_FLIP",
-        "NATURAL_ABUNDANCE",
-        "abundance_per_element",
-        "expand_za",
-        "expand_za",
-        "za2latex",
-        "zam2latex",
-        ]
 
-
-pd.options.display.float_format = '{:.5e}'.format
 
 
 ELEMENTS = {

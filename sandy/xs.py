@@ -1,27 +1,17 @@
-# -*- coding: utf-8 -*-
 """
 This module contains all classes and functions specific for the cross section
 class `Xs` that acts as a container for energy-dependent tabulated cross
 section values.
 """
 import logging
-import functools
-
 import numpy as np
 import pandas as pd
 
-from .endf6 import Endf6
-from .shared import reshape_differential
-from .sections.mf1 import write_mf1
-from .sections.mf3 import write_mf3
+
 
 __author__ = "Luca Fiorito"
-__all__ = [
-        "Xs",
-        "redundant_xs",
-        ]
 
-pd.options.display.float_format = '{:.5e}'.format
+
 
 redundant_xs = {
         107: range(800, 850),
@@ -153,6 +143,8 @@ class Xs():
         The new cross sections are tabulated over the union between
         the old and the given energy grid.
         """
+        from .shared import reshape_differential
+
         df = self.data
         enew = df.index.union(eg).astype("float").values
         xsnew = reshape_differential(
@@ -223,6 +215,9 @@ class Xs():
         return endf6new
 
     def _nubar_to_endf6(self, endf6):
+        from .sections.mf1 import write_mf1
+        from .endf6 import Endf6
+
         data = endf6.data.copy()
         mf = 1
         for (mat, mt), xs in self.data.items():
@@ -243,6 +238,9 @@ class Xs():
         return Endf6(data)
 
     def _xs_to_endf6(self, endf6):
+        from .sections.mf3 import write_mf3
+        from .endf6 import Endf6
+
         data = endf6.data.copy()
         mf = 3
         for (mat, mt), xs in self.data.items():
@@ -297,6 +295,7 @@ class Xs():
 
         Examples
         --------
+
         Get H1 file and process it to PENDF.
 
         >>> import sandy
@@ -315,6 +314,8 @@ class Xs():
         1.09375e-05 3.64045e+01 2.04363e+01 1.59682e+01
         1.12500e-05 3.61812e+01 2.04363e+01 1.57448e+01
         """
+        from functools import reduce
+
         data = []
         # read cross sections
         tape = endf6.filter_by(listmf=[3])
@@ -366,9 +367,11 @@ class Xs():
             how = "outer"
             return pd.merge(l, r, left_index=True, right_index=True, how=how)
 
-        df = functools.reduce(foo, data) \
-                      .interpolate(method='slinear', axis=0) \
-                      .fillna(0)
+        df = (
+            reduce(foo, data).
+            interpolate(method='slinear', axis=0).
+            fillna(0)
+            )
         return cls(df)
 
     def reconstruct_sums(self, drop=True):
@@ -390,6 +393,7 @@ class Xs():
 
         Examples
         --------
+
         Get ENDF-6 file for H1, process it in PENDF and extract xs.
 
         >>> import sandy
@@ -471,6 +475,7 @@ class Xs():
 
         Examples
         --------
+
         Get plutonium cross sections.
 
         >>> import sandy

@@ -1,6 +1,4 @@
 from collections import namedtuple
-import itertools
-
 import numpy as np
 
 __author__ = "Luca Fiorito"
@@ -255,9 +253,11 @@ def write_tab1(C1, C2, L1, L2, NBT, INT, x, y):
 
 
 def _read_list(df, ipos, size):
+    from itertools import chain
+
     iadd = int(np.ceil(size/6))
     vals = df.iloc[ipos:ipos+iadd].values
-    tab = list(itertools.chain.from_iterable(vals))[:size]
+    tab = list(chain.from_iterable(vals))[:size]
     ipos += iadd
     return tab, ipos
 

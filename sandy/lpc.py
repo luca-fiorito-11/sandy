@@ -26,16 +26,9 @@ Routines
 import logging
 
 import numpy as np
-from numpy.polynomial import legendre
 import pandas as pd
 
-import sandy
-
 __author__ = "Luca Fiorito"
-__all__ = [
-        "Lpc",
-        "lpc_to_tpd",
-        ]
 
 
 class Lpc():
@@ -143,7 +136,7 @@ class Lpc():
         condition = self.data.index.get_level_values(info[key]) == value
         out = self.data.copy()[condition]
         if out.empty:
-            raise sandy.Error("applied filter returned empty dataframe")
+            raise ValueError("applied filter returned empty dataframe")
         return self.__class__(out)
 
     def _filters(self, conditions):
@@ -296,6 +289,8 @@ class Lpc():
         3	1.00000e+03	1.13381e-03	2.53242e-06
         4	2.00000e+03	2.93552e-03	1.59183e-05
         """
+        from .shared import reshape_differential
+
         listdf = []
         for (mat, mt), df in self.data.groupby(["MAT", "MT"]):
             if selected_mat:
@@ -308,7 +303,7 @@ class Lpc():
                     continue
             df = df.T[mat][mt].T
             enew = df.index.union(eg).astype("float").rename("E")
-            valsnew = sandy.shared.reshape_differential(
+            valsnew = reshape_differential(
                 df.index.values,
                 df.values,
                 enew,
@@ -346,6 +341,9 @@ class Lpc():
                      section we need info that is not available in the `Lpc`
                      instance itself.
         """
+        from .endf6 import Endf6
+        from .sections.mf4 import write_mf4
+
         data = endf6.data.copy()
         mf = 4
         for (mat, mt), group in self.data.groupby(["MAT", "MT"]):
@@ -372,8 +370,8 @@ class Lpc():
                 sec["LPC"]["E"].update({e: dict_distr})
             sec["LPC"]["NBT"] = [len(sec["LPC"]["E"])]
             sec["LPC"]["INT"] = [2]
-            data[mat, mf, mt] = sandy.write_mf4(sec)
-        return sandy.Endf6(data)
+            data[mat, mf, mt] = write_mf4(sec)
+        return Endf6(data)
 
     def _to_tab(self, mat, mt, e, cosines):
         """
@@ -416,6 +414,8 @@ class Lpc():
         -8.09524e-01   4.54522e-03
         Name: (9228, 2, 22000000.0), dtype: float64
         """
+        from numpy.polynomial import legendre
+
         cosines_ = pd.Series(cosines).values
         sec = self.data.loc[mat, mt]
         if (e < min(sec.index)) | (e > max(sec.index)):
@@ -566,7 +566,7 @@ class Lpc():
                 series = pd.Series(coefficients, name=name)
                 data.append(series)
         if not data:
-            raise sandy.Error("requested LPC were not found")
+            raise ValueError("requested LPC were not found")
         df = pd.DataFrame(data).fillna(0)
         df.index = pd.MultiIndex.from_tuples(df.index, names=["MF", "MT", "E"])
         return Lpc(df)
@@ -666,6 +666,8 @@ def lpc_to_tpd(coeff, cosines):
     `pandas.Series`
         tabulated distribution
     """
+    from numpy.polynomial import legendre
+
     ll = np.arange(coeff.size)  # order of the polynomial
     a = (2 * ll + 1) / 2 * coeff
     distr = legendre.legval(cosines, a)

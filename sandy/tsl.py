@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 This module contains all classes and functions specific for Thermal Neutron
 Scattering Data.
@@ -8,7 +7,6 @@ thermal neutron scattering cross section.
 """
 
 import pandas as pd
-import sandy
 
 
 class Tsl():
@@ -46,19 +44,25 @@ class Tsl():
 
         Examples
         --------
-        Load test ENDF-6 file with data for Be-4:
+
+        Load test ENDF-6 file with data for Be-4.
+
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
         >>> tsl = Tsl.from_endf6(tape)
 
-        Coherent elastic scattering:
+        Coherent elastic scattering.
+
         >>> tsl.data['elastic coherent']['T'].keys()
         dict_keys([296.0, 400.0, 500.0, 600.0, 700.0, 800.0, 1000.0, 1200.0])
 
-        Incoherent inelastic scattering:
+        Incoherent inelastic scattering.
+
         >>> tsl.data['inelastic incoherent']['beta'][0.0]['T'].keys()
         dict_keys([296.0, 400.0, 500.0, 600.0, 700.0, 800.0, 1000.0, 1200.0])
 
-        Incoherent elastic scattering:
+        Incoherent elastic scattering.
+
         >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 10, local=True)
         >>> tsl = Tsl.from_endf6(tape)
         >>> tsl.data['elastic incoherent']['Debye-Waller']
@@ -110,7 +114,10 @@ class Tsl():
 
         Examples
         --------
-        Load test ENDF-6 file with data for Be-4:
+
+        Load test ENDF-6 file with data for Be-4.
+
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
         >>> tsl = Tsl.from_endf6(tape)
         >>> tsl._S_elastic_coherent()[0][0:5]
@@ -145,7 +152,10 @@ class Tsl():
 
         Examples
         --------
-        Load test ENDF-6 file with data for Be-4:
+
+        Load test ENDF-6 file with data for Be-4.
+
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
         >>> tsl = Tsl.from_endf6(tape)
         >>> tsl._S_inelastic_incoherent()[0][0:5]
@@ -193,11 +203,15 @@ class Tsl():
 
         Examples
         --------
-        Load test ENDF-6 file with data for Be-4:
+        Load test ENDF-6 file with data for Be-4.
+
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
         >>> tsl = Tsl.from_endf6(tape)
 
-        Elastic coherent S-matrix:
+        Elastic coherent S-matrix.
+
+        >>> import sandy
         >>> tsl.get_S(kind ='elastic coherent').head()
                       T	          E	          S
         0	2.96000e+02	1.62650e-03	0.00000e+00
@@ -206,7 +220,9 @@ class Tsl():
         3	2.96000e+02	6.91100e-03	6.40282e-02
         4	2.96000e+02	1.17905e-02	7.49635e-02
 
-        Inelastic incoherent S-matrix:
+        Inelastic incoherent S-matrix.
+
+        >>> import sandy
         >>> tsl.get_S(kind ='inelastic incoherent').head()
                    beta	          T	      alpha	          S
         0	0.00000e+00	2.96000e+02	3.05297e-03	7.52844e-05
@@ -247,7 +263,10 @@ class Tsl():
 
         Examples
         --------
-        Incoherent elastic scattering
+
+        Incoherent elastic scattering.
+
+        >>> import sandy
         >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 10, local=True)
         >>> from_endf = sandy.sections.mf7.read_mf7(tape, 10, 2)
         >>> text = sandy.sections.mf7.write_mf7(from_endf)
@@ -257,7 +276,8 @@ class Tsl():
         >>> new_text = sandy.sections.mf7.write_mf7(new_from_endf)
         >>> assert new_text == text
 
-        Coherent elastic scattering
+        Coherent elastic scattering.
+
         >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
         >>> from_endf = sandy.sections.mf7.read_mf7(tape, 26, 2)
         >>> text = sandy.sections.mf7.write_mf7(from_endf)
@@ -267,7 +287,8 @@ class Tsl():
         >>> new_text = sandy.sections.mf7.write_mf7(new_from_endf)
         >>> assert new_text == text
 
-        Incoherent inelastic scattering
+        Incoherent inelastic scattering.
+
         >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
         >>> from_endf = sandy.sections.mf7.read_mf7(tape, 26, 4)
         >>> text = sandy.sections.mf7.write_mf7(from_endf)
@@ -277,6 +298,9 @@ class Tsl():
         >>> new_text = sandy.sections.mf7.write_mf7(new_from_endf)
         >>> assert new_text == text
         """
+        from .endf6 import Endf6
+        from .sections.mf7 import write_mf7
+
         data_endf6 = endf6.data.copy()
         tape = endf6.filter_by(listmf=[7], listmt=[2, 4])
         for (mat, mf, mt) in tape.keys:
@@ -300,5 +324,5 @@ class Tsl():
                     obj_beta = obj_data['beta'][beta]
                     for temp, temp_info in beta_info.items():
                         sec['beta/T'][beta][temp]['S'] = obj_beta['T'][temp]['S']
-            data_endf6[(mat, mf, mt)] = sandy.write_mf7(sec)
-        return sandy.Endf6(data_endf6)
+            data_endf6[(mat, mf, mt)] = write_mf7(sec)
+        return Endf6(data_endf6)

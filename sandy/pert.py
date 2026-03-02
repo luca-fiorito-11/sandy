@@ -1,15 +1,10 @@
-import pdb
-import logging
-
 import numpy as np
 import pandas as pd
 
-import sandy
+
 
 __author__ = "Luca Fiorito"
-__all__ = [
-        "Pert",
-        ]
+
 
 
 class Pert():
@@ -33,7 +28,7 @@ class Pert():
     Methods
     -------
     from_bin
-        generate a `Pert` object from a pair of energy bins
+        generate a :obj:`~sandy.pert.Pert` object from a pair of energy bins
     reshape
         interpolate perturbation coefficients over new energy grid structure
     """
@@ -77,8 +72,10 @@ class Pert():
         if isinstance(self._data.index, pd.IntervalIndex):
             self._data.index = self._data.index.right
         index = self._data.index.astype(float)
+
         if not index.is_monotonic_increasing:
-            raise sandy.Error("energy grid is not monotonically increasing")
+            raise ValueError("energy grid is not monotonically increasing")
+
         self._data.index = pd.IntervalIndex.from_breaks(index.insert(0, 0))
         self._data.index.name = self._indexname
 
@@ -140,7 +137,7 @@ class Pert():
 
         Returns
         -------
-        `sandy.Pert`
+        :obj:`~sandy.pert.Pert`
             perturbation coefficients reshaped over a union of the original and
             new energy grids
 
@@ -151,11 +148,16 @@ class Pert():
         `value.Error`
             if negative values are found in the given energy grid
         """
+        from .shared import reshape_bfill
+
         index = pd.Index(eg)
+
         if not index.is_monotonic_increasing:
-            raise sandy.Error("energy grid is not monotonic increasing")
+            raise ValueError("energy grid is not monotonic increasing")
+
         if (index < 0).any():
             raise ValueError("found negative values in the energy grid")
+
         enew = self.right.index.union(index).unique().astype(float).values
         # remove zero if any, it will be automatically added by `Pert`
         enew = enew[enew != 0]
@@ -166,7 +168,8 @@ class Pert():
             # this must be done after that enew is created
             x = np.insert(x, 0, 0)
             y = np.insert(y, 0, 0)
-        pertnew = sandy.shared.reshape_bfill(
+
+        pertnew = reshape_bfill(
                           x,
                           y,
                           enew,
@@ -194,7 +197,7 @@ class Pert():
 
         Returns
         -------
-        `sandy.Pert`
+        :obj:`~sandy.pert.Pert`
             perturbation instance with truncated values.
         """
         data = self.data.copy()
@@ -220,7 +223,7 @@ class Pert():
 
         Returns
         -------
-        `sandy.Pert`
+        :obj:`~sandy.pert.Pert`
             perturbation instance with truncated values.
         """
         data = self.data.copy()
@@ -230,7 +233,7 @@ class Pert():
     @classmethod
     def from_file(cls, file, sep=None, **kwargs):
         """
-        Initialize `Pert` object reading perturbations from file.
+        Initialize :obj:`~sandy.pert.Pert` object reading perturbations from file.
 
         Parameters
         ----------
@@ -243,19 +246,21 @@ class Pert():
 
         Returns
         -------
-        `Pert`
+        :obj:`~sandy.pert.Pert`
             Container for binned perturbations
         """
         data = np.genfromtxt(file, dtype=float, delimiter=sep, **kwargs)
+
         if data.ndim < 2:
-            raise sandy.Error("at least 2 columns should be given in the file")
+            raise ValueError("at least 2 columns should be given in the file")
+
         series = pd.Series(data[:, 1], index=data[:, 0])
         return Pert(series)
 
     @classmethod
     def from_bin(cls, elow, ehigh, coeff):
         """
-        Generate a `Pert` object from a pair of energy bins `(elow, ehigh]`.
+        Generate a :obj:`~sandy.pert.Pert` object from a pair of energy bins `(elow, ehigh]`.
 
         Parameters
         ----------
@@ -268,12 +273,14 @@ class Pert():
 
         Returns
         -------
-        pert : `sandy.Pert`
+        :obj:`~sandy.pert.Pert`
             perturbation object.
 
         Examples
         --------
-        >>> Pert.from_bin(1e-5, 1e-4, 0.05)
+        
+        >>> import sandy
+        >>> sandy.Pert.from_bin(1e-5, 1e-4, 0.05)
         ENERGY
         (0.0, 1e-05]      1.00000e+00
         (1e-05, 0.0001]   1.05000e+00
