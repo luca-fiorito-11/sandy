@@ -296,7 +296,7 @@ class Lpc():
         3	1.00000e+03	1.13381e-03	2.53242e-06
         4	2.00000e+03	2.93552e-03	1.59183e-05
         """
-        from .shared import reshape_differential
+        from .utils import reshape_differential
 
         listdf = []
         for (mat, mt), df in self.data.groupby(["MAT", "MT"]):

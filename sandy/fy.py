@@ -363,7 +363,7 @@ class Fy():
         3 	9437 	454 	942390 	551370 	5.00000e+05 	1.00000e+00 	5.00000e-02 	55 	137 	0
         4 	9437 	454 	942390 	541350 	5.00000e+05 	2.00000e-01 	1.00000e-02 	54 	135 	0
         """
-        from .shared import expand_zam
+        from .zam import expand_zam
 
         zam = pd.DataFrame(map(expand_zam, self.data.ZAP),
                            columns=["Z", "A", "M"],
@@ -388,7 +388,7 @@ class Fy():
         3 	9437 	454 	942390 	551370 	5.00000e+05 	1.00000e+00 	5.00000e-02 	94 	239 	0
         4 	9437 	454 	942390 	541350 	5.00000e+05 	2.00000e-01 	1.00000e-02 	94 	239 	0
         """
-        from .shared import expand_zam
+        from .zam import expand_zam
 
         zam = pd.DataFrame(map(expand_zam, self.data.ZAM),
                            columns=["Z", "A", "M"],

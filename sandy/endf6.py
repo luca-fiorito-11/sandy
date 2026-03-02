@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Dec  4 14:50:33 2019
 
@@ -780,37 +779,65 @@ class _FormattedFile():
         >>> obj2 = _FormattedFile.from_text(text_with_empty)
         >>> assert obj2.data == obj.data
         """
+
+        # -----------------------------
+        # 1. Parse MAT/MF/MT using read_fwf
+        # -----------------------------
         df = pd.read_fwf(
             io.StringIO(text),
             widths=[66, 4, 2, 3],
             names=["TEXT", "MAT", "MF", "MT"],
             dtype={"TEXT": str, "MAT": str, "MF": int, "MT": int},
             na_filter=False,  # speeds up and does not add NaN in empty lines
-            # Do not use TEXT because  the parser does not preserve the
-            # whitespaces
+            # Do not use TEXT because  the parser does not preserve the whitespaces
             usecols=("MAT", "MF", "MT"),
             )
 
+
+        # -----------------------------
+        # 2. Rebuild TEXT column manually (preserving whitespace)
+        # -----------------------------
         # Use splitlines instead of readlines to remove "\n"
         # The if clause removes empty lines.
         df["TEXT"] = [line for line in text.splitlines() if line.split()]
 
+
+        # -----------------------------
+        # 3. Fix title line if MAT is not integer
+        # -----------------------------
         title = df["TEXT"].iloc[0]
         title_mat = df["MAT"].iloc[0]
 
         try:
             int(title_mat)
+
         except ValueError:
             logging.warning(f"wrong MAT number in the file title\n'{title}'")
             df = df.iloc[1:].reset_index(drop=True)
+
         finally:
             df["MAT"] = df["MAT"].astype(int)
 
-        condition = (df.MT > 0) & (df.MF > 0) & (df.MAT > 0)
-        data = df[condition].groupby(["MAT", "MF", "MT"])\
-                            .agg({"TEXT": "\n".join})\
-                            .TEXT\
-                            .to_dict()
+
+        # -----------------------------
+        # 4. Compute mask using NumPy (avoids pandas ops → avoids NumExpr)
+        # -----------------------------
+        mt = df["MT"].to_numpy()
+        mf = df["MF"].to_numpy()
+        mat = df["MAT"].to_numpy()
+
+        mask = (mt > 0) & (mf > 0) & (mat > 0)        # NumPy ops → no pandas.core.ops
+
+        df2 = df.loc[mask, ["MAT", "MF", "MT", "TEXT"]]
+    
+        # -----------------------------
+        # 5. Manual group-by (avoids pandas.groupby → no NumExpr paths)
+        # -----------------------------
+        data = {}
+        # group rows by (MAT, MF, MT)
+        for (mat_v, mf_v, mt_v), group in df2.groupby(["MAT", "MF", "MT"], sort=False):
+            data[(mat_v, mf_v, mt_v)] = "\n".join(group["TEXT"].tolist())
+
         return cls(data)
 
     def _get_section_df(self, mat, mf, mt):
@@ -834,7 +861,7 @@ class _FormattedFile():
         ...    sandy.Endf6.from_text(text)._get_section_df(9440, 1, 451)
 
         """
-        from .shared import add_delimiter_every_n_characters, add_exp_in_endf6_text
+        from .utils import add_delimiter_every_n_characters, add_exp_in_endf6_text
 
         text = self.data[(mat, mf, mt)]
         delimiters = ["?", "@", "$", "¤"]
@@ -1357,14 +1384,6 @@ class Endf6(_FormattedFile):
             return None
 
         return reader(self, mat, mt)
-
-
-        # read_module = f"read_mf{mf}"
-        # found = hasattr(sandy, read_module)
-        # if not raise_error and not found:
-        #     return
-        # foo = eval(f"sandy.{read_module}")
-        # return foo(self, mat, mt)
 
     def _update_info(self, descr=None):
         """
@@ -3453,7 +3472,7 @@ def _write_files_worker(file_dict, basename="output", verbose=False):
     >>> assert(isfile('output.pendf'))
 
     """
-    from .tools import log
+    from .utils import log
 
     # --- Write files to disk and return only the filenames
     outfiles= {}
@@ -3550,7 +3569,7 @@ def _rdd_perturb_worker(endf6, rdd, smp_hl, smp_de, smp_br, ismp,
     """
     from .decay import DecayData
     from .samples import Samples
-    from .tools import log
+    from .utils import log
 
     endf6_ = Endf6(endf6.copy())
     rdd_ = DecayData(rdd.copy())
@@ -3672,7 +3691,7 @@ def _fy_perturb_worker(endf6, fy, smps, ismp,
     >>> np.testing.assert_array_almost_equal(p, sp, decimal=4)
     """
     from .fy import Fy  # lazy import to avoid circular import issue
-    from .tools import log
+    from .utils import log
 
     endf6_ = Endf6(endf6.copy())  # this was a dictionary
     fy_ = Fy(fy.copy())    # this was a dataframe

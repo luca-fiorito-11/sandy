@@ -143,7 +143,7 @@ class Xs():
         The new cross sections are tabulated over the union between
         the old and the given energy grid.
         """
-        from .shared import reshape_differential
+        from .utils import reshape_differential
 
         df = self.data
         enew = df.index.union(eg).astype("float").values

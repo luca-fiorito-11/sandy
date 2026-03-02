@@ -148,7 +148,7 @@ class Pert():
         `value.Error`
             if negative values are found in the given energy grid
         """
-        from .shared import reshape_bfill
+        from .utils import reshape_bfill
 
         index = pd.Index(eg)
 

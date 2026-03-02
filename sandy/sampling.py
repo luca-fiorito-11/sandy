@@ -25,8 +25,7 @@ def parse(iargs=None):
         options.
     """
     import argparse
-    from .tools import is_valid_file
-    from .utils import get_seed
+    from .utils import is_valid_file, get_seed
     from . import __version__
 
     if iargs:
