@@ -1,5 +1,6 @@
 from collections import namedtuple
 import numpy as np
+import math
 
 __author__ = "Luca Fiorito"
 
@@ -7,48 +8,164 @@ __author__ = "Luca Fiorito"
 line_pattern = "{:<66}{:4d}{:2d}{:3d}{:5d}"
 
 
+"""
+Helper functions used in ``read_cont``.
+"""
+def _is_empty(val):
+    """Return True for None, NaN, or whitespace-only strings."""
+    if val is None:
+        return True
+    if isinstance(val, float) and math.isnan(val):
+        return True
+    if isinstance(val, str) and val.strip() == "":
+        return True
+    return False
+
+
+def _to_float(val):
+    """Convert to float, treating empty values as 0.0."""
+    if _is_empty(val):
+        return 0.0
+
+    s = str(val).strip()
+    try:
+        return float(s)  # allow exponent, trailing decimal, etc.
+    except Exception:
+        raise
+
+
+def _to_int(val):
+    """
+    Convert to int, treating empty values as 0 and normalizing '3.0' -> 3.
+    
+    >>> import sandy, pytest
+    >>> assert sandy.records._to_int(3.) == 3
+    >>> assert sandy.records._to_int(3e0) == 3
+    >>> assert sandy.records._to_int(3.0) == 3
+    >>> assert sandy.records._to_int("3.0") == 3
+    >>> assert sandy.records._to_int("       3.0") == 3
+    >>> with pytest.raises(Exception):
+    ...    sandy.records._to_int(3.2)
+    """
+    if _is_empty(val):
+        return 0
+
+    f = _to_float(val)
+
+    # Check: is it mathematically an integer?
+    if not f.is_integer():
+        raise
+
+    return int(f)
+
+
 def read_cont(df, ipos):
     """
-    Read ``ENDF-6`` ``CONT`` record in formatted fortran.
+    Read ``ENDF-6`` ``CONT`` record in formatted Fortran.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        DataFrame with columns ['C1', 'C2', 'L1', 'L2', 'N1', 'N2'].
+        Optionally may include a raw text column (e.g., 'LINE', 'RAW').
+    ipos : int
+        Zero-based line index to read from.
 
     Returns
     -------
-    `CONT` : `collections.namedtuple`
-        - `C1` : `float`
+    CONT : collections.namedtuple
+        - C1 : float
             first element of string
-        - `C2` : `float`
+        - C2 : float
             second element of string
-        - `L1` : `int`
+        - L1 : int
             third element of string
-        - `L1` : `int`
+        - L2 : int
             fourth element of string
-        - `N1` : `int`
+        - N1 : int
             fifth element of string
-        - `N2` : `int`
+        - N2 : int
             sixth element of string
+    ipos : int
+        The next position (ipos + 1).
 
-    Found error in:
-        - n-17-Cl-035.jeff32
-        - n-3-Li-007.jeff32
-        - n-63-Eu-152.jeff32
-        - n-63-Eu-153.jeff32
-        - n-64-Gd-155.jeff32
-        - n-77-Ir-193.jeff32
-        - n-90-Th-229.jeff32
-        - n-94-Pu-238.jeff32
-        - n-94-Pu-241.jeff32
-        - n-94-Pu-242.jeff32
-        - n-97-Bk-250.jeff32
-        - n-98-Cf-254.jeff32
+    Notes
+    -----
+    - Empty strings (including whitespace-only) and NaN are treated as 0 for all fields.
+    - If something is wrong, an error is reported with the line number (1-based) and the line is printed.
+
+    Examples
+    --------
+    Test some features.
+
+    >>> import sandy, pytest
+    
+    This happens often at the end of the intro section MF=1 MT=451.
+    Empty sections are converted to zeros.
+
+    >>> line = "                                1        451         29          01960 1451   28"
+    >>> df = sandy.Endf6.from_text(line)._get_section_df(1960, 1, 451)
+    >>> out, ipos = sandy.records.read_cont(df, 0)
+    >>> assert out.C1 == 0 and out.C2 == 0 and out.L1 == 1 and out.L2 == 451 and out.N1 == 29 and out.N2 == 0
+    >>> assert ipos == 1
+
+    This is a line found in an intro section MF=1 MT=451, but it is also the standard way.
+    
+    >>> line = " 0.00000+00 0.00000+00          8        457         41          02007 1451   51"
+    >>> df = sandy.Endf6.from_text(line)._get_section_df(2007, 1, 451)
+    >>> out, ipos = sandy.records.read_cont(df, 0)
+    >>> assert out.C1 == 0 and out.C2 == 0 and out.L1 == 8 and out.L2 == 457 and out.N1 == 41 and out.N2 == 0
+    
+    An error 'xxx' is inserted.
+
+    >>> line = "  xxx                           1        451         29          01960 1451   28"
+    >>> df = sandy.Endf6.from_text(line)._get_section_df(1960, 1, 451)
+    >>> with pytest.raises(Exception):
+    ...    sandy.records.read_cont(df, 0)
+    
+    A number '2' is shifted but still recognized.
+
+    >>> line = "  2                             1        451         29          01960 1451   28"
+    >>> df = sandy.Endf6.from_text(line)._get_section_df(1960, 1, 451)
+    >>> out, ipos = sandy.records.read_cont(df, 0)
+    >>> assert out.C1 == 2.0 and out.C2 == 0 and out.L1 == 1 and out.L2 == 451 and out.N1 == 29 and out.N2 == 0
+    
+    Let's have floats everywhere, but N1, N2, L1 and L2 can be coverted to ``int``.
+
+    >>> line = " 1.00000+00 1.00000+00 1.00000+00 1.00000+00 1.00000+00 1.00000+002007 1451   51"
+    >>> df = sandy.Endf6.from_text(line)._get_section_df(2007, 1, 451)
+    >>> out, ipos = sandy.records.read_cont(df, 0)
+    >>> assert out.C1 == out.C2 == out.L1 == out.L2 == out.N1 == out.N2 == 1
+
+    Let's have floats everywhere, but N1, N2, L1 and L2 cannot be coverted to ``int``.
+    An error should pop up.
+
+    >>> line = " 1.00000+00 1.00000+00 1.00000+00 1.00000+00 1.00000+00 1.10000+002007 1451   51"
+    >>> df = sandy.Endf6.from_text(line)._get_section_df(2007, 1, 451)
+    >>> with pytest.raises(Exception):
+    ...    sandy.records.read_cont(df, 0)
+
+    >>> line = "                                                                  2007 1451   51"
+    >>> df = sandy.Endf6.from_text(line)._get_section_df(2007, 1, 451)
+    >>> out, ipos = sandy.records.read_cont(df, 0)
+    >>> assert out.C1 == out.C2 == out.L1 == out.L2 == out.N1 == out.N2 == 0
     """
     CONT = namedtuple('CONT', 'C1 C2 L1 L2 N1 N2')
+
     series = df.iloc[ipos]
-    c1 = float(series.C1)
-    c2 = float(series.C2)
-    l1 = int(series.L1)
-    l2 = int(series.L2)
-    n1 = int(series.N1)
-    n2 = int(series.N2)
+
+    try:
+        c1 = _to_float(series.get('C1'))
+        c2 = _to_float(series.get('C2'))
+        l1 = _to_int(series.get('L1'))
+        l2 = _to_int(series.get('L2'))
+        n1 = _to_int(series.get('N1'))
+        n2 = _to_int(series.get('N2'))
+
+    except Exception:
+        to_screen = series.to_markdown()
+        raise ValueError(f"Failed to parse CONT record at line {ipos}:\n{to_screen}")
+
     ipos += 1
     return CONT(c1, c2, l1, l2, n1, n2), ipos
 

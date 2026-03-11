@@ -317,8 +317,9 @@ class Xs():
         from functools import reduce
 
         data = []
-        # read cross sections
+        # --- FILTER ONLY XS (MF=3) SECTIONS
         tape = endf6.filter_by(listmf=[3])
+
         keep = "first"
         for mat, mf, mt in tape.data:
             sec = tape.read_section(mat, mf, mt)
@@ -336,9 +337,11 @@ class Xs():
                                 f"at {energy:.5e} MeV, keep only {keep} value")
             xs = xs[~mask_duplicates]
             data.append(xs)
+
         # read nubar
         tape = endf6.filter_by(listmf=[1], listmt=[452, 455, 456])
         keep = "first"
+
         for mat, mf, mt in tape.data:
             sec = tape.read_section(mat, mf, mt)
             if sec["LNU"] != 2:
@@ -359,6 +362,7 @@ class Xs():
                                 f"at {energy:.5e} MeV, keep only {keep} value")
             xs = xs[~mask_duplicates]
             data.append(xs)
+
         if not data:
             raise NotImplementedError("cross sections were not found")
         # should we sort index?

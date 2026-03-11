@@ -890,34 +890,44 @@ class Fy():
         ... })
         >>> assert q.equals(expected)
         """
+        # ---- IMPORT
+        from .utils import log
+
+        # ---- SETUP
+        common_msg = "Fy.from_endf6 "
+
         data = []
         dict_zam = {}
+        
+        tape = endf6.filter_by(listmf=[8], listmt=[454, 459])
+        if tape.is_empty:
+            raise ValueError("no fission yield found in file")
 
-        # --- pass 1: collect MAT -> ZAM mapping (MF=1)
-        for (mat, mf, mt) in endf6.keys:
+        # ---- LOOP OVER ZAM
+        for (mat, mf, mt) in tape.keys:
+            # ---- COLLECT MAT -> ZAM mapping (MF=1)
+            sec = endf6.read_section(mat, 1, 451)  # get ZAM from MF1/MT451
+            zam = int(sec["ZA"]*10 + sec["LISO"])
+            dict_zam[mat] = int(sec["ZA"] * 10 + sec["LISO"])
 
-            sec = endf6.read_section(mat, mf, mt)
+            # ---- COLLECT FYs
+            sec = tape.read_section(mat, mf, mt)
+            kind = "IFY" if mt == 454 else "CFY"
+            msg = f"| reading ZAM={zam} kind={kind}"
+            log(common_msg + msg, verbose=verbose)
 
-            if mf == 1:
-                dict_zam[mat] = int(sec["ZA"] * 10 + sec["LISO"])
-
-            else:
-
-                if verbose:
-                    logging.info(f"reading 'MAT={mat}/MT={mt}'...")
-
-                for e in sec["E"]:
-                    for zap in sec["E"][e]["ZAP"]:
-                        fy = sec["E"][e]["ZAP"][zap]["FY"]
-                        dfy = sec["E"][e]["ZAP"][zap]["DFY"]
-                        data.append({
-                            "MAT": mat,
-                            "MT": mt,
-                            "ZAP": zap,
-                            "E": e,
-                            "FY": fy,
-                            "DFY": dfy,
-                            })
+            for e in sec["E"]:
+                for zap in sec["E"][e]["ZAP"]:
+                    fy = sec["E"][e]["ZAP"][zap]["FY"]
+                    dfy = sec["E"][e]["ZAP"][zap]["DFY"]
+                    data.append({
+                        "MAT": mat,
+                        "MT": mt,
+                        "ZAP": zap,
+                        "E": e,
+                        "FY": fy,
+                        "DFY": dfy,
+                        })
 
         df_zam = pd.DataFrame([dict_zam]).T.reset_index()
         df_zam.columns = ['MAT', 'ZAM']

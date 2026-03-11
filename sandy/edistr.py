@@ -504,6 +504,8 @@ class Edistr():
         `sandy.Edistr`
             object with tabulated energy distributions
         """
+        from .utils import log
+
         tape = endf6.filter_by(listmf=[5])
         data = []
         for mat, mf, mt in tape.data:
@@ -515,11 +517,16 @@ class Edistr():
                     logging.warning(msg)
                     continue
                 if list(filter(lambda x: x["INT"] != [2], pdistr["EIN"].values())):
-                    msg = "found non-linlin interpolation, skip " +\
-                         f"distribution for MAT{mat}/MF{mf}/MT{mt}," +\
-                         f" subsection {k}"
-                    logging.warning(msg)
+                    
+                    msg = (
+                        "found non-linlin interpolation, skip "
+                        f"distribution for MAT{mat}/MF{mf}/MT{mt}, "
+                        f"subsection {k}"
+                        )
+                    warn_logger = logging.getLogger("sandy.warn")
+                    log(msg, level=logging.WARNING, logger=warn_logger)
                     continue
+
                 for ein, v in sorted(pdistr["EIN"].items()):
                     for eout, val in zip(v["EOUT"], v["EDISTR"]):
                         dct = {

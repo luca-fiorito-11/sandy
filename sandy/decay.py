@@ -687,7 +687,11 @@ class DecayData():
         return T.reindex(T.columns.values, fill_value=0.0)
 
     @classmethod
-    def from_endf6(cls, endf6, verbose=False):
+    def from_endf6(
+            cls,
+            endf6,
+            verbose=False,
+            ):
         """
         Extract hierarchical structure of decay data from `sandy.Endf6`
         instance.
@@ -779,6 +783,12 @@ class DecayData():
             stable: true
         <BLANKLINE>
         """
+        # ---- IMPORT
+        from .utils import log
+
+        # ---- SETUP
+        common_msg = "DecayData.from_endf6 "
+
         tape = endf6.filter_by(listmf=[8], listmt=[457])
         if tape.is_empty:
             raise ValueError("no decay data found in file")
@@ -787,8 +797,10 @@ class DecayData():
         for mat, mf, mt in tape.keys:
             sec = endf6.read_section(mat, mf, mt)
             zam = int(sec["ZA"]*10 + sec["LISO"])
-            if verbose:
-                logging.info(f"reading 'ZAM={zam}'...")
+
+            msg = f"| reading ZAM={zam}"
+            log(common_msg + msg, verbose=verbose)
+
             groups[zam] = {
                     "half_life": sec["HL"],
                     "half_life_uncertainty": sec["DHL"],
@@ -808,11 +820,14 @@ class DecayData():
                             "alpha": sec["DE"][2],
                             },
                     }
+
             if groups[zam]["stable"]:
                 assert groups[zam]["decay_constant"] == 0
                 assert "DK" not in sec
                 continue
+
             groups[zam]["decay_modes"] = {}
+
             for dk in sec["DK"]:
                 rtyp = dk['RTYP']
                 residual_state = dk["RFS"]
@@ -826,6 +841,7 @@ class DecayData():
                         "branching_ratio_uncertainty": dk["DBR"],
                         }
                 groups[zam]["decay_modes"][(rtyp, residual_state)] = decay_mode_data
+
         return cls(groups)
 
     def to_endf6(self, endf6):
