@@ -2694,6 +2694,7 @@ class Endf6(_FormattedFile):
             write: bool = True,
             write_errorr: bool = True,
             write_samples: bool = True,
+            **kwargs,
             ) -> dict[int, ]:
         """
         Generate multigroup perturbation samples for::
@@ -3034,6 +3035,7 @@ class Endf6(_FormattedFile):
             smp_br_kws: dict | None = None,
             verbose: bool = False,
             write: bool = True,
+            **kwargs,
             ) -> dict[str, ]:
         """
         Generate perturbation samples for radioactive decay data (half-lives,
@@ -3368,6 +3370,7 @@ class Endf6(_FormattedFile):
             smp_kws: dict | None = None,
             verbose: bool = False,
             write: bool = True,
+            **kwargs,
             ) -> dict[str, ]:
         """
         Generate perturbation samples for independent fission yields (IFYs).

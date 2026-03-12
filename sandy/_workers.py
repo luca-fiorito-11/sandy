@@ -108,7 +108,7 @@ def _endf6_perturb_worker(
     
     >>> ismp = 0
     >>> pchi = dict(smps.iterate_xs_samples())[ismp]
-    >>> perturbed = sandy.endf6._endf6_perturb_worker(ref_endf6.data, ref_pendf.data, ismp, pchi=pchi)
+    >>> perturbed = sandy._workers._endf6_perturb_worker(ref_endf6.data, ref_pendf.data, ismp, pchi=pchi)
     >>> pert_endf6 = sandy.Endf6(perturbed['endf6'])
     >>> pert_pendf = sandy.Endf6(perturbed['pendf'])
 

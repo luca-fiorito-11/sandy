@@ -237,11 +237,6 @@ _PUBLIC: Dict[str, str] = {
     
     # Fission yields
     "Fy": "fy",
-    "fy_cea_pu239th": "fy",
-    "fy_cea_pu239th_corr": "fy",
-    "fy_cea_u235th": "fy",
-    "fy_cea_u235th_corr": "fy",
-    "get_cea_fy": "fy",
 
     # GENDF
     "Gendf": "gendf",
