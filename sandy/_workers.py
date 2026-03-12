@@ -84,7 +84,7 @@ def _endf6_perturb_worker(
     Test that energy distributions are correctly perturbed.
     Example for Pu239.
 
-    >>> import sandy
+    >>> import sandy, pandas as pd
     
     Creation of dummy perturbation: a perturbation of 10% up to 10 eV (included).
 
@@ -392,7 +392,7 @@ def _write_files_worker(file_dict, basename="output", verbose=False):
     ...    if p.exists():
     ...       p.unlink()
 
-    >>> outfiles = sandy.endf6._write_files_worker(out_dict, verbose=True)
+    >>> outfiles = _write_files_worker(out_dict, verbose=True)
     
     Check that outputs have been created.
 
@@ -671,7 +671,9 @@ def _fy_perturb_worker(
     
     Default test: create 1 sample and perturb fission yields for 1 fissioning system.
     
-    >>> import sandy
+    >>> import sandy, pandas as pd
+
+
     >>> nsmp = 1   # sample size
     >>> zam, e = 922350, 0.0253
     >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", zam, local=True)

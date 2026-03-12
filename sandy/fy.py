@@ -19,7 +19,6 @@ Get CEA fission yield evaluations and correlation matrices.
 >>> assert os.path.exists(sandy.fy_cea_pu239th_corr)
 
 """
-import logging
 
 import pandas as pd
 import numpy as np
@@ -27,20 +26,13 @@ from os.path import join, dirname
 import re
 
 __author__ = "Luca Fiorito"
-# __all__ = [
-#         "Fy",
-#         "fy_cea_pu239th",
-#         "fy_cea_pu239th_corr",
-#         "fy_cea_u235th",
-#         "fy_cea_u235th_corr",
-#         "get_cea_fy",
-#         ]
 
 
 fy_cea_pu239th = join(dirname(__file__), 'appendix', 'fission_yields', r"jeff-4t3_cea_pu9_cons_28-09-2023.stn")
 fy_cea_pu239th_corr = join(dirname(__file__), 'appendix', 'fission_yields', r"jeff-4t3_cea_pu9th_cons_28-09-2023_ind_corr")
 fy_cea_u235th = join(dirname(__file__), 'appendix', 'fission_yields', r"mixt_cea-jeff33_u_235_th_eval_c1.stn")
 fy_cea_u235th_corr = join(dirname(__file__), 'appendix', 'fission_yields', r"mixt_cea-jeff33_u_235_th_ind_corr_mat_c1")
+
 
 
 minimal_fytest = pd.DataFrame(
@@ -63,7 +55,10 @@ minimal_fytest_2 = pd.DataFrame([
 
 
 
-def get_cea_fy(zam, e=0.0253):
+def get_cea_fy(
+        zam: int,
+        e: float = 0.0253,
+        ):
     """
     Exctra thermal independent fission yields and covariance matrix for U-235
     or Pu-239 evaluation provided by CEA for JEFF-4.
@@ -121,37 +116,44 @@ def get_cea_fy(zam, e=0.0253):
     >>> with pytest.raises(Exception):
     ...    sandy.get_cea_fy(922350, e=4e5)  
     """
+    # ---- IMPORT
     from .cov import CategoryCov, corr2cov
     from .endf6 import Endf6
     
-    if e != 0.0253:
-        raise ValueError("Only accepted 'e' value is 0.0253")
-
-    if zam == 922350:
-        file_cov = fy_cea_u235th_corr
-        file = fy_cea_u235th
-
-    elif zam == 942390:
-        file_cov = fy_cea_pu239th_corr
-        file = fy_cea_pu239th
     
-    else:
-        raise ValueError("Only accepted 'zam' values are 922350 and 942390")
+    # --- Input validation ----------------------------------------------------
+    ACCEPTED_E = 0.0253
+    if not np.isclose(e, ACCEPTED_E):
+        raise ValueError(f"Only accepted energy value is {ACCEPTED_E}")
 
-    # ensure symmetry to correlation matrix
-    corr = pd.read_csv(file_cov, sep=r"\s+", header=None)
+
+    # Map ZAM values to the corresponding files (file with std, corr)
+    FILE_MAP = {
+        922350: (fy_cea_u235th, fy_cea_u235th_corr),
+        942390: (fy_cea_pu239th, fy_cea_pu239th_corr),
+    }
+
+    if zam not in FILE_MAP:
+        raise ValueError("Only accepted ZAM values are 922350 and 942390")
+
+    file_fy, file_corr = FILE_MAP[zam]
+
+    # ---- READ & FORCE symmetric correlation matrix
+    corr = pd.read_csv(file_corr, sep=r"\s+", header=None).to_numpy()
     u = np.triu(corr, k=1)
     corr = u + u.T + np.diag(np.diag(corr))                   
 
-    # extract fy
-    tape = Endf6.from_file(file)
-    df = Fy.from_endf6(tape).data.query(f"E=={e} & MT==454")
-    fy = Fy(df)                                                                            # Only thermal IFY's
+    # ---- EXTRACT FY
+    tape = Endf6.from_file(file_fy)
+    df = Fy.from_endf6(tape).data.query(f"E=={ACCEPTED_E} & MT==454")
+    fy = Fy(df)                                  # Only thermal IFY's
 
-    # Get relative covariance from correlation matrix
-    acov = corr2cov(corr, df.DFY.values)                                                   # absolute covariance matrix
-    rcov = np.divide(acov, df.FY.values.reshape(-1, 1) @ df.FY.values.reshape(1, -1))      # convert to relative terms
-    rcov = CategoryCov(pd.DataFrame(rcov, index=df.ZAP.values, columns=df.ZAP.values))
+    # ---- CONVERT correlation → covariance → relative covariance
+    abs_cov = corr2cov(corr, df.DFY.values)
+    rel_cov = np.divide(abs_cov, df.FY.values.reshape(-1, 1) @ df.FY.values.reshape(1, -1))
+    rcov = CategoryCov(
+        pd.DataFrame(rel_cov, index=df.ZAP.values, columns=df.ZAP.values)
+        )
 
     return fy, rcov
 
