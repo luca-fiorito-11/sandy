@@ -446,16 +446,17 @@ class _FormattedFile():
         return {"MAT": mat, "MF": mf, "MT": mt}
 
     @property
-    def mat(self):
-        return sorted(set(self._keys["MAT"]))
+    def mat(self) -> list[int]:
+        return sorted({int(mat) for mat in self._keys["MAT"]})
+
 
     @property
-    def mf(self):
-        return sorted(set(self._keys["MF"]))
+    def mf(self) -> list[int]:
+        return sorted({int(mf) for mf in self._keys["MF"]})
 
     @property
-    def mt(self):
-        return sorted(set(self._keys["MT"]))
+    def mt(self) -> list[int]:
+        return sorted({int(mt) for mt in self._keys["MT"]})
 
     def to_series(self, **kwargs):
         series = pd.Series(self.data, **kwargs).sort_index(ascending=True)
@@ -1481,6 +1482,88 @@ class Endf6(_FormattedFile):
         ID = zam if method.lower() == "aleph" else za_new
         return ID
 
+    def get_mat_zam_mapping(
+            self,
+            ) -> dict[int, int]:
+        """
+        Return a dictionary mapping ENDF material numbers (MAT) to their
+        corresponding ZAM identifiers.
+    
+        The ZAM identifier is defined as::
+    
+            ZAM = ZA * 10 + LISO
+    
+        where:
+            - ``ZA``   = Z*1000 + A (standard ENDF nuclide identifier)
+            - ``LISO`` = metastable state index (0 = ground state)
+    
+        Returns
+        -------
+        dict[int, int]
+            Dictionary where:
+            - keys   = MAT numbers in the ENDF6 file
+            - values = ZAM identifiers (ZA * 10 + LISO)
+    
+        Notes
+        -----
+        ZAM is an ENDF convention combining ZA and metastable state into
+        a single integer. Examples:
+    
+        - Z = 92, A = 235, ground state:
+          ZA = 92235 → ZAM = 922350
+        - Z = 95, A = 242, metastable 1:
+          ZA = 95242 → ZAM = 952421
+        
+        Examples
+        --------
+        Standard use.
+
+        >>> import sandy
+        >>> tape = sandy.get_endf6_file("jeff_33", "decay", [270590, 270600], local=True)
+
+        This should return a ``dict``.
+
+        >>> assert tape.get_mat_zam_mapping() == {561: 270590, 562: 270600}
+
+        This should return a ``dict``.
+
+        >>> tape = sandy.get_endf6_file("jeff_33", "decay", 270590, local=True)
+        >>> assert tape.get_mat_zam_mapping() == {561: 270590}
+                
+        Test also a metastable nuclide.
+
+        >>> tape = sandy.get_endf6_file("jeff_33", "decay", 591481, local=True)
+        >>> assert tape.get_mat_zam_mapping() == {2007: 591481}
+        """
+        mat_zam_mapping: dict[int, int] = {}
+    
+        for mat in self.mat:
+            info = self.read_section(mat, 1, 451)
+            meta = int(info["LISO"])
+            za = int(info["ZA"])
+            zam = za * 10 + meta
+            mat_zam_mapping[mat] = zam
+
+        return mat_zam_mapping
+
+    def get_library(self) -> str:
+        mat = self.mat
+        if len(mat) != 1:
+            raise Exception(
+                "'get_library' only works with single MAT. "
+                f"Found {len(mat)} of them"
+                )
+
+        mat = mat[0]
+        if (mat, 1, 451) not in self.data:
+            raise Exception(
+                f"Section MAT={mat}, MF=1, MT=451 not found"
+                )
+
+        descr = self.read_section(mat, 1, 451)["DESCRIPTION"]
+        lib = descr[2][4:22].strip()
+        return lib
+
     def get_zam(self) -> int | list[int]:
         """
         Return the ZAM identifiers for all materials in the ENDF6 file.
@@ -1524,19 +1607,14 @@ class Endf6(_FormattedFile):
         >>> tape = sandy.get_endf6_file("jeff_33", "decay", 591481, local=True)
         >>> assert tape.get_zam() == 591481
         """
-        zam_list = []
-    
-        for mat in self.mat:
-            info = self.read_section(mat, 1, 451)
-            meta = int(info["LISO"])
-            za = int(info["ZA"])
-            zam = za * 10 + meta
-            zam_list.append(zam)
+        mat_zam_mapping = self.get_mat_zam_mapping()
+        zam_list = list(mat_zam_mapping.values())
     
         if len(zam_list) == 1:
             return zam_list[0]
+
         return zam_list
-    
+
     def _run_njoy(
             self,
             pendf=None,
@@ -3114,7 +3192,7 @@ class Endf6(_FormattedFile):
         >>> smps = decay.get_perturbations_rdd(sample_size, write=False, fill_zeros_half_life=0.1,
         ...                                    fill_zeros_decay_energy=0.2, fill_zeros_branching_ratio=0.5)
 
-        Samples are produced with variability due to the provided ucnertainty.
+        Samples are produced with variability due to the provided uncertainty.
 
         >>> import math
         >>> rtol = 0.05
@@ -3292,78 +3370,239 @@ class Endf6(_FormattedFile):
             write: bool = True,
             ) -> dict[str, ]:
         """
-        Construct multivariate distributions with a unit vector for  mean and
-        with relative covariances taken from the evaluated fission yield
-        data files in `self`.
-
-        Perturbation factors are sampled for the independent fission yields only.        
-
+        Generate perturbation samples for independent fission yields (IFYs).
+    
+        This function builds multivariate distributions for IFY perturbation
+        factors, with mean equal to unity, using either:
+    
+        - diagonal relative variances derived from the evaluated ENDF-6 data, or
+        - (when available and explicitly requested) JEFF-4.0 thermal FY
+          correlation matrices provided by CEA.
+    
+        Only MT=454 (independent fission yields) is treated. The returned samples
+        represent *relative* perturbation coefficients applied to FY values.
+    
         Parameters
         ----------
-        nsmp : `int`
-            Sample size.
-        smp_kws : `dict`, optional
-            Keyword arguments for :obj:`~sandy.cov.CategoryCov.sampling`.
-            The default is {}.
-        covariance : `None` or `str`, optional
-            Flag to adopt fission yield covariance matrices.
-            The only acceptable flag is `covariance='cea'`, which uses
-            the covariance evaluation for U-235 and Pu-239 produced by CEA for
-            thermal fission yields.
-            See :obj:`~sandy.fy.get_cea_fy`.
-            The default is `None`.
-        **kwargs : `dict`
-            Not used.
-
+        nsmp : int
+            Number of samples to generate.
+    
+        nfpy : sandy.Fy, optional
+            Precomputed FY object. If not provided, it is extracted from the
+            current ENDF-6 tape via ``Fy.from_endf6(self)``.
+    
+        covariance : bool, optional
+            If ``True``, use JEFF-4.0 CEA thermal FY correlation matrices  
+            (U‑233, U‑235, Pu‑239, Pu‑241) **when**:
+            
+            - the library is JEFF-4.0,
+            - energy is thermal (0.0253 eV),
+            - fissioning nuclide is one of the supported ZAM values.
+    
+            Otherwise, a diagonal covariance matrix (i.e., uncorrelated
+            perturbations with correct variances) is used.  
+            Default is ``False``.
+    
+        smp_kws : dict, optional
+            Additional keyword arguments passed to
+            :meth:`sandy.cov.CategoryCov.sampling` (e.g. seed specifications).
+    
+        verbose : bool, optional
+            Enable progress logging.
+    
+        write : bool, optional
+            If ``True``, write the generated perturbations to the file
+            ``PERT_MF8_MT454.xlsx`` in the current working directory.
+    
         Returns
         -------
-        smps : `pd.DataFrame`
-            Dataframe with perturbation coefficients given per:
+        smps : dict
+            A mapping with one entry:
+    
+                ``"IFY" → sandy.samples.Samples``
+    
+            The Samples object contains a dataframe with multi-index
+            ``(ZAM, E, ZAP)`` and columns ``SMP`` representing individual samples.
+    
+            Each entry is a relative perturbation factor (mean ≈ 1).
+    
+        Notes
+        -----
+        - Only IFY covariance matrices for JEFF-4.0 thermal evaluations are
+          available (U‑233, U‑235, Pu‑239, Pu‑241).
+        - For all other cases, perturbations are uncorrelated but preserve FY
+          relative standard deviations.
+        - Sampling is block-wise per fissioning system (ZAM, E).
+        - Seeds may be supplied per (ZAM, E) pair via ``smp_kws={"seed": {...}}``.
 
-                - ZAM: fissioning nuclide
-                - E: neutron energy
-                - ZAP: fission product
-                - SMP: sample ID
-
-            .. note:: This is different from :obj:`~sandy.endf6.Endf6.get_perturbations_xs`
-                      and :obj:`~sandy.endf6.Endf6.get_perturbations_rdd`, which return
-                      a :obj:`~sandy.samples.Samples` instance.
 
         Examples
         --------
+        This test suite checks the reproducibility via keywords ``smp_kws={"seed": {}}``
+        and ``nfpy``.
 
-        Default use case.
+        >>> import sandy
+        >>> seed_spec = {(922350, 0.0253): 1, (922350, 400e3): 4}
+        >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922350, local=True)
+
+        After reading the file for one nuclide, a sample is generated.
+
+        >>> sample_size = 2
+        >>> smps = tape.get_perturbations_fy(sample_size, smp_kws=dict(seed=seed_spec), write=False)
+
+        The process is repeated also passing the fy data and the same seed specs.
+
+        >>> nfpy = sandy.Fy.from_endf6(tape)
+        >>> smps2 = tape.get_perturbations_fy(sample_size, nfpy=nfpy, smp_kws=dict(seed=seed_spec), write=False)
+
+        Since the seed is only given for thermal and fast fission (not high energy), 
+        the resulting samples should be the same.
+
+        >>> lower = smps["IFY"].data.query("E<1e7")
+        >>> lower2 = smps2["IFY"].data.query("E<1e7")
+        >>> assert lower2.equals(lower)
+
+        However, they differ for the high energy fission yields.
+
+        >>> higher = smps["IFY"].data.query("E>1e7")
+        >>> higher2 = smps2["IFY"].data.query("E>1e7")
+        >>> assert not higher2.equals(higher)
+
+
+
+        This test suite checks the ``covariance`` option, which only works for U-235
+        and Pu-239 thermal fission of JEFF-4.0
+        Test ``covariance`` option.
+
+        This is done by checking the sample correlation between nuclides ``zap=521350``
+        and ``zap=531350``, which in the JEFF-4.0 covariance matrix is larger than 0.9
+        in absolute value (it is -0.906028).
+
+        The check is done for U-235 for JEFF-4.0. It only works for JEFF-4.0.
+
+        >>> import sandy
+        >>> tape = sandy.get_endf6_file("jeff_40", "nfpy", 922350, local=True)
+        >>> nfpy = sandy.Fy.from_endf6(tape)
+
+        With the covariance matrix the correlation should be larger than 0.8
+        (took some margin for statistical noise).
+
+        >>> sample_size = 50
+        >>> smps = tape.get_perturbations_fy(sample_size, nfpy=nfpy, covariance=True, write=False)
+        >>> corr = smps["IFY"].data.query("ZAP in [521350, 531350] & E==0.0253").T.corr()
+        >>> assert np.abs(corr.iloc[0, 1]) > 0.8
+
+        Without covariance matrix the correlation should be zero, but we accept
+        some tolerance because of the small sample size.
+        
+        >>> sample_size = 50
+        >>> smps = tape.get_perturbations_fy(sample_size, nfpy=nfpy, covariance=False, write=False)
+        >>> corr = smps["IFY"].data.query("ZAP in [521350, 531350] & E==0.0253").T.corr()
+        >>> assert np.abs(corr.iloc[0, 1]) < 0.5
+
+
+
+        This test suite checks the writing option. But first I clean up existing files.
+
+        >>> # Clean up PERT files
+        >>> from pathlib import Path
+        >>> outdir = Path.cwd()
+        >>> p = outdir / "PERT_MF8_MT454.xlsx"
+        >>> if p.exists(): p.unlink()
+        >>> assert not p.exists()
+
+        Now run again (with a smaller size, not to run too much).
+        The PERT file must have been created.
+
+        >>> sample_size = 2
+        >>> smps = tape.get_perturbations_fy(sample_size, write=True, nfpy=nfpy)
+        >>> assert p.exists()
+
+
+
+        This test suite checks the sample convergence.
+
+        First, we draw a large number of samples.
 
         >>> import sandy
         >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922350, local=True)
-        >>> smps = tape.get_perturbations_fy(2, smp_kws=dict(seed=3))
-
-        Pass already processed fission yield object.
-
+        >>> sample_size = 1000
         >>> nfpy = sandy.Fy.from_endf6(tape)
+        >>> smps = tape.get_perturbations_fy(sample_size, nfpy=nfpy, write=False)
 
-        Ensure reproducibility by fixing seed.
+        These are the expected results.
 
-        >>> smps2 = tape.get_perturbations_fy(2, nfpy=nfpy, smp_kws=dict(seed=3))
-        >>> assert smps.equals(smps2)
+        >>> mean = nfpy.data.query("E==0.0253 and MT==454").set_index("ZAP").FY
+        >>> std = nfpy.data.query("E==0.0253 and MT==454").set_index("ZAP").DFY
+        >>> rstd = (std / mean).fillna(0)
 
-        Test `covariance='cea'` option.
-        This is done by checking the sample correlation between nuclides
-        `zap=451140` and `461140`, which in the source data is larger than 0.9.
+        And these are the sample estimates.
 
-        >>> smps = tape.get_perturbations_fy(50, nfpy=nfpy, covariance=None)
-        >>> data = smps.query("ZAP in [451140, 461140] & E==0.0253").pivot_table(index="ZAP", columns="SMP", values="VALS")
-        >>> assert np.corrcoef(data)[0, 1] < 0.3
-        >>> smps = tape.get_perturbations_fy(50, nfpy=nfpy, covariance='cea')
-        >>> data = smps.query("ZAP in [451140, 461140] & E==0.0253").pivot_table(index="ZAP", columns="SMP", values="VALS")
-        >>> assert np.corrcoef(data)[0, 1] > 0.9
+        >>> smp_mean = smps["IFY"].get_mean().reset_index().query("E==0.0253").set_index("ZAP").MEAN
+        >>> smp_rstd = smps["IFY"].get_std().reset_index().query("E==0.0253").set_index("ZAP").STD
+        >>> smp_std = mean * smp_rstd
 
+        Being perturbations relative, the mean of each one should converge to one.
+        We also check that the mean variations across nuclides are minimal by 
+        limiting the standard deviation of the statistical estimate.
+
+        >>> assert np.isclose(smp_mean.mean(), 1, rtol=1e-2)
+        >>> assert smp_mean.std() < 0.05
+
+        To check the variance convergence we check the relative difference 
+        between obtained and expected.
+
+        >>> assert np.sum((smp_rstd - rstd)**2) / np.sum(rstd**2) < 0.05
+
+        Then we also check that the largest variances are captured within 10%.
+
+        >>> top = std.sort_values(ascending=False).head(100)
+        >>> assert np.allclose(smp_std.loc[top.index], top, rtol=0.1)
+
+
+        The convergence is also tested when sampling with covariance data.
+
+        >>> import sandy, numpy as np
+        >>> tape = sandy.get_endf6_file("jeff_40", "nfpy", 922350, local=True)
+        >>> sample_size = 1000
+        >>> smps = tape.get_perturbations_fy(sample_size, covariance=True, write=False)
+
+        These are the expected results from the covariance source.
+
+        >>> corr = sandy.fy.get_jeff40_fy_correlation_matrix(922350)
+        >>> fy = sandy.Fy.from_endf6(tape).data.query("E==0.0253 and MT==454")
+        >>> mean = fy.set_index("ZAP").FY
+        >>> std = fy.set_index("ZAP").DFY
+        >>> rstd = (std / mean).fillna(0)
+
+        And these are the sample estimates.
+
+        >>> smp_mean = smps["IFY"].get_mean().reset_index().query("E==0.0253").set_index("ZAP").MEAN
+        >>> smp_rstd = smps["IFY"].get_std().reset_index().query("E==0.0253").set_index("ZAP").STD
+        >>> smp_std = mean * smp_rstd
+
+        Being perturbations relative, the mean of each one should converge to one.
+        We also check that the mean variations across nuclides are minimal by 
+        limiting the standard deviation of the statistical estimate.
+
+        >>> assert np.isclose(smp_mean.mean(), 1, rtol=1e-2)
+        >>> assert smp_mean.std() < 0.05
+
+        To check the variance convergence we check the relative difference 
+        between obtained and expected.
+
+        >>> assert np.sum((smp_rstd - rstd)**2) / np.sum(rstd**2) < 0.05
+
+        Then we also check that the largest variances are captured within 20%.
+
+        >>> top = std.sort_values(ascending=False).head(100)
+        >>> assert np.allclose(smp_std.loc[top.index], top, rtol=0.2)
         """
         # ---- IMPORT
         from pathlib import Path
 
-        from .cov import CategoryCov
-        from .fy import Fy, get_cea_fy
+        from .cov import CategoryCov, corr2cov
+        from .fy import Fy, get_jeff40_fy_correlation_matrix
         from .samples import Samples
         from .utils import log, get_seed
         from ._perturbation_base import log_stage
@@ -3371,6 +3610,8 @@ class Endf6(_FormattedFile):
         # ---- SETUP
         # there is likely no single zam
         zam = self.get_zam()
+        mat_zam_mapping = self.get_mat_zam_mapping()
+        zam_mat_mapping = {zam: mat for mat, zam in mat_zam_mapping.items()}
         method = "get_perturbations_fy"
 
         length = 1 if np.isscalar(zam) else len(zam)
@@ -3399,6 +3640,7 @@ class Endf6(_FormattedFile):
                 zam: int,
                 e: float,
                 fy,
+                lib: str,
                 kwargs: dict,
                 ) -> Samples:
             """
@@ -3417,7 +3659,7 @@ class Endf6(_FormattedFile):
                     msg = f"E={e:3E} | explicit seed provided"
                 else:
                     local_seed = get_seed()
-                    msg = f"E={e:3E} | no explicit seed provided"
+                    msg = f"E={e:3E} | no explicit seed provided for this fissioning system"
         
             else:
                 # No seeds at all
@@ -3427,18 +3669,32 @@ class Endf6(_FormattedFile):
             log_stage(log, method, zam, msg, verbose=verbose)
 
             # ---- SELECT COVARIANCE MODEL
-            if covariance == "cea" and zam in [922350, 942390] and e == 0.0253:
-                fy, rcov = get_cea_fy(zam)
-                msg = f"E={e:3E} | using CEA covariance"
+            EXPECTED_E = 0.0253
+            ALLOWED_ZAM = [922330, 922350, 942390, 942410]
+            if covariance and zam in ALLOWED_ZAM  and np.isclose(e, EXPECTED_E) and lib == "JEFF-4.0":
+
+                msg = f"E={e:3E} | using JEFF-4.0 covariance matrix (with correlations) and fission yield data"
                 log_stage(log, method, zam, msg, verbose=verbose)
 
+                corr = get_jeff40_fy_correlation_matrix(zam)
+            
+                # ---- CONVERT correlation → covariance → relative covariance
+                abs_cov = corr2cov(corr, fy.DFY)
+                rel_cov = np.divide(abs_cov, fy.FY.to_numpy().reshape(-1, 1) @ fy.FY.to_numpy().reshape(1, -1))
+                rcov = CategoryCov(rel_cov, index=fy.ZAP, columns=fy.ZAP)
+
             else:
+                if covariance:
+                    msg = f"E={e:3E} | covariance is requested but feature is not yet implemented"
+                    log_stage(log, method, zam, msg, verbose=verbose)
+
+                msg = f"E={e:3E} | using diagonal matrix (only variance)"
+                log_stage(log, method, zam, msg, verbose=verbose)
+
                 rstd = (fy.DFY / fy.FY).fillna(0)
                 rcov = CategoryCov(
                     pd.DataFrame(np.diag(rstd**2), index=fy.ZAP, columns=fy.ZAP)
                 )
-                msg = f"E={e:3E} | using diagonal matrix (only variance)"
-                log_stage(log, method, zam, msg, verbose=verbose)
     
             # ---- SAMPLING FOR THIS (ZAM, E)
             msg = f"E={e:3E} | covariance matrix size={rcov.data.shape}"
@@ -3447,7 +3703,6 @@ class Endf6(_FormattedFile):
             msg = f"E={e:3E} | sampling with SMP size={nsmp} via sampling(seed={local_seed}, {kwargs})"
             log_stage(log, method, zam, msg, verbose=verbose)
             smp = rcov.sampling(nsmp, seed=local_seed, **kwargs)
-
 
             # ---- FLATTEN into long-form DataFrame (pandas ≥ 2.1)
             smp_block = (
@@ -3468,7 +3723,10 @@ class Endf6(_FormattedFile):
         # ---- LOOP OVER ALL FY BLOCKS
         smp_list = []
         for (zam, e), fy in nfpy_.data.query("MT==454").groupby(["ZAM", "E"]):
-            smp_list.append(_sample_fy_with_logging(zam, e, fy, smp_kws_))
+            mat = zam_mat_mapping[zam]
+            intro_key = mat, 1, 451
+            lib = Endf6({intro_key: self.data[intro_key]}).get_library()
+            smp_list.append(_sample_fy_with_logging(zam, e, fy, lib, smp_kws_))
     
         smps = Samples(
             pd.concat(smp_list, ignore_index=True)
@@ -4376,48 +4634,60 @@ class Endf6(_FormattedFile):
             smps,
             *,
             processes: int | str = 1,
-            covariance: bool = False,
             nfpy=None,
             suppress_warnings: bool | None = None,
             to_file: bool = False,
             verbose: bool = False,
             ):
         """
-        Apply relative perturbations to the data contained in
-        :obj:`~sandy.endf6.Endf6` instance of fission yield files.
-
+        Apply sampled perturbations to the independent fission yields (IFYs) in an
+        :class:`~sandy.endf6.Endf6` object and generate perturbed ENDF-6 files.
+    
+        This function takes the perturbation factors produced by
+        :meth:`~sandy.endf6.Endf6.get_perturbations_fy` and applies them to the
+        nominal FY data (MT=454). For each sample, a perturbed ENDF-6 tape is
+        created, either returned directly or written to disk.
+    
         Parameters
         ----------
-        smps : `pd.DataFrame`
-            Fission yield sample object.
-            See output of :obj:`~sandy.endf6.Endf6.get_perturbations_fy`.
-            See also :obj:`~sandy`
-        processes : `int`, optional, default is `1`
-            Number of processes used to complete the task.
-            Creation of ENDF6 files and post-processing is done in parallel if
-            `processes>1`.
-        covariance : `None` or `str`, optional
-            Flag to adopt fission yield covariance matrices.
-            The only acceptable flag is `covariance='cea'`.
-            This ensures that the nominal values for U-235 and Pu-239 are taken from 
-            the CEA evaluations. It must be used if it aws used for the production of `smps`.
-            The default is `None`.
-        **kwargs : `dict`
-            Additional keyword arguments, such as:
-                - `nfpy`: to pass directly an already processed :obj:`~sandy.fy.Fy` instance.
-                - `verbose`: to activate output verbosity.
-                - `to_file`: to write output :obj:`~sandy.endf6.Endf6` instances to file.
-
+        smps : dict
+            Dictionary produced by :meth:`get_perturbations_fy`. Must contain
+            one key: ``"IFY" → sandy.samples.Samples``. The Samples object
+            must have the multi-index ``(ZAM, E, ZAP)`` and columns
+            representing sample IDs.
+    
+        processes : int or {"auto"}, optional
+            Number of processes used for parallel execution.
+            - ``1`` (default): serial execution
+            - ``>1``: parallel execution using ``ProcessPoolExecutor``
+            - ``"auto"``: use all available CPU cores
+    
+        nfpy : sandy.Fy, optional
+            Precomputed FY object. If not provided, it is extracted from
+            ``self`` via :class:`sandy.fy.Fy`.
+    
+        to_file : bool, optional
+            If ``True``, each perturbed ENDF-6 tape is written to a file named
+            ``fy_<sampleID>`` in the current working directory.
+            If ``False`` (default), perturbed tapes are returned as
+            :class:`sandy.endf6.Endf6` objects.
+    
+        verbose : bool, optional
+            Enable detailed progress and diagnostic logging.
+    
         Returns
         -------
-        outs : `dict` of :obj:`~sandy.endf6.Endf6` or `dict` of `str`
-            Depending on whether keyword argument `to_file` is given or not:
-                - `to_file=True`: `dict` with filenames, sample ID's are keys
-                - `to_file=False`: `dict` with :obj:`~sandy.endf6.Endf6` instances, sample ID's are keys
-
+        outs : dict
+            A dictionary mapping sample IDs to perturbed results:
+            - if ``to_file=False``: ``{smpID: Endf6}``
+            - if ``to_file=True``:  ``{smpID: filepath}``
+    
         Notes
         -----
-        .. note :: if `to_file=True`, outputs have names `'fy_0'`, `'fy_1'`, etc.
+        - Perturbations are multiplicative relative factors applied directly to
+          the FY values in MF=8/MT=454.
+        - Results are always returned in sorted order by sample ID.
+        - If ``to_file=True``, files are named ``fy_0``, ``fy_1``, etc.
 
         Examples
         --------
@@ -4534,41 +4804,7 @@ class Endf6(_FormattedFile):
         >>> wrong_smps = {"XS": "aaa"}
         >>> with pytest.raises(Exception):
         ...    tape.apply_perturbations_fy(wrong_smps)
-        
-        
-        
-        
-        # Default use case (write data to file).
 
-        # >>> import sandy, pytest
-        # >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", [922350, 922380, 942390], local=True)
-        # >>> smps = tape.get_perturbations(2, covariance='cea')
-        # >>> outs = tape.apply_perturbations_fy(smps, covariance='cea', verbose=False, to_file=True)
-
-        # If the samples were produced with keyword `covariance='cea'`, the same must be 
-        # used in `apply_perturbations_fy`.
-
-        # >>> nfpy = sandy.Fy.from_endf6(tape)
-        # >>> nfpy_u235 = sandy.Fy.from_endf6(sandy.Endf6.from_file(sandy.fy_cea_u235th))
-        # >>> nfpy0 = sandy.Fy.from_endf6(sandy.Endf6.from_file(outs[0]))
-
-        # >>> n = nfpy.data.query("ZAM==922350 and MT==454")
-        # >>> n0 = nfpy0.data.query("ZAM==922350 and MT==454")
-        # >>> nu235 = nfpy_u235.data.query("ZAM==922350 and MT==454")
-
-        # To match the perturbation values, the ratio must be taken with respect to the 
-        # CEA nominal values.
-
-        # >>> sp = n0.set_index("ZAP").FY.divide(nu235.set_index("ZAP").FY).fillna(1)
-        # >>> p = smps.query("ZAM==922350 and SMP==0").set_index("ZAP").VALS.rename("FY")
-        # >>> np.testing.assert_array_almost_equal(p, sp, decimal=4)
-
-        # If `covariance='cea'` was used to produce the samples, at it is not used in 
-        # `apply_perturbations_fy`, then there is a mismatch between the ZAP numbers of 
-        # the samples and of the fission yields.
-
-        # >>> with pytest.raises(Exception):
-        # ...    tape.apply_perturbations_fy(smps, verbose=False, to_file=True)
         """
         # ---- IMPORTS
         import os
@@ -4576,7 +4812,7 @@ class Endf6(_FormattedFile):
         from tqdm.auto import tqdm
         from tqdm.contrib.logging import logging_redirect_tqdm
     
-        from .fy import Fy, fy_cea_u235th, fy_cea_pu239th
+        from .fy import Fy
         from ._concurrency import spawn_ctx, init_fy_cache, task_fy
         from .utils import log
         from ._perturbation_base import (
@@ -4595,7 +4831,6 @@ class Endf6(_FormattedFile):
         log_stage(log, method, zam, msg, verbose=verbose)
 
 
-        # ---- VALIDATE INPUT
         # ---- VALIDATE that at least one perturbation kind is present
         required_keys = ["IFY"]
         validate_smps_mapping(smps)
@@ -4625,24 +4860,6 @@ class Endf6(_FormattedFile):
         nfpy_ = nfpy if nfpy is not None else Fy.from_endf6(self, verbose=verbose)
 
 
-        # ---- HANDLE CEA LOGIC
-        if covariance == "cea":
-            msg = "using CEA nominal values"
-            log_stage(log, method, zam, msg, verbose=verbose)
-    
-            tape_u235 = Endf6.from_file(fy_cea_u235th).data \
-                if 922350 in nfpy_.data.ZAM.values else {}
-    
-            tape_pu239 = Endf6.from_file(fy_cea_pu239th).data \
-                if 942390 in nfpy_.data.ZAM.values else {}
-    
-            tape = Endf6({**self.data, **tape_u235, **tape_pu239})
-            nfpy_ = Fy.from_endf6(tape, verbose=verbose)
-    
-        else:
-            tape = self
-
-
         # This dict will contain outputs per sample id (Endf6 dict or filename)
         outs = {}
         
@@ -4658,7 +4875,7 @@ class Endf6(_FormattedFile):
             log_stage(log, method, zam, msg, verbose=verbose)
     
             # Initialize per-process cache in THIS process
-            init_fy_cache(tape.data, nfpy_.data)
+            init_fy_cache(self.data, nfpy_.data)
     
             with logging_redirect_tqdm():
                 for ismp in tqdm(sample_ids, **tqdm_kws):
@@ -4682,7 +4899,7 @@ class Endf6(_FormattedFile):
                 max_workers=nprocs,
                 mp_context=spawn_ctx(),           # Windows/macOS spawn-safe
                 initializer=init_fy_cache,        # cache nominal dicts once per worker
-                initargs=(tape.data, nfpy_.data),
+                initargs=(self.data, nfpy_.data),
             ) as ex:
                 futures = {}
                 for ismp in sample_ids:

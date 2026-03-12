@@ -1,23 +1,6 @@
 r"""
 This module contains all classes and functions specific for processing fission
 yield data.
-
-Examples
---------
-
-Get CEA fission yield evaluations and correlation matrices.
-
->>> import os, sandy
->>> assert os.path.exists(sandy.fy.fy_cea_u235th)
->>> assert os.path.exists(sandy.fy.fy_cea_pu239th)
->>> assert os.path.exists(sandy.fy.fy_cea_u235th_corr)
->>> assert os.path.exists(sandy.fy.fy_cea_pu239th_corr)
-
->>> assert os.path.exists(sandy.fy_cea_u235th)
->>> assert os.path.exists(sandy.fy_cea_pu239th)
->>> assert os.path.exists(sandy.fy_cea_u235th_corr)
->>> assert os.path.exists(sandy.fy_cea_pu239th_corr)
-
 """
 
 import pandas as pd
@@ -28,11 +11,10 @@ import re
 __author__ = "Luca Fiorito"
 
 
-fy_cea_pu239th = join(dirname(__file__), 'appendix', 'fission_yields', r"jeff-4t3_cea_pu9_cons_28-09-2023.stn")
-fy_cea_pu239th_corr = join(dirname(__file__), 'appendix', 'fission_yields', r"jeff-4t3_cea_pu9th_cons_28-09-2023_ind_corr")
-fy_cea_u235th = join(dirname(__file__), 'appendix', 'fission_yields', r"mixt_cea-jeff33_u_235_th_eval_c1.stn")
-fy_cea_u235th_corr = join(dirname(__file__), 'appendix', 'fission_yields', r"mixt_cea-jeff33_u_235_th_ind_corr_mat_c1")
-
+fycorr_jeff40_U233th = join(dirname(__file__), 'appendix', 'libraries', 'jeff_40', "nfpy", "U233-IFY-CORR-JEFF-4.0.csv")
+fycorr_jeff40_U235th = join(dirname(__file__), 'appendix', 'libraries', 'jeff_40', "nfpy", "U235-IFY-CORR-JEFF-4.0.csv")
+fycorr_jeff40_Pu239th = join(dirname(__file__), 'appendix', 'libraries', 'jeff_40', "nfpy", "Pu239-IFY-CORR-JEFF-4.0.csv")
+fycorr_jeff40_Pu241th = join(dirname(__file__), 'appendix', 'libraries', 'jeff_40', "nfpy", "Pu241-IFY-CORR-JEFF-4.0.csv")
 
 
 minimal_fytest = pd.DataFrame(
@@ -55,72 +37,92 @@ minimal_fytest_2 = pd.DataFrame([
 
 
 
-def get_cea_fy(
+def get_jeff40_fy_correlation_matrix(
         zam: int,
         e: float = 0.0253,
         ):
     """
-    Exctra thermal independent fission yields and covariance matrix for U-235
-    or Pu-239 evaluation provided by CEA for JEFF-4.
+    Return the thermal fission-yield correlation matrix for selected nuclides
+    from the JEFF-4.0 CEA-provided evaluations.
+
+    This function loads the correlation matrix associated with the independent
+    fission yields (IFYs) of a given fissioning nuclide at thermal energy.
+    The CEA files correspond to the JEFF-4.0 evaluation set and include four
+    nuclides:
+
+    - U‑233  (ZAM = 922330)
+    - U‑235  (ZAM = 922350)
+    - Pu‑239 (ZAM = 942390)
+    - Pu‑241 (ZAM = 942410)
+
+    Only thermal energy (0.0253 eV) is supported.
 
     Parameters
     ----------
-    zam : `int`
-        ZAM number. Either `zam=922350` or `zam=942390`.
-    e : `float`, optional
-        Energy of the fissioning system. The default is 0.0253.
-        No other energy is accepted.
+    zam : int
+        ZAM number identifying the fissioning nuclide.
+        Accepted values: ``922330``, ``922350``, ``942390``, ``942410``.
+    e : float, optional
+        Fission energy. Only ``0.0253`` eV is accepted (default).
 
     Raises
     ------
     ValueError
-        Raise if ZAM or energy are not acceptable.
+        If ``zam`` is not one of the supported ZAM values.
+    ValueError
+        If ``e`` differs from the accepted thermal energy (0.0253 eV).
 
     Returns
     -------
-    fy : :obj:`~sandy.fy.Fy`
-        Fission yield object containing independent fission yield data proposed
-        by CEA for the thermal fission of the selected nuclide.
-    rcov : :obj:`~sandy.cov.CategoryCov`
-        Corresponding covariance matrix (relative) with ZAP as index and columns.
+    corr : pandas.DataFrame
+        A square, symmetric correlation matrix for the selected nuclide,
+        indexed and columned by ``ZAP``.
 
     Notes
     -----
-    .. note:: The conservative evaluation C1 is used for U235.
+    The returned matrix is a correlation matrix (not covariance). It is read
+    directly from the CEA-provided JEFF‑4.0 thermal FY correlation files and
+    forced to be symmetric.
+
 
     Examples
     --------
-    
     Default use case: U-235 thermal fission yields.
-    
+
     >>> import sandy, pytest
-    >>> fy, cov = sandy.get_cea_fy(922350)
-
-    Fission yield and covariance object contain the same ZAP (sorted) for `MT=454`.
-
-    >>> assert (fy.data.MT == 454).all()
-    >>> assert (fy.data.ZAP == cov.data.index).all()
-
-    Default use case: Pu-239 thermal fission yields.
-
-    >>> fy, cov = sandy.get_cea_fy(942390)
-    >>> assert isinstance(fy, sandy.Fy) and isinstance(cov, sandy.CategoryCov)
+    >>> corr = sandy.fy.get_jeff40_fy_correlation_matrix(922350)
+    >>> assert corr.shape == (983, 983)
+    >>> assert np.allclose(corr, corr.T)
     
-    Error if `ZAM!=922350` or `ZAM!=942390`.
+    U-233 thermal fission yields.
+
+    >>> corr = sandy.fy.get_jeff40_fy_correlation_matrix(922330)
+    >>> assert corr.shape == (966, 966)
+    >>> assert np.allclose(corr, corr.T)
+
+    Pu-239 thermal fission yields.
+
+    >>> corr = sandy.fy.get_jeff40_fy_correlation_matrix(942390)
+    >>> assert corr.shape == (1094, 1094)
+    >>> assert np.allclose(corr, corr.T)
+
+    Pu-241 thermal fission yields.
+
+    >>> corr = sandy.fy.get_jeff40_fy_correlation_matrix(942410)
+    >>> assert corr.shape == (1071, 1071)
+    >>> assert np.allclose(corr, corr.T)
+    
+    Error if `ZAM==942400`.
     
     >>> with pytest.raises(Exception):
-    ...    sandy.get_cea_fy(942400)
+    ...    sandy.get_jeff40_fy_correlation_matrix(942400)
 
     Error if `e!=0.0253`.
     
     >>> with pytest.raises(Exception):
-    ...    sandy.get_cea_fy(922350, e=4e5)  
+    ...    sandy.get_jeff40_fy_correlation_matrix(922350, e=4e5)  
+    
     """
-    # ---- IMPORT
-    from .cov import CategoryCov, corr2cov
-    from .endf6 import Endf6
-    
-    
     # --- Input validation ----------------------------------------------------
     ACCEPTED_E = 0.0253
     if not np.isclose(e, ACCEPTED_E):
@@ -129,34 +131,23 @@ def get_cea_fy(
 
     # Map ZAM values to the corresponding files (file with std, corr)
     FILE_MAP = {
-        922350: (fy_cea_u235th, fy_cea_u235th_corr),
-        942390: (fy_cea_pu239th, fy_cea_pu239th_corr),
+        922330: fycorr_jeff40_U233th,
+        922350: fycorr_jeff40_U235th,
+        942390: fycorr_jeff40_Pu239th,
+        942410: fycorr_jeff40_Pu241th,
     }
 
     if zam not in FILE_MAP:
         raise ValueError("Only accepted ZAM values are 922350 and 942390")
 
-    file_fy, file_corr = FILE_MAP[zam]
+    file_corr = FILE_MAP[zam]
 
     # ---- READ & FORCE symmetric correlation matrix
-    corr = pd.read_csv(file_corr, sep=r"\s+", header=None).to_numpy()
-    u = np.triu(corr, k=1)
-    corr = u + u.T + np.diag(np.diag(corr))                   
+    corr = pd.read_csv(file_corr, index_col=0)
+    corr.index = corr.index.astype(int)
+    corr.columns = corr.columns.astype(int)
 
-    # ---- EXTRACT FY
-    tape = Endf6.from_file(file_fy)
-    df = Fy.from_endf6(tape).data.query(f"E=={ACCEPTED_E} & MT==454")
-    fy = Fy(df)                                  # Only thermal IFY's
-
-    # ---- CONVERT correlation → covariance → relative covariance
-    abs_cov = corr2cov(corr, df.DFY.values)
-    rel_cov = np.divide(abs_cov, df.FY.values.reshape(-1, 1) @ df.FY.values.reshape(1, -1))
-    rcov = CategoryCov(
-        pd.DataFrame(rel_cov, index=df.ZAP.values, columns=df.ZAP.values)
-        )
-
-    return fy, rcov
-
+    return corr
 
 
 def get_chain_yields():
