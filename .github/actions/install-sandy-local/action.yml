@@ -8,4 +8,5 @@ runs:
       shell: bash
       working-directory: ${{ github.workspace }}
       run: |
+        pip install --no-cache-dir .
         pip install --no-cache-dir .[test]
