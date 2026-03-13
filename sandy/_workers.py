@@ -322,7 +322,7 @@ def _endf6_perturb_worker(
         
         # --- Write files to disk and return only the filenames
         # The added items to the output dict are {str: str}
-        out_dict = _write_files_worker(out_dict, basename=basename, verbose=verbose)
+        out_dict = _write_files_worker(out_dict, ismp, basename=basename, zam=zam, verbose=verbose)
 
     # ---- LOGGING: end
     dt = time.perf_counter() - t0
@@ -332,7 +332,13 @@ def _endf6_perturb_worker(
     return out_dict
 
 
-def _write_files_worker(file_dict, basename="output", verbose=False):
+def _write_files_worker(
+        file_dict,
+        ismp: int,
+        basename: str = "output",
+        zam: int|None = None,
+        verbose: bool = False,
+        ):
     """
     Write ENDF-6, PENDF, and (optionally) ACE and XSDIR contents to disk.
 
@@ -403,8 +409,16 @@ def _write_files_worker(file_dict, basename="output", verbose=False):
     >>> assert(isfile('output.pendf'))
 
     """
+    # ---- IMPORT
     from .utils import log
     from .endf6 import Endf6
+    from ._perturbation_base import log_stage
+
+    # ---- LOGGING SETUP
+    method = (
+        f"[PID {os.getpid():5d}] WRITE-worker "
+        f"| sample={ismp:4d}"
+        )
 
     # --- Write files to disk and return only the filenames
     outfiles= {}
@@ -418,7 +432,8 @@ def _write_files_worker(file_dict, basename="output", verbose=False):
     if 'ace' in file_dict:
         suffix = extract_suffix(file_dict["ace"])
         file = f"{basename}.{suffix}c"
-        log(f" - Writing ACE to file '{file}'", verbose=verbose)
+        msg = f"writing ACE to file -> '{file}'"
+        log_stage(log, method, zam, msg, verbose=verbose)
 
         with open(file, "w") as f:
             f.write(file_dict["ace"])
@@ -428,7 +443,8 @@ def _write_files_worker(file_dict, basename="output", verbose=False):
     if 'xsdir' in file_dict:
         suffix = extract_suffix(file_dict["xsdir"])
         file = f"{basename}.{suffix}c.xsd"
-        log(f" - Writing XSD to file '{file}'", verbose=verbose)
+        msg = f"writing XSD to file -> '{file}'"
+        log_stage(log, method, zam, msg, verbose=verbose)
 
         with open(file, "w") as f:
             f.write(file_dict["xsdir"])
@@ -438,14 +454,16 @@ def _write_files_worker(file_dict, basename="output", verbose=False):
     if 'endf6' in file_dict:
         endf6 = Endf6(file_dict["endf6"])
         file = f"{basename}.endf6"
-        log(f" - Writing ENDF-6 to file '{file}'", verbose=verbose)
+        msg = f"writing ENDF-6 to file -> '{file}'"
+        log_stage(log, method, zam, msg, verbose=verbose)
         endf6.to_file(file)
         outfiles["endf6"] = file
 
     if 'pendf' in file_dict:
         pendf = Endf6(file_dict["pendf"])
         file = f"{basename}.pendf"
-        log(f" - Writing PENDF to file '{file}'", verbose=verbose)
+        msg = f"Writing PENDF to file -> '{file}'"
+        log_stage(log, method, zam, msg, verbose=verbose)
         pendf.to_file(file)
         outfiles["pendf"] = file
     
@@ -671,8 +689,7 @@ def _fy_perturb_worker(
     
     Default test: create 1 sample and perturb fission yields for 1 fissioning system.
     
-    >>> import sandy, pandas as pd
-
+    >>> import sandy, pandas as pd, numpy as np
 
     >>> nsmp = 1   # sample size
     >>> zam, e = 922350, 0.0253

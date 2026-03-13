@@ -41,13 +41,12 @@ def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
 
     Examples
     --------
-    
     Default use case.
     Produce an excel file of samples (verbosity needed to produce the excel file).
 
     >>> import sandy
     >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", [922350, 922380], local=True)
-    >>> smps = tape.get_perturbations(2, verbose=True)
+    >>> smps = tape.get_perturbations(2)
 
     Read it.
     

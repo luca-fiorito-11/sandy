@@ -1980,13 +1980,15 @@ class Endf6(_FormattedFile):
         """
         # ---- IMPORT
         from subprocess import DEVNULL
+        import pprint
 
         from .utils import log
+        from ._perturbation_base import log_stage
 
         # ---- SETUP
         zam = self.get_zam()
         
-        common_msg = f"get_pendf | ZAM={zam} "
+        method = "get_pendf"
 
         # ---- PREPARE KEYWORDS
         # no mutation, _prepare_njoy_kws returns a copy
@@ -1996,25 +1998,20 @@ class Endf6(_FormattedFile):
 
         # ---- SUPPRESSING NJOY output (optional)
         if suppress_njoy_output:
-            msg = (
-                "| NJOY output to screen is suppressed"
-                )
-            log(common_msg + msg, verbose=verbose)
+            msg = "NJOY output to screen is suppressed"
+            log_stage(log, method, zam, msg, verbose=verbose)
 
             njoy_kws_ |= {
                 "njoy_output": DEVNULL
                 }
 
-        msg = (
-            f"| augmented NJOY kwargs: {njoy_kws_}"
-            )
-        log(common_msg + msg, verbose=verbose)
+        pdict = pprint.pformat(njoy_kws_, indent=2, sort_dicts=True)
+        msg = f"augmented NJOY kwargs: {pdict}"
+        log_stage(log, method, zam, msg, verbose=verbose)
 
         # ---- RUN NJOY via the shared helper
-        msg = (
-            "| run NJOY"
-            )
-        log(common_msg + msg, verbose=verbose) 
+        msg = "run NJOY"
+        log_stage(log, method, zam, msg, verbose=verbose)
 
         # --- run via the shared helper ---
         outputs = self._run_njoy(
@@ -2025,16 +2022,12 @@ class Endf6(_FormattedFile):
 
         # --- In case of dryrun, 'outputs' contains the text of the NJOY input
         if dryrun:
-            msg = (
-                "| dryrun requested — returning NJOY input deck"
-                )
-            log(common_msg + msg, verbose=verbose)            
+            msg = "dryrun requested — returning NJOY input deck"
+            log_stage(log, method, zam, msg, verbose=verbose)
             return outputs
 
-        msg = (
-            "| parsing NJOY PENDF output into Endf6 structure"
-            )
-        log(common_msg + msg, verbose=verbose)            
+        msg = "parsing NJOY PENDF output into Endf6 structure"
+        log_stage(log, method, zam, msg, verbose=verbose)
 
         return Endf6.from_text(outputs["pendf"])
 
@@ -2400,10 +2393,12 @@ class Endf6(_FormattedFile):
         # ---- IMPORT
         from tempfile import TemporaryDirectory
         from subprocess import DEVNULL
+        import pprint
 
         from .njoy import _input_mf32_nomf33, _input_mf32_nomf33_no18, _run_njoy
         from .errorr import Errorr
         from .utils import log
+        from ._perturbation_base import log_stage
 
         # ---- SETUP
         src = self  # change of variables to avoid overwriting self
@@ -2412,28 +2407,22 @@ class Endf6(_FormattedFile):
         mfs = recs.MF.unique()
         mts = recs.MT.unique()
         
-        common_msg = f"get_errorr | ZAM={zam} "
+        method = "get_errorr"
         
-        msg = (
-            f"| loaded ENDF records: MF present = {mfs}"
-            )
-        log(common_msg + msg, verbose=verbose)
+        msg = f"loaded ENDF records: MF present = {mfs}"
+        log_stage(log, method, zam, msg, verbose=verbose)
         
         if set([31, 32, 33, 34, 35]).isdisjoint(mfs):
-            msg = (
-                "| no processable covariance section was found"
-                )
-            log(common_msg + msg, verbose=verbose)
+            msg = "no processable covariance section was found"
+            log_stage(log, method, zam, msg, verbose=verbose)
             return {}
             
 
         # ---- HANDLE MF32-no-MF33 cases
         # this replaces tye (ld @handle_mf32_alone decorator
         if 32 in mfs and 33 not in mfs:
-            msg = (
-                "| detected MF32 without MF33: using synthetic ERRORR33 templates"
-                )
-            log(common_msg + msg, verbose=verbose)
+            msg = "detected MF32 without MF33: using synthetic ERRORR33 templates"
+            log_stage(log, method, zam, msg, verbose=verbose)
 
             # input taken from
             # https://www-nds.iaea.org/index-meeting-crp/TM_NDP/docs/OCabellos_2017.pdf
@@ -2444,10 +2433,8 @@ class Endf6(_FormattedFile):
             inp = input_fiss if 18 in mts else input_nofiss
 
             addon_msg = "fission" if 18 in mts else "non‑fission"
-            msg = (
-                f"| using MF32 handling template: {addon_msg}"
-                )
-            log(common_msg + msg, verbose=verbose)
+            msg = f"using MF32 handling template: {addon_msg}"
+            log_stage(log, method, zam, msg, verbose=verbose)
 
             with TemporaryDirectory() as td:
                 f20 = os.path.join(td, "tape20")
@@ -2460,21 +2447,19 @@ class Endf6(_FormattedFile):
             recs = src.get_records()
 
         # ---- NORMALIZE dict-like keyword arguments
+        msg = "augmenting ERRORR NJOY kwargs"
+        log_stage(log, method, zam, msg, verbose=verbose)
+
         njoy_kws_ = src._prepare_njoy_kws(**njoy_kws)
         njoy_kws_["dryrun"] = dryrun
         njoy_kws_["acer"] = False
-        msg = (
-            f"| augmented 'base' NJOY kwargs: {njoy_kws_}"
-            )
-        log(common_msg + msg, verbose=verbose)
-        
+
         # -- prepare/augment GROUPR options without mutating the user's dict --
+        msg = "augmenting GROUPR NJOY kwargs"
+        log_stage(log, method, zam, msg, verbose=verbose)
+
         groupr_kws_ = (groupr_kws or {}).copy()
         njoy_kws_["groupr_kws"] = src._prepare_groupr_kws(**groupr_kws_)
-        msg = (
-            f"| augmented GROUPR NJOY kwargs: {njoy_kws_['groupr_kws']}"
-            )
-        log(common_msg + msg, verbose=verbose)
 
         # -- prepare/augment ERRORR options without mutating the user's dict --
         errorr_kws_ = (errorr_kws or {}).copy()
@@ -2486,10 +2471,8 @@ class Endf6(_FormattedFile):
         has34 = not recs.loc[recs.MF == 34].empty  # mubar cov
         has35 = not recs.loc[recs.MF == 35].empty  # chi cov
 
-        msg = (
-            f"| covariance availability: MF31={has31} MF33={has33} MF34={has34} MF35={has35}"
-            )
-        log(common_msg + msg, verbose=verbose)
+        msg = f"covariance availability: MF31={has31} MF33={has33} MF34={has34} MF35={has35}"
+        log_stage(log, method, zam, msg, verbose=verbose)
 
         # Switch off if user provides False
         use31 = has31 if nubar is None else has31 & bool(nubar)
@@ -2497,16 +2480,12 @@ class Endf6(_FormattedFile):
         use34 = has34 if mubar is None else has34 & bool(mubar)
         use35 = has35 if chi is None else has35 & bool(chi)
 
-        msg = (
-            f"| covariance processing: MF31={use31} MF33={use33} MF34={use34} MF35={use35}"
-            )
-        log(common_msg + msg, verbose=verbose)
+        msg = f"covariance processing: MF31={use31} MF33={use33} MF34={use34} MF35={use35}"
+        log_stage(log, method, zam, msg, verbose=verbose)
 
         if not any([use31, use33, use34, use35]):
-            msg = (
-                "| no processable covariance section was requested"
-                )
-            log(common_msg + msg, verbose=verbose)
+            msg = "no processable covariance section was requested"
+            log_stage(log, method, zam, msg, verbose=verbose)
             return {}
 
         # Fan out shared base kwargs without overriding user-provided per-module, rightmost wins
@@ -2514,23 +2493,6 @@ class Endf6(_FormattedFile):
         errorr33_kws_ = errorr_kws_ | (errorr33_kws or {}).copy()
         errorr34_kws_ = errorr_kws_ | (errorr34_kws or {}).copy()
         errorr35_kws_ = errorr_kws_ | (errorr35_kws or {}).copy()
-
-        msg = (
-            f"| ERRORR kwargs for MF31: {errorr31_kws_}"
-            )
-        log(common_msg + msg, verbose=verbose)
-        msg = (
-            f"| ERRORR kwargs for MF33: {errorr33_kws_}"
-            )
-        log(common_msg + msg, verbose=verbose)
-        msg = (
-            f"| ERRORR kwargs for MF34: {errorr34_kws_}"
-            )
-        log(common_msg + msg, verbose=verbose)
-        msg = (
-            f"| ERRORR kwargs for MF35: {errorr35_kws_}"
-            )
-        log(common_msg + msg, verbose=verbose)
 
         # Compose process_neutron kwargs (no mutation of caller input)
         njoy_kws_ |= {
@@ -2546,26 +2508,22 @@ class Endf6(_FormattedFile):
 
         # ---- SUPPRESSING NJOY output (optional)
         if suppress_njoy_output:
-            msg = (
-                "| NJOY output to screen is suppressed"
-                )
-            log(common_msg + msg, verbose=verbose)
+            msg = "NJOY output to screen is suppressed"
+            log_stage(log, method, zam, msg, verbose=verbose)
 
             njoy_kws_ |= {
                 "njoy_output": DEVNULL
                 }
 
 
-        msg = (
-            f"| final NJOY kwargs: {njoy_kws_}"
-            )
-        log(common_msg + msg, verbose=verbose)
+        pdict = pprint.pformat(njoy_kws_, indent=2, sort_dicts=True)
+        msg = f"running NJOY with augmented kwargs: {pdict}"
+        log_stage(log, method, zam, msg, verbose=verbose)
 
         # ---- RUN NJOY via the shared helper
-        msg = (
-            "| run NJOY"
-            )
-        log(common_msg + msg, verbose=verbose)            
+        msg = "run NJOY"
+        log_stage(log, method, zam, msg, verbose=verbose)
+
         outputs = src._run_njoy(
             print_njoy_input=print_njoy_input,
             verbose=verbose,
@@ -2574,25 +2532,19 @@ class Endf6(_FormattedFile):
 
         # --- In case of dryrun, 'outputs' contains the text of the NJOY input
         if dryrun:
-            msg = (
-                "| dryrun requested — returning NJOY input deck"
-                )
-            log(common_msg + msg, verbose=verbose)            
+            msg = "dryrun requested - returning NJOY input deck"
+            log_stage(log, method, zam, msg, verbose=verbose)
             return outputs
 
         # ---- MAP OUTPUTS into Errorr objects
-        msg = (
-            "| parsing ERRORR outputs"
-            )
-        log(common_msg + msg, verbose=verbose)            
+        msg = "parsing ERRORR outputs"
+        log_stage(log, method, zam, msg, verbose=verbose)
 
         outputs = {k: Errorr.from_text(
             v) for k, v in outputs.items() if k.startswith("errorr")}
 
-        msg = (
-            f"| produced ERRORR objects: {outputs.keys()}"
-            )
-        log(common_msg + msg, verbose=verbose)            
+        msg = f"produced ERRORR objects: {outputs.keys()}"
+        log_stage(log, method, zam, msg, verbose=verbose)
 
         return outputs
 
@@ -2900,6 +2852,7 @@ class Endf6(_FormattedFile):
         # ---- IMPORT
         from subprocess import DEVNULL
         from pathlib import Path
+        import pprint
         
         from .samples import Samples
         from .utils import log, get_seed
@@ -2930,7 +2883,8 @@ class Endf6(_FormattedFile):
         fn_smp    = lambda mf: outdir_path / f"PERT_{base}_MF{mf}.xlsx"
 
         # ---- PRODUCE ERRORR files with covariance data
-        msg = f"run ERRORR via get_errorr({njoy_kws_})"
+        pdict = pprint.pformat(njoy_kws_, indent=2, sort_dicts=True)
+        msg = f"run ERRORR via get_errorr({pdict})"
         log_stage(log, method, zam, msg, verbose=verbose)
         
         # do not print NJOY input to screen
@@ -2996,6 +2950,11 @@ class Endf6(_FormattedFile):
                 msg = f"MF={mf:d} | explicit seed not provided"
             log_stage(log, method, zam, msg, verbose=verbose)
 
+            # remove seed** from smp_kws_, they are just for the pipeline
+            for key in ["seed31", "seed33", "seed34", "seed35"]:
+                if key in smp_kws_:
+                    smp_kws_.pop(key)
+
             msg = f"MF={mf:d} | sampling with SMP size={nsmp} via sampling(seed={seed}, {smp_kws_})"
             log_stage(log, method, zam, msg, verbose=verbose)
             
@@ -3016,7 +2975,7 @@ class Endf6(_FormattedFile):
                 # write the long-form sample frame
                 smp[mf].to_excel(xls_path)
 
-        msg = f"done | SMP size={nsmp} | MFs={mfs} | write={write}"
+        msg = f"done | SMP size={nsmp} | MF={mfs} | write={write}"
         log_stage(log, method, zam, msg, verbose=verbose)
 
         return smp
@@ -3864,11 +3823,13 @@ class Endf6(_FormattedFile):
             njoy_kws: dict | None = None,
             pendf=None,
             processes: int | str = 1,
+            enable_tqdm: bool | None = None,
             suppress_njoy_output: bool = True,
             suppress_warnings: bool | None = None,
             to_ace: bool = False,
             to_file: bool = False,
             verbose: bool = False,
+            **kwargs,
             ):
         """
         Apply relative perturbations to XS (MF=3), nubar (MT=452/455/456), and PFNS chi (MF=5/MT=18)
@@ -3896,6 +3857,12 @@ class Endf6(_FormattedFile):
             Number of worker processes. Use "auto" to pick `os.cpu_count()`.
             • If 1 → run in series (still uses the initializer to set caches).
             • If >1 → run in parallel using a spawn-safe ProcessPoolExecutor.
+        enable_tqdm : bool or None, optional
+            Control the use of ``tqdm`` progress bars.
+            • ``None`` (default): progress bars follow ``verbose``. If
+              ``verbose`` is True, ``tqdm`` is enabled; otherwise disabled.
+            • ``True``: force ``tqdm`` progress bars on.
+            • ``False``: force ``tqdm`` progress bars off.
         suppress_njoy_output : bool, optional, dafault is True
             Suppress NJOY output to screen (stdout or stderr) by redirecting it to DEVNULL.
             This method runs njoy many times (once per sample item). Then the
@@ -4120,7 +4087,7 @@ class Endf6(_FormattedFile):
 
         """
         # ---- IMPORT
-        import os
+        import os, sys
         from concurrent.futures import ProcessPoolExecutor, as_completed
         from subprocess import DEVNULL
 
@@ -4176,9 +4143,19 @@ class Endf6(_FormattedFile):
         #    - or ace files as string
         outs = {}
 
+        # ---- PROGRESS BAR SETTINGS
+        # Decide whether tqdm is enabled
+        if enable_tqdm is None:
+            # default: tqdm follows verbose
+            tqdm_on = bool(verbose)
+        else:
+            # user override
+            tqdm_on = bool(enable_tqdm)
         tqdm_kws = {
             "desc": "XS perturbations",
-            "disable": not verbose,
+            "disable": not tqdm_on,
+            "file": sys.stderr,
+            "dynamic_ncols": True,
         }
 
         # ---- SERIAL sample production
@@ -4267,39 +4244,91 @@ class Endf6(_FormattedFile):
             *,
             processes: int | str = 1,
             rdd = None,
+            enable_tqdm: bool | None = None,
             suppress_warnings: bool | None = None,
             to_file: bool = False,
             verbose: bool = False,
+            **kwargs,
             ):
         """
-        Apply relative perturbations to the data contained in
-        :obj:`~sandy.endf6.Endf6` instance of radioactive decay data files.
-
+        Apply sampled perturbations to radioactive-decay data (RDD) contained in an
+        :class:`~sandy.endf6.Endf6` object and generate perturbed ENDF-6 files.
+    
+        This method takes the RDD perturbation samples produced by
+        :meth:`~sandy.endf6.Endf6.get_perturbations_rdd` and applies them to the
+        nominal decay data (MF=8/MT=457). For each sample ID, a perturbed ENDF-6
+        tape is created. Depending on ``to_file``, results are either returned as
+        in-memory :class:`~sandy.endf6.Endf6` objects or written directly to disk.
+    
         Parameters
         ----------
-        smps : `dict` of :obj:`~sandy.samples.Samples`
-            Dictionary with sample objects.
-            See output of :obj:`~sandy.endf6.Endf6.get_perturbations_rdd`
-        processes : `int`, optional, default is `1`
-            Number of processes used to complete the task.
-            Creation of ENDF6 files and post-processing is done in parallel if
-            `processes>1`.
-        **kwargs : `dict`
-            Additional keyword arguments, such as:
-                - `rdd`: to pass directly an already processed :obj:`~sandy.decay.DecayData` instance.
-                - `verbose`: to activate output verbosity.
-                - `to_file`: to write output :obj:`~sandy.endf6.Endf6` instances to file.
-
+        smps : dict
+            Mapping from perturbation type to :class:`sandy.samples.Samples`
+            instances. Must contain the keys ``"HL"``, ``"DE"``, and ``"BR"``,
+            representing sampled perturbations for half-lives, decay energies, and
+            branching ratios, respectively. The Samples objects must share a
+            consistent index layout.
+    
+        processes : int or {"auto"}, optional
+            Number of worker processes:
+            - ``1`` (default): run in serial mode.
+            - ``>1``: parallel execution using ``ProcessPoolExecutor``.
+            - ``"auto"``: automatically use all available CPU cores.
+    
+        rdd : sandy.DecayData, optional
+            Precomputed :class:`sandy.decay.DecayData` object. If not provided,
+            it is extracted from ``self`` via
+            :meth:`sandy.decay.DecayData.from_endf6`.
+    
+        enable_tqdm : bool or None, optional
+            Control the display of ``tqdm`` progress bars.
+    
+            - ``None`` (default): follow ``verbose``  
+              (progress bars shown when ``verbose=True``).
+            - ``True``: always show progress bars.
+            - ``False``: always disable progress bars.
+    
+            This option provides fine-grained control over progress-display
+            behavior, preventing clutter in non-interactive CLI environments
+            (e.g., when running via ``python -m sandy.sampling``), while still
+            enabling helpful progress visualization in interactive Python sessions.
+    
+        suppress_warnings : bool or None, optional
+            Whether to suppress warnings emitted during the calculation.
+            The default behavior is controlled by the decorator
+            :func:`with_optional_warning_suppression`.
+    
+        to_file : bool, optional
+            If ``True``, each perturbed ENDF-6 tape is written to a file named
+            ``decay_data_<sampleID>`` in the current working directory.
+            If ``False`` (default), perturbed tapes are returned as Endf6 objects.
+    
+        verbose : bool, optional
+            If ``True``, enable detailed progress messages and diagnostics.
+    
+        **kwargs :
+            Additional keyword arguments reserved for future extensions. They are
+            currently ignored.
+    
         Returns
         -------
-        outs : `dict` of :obj:`~sandy.endf6.Endf6` or `dict` of `str`
-            Depending on whether keyword argument `to_file` is given or not:
-                - `to_file=True`: `dict` with filenames, sample ID's are keys
-                - `to_file=False`: `dict` with :obj:`~sandy.endf6.Endf6` instances, sample ID's are keys
-
+        outs : dict
+            Dictionary mapping sample IDs to results:
+            - If ``to_file=False``: ``{smpID: Endf6}``
+            - If ``to_file=True``:  ``{smpID: filepath}``
+    
+            Output entries are sorted by sample ID.
+    
         Notes
         -----
-        .. note :: if `to_file=True`, outputs have names `'decay_data_0'`, `'decay_data_1'`, etc.
+        - Perturbations are multiplicative factors applied to half-lives,
+          decay constants (recomputed from half-lives), and decay energies,
+          consistent with MF=8/MT=457.
+        - Branching ratios are renormalized to unity after perturbation.
+        - Parallel and serial execution produce numerically identical results.
+        - When ``to_file=True``, output names follow the pattern
+          ``decay_data_<sampleID>``.
+
 
         Examples
         --------
@@ -4496,6 +4525,7 @@ class Endf6(_FormattedFile):
 
         """
         # ---- IMPORT
+        import sys
         from concurrent.futures import ProcessPoolExecutor, as_completed
         from tqdm.auto import tqdm
         from tqdm.contrib.logging import logging_redirect_tqdm
@@ -4541,10 +4571,19 @@ class Endf6(_FormattedFile):
         # This dict will contain outputs per sample id (Endf6 dict or filename)
         outs = {}
     
-        # ---- PROGRESS BAR settings
+        # ---- PROGRESS BAR SETTINGS
+        # Decide whether tqdm is enabled
+        if enable_tqdm is None:
+            # default: tqdm follows verbose
+            tqdm_on = bool(verbose)
+        else:
+            # user override
+            tqdm_on = bool(enable_tqdm)
         tqdm_kws = {
-            "desc": "RDD perturbations",
-            "disable": not verbose,
+            "desc": "XS perturbations",
+            "disable": not tqdm_on,
+            "file": sys.stderr,
+            "dynamic_ncols": True,
         }
 
         # ---- SERIAL EXECUTION
@@ -4638,59 +4677,84 @@ class Endf6(_FormattedFile):
             *,
             processes: int | str = 1,
             nfpy=None,
+            enable_tqdm: bool | None = None,
             suppress_warnings: bool | None = None,
             to_file: bool = False,
             verbose: bool = False,
+            **kwargs,
             ):
         """
         Apply sampled perturbations to the independent fission yields (IFYs) in an
         :class:`~sandy.endf6.Endf6` object and generate perturbed ENDF-6 files.
     
-        This function takes the perturbation factors produced by
+        This method takes the perturbation samples produced by
         :meth:`~sandy.endf6.Endf6.get_perturbations_fy` and applies them to the
-        nominal FY data (MT=454). For each sample, a perturbed ENDF-6 tape is
-        created, either returned directly or written to disk.
+        nominal FY data (MF=8/MT=454). For each sample, a perturbed ENDF-6 tape
+        is created. Depending on ``to_file``, the results are either returned as
+        new :class:`~sandy.endf6.Endf6` objects or written to disk.
     
         Parameters
         ----------
         smps : dict
             Dictionary produced by :meth:`get_perturbations_fy`. Must contain
-            one key: ``"IFY" → sandy.samples.Samples``. The Samples object
-            must have the multi-index ``(ZAM, E, ZAP)`` and columns
-            representing sample IDs.
+            exactly one key ``"IFY"`` mapped to a
+            :class:`sandy.samples.Samples` instance. The Samples object must have
+            a multi-index ``(ZAM, E, ZAP)`` and columns containing sample IDs.
     
         processes : int or {"auto"}, optional
-            Number of processes used for parallel execution.
-            - ``1`` (default): serial execution
+            Number of worker processes to use.
+            - ``1`` (default): run in serial mode
             - ``>1``: parallel execution using ``ProcessPoolExecutor``
-            - ``"auto"``: use all available CPU cores
+            - ``"auto"``: automatically use all available CPU cores
     
         nfpy : sandy.Fy, optional
-            Precomputed FY object. If not provided, it is extracted from
-            ``self`` via :class:`sandy.fy.Fy`.
+            Precomputed FY object. If omitted, FY data is extracted from ``self``
+            using :class:`sandy.fy.Fy`.
+    
+        enable_tqdm : bool or None, optional
+            Control the display of ``tqdm`` progress bars.
+    
+            - ``None`` (default): follow the value of ``verbose``  
+              (i.e. progress bars are enabled only when ``verbose=True``).
+            - ``True``: always show progress bars, regardless of ``verbose``.
+            - ``False``: disable progress bars entirely.
+    
+            This option allows fine‑grained control of progress display, avoiding
+            broken or noisy progress bars in non‑interactive environments (e.g.
+            when running via ``python -m sandy.sampling``), while still enabling
+            useful progress visualization in interactive Python sessions.
+    
+        suppress_warnings : bool or None, optional
+            Control whether warnings emitted inside the method are suppressed.
+            If ``None`` (default), suppression behavior follows the decorator
+            :func:`with_optional_warning_suppression`.
     
         to_file : bool, optional
-            If ``True``, each perturbed ENDF-6 tape is written to a file named
-            ``fy_<sampleID>`` in the current working directory.
-            If ``False`` (default), perturbed tapes are returned as
-            :class:`sandy.endf6.Endf6` objects.
+            If ``True``, each perturbed ENDF‑6 tape is written to a file named
+            ``fy_<sampleID>`` in the current working directory.  
+            If ``False`` (default), perturbed tapes are returned as Endf6 objects.
     
         verbose : bool, optional
-            Enable detailed progress and diagnostic logging.
+            Enable verbose diagnostic logging and status messages.
     
         Returns
         -------
         outs : dict
-            A dictionary mapping sample IDs to perturbed results:
+            A mapping from sample ID to result:
+    
             - if ``to_file=False``: ``{smpID: Endf6}``
             - if ``to_file=True``:  ``{smpID: filepath}``
     
+            Output entries are sorted by sample ID.
+    
         Notes
         -----
-        - Perturbations are multiplicative relative factors applied directly to
-          the FY values in MF=8/MT=454.
-        - Results are always returned in sorted order by sample ID.
-        - If ``to_file=True``, files are named ``fy_0``, ``fy_1``, etc.
+        - Perturbations are multiplicative factors applied directly to FY values
+          in MF=8/MT=454.
+        - Parallel and serial modes produce identical numerical results.
+        - When ``to_file=True``, filenames follow the template ``fy_<sampleID>``.
+        - Sample IDs are taken from the column names of the Samples object.
+
 
         Examples
         --------
@@ -4810,7 +4874,7 @@ class Endf6(_FormattedFile):
 
         """
         # ---- IMPORTS
-        import os
+        import os, sys
         from concurrent.futures import ProcessPoolExecutor, as_completed
         from tqdm.auto import tqdm
         from tqdm.contrib.logging import logging_redirect_tqdm
@@ -4866,10 +4930,19 @@ class Endf6(_FormattedFile):
         # This dict will contain outputs per sample id (Endf6 dict or filename)
         outs = {}
         
-        # ---- PROGRESS BAR settings
+        # ---- PROGRESS BAR SETTINGS
+        # Decide whether tqdm is enabled
+        if enable_tqdm is None:
+            # default: tqdm follows verbose
+            tqdm_on = bool(verbose)
+        else:
+            # user override
+            tqdm_on = bool(enable_tqdm)
         tqdm_kws = {
-            "desc": "FY perturbations",
-            "disable": not verbose,
+            "desc": "XS perturbations",
+            "disable": not tqdm_on,
+            "file": sys.stderr,
+            "dynamic_ncols": True,
         }
     
         # ---- SERIAL EXECUTION

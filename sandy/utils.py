@@ -27,6 +27,32 @@ def add_exp_in_endf6_text(text):
     return pattern.sub(r"\g<1>E\g<2>\g<3>", text)
 
 
+def assert_all_diffs_match_any(file1, file2, patterns):
+    """
+    Assert that EVERY differing line between file1 and file2
+    matches AT LEAST ONE of the regex patterns.
+    """
+    from itertools import zip_longest
+
+    regexes = [re.compile(p) for p in patterns]
+
+    with open(file1) as f1, open(file2) as f2:
+        for lineno, (a, b) in enumerate(zip_longest(f1, f2), start=1):
+            a = a.rstrip("\n") if a else ""
+            b = b.rstrip("\n") if b else ""
+
+            if a != b:
+                # does either a or b match ANY of the allowed patterns?
+                ok = any(r.search(a) or r.search(b) for r in regexes)
+
+                if not ok:
+                    raise AssertionError(
+                        f"Line {lineno} differs but does not match any allowed pattern:\n"
+                        f"  Allowed patterns: {patterns}\n"
+                        f"  {file1}: {a}\n"
+                        f"  {file2}: {b}"
+                    )
+
 def get_seed():
     """
     Wrapper to `np.random.SeedSequence().entropy`.
@@ -341,6 +367,7 @@ def force_symlink(file1, file2):
         os.symlink(file1, file2)
 
 
+
 def log(msg, *, level=logging.INFO, logger=None, verbose=None):
     """
     Emit `msg` using the provided `logger` (preferred). If no logger provided,
@@ -354,45 +381,7 @@ def log(msg, *, level=logging.INFO, logger=None, verbose=None):
     lg.log(level, msg)
 
 
-# @contextmanager
-# def suppress_logging_warnings(logger_name="sandy.warn"):
-#     logger = logging.getLogger(logger_name)
-#     old_level = logger.level
-#     try:
-#         logger.setLevel(logging.ERROR)   # suppress WARNING and INFO
-#         yield
-#     finally:
-#         logger.setLevel(old_level)
 
-
-# @contextmanager
-# def suppress_logging_warnings(logger_name_prefix: str, *, level=logging.WARNING):
-#     """
-#     Suppress log records at `level` or higher for any logger whose name
-#     starts with `logger_name_prefix` (exact match or a dotted descendant),
-#     regardless of handler/propagation configuration.
-
-#     This works by attaching a filter to the *root logger* so that even
-#     propagated records are dropped.
-#     """
-#     root = logging.getLogger()  # root logger
-
-#     class _PrefixMaxLevelFilter(logging.Filter):
-#         def filter(self, record: logging.LogRecord) -> bool:
-#             name = record.name  # e.g., 'sandy.warn' or 'sandy.warn.sub'
-#             targeted = (name == logger_name_prefix or
-#                         name.startswith(logger_name_prefix + "."))
-#             if targeted and record.levelno >= level:
-#                 return False  # drop it
-#             return True  # keep it
-
-#     flt = _PrefixMaxLevelFilter()
-#     root.addFilter(flt)
-#     try:
-#         yield
-#     finally:
-#         root.removeFilter(flt)
-        
 @contextmanager
 def suppress_logging_warnings(
     logger_name_prefix: str,
