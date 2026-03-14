@@ -12,45 +12,47 @@ def read_fy_samples(
         file: str = FILENAME_FY_PERT,
         ) -> dict[str, ]:
     """
-    Read relative perturbations for fission yields from excel file produced by
-    :obj:`~sandy.endf6.Endf6.get_perturbations_fy`.
+    Read relative perturbations for fission yields from an Excel file produced by
+    :meth:`~sandy.endf6.Endf6.get_perturbations_fy`.
 
     Parameters
     ----------
     file : `str`, optional
-        The name of the file containing the perturbations for MT454.
-        The default is `'PERT_MF8_MT454.xlsx'`.
-        The default of the tabulated excel file is:
-            
-            - 1st column: energy in eV
-            - 2nd column: ZAP
-            - 3rd - nth columns: sample ID
-        
-        The name of each sheet is a ZAM number.
+        Path to the Excel file containing perturbations for MT454.
+        Default is ``'PERT_MF8_MT454.xlsx'``.
+
+        The expected structure of the Excel file is:
+            - Sheet name: ``"SMP"``
+            - Index columns:
+                * ``ZAM`` : fissioning nuclide (int)
+                * ``E``   : neutron energy (float, eV)
+                * ``ZAP`` : fission product (int)
+            - Data columns: one column per sample ID (ints)
 
     Returns
     -------
-    smp : `pd.DataFrame`
-        Dataframe with perturbation coefficients given per:
-            
-            - ZAM: fissioning nuclide
-            - E: neutron energy
-            - ZAP: fission product
-            - SMP: sample ID
+    smp : `dict`
+        A dictionary containing a single entry:
+        
+        ``{"IFY": sandy.Samples}``
+
+        where the enclosed :class:`~sandy.samples.Samples` object contains a DataFrame
+        indexed by ``ZAM``, ``E``, and ``ZAP`` with sample IDs as columns.
 
     Notes
     -----
-    .. note:: This does not use the object :obj:`~sandy.samples.Samples`.
-
+    This function does **not** use :class:`~sandy.samples.Samples` internally
+    during reading; it only wraps the resulting DataFrame into a ``Samples`` 
+    object before returning.
 
     Examples
     --------
     Default use case.
-    Produce an excel file of samples (verbosity needed to produce the excel file).
+    Produce an excel file of samples.
 
     >>> import sandy, numpy as np, pandas as pd
     >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", [922350, 922380], local=True)
-    >>> smps = tape.get_perturbations(2)
+    >>> smps = tape.get_perturbations(2, write=True)  # write is on by default
 
     Read it.
     
