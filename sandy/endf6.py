@@ -3432,8 +3432,8 @@ class Endf6(_FormattedFile):
 
 
 
-        This test suite checks the ``covariance`` option, which only works for U-235
-        and Pu-239 thermal fission of JEFF-4.0
+        This test suite checks the ``covariance`` option, which only works for U-235, 
+        Pu-239, Pu-241 and U-233 thermal fission of JEFF-4.0
         Test ``covariance`` option.
 
         This is done by checking the sample correlation between nuclides ``zap=521350``

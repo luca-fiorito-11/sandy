@@ -1,11 +1,7 @@
 import os
-import time
-import logging
-import functools
 
 
 __author__ = "Luca Fiorito"
-
 
 
 def parse(iargs=None):
@@ -236,161 +232,6 @@ def parse(iargs=None):
     return init
 
 
-# def multi_run(foo):
-#     """
-#     Decorator to handle keyword arguments for NJOY before running
-#     the executable.
-
-#     Examples
-#     --------
-#     Test that `minimal_processing` filters unwanted modules.
-    
-#     >>> import sandy, filecmp
-#     >>> import pandas as pd
-#     >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True).get_gendf(err=1, minimal_processing=True, temperature=300, dryrun=True)
-#     >>> assert "broadr" in g and "reconr" in g
-#     >>> assert "thermr" not in g and "purr" not in g and "heatr" not in g and "unresr" not in g and "gaspr" not in g
-
-#     Test `minimal_processing=False`.
-
-#     >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True).get_gendf(err=1, temperature=300, dryrun=True)
-#     >>> assert "broadr" in g and "reconr" in g
-#     >>> assert "thermr" in g and "purr" in g and "heatr" in g and "gaspr" in g
-
-#     Check that for `temperature=0` the calculation stops after RECONR.
-
-#     >>> g = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True).get_gendf(err=1, dryrun=True)
-#     >>> assert "reconr" in g
-#     >>> assert "broadr" not in g and "thermr" not in g and "purr" not in g and "heatr" not in g and "unresr" not in g and "gaspr" not in g
-
-#     Retrieve ENDF-6 tape and write it to file.
-
-#     >>> sandy.get_endf6_file("jeff_33", "xs", 10010, local=True).to_file("H1.jeff33")
-
-#     Produce perturbed ACE file.
-
-#     >>> cli = "H1.jeff33 --acer True --samples 2 --processes 2 --temperatures 900 --seed33 5"
-#     >>> sandy.sampling.run(cli.split())
-
-#     Check if ACE and XSDIR files have the right content.
-
-#     >>> assert "1001.09c" in open("1001_0.09c").read()
-#     >>> assert "1001.09c" in open("1001_0.09c.xsd").read()
-#     >>> assert "1001.09c" in open("1001_1.09c").read()
-#     >>> assert "1001.09c" in open("1001_1.09c.xsd").read()
-#     >>> assert not filecmp.cmp("1001_0.09c", "1001_1.09c", shallow=False)
-
-#     Run the same on a single process. But first move files.
-
-#     >>> from os import remove, rename
-#     >>> for f in ["1001_0_MP.09c", "1001_0_MP.09c.xsd", "1001_1_MP.09c", "1001_1_MP.09c.xsd"]:
-#     ...    try: remove(f)
-#     ...    except FileNotFoundError: pass
-#     >>> rename("1001_0.09c",     "1001_0_MP.09c")
-#     >>> rename("1001_0.09c.xsd", "1001_0_MP.09c.xsd")
-#     >>> rename("1001_1.09c",     "1001_1_MP.09c")
-#     >>> rename("1001_1.09c.xsd", "1001_1_MP.09c.xsd")
-#     >>> cli = "H1.jeff33 --acer True --samples 2 --processes 2 --temperatures 900 --seed33 5"
-#     >>> sandy.sampling.run(cli.split())
-
-#     The identical seed ensures consistent results with the previous run.
-
-#     >>> assert filecmp.cmp("1001_0_MP.09c", "1001_0.09c")
-#     >>> assert filecmp.cmp("1001_1_MP.09c", "1001_1.09c")
-#     >>> assert filecmp.cmp("1001_0_MP.09c.xsd", "1001_0.09c.xsd")
-#     >>> assert filecmp.cmp("1001_1_MP.09c.xsd", "1001_1.09c.xsd")
-
-#     Produce perturbed ENDF6 and PENDF files.
-
-#     >>> cli = "H1.jeff33 --samples 2 --processes 2 --mt 102"
-#     >>> sandy.sampling.run(cli.split())
-#     >>> assert os.path.getsize("1001_0.pendf") > 0 and os.path.getsize("1001_1.pendf") > 0
-
-#     >>> assert filecmp.cmp("1001_0.endf6", "1001_1.endf6")
-#     >>> assert filecmp.cmp("1001_0.endf6", "H1.jeff33")
-    
-#     Let's see how the sampling process can be interrupted.
-#     Produce random ENDF-6 and PENDF files for Pu-241 with the standard procedure.
-
-#     >>> file = "942410.jeff33"
-#     >>> sandy.get_endf6_file("jeff_33", "xs", 942410, local=True).to_file(file)
-#     >>> cl = f"{file}" + " --samples 2 --seed33 1 --seed31 1 --seed35 1 --mt33 2"
-#     >>> sandy.sampling.run(cl.split())
-#     >>> for f in ["0-942410.endf6", "0-942410.pendf", "1-942410.endf6", "1-942410.pendf"]:
-#     ...    try: remove(f)
-#     ...    except FileNotFoundError: pass
-#     >>> rename("94241_0.endf6", "0-942410.endf6")
-#     >>> rename("94241_0.pendf", "0-942410.pendf")
-#     >>> rename("94241_1.endf6", "1-942410.endf6")
-#     >>> rename("94241_1.pendf", "1-942410.pendf")
-
-
-#     Now, let's interrupt the process after that the perturbations are
-#     created (reproducible with fixed seed).
-
-#     >>> smps = sandy.sampling.run((cl + " --only_perturbations").split())
-
-#     We can read these perturbation coefficients without the need of regenerating them.
-
-#     >>> cl = f"{file} --from_perturbations '{os.getcwd()}' 1 1 --only_perturbations"
-#     >>> import shlex
-#     >>> smps2 = sandy.sampling.run(shlex.split(cl))
-#     >>> assert smps2[33].data.shape[1] == smps2[31].data.shape[1] == 1
-#     >>> assert smps[33].data.reset_index().MT.unique() == 2
-#     >>> assert smps[31].data.reset_index().MT.unique().size == 3
-#     >>> pd.testing.assert_frame_equal(smps2[33].data, smps[33].data[[1]])
-#     >>> pd.testing.assert_frame_equal(smps2[31].data, smps[31].data[[1]])
-
-#     Using the perturbation coefficients from the excel files we generate the
-#     same random files of the standard pipeline.
-
-#     >>> cl = f"{file}" + f" --from_perturbations '{os.getcwd()}' 1 1"
-#     >>> sandy.sampling.run(shlex.split(cl))
-#     >>> for f in ["new_1-942410.endf6", "new_1-942410.pendf"]:
-#     ...    try: remove(f)
-#     ...    except FileNotFoundError: pass
-#     >>> rename("94241_1.endf6", "new_1-942410.endf6")
-#     >>> rename("94241_1.pendf", "new_1-942410.pendf")
-#     >>> assert filecmp.cmp("new_1-942410.endf6", "1-942410.endf6")
-#     >>> assert filecmp.cmp("new_1-942410.pendf", "1-942410.pendf")
-
-#     If no perturbation file exist, the calculation stops.
-
-#     >>> file = "741840.jeff33"
-#     >>> sandy.get_endf6_file("jeff_33", "xs", 741840, local=True).to_file(file)
-#     >>> cl = f"{file} --from_perturbations '{os.getcwd()}' 1 1 --only_perturbations"
-#     >>> assert not sandy.sampling.run(shlex.split(cl))
-#     """
-#     def inner(cli=None):
-#         """
-#         Parameters
-#         ----------
-#         """
-#         iargs = parse(cli)
-#         if os.path.isdir(iargs.file):
-#             path = iargs.file
-#             for file in os.listdir(path):
-#                 iargs.file = os.path.join(path, file)
-#                 foo(iargs)
-#         else:
-#             return foo(iargs)
-#     return inner
-
-
-def running_time(foo):
-    """
-    Decorator to handle keyword arguments for NJOY before running
-    the executable.
-    """
-    @functools.wraps(foo)   # otherwise test in _process_one_file are not detected
-    def inner(*args, **kwargs):
-        t0 = time.time()
-        out = foo(*args, **kwargs)
-        dt = time.time() - t0
-        logging.info(f"Total running time: {dt:.2f} sec")
-        return out
-    return inner
-
 
 def run(cli=None):
     import argparse
@@ -415,26 +256,99 @@ def run(cli=None):
 
 
 
-#@running_time
 def _process_one_file(
         iargs,
         ):
     """
+    Run the end-to-end sampling pipeline for a single ENDF-6 file, including:
+    - reading the input file,
+    - generating or loading perturbation coefficients,
+    - optionally returning only perturbations,
+    - and applying perturbations to produce ENDF6/PENDF/ACE outputs.
+
+    The function supports three main data paths based on the content of the input
+    ENDF-6 file:
+      * Decay data (MF=8/MT=457) → decay sampling pipeline
+      * Fission yields (MF=8/MT=454) → fission-yield sampling pipeline
+      * Cross sections and related (MF=31/33/35) → ERRORR-driven pipeline with NJOY
 
     Parameters
     ----------
-    iargs : TYPE
-        DESCRIPTION.
+    iargs : argparse.Namespace
+        Parsed command-line arguments with (at least) the
+        attributes defined in :func:`~sandy.sampling.parse`
+            file : str
+                Path to the input ENDF-6 file.
+            samples : int
+                Number of samples to generate.
+            processes : int
+                Number of parallel processes to use when applying perturbations.
+            no_verbose : bool
+                If True, suppress verbose logging.
+            loglevel : {"debug","info","warning","error","critical"}
+                Logging level (string).
+            tqdm : bool
+                If True, show progress bars while applying perturbations.
+            show_njoy : bool
+                If True, print NJOY output to stdout.
+            acer : bool
+                If True, produce ACE (and XSDIR) files.
+            temperatures : float | list[float] | None
+                ACE temperatures (first one is used when `acer` is True).
+            mf : list[int]
+                Requested covariance sections to perturb (e.g., [31, 33, 35]).
+            mt33 : int | list[int] | None
+                If provided, restrict MF=33 perturbations to specific MT(s).
+            cov_energy_grid : {"csewg239", "lanl30", "epri69", "ecco33"}
+                Discrete-groups grid to be used by ERRORR/GROUPR (maps to NJOY IGN).
+            seed31, seed33, seed34, seed35 : int | None
+                Random seeds for independent reproducibility of different MFs.
+            fycov : str | None
+                Optional covariance selection for FY pipeline (used when MF8/MT454).
+            only_perturbations : bool
+                If True, return perturbation coefficients only and produce no files.
+            from_perturbations : tuple[str, int, int] | None
+                (base_dir, beg, end). If provided, load perturbations from
+                PERT_{MAT}_MF{31|33|35}.xlsx in `base_dir` for sample IDs in
+                [beg..end] rather than generating them.
+                - `base_dir` must exist and be a directory
+                - `beg` and `end` must be integers with 1 <= beg <= end
+
+    Returns
+    -------
+    smps : dict[int | str, Samples] or None
+        - If `iargs.only_perturbations` is True:
+            Returns a dictionary of Samples (perturbation coefficients),
+            keyed by MF integers (31, 33, 35) for the cross-section path, or
+            by string keys ("IFY") for the FY shortcut, or by string keys
+            ("HL", "DE", "BR") for the RDD shortcut, depending on the pipeline 
+            branch executed. The dictionary may be empty if no available 
+            perturbations were found or produced.
+        - Otherwise:
+            Returns None after writing the corresponding output files on disk.
 
     Raises
     ------
     Exception
-        DESCRIPTION.
+        If the input path does not exist or is not a file.
+        If `--samples` or `--processes` are not positive integers.
+        If `--from_perturbations` is provided with invalid directory or range.
 
-    Returns
-    -------
-    TYPE
-        DESCRIPTION.
+    Notes
+    -----
+    Pipeline selection:
+        * Decay shortcut (MF=8/MT=457)
+            - Generates decay perturbations, applies them, and writes files
+              named like: `decay_data_{i}`.
+        * Fission-yield shortcut (MF=8/MT=454)
+            - Generates FY perturbations, applies them, and writes files named
+              like: `fy_{i}`.
+        * ERRORR-based pipeline (MF=31/33/35)
+            - If `from_perturbations` is provided, loads perturbations from
+              Excel files `PERT_{MAT}_MF{31|33|35}.xlsx`.
+            - Otherwise, computes perturbations with NJOY (GROUPR/ERRORR).
+            - When `acer` is True, ACE/XSDIR files are generated at the first
+              provided temperature (if `temperatures` is a list).
 
     Examples
     --------
@@ -497,6 +411,28 @@ def _process_one_file(
     Two samples must differ.
     
     >>> assert not filecmp.cmp(outfiles[0], outfiles[1], shallow=False)
+
+    Check option ``--fycov``, which only works for U-235, Pu-239, U-233 and
+    Pu-241 of JEFF-4.0.
+
+    >>> import sandy, numpy as np
+    >>> sandy.get_endf6_file("jeff_40", "nfpy", 922350, local=True).to_file("92-U-235.fy_jeff40")
+    >>> cli = "92-U-235.fy_jeff40 --samples 100 --only_perturbations --no-verbose --fycov"
+    >>> smps_corr = sandy.sampling.run(cli.split())
+
+    When using ``--fycov`` for U-235, the correlation between nuclides ``zap=521350``
+    and ``zap=531350`` should approach ``-0.906028`` (depending on the sample size).
+
+    >>> corr = smps_corr["IFY"].data.query("ZAP in [521350, 531350] & E==0.0253").T.corr()
+    >>> assert np.abs(corr.iloc[0, 1]) > 0.8
+
+    Without ``--fycov`` the same correlation remains zero.
+
+    >>> cli = "92-U-235.fy_jeff40 --samples 100 --only_perturbations --no-verbose"
+    >>> smps_nocorr = sandy.sampling.run(cli.split())
+    >>> corr = smps_nocorr["IFY"].data.query("ZAP in [521350, 531350] & E==0.0253").T.corr()
+    >>> assert np.abs(corr.iloc[0, 1]) < 0.3
+
 
 
     Default use case for xs sampling.
@@ -678,6 +614,7 @@ def _process_one_file(
     # ---- IMPORT
     import pprint
     import time
+    import logging
     
     from .endf6 import Endf6
     from .samples import Samples
@@ -793,6 +730,19 @@ def _process_one_file(
             write=True,
             )
 
+        # Only provide perturbations if requested
+        if iargs.only_perturbations:
+            msg = "returning perturbations only"
+            if smps == {}:
+                msg += " (empty dict)"
+            
+            log_stage(log, method, None, msg, verbose=verbose)
+
+            dt = time.time() - t0
+            msg = f"total running time: {dt:.2f} sec"
+            log_stage(log, method, None, msg, verbose=verbose)
+            return smps
+
         # logging is already in the method
         endf6.apply_perturbations(
             smps,
@@ -817,6 +767,7 @@ def _process_one_file(
         msg = "detected MF=8/MT=454 (decay): using fission-yield path"
         log_stage(log, method, None, msg, verbose=verbose)
 
+        # logging is already in the method
         smps = endf6.get_perturbations(
             iargs.samples,
             covariance=iargs.fycov,
@@ -824,6 +775,20 @@ def _process_one_file(
             write=True,
             )
 
+        # Only provide perturbations if requested
+        if iargs.only_perturbations:
+            msg = "returning perturbations only"
+            if smps == {}:
+                msg += " (empty dict)"
+            
+            log_stage(log, method, None, msg, verbose=verbose)
+
+            dt = time.time() - t0
+            msg = f"total running time: {dt:.2f} sec"
+            log_stage(log, method, None, msg, verbose=verbose)
+            return smps
+
+        # logging is already in the method
         endf6.apply_perturbations(
             smps,
             processes=iargs.processes,
