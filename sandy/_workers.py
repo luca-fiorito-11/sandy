@@ -699,7 +699,7 @@ def _fy_perturb_worker(
     >>> idx = nfpy.data.query(f"E=={e} & MT==454 & ZAM=={zam}").index
     >>> fy = nfpy.data.loc[idx]
     >>> smps = sandy.CategoryCov(pd.DataFrame(np.diag((fy.DFY/fy.FY)**2), index=fy.ZAP, columns=fy.ZAP).fillna(0)).sampling(nsmp)
-    >>> smps = smps.data.rename_axis(index="ZAP").stack().rename("VALS").reset_index().assign(E=e, ZAM=zam)[["ZAM", "E", "ZAP", "SMP", "VALS"]]
+    >>> smps = {"IFY": smps.data.rename_axis(index="ZAP").stack().rename("VALS").reset_index().assign(E=e, ZAM=zam)[["ZAM", "E", "ZAP", "SMP", "VALS"]]}
     >>> out = sandy._workers._fy_perturb_worker(tape.data, nfpy.data, smps, nsmp-1, verbose=True, to_file=False)
     >>> out = sandy.Endf6(out)
     
