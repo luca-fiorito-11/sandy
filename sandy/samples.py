@@ -5,8 +5,12 @@ import logging
 
 __author__ = "Luca Fiorito"
 
+FILENAME_FY_PERT = 'PERT_MF8_MT454.xlsx'
+FILENAME_RDD_PERT = 'PERT_MF8_MT457.xlsx'
 
-def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
+def read_fy_samples(
+        file: str = FILENAME_FY_PERT,
+        ) -> dict[str, ]:
     """
     Read relative perturbations for fission yields from excel file produced by
     :obj:`~sandy.endf6.Endf6.get_perturbations_fy`.
@@ -44,32 +48,56 @@ def read_fy_samples(file='PERT_MF8_MT454.xlsx'):
     Default use case.
     Produce an excel file of samples (verbosity needed to produce the excel file).
 
-    >>> import sandy
+    >>> import sandy, numpy as np, pandas as pd
     >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", [922350, 922380], local=True)
     >>> smps = tape.get_perturbations(2)
 
     Read it.
     
-    >>> smps2 = sandy.samples.read_fy_samples()
+    >>> smps_read = sandy.samples.read_fy_samples()
+
+    Minimal instance checks.
+
+    >>> assert isinstance(smps_read, dict)
+    >>> assert len(smps_read) == 1
+    >>> assert "IFY" in smps_read
+    >>> assert isinstance(smps_read["IFY"], sandy.Samples)
 
     Test that it was read correctly.
+    
+    First check index.
 
-    >>> smps = smps.astype({'ZAM': 'int32', 'E': 'float64', 'ZAP': 'int32', 'SMP': 'int32', 'VALS': 'float64'})
-    >>> smps2 = smps2.astype({'ZAM': 'int32', 'E': 'float64', 'ZAP': 'int32', 'SMP': 'int32', 'VALS': 'float64'})
-    >>> assert smps2[["ZAM", "E", "ZAP", "SMP"]].equals(smps[["ZAM", "E", "ZAP", "SMP"]])
-    >>> np.testing.assert_array_almost_equal(smps2.VALS, smps.VALS)
+    >>> index = smps_read["IFY"].data.index
+    >>> expected = smps_read["IFY"].data.index
+    >>> assert pd.api.types.is_integer_dtype(index.get_level_values("ZAM"))
+    >>> assert pd.api.types.is_float_dtype(index.get_level_values("E"))
+    >>> assert pd.api.types.is_integer_dtype(index.get_level_values("ZAP"))
+    >>> assert index.equals(expected)
+
+    Then columns.
+
+    >>> columns = smps_read["IFY"].data.columns
+    >>> expected = smps_read["IFY"].data.columns
+    >>> assert pd.api.types.is_integer_dtype(columns)
+    >>> assert columns.name == "SMP"
+    >>> assert columns.equals(expected)
+
+    Then values.
+
+    >>> got = smps_read["IFY"].data.to_numpy()
+    >>> expected = smps["IFY"].data.to_numpy()
+    >>> assert np.allclose(got, expected)
     """
-    all_sheets = pd.read_excel(file, sheet_name=None)
-    
-    smp = []
-    for k, v in all_sheets.items():
-        s = v.ffill().assign(ZAM=int(k)).set_index(["ZAM", "E", "ZAP"]).rename_axis("SMP", axis=1).stack().rename("VALS").reset_index()
-        smp.append(s)
-    
-    # same sorting structure as when it was produced in get_perturbations_fy
-    smp = pd.concat(smp, ignore_index=True).sort_values(by=["ZAM", "E", "ZAP", "SMP"])
+    # ---- IMPORT
+    import pandas as pd
 
-    return smp
+    smp = pd.read_excel(
+        FILENAME_FY_PERT,
+        sheet_name="SMP",
+        index_col=[0, 1, 2],  # ZAM, E, ZAP
+        ).rename_axis(columns="SMP")
+    
+    return {"IFY": Samples(smp)}
 
 
 

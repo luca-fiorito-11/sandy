@@ -3183,7 +3183,7 @@ class Endf6(_FormattedFile):
 
         from .decay import DecayData
         from .cov import CategoryCov
-        from .samples import Samples
+        from .samples import Samples, FILENAME_RDD_PERT
         from .utils import log, get_seed
         from ._perturbation_base import log_stage
 
@@ -3282,7 +3282,7 @@ class Endf6(_FormattedFile):
         if write:
             # prepare output directory and basename
             outdir_path = Path.cwd()
-            xls_path = outdir_path / "PERT_MF8_MT457.xlsx"
+            xls_path = outdir_path / FILENAME_RDD_PERT
 
             msg = f"writing samples -> '{xls_path}'"
             log_stage(log, method, zam, msg, verbose=verbose)
@@ -3565,7 +3565,7 @@ class Endf6(_FormattedFile):
 
         from .cov import CategoryCov, corr2cov
         from .fy import Fy, get_jeff40_fy_correlation_matrix
-        from .samples import Samples
+        from .samples import Samples, FILENAME_FY_PERT
         from .utils import log, get_seed
         from ._perturbation_base import log_stage
 
@@ -3697,7 +3697,7 @@ class Endf6(_FormattedFile):
  
         # ---- WRITE TO XLSX
         if write:
-            xls_path = Path.cwd() / "PERT_MF8_MT454.xlsx"
+            xls_path = Path.cwd() / FILENAME_FY_PERT
             msg = f"writing samples -> '{xls_path}'"
             log_stage(log, method, zam, msg, verbose=verbose)
 
