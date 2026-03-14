@@ -84,7 +84,7 @@ def _endf6_perturb_worker(
     Test that energy distributions are correctly perturbed.
     Example for Pu239.
 
-    >>> import sandy, pandas as pd
+    >>> import sandy, pandas as pd, numpy as np
     
     Creation of dummy perturbation: a perturbation of 10% up to 10 eV (included).
 
@@ -384,30 +384,31 @@ def _write_files_worker(
     
     Collect endf6/pendf/ace/xsdir file for test.
     
-    >>> import sandy
+    >>> import sandy, os, glob
     >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
     >>> pendf = endf6.get_pendf()
     >>> out_dict = {"endf6": endf6.data, "pendf": pendf.data}
     >>> out_dict |= endf6.get_ace(temperature=0)
     
+    ``out_dict`` is a dictionary with keys ``endf6``, ``pendf``,
+    ``ace`` and ``xsdir``, like the samples produced by
+    ``Endf6.get_perturbations_xs``.
+    
     Run worker...but first remove outputs.
 
-    >>> from pathlib import Path
-    >>> for filename in ['output.00c', 'output.00c.xsd', 'output.endf6', 'output.pendf']:
-    ...    p = Path(filename)
-    ...    if p.exists():
-    ...       p.unlink()
+    >>> # Delete files
+    >>> for f in glob.glob("output*"):
+    ...     try: os.remove(f)
+    ...     except FileNotFoundError: pass
+    >>> # Run worker
+    >>> ismp = 1
+    >>> outfiles = sandy._workers._write_files_worker(out_dict, ismp)
 
-    >>> outfiles = _write_files_worker(out_dict, verbose=True)
-    
     Check that outputs have been created.
 
-    >>> from os.path import isfile
-    >>> assert(isfile('output.00c'))
-    >>> assert(isfile('output.00c.xsd'))
-    >>> assert(isfile('output.endf6'))
-    >>> assert(isfile('output.pendf'))
-
+    >>> output_files = glob.glob("output*")
+    >>> expected_outputs = {'output.00c', 'output.00c.xsd', 'output.endf6', 'output.pendf'}
+    >>> assert expected_outputs.issubset(set(output_files))
     """
     # ---- IMPORT
     from .utils import log
@@ -699,7 +700,7 @@ def _fy_perturb_worker(
     >>> fy = nfpy.data.loc[idx]
     >>> smps = sandy.CategoryCov(pd.DataFrame(np.diag((fy.DFY/fy.FY)**2), index=fy.ZAP, columns=fy.ZAP).fillna(0)).sampling(nsmp)
     >>> smps = smps.data.rename_axis(index="ZAP").stack().rename("VALS").reset_index().assign(E=e, ZAM=zam)[["ZAM", "E", "ZAP", "SMP", "VALS"]]
-    >>> out = sandy.endf6._fy_perturb_worker(tape.data, nfpy.data, smps, nsmp-1, verbose=True, to_file=False)
+    >>> out = sandy._workers._fy_perturb_worker(tape.data, nfpy.data, smps, nsmp-1, verbose=True, to_file=False)
     >>> out = sandy.Endf6(out)
     
     Silly test: assert the `MT=454` was changed, and `MT=459` was not.
@@ -712,7 +713,7 @@ def _fy_perturb_worker(
     >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922350, local=True)
     >>> smps = tape.get_perturbations(2, covariance=None)
     >>> nfpy = sandy.Fy.from_endf6(tape)
-    >>> out = sandy.endf6._fy_perturb_worker(tape.data, nfpy.data, smps, 0)
+    >>> out = sandy._workers._fy_perturb_worker(tape.data, nfpy.data, smps, 0)
     >>> nfpy0 = sandy.Fy.from_endf6(sandy.Endf6(out))
 
     Assert that ratio of perturbed to nominal FY's is equal to samples.
