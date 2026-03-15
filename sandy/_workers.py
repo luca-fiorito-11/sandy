@@ -642,35 +642,52 @@ def _fy_perturb_worker(
         to_file=False,
         ):
     """
-    Worker to handle ENDF6 fission yield perturbation.
-
+    Apply fission‑yield perturbations to an ENDF‑6 tape for a single sample.
+    
+    This worker function is designed for multiprocessing and performs the
+    perturbation of independent fission yields (IFYs) using a set of
+    pre‑generated sample coefficients.
+    
     Parameters
     ----------
-    endf6 : `dict`
-        `data` attribute of :obj:`~sandy.endf6.Endf6`.
-        It contains the nominal ENDF6 data.
-    fy : `pd.DataFrame`
-        `data` attribute of :obj:`~sandy.fy.Fy`.
-        It contains the nominal fission yield data.
-        It i sassume they match all the ZAP of the samples.
-    smps : `pd.DataFrame`
-        It contains the perturbation coefficients for fission yields.
-        Columns are `MAT`, `MT`, `E`, `ZAM`, `ZAP`, `SMP`, `VALS`.
-        This dataframe is generally produced with `pd.pivot_table`.
-    ismp : `int`
-        sample ID.
-    verbose : `bool`, optional
-        Flag to activate verbosity. The default is False.
-    to_file : `bool`, optional
-        Flag to write outputs to file. The default is False.
-        This key changes the output type.
-    **kwargs : `dict`
-        Additional keyword arguments (not used).
-        
+    endf6 : dict
+        The `.data` attribute of a `sandy.Endf6` instance. Contains the nominal
+        ENDF‑6 structure to be perturbed.
+    fy : pandas.DataFrame
+        The `.data` attribute of a `sandy.Fy` instance containing the nominal
+        fission‑yield data. All ZAP identifiers in the perturbation samples
+        must be present here.
+    pfy : pandas.DataFrame
+        Perturbation coefficients for the fission yields. Must contain
+        MultiIndex-compatible columns:
+        `["ZAM", "E", "ZAP", "SMP", "IFY"]`.
+        Typically produced via `pd.pivot_table()` or from
+        `CategoryCov.sampling()`.
+    ismp : int
+        Sample index to apply. Only rows where `SMP == ismp` will be used.
+    verbose : bool, optional
+        If True, enable progress and diagnostic logging.
+    to_file : bool, optional
+        If True, write the perturbed ENDF‑6 tape to a file and return the
+        filename. If False (default), return the perturbed ENDF‑6 structure
+        as a dictionary.
+    
+    Returns
+    -------
+    dict or str
+        If `to_file=False`, returns a plain dictionary representing the
+        perturbed ENDF‑6 tape (`Endf6.data` format).  
+        If `to_file=True`, returns the output filename as a string.
+    
     Notes
     -----
-    .. note:: It follows the logic of :obj:`~sandy.endf6._endf6_perturb_worker` and
-              :obj:`~sandy.endf6._rdd_perturb_worker`.
+    - This worker mirrors the logic of
+      :func:`sandy.endf6._endf6_perturb_worker` and
+      :func:`sandy.endf6._rdd_perturb_worker`.
+    - Implemented to be multiprocessing‑safe (pickle‑friendly).
+    - Only independent fission yields (`MF=8`, `MT=454`) are perturbed.
+      Cumulative yields (`MT=459`) are *not* automatically updated and may
+      become inconsistent if present in the tape.
 
     Returns
     -------
@@ -687,20 +704,45 @@ def _fy_perturb_worker(
 
     Examples
     --------
-    
     Default test: create 1 sample and perturb fission yields for 1 fissioning system.
     
     >>> import sandy, pandas as pd, numpy as np
 
-    >>> nsmp = 1   # sample size
-    >>> zam, e = 922350, 0.0253
+    >>> zam, e, sample_size = 922350, 0.0253, 1
     >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", zam, local=True)
     >>> nfpy = sandy.Fy.from_endf6(tape)
+
+    Extract mean and standard deviations from U235 thermal.
+
     >>> idx = nfpy.data.query(f"E=={e} & MT==454 & ZAM=={zam}").index
+<<<<<<< Updated upstream
     >>> fy = nfpy.data.loc[idx]
     >>> smps = sandy.CategoryCov(pd.DataFrame(np.diag((fy.DFY/fy.FY)**2), index=fy.ZAP, columns=fy.ZAP).fillna(0)).sampling(nsmp)
     >>> smps = {"IFY": smps.data.rename_axis(index="ZAP").stack().rename("VALS").reset_index().assign(E=e, ZAM=zam)[["ZAM", "E", "ZAP", "SMP", "VALS"]]}
     >>> out = sandy._workers._fy_perturb_worker(tape.data, nfpy.data, smps, nsmp-1, verbose=True, to_file=False)
+=======
+    >>> fy = nfpy.data.loc[idx].set_index("ZAP")
+    >>> mean, std = fy.FY, fy.DFY
+    >>> rvar = (std / mean).fillna(0)**2
+
+    Restructure the perturbation dataframe to have ``ZAM``, ``E`` and ``ZAP`` as multiindex,
+    and ``IFY`` as column.
+
+    >>> smps = sandy.CategoryCov.from_var(rvar).sampling(sample_size)
+    >>> smps = (
+    ...    smps.data.
+    ...         rename_axis(index="ZAP").
+    ...         stack().
+    ...         rename("IFY").
+    ...         reset_index().
+    ...         assign(E=e, ZAM=zam).
+                set_index(["ZAM", "E", "ZAP"])[["IFY"]]
+    ...   )
+    
+    Run the worker.
+    
+    >>> out = sandy._workers._fy_perturb_worker(tape.data, nfpy.data, smps, sample_size-1, verbose=True, to_file=False)
+>>>>>>> Stashed changes
     >>> out = sandy.Endf6(out)
     
     Silly test: assert the `MT=454` was changed, and `MT=459` was not.

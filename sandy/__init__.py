@@ -67,6 +67,9 @@ __version__ = '1.1.0'
 # List of available sandy submodules (lazy-loaded)
 _SUBMODULES  = [
     # modules
+    "_concurrency",
+    "_perturbation_base",
+    "_workers",
     "constants",
     "cov",
     "decay",
@@ -84,7 +87,6 @@ _SUBMODULES  = [
     "records",
     "samples",
     "sampling",
-    "settings",
     "spectra",
     "tsl",
     "utils",
