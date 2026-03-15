@@ -199,6 +199,7 @@ def get_temperature_suffix(temperature, meta=False):
     ...    assert v == get_temperature_suffix(k, 1)
     ...    assert v == get_temperature_suffix(k, 2)
     """
+    from .utils import log
     closed = "left"
     
     if temperature == 293.6:
@@ -234,8 +235,12 @@ def get_temperature_suffix(temperature, meta=False):
     mask = suffix.index.contains(temperature)
     if suffix[mask].empty:
         suff = "00"
-        msg = f"extension '{suff}' will be used for temperature '{temperature}'"
-        logging.warning(msg)
+        msg = (
+            f"extension '{suff}' will be used for temperature '{temperature}'"
+            )
+        warn_logger = logging.getLogger("sandy.warn")
+        log(msg, level=logging.WARNING, logger=warn_logger)
+
     else:
         if meta:
             suff = suffix[mask].META.squeeze()
@@ -1356,7 +1361,7 @@ def process_neutron(
         zaid="nndc",
         route="0",
         exe=None,
-        verbose=True,
+        verbose=False,
         dryrun=False,
         njoy_output=None,
         **kwargs,

@@ -67,6 +67,9 @@ __version__ = '1.1.0'
 # List of available sandy submodules (lazy-loaded)
 _SUBMODULES  = [
     # modules
+    "_concurrency",
+    "_perturbation_base",
+    "_workers",
     "constants",
     "cov",
     "decay",
@@ -84,7 +87,6 @@ _SUBMODULES  = [
     "records",
     "samples",
     "sampling",
-    "settings",
     "spectra",
     "tsl",
     "utils",
@@ -237,11 +239,6 @@ _PUBLIC: Dict[str, str] = {
     
     # Fission yields
     "Fy": "fy",
-    "fy_cea_pu239th": "fy",
-    "fy_cea_pu239th_corr": "fy",
-    "fy_cea_u235th": "fy",
-    "fy_cea_u235th_corr": "fy",
-    "get_cea_fy": "fy",
 
     # GENDF
     "Gendf": "gendf",
