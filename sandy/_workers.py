@@ -7,6 +7,9 @@ Created on Tue Mar  3 16:10:54 2026
 import os
 import time
 
+from .utils import with_optional_warning_suppression
+
+@with_optional_warning_suppression("sandy.warn", default_suppress=False)
 def _endf6_perturb_worker(
         endf6,
         pendf,
@@ -22,7 +25,6 @@ def _endf6_perturb_worker(
         to_file: bool = False,
         **kwargs,
         ):
-
     """
     Worker to handle ENDF6 neutron data perturbation (xs, nubar, angular and energy distributions).
 
@@ -68,14 +70,10 @@ def _endf6_perturb_worker(
     Returns
     -------
     `dict`
-        
-        - if `to_file=False`: a `dict` with keys, values:
-            
-            - `endf6`: the ``dict`` mapping from ``.data`` of a perturbed :obj:`~sandy.endf6.Endf6` instance
-            - `pendf`: the ``dict`` mapping from ``.data`` a perturbed :obj:`~sandy.endf6.Endf6` instance
-
+        - if `to_file=False`: a `dict` with keys, values:  
+            - `endf6`: the ``dict`` mapping from ``.data`` of a perturbed :class:`~sandy.endf6.Endf6` instance
+            - `pendf`: the ``dict`` mapping from ``.data`` a perturbed :class:`~sandy.endf6.Endf6` instance
         - if `to_file=True`: a `dict` with keys, values:
-
             - `endf6`: the filename of the perturbed ENDF6
             - `pendf`: the filenmae of the perturbed PENDF
 
@@ -101,14 +99,16 @@ def _endf6_perturb_worker(
     Creation of reference ENDF6 and PENDF.
 
     >>> ref_endf6 = sandy.get_endf6_file("jeff_33", "xs", 942390, local=True)
-    >>> ref_pendf = ref_endf6.get_pendf(err=1)
+    >>> ref_pendf = ref_endf6.get_pendf(err=1, njoy_output=-3, suppress_warnings=True)
 
     Creation of perturbed data modifying the PFNS with the first perturbation
     sample (the only one).
     
     >>> ismp = 0
     >>> pchi = dict(smps.iterate_xs_samples())[ismp]
-    >>> perturbed = sandy._workers._endf6_perturb_worker(ref_endf6.data, ref_pendf.data, ismp, pchi=pchi)
+    >>> perturbed = sandy._workers._endf6_perturb_worker(
+    ...    ref_endf6.data, ref_pendf.data, ismp, pchi=pchi,
+    ...    ace_kws={"njoy_output": -3}, suppress_warnings=True)
     >>> pert_endf6 = sandy.Endf6(perturbed['endf6'])
     >>> pert_pendf = sandy.Endf6(perturbed['pendf'])
 
@@ -138,6 +138,7 @@ def _endf6_perturb_worker(
     Creation of a dummy perturbation for scattering `MT=2`: a perturbation of
     20% up to 10 eV (included).
 
+    >>> import pandas as pd, sandy
     >>> interval = pd.Interval(left=1e-8, right=10, closed="right")
     >>> idx = pd.MultiIndex.from_tuples([(125, 2, interval)], names=("MAT", "MT", "E"))
     >>> pert = 1.2
@@ -151,7 +152,7 @@ def _endf6_perturb_worker(
     Creation of reference ENDF6 and PENDF.
 
     >>> ref_endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
-    >>> ref_pendf = ref_endf6.get_pendf(err=1)
+    >>> ref_pendf = ref_endf6.get_pendf(err=1, njoy_output=-3, suppress_warnings=True)
 
     Creation of perturbed data modifying the PFNS with the first perturbation
     sample (the only one).
@@ -386,9 +387,9 @@ def _write_files_worker(
     
     >>> import sandy, os, glob
     >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
-    >>> pendf = endf6.get_pendf()
+    >>> pendf = endf6.get_pendf(suppress_warnings=True, njoy_output=-3)
     >>> out_dict = {"endf6": endf6.data, "pendf": pendf.data}
-    >>> out_dict |= endf6.get_ace(temperature=0)
+    >>> out_dict |= endf6.get_ace(temperature=0, njoy_output=-3)
     
     ``out_dict`` is a dictionary with keys ``endf6``, ``pendf``,
     ``ace`` and ``xsdir``, like the samples produced by
@@ -658,11 +659,11 @@ def _fy_perturb_worker(
         fission‑yield data. All ZAP identifiers in the perturbation samples
         must be present here.
     pfy : pandas.DataFrame
-        Perturbation coefficients for the fission yields. Must contain
-        MultiIndex-compatible columns:
-        `["ZAM", "E", "ZAP", "SMP", "IFY"]`.
-        Typically produced via `pd.pivot_table()` or from
-        `CategoryCov.sampling()`.
+        Multiplicative perturbation factors for fission yields for a **single sample**.
+        Must be a DataFrame with:
+          • index: MultiIndex ``["ZAM", "E", "ZAP"]``  
+          • columns: exactly one column named ``"IFY"``, containing the factors
+            to multiply the nominal IFYs by.
     ismp : int
         Sample index to apply. Only rows where `SMP == ismp` will be used.
     verbose : bool, optional
@@ -689,19 +690,6 @@ def _fy_perturb_worker(
       Cumulative yields (`MT=459`) are *not* automatically updated and may
       become inconsistent if present in the tape.
 
-    Returns
-    -------
-    `dict`
-        Either a dictionary of :obj:`~sandy.endf6.Endf6` instances for each set of
-        perturbation coefficients (if `to_file=False`), or a dictionary
-        of `str` with the output file name for each set of perturbation
-        coefficients.
-
-    Notes
-    -----
-    .. note: This method is written so that it can be handled by the
-             `multiprocess` module (pickling).
-
     Examples
     --------
     Default test: create 1 sample and perturb fission yields for 1 fissioning system.
@@ -715,12 +703,6 @@ def _fy_perturb_worker(
     Extract mean and standard deviations from U235 thermal.
 
     >>> idx = nfpy.data.query(f"E=={e} & MT==454 & ZAM=={zam}").index
-<<<<<<< Updated upstream
-    >>> fy = nfpy.data.loc[idx]
-    >>> smps = sandy.CategoryCov(pd.DataFrame(np.diag((fy.DFY/fy.FY)**2), index=fy.ZAP, columns=fy.ZAP).fillna(0)).sampling(nsmp)
-    >>> smps = {"IFY": smps.data.rename_axis(index="ZAP").stack().rename("VALS").reset_index().assign(E=e, ZAM=zam)[["ZAM", "E", "ZAP", "SMP", "VALS"]]}
-    >>> out = sandy._workers._fy_perturb_worker(tape.data, nfpy.data, smps, nsmp-1, verbose=True, to_file=False)
-=======
     >>> fy = nfpy.data.loc[idx].set_index("ZAP")
     >>> mean, std = fy.FY, fy.DFY
     >>> rvar = (std / mean).fillna(0)**2
@@ -736,13 +718,12 @@ def _fy_perturb_worker(
     ...         rename("IFY").
     ...         reset_index().
     ...         assign(E=e, ZAM=zam).
-                set_index(["ZAM", "E", "ZAP"])[["IFY"]]
+    ...         set_index(["ZAM", "E", "ZAP"])[["IFY"]]
     ...   )
     
     Run the worker.
     
-    >>> out = sandy._workers._fy_perturb_worker(tape.data, nfpy.data, smps, sample_size-1, verbose=True, to_file=False)
->>>>>>> Stashed changes
+    >>> out = sandy._workers._fy_perturb_worker(tape.data, nfpy.data, smps, sample_size-1, to_file=False)
     >>> out = sandy.Endf6(out)
     
     Silly test: assert the `MT=454` was changed, and `MT=459` was not.
@@ -754,8 +735,9 @@ def _fy_perturb_worker(
 
     >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922350, local=True)
     >>> smps = tape.get_perturbations(2, covariance=None)
+    >>> pfy = smps["IFY"].data[[0]].rename(columns={0: "IFY"})
     >>> nfpy = sandy.Fy.from_endf6(tape)
-    >>> out = sandy._workers._fy_perturb_worker(tape.data, nfpy.data, smps, 0)
+    >>> out = sandy._workers._fy_perturb_worker(tape.data, nfpy.data, pfy, 0)
     >>> nfpy0 = sandy.Fy.from_endf6(sandy.Endf6(out))
 
     Assert that ratio of perturbed to nominal FY's is equal to samples.
@@ -764,7 +746,7 @@ def _fy_perturb_worker(
     >>> n0 = nfpy0.data.query("ZAM==922350 and MT==454")
     >>> assert not n.equals(n0)
     >>> sp = (n0.set_index(["MAT", "MT", "ZAM", "E", "ZAP"]).FY /  n.set_index(["MAT", "MT", "ZAM", "E", "ZAP"]).FY).fillna(1)
-    >>> p = smps.query("ZAM==922350 and SMP==0").VALS
+    >>> p = smps["IFY"].data[0]
     >>> np.testing.assert_array_almost_equal(p, sp, decimal=4)
     """
     import time
