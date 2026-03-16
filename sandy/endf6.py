@@ -1,8 +1,3 @@
-"""
-Created on Wed Dec  4 14:50:33 2019
-
-@author: lfiorito
-"""
 import io
 import os
 import logging
@@ -717,11 +712,11 @@ class _FormattedFile():
         >>> file = "h1.endf"
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> tape.to_file(file)
-        >>> obj = _FormattedFile.from_file(file)
+        >>> obj = sandy.endf6._FormattedFile.from_file(file)
 
         The returned object must be a formatted ENDF-6 file:
 
-        >>> assert isinstance(obj, _FormattedFile)
+        >>> assert isinstance(obj, sandy.endf6._FormattedFile)
 
         Check that all known keys are present:
 
@@ -742,7 +737,7 @@ class _FormattedFile():
 
         >>> import io
         >>> stream = io.StringIO(open(file).read())
-        >>> obj2 = _FormattedFile.from_file(stream)
+        >>> obj2 = sandy.endf6._FormattedFile.from_file(stream)
 
         >>> assert obj2.data == obj.data
 

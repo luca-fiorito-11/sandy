@@ -10,7 +10,7 @@ include LICENSE
 # Include recursively all files inside the selected sub-folders
 recursive-include sandy/appendix/onefile_archives *.tar.xz
 recursive-include sandy/appendix/chain_yields *.txt
-recursive-include sandy/appendix/fycov *.tar.xz
+recursive-include sandy/appendix/fycorr *.tar.xz
 
 
 # Exclude everything else under appendix (just for testing)
