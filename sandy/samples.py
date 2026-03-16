@@ -94,7 +94,7 @@ def read_fy_samples(
     import pandas as pd
 
     smp = pd.read_excel(
-        FILENAME_FY_PERT,
+        file,
         sheet_name="SMP",
         index_col=[0, 1, 2],  # ZAM, E, ZAP
         ).rename_axis(columns="SMP")

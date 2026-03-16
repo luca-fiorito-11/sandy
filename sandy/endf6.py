@@ -1,16 +1,8 @@
-"""
-Created on Wed Dec  4 14:50:33 2019
-
-@author: lfiorito
-"""
 import io
 import os
-from os.path import dirname, join, splitext
 import logging
 import time
-
-import numpy as np
-import pandas as pd
+from typing import Iterable
 
 from .utils import with_optional_warning_suppression
 
@@ -25,53 +17,68 @@ nsubs = {
 }
 
 
-def get_endf6_file(library, kind, zam, to_file=False, local=False):
+def get_endf6_file(
+        library: str,
+        kind: str,
+        zam: int | Iterable[int] | str,
+        to_file: bool = False,
+        local: bool = False,
+        verbose: bool =False,
+        ) -> "Endf6":
+
+
     """
-    Retrieve an ENDF-6 evaluation for a given nuclear data library, data type,
-    and nuclide (ZAM), either from the internet or from the local SANDY
-    library appendix.
+    Retrieve an ENDF‑6 evaluation for a given nuclear data library, data type,
+    and nuclide (ZAM). Data can be downloaded from online sources or loaded
+    from SANDY's local library appendix.
 
-    This function provides a unified interface for downloading or loading:
-    - neutron-induced cross sections       (kind="xs")
-    - fission product yields               (kind="nfpy")
-    - radioactive decay data               (kind="decay")
-    - thermal scattering laws              (kind="tsl")
-    - displacement cross sections          (kind="dxs")
+    This function provides a unified interface for retrieving:
 
-    The function uses a centralized registry to map each `(kind, library)`
-    pair to the appropriate remote URL and corresponding filename mapping.
+    - neutron-induced cross sections (``kind="xs"``)
+    - fission product yields (``kind="nfpy"``)
+    - radioactive decay data (``kind="decay"``)
+    - thermal scattering laws (``kind="tsl"``)
+    - displacement cross sections (``kind="dxs"``)
+
+    A central registry maps each (kind, library) pair to the appropriate
+    remote URL and corresponding filename mapping.
 
     Parameters
     ----------
     library : str
-        Name of the nuclear data library. Valid options depend on the
-        requested `kind` and typically include:
+        Name of the nuclear data library. Available libraries depend on
+        ``kind`` and typically include:
         ``"endfb_71"``, ``"endfb_80"``, ``"endfb_81"``, ``"tendl_2023"``,
         ``"jeff_311"``, ``"jeff_33"``, ``"jeff_40"``, ``"jendl_40u"``,
         ``"jendl_5"``, ``"irdff_2"``, etc.
 
     kind : str
-        Type of nuclear data to retrieve. One of:
-            - ``"xs"``   : neutron-induced cross sections
-            - ``"nfpy"`` : fission product yields
+        Type of nuclear data to retrieve. Must be one of:
+            - ``"xs"``: neutron-induced cross sections
+            - ``"nfpy"``: fission product yields
             - ``"decay"``: radioactive decay data
-            - ``"tsl"``  : thermal scattering law
-            - ``"dxs"``  : displacement cross sections
+            - ``"tsl"``: thermal scattering laws
+            - ``"dxs"``: displacement cross sections
 
-    zam : int, iterable of int, or "all"
-        ZAM identifier(s) in the format ``Z*10000 + A*10 + M``.
-            - integer: a single nuclide
-            - iterable: multiple nuclides combined into one ENDF-6 tape
-            - ``"all"``: retrieve the entire library (only for ``kind="decay"`` and ``kind="nfpy"``)
+    zam : int, iterable of int, or str
+        ZAM identifier(s) in the format ``Z*10000 + A*10 + M``,
+        where ``M`` is the metastable state index (0 for ground state).
+
+        - If an integer: load a single nuclide.
+        - If an iterable: merge multiple nuclides into one ENDF‑6 tape.
+        - If ``"all"``: retrieve the entire decay or NFpy library (only for
+          ``kind="decay"`` and ``kind="nfpy"``).
 
     to_file : bool, optional
-        If True, write the resulting ENDF-6 file to disk using the
-        nuclide name and library name as filename.
+        If True, save the resulting ENDF‑6 file to disk.  
         Default is False.
 
     local : bool, optional
-        If True, load files from SANDY's local library cache
-        instead of downloading from the corresponding online source.
+        If True, load files from SANDY's local library cache instead of downloading.
+        Default is False.
+
+    verbose : bool, optional
+        If True, print progress messages.  
         Default is False.
 
     Returns
@@ -83,24 +90,23 @@ def get_endf6_file(library, kind, zam, to_file=False, local=False):
     Raises
     ------
     ValueError
-        If the requested kind is unsupported, or the library is not
-        available for that kind.
-
+        If the requested ``kind`` is unsupported or if the library is not
+        available for that ``kind``.
     ValueError
-        If ``zam="all"`` is used with a kind that does not support it.
+        If ``zam="all"`` is used with a ``kind`` that does not support it.
 
     Notes
     -----
     - ZAM format: ``Z*10000 + A*10 + M``  
-      (M=0 for ground state, 1 for first metastable state, etc.)
-    - For ``kind="tsl"``, the `zam` parameter must be replaced by the
-      corresponding integer indices.
-    - Remote downloads use ZIP files when available and automatically
-      fall back to raw URLs.
+      Example: Hydrogen-1 → ``10010``.
+    - For ``kind="tsl"``, ``zam`` must contain the integer indices used in
+      the thermal scattering law library.
+    - When possible, remote access uses ZIP archives; otherwise it falls back
+      to raw URLs. Local archives for ``"all"`` selections use compressed
+      ``.tar.xz`` files.
 
     Examples
     --------
-
     Import hydrogen file from JEFF-3.3.
 
     >>> import sandy
@@ -157,15 +163,20 @@ def get_endf6_file(library, kind, zam, to_file=False, local=False):
     >>> tape = sandy.get_endf6_file("jeff_33", 'decay', [10010, 270590, 270600], local=True)
     >>> assert type(tape) is sandy.Endf6
 
-    Import all Decay Data for JEFF-3.3.
+    Import all Decay Data for the supported libraries.
+    They are stored locally and use :meth:`~sandy.endf6._FormattedFile.from_xzfile`.
 
-    >>> tape = sandy.get_endf6_file("jeff_33", 'decay', 'all')
-    >>> assert type(tape) is sandy.Endf6
+    >>> for lib in ["jeff_311", "jeff_33", "jeff_40", "endfb_71", "endfb_80", "endfb_81", "jendl_5"]:
+    ...    tape = sandy.get_endf6_file(lib, 'decay', 'all')
+    ...    assert type(tape) is sandy.Endf6
 
-    Import all FIssion Product Yield Data for JEFF-3.3.
+    Import all FIssion Product Yield Data for the supported libraries.
+    They are stored locally and use :meth:`~sandy.endf6._FormattedFile.from_xzfile`.
 
     >>> tape = sandy.get_endf6_file("jeff_33", 'nfpy', 'all')
-    >>> assert type(tape) is sandy.Endf6
+    >>> for lib in ["jeff_311", "jeff_33", "jeff_40", "endfb_71", "endfb_80", "endfb_81", "jendl_40u"]:
+    ...    tape = sandy.get_endf6_file(lib, 'nfpy', 'all')
+    ...    assert type(tape) is sandy.Endf6
 
     Thermal Neutron Scattering Data from JEFF-3.3.
 
@@ -173,10 +184,15 @@ def get_endf6_file(library, kind, zam, to_file=False, local=False):
     >>> assert type(tape) is sandy.Endf6
 
     """
+    # ---- IMPORT
     from functools import reduce
+    from pathlib import Path
+    from os.path import splitext
 
     from . import __file__ as sandy__file__
     from .zam import zam2nuclide
+    from .utils import log
+    from ._perturbation_base import log_stage
     from .libraries import (
         N_FILES_ENDFB_71_IAEA,
         N_FILES_ENDFB_80_IAEA,
@@ -251,12 +267,11 @@ def get_endf6_file(library, kind, zam, to_file=False, local=False):
         URL_DXS_JEFF_33_IAEA,
         URL_DXS_PROTON_IAEA
     )
+    # ---- SETUP
+    method = "get_endf6_file"
 
-    kind_ = kind.lower()
-    library_ = library.lower()
 
-    foo_get = Endf6.from_zipurl
-
+    # ---- REGISTRY OF SUPPORTED LIBRARIES 
     maps = {
         "xs": {
             "jeff_311": (URL_N_JEFF_311_IAEA, N_FILES_JEFF_311_IAEA),
@@ -304,64 +319,100 @@ def get_endf6_file(library, kind, zam, to_file=False, local=False):
         },
     }
 
-    if kind_ not in maps:
-        ValueError(f"option 'kind={kind_}' is not supported")
 
+
+    # ---- VALIDATE INPUT
+    kind_ = kind.lower()
+    if kind_ not in maps:
+        raise ValueError(f"Unsupported kind='{kind_}'. Valid options: {list(maps.keys())}")
+
+    library_ = library.lower()
     if library_ not in maps[kind_]:
+        supported = ", ".join(maps[kind_].keys())
         raise ValueError(
-            f"""library '{library}' is not available.
-                Available libraries are: {maps[kind_].keys()}
-                """
+            f"Library '{library}' not available for kind='{kind_}'. "
+            f"Supported libraries: {supported}"
         )
     url, files = maps[kind_][library_]
 
-    local_space = join(dirname(sandy__file__), "appendix", "libraries")
-    local_path = join(local_space, library, kind)
 
-    def local_foo_get(file, url):
+    # ---- LOCAL PATHS
+    base = Path(sandy__file__).resolve().parent
+    local_space = base / "appendix" / "libraries"
+    local_space_onefile = base / "appendix" / "onefile_archives"
+    local_path = local_space / library_ / kind_
+
+
+    # ---- HELPERS
+
+    def load_remote_zip(file: str, url: str) -> Endf6:
+        return Endf6.from_zipurl(file, url)
+
+    def load_local_zip(file: str, url: str) -> Endf6:
+        # mimics load_remote_zip, even if url is not used
         file = splitext(file)[0]
-        tape = Endf6.from_zipfile(join(local_path, f"{file}.zip"))
+        archive = local_path / f"{file}.zip"
+        tape = Endf6.from_zipfile(archive)
         return tape
 
-    if local:
-        foo_get = local_foo_get
+    def load_local_xz(file: str, url: str) -> Endf6:
+        # 'all' decay data and fission yields are stored as xz
+        # mimics load_remote_zip, even if url is not used
+        file = splitext(file)[0]
+        archive = local_space_onefile / f"{file}.tar.xz"
+        tape = Endf6.from_xzfile(archive)
+        return tape
 
+
+    # ---- PICK FETCHER
+    fetcher = load_local_zip if local else load_remote_zip
+
+
+    # ---- HANDLE zam == "all"
     if str(zam).lower() == 'all':
-        if kind_ not in ['decay', "nfpy"]:
-            raise ValueError(
-                f"'all' option is not available for kind='{kind_}'")
+        if kind_ not in ('decay', "nfpy"):
+            raise ValueError("'zam=\"all\"' is only supported for 'decay' and 'nfpy'.")
 
         # --- fall back on local files with all data, otherwise it's too slow
-        foo_get = local_foo_get
-        tape = foo_get(f"{kind}_{library_}.dat", url="not used")
+        fetcher = load_local_xz  # only stored locally
+        filename = f"{kind}_{library_}.dat"
+        tape = fetcher(filename, url="not used")
 
+    # ---- STANDARD FETCH WITH FALLBACK
     else:
 
         # --- helper: try remote first, then fall back to local
-        def fetch_with_fallback(key):
+        def fetch_with_fallback(key: int) -> Endf6:
+            fname = files[key]
             try:
-                return foo_get(files[key], url)    # remote first
+                return fetcher(fname, url)    # remote first
             except Exception as err:
-                logging.warning(
+                msg = (
                     f"Remote download failed for ZAM={key}: {err}\n"
                     f"→ Falling back to local file in:\n"
                     fr"   {local_path}"
                 )
-                return local_foo_get(files[key], url=None)
+                warn_logger = logging.getLogger("sandy.warn")
+                log(msg, level=logging.WARNING, logger=warn_logger)
+                return load_local_zip(files[key], url=None)
 
-        # --- get data
-        if hasattr(zam, "__len__"):
+        # ---- MULTIPLE ZAMs
+        if isinstance(zam, Iterable) and not isinstance(zam, (str, bytes)):
             # --- CASE 1: a list of nuclides is passed (all valid ZAM)
             tapes = [fetch_with_fallback(x) for x in zam]
-            tape = reduce(lambda x, y: x.add_sections(y.data), tapes)
+            combined = reduce(lambda x, y: x.add_sections(y.data), tapes)
+            tape = combined
+
+        # ---- SINGLE ZAM
         else:
-            # --- CASE 2: a single nuclide is passed (valid ZAM)
             tape = fetch_with_fallback(zam)
 
+    # ---- OPTIONAL WRITE TO FILE
     if to_file:
         basename = zam2nuclide(zam, atomic_number=True, sep="-")
         filename = f"{basename}.{library_}"
-        logging.info(f"writing nuclear data to file '{filename}'")
+        msg = f"saving ENDF6 file to '{filename}'"
+        log_stage(log, method, None, msg, verbose=verbose)
         tape.to_file(filename)
 
     return tape
@@ -459,6 +510,7 @@ class _FormattedFile():
         return sorted({int(mt) for mt in self._keys["MT"]})
 
     def to_series(self, **kwargs):
+        import pandas as pd
         series = pd.Series(self.data, **kwargs).sort_index(ascending=True)
         series.index.names = ["MAT", "MF", "MT"]
         return series
@@ -579,6 +631,7 @@ class _FormattedFile():
         from urllib.request import urlopen, Request
         from zipfile import ZipFile
         from tempfile import TemporaryDirectory
+        from os.path import splitext, join
         import requests
 
         # ---- Prepare URLs ----
@@ -659,11 +712,11 @@ class _FormattedFile():
         >>> file = "h1.endf"
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> tape.to_file(file)
-        >>> obj = _FormattedFile.from_file(file)
+        >>> obj = sandy.endf6._FormattedFile.from_file(file)
 
         The returned object must be a formatted ENDF-6 file:
 
-        >>> assert isinstance(obj, _FormattedFile)
+        >>> assert isinstance(obj, sandy.endf6._FormattedFile)
 
         Check that all known keys are present:
 
@@ -684,7 +737,7 @@ class _FormattedFile():
 
         >>> import io
         >>> stream = io.StringIO(open(file).read())
-        >>> obj2 = _FormattedFile.from_file(stream)
+        >>> obj2 = sandy.endf6._FormattedFile.from_file(stream)
 
         >>> assert obj2.data == obj.data
 
@@ -695,6 +748,67 @@ class _FormattedFile():
         else:
             with open(file) as f:
                 text = f.read()
+        return cls.from_text(text)
+
+    @classmethod
+    def from_xzfile(cls, xz_filename):
+        """
+        Read and return the contents of the only file inside an XZ‑compressed
+        tar archive (.tar.xz).
+    
+        This method assumes the archive contains exactly one file, typically
+        with the same base name as the archive itself. The internal file is
+        read directly from the compressed tar archive without extracting it
+        to disk.
+    
+        Use case
+        --------
+        ENDF-6 data distributed as `.tar.xz` archives, such as those containing
+        a single `.dat` file.
+    
+        Parameters
+        ----------
+        xz_filename : str
+            Path to the `.tar.xz` file on disk.
+    
+        Returns
+        -------
+        :obj:`~sandy.endf6.Endf6`
+            An instance created from the decoded text content of the internal file.
+    
+        Raises
+        ------
+        FileNotFoundError
+            If the archive file does not exist.
+        tarfile.ReadError
+            If the file is not a valid tar or tar.xz archive.
+        IndexError
+            If the archive contains no files.
+        UnicodeDecodeError
+            If the internal file cannot be decoded as UTF‑8 text.
+    
+        Notes
+        -----
+        - No temporary files or directories are created.
+        - The internal file is read entirely into memory.
+        
+        Examples
+        --------
+        This way of fetching data is used in :func:`~sandy.endf6.get_endf6_file`.
+        Here it is testd for the fission yield data of JEFF-3.3.
+
+        >>> import sandy
+        >>> from pathlib import Path
+        >>> base = Path(sandy.__file__).resolve().parent
+        >>> local_space_onefile = base / "appendix" / "onefile_archives"
+        >>> file = "nfpy_jeff_33.tar.xz"
+        >>> archive = local_space_onefile / file
+        >>> tape = Endf6.from_xzfile(archive)        
+        """
+        from .utils import read_xzfile
+
+        text = read_xzfile(xz_filename, member=0).getvalue().decode("utf-8")
+
         return cls.from_text(text)
 
     @classmethod
@@ -782,6 +896,7 @@ class _FormattedFile():
         >>> obj2 = _FormattedFile.from_text(text_with_empty)
         >>> assert obj2.data == obj.data
         """
+        import pandas as pd
 
         # -----------------------------
         # 1. Parse MAT/MF/MT using read_fwf
@@ -862,6 +977,9 @@ class _FormattedFile():
         ...    sandy.Endf6.from_text(text)._get_section_df(9440, 1, 451)
 
         """
+        # ---- IMPORT
+        import pandas as pd
+
         from .utils import add_delimiter_every_n_characters, add_exp_in_endf6_text
 
         text = self.data[(mat, mf, mt)]
@@ -1403,7 +1521,11 @@ class Endf6(_FormattedFile):
         """
         Update RECORDS item (in DATA column) for MF1/MT451 of each MAT based on the content of the TEXT column.
         """
+        # ---- IMPORT
+        import pandas as pd
+
         from .mf1 import write
+
         tape = self.copy()
         for mat in sorted(tape.index.get_level_values('MAT').unique()):
             sec = self.read_section(mat, 1, 451)
@@ -1646,6 +1768,7 @@ class Endf6(_FormattedFile):
         """
         # ---- IMPORT
         from tempfile import TemporaryDirectory
+        from os.path import join
 
         from .njoy import process_neutron
         from .utils import log
@@ -2081,10 +2204,9 @@ class Endf6(_FormattedFile):
 
         Examples
         --------
-
         Default run.
 
-        >>> import sandy
+        >>> import sandy, numpy as np
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> out = endf6.get_gendf(temperature=293.6, minimal_processing=True)
         >>> assert isinstance(out, sandy.Gendf)
@@ -2738,7 +2860,6 @@ class Endf6(_FormattedFile):
 
         Examples
         --------
-
         Clean up for later testing of `write` keyword.
         
         >>> # Clean up H1 files
@@ -2770,7 +2891,7 @@ class Endf6(_FormattedFile):
         Test get perturbations for MF 33.
         Generate a couple of samples from the H1 file of JEFF-3.3.
 
-        >>> import sandy
+        >>> import sandy, numpy as np
         >>> njoy_kws = dict(err=1, errorr_kws=dict(mt=102))
         >>> sample_size = 2
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
@@ -3060,7 +3181,7 @@ class Endf6(_FormattedFile):
         
         First read the file.
         
-        >>> import sandy
+        >>> import sandy, numpy as np
         >>> decay = sandy.get_endf6_file("jeff_33", "decay", [270590, 270600], local=True)
 
         Draw with a large sample size, to ensure convergence in the checks.
@@ -3180,6 +3301,8 @@ class Endf6(_FormattedFile):
         """
         # ---- IMPORT
         from pathlib import Path
+        import pandas as pd
+        import numpy as np
 
         from .decay import DecayData
         from .cov import CategoryCov
@@ -3403,7 +3526,7 @@ class Endf6(_FormattedFile):
         This test suite checks the reproducibility via keywords ``smp_kws={"seed": {}}``
         and ``nfpy``.
 
-        >>> import sandy
+        >>> import sandy, numpy as np
         >>> seed_spec = {(922350, 0.0253): 1, (922350, 400e3): 4}
         >>> tape = sandy.get_endf6_file("jeff_33", "nfpy", 922350, local=True)
 
@@ -3562,6 +3685,8 @@ class Endf6(_FormattedFile):
         """
         # ---- IMPORT
         from pathlib import Path
+        import pandas as pd
+        import numpy as np
 
         from .cov import CategoryCov, corr2cov
         from .fy import Fy, get_jeff40_fy_correlation_matrix
@@ -4060,7 +4185,7 @@ class Endf6(_FormattedFile):
 
         Fourth : Check parallelization vs serial path.
 
-        >>> outs_par = tape.apply_perturbations_xs(smps, njoy_kws=dict(err=1), processes=2)
+        >>> outs_par = tape.apply_perturbations_xs(smps, njoy_kws=dict(err=1), processes=2, enable_tqdm=False)
         >>> outs_ser = tape.apply_perturbations_xs(smps, njoy_kws=dict(err=1), processes=1)
         >>> for i in range(sample_size):
         ...    assert outs_ser[i]['endf6'].data == outs_par[i]['endf6'].data
@@ -4426,7 +4551,7 @@ class Endf6(_FormattedFile):
         In this test suite we check that identical results are produced with
         serial and parallel mode, also with and without ``rdd``.
         
-        >>> outs_parallel = tape.apply_perturbations_rdd(smps, processes=2)
+        >>> outs_parallel = tape.apply_perturbations_rdd(smps, processes=2, enable_tqdm=False)
         >>> tape0_parallel = outs_parallel[0]
         
         >>> for k in tape0_serial.data:
@@ -4526,6 +4651,7 @@ class Endf6(_FormattedFile):
         """
         # ---- IMPORT
         import sys
+        import numpy as np
         from concurrent.futures import ProcessPoolExecutor, as_completed
         from tqdm.auto import tqdm
         from tqdm.contrib.logging import logging_redirect_tqdm
@@ -4816,7 +4942,7 @@ class Endf6(_FormattedFile):
         In this test suite we check that identical results are produced with
         serial and parallel mode, also with and without ``nfpy``.
         
-        >>> outs_parallel = tape.apply_perturbations_fy(smps, processes=2)
+        >>> outs_parallel = tape.apply_perturbations_fy(smps, processes=2, enable_tqdm=False)
         >>> tape0_parallel = outs_parallel[0]
         
         >>> for k in tape0_serial.data:
@@ -4875,6 +5001,7 @@ class Endf6(_FormattedFile):
         """
         # ---- IMPORTS
         import os, sys
+        import numpy as np
         from concurrent.futures import ProcessPoolExecutor, as_completed
         from tqdm.auto import tqdm
         from tqdm.contrib.logging import logging_redirect_tqdm

@@ -66,6 +66,27 @@ jobs:
   
       - name: Build distribution
         run: python -m build
+
+      - name: Report wheel and sdist sizes
+        run: |
+          echo "Wheel file sizes:"
+          ls -lh dist/*.whl
+          echo ""
+          echo "Source distribution file sizes:"
+          ls -lh dist/*.tar.gz
+
+      - name: Check README rendering
+        run: twine check dist/*
+
+      - name: Test the wheel before upload
+        run: |
+          pip install dist/*.whl
+          python -c "import sandy; print('Wheel import OK:', sandy.__version__)"
+
+      - name: Test the sdist before upload
+        run: |
+          pip install dist/*.tar.gz
+          python -c "import sandy; print('SDist import OK:', sandy.__version__)"
   
       - name: Publish to selected repository
         env:

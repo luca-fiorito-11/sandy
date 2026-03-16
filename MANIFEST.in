@@ -1,11 +1,25 @@
 # MANIFEST.in ensures everything I want is included in the source package (sdist),
 # including README and extra folders outside your package code.
 
+
 # Include the README at the root
 include README.md
+include LICENSE
 
-# Include all files inside appendix/ directory recursively
-recursive-include appendix *
+
+# Include recursively all files inside the selected sub-folders
+recursive-include sandy/appendix/onefile_archives *.tar.xz
+recursive-include sandy/appendix/chain_yields *.txt
+recursive-include sandy/appendix/fycorr *.tar.xz
+
+
+# Exclude everything else under appendix (just for testing)
+prune sandy/appendix/libraries
+
+
+# Include smoke tests only (only in sdist, not in wheel)
+recursive-include tests/smoke *.py
+
 
 # Include any additional package data files
 # (adjust if you have package data inside your packages)

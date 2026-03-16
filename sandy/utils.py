@@ -367,6 +367,28 @@ def force_symlink(file1, file2):
         os.symlink(file1, file2)
 
 
+def read_xzfile(
+        xzarchive: str,
+        member: int = 0,
+        ):
+    """
+    Read and return a BytesIO of a member inside an XZ‑compressed
+    tar archive (.tar.xz).    
+    """
+    import tarfile
+    import io
+
+    # Open the archive
+    with tarfile.open(xzarchive, mode="r:xz") as tar:
+        
+        # Pick the first file inside the archive
+        member = tar.getmembers()[member]  # tar.getmembers() gives TarInfo objects
+        f = tar.extractfile(member)   # file-like object
+        content = f.read()  # read bytes while tarfile is open
+    
+    bio = io.BytesIO(content)  # safe to use outside
+    return bio
+        
 
 def log(msg, *, level=logging.INFO, logger=None, verbose=None):
     """
@@ -470,121 +492,3 @@ def with_optional_warning_suppression(
                 return func(*args, **kwargs)
         return wrapper
     return decorator
-
-# def with_optional_warning_suppression(default_logger: str, *, level=logging.WARNING):
-#     """
-#     Decorator that wraps a function and adds a `suppress_warnings` kwarg.
-#     When `suppress_warnings=True`, it suppresses log >= `level` from `default_logger`
-#     (or from `suppress_logger` if provided at call time).
-
-#     Usage:
-#         @with_optional_warning_suppression("sandy.warn")
-#         def get_errorr(..., suppress_warnings=False, suppress_logger=None):
-#             ...
-
-#     Parameters
-#     ----------
-#     default_logger : str
-#         Logger name to suppress if `suppress_logger` not given at call time.
-#     level : int, optional
-#         Minimum level to suppress. Default: logging.WARNING.
-#     """
-#     def decorator(func):
-#         @wraps(func)
-#         def wrapper(*args, suppress_warnings=False, suppress_logger=None, **kwargs):
-#             logger_name = suppress_logger or default_logger
-#             ctx = suppress_logging_warnings(logger_name, level=level) if suppress_warnings else nullcontext()
-#             with ctx:
-#                 return func(*args, **kwargs)
-#         return wrapper
-#     return decorator
-
-
-
-# def with_optional_warning_suppression(
-#     default_logger: str,
-#     *,
-#     level: int = logging.WARNING,
-#     default_suppress: bool | None = None,
-#     # If True, we force suppression unless the caller explicitly sets False.
-#     # If False/None, we don't force; we only inject when param missing and default_suppress is True.
-# ):
-#     """
-#     Decorator that:
-#       * Uses an existing `suppress_warnings` parameter if provided by caller.
-#       * Otherwise, injects `suppress_warnings=default_suppress` if not provided and not positional.
-#       * Opens a suppression context only when `suppress_warnings` is True.
-
-#     Args:
-#         default_logger: Logger name to suppress by default (e.g., "sandy.warn").
-#         level: Logging level cutoff (default: WARNING).
-#         default_suppress:
-#             - True  -> default to suppressing when the caller didn't provide a value.
-#             - False/None -> do not change the effective default (use function’s own default).
-#     """
-#     def decorator(func):
-#         sig = inspect.signature(func)
-
-#         @wraps(func)
-#         def wrapper(*args, **kwargs):
-#             # Identify if function actually has a `suppress_warnings` parameter
-#             has_param = "suppress_warnings" in sig.parameters
-
-#             # Bind arguments (partial to avoid enforcing defaults here)
-#             ba = sig.bind_partial(*args, **kwargs)
-
-#             # Determine if caller explicitly set it (positional or kw)
-#             caller_provided = has_param and ("suppress_warnings" in ba.arguments)
-
-#             # If not provided by caller and decorator wants default True, set it
-#             if has_param and not caller_provided and default_suppress is True:
-#                 ba.arguments["suppress_warnings"] = True
-
-#             # Extract effective values after our injection (if any)
-#             suppress = bool(ba.arguments.get("suppress_warnings", False))
-
-#             # Allow per-call override of logger name, if the function also supports it
-#             suppress_logger = ba.arguments.get("suppress_logger", None)
-#             logger_name = suppress_logger or default_logger
-
-#             ctx = suppress_logging_warnings(logger_name, level=level) if suppress else nullcontext()
-
-#             # Reconstruct args/kwargs to call original function
-#             # Keep original ordering for positional params; push everything else to kwargs
-#             # This keeps behavior consistent even if we injected a kwarg.
-#             with ctx:
-#                 # Respect the original call form: rebuild args from parameters order
-#                 # and fill remaining with kwargs
-#                 params = list(sig.parameters.values())
-#                 new_args = []
-#                 new_kwargs = dict()
-
-#                 # Walk original parameters; if they were passed positionally, keep them
-#                 arg_pos = 0
-#                 for p in params:
-#                     if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD):
-#                         if p.name in ba.arguments and arg_pos < len(args):
-#                             # Original positional was provided as positional
-#                             new_args.append(ba.arguments[p.name])
-#                             arg_pos += 1
-#                         elif p.name in ba.arguments and p.name in kwargs:
-#                             # Was provided as kw originally
-#                             new_kwargs[p.name] = ba.arguments[p.name]
-#                         elif p.name in ba.arguments and p.name not in kwargs and arg_pos >= len(args):
-#                             # We injected it (or caller gave as kw for a parameter
-#                             # after all positionals), keep as kw to avoid shifting positions
-#                             new_kwargs[p.name] = ba.arguments[p.name]
-#                     else:
-#                         # VAR_POSITIONAL / KEYWORD_ONLY / VAR_KEYWORD
-#                         if p.name in ba.arguments:
-#                             new_kwargs[p.name] = ba.arguments[p.name]
-
-#                 # Also include any extra kwargs that bind_partial accepted but the loop missed
-#                 for k, v in ba.arguments.items():
-#                     if k not in sig.parameters:
-#                         new_kwargs[k] = v
-
-#                 return func(*new_args, **new_kwargs)
-
-#         return wrapper
-#     return decorator

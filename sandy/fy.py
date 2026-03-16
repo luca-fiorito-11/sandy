@@ -1,20 +1,30 @@
 r"""
 This module contains all classes and functions specific for processing fission
 yield data.
+
+Examples
+--------
+>>> from pathlib import Path
+>>> import sandy
+>>> assert Path(sandy.fy.fycorr_jeff40_U233th).exists()
+>>> assert Path(sandy.fy.fycorr_jeff40_U235th).exists()
+>>> assert Path(sandy.fy.fycorr_jeff40_Pu239th).exists()
+>>> assert Path(sandy.fy.fycorr_jeff40_Pu241th).exists()
 """
 
 import pandas as pd
 import numpy as np
 from os.path import join, dirname
+from pathlib import Path
 import re
 
 __author__ = "Luca Fiorito"
 
 
-fycorr_jeff40_U233th = join(dirname(__file__), 'appendix', 'libraries', 'jeff_40', "nfpy", "U233-IFY-CORR-JEFF-4.0.csv")
-fycorr_jeff40_U235th = join(dirname(__file__), 'appendix', 'libraries', 'jeff_40', "nfpy", "U235-IFY-CORR-JEFF-4.0.csv")
-fycorr_jeff40_Pu239th = join(dirname(__file__), 'appendix', 'libraries', 'jeff_40', "nfpy", "Pu239-IFY-CORR-JEFF-4.0.csv")
-fycorr_jeff40_Pu241th = join(dirname(__file__), 'appendix', 'libraries', 'jeff_40', "nfpy", "Pu241-IFY-CORR-JEFF-4.0.csv")
+fycorr_jeff40_U233th = Path(__file__).parent.resolve() / 'appendix' / 'fycorr' / "U233-IFY-CORR-JEFF-4.0.tar.xz"
+fycorr_jeff40_U235th = Path(__file__).parent.resolve() / 'appendix' / 'fycorr' / "U235-IFY-CORR-JEFF-4.0.tar.xz"
+fycorr_jeff40_Pu239th = Path(__file__).parent.resolve() / 'appendix' / 'fycorr' / "Pu239-IFY-CORR-JEFF-4.0.tar.xz"
+fycorr_jeff40_Pu241th = Path(__file__).parent.resolve() / 'appendix' / 'fycorr' / "Pu241-IFY-CORR-JEFF-4.0.tar.xz"
 
 
 minimal_fytest = pd.DataFrame(
@@ -123,6 +133,9 @@ def get_jeff40_fy_correlation_matrix(
     ...    sandy.get_jeff40_fy_correlation_matrix(922350, e=4e5)  
     
     """
+    # ---- IMPORT
+    from .utils import read_xzfile
+
     # --- Input validation ----------------------------------------------------
     ACCEPTED_E = 0.0253
     if not np.isclose(e, ACCEPTED_E):
@@ -142,8 +155,11 @@ def get_jeff40_fy_correlation_matrix(
 
     file_corr = FILE_MAP[zam]
 
+    # --- EXTRACT bytes as readable object
+    bio = read_xzfile(file_corr, member=0)
+
     # ---- READ & FORCE symmetric correlation matrix
-    corr = pd.read_csv(file_corr, index_col=0)
+    corr = pd.read_csv(bio, index_col=0)
     corr.index = corr.index.astype(int)
     corr.columns = corr.columns.astype(int)
 

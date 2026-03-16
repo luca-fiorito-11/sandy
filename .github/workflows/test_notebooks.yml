@@ -2,7 +2,7 @@ name: Notebook CI
 
 on:
   schedule:
-    - cron: '30 14 * * 1'  # Mon, Wed, Fri at 14:30 UTC
+    - cron: '30 14 * * 1'  # Every Monday 14:30 UTC
   workflow_dispatch:
 
 env:
@@ -10,8 +10,12 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  execute_batch_1:
+  execute_batches:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        batch: [batch_1, batch_2, batch_3, batch_4, batch_5]
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -19,7 +23,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ">=3.8 <3.12"  # to comply with serpentTools
+          python-version: ">=3.8 <3.12"   # serpentTools constraint
 
       - name: Set up NJOY2016
         uses: ./.github/actions/setup-njoy
@@ -27,191 +31,74 @@ jobs:
       - name: Install SANDY with all extras
         uses: ./.github/actions/install-sandy-local-extras
 
-      - name: Execute notebooks in batch_1
+      # ---- EARLY EXIT if required packaged data is missing
+      - name: Verify SANDY packaged data
         run: |
-          cd notebooks/batch_1
+          python - << 'EOF'
+          import sys
+          from pathlib import Path
+          import sandy
+
+          base = Path(sandy.__file__).parent / "appendix"
+          checks = {
+              "chain_yields": list((base / "chain_yields").glob("*")),
+              "onefile_archives": list((base / "onefile_archives").glob("*.tar.xz")),
+              "fycorr": list((base / "fycorr").glob("*.tar.xz")),
+          }
+
+          missing = [name for name, files in checks.items() if not files]
+          if missing:
+              print("\n❌ ERROR: Missing required SANDY data directories/files:\n")
+              for name in missing:
+                  print(f"  - {name} (expected under: {base / name})")
+              print("\nWheel is missing required data. Update setup.cfg & MANIFEST.in.\n")
+              sys.exit(1)
+
+          print("✅ All required SANDY packaged data is present.")
+          EOF
+
+      - name: Execute notebooks in ${{ matrix.batch }}
+        run: |
+          cd notebooks/${{ matrix.batch }}
           mkdir -p executed
-          jupyter nbconvert --to notebook --execute *.ipynb \
-            --ExecutePreprocessor.kernel_name='python3' --inplace > /dev/null
+
+          echo "▶ Executing notebooks in ${{ matrix.batch }}..."
+          jupyter nbconvert \
+            --to notebook \
+            --execute \
+            --ExecutePreprocessor.kernel_name='python3' \
+            --inplace \
+            *.ipynb \
+            > /dev/null
+
           mv *.ipynb executed/
 
-      - name: Upload executed notebooks from batch_1
+      - name: Upload executed notebooks from ${{ matrix.batch }}
         uses: actions/upload-artifact@v4
         with:
-          name: executed_batch_1
-          path: notebooks/batch_1/executed/
-
-  execute_batch_2:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ">=3.8 <3.12"  # to comply with serpentTools
-
-      - name: Set up NJOY2016
-        uses: ./.github/actions/setup-njoy
-
-      - name: Install SANDY with all extras
-        uses: ./.github/actions/install-sandy-local-extras
-
-      - name: Execute notebooks in batch_2
-        run: |
-          cd notebooks/batch_2
-          mkdir -p executed
-          jupyter nbconvert --to notebook --execute *.ipynb \
-            --ExecutePreprocessor.kernel_name='python3' --inplace > /dev/null
-          mv *.ipynb executed/
-
-      - name: Upload executed notebooks from batch_2
-        uses: actions/upload-artifact@v4
-        with:
-          name: executed_batch_2
-          path: notebooks/batch_2/executed/
-
-  execute_batch_3:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ">=3.8 <3.12"  # to comply with serpentTools
-
-      - name: Set up NJOY2016
-        uses: ./.github/actions/setup-njoy
-
-      - name: Install SANDY with all extras
-        uses: ./.github/actions/install-sandy-local-extras
-
-      - name: Execute notebooks in batch_3
-        run: |
-          cd notebooks/batch_3
-          mkdir -p executed
-          jupyter nbconvert --to notebook --execute *.ipynb \
-            --ExecutePreprocessor.kernel_name='python3' --inplace > /dev/null
-          mv *.ipynb executed/
-
-      - name: Upload executed notebooks from batch_3
-        uses: actions/upload-artifact@v4
-        with:
-          name: executed_batch_3
-          path: notebooks/batch_3/executed/
-
-  execute_batch_4:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ">=3.8 <3.12"  # to comply with serpentTools
-
-      - name: Set up NJOY2016
-        uses: ./.github/actions/setup-njoy
-
-      - name: Install SANDY with all extras
-        uses: ./.github/actions/install-sandy-local-extras
-
-      - name: Execute notebooks in batch_4
-        run: |
-          cd notebooks/batch_4
-          mkdir -p executed
-          jupyter nbconvert --to notebook --execute *.ipynb \
-            --ExecutePreprocessor.kernel_name='python3' --inplace > /dev/null
-          mv *.ipynb executed/
-
-      - name: Upload executed notebooks from batch_4
-        uses: actions/upload-artifact@v4
-        with:
-          name: executed_batch_4
-          path: notebooks/batch_4/executed/
-
-  execute_batch_5:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ">=3.8 <3.12"  # to comply with serpentTools
-
-      - name: Set up NJOY2016
-        uses: ./.github/actions/setup-njoy
-
-      - name: Install SANDY with all extras
-        uses: ./.github/actions/install-sandy-local-extras
-
-      - name: Execute notebooks in batch_5
-        run: |
-          cd notebooks/batch_5
-          mkdir -p executed
-          jupyter nbconvert --to notebook --execute *.ipynb \
-            --ExecutePreprocessor.kernel_name='python3' --inplace > /dev/null
-          mv *.ipynb executed/
-
-      - name: Upload executed notebooks from batch_5
-        uses: actions/upload-artifact@v4
-        with:
-          name: executed_batch_5
-          path: notebooks/batch_5/executed/
+          name: executed_${{ matrix.batch }}
+          path: notebooks/${{ matrix.batch }}/executed/
 
   push_notebooks:
-    needs: [execute_batch_1, execute_batch_2, execute_batch_3, execute_batch_4, execute_batch_5]
+    needs: execute_batches
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download executed notebooks from batch_1
+      - name: Download all executed notebooks
         uses: actions/download-artifact@v4
         with:
-          name: executed_batch_1
-          path: notebooks/batch_1/executed/
+          pattern: executed_*
+          path: notebooks_flat_raw
 
-      - name: Download executed notebooks from batch_2
-        uses: actions/download-artifact@v4
-        with:
-          name: executed_batch_2
-          path: notebooks/batch_2/executed/
-
-      - name: Download executed notebooks from batch_3
-        uses: actions/download-artifact@v4
-        with:
-          name: executed_batch_3
-          path: notebooks/batch_3/executed/
-
-      - name: Download executed notebooks from batch_4
-        uses: actions/download-artifact@v4
-        with:
-          name: executed_batch_4
-          path: notebooks/batch_4/executed/
-
-      - name: Download executed notebooks from batch_5
-        uses: actions/download-artifact@v4
-        with:
-          name: executed_batch_5
-          path: notebooks/batch_5/executed/
-
-      - name: Flatten executed notebooks into a single directory
+      - name: Flatten executed notebooks into one directory
         run: |
           mkdir -p notebooks_flat
-          mv notebooks/batch_1/executed/*.ipynb notebooks_flat/
-          mv notebooks/batch_2/executed/*.ipynb notebooks_flat/
-          mv notebooks/batch_3/executed/*.ipynb notebooks_flat/
-          mv notebooks/batch_4/executed/*.ipynb notebooks_flat/
-          mv notebooks/batch_5/executed/*.ipynb notebooks_flat/
+          find notebooks_flat_raw -name "*.ipynb" -exec mv {} notebooks_flat/ \;
 
-      - name: Push all executed notebooks
+      - name: Push executed notebooks to external repo
         uses: cpina/github-action-push-to-another-repository@main
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
@@ -219,7 +106,6 @@ jobs:
           source-directory: notebooks_flat/
           destination-github-username: 'luca-fiorito-11'
           destination-repository-name: 'sandy_notebooks'
-          user-email: lucafiorito.11@gmail.com
-          commit-message: pushing all executed notebooks...
-          target-branch: executed_notebooks_v1.1
-
+          user-email: 'lucafiorito.11@gmail.com'
+          commit-message: 'Update executed notebooks'
+          target-branch: 'executed_notebooks_v1.1'
