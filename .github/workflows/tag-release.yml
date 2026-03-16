@@ -67,9 +67,6 @@ jobs:
       - name: Build distribution
         run: python -m build
 
-      - name: Show version being published
-        run: echo "Publishing version: ${{ steps.check_version.outputs.version }}"
-
       - name: Report wheel and sdist sizes
         run: |
           echo "Wheel file sizes:"
