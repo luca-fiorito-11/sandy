@@ -66,6 +66,14 @@ jobs:
   
       - name: Build distribution
         run: python -m build
+
+      - name: Report wheel and sdist sizes
+        run: |
+          echo "Wheel file sizes:"
+          ls -lh dist/*.whl
+          echo ""
+          echo "Source distribution file sizes:"
+          ls -lh dist/*.tar.gz
   
       - name: Publish to selected repository
         env:
