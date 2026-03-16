@@ -18,13 +18,13 @@ def test_data_directories_exist():
 
     chain = appendix / "chain_yields"
     archives = appendix / "onefile_archives"
-    corrfy = appendix / "corrfy"
+    fycorr = appendix / "fycorr"
 
     assert chain.exists(), "chain_yields folder missing from wheel"
     assert archives.exists(), "onefile_archives missing from wheel"
-    assert corrfy.exists(), "corrfy missing from wheel"
+    assert fycorr.exists(), "fycorr missing from wheel"
 
     # Optionally check content
     assert any(chain.glob("appendix*.txt")), "chain_yields folder does not contain 'appendix*.txt' files"
     assert any(archives.glob("*.tar.xz")), "onefile_archives should contain .tar.xz files"
-    assert any(archives.glob("*.tar.xz")), "corrfy should contain .tar.xz files"
+    assert any(fycorr.glob("*.tar.xz")), "fycorr should contain .tar.xz files"
