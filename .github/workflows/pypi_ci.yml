@@ -29,9 +29,9 @@ jobs:
           pip install pytest
           pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple sandy
 
-      - name: Run tests
+      - name: Run smoke tests
         run: |
-          pytest --rootdir=sandy --ignore=NJOY2016 -v 
+          pytest tests/smoke -v 
 
   test-pypi:
     name: Test from PyPI
@@ -56,4 +56,4 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest --rootdir=sandy --ignore=NJOY2016 -v 
+          pytest tests/smoke -v 
