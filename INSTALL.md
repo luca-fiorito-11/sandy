@@ -9,7 +9,7 @@ This guide explains how to install **SANDY** on **Windows** or **Linux** using p
  - Optional (but strongly recommended): NJOY2016 for nuclear data processing.
 
 ### Install
-- Open a terminal and run:
+Open a terminal and run:
 
 ```sh
 # Upgrade pip to the latest version
