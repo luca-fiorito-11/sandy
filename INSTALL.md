@@ -1,9 +1,15 @@
-# Installation and configuration
+# SANDY - Installation and configuration
 
-## Installing SANDY with pip
+This guide explains how to install **SANDY** on **Windows** or **Linux** using pip, conda, or source code, and how to configure **NJOY** for full functionality (PENDF/ACE processing and random sampling).
 
-The recommended way to install **SANDY** both on **Windows** and **Linux** is via `pip`.
-Open a terminal and run the following commands:
+## ⭐ 1. Installing SANDY with pip (Recommended)
+
+### Prerequisites
+ - Python installed (preferably via Anaconda).
+ - Optional (but strongly recommended): NJOY2016 for nuclear data processing.
+
+### Install
+- Open a terminal and run:
 
 ```sh
 # Upgrade pip to the latest version
@@ -13,68 +19,87 @@ python -m pip install --upgrade pip
 pip install sandy
 ```
 
-SANDY also acts as a wrapper for the **NJOY** nuclear data processing code, enabling the generation of **PENDF** and **ACE** files. While NJOY is not required for basic functionality, it is recommended—especially if you plan to produce random samples.
+SANDY will install successfully even without NJOY, but some advanced features will be unavailable.
 
-To enable NJOY integration, set the path to the NJOY executable using an environment variable:
+## ⭐ 2. Configuring NJOY (Optional but Recommended)
+
+SANDY acts as a wrapper for the **NJOY** nuclear data processing code, enabling the generation of **PENDF** and **ACE** files.
+While NJOY is not required for basic functionality, it is recommended, especially if you plan to produce random samples.
+
+SANDY can automatically use the NJOY executable if you set the environment variable NJOY.
+
+### LINUX
 ```sh
 export NJOY=/path/to/njoy
 ```
-On Windows (Command Prompt), use:
+To make this permanent, add it to your ``~/.bashrc``.
 
+### Windows (Command Prompt)
 ```bat
 set NJOY=C:\path\to\njoy.exe
 ```
 
-To check if SANDY correctly recognizes the NJOY executable, open a Python terminal and run:
-```sh
+### Verify NJOY detection
+Open Python and run:
+```python
 import sandy
 sandy.get_njoy()
 ```
-If NJOY is correctly configured, this will return the path to the executable.
+If correctly configured, this prints the path to the NJOY executable.
 
-## Installing SANDY on Windows/Linux using conda
-The recommended way to install SANDY both on Windows and Linux is on an Anaconda virtual environment that already includes several python packages. Click [here](https://www.anaconda.com/) for more details on Anaconda.
+## ⭐ 3. Creating a ``conda`` environment for sandy
 
-We advise to install the SANDY dependences in a python environment that was not previously altered. You can do so from a terminal/Anaconda Prompt using the package/environment management system `conda` included in Anaconda, as
+Using a dedicated ``conda`` environment is the recommended approach to avoid dependency conflicts and keep your Python setup clean.
+Both [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/main) and [Anaconda](https://www.anaconda.com/) provide a robust package manager and ship with many essential scientific Python libraries.
+
+- **Miniconda** → a minimal installer containing only conda and Python
+- **Anaconda** → a larger distribution that includes many pre‑installed scientific packages
+
+### Create Environment
+Once Miniconda/Anaconda is installed, open a terminal and create a new environment called ``sandy-devel``
 ```sh
 conda update --name base conda
 conda create -y --name sandy-devel -c conda-forge python numpy scipy pandas pyyaml pytables
 ```
-This environment covers all hard dependencies of SANDY, but i usually like to add a few more packages (such as `ipython`) depending on my goal:
- - data analysis and visualization: `matplotlib`, `seaborn`, `scikit-learn`
- - testing: `pytest`, `numpydoc` , `nbval`, `codecov`, `coveralls`, `pytest-cov`
- - packaging projects: `build`, `twine`
- - jupyter notebooks: `jupyterlab`, `jupyter_nbextensions_configurator`, `jupyter_contrib_nbextensions`
+Optional recommended packages:
+ - **Data analysis**: `matplotlib`, `seaborn`, `scikit-learn`
+ - **Testing**: `pytest`, `numpydoc` , `nbval`, `codecov`, `coveralls`, `pytest-cov`
+ - **Packaging**: `build`, `twine`
+ - **Notebooks**: `jupyterlab`, `jupyter_nbextensions_configurator`, `jupyter_contrib_nbextensions`
 
-From now on, every time you want to use SANDY in your python distribution you need to activate the correct environemt.
+### Activate / deactivate environment
 ```sh
 conda activate sandy-devel
-```
-... and the following to deactivate it.
-```sh
 conda deactivate
 ```
 To manage your python environments read the [conda cheatsheet](https://docs.conda.io/projects/conda/en/4.6.0/_downloads/52a95608c49671267e40c689e0bc00ca/conda-cheatsheet.pdf).
 
-Once the virtual environment is set up and active, you can install SANDY with `pip`.
-
+### Install sandy inside the environment
 ```sh
+conda activate sandy-devel
 pip install sandy
 ```
 
-## Running SANDY in a python shell
-1. Open a terminal/Anaconda Prompt.
-2. Switch to the correct python environment (if any).
-3. Type `python` or `ipython` to open up a python/ipython session.
-4. Then type
+## ⭐ 4. Running SANDY in a python shell
+
+1. Open a terminal or Anaconda Prompt.
+2. Activate the environment (if using conda):
+```sh
+conda activate sandy-devel
+``` 
+3. Launch python (or ``ipython`` if installed):
+```sh
+python
+``` 
+5. Import SANDY:
 ```python
 import sandy
 ```
 
-Now, if `sandy` is available and if you have a running version of NJOY2016 you are ready to roll!
+If NJOY is configured, SANDY is fully ready.
 
 
-## Installing SANDY from source
+## ⭐ 5. Installing SANDY from source
 The source code of SANDY is available as a git repository. The recommended way to get SANDY is by cloning the source package using your local git distribution (*click [here](https://git-scm.com/downloads) to download it!*).
 
 ```sh
