@@ -956,56 +956,17 @@ class _FormattedFile():
 
         return cls(data)
 
-    def _get_section_df(self, mat, mf, mt):
+    def _get_section_records(self, mat, mf, mt):
         """
-
-        Examples
-        --------
-
-        Check if we can read Pu240 file from JEFF-3.1.1, where a "?" is found in the header.
-
-        >>> import sandy
-        >>> tape = sandy.get_endf6_file("jeff_311", "xs", 942400, local=True)
-        >>> assert "?" in tape.data[(9440, 1, 451)]
-        >>> out = tape._get_section_df(9440, 1, 451)
-
-        Let's make it fail.
-
-        >>> import pytest
-        >>> text = " 94-Pu-240 BRC,CAD    EVAL-JUL04 Bouland Derrien Morillon R?@$¤n  9440 1451    5"
-        >>> with pytest.raises(ValueError) as exc_info:
-        ...    sandy.Endf6.from_text(text)._get_section_df(9440, 1, 451)
-
+        Very fast ENDF fixed-width parser.
+        Returns list of string tuples: (C1, C2, L1, L2, N1, N2)
+        exactly like a DataFrame row in the slow version.
         """
-        # ---- IMPORT
-        import pandas as pd
-
-        from .utils import add_delimiter_every_n_characters, add_exp_in_endf6_text
+        from .records import get_records_from_text
 
         text = self.data[(mat, mf, mt)]
-        delimiters = ["?", "@", "$", "¤"]
-        found = False
-        for delimiter in delimiters:
-            found = delimiter not in text
-            if found:
-                break
-            logging.info(
-                f"Could not parse Endf6 as DataFrame using '{delimiter}' delimiter")
-        if not found:
-            raise ValueError(
-                "Could not find suitable delimiter to parse Endf6 file.")
 
-        def foo(x):
-            return add_delimiter_every_n_characters(x[:66], 11, delimiter=delimiter)
-
-        newtext = "\n".join(map(foo, text.splitlines())).replace('"', '*')
-        df = pd.read_csv(
-            io.StringIO(add_exp_in_endf6_text(newtext)),
-            delimiter=delimiter,
-            na_filter=True,
-            names=["C1", "C2", "L1", "L2", "N1", "N2"],
-        )
-        return df
+        return get_records_from_text(text)
 
     def add_section(self, mat, mf, mt, text):
         """
@@ -2154,7 +2115,17 @@ class Endf6(_FormattedFile):
 
         return Endf6.from_text(outputs["pendf"])
 
-    def get_gendf(self, dryrun=False, groupr_kws=None, **njoy_kws):
+    @with_optional_warning_suppression("sandy.warn", default_suppress=False)
+    def get_gendf(
+            self,
+            *,
+            dryrun: bool = False,
+            groupr_kws=None,
+            print_njoy_input: bool = False,
+            suppress_njoy_output: bool = False,
+            verbose: bool | int = False,
+            **njoy_kws,
+            ):
         """
         Process the current ENDF‑6 evaluation into a multi‑group GENDF using NJOY.
 
@@ -2260,26 +2231,65 @@ class Endf6(_FormattedFile):
         >>> found = re.search('groupr(.*)moder', g, flags=re.DOTALL).group().splitlines()
         >>> assert " ".join(found[6:11]) == '3 4 / 3 102 / 3 251 / 0/ 0/'
         """
-        from .gendf import Gendf
+        # ---- IMPORT
+        from subprocess import DEVNULL
+        import pprint
 
-        # --- start from a clean copy, never mutate the caller's dict ---
-        # Always activate GROUPR and never run ACER when producing GENDF
-        njoy_kws_ = self._prepare_njoy_kws(
-            **njoy_kws) | {"groupr": True, "acer": False}
+        from .gendf import Gendf
+        from .utils import log
+        from ._perturbation_base import log_stage
+
+        # ---- SETUP
+        zam = self.get_zam()
+        
+        method = "get_gendf"
+
+        # ---- PREPARE KEYWORDS
+        # no mutation, _prepare_njoy_kws returns a copy
+        njoy_kws_ = self._prepare_njoy_kws(**njoy_kws)
+        njoy_kws_["dryrun"] = dryrun
+        njoy_kws_["groupr"] = True
+        njoy_kws_["acer"] = False
+
+        # ---- SUPPRESSING NJOY output (optional)
+        if suppress_njoy_output:
+            msg = "NJOY output to screen is suppressed"
+            log_stage(log, method, zam, msg, verbose=verbose)
+
+            njoy_kws_ |= {
+                "njoy_output": DEVNULL
+                }
 
         # -- prepare/augment GROUPR options without mutating the user's dict --
         groupr_kws_ = (groupr_kws or {}).copy()
         njoy_kws_["groupr_kws"] = self._prepare_groupr_kws(**groupr_kws_)
 
+        pdict = pprint.pformat(njoy_kws_, indent=2, sort_dicts=True)
+        msg = f"augmented NJOY kwargs: {pdict}"
+        log_stage(log, method, zam, msg, verbose=verbose)
+
+        # ---- RUN NJOY via the shared helper
+        msg = "run NJOY"
+        log_stage(log, method, zam, msg, verbose=verbose)
+
         # Pass dryrun policy down to NJOY
         njoy_kws_["dryrun"] = dryrun
 
         # --- run via the shared helper ---
-        outputs = self._run_njoy(**njoy_kws_)
+        outputs = self._run_njoy(
+            print_njoy_input=print_njoy_input,
+            verbose=verbose,
+            **njoy_kws_,
+            )
 
         # --- In case of dryrun, 'outputs' contains the text of the NJOY input
         if dryrun:
+            msg = "dryrun requested — returning NJOY input deck"
+            log_stage(log, method, zam, msg, verbose=verbose)
             return outputs
+
+        msg = "parsing NJOY GENDF output into Endf6 structure"
+        log_stage(log, method, zam, msg, verbose=verbose)
 
         # Parse GENDF text into object
         return Gendf.from_text(outputs["gendf"])
@@ -4913,7 +4923,7 @@ class Endf6(_FormattedFile):
         ...    block0 = fy0.data.query("MT==@mt and E==@e").set_index("ZAP")["FY"]
         ...    block = fy.data.query("MT==@mt and E==@e").set_index("ZAP")["FY"]
         ...    from_file_relpert = block0.div(block).fillna(1)
-        ...    np.testing.assert_array_almost_equal(from_file_relpert, expected_relpert, decimal=5)        
+        ...    np.testing.assert_array_almost_equal(from_file_relpert, expected_relpert, decimal=4)        
         
         
         

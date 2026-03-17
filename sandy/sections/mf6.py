@@ -41,7 +41,6 @@ def read_mf6(tape, mat, mt):
 
     Examples
     --------
-
     Since the outputs are very large, I am only going to check only some
     information for the test:
 
@@ -60,56 +59,57 @@ def read_mf6(tape, mat, mt):
 
     **LAW 2**:
 
-    >>> import pprint
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10010, local=True)
-    >>> test = read_mf6(tape, 125, 102)
+    >>> test = sandy.sections.mf6.read_mf6(tape, 125, 102)
     >>> test["NK"][10020]['AWP'] = round (test["NK"][10020]['AWP'], 5)
-    >>> pprint.pprint(test["NK"][10020])
-    {'AWP': 1.99626,
-     'E': array([1.e-05, 2.e+07]),
-     'LAW': 4,
-     'NP': [2],
-     'NR': [2],
-     'Y': array([1., 1.])}
+    >>> h2 = test["NK"][10020]
+    >>> assert h2["AWP"] == 1.99626
+    >>> assert h2["E"] == [1.e-05, 2.e+07]
+    >>> assert h2["LAW"] == 4
+    >>> assert h2["NP"] == [2]
+    >>> assert h2["NR"] == [2]
+    >>> assert h2['Y'] == [1., 1.]
 
     **LAW 6**:
 
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 10020, local=True)
     >>> test = read_mf6(tape, 128, 16)
     >>> test["NK"][10]['APSX'] = round (test["NK"][10]['APSX'],5)
-    >>> test["NK"][10]
-    {'AWP': 1.0,
-     'LAW': 6,
-     'NR': [2],
-     'NP': [2],
-     'E': array([3.339002e+06, 1.500000e+08]),
-     'Y': array([2., 2.]),
-     'APSX': 2.99862,
-     'NPSX': 3}
+    >>> n = test["NK"][10]
+    >>> assert n["AWP"] == 1.0
+    >>> assert n["LAW"] == 6
+    >>> assert n["NP"] == [2]
+    >>> assert n["NR"] == [2]
+    >>> assert n["E"] == [3.339002e+06, 1.500000e+08]
+    >>> assert n['APSX'] == 2.99862
+    >>> assert n['NPSX'] == 3
+    
 
     **LAW 7**:
 
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 40090, local=True)
     >>> test = read_mf6(tape, 425, 16)
-    >>> test["NK"][10]["EGROUPS"][1748830.0]['COSGROUPS'][-1.0]
-    {'NRP': [15],
-     'NEP': [2],
-     'EP_INT': array([  1092.99,   1093.  ,   3278.9 ,   7650.8 ,  12023.  ,  20766.  ,
-             29510.  ,  55741.  ,  71043.  ,  81973.  ,  90716.  ,  95088.  ,
-             99460.  , 101650.  , 101651.  ]),
-     'E_p': array([0.00000e+00, 1.16614e-06, 1.58588e-06, 1.54624e-06, 7.09710e-07,
-            1.79581e-07, 2.86776e-08, 0.00000e+00]),
-     'E_distr': array([7.40674e-07, 1.46654e-06, 1.61094e-06, 1.07195e-06, 4.02172e-07,
-            9.52648e-08, 4.69275e-09])}
+    >>> got = test["NK"][10]["EGROUPS"][1748830.0]['COSGROUPS'][-1.0]
+    >>> expected = {
+    ...     'NRP': [15],
+    ...     'NEP': [2],
+    ...     'EP_INT':[  1092.99,   1093.  ,   3278.9 ,   7650.8 ,  12023.  ,  20766.  ,
+    ...               29510.  ,  55741.  ,  71043.  ,  81973.  ,  90716.  ,  95088.  ,
+    ...               99460.  , 101650.  , 101651.  ],
+    ...     'E_p': [0.00000e+00, 1.16614e-06, 1.58588e-06, 1.54624e-06, 7.09710e-07, 1.79581e-07, 2.86776e-08, 0.00000e+00],
+    ...     'E_distr': [7.40674e-07, 1.46654e-06, 1.61094e-06, 1.07195e-06, 4.02172e-07, 9.52648e-08, 4.69275e-09],
+    ...     }
+    >>> assert got == expected
     """
-    from ..records import read_cont, read_list, read_tab1, read_tab2
+    # ---- IMPORT
+    from ..records import read_cont_fast, read_list_fast, read_tab1_fast, read_tab2_fast
     from ..zam import za2zam
 
     mf = 6
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {"MAT": mat, "MF": mf, "MT": mt}
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     out.update({
                 "ZA": C.C1,
                 "AWR": C.C2,
@@ -121,7 +121,7 @@ def read_mf6(tape, mat, mt):
     # identifier with its final isomeric state create a unique identifier for
     # each reaction.
     for a in range(C.N1):
-        T, i = read_tab1(df, i)
+        T, i = read_tab1_fast(records, i)
         LAW = T.L2  # Distintion between different distribution function
         ZAP = T.C1  # Product identifier
         LIP = T.L1  # Product isomeric state identifier
@@ -136,7 +136,7 @@ def read_mf6(tape, mat, mt):
                 }
         # LAW dependent structures:
         if LAW == 1:  # Continuum Energy-Angle Distributions
-            L, i = read_tab2(df, i)
+            L, i = read_tab2_fast(records, i)
             NE = L.NBT[0]  # How many NE incident energies
             add.update({
                         "LANG": L.L1,  # Angular representation identificator
@@ -148,7 +148,7 @@ def read_mf6(tape, mat, mt):
             add_e = {}
             # To repeat for all the NE incident energies
             for j in range(NE):
-                T, i = read_list(df, i)
+                T, i = read_list_fast(records, i)
                 E = T.C2  # Incident energy
                 if int(T.L2) == 0:
                     Ep = T.B[::2]
@@ -165,12 +165,12 @@ def read_mf6(tape, mat, mt):
                          "Ep": Ep,  # The energy of the product emitted
                          "b": b,  # Coefficients for the angular representation
                          # the contents of the b depend on LANG
-                       }
+                     }
                 add_e[E] = add_2
             add["EGROUPS"] = add_e
 
         elif LAW == 2:  # Discrete Two-Body Scattering
-            L, i = read_tab2(df, i)
+            L, i = read_tab2_fast(records, i)
             NE = L.NBT[0]
             add.update({
                         "ENR": L.NZ,
@@ -180,7 +180,7 @@ def read_mf6(tape, mat, mt):
             add_e = {}
             # To repeat list records for all the incident energies
             for j in range(NE):
-                T, i = read_list(df, i)
+                T, i = read_list_fast(records, i)
                 E = T.C2  # Incident energy
                 add_2 = {
                          "LANG": T.L1,  # Angular representation identificator
@@ -194,7 +194,7 @@ def read_mf6(tape, mat, mt):
         elif LAW == 5:  # Charged-Particle Elastic Scattering
             logging.warning(f"""'(LAW) = ({LAW})' is not validated.
                             Please report any posible error/bug.""")
-            L, i = read_tab2(df, i)
+            L, i = read_tab2_fast(records, i)
             NE = L.NBT[0]  # How many NE incident energies
             LIDP = L.L1
             add.update({
@@ -206,7 +206,7 @@ def read_mf6(tape, mat, mt):
             })
             add_e = {}
             for j in range(NE):  # To repeat the LIST records for all the NE
-                T, i = read_list(df, i)
+                T, i = read_list_fast(records, i)
                 E = T.C2
                 LTP = T.L1
                 add_2 = {
@@ -240,13 +240,13 @@ def read_mf6(tape, mat, mt):
             add["EGROUPS"] = add_e
 
         elif LAW == 6:  # N-Body Phase-Space Distributions
-            T, i = read_cont(df, i)
+            T, i = read_cont_fast(records, i)
             add.update({
                         "APSX": T.C1,  # Total mass(neutron uni) of N particles
                         "NPSX": T.N2,  # Number of particles distributed
                              })
         elif LAW == 7:  # Laboratory Angle-Energy Law
-            L, i = read_tab2(df, i)
+            L, i = read_tab2_fast(records, i)
             NE = L.NBT[0]  # How many interpolation range we have
             # Interpolation parameters for incident energy E
             add.update({
@@ -257,7 +257,7 @@ def read_mf6(tape, mat, mt):
             add_e = {}
             # To repeat for all NE incident energies
             for j in range(NE):
-                T, i = read_tab2(df, i)
+                T, i = read_tab2_fast(records, i)
                 # Interpolation parameters for emission cosine
                 E = T.C2  # Incident energy
                 NMU = T.NBT[0]  # Number of possible emission cosines
@@ -270,7 +270,7 @@ def read_mf6(tape, mat, mt):
                 # To repeat for all the NMU emission cosines
                 add_nu = {}
                 for hz in range(NMU):
-                    Z, i = read_tab1(df, i)
+                    Z, i = read_tab1_fast(records, i)
                     # Interpolation parameters for secondary energy E′
                     nu = Z.C2  # Value for emission cosine
                     E_p = Z.y[::2]

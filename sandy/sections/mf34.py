@@ -40,39 +40,28 @@ def read_mf34(tape, mat, mt):
 
     >>> import sandy
     >>> tape = sandy.get_endf6_file("jeff_33", 'xs', 922380, local=True)
-    >>> read_mf34(tape, mat=9237, mt=2)["REAC"][(0,2)]["P"][(1, 1)]["NI"][0]["FKK"][0:15]
-    [1.51558,
-     1.51558,
-     1.51558,
-     0.316347,
-     0.376019,
-     0.362778,
-     0.161342,
-     0.0891301,
-     0.0634872,
-     0.00469711,
-     -0.0321085,
-     -0.0320439,
-     -0.0216885,
-     -0.0128297,
-     -0.00264976]
+    >>> out = read_mf34(tape, mat=9237, mt=2)
+    >>> expected = [1.51558, 1.51558, 1.51558, 0.316347, 0.376019, 0.362778, 0.161342, 0.0891301,
+    ...             0.0634872, 0.00469711, -0.0321085, -0.0320439, -0.0216885, -0.0128297, -0.00264976]
+    >>> got = out["REAC"][(0,2)]["P"][(1, 1)]["NI"][0]["FKK"][0:15]
+    >>> assert got == expected
     """
-    from ..records import read_cont, read_list
+    from ..records import read_cont_fast, read_list_fast
 
     mf = 34
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {"MAT": mat,
            "MF": mf,
            "MT": mt}
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     out.update({"ZA": C.C1,
                 "AWR": C.C2,
                 "LTT": C.L2,  # Legendre coefficient covariances starting coefficient
                 "NMT1": C.N2,  # Number of subsections
                 "REAC": {}})
     for j in range(out["NMT1"]):
-            C, i = read_cont(df, i)
+            C, i = read_cont_fast(records, i)
             mat1 = C.L1
             mt1 = C.L2
             sub = {"NL": C.N1,  # Number of Legendre coefficients for the MT reaction
@@ -80,14 +69,14 @@ def read_mf34(tape, mat, mt):
                    "P": {}}
             nss = C.N1 * (C.N1 + 1) // 2 if C.L2 == out["MT"] else C.N1 * C.N2
             for k in range(nss):
-                C, i = read_cont(df, i)
+                C, i = read_cont_fast(records, i)
                 l = C.L1  # Index of the Legendre coefficient for reaction MT
                 l1 = C.L2  # Index of the Legendre coefficient for reaction MT1
                 ni = C.N2
                 ssub = {"LCT": C.N1,  # Flag to specify coordinate system
                         "NI": {}}
                 for m in range(ni):
-                    L, i = read_list(df, i)
+                    L, i = read_list_fast(records, i)
                     sssub = {"LS": L.L1,  # Indicate if the matrix is symmetric
                              "LB": L.L2,  # Flag to indicate the covariance pattern as a function of incident energy.
                              "NT": L.NPL,  # Total number of items

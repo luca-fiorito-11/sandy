@@ -14,7 +14,6 @@ Function `write_mf8` writes a content object for a MF8/MT section into a
 string.
 MAT, MF, MT and line numbers are also added (each line ends with a `\n`).
 """
-import math
 
 __author__ = "Luca Fiorito"
 
@@ -87,16 +86,16 @@ def _read_nucl_prod(tape, mat, mt):
     `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
     """
-    from ..records import read_cont, read_list
+    from ..records import read_cont_fast, read_list_fast
 
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     NS = C.N1
     add = {
             "ZAM": int(C.C1*10),
@@ -109,7 +108,7 @@ def _read_nucl_prod(tape, mat, mt):
     out.update(add)
     products = {}
     for j in range(NS):
-        L, i = read_list(df, i)
+        L, i = read_list_fast(records, i)
         LFS = L.L2
         ND = int(L.NPL / 6)
         LIST = L.B[:]
@@ -178,16 +177,16 @@ def _read_fy(tape, mat, mt):
     >>> IFY["E"][0.0253]['ZAP'][10010]
     {'FY': 1.711e-05, 'DFY': 1.8479e-06}
     """
-    from ..records import read_cont, read_list
+    from ..records import read_cont_fast, read_list_fast
 
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     add = {
             "ZA": int(C.C1),
             "AWR": C.C2,
@@ -196,7 +195,7 @@ def _read_fy(tape, mat, mt):
     nranges = C.L1
     eranges = {}
     for j in range(nranges):
-        L, i = read_list(df, i)
+        L, i = read_list_fast(records, i)
         data = {}
         for zafp, fps, fy, dfy in zip(*[iter(L.B)]*4):
             zap = int(zafp*10 + fps)
@@ -257,17 +256,20 @@ def _read_rdd(tape, mat):
                'LISO', 'NST', 'HL', 'DHL', 'E', 'DE',
                'LAMBDA', 'DLAMBDA', 'SPI', 'PAR', 'DK', 'SPECTRA'])
     """
-    from ..records import read_cont, read_list, read_tab1
+    # ---- IMPORT
+    import math
+
+    from ..records import read_cont_fast, read_list_fast, read_tab1_fast
 
     mt = 457
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     add = {
             # Designation of the original (radioactive) nuclide (Z*1000 + A)
             "ZA": C.C1,
@@ -286,7 +288,7 @@ def _read_rdd(tape, mat):
     # Total number of radiation types (STYP) for which spectral information is
     # given (NSP may be zero)
     NSP = C.N2
-    L, i = read_list(df, i)
+    L, i = read_list_fast(records, i)
     add = {
             # half-life of the original nuclide (seconds)
             "HL": L.C1,
@@ -303,7 +305,7 @@ def _read_rdd(tape, mat):
             "DLAMBDA": math.log(2.0) * L.C2 / L.C1**2 if L.C1 else 0
             }
     out.update(add)
-    L, i = read_list(df, i)
+    L, i = read_list_fast(records, i)
     add = {
             # Spin of the nuclide in its LIS state
             "SPI": L.C1,
@@ -347,7 +349,7 @@ def _read_rdd(tape, mat):
         spectra = {}
         # Update list of spectra
         for ist in range(NSP):
-            L, i = read_list(df, i)
+            L, i = read_list_fast(records, i)
             # Decay spectrum type
             STYP = int(L.C2)
             spectra[STYP] = {}
@@ -370,7 +372,7 @@ def _read_rdd(tape, mat):
                 discrete_spectrum = []
                 for ier in range(NER):
                     discr = {}
-                    L, i = read_list(df, i)
+                    L, i = read_list_fast(records, i)
                     # Discrete energy (eV) of radiation produced
                     discr['ER'] = L.C1
                     # Uncertainty on discrete energy
@@ -425,7 +427,7 @@ def _read_rdd(tape, mat):
             if LCON != 0:
                 spectra[STYP]["CONT"] = {}
                 cont = {}
-                T, i = read_tab1(df, i)
+                T, i = read_tab1_fast(records, i)
                 # Decay mode
                 cont["RTYP"] = T.C1
                 # Flag indicating whether covariance data are given

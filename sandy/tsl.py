@@ -6,9 +6,6 @@ class `Tsl` class acts as a container for temperatura-dependent tabulated
 thermal neutron scattering cross section.
 """
 
-import pandas as pd
-
-
 class Tsl():
     def __repr__(self):
         return self.data.__repr__()
@@ -65,9 +62,9 @@ class Tsl():
 
         >>> tape = sandy.get_endf6_file("endfb_80", 'tsl', 10, local=True)
         >>> tsl = Tsl.from_endf6(tape)
-        >>> tsl.data['elastic incoherent']['Debye-Waller']
-        array([14.70372, 19.1224 , 20.37892, 21.65261, 21.97355, 22.94205,
-               23.26671, 24.24591, 24.57398])
+        >>> got = tsl.data['elastic incoherent']['Debye-Waller']
+        >>> expected = [14.70372, 19.1224 , 20.37892, 21.65261, 21.97355, 22.94205, 23.26671, 24.24591, 24.57398]
+        >>> assert got == expected
         """
         tape = endf6.filter_by(listmf=[7], listmt=[2, 4])
         data = {}
@@ -128,6 +125,8 @@ class Tsl():
         3	2.96000e+02	6.91100e-03	6.40282e-02
         4	2.96000e+02	1.17905e-02	7.49635e-02
         """
+        import pandas as pd
+
         data = self.data['elastic coherent']
         S = []
         E = data['E']
@@ -166,6 +165,8 @@ class Tsl():
         3	0.00000e+00	2.96000e+02	3.75460e-03	9.25834e-05
         4	0.00000e+00	2.96000e+02	4.02263e-03	9.91918e-05
         """
+        import pandas as pd
+
         data = self.data['inelastic incoherent']
         S = []
         alpha = data['alpha']
@@ -231,6 +232,8 @@ class Tsl():
         3	0.00000e+00	2.96000e+02	3.75460e-03	9.25834e-05
         4	0.00000e+00	2.96000e+02	4.02263e-03	9.91918e-05
         """
+        import pandas as pd
+
         if kind == 'elastic coherent':
             S = self._S_elastic_coherent()
         elif kind == 'inelastic incoherent':

@@ -27,24 +27,51 @@ def read_mf33(tape, mat, mt, mf=33):
     -----
     .. note:: this function can parse MF=31 sections if `mf=31` is passed
               as argument
-    """
-    from ..records import read_cont, read_list
 
-    df = tape._get_section_df(mat, mf, mt)
+    Examples
+    --------
+    NC-type.
+
+    >>> import sandy
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
+    >>> out = sandy.sections.mf33.read_mf33(tape, 125, 1)
+    >>> keys = {'MAT', 'MF', 'MT', 'ZA', 'AWR', 'MTL', 'SUB'}
+    >>> assert keys.issubset(out)
+    >>> assert {1}.issubset(out["SUB"])
+    >>> sub1 = out["SUB"][1]
+    >>> keys = {'XMF1', 'XLFS1', 'MAT1', 'MT1', 'NC', 'NI'}
+    >>> assert keys.issubset(sub1)
+    >>> assert sub1["NI"] == {}
+
+    NI-type.
+
+    >>> out = sandy.sections.mf33.read_mf33(tape, 125, 2)
+    >>> keys = {'MAT', 'MF', 'MT', 'ZA', 'AWR', 'MTL', 'SUB'}
+    >>> assert keys.issubset(out)
+    >>> assert {2}.issubset(out["SUB"])
+    >>> sub2 = out["SUB"][2]
+    >>> keys = {'XMF1', 'XLFS1', 'MAT1', 'MT1', 'NC', 'NI'}
+    >>> assert keys.issubset(sub2)
+    >>> sub2lb5 = sub2["NI"][0]
+    >>> assert sub2lb5["LB"] == 5
+    """
+    from ..records import read_cont_fast, read_list_fast
+
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     out["ZA"] = C.C1
     out["AWR"] = C.C2
     out["MTL"] = C.L2
     nsub = C.N2
     subs = {}
     for j in range(nsub):
-        C, i = read_cont(df, i)
+        C, i = read_cont_fast(records, i)
         xmf1 = C.C1
         xlfs1 = C.C2
         mat1 = C.L1
@@ -54,10 +81,10 @@ def read_mf33(tape, mat, mt, mf=33):
         ni = C.N2  # number of NI-type sections
         ncdict = {}
         for k in range(nc):
-            C, i = read_cont(df, i)
+            C, i = read_cont_fast(records, i)
             lty = C.L2
             subsub = {"LTY": lty}
-            L, i = read_list(df, i)
+            L, i = read_list_fast(records, i)
             if lty == 0:
                 subsub["E1"] = L.C1,
                 subsub["E2"] = L.C2,
@@ -78,7 +105,7 @@ def read_mf33(tape, mat, mt, mf=33):
         sub["NC"] = ncdict
         nidict = {}
         for k in range(ni):
-            L, i = read_list(df, i)
+            L, i = read_list_fast(records, i)
             lb = L.L2
             subsub = {"LB": lb}
             if lb in [0, 1, 2, 3, 4]:
