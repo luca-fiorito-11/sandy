@@ -2,14 +2,6 @@
 This module contains all classes and functions dedicated to the processing and
 analysis of a decay data.
 """
-import logging
-#import os  # used in docstrings
-#import tempfile  # used in docstrings
-import copy
-
-import numpy as np
-import pandas as pd
-
 
 __author__ = "Luca Fiorito"
 
@@ -98,6 +90,9 @@ class DecayData():
         391000   1.00000e+00
         Name: PN, dtype: float64
         """
+        # ---- IMPORT
+        import pandas as pd
+
         pn = {}
         for zam, data in self.data.items():
             if data["stable"]:
@@ -158,6 +153,9 @@ class DecayData():
         ZAM               
         260560 0.00000e+00
         """
+        # ---- IMPORT
+        import pandas as pd
+
         thalf = {zam: {
              "HL": dic['half_life'],
              "DHL": dic['half_life_uncertainty'],
@@ -236,6 +234,9 @@ class DecayData():
         Columns: [BR, DBR]
         Index: []
         """
+        # ---- IMPORT
+        import pandas as pd
+
         br = []
         zam = []
         rtyp_ = []
@@ -312,6 +313,9 @@ class DecayData():
                beta  0.00000e+00
                gamma 0.00000e+00
         """
+        # ---- IMPORT
+        import pandas as pd
+
         decay_energy = []
         decay_energy_uncertainty = []
         zam = []
@@ -386,6 +390,9 @@ class DecayData():
         1  601440    581400  0.00000e+00 9.59169e-24
         2  601440    601440 -1.00000e+00 9.59169e-24
         """
+        # ---- IMPORT
+        import pandas as pd
+
         items = []
         columns = ["PARENT", "DAUGHTER", "YIELD", "LAMBDA"]
         for zam, nucl in sorted(self.data.items()):
@@ -460,6 +467,7 @@ class DecayData():
         5	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	5.00000e-01	0.00000e+00
         231	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	0.00000e+00	1.00000e+00
         """
+        # --- IMPORT
         from .zam import expand_zam
 
         chain = self.get_decay_chains().iloc[:, 0:3]
@@ -522,6 +530,10 @@ class DecayData():
         561480 	0.00000e+00 	7.81380e-01 	6.88450e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
         561490 	0.00000e+00 	0.00000e+00 	3.11550e-01 	0.00000e+00 	0.00000e+00 	0.00000e+00 	0.00000e+00
         """
+        # ---- IMPORT
+        import pandas as pd
+        import numpy as np
+
         B = (
             self.get_decay_chains(**kwargs)
                 .pivot_table(
@@ -631,8 +643,11 @@ class DecayData():
         581470   0.00000e+00 1.50000e-03 1.00000e+00 0.00000e+00
         581480   0.00000e+00 9.98500e-01 0.00000e+00 1.00000e+00
         """
+        # ---- IMPORT
         from scipy.sparse import csc_matrix
         from scipy.sparse.linalg import splu
+        import numpy as np
+        import pandas as pd
 
         B = self.get_bmatrix(**kwargs)
         if not keep_neutrons:
@@ -674,6 +689,9 @@ class DecayData():
         270600   0.00000e+00 -4.16705e-09 0.00000e+00
         280600   0.00000e+00  4.16705e-09 0.00000e+00
         """
+        # ---- IMPORT
+        import numpy as np
+
         df = self.get_decay_chains()
         df["YIELD"] *= df["LAMBDA"]
         T = df.pivot_table(
@@ -690,7 +708,8 @@ class DecayData():
     def from_endf6(
             cls,
             endf6,
-            verbose=False,
+            enforce_checks: bool = False,
+            verbose: bool = False,
             ):
         """
         Extract hierarchical structure of decay data from `sandy.Endf6`
@@ -794,53 +813,77 @@ class DecayData():
             raise ValueError("no decay data found in file")
 
         groups = {}
+
         for mat, mf, mt in tape.keys:
             sec = endf6.read_section(mat, mf, mt)
-            zam = int(sec["ZA"]*10 + sec["LISO"])
+
+            # Local aliases to reduce repeated lookups
+            ZA = sec["ZA"]
+            LISO = sec["LISO"]
+            zam = int(ZA * 10 + LISO)
 
             msg = f"| reading ZAM={zam}"
             log(common_msg + msg, verbose=verbose)
 
-            groups[zam] = {
-                    "half_life": sec["HL"],
-                    "half_life_uncertainty": sec["DHL"],
-                    "decay_constant": sec["LAMBDA"],
-                    "decay_constant_uncertainty": sec["DLAMBDA"],
-                    "stable": bool(sec["NST"]),
-                    "spin": sec["SPI"],
-                    "parity": sec["PAR"],
-                    "decay_energy": {
-                            "beta": sec["E"][0],
-                            "gamma": sec["E"][1],
-                            "alpha": sec["E"][2],
-                            },
-                    "decay_energy_uncertainties": {
-                            "beta": sec["DE"][0],
-                            "gamma": sec["DE"][1],
-                            "alpha": sec["DE"][2],
-                            },
-                    }
+            HL = sec["HL"]
+            DHL = sec["DHL"]
+            LAMBDA = sec["LAMBDA"]
+            DLAMBDA = sec["DLAMBDA"]
+            NST = sec["NST"]
+            SPI = sec["SPI"]
+            PAR = sec["PAR"]
 
-            if groups[zam]["stable"]:
-                assert groups[zam]["decay_constant"] == 0
-                assert "DK" not in sec
-                continue
+            # Unpack energies, if given for multiparticles, take only alpha, beta and gamma
+            E_beta, E_gamma, E_alpha = sec["E"][:3]
+            DE_beta, DE_gamma, DE_alpha = sec["DE"][:3]
+    
+            stable = bool(NST)
 
-            groups[zam]["decay_modes"] = {}
+            g = {
+                "half_life": HL,
+                "half_life_uncertainty": DHL,
+                "decay_constant": LAMBDA,
+                "decay_constant_uncertainty": DLAMBDA,
+                "stable": stable,
+                "spin": SPI,
+                "parity": PAR,
+                "decay_energy": {
+                    "beta": E_beta,
+                    "gamma": E_gamma,
+                    "alpha": E_alpha,
+                    },
+                "decay_energy_uncertainties": {
+                    "beta": DE_beta,
+                    "gamma": DE_gamma,
+                    "alpha": DE_alpha,
+                    },
+                }
+            
 
-            for dk in sec["DK"]:
-                rtyp = dk['RTYP']
-                residual_state = dk["RFS"]
-                decay_mode_data = {
-                        "decay_products": get_decay_products(
-                                                rtyp,
-                                                zam,
-                                                residual_state,
-                                                ),
-                        "branching_ratio": dk["BR"],
-                        "branching_ratio_uncertainty": dk["DBR"],
-                        }
-                groups[zam]["decay_modes"][(rtyp, residual_state)] = decay_mode_data
+            # ---- STABLE NUCLIDE
+            if stable:
+                if enforce_checks:
+                    assert g["decay_constant"] == 0
+                    assert "DK" not in sec
+
+            # ---- NON-STABLE NUCLIDE
+            else:
+                g_decay_modes = {}
+    
+                DK = sec["DK"]
+                for dk in DK:
+                    # Iterate decay channels
+                    rtyp = dk['RTYP']
+                    residual_state = dk["RFS"]
+                    dec_prod = get_decay_products(rtyp, zam, residual_state)
+                    g_decay_modes[(rtyp, residual_state)] = {
+                                        "decay_products": dec_prod,
+                                        "branching_ratio": dk["BR"],
+                                        "branching_ratio_uncertainty": dk["DBR"],
+                                    }
+                g["decay_modes"] = g_decay_modes
+
+            groups[zam] = g
 
         return cls(groups)
 
@@ -917,6 +960,9 @@ class _DecayBase():
     """
 
     def __init__(self, df):
+        # ---- IMPORT
+        import pandas as pd
+
         self.data = pd.DataFrame(df)
 
     def __repr__(self):
@@ -1121,6 +1167,9 @@ class BranchingRatio(_DecayBase):
         >>> assert rdd_updated.data[942410]['decay_modes'][(4, 0)]['branching_ratio'] == br_new.data.query("ZAM==942410 & RTYP==4 & RFS==0").BR.values
         >>> assert rdd_updated.data[942410]['decay_modes'][(1, 0)]['branching_ratio'] == br_new.data.query("ZAM==942410 & RTYP==1 & RFS==0").BR.values
         """
+        # ---- IMPORT
+        import copy
+
         rdd_updated = copy.deepcopy(rdd.data)
         for (zam, rtyp, rfs), val in self.data.iterrows():
             rdd_updated[zam]['decay_modes'][(rtyp, rfs)]['branching_ratio'] = val['BR']
@@ -1194,6 +1243,10 @@ class HalfLife(_DecayBase):
         >>> assert rdd_updated.data[922350]['half_life'] == hl_new.data.query('ZAM==922350').HL.values
         >>> assert rdd_updated.data[942410]['half_life'] == hl_new.data.query('ZAM==942410').HL.values
         """
+        # ---- IMPORT
+        import copy
+        import numpy as np
+
         rdd_updated = copy.deepcopy(rdd.data)
         for zam, val in self.data.iterrows():
             # update half life and recalculate decay constant.
@@ -1283,6 +1336,9 @@ class DecayEnergy(_DecayBase):
         >>> assert rdd_updated.data[942410]['decay_energy']['beta'] == e_new.data.E[942410]['beta']
         >>> assert rdd_updated.data[942410]['decay_energy']['gamma'] == e_new.data.E[942410]['gamma']
         """
+        # ---- IMPORT
+        import copy
+
         rdd_updated = copy.deepcopy(rdd.data)
         for (zam, typ), val in self.data.iterrows():
             rdd_updated[zam]['decay_energy'][typ] = val['E']

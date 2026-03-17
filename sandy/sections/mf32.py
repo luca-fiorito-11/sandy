@@ -172,18 +172,18 @@ def read_mf32(tape, mat):
      'JJ': 793,
      'KIJ': array([44, 69,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0])}
     """
-    from ..records import read_cont, read_list
+    from ..records import read_cont_fast, read_list_fast
     from ..utils import grouper
     import numpy as np
 
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
         "MAT": mat,
         "MF": mf,
         "MT": mt,
     }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     add = {
         "ZA": C.C1,  # designation for an isotope
         "AWR": C.C2,  # AWR is defines as the ratio of the mass of the material to that of the neutron
@@ -195,7 +195,7 @@ def read_mf32(tape, mat):
         M = {}
         NER1 = {}
         ISO = {}
-        C, i = read_cont(df, i)
+        C, i = read_cont_fast(records, i)
         header1 = {
             "ABN": C.C2,  # Abundance of an isotope in the material
             "LFW": C.L2,  # indication whether average fission wifths are given in the unresolbed resonance region
@@ -206,7 +206,7 @@ def read_mf32(tape, mat):
         dico = {}
         for j in range(NER):
             info = {}
-            C, i = read_cont(df, i)
+            C, i = read_cont_fast(records, i)
             header2 = {
                 # Flag indicating whether this energy range contains data for
                 # resolved or unresolved resonance parameters:
@@ -223,14 +223,14 @@ def read_mf32(tape, mat):
             LRF = C.L2
             if NRO != 0:
                 NRO1 = {}
-                C, i = read_cont(df, i)
+                C, i = read_cont_fast(records, i)
                 add = {
                     "NI": C.N2,
                 }
                 NRO1.update(add)
                 dico[(EL, EH)] = NRO1
             else:
-                C, i = read_cont(df, i)
+                C, i = read_cont_fast(records, i)
                 header3 = {
                     "SPI": C.C1,  # Flag controlling the use of the two radii
                     "AP": C.C2,
@@ -246,14 +246,14 @@ def read_mf32(tape, mat):
                     LCOMP0.update(header2)
                     LCOMP0.update(header3)
                     if ISR > 0:
-                        C, i = read_cont(df, i)
+                        C, i = read_cont_fast(records, i)
                         add = {
                             "DAP": C.C2,
                         }
                         LCOMP0.update(add)
                         LCOMP0_NLS = {}
                         for k in range(NLS):
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "AWRI": L.C1,  # Ratio of the mass of a particular isotope to that of a neutron
                                 # Number of resolved resonances for a given
@@ -287,7 +287,7 @@ def read_mf32(tape, mat):
                     else:
                         LCOMP0_NLS = {}
                         for k in range(NLS):
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "AWRI": L.C1,  # Ratio of the mass of a particular isotope to that of a neutron
                                 # Number of resolved resonances for a given
@@ -324,19 +324,19 @@ def read_mf32(tape, mat):
                     LCOMP1.update(header3)
                     if LRF == 1 or LRF == 2:  # Breit-Wigner
                         if ISR > 0:
-                            C, i = read_cont(df, i)
+                            C, i = read_cont_fast(records, i)
                             add = {
                                 "DAP": C.C2,
                             }
                             LCOMP1.update(add)
-                            C, i = read_cont(df, i)
+                            C, i = read_cont_fast(records, i)
                             add = {
                                 "AWRI": C.C1,
                                 "NSRS": C.N1,
                                 "NLRS": C.N2,
                             }
                             LCOMP1.update(add)
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "MPAR": L.L1,
                                 "NRB": L.N2,
@@ -356,14 +356,14 @@ def read_mf32(tape, mat):
                             LCOMP1.update(add)
                             dico[(EL, EH)] = LCOMP1
                         if ISR == 0:
-                            C, i = read_cont(df, i)
+                            C, i = read_cont_fast(records, i)
                             add = {
                                 "AWRI": C.C1,
                                 "NSRS": C.N1,
                                 "NLRS": C.N2,
                             }
                             LCOMP1.update(add)
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "MPAR": L.L1,
                                 "NRB": L.N2,
@@ -385,20 +385,20 @@ def read_mf32(tape, mat):
                     elif LRF == 3:  # Reich-Moore
                         add = {}
                         if ISR > 0:
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             # DAP is uncertainty on scattering radius
                             DAP = [dict(zip(keys, items)) for items in grouper(L.B, 1)]
                             add.update({
                                 "MLS": L.NPL,
                                 "DAP": DAP,
                             })
-                        C, i = read_cont(df, i)
+                        C, i = read_cont_fast(records, i)
                         add.update({
                             "AWRI": C.C1,
                             "NSRS": C.N1,
                             "NLRS": C.N2,
                         })
-                        L, i = read_list(df, i)
+                        L, i = read_list_fast(records, i)
                         NRB = int(L.N2)
                         MPAR = int(L.L1)
                         keys = ["ER", "AJ", "GN", "GG", "GFA", "GFB"]
@@ -420,7 +420,7 @@ def read_mf32(tape, mat):
 
                         dico[(EL, EH)] = LCOMP1
                     elif LRF == 4:
-                        L, i = read_list(df, i)
+                        L, i = read_list_fast(records, i)
                         add = {
                             "MPAR": L.L1,
                             "NRB": L.N2,
@@ -453,20 +453,20 @@ def read_mf32(tape, mat):
                         dico[(EL, EH)] = LCOMP1
                     elif LRF == 7:
                         if ISR > 0:
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "JCH": L.NPL,
                                 "(1+(NJCH-1)/6)": L.N2,
                                 "DAP": L.B,
                             }
-                            C, i = read_cont(df, i)
+                            C, i = read_cont_fast(records, i)
                             add = {
                                 "NJSX": C.L1,
                             }
                             add.update(add)
                             NJSX = int(C.L1)
                             for k in range(NJSX):
-                                L, i = read_list(df, i)
+                                L, i = read_list_fast(records, i)
                                 add = {
                                     "NCH": L.L1,
                                     "NRB": L.L2,
@@ -483,7 +483,7 @@ def read_mf32(tape, mat):
                                 }
                                 LIST2.update({k: add_3})
                             add.update({"J": LIST2})
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "N": L.NPL,
                                 "NPARB": L.N2,
@@ -500,14 +500,14 @@ def read_mf32(tape, mat):
                             LCOMP1.update(add)
                             dico[(EL, EH)] = LCOMP1
                         else:
-                            C, i = read_cont(df, i)
+                            C, i = read_cont_fast(records, i)
                             add = {
                                 "NJSX": C.L1,
                             }
                             add.update(add)
                             NJSX = int(C.L1)
                             for k in range(NJSX):
-                                L, i = read_list(df, i)
+                                L, i = read_list_fast(records, i)
                                 add = {
                                     "NCH": L.L1,
                                     "NRB": L.L2,
@@ -524,7 +524,7 @@ def read_mf32(tape, mat):
                                 }
                                 LIST2.update({k: add_3})
                             add.update({"J": LIST2})
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "N": L.NPL,
                                 "NPARB": L.N2,
@@ -546,12 +546,12 @@ def read_mf32(tape, mat):
                     LCOMP2.update(header3)
                     if LRF == 1 or LRF == 2:
                         if ISR > 0:
-                            C, i = read_cont(df, i)
+                            C, i = read_cont_fast(records, i)
                             add = {
                                 "DAP": C.C2,
                             }
                             LCOMP2.update(add)
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "AWRI": C.C1,
                                 "QX": C.C2,
@@ -568,7 +568,7 @@ def read_mf32(tape, mat):
                             RES_PAR = RES_PAR1
                             add.update({"RES_PAR": RES_PAR})
                             LCOMP2.update(add)
-                            C, i = read_cont(df, i)
+                            C, i = read_cont_fast(records, i)
                             add = {
                                 "NDIGIT": C.L1,
                                 "NNN": C.L2,
@@ -591,7 +591,7 @@ def read_mf32(tape, mat):
                             LCOMP2.update(add)
                             dico[(EL, EH)] = LCOMP2
                         elif ISR == 0:
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "AWRI": C.C1,
                                 "QX": C.C2,
@@ -606,7 +606,7 @@ def read_mf32(tape, mat):
                                 del RES_PAR1[h]["02"]
                             RES_PAR = RES_PAR1
                             add.update({"RES_PAR": RES_PAR})
-                            C, i = read_cont(df, i)
+                            C, i = read_cont_fast(records, i)
                             add = {
                                 "NDIGIT": C.L1,
                                 "NNN": C.L2,
@@ -630,12 +630,12 @@ def read_mf32(tape, mat):
                             dico[(EL, EH)] = LCOMP2
                     elif LRF == 3:
                         if ISR == 1:
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "MLS": L.NPL,
                                 "DAP": L.B
                             }
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "AWRI": C.C1,
                                 "APL": C.C2,
@@ -660,7 +660,7 @@ def read_mf32(tape, mat):
                                 del RES_PAR1[h]["0"]
                             RES_PAR = RES_PAR1
                             add.update({"RES_PAR": RES_PAR})
-                            C, i = read_cont(df, i)
+                            C, i = read_cont_fast(records, i)
                             add = {
                                 "NDIGIT": C.L1,
                                 "NNN": C.L2,
@@ -683,7 +683,7 @@ def read_mf32(tape, mat):
                             LCOMP2.update(add)
                             dico[(EL, EH)] = LCOMP2
                         else:
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "AWRI": C.C1,
                                 "APL": C.C2,
@@ -709,7 +709,7 @@ def read_mf32(tape, mat):
                                 del RES_PAR1[h]["0"]
                             RES_PAR = RES_PAR1
                             add.update({"RES_PAR": RES_PAR})
-                            C, i = read_cont(df, i)
+                            C, i = read_cont_fast(records, i)
                             add = {
                                 "NDIGIT": C.L1,
                                 "NNN": C.L2,
@@ -733,7 +733,7 @@ def read_mf32(tape, mat):
                             dico[(EL, EH)] = LCOMP2
                     elif LRF == 7:
                         if ISR > 0:
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
 
                                 "JCH": L.NPL,
@@ -741,7 +741,7 @@ def read_mf32(tape, mat):
                                 "DAP": L.B,
                             }
                             LCOMP2.update(add)
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "NPP": L.L1,
                                 "NJSX": L.L2,
@@ -753,7 +753,7 @@ def read_mf32(tape, mat):
                             LCOMP2.update(add)
                             for k in range(NLS):
                                 LIST = {}
-                                L, i = read_list(df, i)
+                                L, i = read_list_fast(records, i)
                                 add = {
                                     "AJ": L.C1,
                                     "PJ": L.C2,
@@ -764,7 +764,7 @@ def read_mf32(tape, mat):
                                 RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 6)]
                                 add.update({"RES_PAR": RES_PAR})
                                 LCOMP2.update(add)
-                                L, i = read_list(df, i)
+                                L, i = read_list_fast(records, i)
                                 add = {
                                     "NCH": L.L1,
                                     "NRB": L.L2,
@@ -781,7 +781,7 @@ def read_mf32(tape, mat):
                                 add.update(add_2)
                                 LIST.update({k: add})
                             LCOMP2.update({"J": LIST})
-                            C, i = read_cont(df, i)
+                            C, i = read_cont_fast(records, i)
                             add = {
                                 "NDIGIT": C.L1,
                                 "NNN": C.L2,
@@ -803,7 +803,7 @@ def read_mf32(tape, mat):
                             LCOMP2.update(add)
                             dico[(EL, EH)] = LCOMP2
                         else:
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "NPP": L.L1,
                                 "NJSX": L.L2,
@@ -815,7 +815,7 @@ def read_mf32(tape, mat):
                             LCOMP2.update(add)
                             for k in range(NLS):
                                 LIST = {}
-                                L, i = read_list(df, i)
+                                L, i = read_list_fast(records, i)
                                 add = {
                                     "AJ": L.C1,
                                     "PJ": L.C2,
@@ -826,7 +826,7 @@ def read_mf32(tape, mat):
                                 RES_PAR = [dict(zip(keys, items)) for items in grouper(L.B, 6)]
                                 add.update({"RES_PAR": RES_PAR})
                                 LCOMP2.update(add)
-                                L, i = read_list(df, i)
+                                L, i = read_list_fast(records, i)
                                 add = {
                                     "NCH": L.L1,
                                     "NRB": L.L2,
@@ -842,7 +842,7 @@ def read_mf32(tape, mat):
                                 add.update(add_2)
                                 LIST.update({k: add})
                             LCOMP2.update({"J": LIST})
-                            C, i = read_cont(df, i)
+                            C, i = read_cont_fast(records, i)
                             add = {
                                 "NDIGIT": C.L1,
                                 "NNN": C.L2,

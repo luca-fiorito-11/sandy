@@ -19,25 +19,33 @@ def read_mf3(tape, mat, mt):
     -------
     `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
+    
+    Examples
+    --------
+    >>> import sandy
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
+    >>> keys = {'MAT', 'MF', 'MT', 'ZA', 'AWR', 'PFLAG', 'QM', 'QI', 'LR', 'NBT', 'INT', 'E', 'XS'}
+    >>> out = sandy.sections.mf3.read_mf3(tape, 125, 102)
+    >>> assert keys.issubset(out)
     """
-    from ..records import read_cont, read_tab1
+    from ..records import read_cont_fast, read_tab1_fast
 
     mf = 3
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     add = {
             "ZA": C.C1,
             "AWR": C.C2,
             "PFLAG": C.L2,
             }
     out.update(add)
-    T, i = read_tab1(df, i)
+    T, i = read_tab1_fast(records, i)
     add = {
             "QM": T.C1,
             "QI": T.C2,

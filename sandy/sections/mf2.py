@@ -127,16 +127,16 @@ def read_mf2(tape, mat):
     {'ES': 2250.0, 'D': 1.058, 'GX': 0.0, 'GN0': 0.000107789, 'GG': 0.038513, 'GF': 0.40102}
 
     """
-    from ..records import read_cont, read_list, read_tab1
+    from ..records import read_cont_fast, read_list_fast, read_tab1_fast
     from ..utils import grouper
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
         "MAT": mat,
         "MF": mf,
         "MT": mt,
     }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     add = {
         "ZA": C.C1,  # designation for an isotope
         "AWR": C.C2,  # AWR is defines as the ratio of the mass of the material to that of the neutron
@@ -149,7 +149,7 @@ def read_mf2(tape, mat):
         M = {}
         NER1 = {}
         ISO = {}
-        C, i = read_cont(df, i)
+        C, i = read_cont_fast(records, i)
         header1 = {
             "ABN": C.C2,  # Abundance of an isotope in the material
             "LFW": C.L2,  # indication whether average fission wifths are given in the unresolbed resonance region
@@ -161,7 +161,7 @@ def read_mf2(tape, mat):
         dico = {}
         for j in range(NER):
             info = {}
-            C, i = read_cont(df, i)
+            C, i = read_cont_fast(records, i)
             header2 = {
                 # Flag indicating whether this energy range contains data for
                 # resolved or unresolved resonance parameters:
@@ -180,7 +180,7 @@ def read_mf2(tape, mat):
             if LRU == 0:
                 LRU0 = {}
                 LRU0.update(header2)
-                C, i = read_cont(df, i)
+                C, i = read_cont_fast(records, i)
                 add = {
                     "SPI": C.C1,  # Spin, I, of the target nucleus.
                     "AP": C.C2,  # Scattering radius in units of 10e-12cm.
@@ -194,7 +194,7 @@ def read_mf2(tape, mat):
                     if NRO == 0:
                         LRU1_LRF1_2_NRO0 = {}
                         LRU1_LRF1_2_NRO0.update(header2)
-                        C, i = read_cont(df, i)
+                        C, i = read_cont_fast(records, i)
                         add = {
                             "SPI": C.C1,
                             "AP": C.C2,
@@ -203,7 +203,7 @@ def read_mf2(tape, mat):
                         LRU1_LRF1_2_NRO0.update(add)
                         LRU1_LRF1_2_NRO0_NLS = {}
                         for k in range(NLS):
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "AWRI": L.C1,  # Ratio of the mass of a particular isotope to that of a neutron
                                 # Q-value to be added to the incident
@@ -226,7 +226,7 @@ def read_mf2(tape, mat):
                     else:
                         LRU1_LRF1_2_NRO1 = {}
                         LRU1_LRF1_2_NRO1.update(header2)
-                        T, i = read_tab1(df, i)
+                        T, i = read_tab1_fast(records, i)
                         add = {
                             "NR": T.NBT,
                             "NP": T.INT,
@@ -234,7 +234,7 @@ def read_mf2(tape, mat):
                             "AP(E)": T.y,
                         }
                         LRU1_LRF1_2_NRO1.update(add)
-                        C, i = read_cont(df, i)
+                        C, i = read_cont_fast(records, i)
                         add = {
                             "SPI": C.C1,
                             "AP": C.C2,
@@ -243,7 +243,7 @@ def read_mf2(tape, mat):
                         LRU1_LRF1_2_NRO1.update(add)
                         LRU1_LRF1_2_NRO1_NLS = {}
                         for k in range(NLS):
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "AWRI": L.C1,  # Ratio of the mass of a particular isotope to that of a neutron
                                 # Q-value to be added to the incident
@@ -264,7 +264,7 @@ def read_mf2(tape, mat):
                     if NRO == 0:
                         LRU1_LRF3_NRO0 = {}
                         LRU1_LRF3_NRO0.update(header2)
-                        C, i = read_cont(df, i)
+                        C, i = read_cont_fast(records, i)
                         add = {
                             "SPI": C.C1,
                             "AP": C.C2,
@@ -281,7 +281,7 @@ def read_mf2(tape, mat):
                         LRU1_LRF3_NRO0.update(add)
                         LRU1_LRF3_NRO0_NLS = {}
                         for k in range(NLS):
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "AWRI": L.C1,
                                 "APL": L.C2,
@@ -298,7 +298,7 @@ def read_mf2(tape, mat):
                         dico[(EL, EH)] = LRU1_LRF3_NRO0
                     else:
                         LRU1_LRF3_NRO1 = {}
-                        T, i = read_tab1(df, i)
+                        T, i = read_tab1_fast(records, i)
                         add = {
                             "NR": T.NBT,
                             "NP": T.INT,
@@ -306,7 +306,7 @@ def read_mf2(tape, mat):
                             "AP(E)": T.y,
                         }
                         LRU1_LRF3_NRO1.update(add)
-                        C, i = read_cont(df, i)
+                        C, i = read_cont_fast(records, i)
                         add = {
                             "SPI": C.C1,
                             "AP": C.C2,
@@ -317,7 +317,7 @@ def read_mf2(tape, mat):
                         LRU1_LRF3_NRO1.update(add)
                         LRU1_LRF3_NRO1_NLS = {}
                         for k in range(NLS):
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add = {
                                 "AWRI": L.C1,
                                 "APL": L.C2,
@@ -336,7 +336,7 @@ def read_mf2(tape, mat):
                 elif LRF == 7:
                     LRU1_LRF7 = {}
                     LRU1_LRF7.update(header2)
-                    C, i = read_cont(df, i)
+                    C, i = read_cont_fast(records, i)
                     add = {
                         "IFG": C.L1,
                         "KRM": C.L2,  # Flag to specify which formulae for the R-matrix are to be used
@@ -344,7 +344,7 @@ def read_mf2(tape, mat):
                     }
                     NJS = int(C.N1)
                     LRU1_LRF7.update(add)
-                    L, i = read_list(df, i)
+                    L, i = read_list_fast(records, i)
                     keys = [
                         "MA",
                         "MB",
@@ -363,7 +363,7 @@ def read_mf2(tape, mat):
                     LRU1_LRF7_NJS = {}
                     for k in range(NJS):
                         LISTS = {}
-                        L, i = read_list(df, i)
+                        L, i = read_list_fast(records, i)
                         add1 = {
                             "KBK": L.L1,  # Non-zero if background R-matrix exists
                             # Non-zero if non-hard-sphere phase shift are to be
@@ -378,7 +378,7 @@ def read_mf2(tape, mat):
                         SPIN_GROUP = [dict(zip(keys, items)) for items in grouper(L.B, 6)]
                         add1.update({"SPIN_GROUP": SPIN_GROUP})
 
-                        L, i = read_list(df, i)
+                        L, i = read_list_fast(records, i)
                         add2 = {
                             "NRS": L.L2,  # Number of resonances for the given J pi
                             "NX": L.N2,
@@ -412,7 +412,7 @@ def read_mf2(tape, mat):
                 if LFW == 0 and LRF == 1:
                     LRU2_LFW0_LRF1 = {}
                     LRU2_LFW0_LRF1.update(header2)
-                    C, i = read_cont(df, i)
+                    C, i = read_cont_fast(records, i)
                     add = {
                         "SPI": C.C1,
                         "AP": C.C2,
@@ -422,7 +422,7 @@ def read_mf2(tape, mat):
                     LRU2_LFW0_LRF1.update(add)
                     LRU2_LFW0_LRF1_NLS = {}
                     for k in range(NLS):
-                        L, i = read_list(df, i)
+                        L, i = read_list_fast(records, i)
                         add = {
                             "AWRI": L.C1,
                         }
@@ -444,7 +444,7 @@ def read_mf2(tape, mat):
                 elif LRF == 2:
                     LRU2_LRF2 = {}
                     LRU2_LRF2.update(header2)
-                    C, i = read_cont(df, i)
+                    C, i = read_cont_fast(records, i)
                     add = {
                         "SPI": C.C1,
                         "AP": C.C2,
@@ -454,7 +454,7 @@ def read_mf2(tape, mat):
                     LRU2_LRF2.update(add)
                     LRU2_LRF2_NLS = {}
                     for m in range(NLS):
-                        C, i = read_cont(df, i)
+                        C, i = read_cont_fast(records, i)
                         add_1 = {
                             "AWRI": C.C1,
                         }
@@ -463,7 +463,7 @@ def read_mf2(tape, mat):
                         LRU2_LRF2_NjS = {}
                         LIST = {}
                         for k in range(NJS):
-                            L, i = read_list(df, i)
+                            L, i = read_list_fast(records, i)
                             add_2 = {
                                 # Interpolation scheme to be used for
                                 # interpolating between the cross sections

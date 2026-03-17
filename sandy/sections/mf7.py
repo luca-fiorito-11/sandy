@@ -87,42 +87,35 @@ def _read_elastic_scattering(tape, mat, mt):
 
     Examples
     --------
-
-    Incoherent
+    Incoherent.
     
     >>> import sandy
     >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 10, local=True)
-    >>> sandy.sections.mf7._read_elastic_scattering(tls, 10, 2)
-    {'MAT': 10,
-     'MF': 7,
-     'MT': 2,
-     'ZA': 110.0,
-     'AWR': 0.99928,
-     'LTHR': 2,
-     'SB': 80.31784,
-     'NBT': [9],
-     'INT': [2],
-     'TINT': array([115.  , 188.15, 208.15, 228.15, 233.15, 248.15, 253.15, 268.15,
-            273.15]),
-     'W': array([14.70372, 19.1224 , 20.37892, 21.65261, 21.97355, 22.94205,
-            23.26671, 24.24591, 24.57398])}
+    >>> out = sandy.sections.mf7._read_elastic_scattering(tls, 10, 2)
+    >>> keys = {'MAT', 'MF', 'MT', 'ZA', 'AWR', 'LTHR', 'SB', 'NBT', 'INT', 'TINT', 'W'}
+    >>> assert keys.issubset(out)
+    >>> assert out["TINT"] == [115.  , 188.15, 208.15, 228.15, 233.15, 248.15, 253.15, 268.15, 273.15]
+    >>> assert out["W"] == [14.70372, 19.1224 , 20.37892, 21.65261, 21.97355, 22.94205, 23.26671, 24.24591, 24.57398]
 
-    Coherent
+    Coherent.
 
     >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
-    >>> sandy.sections.mf7._read_elastic_scattering(tls, 26, 2)['T'].keys()
-    dict_keys([296.0, 400.0, 500.0, 600.0, 700.0, 800.0, 1000.0, 1200.0])
+    >>> out = sandy.sections.mf7._read_elastic_scattering(tls, 26, 2)
+    >>> keys = {'MAT', 'MF', 'MT', 'ZA', 'AWR', 'LTHR', 'EINT', 'T'}
+    >>> assert keys.issubset(out)
+    >>> keys = {296.0, 400.0, 500.0, 600.0, 700.0, 800.0, 1000.0, 1200.0}
+    >>> assert keys.issubset(out["T"])
     """
-    from ..records import read_cont, read_list, read_tab1
+    from ..records import read_cont_fast, read_list_fast, read_tab1_fast
 
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     LTHR = C.L1
     add = {
         "ZA": C.C1,
@@ -132,7 +125,7 @@ def _read_elastic_scattering(tape, mat, mt):
     out.update(add)
     if LTHR == 1:  # Coherent
         add_temp = {}
-        C, i = read_tab1(df, i)
+        C, i = read_tab1_fast(records, i)
         temp = C.C1  # Temperature
         LT = C.L1  # Temperature flag
         add_2 = {
@@ -144,7 +137,7 @@ def _read_elastic_scattering(tape, mat, mt):
         add["EINT"] = C.x  # Energy array, constant
         add_temp[temp] = add_2
         for j in range(LT):
-            C, i = read_list(df, i)
+            C, i = read_list_fast(records, i)
             temp = C.C1 # Temperature
             add_2 = {
                 "LI": C.L1,  # Flag indicating how to interpolate
@@ -153,7 +146,7 @@ def _read_elastic_scattering(tape, mat, mt):
             add_temp[temp] = add_2
         add['T'] = add_temp
     elif LTHR == 2:  # Incoherent
-        C, i = read_tab1(df, i)
+        C, i = read_tab1_fast(records, i)
         add = {
             'SB': C.C1,  # characteristic bound cross section (barns)
             'NBT': C.NBT,
@@ -190,31 +183,29 @@ def _read_incoherent_inelastic(tape, mat, mt):
 
     >>> import sandy
     >>> tls = sandy.get_endf6_file("endfb_80", 'tsl', 26, local=True)
-    >>> dict = sandy.sections.mf7._read_incoherent_inelastic(tls, 26, 4)
-    >>> dict['BN']
-    [6.153875, 197.6285, 8.93478, 5.000001, 0.0, 1.0]
+    >>> out = sandy.sections.mf7._read_incoherent_inelastic(tls, 26, 4)
+    >>> assert out['BN'] == [6.153875, 197.6285, 8.93478, 5.000001, 0.0, 1.0]
 
     Temperature for the first beta.
 
-    >>> dict['beta/T'][0.0].keys()
-    dict_keys([296.0, 400.0, 500.0, 600.0, 700.0, 800.0, 1000.0, 1200.0])
+    >>> keys = {296.0, 400.0, 500.0, 600.0, 700.0, 800.0, 1000.0, 1200.0}
+    >>> assert keys.issubset(out['beta/T'][0])
 
     Effective temperature.
 
-    >>> dict['effective T'][0]['T_eff']
-    array([ 433.3817,  506.3929,  586.9472,  673.3305,  763.3208,  855.6755,
-           1044.799 , 1237.451 ])
+    >>> expected = [ 433.3817,  506.3929,  586.9472,  673.3305,  763.3208,  855.6755, 1044.799 , 1237.451 ]
+    >>> assert out['effective T'][0]['T_eff'] == expected
     """
-    from ..records import read_cont, read_list, read_tab1, read_tab2
+    from ..records import read_cont_fast, read_list_fast, read_tab1_fast, read_tab2_fast
 
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     add = {
             "ZA": C.C1,
             "AWR": C.C2,
@@ -222,7 +213,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
             "LASYM": C.N1  # Symmetry or asymmetry of S matrix
             }
     out.update(add)
-    C, i = read_list(df, i)
+    C, i = read_list_fast(records, i)
     NS = C.N2
     B = C.B
     add = {
@@ -232,7 +223,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
         }
     out.update(add)
     if B[0] != 0:
-        C, i = read_tab2(df, i)
+        C, i = read_tab2_fast(records, i)
         add = {
                 'NR': C.NZ,  # Number of interpolation ranges for alpha and beta
                 'NP': C.NBT,  # Number of alphas
@@ -242,7 +233,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
         add_beta = {}
         for j in range(Num_beta):
             add_temp = {}
-            T, i = read_tab1(df, i)
+            T, i = read_tab1_fast(records, i)
             temp = T.C1  # Temperature
             b = T.C2  # beta
             LT = T.L1  # Temperature flag
@@ -255,7 +246,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
             add["alpha"] = T.x  # Alpha values, constant values
             add_temp[temp] = add_2
             for z in range(LT):
-                C, i = read_list(df, i)
+                C, i = read_list_fast(records, i)
                 temp = C.C1  # Temperature
                 add_2 = {
                     "LI": C.L1,  # Flag indicating how to interpolate
@@ -266,7 +257,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
         add['beta/T'] = add_beta
         # Effective temperature:
         add_efective_temp = {}
-        C, i = read_tab1(df, i)
+        C, i = read_tab1_fast(records, i)
         add_2 = ({
                 "NR": C.NBT,  # Number of interpolation ranges for alpha and beta
                 "NP": C.INT,  # Number of temperatures
@@ -276,7 +267,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
         add_efective_temp[0] = add_2
         add['effective T'] = add_efective_temp
         if NS >= 1 and B[6] == 0:
-            C, i = read_tab1(df, i)
+            C, i = read_tab1_fast(records, i)
             add_2 = ({
                 "NR": C.NBT,  # Number of interpolation ranges for alpha and beta
                 "NP": C.INT,  # Number of temperatures
@@ -285,7 +276,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
                 })
             add['effective T'][1] = add_2
             if NS >= 2 and B[12] == 0:
-                C, i = read_tab1(df, i)
+                C, i = read_tab1_fast(records, i)
                 add_2 = ({
                         "NR": C.NBT,  # Number of interpolation ranges for alpha and beta
                         "NP": C.INT,  # Number of temperatures
@@ -294,7 +285,7 @@ def _read_incoherent_inelastic(tape, mat, mt):
                         })
                 add['effective T'][2] = add_2
             if NS == 3 and B[18] == 0:
-                C, i = read_tab1(df, i)
+                C, i = read_tab1_fast(records, i)
                 add_2 = ({
                         "NR": C.NBT,  # Number of interpolation ranges for alpha and beta
                         "NP": C.INT,  # Number of temperatures

@@ -45,7 +45,7 @@ class Errorr(_FormattedFile):
         >>> import sandy
         >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
         >>> ek = sandy.energy_grids.CASMO12
-        >>> err = e6.get_errorr(errorr_kws=dict(ek=ek), err=1)['errorr33']
+        >>> err = e6.get_errorr(errorr_kws=dict(ek=ek), err=1, suppress_warnings=True, suppress_njoy_output=True)['errorr33']
         >>> np.testing.assert_allclose(err.get_energy_grid(), ek, atol=1e-14, rtol=1e-14)
         >>> np.testing.assert_allclose(err.get_energy_grid(mat=125), ek, atol=1e-14, rtol=1e-14)
         """
@@ -76,7 +76,7 @@ class Errorr(_FormattedFile):
         >>> import sandy, pytest
         >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
         >>> ek = sandy.energy_grids.CASMO12
-        >>> errs = e6.get_errorr(err=1, errorr_kws=dict(ek=ek), groupr_kws=dict(ek=ek))
+        >>> errs = e6.get_errorr(err=1, errorr_kws=dict(ek=ek), groupr_kws=dict(ek=ek), suppress_warnings=True, suppress_njoy_output=True)
 
         The first case is for `MF=33`.
 
@@ -235,7 +235,7 @@ class Errorr(_FormattedFile):
 
         >>> import sandy, pytest
         >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
-        >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1, temperature=0.1)['errorr33']
+        >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1, temperature=0.1, suppress_warnings=True, suppress_njoy_output=True)['errorr33']
         >>> datamg = err.get_cov().data
         >>> datamg
       		MAT	                   125
@@ -255,7 +255,7 @@ class Errorr(_FormattedFile):
         There is no correlation in the last two groups. 
 
         >>> tape = sandy.get_endf6_file("jeff_33", "xs", 641530, local=True)
-        >>> out = tape.get_errorr(err=1, errorr33_kws=dict(irespr=0, mt=[1, 51, 52],ek=[1e7,2e7,2.4e7, 2.8e7]))
+        >>> out = tape.get_errorr(err=1, errorr33_kws=dict(irespr=0, mt=[1, 51, 52],ek=[1e7,2e7,2.4e7, 2.8e7]), suppress_warnings=True, suppress_njoy_output=True)
         >>> cov = out["errorr33"].get_cov().data
         >>> cov.loc[(6428,1)][(6428,51)]
         E                         (10000000.0, 20000000.0]  (20000000.0, 24000000.0]  (24000000.0, 28000000.0]
@@ -269,7 +269,7 @@ class Errorr(_FormattedFile):
         
         >>> import numpy as np
         >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
-        >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), groupr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1, xs=False, chi=False, nubar=True, mubar=False)['errorr31']
+        >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), groupr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1, xs=False, chi=False, nubar=True, mubar=False, suppress_warnings=True, suppress_njoy_output=True)['errorr31']
         >>> datamg = err.get_cov().data
         >>> np.testing.assert_equal(datamg.values, [[3.153674e-05, 1.413344e-05],[1.413344e-05, 1.643044e-05]])
 
@@ -283,7 +283,7 @@ class Errorr(_FormattedFile):
         The third case is for `MF=35`.
 
         >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
-        >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), groupr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1, xs=False, chi=True, nubar=False, mubar=False)['errorr35']
+        >>> err = e6.get_errorr(errorr_kws=dict(ek=[1e-2, 1e1, 2e7]), groupr_kws=dict(ek=[1e-2, 1e1, 2e7]), err=1, xs=False, chi=True, nubar=False, mubar=False, suppress_warnings=True, suppress_njoy_output=True)['errorr35']
         >>> datamg = err.get_cov().data
         >>> np.testing.assert_equal(datamg.values, [[1.750390e-03, 4.450283e-08],[4.450283e-08, 1.622930e-10]])
         
@@ -291,14 +291,14 @@ class Errorr(_FormattedFile):
         The generation of a `CategoryCov` can be enforced with `covariance_checks=False`.
 
         >>> e6 = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
-        >>> err = e6.get_errorr(errorr_kws=dict(ek=sandy.energy_grids.SCALE238), groupr_kws=dict(ek=sandy.energy_grids.SCALE238), err=1, xs=False, chi=True, nubar=False, mubar=False)['errorr35']
+        >>> err = e6.get_errorr(errorr_kws=dict(ek=sandy.energy_grids.SCALE238), groupr_kws=dict(ek=sandy.energy_grids.SCALE238), err=1, xs=False, chi=True, nubar=False, mubar=False, suppress_warnings=True, suppress_njoy_output=True)['errorr35']
         >>> with pytest.raises(TypeError) as excinfo:
         ...     err.get_cov().data
         >>> cov = err.get_cov(covariance_checks=False).data
 
         Test selecting only specific MT's.
 
-        >>> err = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True).get_errorr(err=1)["errorr33"]
+        >>> err = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True).get_errorr(err=1, suppress_warnings=True, suppress_njoy_output=True)["errorr33"]
         >>> cov = err.get_cov()
         >>> np.testing.assert_array_equal(cov.data.index.get_level_values("MT").unique(), [1, 2, 102])
         >>> with pytest.raises(Exception) as exc:
@@ -386,25 +386,25 @@ def read_mf1(tape, mat):
     out : `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
     """
-    from .records import read_cont, read_list
+    from .records import read_cont_fast, read_list_fast
 
     mf = 1
     mt = 451
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     add = {
         "ZA": C.C1,
         "AWR": C.C2,
         "LRP": C.N1,
     }
     out.update(add)
-    L, i = read_list(df, i)
+    L, i = read_list_fast(records, i)
     add = {
         "EG": np.array(L.B),
     }
@@ -431,16 +431,16 @@ def read_mf3(tape, mat, mt, mf=3):
     out : `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
     """
-    from .records import read_list
+    from .records import read_list_fast
 
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
     i = 0
-    L, i = read_list(df, i)
+    L, i = read_list_fast(records, i)
     add = {
         "XS": np.array(L.B),
     }
@@ -475,16 +475,16 @@ def read_mf33(tape, mat, mt, mf=33):
     out : `dict`
         Content of the ERRORR tape structured as nested `dict`.
     """
-    from .records import read_cont, read_list
+    from .records import read_cont_fast, read_list_fast
 
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     add = {
         "ZA": C.C1,
         "AWR": C.C2,
@@ -492,12 +492,12 @@ def read_mf33(tape, mat, mt, mf=33):
     out.update(add)
     reaction_pairs = {}
     for rp in range(C.N2):  # number of reaction pairs
-        C, i = read_cont(df, i)
+        C, i = read_cont_fast(records, i)
         MT1 = C.L2
         NG = C.N2
         M = np.zeros((NG, NG))
         while True:
-            L, i = read_list(df, i)
+            L, i = read_list_fast(records, i)
             NGCOL = L.L1
             GROW = L.N2
             GCOL = L.L2

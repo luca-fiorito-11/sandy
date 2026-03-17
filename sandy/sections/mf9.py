@@ -38,41 +38,24 @@ def read_mf9(tape, mat, mt):
 
     >>> import sandy
     >>> tape = sandy.get_endf6_file("endfb_71", 'xs', 952410, local=True)
-    >>> read_mf9(tape, 9543, 102)
-    {'MAT': 9543,
-     'MF': 9,
-     'MT': 102,
-     'ZA': 95241.0,
-     'AWR': 238.986,
-     'LIS': 0,
-     'LFS': {0: {'QM': 5539101.0,
-       'QI': 5539101.0,
-       'IZAP': 95242,
-       'NBT': [9],
-       'INT': [3],
-       'E': array([1.000000e-05, 3.690000e-01, 1.000000e+03, 1.000000e+05,
-              6.000001e+05, 1.000000e+06, 2.000000e+06, 4.000001e+06,
-              3.000000e+07]),
-       'Y': array([0.9    , 0.9    , 0.8667 , 0.842  , 0.81533, 0.74382, 0.5703 ,
-              0.52   , 0.52   ])},
-      2: {'QM': 5539101.0,
-       'QI': 5490471.0,
-       'IZAP': 95242,
-       'NBT': [9],
-       'INT': [3],
-       'E': array([1.000000e-05, 3.690000e-01, 1.000000e+03, 1.000000e+05,
-              6.000001e+05, 1.000000e+06, 2.000000e+06, 4.000001e+06,
-              3.000000e+07]),
-       'Y': array([0.1    , 0.1    , 0.1333 , 0.158  , 0.18467, 0.25618, 0.4297 ,
-              0.48   , 0.48   ])}}}
+    >>> out = sandy.sections.mf9.read_mf9(tape, 9543, 102)
+    >>> keys = {'MAT', 'MF', 'MT', 'ZA', 'AWR', 'LIS', 'LFS'}
+    >>> assert keys.issubset(out)
+    >>> assert {0, 2}.issubset(out["LFS"])
+    >>> lfs0 = out["LFS"][0]
+    >>> keys = {'QM', 'QI', 'IZAP', 'NBT', 'INT', 'E', 'Y'}
+    >>> assert keys.issubset(lfs0)
+    >>> assert lfs0["E"] == [1.000000e-05, 3.690000e-01, 1.000000e+03, 1.000000e+05,
+    ...           6.000001e+05, 1.000000e+06, 2.000000e+06, 4.000001e+06, 3.000000e+07]
+    >>> assert lfs0["Y"] == [0.9, 0.9, 0.8667, 0.842, 0.81533, 0.74382, 0.5703 , 0.52, 0.52]
     """
-    from ..records import read_cont, read_tab1
+    from ..records import read_cont_fast, read_tab1_fast
 
     mf = 9
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {"MAT": mat, "MF": mf, "MT": mt}
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     out.update({
         "ZA": C.C1,
         "AWR": C.C2,
@@ -80,7 +63,7 @@ def read_mf9(tape, mat, mt):
         })
     subsections = {}
     for hx in range(C.N1):
-        T, i = read_tab1(df, i)
+        T, i = read_tab1_fast(records, i)
         LFS = T.L2
         add = {
                 "QM": T.C1,

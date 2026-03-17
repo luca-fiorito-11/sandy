@@ -1,30 +1,46 @@
 __author__ = "Luca Fiorito"
 
 def read_mf4(tape, mat, mt):
-    from ..records import read_cont, read_list, read_tab1, read_tab2
+    """
+    >>> import sandy
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
+    >>> out = sandy.sections.mf4.read_mf4(tape, 125, 2)
+    >>> keys = {'MAT', 'MF', 'MT', 'ZA', 'AWR', 'LTT', 'LI', 'LCT', 'LPC'}
+    >>> assert keys.issubset(out)
+    >>> lpc = out["LPC"]
+    >>> keys = {'NE', 'NBT', 'INT', 'E'}
+    >>> assert keys.issubset(lpc)
+    >>> assert len(lpc["E"]) == 96
+    >>> e = 5e-5
+    >>> keys = {'COEFF', 'T', 'LT'}
+    >>> assert keys.issubset(lpc["E"][e])
+    >>> assert lpc["E"][e]["COEFF"] == [-7.99013e-14, 4.90676e-17, 3.04768e-17, 1.42225e-17, 6.20618e-18, -3.54468e-17]
+    """
+    # ---- IMPORT
+    from ..records import read_cont_fast, read_list_fast, read_tab1_fast, read_tab2_fast
 
     mf = 4
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {"MAT" : mat, "MF" : mf, "MT" : mt}
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     out.update({
             "ZA" : C.C1,
             "AWR" : C.C2,
             "LTT" : C.L2,
             })
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     out.update({
             "LI" : C.L1,
             "LCT" : C.L2,
             })
     # polynomial distributions
     if out["LTT"] in (1, 3):
-        T2, i = read_tab2(df, i)
+        T2, i = read_tab2_fast(records, i)
         energy_points = T2.NZ
         edistr = {}
         for j in range(energy_points):
-            L, i = read_list(df, i)
+            L, i = read_list_fast(records, i)
             edistr[L.C2] = {
                     "COEFF" : L.B,
                     "T" : L.C1,
@@ -37,11 +53,11 @@ def read_mf4(tape, mat, mt):
                 "E" : edistr}
     # tabulated distributions
     if out["LTT"] in (2, 3):
-        T2, i = read_tab2(df, i)
+        T2, i = read_tab2_fast(records, i)
         energy_points = T2.NZ
         edistr = {}
         for j in range(energy_points):
-            T, i = read_tab1(df, i)
+            T, i = read_tab1_fast(records, i)
             edistr[T.C2] = {
                     "T" : T.C1,
                     "LT" : T.L1,

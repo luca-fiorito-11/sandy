@@ -25,23 +25,23 @@ def read_mf40(tape, mat, mt, mf=40):
     Notes
     -----
     """
-    from ..records import read_cont, read_list
+    from ..records import read_cont_fast, read_list_fast
 
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     out["ZA"] = C.C1
     out["AWR"] = C.C2
     out["NS"] = C.N1
     nsub = C.N1
     subs = {}
     for j in range(nsub):
-        C, i = read_cont(df, i)
+        C, i = read_cont_fast(records, i)
         qm = C.C1
         qi = C.C2
         izap = C.L1
@@ -50,7 +50,7 @@ def read_mf40(tape, mat, mt, mf=40):
         lfs_key = (izap, lfs)
         sub_list = []
         for _ in range(nl):
-            C, i = read_cont(df, i)
+            C, i = read_cont_fast(records, i)
             xmf1 = C.C1
             xlfs1 = C.C2
             mat1 = C.L1
@@ -70,10 +70,10 @@ def read_mf40(tape, mat, mt, mf=40):
             # Read NC blocks
             ncdict = {}
             for k in range(nc):
-                C, i = read_cont(df, i)
+                C, i = read_cont_fast(records, i)
                 lty = C.L2
                 subsub = {"LTY": lty}
-                L, i = read_list(df, i)
+                L, i = read_list_fast(records, i)
                 if lty == 0:
                     subsub["E1"] = L.C1
                     subsub["E2"] = L.C2
@@ -95,7 +95,7 @@ def read_mf40(tape, mat, mt, mf=40):
             # Read NI blocks
             nidict = {}
             for k in range(ni):
-                L, i = read_list(df, i)
+                L, i = read_list_fast(records, i)
                 lb = L.L2
                 subsub = {"LB": lb}
                 if lb in [0, 1, 2, 3, 4]:

@@ -44,17 +44,26 @@ def read_mf5(tape, mat, mt):
     -------
     `dict`
         Content of the ENDF-6 tape structured as nested `dict`.
-    """
-    from ..records import read_cont, read_tab1, read_tab2
+    
+    Examples
+    --------
 
-    df = tape._get_section_df(mat, mf, mt)
+    >>> import sandy
+    >>> tape = sandy.get_endf6_file("jeff_33", "xs", 922350, local=True)
+    >>> out = sandy.sections.mf5.read_mf5(tape, 9228, 18)
+    >>> keys = {'MAT', 'MF', 'MT', 'ZA', 'AWR', 'PDISTR'}
+    >>> assert keys.issubset(out)
+    """
+    from ..records import read_cont_fast, read_tab1_fast, read_tab2_fast
+
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
 
-    C, i = read_cont(df, 0)
+    C, i = read_cont_fast(records, 0)
     # Number of partial energy distributions. There will be one subsection
     # for each partial distribution.
     NK = C.N1
@@ -66,7 +75,7 @@ def read_mf5(tape, mat, mt):
     
     pdistr = {}
     for j in range(NK):
-        tp, i = read_tab1(df, i)
+        tp, i = read_tab1_fast(records, i)
         # Flag specifying the energy distribution law used for a particular
         # subsection (partial energy distribution)
         LF = tp.L2
@@ -92,12 +101,12 @@ def read_mf5(tape, mat, mt):
                 92-U-240g.jeff33
             """
             sub["U"] = tp.C1
-            T, i = read_tab1(df, i)
+            T, i = read_tab1_fast(records, i)
             sub["NBT_THETA"] = T.NBT
             sub["INT_THETA"] = T.INT
             sub["E_THETA"] = T.x
             sub["THETA"] = T.y
-            T, i = read_tab1(df, i)
+            T, i = read_tab1_fast(records, i)
             sub["NBT_G"] = T.NBT
             sub["INT_G"] = T.INT
             sub["E_G"] = T.x
@@ -111,7 +120,7 @@ def read_mf5(tape, mat, mt):
                 27-Co-59g.jeff33
             """
             sub["U"] = tp.C1
-            T, i = read_tab1(df, i)
+            T, i = read_tab1_fast(records, i)
             sub["NBT_THETA"] = T.NBT
             sub["INT_THETA"] = T.INT
             sub["E_THETA"] = T.x
@@ -120,12 +129,12 @@ def read_mf5(tape, mat, mt):
         # Energy-Dependent Watt Spectrum (LF=11)
         elif LF == 11:
             sub["U"] = tp.C1
-            T, i = read_tab1(df, i)
+            T, i = read_tab1_fast(records, i)
             sub["NBT_A"] = T.NBT
             sub["INT_A"] = T.INT
             sub["E_A"] = T.x
             sub["A"] = T.y
-            T, i = read_tab1(df, i)
+            T, i = read_tab1_fast(records, i)
             sub["NBT_B"] = T.NBT
             sub["INT_B"] = T.INT
             sub["E_B"] = T.x
@@ -133,7 +142,7 @@ def read_mf5(tape, mat, mt):
         
         # Energy-Dependent Fission Neutron Spectrum (Madland and Nix) (LF=12)
         elif LF == 12:
-            TM, i = read_tab1(df, i)
+            TM, i = read_tab1_fast(records, i)
             sub["EFL"] = T.C1
             sub["EHL"] = T.C2
             sub["NBT_TM"] = T.NBT
@@ -143,13 +152,13 @@ def read_mf5(tape, mat, mt):
         
         # Arbitrary Tabulated Function (LF=1)
         elif LF == 1:
-            T2, i = read_tab2(df, i)
+            T2, i = read_tab2_fast(records, i)
             NZ = T2.NZ  # number of incident energies for which distr. is given
             sub["NBT_EIN"] = T2.NBT
             sub["INT_EIN"] = T2.INT
             edistr = {}
             for k in range(NZ):
-                T1, i = read_tab1(df, i)
+                T1, i = read_tab1_fast(records, i)
                 e_in = T1.C2
                 edistr[e_in] = {
                         "EOUT": T1.x,

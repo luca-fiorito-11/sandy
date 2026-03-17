@@ -3,7 +3,6 @@ import numpy as np
 
 from .endf6 import _FormattedFile
 from .xs import Xs
-from .records import read_cont, read_list
 
 __author__ = "Luca Fiorito"
 __all__ = [
@@ -32,11 +31,11 @@ class Gendf(_FormattedFile):
 
         >>> import sandy
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
-        >>> gendf = endf6.get_gendf(verborse=True)
+        >>> gendf = endf6.get_gendf(suppress_njoy_output=True, suppress_warnings=True)
         >>> assert len(gendf.get_n_energy_grid()) == 241
 
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
-        >>> gendf = endf6.get_gendf(groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
+        >>> gendf = endf6.get_gendf(groupr_kws=dict(ek=sandy.energy_grids.CASMO12), suppress_njoy_output=True, suppress_warnings=True)
         >>> np.testing.assert_allclose(gendf.get_n_energy_grid(), sandy.energy_grids.CASMO12, atol=1e-14, rtol=1e-14)
         >>> np.testing.assert_allclose(gendf.get_n_energy_grid(mat=125), sandy.energy_grids.CASMO12, atol=1e-14, rtol=1e-14)
         """
@@ -58,7 +57,7 @@ class Gendf(_FormattedFile):
 
         >>> import sandy
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
-        >>> gendf = endf6.get_gendf(groupr_kws=dict(ep=sandy.energy_grids.CASMO12))
+        >>> gendf = endf6.get_gendf(groupr_kws=dict(ep=sandy.energy_grids.CASMO12), suppress_njoy_output=True, suppress_warnings=True)
         >>> np.testing.assert_allclose(gendf.get_g_energy_grid(), sandy.energy_grids.CASMO12, atol=1e-14, rtol=1e-14)
         >>> np.testing.assert_allclose(gendf.get_g_energy_grid(mat=125), sandy.energy_grids.CASMO12, atol=1e-14, rtol=1e-14)
         """
@@ -80,7 +79,7 @@ class Gendf(_FormattedFile):
 
         >>> import sandy
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
-        >>> gendf = endf6.get_gendf(minimal_processing=True, err=0.005, temperature=293.6, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
+        >>> gendf = endf6.get_gendf(minimal_processing=True, err=0.005, temperature=293.6, groupr_kws=dict(ek=sandy.energy_grids.CASMO12), suppress_njoy_output=True, suppress_warnings=True)
         >>> gendf.get_xs()
         MAT                             125
         MT                              1           2           102         251
@@ -135,7 +134,7 @@ class Gendf(_FormattedFile):
         Use `err=1` or else it takes too long.
 
         >>> endf6 = sandy.get_endf6_file('jeff_33','xs', 922350, local=True)
-        >>> gendf = endf6.get_gendf(minimal_processing=True, err=1, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
+        >>> gendf = endf6.get_gendf(minimal_processing=True, err=1, groupr_kws=dict(ek=sandy.energy_grids.CASMO12), suppress_njoy_output=True, suppress_warnings=True)
         >>> gendf.get_xs(mt=[4, 5])
         MAT                            9228            
         MT                                4           5
@@ -166,7 +165,7 @@ class Gendf(_FormattedFile):
                                           listmat=listmat_).data:
             mf3 = read_mf3(self, mat, mt)
             lowest_range = mf3["GROUPS"][0]["IG"] - 1
-            xs = np.array([x["DATA"][1].tolist() for x in mf3["GROUPS"]])
+            xs = np.array([x["DATA"][1] for x in mf3["GROUPS"]])
             xs = np.insert(xs, [0]*lowest_range, 0) if lowest_range != 0 else xs
             columns = pd.MultiIndex.from_tuples([(mat, mt)],
                                                 names=["MAT", "MT"])
@@ -189,7 +188,7 @@ class Gendf(_FormattedFile):
 
         >>> import sandy
         >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
-        >>> gendf = endf6.get_gendf(minimal_processing=True, err=1, temperature=293.6, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
+        >>> gendf = endf6.get_gendf(minimal_processing=True, err=1, temperature=293.6, groupr_kws=dict(ek=sandy.energy_grids.CASMO12), suppress_njoy_output=True, suppress_warnings=True)
         >>> gendf.get_flux()
         (1e-05, 0.03]             2.99900e-02
         (0.03, 0.058]             2.80000e-02
@@ -225,8 +224,7 @@ class Gendf(_FormattedFile):
         mt_ = 1
         mf3 = read_mf3(self, mat_, mt_)
         mf1 = read_mf1(self, mat_)
-        lowest_range = mf3["GROUPS"][0]["IG"] - 1
-        data = np.array([x["DATA"][0].tolist() for x in mf3["GROUPS"]])
+        data = np.array([x["DATA"][0] for x in mf3["GROUPS"]])
         index = pd.IntervalIndex.from_breaks(mf1["EGN"])
         flux = pd.Series(data.T, index=index, name="iwt")
         return flux
@@ -256,34 +254,27 @@ def read_mf1(tape, mat):
 
     >>> import sandy
     >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
-    >>> gendf = endf6.get_gendf(groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
-    >>> mf1 = sandy.gendf.read_mf1(gendf, 125)
-    >>> mf1['AWR'] = round(mf1['AWR'], 3)
-    >>> mf1
-    {'MAT': 125,
-     'MF': 1,
-     'MT': 451,
-     'ZA': 1001.0,
-     'AWR': 0.999,
-     'LRP': -1,
-     'TEMPIN': 0.0,
-     'TITLE': [0.0],
-     'SIGZ': [10000000000.0],
-     'EGN': array([1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
-            3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03,
-            8.2100e+05, 2.2310e+06, 1.0000e+07]),
-     'EGG': array([0.])}
+    >>> gendf = endf6.get_gendf(groupr_kws=dict(ek=sandy.energy_grids.CASMO12), suppress_warnings=True, suppress_njoy_output=True)
+    >>> out = sandy.gendf.read_mf1(gendf, 125)
+    >>> keys = {'MAT', 'MF', 'MT', 'ZA', 'AWR', 'LRP', 'TEMPIN', 'TITLE', 'SIGZ', 'EGN', 'EGG'}
+    >>> assert keys.issubset(out)
+    >>> assert out['SIGZ'] == [10000000000.0]
+    >>> assert out['EGN'] == [1.0000e-05, 3.0000e-02, 5.8000e-02, 1.4000e-01, 2.8000e-01,
+    ...        3.5000e-01, 6.2500e-01, 4.0000e+00, 4.8052e+01, 5.5300e+03, 8.2100e+05, 2.2310e+06, 1.0000e+07]
+    >>> assert out['EGG'] == [0]
     """
+    from .records import read_cont_fast, read_list_fast
+
     mf = 1
     mt = 451
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     NZ = C.L2
     NTW = C.N2
     add = {
@@ -292,7 +283,7 @@ def read_mf1(tape, mat):
         "LRP": C.N1,
     }
     out.update(add)
-    L, i = read_list(df, i)
+    L, i = read_list_fast(records, i)
     NGN = L.L1
     NGG = L.L2
     out["TEMPIN"] = L.C1
@@ -300,9 +291,9 @@ def read_mf1(tape, mat):
     del L.B[:NTW]
     out["SIGZ"] = L.B[:NZ]
     del L.B[:NZ]
-    out["EGN"] = np.array(L.B[:NGN + 1])
+    out["EGN"] = L.B[:NGN + 1]
     del L.B[:NGN + 1]
-    out["EGG"] = np.array(L.B[:NGG + 1])
+    out["EGG"] = L.B[:NGG + 1]
     return out
 
 
@@ -330,23 +321,26 @@ def read_mf3(tape, mat, mt):
 
     >>> import sandy
     >>> endf6 = sandy.get_endf6_file("jeff_33", "xs", 10010, local=True)
-    >>> gendf = endf6.get_gendf(temperature=293.6, err=0.005, minimal_processing=True, groupr_kws=dict(ek=sandy.energy_grids.CASMO12))
-    >>> sandy.gendf.read_mf3(gendf, 125, 1)['GROUPS'][0]
-    {'TEMPIN': 293.6,
-     'NG2': 2,
-     'IG2LO': 1,
-     'IG': 1,
-     'DATA': array([2.999000e-02, 4.745001e+01])}
+    >>> gendf = endf6.get_gendf(temperature=293.6, err=0.005, minimal_processing=True, groupr_kws=dict(ek=sandy.energy_grids.CASMO12), suppress_njoy_output=True, suppress_warnings=True)
+    >>> out = sandy.gendf.read_mf3(gendf, 125, 1)
+    >>> keys = {'MAT', 'MF', 'MT', 'ZA', 'AWR', 'NL', 'LRFLAG', 'GROUPS'}
+    >>> assert keys.issubset(out)
+    >>> assert len(out["GROUPS"]) == 12
+    >>> g0 = out['GROUPS'][0]
+    >>> assert g0["TEMPIN"] == 293.6 and g0["NG2"] == 2 and g0["IG2LO"] == 1 and g0["IG"] == 1
+    >>> assert g0["DATA"] == [2.999000e-02, 4.745001e+01]
     """
+    from .records import read_cont_fast, read_list_fast
+
     mf = 3
-    df = tape._get_section_df(mat, mf, mt)
+    records = tape._get_section_records(mat, mf, mt)
     out = {
             "MAT": mat,
             "MF": mf,
             "MT": mt,
             }
     i = 0
-    C, i = read_cont(df, i)
+    C, i = read_cont_fast(records, i)
     NGN = C.N2
     add = {
         "ZA": C.C1,
@@ -356,24 +350,24 @@ def read_mf3(tape, mat, mt):
     }
     out.update(add)
     groups = []
-    L, i = read_list(df, i)
+    L, i = read_list_fast(records, i)
     add = {
             "TEMPIN": L.C1,  # Material temperature (Kelvin)
             "NG2": L.L1,  # Number of secondary positions
             "IG2LO": L.L2,  # Index to lowest zero group
             "IG": L.N2,  # Group index
-            "DATA": np.array(L.B),  # Array containing the flux and the xs
+            "DATA": L.B,  # Array containing the flux and the xs
             }
     groups.append(add)
     NGN_file = NGN - L.N2
     for ig in range(NGN_file):
-        L, i = read_list(df, i)
+        L, i = read_list_fast(records, i)
         add = {
             "TEMPIN": L.C1,  # Material temperature (Kelvin)
             "NG2": L.L1,  # Number of secondary positions
             "IG2LO": L.L2,  # Index to lowest zero group
             "IG": L.N2,  # Group index
-            "DATA": np.array(L.B),  # Array containing the flux and the xs
+            "DATA": L.B,  # Array containing the flux and the xs
             }
         groups.append(add)
     out["GROUPS"] = groups
