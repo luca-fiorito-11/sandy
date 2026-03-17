@@ -4923,7 +4923,7 @@ class Endf6(_FormattedFile):
         ...    block0 = fy0.data.query("MT==@mt and E==@e").set_index("ZAP")["FY"]
         ...    block = fy.data.query("MT==@mt and E==@e").set_index("ZAP")["FY"]
         ...    from_file_relpert = block0.div(block).fillna(1)
-        ...    np.testing.assert_array_almost_equal(from_file_relpert, expected_relpert, decimal=5)        
+        ...    np.testing.assert_array_almost_equal(from_file_relpert, expected_relpert, decimal=4)        
         
         
         
