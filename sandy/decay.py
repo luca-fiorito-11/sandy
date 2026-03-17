@@ -579,7 +579,7 @@ class DecayData():
         Examples
         --------
         
-        >>> import sandy
+        >>> import sandy, pandas as pd
         >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', [10010, 270600, 280600], local=True)
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> out = rdd.get_qmatrix()
@@ -994,7 +994,7 @@ class _DecayBase():
 
         Perturbation of 5% on the half life of U235.
 
-        >>> import sandy
+        >>> import sandy, pandas as pd
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", 922350, local=True)
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> hl = rdd.get_half_life(with_uncertainty=False)
@@ -1115,7 +1115,7 @@ class BranchingRatio(_DecayBase):
         Examples
         --------
 
-        >>> import sandy
+        >>> import sandy, pandas as pd
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", 922350, local=True)
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> br = rdd.get_branching_ratio(with_uncertainty=False)
@@ -1208,7 +1208,7 @@ class HalfLife(_DecayBase):
         Examples
         --------
 
-        >>> import sandy
+        >>> import sandy, pandas as pd
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", 922350, local=True)
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> hl = rdd.get_half_life(with_uncertainty=False)
@@ -1286,7 +1286,7 @@ class DecayEnergy(_DecayBase):
         Examples
         --------
 
-        >>> import sandy
+        >>> import sandy, pandas as pd
         >>> endf6 = sandy.get_endf6_file("jeff_33", "decay", 922350, local=True)
         >>> rdd = sandy.DecayData.from_endf6(endf6)
         >>> e = rdd.get_decay_energy(with_uncertainty=False)
