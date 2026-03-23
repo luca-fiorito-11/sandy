@@ -172,27 +172,34 @@ sandy.get_njoy()
 ```
 
 ### NJOY on Windows
-NJOY requires a Linux-like environment. We recommend **Cygwin64**.
+NJOY requires a **Linux-like environment** because it was originally developed for Unix systems.
+On Windows, the easiest way to provide that environment is with **Cygwin64** which emulates Linux system calls and provides required tools like `make`, `gcc`, and `cmake`.
+
 #### 1. Install Cygwin64
 - Download [Cygwin64](https://cygwin.com/install.html).
 - Follow the instructions of the installation wizard.
-- You will be asked to select a 'Root Install Directory', that is, the directory where you want to install cygwin. In my case it is `C:\cygwin64
-`. From now on we'll call the 'Root Install Directory' `C:\path\to\cygwin64`.
+- You will be asked to select a **Root Install Directory**, that is, the directory where you want to install cygwin, e.g., `C:\cygwin64`.
+  From now on we will refer to it as `C:\path\to\cygwin64`.
 - Make sure you select the following packages to ensure that NJOY be succesfully installed:
-    * `cmake 3.20.0-1`
-    * `make 4.3-1`
-    * `gcc-fortran 10.2.0-1`
-    * `gcc-g++ 10.2.0-1`
+    * `cmake 3.20.0-1` – build system
+    * `make 4.3-1` – to run makefiles
+    * `gcc-fortran 10.2.0-1` – Fortran compiler (NJOY is Fortran-based)
+    * `gcc-g++ 10.2.0-1` – C++ compiler
+
+> NJOY compilation requires a Fortran compiler and make tools. Cygwin provides them.
 
 #### 2. Download NJOY2016
-- From a **git** terminal:
+From a **git terminal**:
+
 ```sh
 cd C:\path\to\cygwin64\home\your_username
 git clone https://github.com/njoy/NJOY2016.git
 ```
+> You need the source code to build NJOY on your system. Cloning into your Cygwin home directory ensures the build environment is consistent.
 
 #### 3. Build NJOY in Cygwin
-- Open a `cygwin64` terminal and install NJOY2016:
+Open a **Ccygwin64 terminal** and install NJOY2016:
+
 ```sh
 cd C:\path\to\cygwin64\home\username\NJOY2016
 mkdir bin
@@ -201,28 +208,95 @@ cmake ..
 make
 make test
 ```
->  Make sure cmake finds an available python3 interpreter, if not you might have to use the cmake option `-DPython3_EXECUTABLE`.
+>  Ensure `cmake` can find an available python3 interpreter. Use the option `-DPython3_EXECUTABLE=...` if necessary.
 
 #### 4. Register NJOY inside the conda environment
-- Open an Anaconda Prompt terminal and set up the NJOY executable in the environment variable `NJOY`. This way SANDY will automatically find it.
+Open an **Anaconda Prompt** and set an environment variable so **SANDY can automatically locate NJOY**.
+
 ```dos
 conda activate sandy-devel
 conda env config vars set NJOY=C:\path\to\cygwin64\home\username\NJOY2016\bin\njoy.exe
 conda activate sandy-devel
 ```
-- Check:
+
+Verify:
+
 ```dos
 conda env config vars list
 ```
 
-#### 5. Add Cygwin DLLs to PATH
-To succesfully run NJOY Windows must be able to find some DLL files such as `cygwin1.dll`.
+> The environment variable `NJOY` tells Python packages like SANDY where the executable is, so you don’t have to type the full path each time.
 
+#### 5. Add Cygwin DLLs to PATH
+
+NJOY depends on Cygwin DLLs (like `cygwin1.dll`).
+Windows needs to know where to find them.
 This file is part of cygwin, so most likely it's located in `C:\path\to\cygwin64\bin`.
 
-Then, you have to add `C:\path\to\cygwin64\bin` (or the location where `cygwin1.dll` can be found) to your `PATH` typing the following on an Anaconda Prompt terminal:
+From an Anaconda Prompt:
 ```dos
 set PATH=%PATH%;C:\path\to\cygwin64\bin
+```
+
+> This command temporarily adds Cygwin’s `bin` folder to PATH.
+> Without it, Windows cannot locate the required DLLs and NJOY fails with “cygwin1.dll not found.”
+>
+> However, this works only temporarily in that terminal session.
+> Closing the terminal or opening a new Anaconda Prompt resets `PATH`, so Windows cannot find `cygwin1.dll` anymore.
+
+Alternatively you can (should) make Cygwin `PATH` changes persistent in your Conda environment
+
+##### 5.1. Locate your Conda environment
+
+Your environment path is stored in `%CONDA_PREFIX%`.
+All activation scripts live under:
+```cmd
+<env_path>\etc\conda\activate.d\
+```
+##### 5.2. Create the activation script folder
+
+If it doesn’t already exist:
+```cmd
+mkdir %CONDA_PREFIX%\etc\conda\activate.d
+```
+
+> Conda automatically runs any scripts in this folder when the environment is activated.
+
+##### 5.3. Create the script
+
+Create a new file named `cygwin_path.bat` (for Command Prompt / Anaconda Prompt) in that folder:
+
+```cmd
+notepad %CONDA_PREFIX%\etc\conda\activate.d\cygwin_path.bat
+```
+
+Inside, add this line:
+
+```cmd
+set PATH=C:\cygwin64\bin;%PATH%
+```
+
+> This prepends the Cygwin `bin` folder to `PATH` before other directories.
+> Windows always searches `PATH` from left to right, so putting it first ensures `cygwin1.dll` is found.
+
+##### 5.4. Test the activation
+
+Deactivate and reactivate the environment:
+
+```cmd
+conda deactivate
+conda activate sandy-devel
+```
+
+Check PATH:
+
+```cmd
+echo %PATH%
+```
+You should see:
+
+```cmd
+C:\cygwin64\bin;...other Conda env paths...
 ```
 
 #### 6. Allow Cygwin to access Windows drives
