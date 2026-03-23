@@ -30,7 +30,7 @@ SANDY can automatically use the NJOY executable if you set the environment varia
 
 ### LINUX
 ```sh
-export NJOY=/path/to/njoy
+export NJOY=/path/to/njoy.exe
 ```
 To make this permanent, add it to your ``~/.bashrc``.
 
@@ -38,6 +38,33 @@ To make this permanent, add it to your ``~/.bashrc``.
 ```bat
 set NJOY=C:\path\to\njoy.exe
 ```
+
+### Conda environment
+
+If you are working in a conda environment (see point 3) you can **permanently set an environment variable that is applied on activation**:
+
+```sh
+conda activate sandy-devel
+conda env config vars set NJOY=C:\path\to\njoy.exe
+```
+> This example assumes your environment is named `sandy-devel`.
+
+To apply the changes after setting the variable, you must **reactivate the environment**:
+
+```sh
+conda deactivate
+conda activate sandy-devel
+```
+To confirm that the variable is set:
+
+```sh
+conda env config vars list
+```
+
+**Notes**:
+ - Changes are stored in the environment and persist across sessions.
+ - Variables are only available **when the environment is active**.
+ - If you update the value, you must reactivate again for changes to take effect.
 
 ### Verify NJOY detection
 Open Python and run:
