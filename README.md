@@ -53,7 +53,7 @@ Examples are available [here](https://luca-fiorito-11.github.io/sandy_notebooks/
 SANDY can be installed both on Linux (recommended) or Windows.
 The installation instructions are available [here](https://github.com/luca-fiorito-11/sandy/blob/develop/INSTALL.md).
 
-:exclamation: Try the installation procedure on a dedicated environment by clicking the badge below. :exclamation:
+:exclamation: Try the installation procedure on a dedicated environment by clicking the badge below (see also this [github repository](https://github.com/luca-fiorito-11/sandy_install)).
 
 <p align="center">
   <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=luca-fiorito-11/sandy_install">
@@ -73,7 +73,9 @@ For a detailed list of changes across versions, please refer to the [CHANGELOG](
 
 ## :computer: Try out the SANDY workshop
 
-Click the badge to launch the full environment in your browser — no installation needed.
+The materials for a hands‑on workshop given at [PHYSOR2026](https://www.physor2026.org/) was collected in a [github repository](https://github.com/luca-fiorito-11/sandy_workshop).
+
+To try it out, **click the badge below** and launch the full environment in your browser — no installation needed.
 
 <p align="center">
   <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=luca-fiorito-11/sandy_workshop">
