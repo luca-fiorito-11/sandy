@@ -53,6 +53,14 @@ Examples are available [here](https://luca-fiorito-11.github.io/sandy_notebooks/
 SANDY can be installed both on Linux (recommended) or Windows.
 The installation instructions are available [here](https://github.com/luca-fiorito-11/sandy/blob/develop/INSTALL.md).
 
+:exclamation: Try the installation procedure on a dedicated environment by clicking the badge below. :exclamation:
+
+<p align="center">
+  <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=luca-fiorito-11/sandy_install">
+    <img src="https://img.shields.io/badge/Start%20SANDY%20Install-Codespaces-green?logo=github">
+  </a>
+</p>
+
 <br>
 
 ## :hourglass: Development history and releases
@@ -60,6 +68,18 @@ The installation instructions are available [here](https://github.com/luca-fiori
 The [latest](https://github.com/luca-fiorito-11/sandy/releases/latest) and older releases of SANDY are available [here](https://github.com/luca-fiorito-11/sandy/releases). 
 
 For a detailed list of changes across versions, please refer to the [CHANGELOG](https://github.com/luca-fiorito-11/sandy/blob/develop/CHANGELOG.md) file.
+
+<br>
+
+## :computer: Try out the SANDY workshop
+
+Click the badge to launch the full environment in your browser — no installation needed.
+
+<p align="center">
+  <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=luca-fiorito-11/sandy_workshop">
+    <img src="https://img.shields.io/badge/Open%20Workshop%20Environment-Codespaces-blue?logo=github" alt="Start SANDY Workshop in Codespaces">
+  </a>
+</p>
 
 <br>
 
