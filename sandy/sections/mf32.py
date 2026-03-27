@@ -103,7 +103,7 @@ def read_intg(tape, mat, NDIGIT,ipos):
     
 
 
-def read_mf32(tape, mat):
+def read_mf32(tape, mat, mt=151):
     """
     Write MT section for MF32
 

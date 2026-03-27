@@ -1022,9 +1022,9 @@ def parse_endf_float(x: str) -> float:
     s = x.strip()
     if not s:
         return 0.0
-
+    
     # If number already uses E-format, use Python float directly.
-    if "E" in s.upper():
+    if 'E' in s or 'e' in s:
         return float(s)
 
     # ENDF-style format: find exponent sign after the first character.

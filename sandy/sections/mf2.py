@@ -20,7 +20,7 @@ mf = 2
 mt = 151
 
 
-def read_mf2(tape, mat):
+def read_mf2(tape, mat, mt=151):
     """
     Write MT section for MF2
 

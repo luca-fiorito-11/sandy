@@ -896,10 +896,11 @@ class _FormattedFile():
         >>> obj2 = _FormattedFile.from_text(text_with_empty)
         >>> assert obj2.data == obj.data
         """
+        # ---- IMPORT
         import pandas as pd
 
         # -----------------------------
-        # 1. Parse MAT/MF/MT using read_fwf
+        # ---- Parse MAT/MF/MT using read_fwf
         # -----------------------------
         df = pd.read_fwf(
             io.StringIO(text),
@@ -912,14 +913,14 @@ class _FormattedFile():
         )
 
         # -----------------------------
-        # 2. Rebuild TEXT column manually (preserving whitespace)
+        # ---- Rebuild TEXT column manually (preserving whitespace)
         # -----------------------------
         # Use splitlines instead of readlines to remove "\n"
         # The if clause removes empty lines.
         df["TEXT"] = [line for line in text.splitlines() if line.split()]
 
         # -----------------------------
-        # 3. Fix title line if MAT is not integer
+        # ---- Fix title line if MAT is not integer
         # -----------------------------
         title = df["TEXT"].iloc[0]
         title_mat = df["MAT"].iloc[0]
@@ -928,14 +929,17 @@ class _FormattedFile():
             int(title_mat)
 
         except ValueError:
-            logging.warning(f"wrong MAT number in the file title\n'{title}'")
+            msg = f"wrong MAT number in the file title\n'{title}'"
+            warn_logger = logging.getLogger("sandy.warn")
+            log(msg, level=logging.WARNING, logger=warn_logger)
+
             df = df.iloc[1:].reset_index(drop=True)
 
         finally:
             df["MAT"] = df["MAT"].astype(int)
 
         # -----------------------------
-        # 4. Compute mask using NumPy (avoids pandas ops → avoids NumExpr)
+        # ---- Compute mask using NumPy (avoids pandas ops → avoids NumExpr)
         # -----------------------------
         mt = df["MT"].to_numpy()
         mf = df["MF"].to_numpy()
@@ -947,12 +951,12 @@ class _FormattedFile():
         df2 = df.loc[mask, ["MAT", "MF", "MT", "TEXT"]]
 
         # -----------------------------
-        # 5. Manual group-by (avoids pandas.groupby → no NumExpr paths)
+        # ---- Manual group-by (avoids pandas.groupby → no NumExpr paths)
         # -----------------------------
         data = {}
         # group rows by (MAT, MF, MT)
         for (mat_v, mf_v, mt_v), group in df2.groupby(["MAT", "MF", "MT"], sort=False):
-            data[(mat_v, mf_v, mt_v)] = "\n".join(group["TEXT"].tolist())
+            data[(int(mat_v), int(mf_v), int(mt_v))] = "\n".join(group["TEXT"].tolist())
 
         return cls(data)
 
@@ -1421,7 +1425,13 @@ class Endf6(_FormattedFile):
             tape[(mat, 1, 451)] = write_mf1(intro)
         return self.__class__(tape)
 
-    def read_section(self, mat, mf, mt, raise_error=True):
+    def read_section(
+            self,
+            mat: int,
+            mf: int,
+            mt: int,
+            raise_error: bool =True,
+            ):
         """
         Parse MAT/MF/MT section.
 

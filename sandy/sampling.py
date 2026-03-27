@@ -312,7 +312,7 @@ def _process_one_file(
                 PERT_{MAT}_MF{31|33|35}.xlsx in `base_dir` for sample IDs in
                 [beg..end] rather than generating them.
                 - `base_dir` must exist and be a directory
-                - `beg` and `end` must be integers with 1 <= beg <= end
+                - `beg` and `end` must be integers with 0 <= beg <= end
 
     Returns
     -------
@@ -551,11 +551,29 @@ def _process_one_file(
 
     We can read these perturbation coefficients without the need of regenerating them.
 
+    First sample 0.
+
+    >>> import shlex, numpy as np
+    >>> cli = f"942410.jeff33 --from_perturbations '{os.getcwd()}' 0 0 --only_perturbations --no-verbose"
+    >>> smps0 = sandy.sampling.run(shlex.split(cli))
+    >>> assert all([np.allclose(v.data[[0]], smps0[k].data) for k, v in smps.items()])
+    >>> assert all([v.data[[0]].index.equals(smps0[k].data.index) for k, v in smps.items()])
+
+    Then sample 1.
+
     >>> import shlex, numpy as np
     >>> cli = f"942410.jeff33 --from_perturbations '{os.getcwd()}' 1 1 --only_perturbations --no-verbose"
-    >>> smps2 = sandy.sampling.run(shlex.split(cli))
-    >>> assert all([np.allclose(v.data[[1]], smps2[k].data) for k, v in smps.items()])
-    >>> assert all([v.data[[1]].index.equals(smps2[k].data.index) for k, v in smps.items()])
+    >>> smps1 = sandy.sampling.run(shlex.split(cli))
+    >>> assert all([np.allclose(v.data[[1]], smps1[k].data) for k, v in smps.items()])
+    >>> assert all([v.data[[1]].index.equals(smps1[k].data.index) for k, v in smps.items()])
+
+    Then together.
+
+    >>> import shlex, numpy as np
+    >>> cli = f"942410.jeff33 --from_perturbations '{os.getcwd()}' 1 1 --only_perturbations --no-verbose"
+    >>> smps1 = sandy.sampling.run(shlex.split(cli))
+    >>> assert all([np.allclose(v.data[[1]], smps1[k].data) for k, v in smps.items()])
+    >>> assert all([v.data[[1]].index.equals(smps1[k].data.index) for k, v in smps.items()])
 
     An excel file of perturbations was produced.
     
@@ -743,6 +761,18 @@ def _process_one_file(
             log_stage(log, method, None, msg, verbose=verbose)
             return smps
 
+        # ----------------------------------------
+        # ---- CHECK IF PERTURBATIONS ARE PRODUCED
+        # ----------------------------------------
+        if smps == {}:
+            msg = "no perturbation was produced"
+            log_stage(log, method, None, msg, verbose=verbose)
+
+            dt = time.time() - t0
+            msg = f"total running time: {dt:.2f} sec"
+            log_stage(log, method, None, msg, verbose=verbose)
+            return
+
         # logging is already in the method
         endf6.apply_perturbations(
             smps,
@@ -787,6 +817,18 @@ def _process_one_file(
             msg = f"total running time: {dt:.2f} sec"
             log_stage(log, method, None, msg, verbose=verbose)
             return smps
+
+        # ----------------------------------------
+        # ---- CHECK IF PERTURBATIONS ARE PRODUCED
+        # ----------------------------------------
+        if smps == {}:
+            msg = "no perturbation was produced"
+            log_stage(log, method, None, msg, verbose=verbose)
+
+            dt = time.time() - t0
+            msg = f"total running time: {dt:.2f} sec"
+            log_stage(log, method, None, msg, verbose=verbose)
+            return
 
         # logging is already in the method
         endf6.apply_perturbations(
@@ -901,8 +943,7 @@ def _process_one_file(
             suppress_njoy_output=not iargs.show_njoy,
             write_errorr=False,
             )
-
-
+    
     # Only provide perturbations if requested
     if iargs.only_perturbations:
         msg = "returning perturbations only"
@@ -916,6 +957,17 @@ def _process_one_file(
         log_stage(log, method, None, msg, verbose=verbose)
         return smps
 
+    # ----------------------------------------
+    # ---- CHECK IF PERTURBATIONS ARE PRODUCED
+    # ----------------------------------------
+    if smps == {}:
+        msg = "no perturbation was produced"
+        log_stage(log, method, None, msg, verbose=verbose)
+
+        dt = time.time() - t0
+        msg = f"total running time: {dt:.2f} sec"
+        log_stage(log, method, None, msg, verbose=verbose)
+        return
 
     # --------------------------------------
     # ---- COMPUTE TEMPERATURE
