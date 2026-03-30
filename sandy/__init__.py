@@ -56,7 +56,7 @@ logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
 
-__version__ = '1.2.0-beta1'
+__version__ = '1.2.0-beta2'
 
 
 
