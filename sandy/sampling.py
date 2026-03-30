@@ -907,9 +907,10 @@ def _process_one_file(
             raise Exception(msg)
 
         beg, end = int(beg), int(end)
+        LIMIT = 0
 
-        if not (beg >= 0 and end >= beg):
-            msg = f"--from_perturbations range must satisfy 1 <= beg <= end (got {beg}..{end})",
+        if not (beg >= LIMIT and end >= LIMIT):
+            msg = f"--from_perturbations range must satisfy {LIMIT} <= beg <= end (got {beg}..{end})",
             raise Exception(msg)
             
 
