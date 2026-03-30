@@ -669,16 +669,36 @@ class DecayData():
 
     def get_transition_matrix(self):
         """
-        Extract transition matrix into dataframe.
-
+        Build the transition matrix associated with the nuclide decay chains.
+    
+        The transition matrix **T** is defined such that each element ``T[i, j]``
+        represents the transition rate from parent nuclide ``j`` to daughter
+        nuclide ``i``.  
+        This rate is computed as::
+    
+            T[i, j] = (branching_ratio * decay_product_yield) * decay_constant
+    
+        The diagonal terms contain the disappearance rate of each unstable nuclide
+        (negative decay constant), while stable nuclides have zero decay rate.
+    
         Returns
         -------
-        `pandas.DataFrame`
-            transition matrix associated to the given decay chains
-
+        pandas.DataFrame
+            A square DataFrame whose rows and columns correspond to nuclide ZAM
+            identifiers. Rows represent daughters, columns represent parents.
+            Missing transitions are filled with zero.
+    
+        Notes
+        -----
+        - This method relies on :meth:`get_decay_chains` to extract the decay
+          structure and decay constants.
+        - The matrix is square and ordered consistently so that the index and
+          column labels match.
+        - The input DataFrame is not modified; all computations use temporary
+          arrays.
+    
         Examples
         --------
-        
         >>> import sandy
         >>> endf6 = sandy.get_endf6_file("jeff_33", 'decay', [10010, 270600, 280600], local=True)
         >>> rdd = sandy.DecayData.from_endf6(endf6)
@@ -689,20 +709,18 @@ class DecayData():
         270600   0.00000e+00 -4.16705e-09 0.00000e+00
         280600   0.00000e+00  4.16705e-09 0.00000e+00
         """
-        # ---- IMPORT
-        import numpy as np
-
-        df = self.get_decay_chains()
-        df["YIELD"] *= df["LAMBDA"]
-        T = df.pivot_table(
-                index="DAUGHTER",
-                columns="PARENT",
-                values="YIELD",
-                aggfunc=np.sum,
-                )\
-              .astype(float)\
-              .fillna(0)
-        return T.reindex(T.columns.values, fill_value=0.0)
+        df = self.get_decay_chains().copy()
+        df["YIELD"] = df["YIELD"] * df["LAMBDA"]
+    
+        T = (
+            df.pivot(index="DAUGHTER", columns="PARENT", values="YIELD")
+              .fillna(0.0)
+              .astype(float)
+        )
+    
+        # ensure square ordering: rows and columns in same parent order
+        idx = T.columns.values  # only values, do not rename the index
+        return T.reindex(index=idx, columns=idx, fill_value=0.0)
 
     @classmethod
     def from_endf6(

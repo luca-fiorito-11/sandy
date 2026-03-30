@@ -261,7 +261,12 @@ class Xs():
         return Endf6(data)
 
     @classmethod
-    def from_endf6(cls, endf6):
+    def from_endf6(
+            cls,
+            endf6,
+            read_xs=True,
+            read_nubar=True,
+            ):
         """
         Extract cross sections from :obj:`~sandy.endf6.Endf6` instance.
 
@@ -314,68 +319,96 @@ class Xs():
         1.09375e-05 3.64045e+01 2.04363e+01 1.59682e+01
         1.12500e-05 3.61812e+01 2.04363e+01 1.57448e+01
         """
+        # ---- IMPORT
         from functools import reduce
+        
+        from .utils import log
 
         data = []
-        # --- FILTER ONLY XS (MF=3) SECTIONS
-        tape = endf6.filter_by(listmf=[3])
+        
+        # ---- FILTER ONLY XS (MF=3) SECTIONS
+        if read_xs:
+            tape = endf6.filter_by(listmf=[3])
+    
+            keep = "first"
+            for mat, mf, mt in tape.data:
+                sec = tape.read_section(mat, mf, mt)
+                if sec['INT'] != [2]:
+                    logging.warning(f"skip MAT{mat}/MF{mf}/MT{mt} "
+                                    "because interpolation schme is not lin-lin")
+                    continue
+                xs = pd.Series(sec["XS"], index=sec["E"], name=(mat, mt)) \
+                       .rename_axis("E") \
+                       .to_frame()
+                mask_duplicates = xs.index.duplicated(keep=keep)
+                for energy in xs.index[mask_duplicates]:
+                    msg = (
+                        f"found duplicate energy for MAT{mat}/MF{mf}/MT{mt} "
+                        f"at {energy:.5e} MeV, keep only {keep} value"
+                    )
+                    warn_logger = logging.getLogger("sandy.warn")
+                    log(msg, level=logging.WARNING, logger=warn_logger)
 
-        keep = "first"
-        for mat, mf, mt in tape.data:
-            sec = tape.read_section(mat, mf, mt)
-            if sec['INT'] != [2]:
-                logging.warning(f"skip MAT{mat}/MF{mf}/MT{mt} "
-                                "because interpolation schme is not lin-lin")
-                continue
-            xs = pd.Series(sec["XS"], index=sec["E"], name=(mat, mt)) \
-                   .rename_axis("E") \
-                   .to_frame()
-            mask_duplicates = xs.index.duplicated(keep=keep)
-            for energy in xs.index[mask_duplicates]:
-                logging.warning("found duplicate energy for "
-                                f"MAT{mat}/MF{mf}/MT{mt} "
-                                f"at {energy:.5e} MeV, keep only {keep} value")
-            xs = xs[~mask_duplicates]
-            data.append(xs)
+                xs = xs[~mask_duplicates]
+                data.append(xs)
 
-        # read nubar
-        tape = endf6.filter_by(listmf=[1], listmt=[452, 455, 456])
-        keep = "first"
+        # ---- FILTER ONLY NUBAR (MF=1) SECTIONS
+        if read_nubar:
+            tape = endf6.filter_by(listmf=[1], listmt=[452, 455, 456])
+            keep = "first"
+    
+            for mat, mf, mt in tape.data:
+                sec = tape.read_section(mat, mf, mt)
+                if sec["LNU"] != 2:
+                    msg = (
+                        f"skip MAT{mat}/MF{mf}/MT{mt} "
+                        "because not tabulated"
+                    )
+                    warn_logger = logging.getLogger("sandy.warn")
+                    log(msg, level=logging.WARNING, logger=warn_logger)
+                    continue
 
-        for mat, mf, mt in tape.data:
-            sec = tape.read_section(mat, mf, mt)
-            if sec["LNU"] != 2:
-                logging.warning(f"skip MAT{mat}/MF{mf}/MT{mt} "
-                                "because not tabulated")
-                continue
-            if sec['INT'] != [2]:
-                logging.warning(f"skip MAT{mat}/MF{mf}/MT{mt} "
-                                "because interpolation schme is not lin-lin")
-                continue
-            xs = pd.Series(sec["NU"], index=sec["E"], name=(mat, mt)) \
-                   .rename_axis("E") \
-                   .to_frame()
-            mask_duplicates = xs.index.duplicated(keep=keep)
-            for energy in xs.index[mask_duplicates]:
-                logging.warning("found duplicate energy for "
-                                f"MAT{mat}/MF{mf}/MT{mt} "
-                                f"at {energy:.5e} MeV, keep only {keep} value")
-            xs = xs[~mask_duplicates]
-            data.append(xs)
+                if sec['INT'] != [2]:
+                    msg = (
+                        f"skip MAT{mat}/MF{mf}/MT{mt} "
+                        "because interpolation schme is not lin-lin"
+                    )
+                    warn_logger = logging.getLogger("sandy.warn")
+                    log(msg, level=logging.WARNING, logger=warn_logger)
+                    continue
+
+                xs = pd.Series(sec["NU"], index=sec["E"], name=(mat, mt)) \
+                       .rename_axis("E") \
+                       .to_frame()
+                mask_duplicates = xs.index.duplicated(keep=keep)
+                for energy in xs.index[mask_duplicates]:
+                    msg = (
+                        f"found duplicate energy for MAT{mat}/MF{mf}/MT{mt} "
+                        f"at {energy:.5e} MeV, keep only {keep} value"
+                    )
+                    warn_logger = logging.getLogger("sandy.warn")
+                    log(msg, level=logging.WARNING, logger=warn_logger)
+
+                xs = xs[~mask_duplicates]
+                data.append(xs)
 
         if not data:
             raise NotImplementedError("cross sections were not found")
-        # should we sort index?
 
-        def foo(l, r):
-            how = "outer"
-            return pd.merge(l, r, left_index=True, right_index=True, how=how)
 
-        df = (
-            reduce(foo, data).
-            interpolate(method='slinear', axis=0).
-            fillna(0)
-            )
+        # --- OPTIMIZED MERGING ---
+        # build unified grid
+        all_energies = np.unique(np.concatenate([xs.index.values for xs in data]))
+        
+        # reindex + interpolate efficiently
+        df = pd.concat(
+            [
+                xs.reindex(all_energies).interpolate('slinear').fillna(0)
+                for xs in data
+            ],
+            axis=1
+        )
+        
         return cls(df)
 
     def reconstruct_sums(self, drop=True):
