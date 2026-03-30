@@ -719,7 +719,7 @@ class DecayData():
         )
     
         # ensure square ordering: rows and columns in same parent order
-        idx = T.columns.values
+        idx = T.columns.values  # only values, do not rename the index
         return T.reindex(index=idx, columns=idx, fill_value=0.0)
 
     @classmethod
