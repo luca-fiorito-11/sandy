@@ -709,9 +709,6 @@ class DecayData():
         270600   0.00000e+00 -4.16705e-09 0.00000e+00
         280600   0.00000e+00  4.16705e-09 0.00000e+00
         """
-        import pandas as pd
-        import numpy as np
-    
         df = self.get_decay_chains().copy()
         df["YIELD"] = df["YIELD"] * df["LAMBDA"]
     
@@ -722,7 +719,8 @@ class DecayData():
         )
     
         # ensure square ordering: rows and columns in same parent order
-        return T.reindex(index=T.columns, columns=T.columns, fill_value=0.0)
+        idx = T.columns.values
+        return T.reindex(index=idx, columns=idx, fill_value=0.0)
 
     @classmethod
     def from_endf6(
