@@ -898,6 +898,8 @@ class _FormattedFile():
         """
         # ---- IMPORT
         import pandas as pd
+        
+        from .utils import log
 
         # -----------------------------
         # ---- Parse MAT/MF/MT using read_fwf
