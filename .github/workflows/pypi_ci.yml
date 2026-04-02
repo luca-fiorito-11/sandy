@@ -1,16 +1,29 @@
-name: Test Sandy from Test PyPI and PyPI
+name: Test Sandy from Test PyPI or PyPI
 
 on:
   workflow_dispatch:
+    inputs:
+      sandy-version:
+        description: "Version of sandy to install (leave empty for latest)"
+        required: false
+        default: ""
+      index:
+        description: "Choose PyPI or TestPyPI"
+        required: true
+        default: "pypi"
+        type: choice
+        options:
+          - pypi
+          - testpypi
 
 env:
-  # Path to the NJOY binary after build
   NJOY: ${{ github.workspace }}/NJOY2016/build/njoy
 
 jobs:
-  test-testpypi:
-    name: Test from Test PyPI
+  test-install:
+    name: Test Sandy installation
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,37 +36,28 @@ jobs:
       - name: Set up NJOY2016
         uses: ./.github/actions/setup-njoy
 
-      - name: Install Sandy from Test PyPI
+      - name: Install Sandy
         run: |
           python -m pip install --upgrade pip
           pip install pytest
-          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple sandy
+
+          # Resolve index URL based on choice
+          if [ "${{ github.event.inputs.index }}" = "testpypi" ]; then
+            INDEX_URL="--index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple"
+          else
+            INDEX_URL=""
+          fi
+
+          # Build version specifier
+          if [ -z "${{ github.event.inputs.sandy-version }}" ]; then
+            VERSION=""
+          else
+            VERSION="==${{ github.event.inputs.sandy-version }}"
+          fi
+
+          echo "Installing sandy${VERSION} from ${{ github.event.inputs.index }}"
+
+          pip install $INDEX_URL "sandy${VERSION}"
 
       - name: Run smoke tests
-        run: |
-          pytest tests/smoke -v 
-
-  test-pypi:
-    name: Test from PyPI
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-
-      - name: Set up NJOY2016
-        uses: ./.github/actions/setup-njoy
-
-      - name: Install Sandy from PyPI
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest
-          pip install sandy
-
-      - name: Run tests
-        run: |
-          pytest tests/smoke -v 
+        run: pytest tests/smoke -v
