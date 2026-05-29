@@ -623,24 +623,48 @@ class CategoryCov():
         C += D
         return self.__class__(C)
 
-    def correct_lognormal(self):
+    def correct_lognormal(
+            self,
+            rho_global: float|None = None,
+            ):
         """
-        Corrects invalid covariance values in the data for lognormal sampling.
+        Correct the covariance matrix to make it suitable for lognormal sampling.
     
-        In lognormal sampling, covariance matrix elements must satisfy the condition COV + 1 > 0.
-        This method identifies values less than -1 and corrects them by setting them to (-1 + ε),
-        where ε is the machine epsilon for float64. A warning is logged with information about how
-        many invalid values were found, the MT numbers involved, and the smallest offending value.
+        This method enforces the mathematical and numerical constraints required
+        to construct a multivariate lognormal distribution with finite moments.
+        The correction is performed in correlation space, not by directly clipping
+        covariances.
+    
+        Specifically, the method:
+          1. Identifies covariance entries C_ij < -1, which violate the lognormal
+             feasibility condition C_ij + 1 > 0, and logs a warning.
+          2. Converts the covariance matrix to a correlation matrix.
+          3. Optionally enforces a global lower bound `rho_global` on correlations
+             to limit unrealistically strong negative dependence.
+          4. Enforces the pairwise lognormal feasibility floor
+             rho_ij > -1 / (sigma_i * sigma_j) + eps, where eps is a small safety
+             margin to avoid singular log-space covariance.
+          5. Reconstructs a corrected covariance matrix and enforces symmetry.
+    
+        The original covariance matrix is not modified; a corrected copy is returned.
+    
+        Parameters
+        ----------
+        rho_global : float or None, optional
+            Global lower bound on correlations (e.g. -0.7). If None, no global
+            realism constraint is applied and only the lognormal feasibility floor
+            is enforced.
     
         Returns
         -------
-        :obj: `~sandy.cov.CategoryCov`
-            An instance of the same class with corrected covariance matrix.
+        :class:`~sandy.cov.CategoryCov`
+            A new CategoryCov instance containing a covariance matrix that is
+            lognormal-feasible and numerically stable.
     
         Notes
         -----
-        - Only the lower triangle (or symmetric) elements of the matrix are considered for counting.
-        - The method assumes a symmetric covariance matrix indexed by a MultiIndex with level "MT".
+        - Strong negative correlations near the feasibility boundary imply large
+          log-space covariances and should be avoided unless physically justified.
         - If any invalid values are found (less than -1), a warning is logged indicating:
             - the number of offending values,
             - the smallest offending value,
@@ -651,7 +675,7 @@ class CategoryCov():
         
         Simple test case. First create MultiIndex.
 
-        >>> import sandy
+        >>> import sandy, pandas as pd, numpy as np
         >>> index_arrays = [[1, 2], [1, 1]]
         >>> index = pd.MultiIndex.from_arrays(index_arrays, names=("MT", "Other"))
 
@@ -666,38 +690,71 @@ class CategoryCov():
 
         Check that all covariances respect condition.
 
-        >>> arr = cm_corrected.to_numpy()
-        >>> assert np.all(1.0 + arr > 0.0)
-        >>> assert cm_corrected.loc[(1, 1), (2, 1)] > -1
-
+        >>> got = cm_corrected.to_numpy()
+        >>> expected = np.array([[1, -0.99], [-0.99, 1]])
+        >>> np.testing.assert_array_equal(got, expected)
         """
-        C = self.data.copy()
+        # --- IMPORT
+        from .utils import log
+        import numpy as np
+        import logging
 
+        # --- PREPARE DATA
+        C = self.data
+        C_np = C.to_numpy()
+
+        std = self.get_std()
+        corr = self.get_corr().data.to_numpy()
+        
+        # --- FEASIBILIY CHECK (logging only)
         # this condition limits covariances to max -100 %
-        mask = C.values < -1
+        mask = C_np < -1
 
         if mask.any():
             n = mask.shape[0]
             iu = np.triu_indices(n, k=1)
             how_many_bad_values = int(mask[iu].sum())
             smallest_bad_value = float(C.values[mask].min())
+
             msg = (
-                f"Condition COV + 1 > 0 for Lognormal sampling is not respected.\n"
-                f"{how_many_bad_values} off-diagonal covariance coefficients "
-                f"are set to -1+eps. Smallest covariance is {smallest_bad_value:.5f}."
+                f"Condition COV + 1 > 0 for Lognormal sampling is violated.\n"
+                f"{how_many_bad_values} off-diagonal diagonal values were corrected.\n"
+                f"Smallest original covariance was {smallest_bad_value:.5f}."
             )
 
             if "MT" in C.index.names:
                 rows_bad = np.unique(iu[0][mask[iu]])
-                bad_mts = C.index.get_level_values("MT")[rows_bad].unique().tolist()
+                bad_mts = (
+                    C.index.get_level_values("MT")[rows_bad]
+                    .unique()
+                    .tolist()
+                    )
                 msg += f" Concerned MT numbers (rows): {bad_mts}."
 
-            logging.warning(msg)
+            warn_logger = logging.getLogger("sandy.warn")
+            log(msg, level=logging.WARNING, logger=warn_logger)
             
-            # use pandas mask to avoid read-only issues with ".values[...] = "
-            C = C.mask(mask, -1 + np.finfo(np.float64).eps)
+        # --- CORRELATION-BASED CLAMPING
+        # hard feasibility constraint, must always be applied
+        corr_clamped = corr.copy()
 
-        return self.__class__(C)
+        if rho_global is not None:
+            corr_clamped = np.maximum(corr_clamped, rho_global)
+
+        rho_min = -1 / np.outer(std, std)
+        eps = 1e-2
+
+        corr_clamped = np.maximum(corr_clamped, rho_min + eps)
+        np.fill_diagonal(corr_clamped, 1.0)
+        
+        # --- REBUILD COVARIANCE
+        C_new = corr_clamped * np.outer(std, std)
+
+        return self.__class__(C_new, index=C.index, columns=C.columns)
+#            # use pandas mask to avoid read-only issues with ".values[...] = "
+#            C = C.mask(mask, rho_global)
+#
+#        return self.__class__(C)
 
     def transform_lognormal(self):
         """
@@ -771,11 +828,11 @@ class CategoryCov():
         
         """
         # Copy to preserve metadata (index/columns) and avoid mutating `self.data`
-        C = self.data.copy()
+        C = self.data
     
         # Elementwise inverse mapping: Σ_Z = log(1 + C)
         # Use log1p for numerical stability on small values
-        C.loc[:, :] = np.log1p(C.values)
+        C.loc[:, :] = np.log1p(C.to_numpy())
     
         return self.__class__(C)
 
